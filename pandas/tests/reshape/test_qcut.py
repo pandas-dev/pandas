@@ -304,5 +304,5 @@ def test_qcut_contains(scale, q, precision):
     arr = (scale * np.arange(q + 1)).round(precision)
     result = qcut(arr, q, precision=precision)
 
-    for value, bucket in zip(arr, result):
+    for value, bucket in zip(arr, result, strict=True):
         assert value in bucket

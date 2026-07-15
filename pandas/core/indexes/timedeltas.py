@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
+import operator
 from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 from pandas._libs import (
     index as libindex,
     lib,
 )
 from pandas._libs.tslibs import (
+    Day,
     Resolution,
+    Tick,
     Timedelta,
+    Timestamp,
+    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
@@ -25,6 +31,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
@@ -34,23 +41,47 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
+from pandas.core.roperator import (
+    rmul,
+    rsub,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._libs import NaTType
-    from pandas._libs.tslibs import (
-        Day,
-        Tick,
-    )
     from pandas._typing import (
         DtypeObj,
         TimeUnit,
     )
 
 
+def _new_TimedeltaIndex(cls, d):
+    """
+    This is called upon unpickling, rather than the default which doesn't
+    have arguments and breaks __new__
+    """
+    if "data" in d and not isinstance(d["data"], TimedeltaIndex):
+        data = d.pop("data")
+        if isinstance(data, TimedeltaArray):
+            tdarr = data
+        else:
+            tdarr = TimedeltaArray._simple_new(data, dtype=data.dtype)
+        # Legacy pickles stored freq on the TimedeltaArray; current pickles
+        # include it in ``d``. Migrate either up onto the Index.
+        legacy_freq = vars(tdarr).pop("_freq", None)
+        freq = d.pop("freq", legacy_freq)
+        result = cls._simple_new(tdarr, **d)
+        result._freq = freq
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = cls.__new__(cls, **d)
+    return result
+
+
 @inherit_names(
     [
-        "__neg__",
-        "__pos__",
         "__abs__",
         "total_seconds",
         "round",
@@ -157,12 +188,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
-    # error: Signature of "_resolution_obj" incompatible with supertype
-    # "DatetimeIndexOpsMixin"
-    @property
-    def _resolution_obj(self) -> Resolution | None:  # type: ignore[override]
-        return self._data._resolution_obj
-
     # -------------------------------------------------------------------
     # Constructors
 
@@ -207,14 +232,20 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        tdarr = TimedeltaArray._from_sequence_not_strict(
-            data, freq=freq, unit=None, dtype=dtype, copy=copy
-        )
+        inferred_freq = data.freq if isinstance(data, TimedeltaIndex) else None
+
+        tdarr = TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        return cls._simple_new(tdarr, name=name, refs=refs)
+        result = cls._simple_new(tdarr, name=name, refs=refs)
+        result._pin_freq(freq, inferred_freq, {})
+        return result
+
+    def __reduce__(self):
+        d = {"data": self._data, "name": self.name, "freq": self._freq}
+        return _new_TimedeltaIndex, (type(self), d), None
 
     # -------------------------------------------------------------------
 
@@ -225,6 +256,107 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if isinstance(dtype, ArrowDtype):
             return dtype.kind == "m"
         return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
+
+    # -------------------------------------------------------------------
+    # Arithmetic Methods
+
+    def __neg__(self) -> TimedeltaIndex:
+        result = self._data.__neg__()
+        idx = type(self)._simple_new(result, name=self.name)
+        if self.freq is not None:
+            idx._freq = -self.freq
+        return idx
+
+    def __pos__(self) -> TimedeltaIndex:
+        result = self._data.__pos__()
+        idx = type(self)._simple_new(result, name=self.name)
+        if self.freq is not None:
+            idx._freq = self.freq
+        return idx
+
+    def _arith_method(self, other: object, op: Callable) -> Index:
+        result = super()._arith_method(other, op)
+        if self.freq is None or not is_scalar(other):
+            return result
+
+        new_freq = None
+        if isinstance(result, type(self)):
+            new_freq = self._get_arith_result_freq(other, op)
+        elif (
+            getattr(getattr(result, "dtype", None), "kind", None) == "M" and op is rsub
+        ):
+            # Timestamp/datetime - TDI produces a DatetimeIndex.
+            # The array __rsub__ does (-self) + other, losing freq in
+            # negation. Compute the freq at the Index level.
+            new_freq = self._get_rsub_datetime_result_freq(other)
+
+        if new_freq is not None:
+            result._freq = new_freq
+        return result
+
+    def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:
+        """
+        Compute the result freq for arithmetic operations whose result
+        is also a TimedeltaIndex.
+
+        Caller is responsible for checking self.freq is not None.
+        """
+        freq = self.freq
+        assert freq is not None  # caller ensures this
+        if op in (operator.mul, rmul):
+            if bool(isna(other)):
+                return None
+            # error: No overload variant of "__mul__" of "BaseOffset"
+            # matches argument type "object"
+            new_freq = freq * other  # type: ignore[operator]
+            if new_freq.n == 0:
+                # GH#51575 Better to have no freq than an incorrect one
+                return None
+            return new_freq
+
+        if op in (operator.truediv, operator.floordiv):
+            # Note: freq gets division, not floor-division, even if op
+            #  is floordiv.
+            if isinstance(freq, Day):
+                if freq.n % other == 0:  # type: ignore[operator]
+                    new_freq = Day(freq.n // other)  # type: ignore[operator]
+                else:
+                    new_freq = to_offset(Timedelta(days=freq.n)) / other  # type: ignore[operator]
+            else:
+                new_freq = freq / other  # type: ignore[operator]
+            if new_freq.nanos == 0 and freq.nanos != 0:
+                # e.g. if self.freq is Nano(1) then dividing by 2
+                #  rounds down to zero
+                return None
+            return new_freq
+
+        if op is rsub:
+            # scalar_timedelta - TDI: the array uses (-self) + other,
+            # losing freq in negation. Result freq is -self.freq.
+            return -freq  # type: ignore[return-value]
+
+        return None
+
+    def _get_rsub_datetime_result_freq(self, other: object) -> Day | Tick | None:
+        """
+        Compute the result freq for Timestamp/datetime - TimedeltaIndex.
+
+        Mirrors the logic of _get_arithmetic_result_freq for the negated
+        array case.
+        """
+        freq = self.freq
+        assert freq is not None  # caller ensures this
+        if isinstance(freq, Tick):
+            return -freq
+
+        # freq is a Day; only preserve with tz-naive or UTC
+        if isinstance(other, Timestamp):
+            tz = other.tz
+        else:
+            tz = Timestamp(other).tz  # type: ignore[arg-type]
+        if tz is None or timezones.is_utc(tz):
+            return -freq  # type: ignore[return-value]
+        return None
 
     # -------------------------------------------------------------------
     # Indexing Methods
@@ -289,6 +421,9 @@ def timedelta_range(
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
+
+    This function generates a sequence of evenly spaced timedelta values
+    between the specified bounds, using day as the default frequency.
 
     Parameters
     ----------
@@ -388,19 +523,19 @@ def timedelta_range(
         if start is not None and end is not None:
             start = Timedelta(start)
             end = Timedelta(end)
-            start = cast(Timedelta, start)
-            end = cast(Timedelta, end)
+            start = cast("Timedelta", start)
+            end = cast("Timedelta", end)
             if abbrev_to_npy_unit(start.unit) > abbrev_to_npy_unit(end.unit):
                 unit = cast("TimeUnit", start.unit)
             else:
                 unit = cast("TimeUnit", end.unit)
         elif start is not None:
             start = Timedelta(start)
-            start = cast(Timedelta, start)
+            start = cast("Timedelta", start)
             unit = cast("TimeUnit", start.unit)
         else:
             end = Timedelta(end)
-            end = cast(Timedelta, end)
+            end = cast("Timedelta", end)
             unit = cast("TimeUnit", end.unit)
 
         # Last we need to watch out for cases where the 'freq' implies a higher
@@ -414,4 +549,6 @@ def timedelta_range(
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )
-    return TimedeltaIndex._simple_new(tdarr, name=name)
+    result = TimedeltaIndex._simple_new(tdarr, name=name)
+    result._freq = freq
+    return result

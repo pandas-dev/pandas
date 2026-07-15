@@ -8,11 +8,6 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def by_blocks_fixture(request):
-    return request.param
-
-
 def _assert_frame_equal_both(a, b, **kwargs):
     """
     Check that two DataFrame equal.
@@ -70,17 +65,17 @@ def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
     [
         # Index
         (
-            DataFrame.from_records({"a": [1, 2], "c": ["l1", "l2"]}, index=["a"]),
-            DataFrame.from_records({"a": [1.0, 2.0], "c": ["l1", "l2"]}, index=["a"]),
+            DataFrame({"a": [1, 2], "c": ["l1", "l2"]}).set_index("a"),
+            DataFrame({"a": [1.0, 2.0], "c": ["l1", "l2"]}).set_index("a"),
             "DataFrame\\.index are different",
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
             "DataFrame\\.index level \\[0\\] are different",
         ),
@@ -155,7 +150,7 @@ def test_frame_equal_columns_mismatch(check_like, frame_or_series, using_infer_s
         )
 
 
-def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
+def test_frame_equal_block_mismatch(frame_or_series):
     obj = frame_or_series.__name__
     msg = f"""{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
@@ -168,7 +163,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 7]})
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(df1, df2, by_blocks=by_blocks_fixture, obj=obj)
+        tm.assert_frame_equal(df1, df2, obj=obj)
 
 
 @pytest.mark.parametrize(
@@ -196,7 +191,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
         ),
     ],
 )
-def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, frame_or_series):
+def test_frame_equal_unicode(df1, df2, msg, frame_or_series):
     # see gh-20503
     #
     # Test ensures that `tm.assert_frame_equals` raises the right exception
@@ -205,9 +200,7 @@ def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, frame_or_series):
     df2 = DataFrame(df2)
     msg = msg.format(obj=frame_or_series.__name__)
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(
-            df1, df2, by_blocks=by_blocks_fixture, obj=frame_or_series.__name__
-        )
+        tm.assert_frame_equal(df1, df2, obj=frame_or_series.__name__)
 
 
 def test_assert_frame_equal_extension_dtype_mismatch():
@@ -416,6 +409,28 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
 
 
+def test_by_blocks_deprecated():
+    # GH#65911
+    df = DataFrame({"a": [1]})
+
+    msg = "the 'by_blocks' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_frame_equal(df, df, by_blocks=True)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_frame_equal(df, df, by_blocks=False)
+
+
+def test_assert_frame_equal_int_near_bounds():
+    # GH#40719 - integer comparisons near int64 bounds should be exact by default
+    min_val = np.iinfo(np.int64).min
+    df1 = DataFrame({"B": [min_val]}, dtype=np.int64)
+    df2 = DataFrame({"B": [min_val + 1]}, dtype=np.int64)
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="B"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+
+
 @pytest.mark.parametrize("na_value", [pd.NA, np.nan, None])
 def test_assert_frame_equal_nested_df_na(na_value):
     # GH#43022
@@ -423,3 +438,28 @@ def test_assert_frame_equal_nested_df_na(na_value):
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
     tm.assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            DataFrame({"a": [pd.array([1, 2, 3])]}),
+            DataFrame({"a": [np.array([1, 2, 3])]}),
+        ),
+        (
+            DataFrame({"a": [[1, 2, 3]]}),
+            DataFrame({"a": [np.array([1, 2, 3])]}),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_frame_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="a"\) are different'
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(right, left, check_exact=True)

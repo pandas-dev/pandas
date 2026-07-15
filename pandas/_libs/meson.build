@@ -50,17 +50,29 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
-cdata = configuration_data()
-if cy.version().version_compare('>=3.1.0')
-    cdata.set('freethreading_compatible', '1')
-else
-    cdata.set('freethreading_compatible', '0')
-endif
-_free_threading_config = configure_file(
-    input: 'free_threading_config.pxi.in',
-    output: 'free_threading_config.pxi',
-    configuration: cdata,
-    install: false,
+m_dep = cc.find_library('m', required: false)
+fast_float = subproject('fast_float')
+fast_float_dep = fast_float.get_variable('fast_float_dep')
+xsimd_dep = dependency('xsimd', version: '>=14.2')
+
+subdir('simd')
+
+# Compile the CSV tokenizer once into a static library shared by every
+# extension that needs it, rather than recompiling it per-extension. This
+# also keeps simd_config_inc (needed only by tokenizer.c) off the include
+# search path of unrelated extensions.
+tokenizer_lib = static_library(
+    'pandas_tokenizer',
+    'src/parser/fast_float_strtod.cpp',
+    'src/parser/pd_strtoi.cpp',
+    'src/parser/tokenizer.c',
+    include_directories: [inc_pd, simd_config_inc],
+    dependencies: [fast_float_dep, py.dependency()],
+)
+
+tokenizer_dep = declare_dependency(
+    link_with: tokenizer_lib,
+    include_directories: [inc_pd],
 )
 
 subdir('tslibs')
@@ -70,10 +82,10 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': _khash_primitive_helper_dep,
+        'deps': [_khash_primitive_helper_dep, m_dep, moments_simd_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
-    'groupby': {'sources': ['groupby.pyx']},
+    'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},
     'hashing': {'sources': ['hashing.pyx']},
     'hashtable': {
         'sources': [
@@ -97,7 +109,10 @@ libs_sources = {
         'sources': ['join.pyx', _khash_primitive_helper],
         'deps': _khash_primitive_helper_dep,
     },
-    'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
+    'lib': {
+        'sources': ['lib.pyx'],
+        'deps': [tokenizer_dep],
+    },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
         'sources': [
@@ -109,16 +124,19 @@ libs_sources = {
     },
     'pandas_parser': {
         'sources': [
-            'src/parser/tokenizer.c',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
+        'deps': [tokenizer_dep],
     },
     'parsers': {
-        'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
-        'deps': _khash_primitive_helper_dep,
+        'sources': [
+            'parsers.pyx',
+            'src/parser/io.c',
+        ],
+        'deps': [tokenizer_dep, _khash_primitive_helper_dep],
     },
-    'json': {
+    '_ujson': {
         'sources': [
             'src/vendored/ujson/python/ujson.c',
             'src/vendored/ujson/python/objToJSON.c',
@@ -126,6 +144,7 @@ libs_sources = {
             'src/vendored/ujson/lib/ultrajsonenc.c',
             'src/vendored/ujson/lib/ultrajsondec.c',
         ],
+        'deps': [m_dep],
     },
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
@@ -133,7 +152,7 @@ libs_sources = {
     'reshape': {'sources': ['reshape.pyx']},
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
-    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
+    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper], 'deps': [m_dep]},
     'tslib': {'sources': ['tslib.pyx']},
     'testing': {'sources': ['testing.pyx']},
     'writers': {'sources': ['writers.pyx']},
@@ -180,7 +199,7 @@ sources_to_install = [
     'internals.pyi',
     'interval.pyi',
     'join.pyi',
-    'json.pyi',
+    '_ujson.pyi',
     'lib.pyi',
     'missing.pyi',
     'ops.pyi',

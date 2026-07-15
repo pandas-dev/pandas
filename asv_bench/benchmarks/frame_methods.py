@@ -389,7 +389,7 @@ class Isnull:
                 np.nan,
                 None,
                 np.datetime64("NaT"),
-                np.timedelta64("NaT"),
+                np.timedelta64("NaT", "ns"),
                 0,
                 1,
                 2.0,

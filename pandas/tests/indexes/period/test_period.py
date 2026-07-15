@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import IncompatibleFrequency
+from pandas.errors import (
+    IncompatibleFrequency,
+    Pandas4Warning,
+)
 
 from pandas import (
     Index,
@@ -39,7 +42,8 @@ class TestPeriodIndex:
         idx = PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=object)
-        tm.assert_numpy_array_equal(idx.values, exp)
+        with tm.assert_produces_warning(Pandas4Warning):
+            tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
 
         exp = np.array([], dtype=np.int64)
@@ -48,7 +52,8 @@ class TestPeriodIndex:
         idx = PeriodIndex(["2011-01", NaT], freq="M")
 
         exp = np.array([Period("2011-01", freq="M"), NaT], dtype=object)
-        tm.assert_numpy_array_equal(idx.values, exp)
+        with tm.assert_produces_warning(Pandas4Warning):
+            tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.asi8, exp)
@@ -56,7 +61,8 @@ class TestPeriodIndex:
         idx = PeriodIndex(["2011-01-01", NaT], freq="D")
 
         exp = np.array([Period("2011-01-01", freq="D"), NaT], dtype=object)
-        tm.assert_numpy_array_equal(idx.values, exp)
+        with tm.assert_produces_warning(Pandas4Warning):
+            tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.asi8, exp)
@@ -72,9 +78,7 @@ class TestPeriodIndex:
             "second",
             "weekofyear",
             "week",
-            "dayofweek",
             "day_of_week",
-            "dayofyear",
             "day_of_year",
             "quarter",
             "qyear",
@@ -102,7 +106,7 @@ class TestPeriodIndex:
 
         field_idx = getattr(periodindex, field)
         assert len(periodindex) == len(field_idx)
-        for x, val in zip(periods, field_idx):
+        for x, val in zip(periods, field_idx, strict=True):
             assert getattr(x, field) == val
 
         if len(ser) == 0:
@@ -110,7 +114,7 @@ class TestPeriodIndex:
 
         field_s = getattr(ser.dt, field)
         assert len(periodindex) == len(field_s)
-        for x, val in zip(periods, field_s):
+        for x, val in zip(periods, field_s, strict=True):
             assert getattr(x, field) == val
 
     def test_is_(self):

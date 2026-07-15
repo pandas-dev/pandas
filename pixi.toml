@@ -1,0 +1,395 @@
+# Cannot define these sections in pyproject.toml yet due to
+# https://github.com/prefix-dev/pixi/issues/1801
+[workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+name = "pandas"
+
+[dependencies]
+# Build dependencies
+versioneer = ">=0.29"
+cython = ">3.1.0,<4.0.0a0"
+meson = ">=1.2.3,<2"
+meson-python = ">=0.19.0,<1"
+pip = ">=26"
+
+# Required dependencies
+python-dateutil = ">=2.8.2"
+
+[feature.default-compiler.dependencies]
+c-compiler = "*"
+cxx-compiler = "*"
+
+[feature.mingw-compiler]
+platforms = ["win-64"]
+dependencies = { gcc = "*", gxx = "*" }
+activation = { env = { CC = "gcc", CXX = "g++" } }
+
+[feature.sanitizers]
+platforms = ["linux-64"]
+dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
+activation = { env = { CC = "clang", CXX = "clang++" } }
+
+[feature.numpy.dependencies]
+numpy = ">=1.26.0,<3"
+
+# latest version (currently 2.4) is included in "numpy" feature above, in addition
+# test the 3 minor versions before -> test latest 4 versions of numpy spread
+# across the 4 tested Python versions
+[feature.numpy21.dependencies]
+numpy = "2.1.*"
+
+[feature.numpy22.dependencies]
+numpy = "2.2.*"
+
+[feature.numpy23.dependencies]
+numpy = "2.3.*"
+
+[feature.numpy-nightly.pypi-dependencies]
+numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
+[target.win.dependencies]
+tzdata = ">=2023.3"
+
+[feature.py311.dependencies]
+python = "3.11.*"
+
+[feature.py312.dependencies]
+python = "3.12.*"
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+[feature.py314.dependencies]
+python = "3.14.*"
+
+[feature.py313-freethreading.dependencies]
+python-freethreading = "3.13.*"
+
+[feature.test-base.dependencies]
+pytest = ">=8.3.4"
+pytest-xdist = ">=3.6.1"
+hypothesis = ">=6.116.0"
+pytest-cov = ">=7.0.0"
+
+[feature.test-network.dependencies]
+pytest-localserver = ">=0.9.0"
+# TODO: Try changing to boto3 >= instead
+boto3 = "==1.40.46"
+
+[feature.test-clipboard.dependencies]
+pytest-qt = ">=4.4.0"
+pyqt = ">=5.15.9"
+qtpy = ">=2.4.2"
+
+# test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
+[feature.pyarrow.dependencies]
+pyarrow = ">=13.0.0"
+
+[feature.pyarrow21.dependencies]
+pyarrow = "21.*"
+
+[feature.pyarrow22.dependencies]
+pyarrow = "22.*"
+
+[feature.pyarrow23.dependencies]
+pyarrow = "23.*"
+
+[feature.pyarrow-nightly.pypi-dependencies]
+pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
+[feature.optional-dependencies.dependencies]
+adbc-driver-postgresql = ">=1.2.0"
+adbc-driver-sqlite = ">=1.2.0"
+beautifulsoup4 = ">=4.12.3"
+blosc = ">=1.21.3"
+bottleneck = ">=1.4.2"
+fastparquet = ">=2024.11.0"
+fsspec = ">=2024.10.0"
+html5lib = ">=1.1"
+gcsfs = ">=2024.10.0"
+jinja2 = ">=3.1.5"
+lxml = ">=5.3.0"
+matplotlib = ">=3.9.3"
+numba = ">=0.60.0"
+numexpr = ">=2.10.2"
+odfpy = ">=1.4.1"
+openpyxl = ">=3.1.5"
+psycopg2 = ">=2.9.10"
+pyiceberg = ">=0.8.1"
+pymysql = ">=1.1.1"
+pyreadstat = ">=1.2.8"
+pytables = ">=3.10.1"
+python-calamine = ">=0.3.0"
+pytz = ">=2020.1"
+pyxlsb = ">=1.0.10"
+s3fs = ">=2024.10.0"
+scipy = ">=1.14.1"
+sqlalchemy = ">=2.0.36"
+tabulate = ">=0.9.0"
+xarray = ">=2024.10.0"
+xlrd = ">=2.0.1"
+xlsxwriter = ">=3.2.0"
+zstandard = ">=0.23.0"
+
+[feature.minimum-versions]
+solve-strategy = "lowest-direct"
+
+[feature.minimum-versions.dependencies]
+# Avoid 3.11.0, which segfaults formatting tracebacks for unraisable
+# exceptions under PYTHONDEVMODE (CPython gh-99729, fixed in 3.11.1).
+python = ">=3.11.1,<3.12"
+
+[feature.downstream.dependencies]
+cftime = "*"
+dask = "*"
+seaborn = "*"
+scikit-learn = "*"
+statsmodels = "*"
+pandas-datareader = "*"
+pyyaml = "*"
+xarray = ">=2024.10.0"
+
+[feature.benchmarks.dependencies]
+asv = ">=0.6.6"
+py-rattler = "*"  # for environment_type in asv.conf.json
+
+[feature.documentation.dependencies]
+gitpython = "*" # obtain contributors from git for whatsnew
+ipykernel = "*" # used in doc/source/user_guide/style.ipynb
+ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
+nbconvert = ">=7.11.0"
+nbformat = "*" # used in doc/source/user_guide/style.ipynb
+nbsphinx = "*"
+numpydoc = "*"
+pandoc = "*"
+seaborn = "*" # used in doc/source/user_guide/style.ipynb
+sphinx = "*"
+sphinx-design = "*"
+sphinx-copybutton = "*"
+
+[feature.documentation.pypi-dependencies]
+# temporary installed with pip with custom patch until released
+# https://github.com/pydata/pydata-sphinx-theme/issues/2176
+pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+
+[feature.website.dependencies]
+feedparser = "*"
+jinja2 = "*"
+jupyterlite-core = "*"
+jupyterlite-pyodide-kernel = "*"
+markdown = "*"
+packaging = "*"
+pygments = "*" # Code highlighting
+pytest = "*"
+pyyaml = "*"
+requests = "*"
+
+[feature.doctests.dependencies]
+pytest-cython = ">=0.4.0"
+natsort = "*" # DataFrame.sort_values doctest
+tokenize-rt = "*" # scripts/check_for_inconsistent_pandas_namespace.py
+pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
+
+[feature.typing.dependencies]
+pre-commit = ">=4.2.0"
+ipython = "*"
+mypy = "==2.1.0"
+# TODO: Investigate why Pixi is downgrading e.g. https://github.com/pandas-dev/pandas/pull/66147
+scipy-stubs = ">=1.17.1.5"
+types-python-dateutil = "*"
+types-PyMySQL = "*"
+types-pytz = "*"
+types-PyYAML = "*"
+
+[environments]
+py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies", "default-compiler"] }
+py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
+py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
+py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
+no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
+minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
+py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base", "default-compiler"] }
+numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "default-compiler"] }
+pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly", "default-compiler"] }
+downstream = { features = ["py313", "numpy", "test-base", "downstream", "default-compiler"] }
+asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks", "default-compiler"] }
+doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests", "default-compiler"] }
+# https://github.com/apache/arrow/issues/49831 for "pyarrow23" in typing
+typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing", "default-compiler"] }
+docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website", "default-compiler"] }
+mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
+sanitizers = { features = ["py313", "numpy", "test-base", "optional-dependencies", "sanitizers"] }
+
+
+[tasks]
+[tasks.uninstall-pandas]
+cmd = "python -m pip uninstall -y pandas || true"
+
+[tasks.build-pandas]
+args = [
+  { "arg" = "editable", "default" = "" },
+  { "arg" = "werror", "default" = "" },
+]
+# https://github.com/pandas-dev/pandas/pull/65228, changed with Meson 1.11
+env = { PKG_CONFIG_PATH = "$CONDA_PREFIX/lib/pkgconfig" }
+cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME {{ werror }}"
+depends-on = ["uninstall-pandas"]
+
+[tasks.ci-test-pandas]
+args = [
+  { "arg" = "pytest_flags" },
+  { "arg" = "numprocesses", "default" = "auto" },
+  { "arg" = "pytest_target", "default" = "pandas" },
+]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "-r",
+  "fE",
+  "{{ pytest_flags }}",
+  "--numprocesses={{ numprocesses }}",
+  "--dist=worksteal",
+  "--capture=no",
+  "--cov=pandas",
+  "--cov-report=xml",
+  "--cov-append",
+  "{{ pytest_target }}",
+]
+
+[tasks.ci-doctests]
+# Avoids NumPy scalar reprs in docstrings.
+env = { PANDAS_FUTURE_PYTHON_SCALARS = "1" }
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "--doctest-modules",
+  "--doctest-cython",
+  "--ignore=pandas/tests",
+  "pandas",
+]
+
+[tasks.ci-check-import]
+cmd = [
+  "python",
+  "-W",
+  "error",
+  "ci/import_pandas_check.py",
+]
+
+[tasks.ci-typing]
+cmd = [
+  "pre-commit",
+  "run",
+  "--verbose",
+  "--hook-stage",
+  "manual",
+  "--all-files",
+]
+
+[tasks.ci-scripts-tests]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "scripts",
+]
+
+[tasks.ci-asv]
+cmd = [
+  "cd",
+  "asv_bench",
+  "&&",
+  "python",
+  "-m",
+  "asv",
+  "machine",
+  "--yes",
+  "&&",
+  "python",
+  "-W",
+  "error",
+  "-m",
+  "asv",
+  "run",
+  "--quick",
+  "--dry-run",
+  # Fork server imports pandas once instead of re-importing it per
+  # benchmark; asv >=0.6.6 defaults to "spawn" which does not (GH#66193).
+  "--launch-method=forkserver",
+  "--durations=30",
+  "--python=same",
+  "--show-stderr",
+]
+
+[tasks.ci-test-single-page-doc]
+args = [
+  { "arg" = "page_to_build" }
+]
+cmd = [
+  "python",
+  "doc/make.py",
+  "--warnings-are-errors",
+  "--no-browser",
+  "--single",
+  "{{ page_to_build }}",
+  "&&",
+  "python",
+  "doc/make.py",
+  "clean",
+]
+
+[tasks.ci-test-nbconvert-doc-notebooks]
+args = [
+  { "arg" = "notebooks" }
+]
+cmd = [
+  "python",
+  "-m",
+  "jupyter",
+  "nbconvert",
+  "--execute",
+  "{{ notebooks }}",
+  "--to",
+  "notebook",
+  "--stdout",
+  ">/dev/null",
+]
+
+[tasks.ci-build-documentation]
+args = [
+  { "arg" = "doc_type", "choices" = ["html", "zip_html"] }
+]
+cmd = [
+  "python",
+  "doc/make.py",
+  "--warnings-are-errors",
+  "{{ doc_type }}",
+]
+
+[tasks.ci-test-website]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "web",
+]
+
+[tasks.ci-build-website]
+cmd = [
+  "python",
+  "web/pandas_web.py",
+  "web/pandas",
+  "--target-path=web/build",
+]
+
+[tasks.ci-build-interactive_terminal]
+cmd = [
+  "python",
+  "-m",
+  "jupyter",
+  "lite",
+  "build",
+]

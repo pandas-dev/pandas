@@ -13,6 +13,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -527,7 +528,12 @@ class TestFillnaSeriesCoercion(CoercionBase):
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
         """test coercion triggered by fillna"""
         target = original.copy()
-        res = target.fillna(value)
+        # GH#45153 filling with incompatible value requiring casting is deprecated
+        warn = None
+        if expected_dtype != target.dtype:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match="fill value"):
+            res = target.fillna(value)
         tm.assert_equal(res, expected)
         assert res.dtype == expected_dtype
 
@@ -804,7 +810,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         Object we will pass to `Series.replace`
         """
         if how == "dict":
-            replacer = dict(zip(self.rep[from_key], self.rep[to_key]))
+            replacer = dict(zip(self.rep[from_key], self.rep[to_key], strict=True))
         elif how == "series":
             replacer = pd.Series(self.rep[to_key], index=self.rep[from_key])
         else:

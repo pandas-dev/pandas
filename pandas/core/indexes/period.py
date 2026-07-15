@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
+import warnings
 
 import numpy as np
 
@@ -19,14 +20,19 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
+    to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
-    cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -38,7 +44,6 @@ from pandas.core.arrays.period import (
     validate_dtype_freq,
 )
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import (
@@ -57,15 +62,6 @@ if TYPE_CHECKING:
     )
 
 
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
-_shared_doc_kwargs = {
-    "klass": "PeriodArray",
-}
-
-# --- Period index sketch
-
-
 def _new_PeriodIndex(cls, **d):
     # GH13277 for unpickling
     values = d.pop("data")
@@ -79,7 +75,15 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "start_time", "end_time", *PeriodArray._field_ops],
+    [
+        "strftime",
+        "start_time",
+        "end_time",
+        *PeriodArray._field_ops,
+        "dayofweek",
+        "dayofyear",
+        "daysinmonth",
+    ],
     PeriodArray,
     wrap=True,
 )
@@ -176,11 +180,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
-
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        # for compat with DatetimeIndex
-        return self.dtype._resolution_obj
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
@@ -288,13 +287,18 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
-        arr = self._data.to_timestamp(freq, how)
-        return DatetimeIndex._simple_new(arr, name=self.name)
+        parr = self._data
+        arr = parr.to_timestamp(freq, how)
+        result = DatetimeIndex._simple_new(arr, name=self.name)
+        result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
+        return result
 
     @property
     def hour(self) -> Index:
         """
         The hour of the period.
+
+        Returns the hour component for each period in the index.
 
         See Also
         --------
@@ -314,6 +318,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def minute(self) -> Index:
         """
         The minute of the period.
+
+        Returns the minute component for each period in the index.
 
         See Also
         --------
@@ -335,6 +341,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def second(self) -> Index:
         """
         The second of the period.
+
+        Returns the second component for each period in the index.
 
         See Also
         --------
@@ -366,24 +374,22 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
 
         name = maybe_extract_name(name, data, cls)
 
-        freq = validate_dtype_freq(dtype, freq)
+        if freq is not None:
+            freq = to_offset(freq, is_period=True)
+        dtype2 = PeriodDtype(freq) if freq is not None else None
+        dtype = validate_dtype_freq(dtype, dtype2)
+        if dtype is not None:
+            freq = dtype._freq
 
         # GH#63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
-        # PeriodIndex allow PeriodIndex(period_index, freq=different)
-        # Let's not encourage that kind of behavior in PeriodArray.
-
-        if freq and isinstance(data, cls) and data.freq != freq:
-            # TODO: We can do some of these with no-copy / coercion?
-            # e.g. D -> 2D seems to be OK
-            data = data.asfreq(freq)
-
-        # don't pass copy here, since we copy later.
-        data = period_array(data=data, freq=freq)
+        data = period_array(data=data, dtype=dtype)
 
         if copy:
             data = data.copy()
@@ -405,6 +411,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     ) -> Self:
         """
         Construct a PeriodIndex from fields (year, month, day, etc.).
+
+        Each field (year, quarter, month, day, hour, minute, second) can be
+        specified as a scalar or array-like. The frequency is inferred from
+        the fields provided or can be given explicitly.
 
         Parameters
         ----------
@@ -458,6 +468,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Construct a PeriodIndex from ordinals.
 
+        Ordinals are integer offsets from the proleptic Gregorian epoch,
+        interpreted according to the given frequency.
+
         Parameters
         ----------
         ordinals : array-like of int
@@ -493,7 +506,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @property
     def values(self) -> npt.NDArray[np.object_]:
+        warnings.warn(
+            "PeriodIndex.values returning an object-dtype ndarray is "
+            "deprecated. In a future version, this will return the "
+            "underlying PeriodArray instead. Use 'PeriodIndex.to_numpy()' "
+            "to get a NumPy array, or 'PeriodIndex.array' to get the "
+            "ExtensionArray.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return np.asarray(self, dtype=object)
+
+    def _mpl_repr(self) -> np.ndarray:
+        # Return ordinals directly so matplotlib receives numeric x-values,
+        # bypassing a round-trip through Period scalar objects.  GH#10578
+        return self.asi8
 
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
         """
@@ -554,8 +581,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Returns True if this PeriodIndex is range-like in that all Periods
-        between start and end are present, in order.
+        Return True if the index contains all periods from start to end
+        (inclusive) with no gaps.
+
+        Requires monotonic increasing order. Duplicate periods are allowed.
         """
         if len(self) == 0:
             return True

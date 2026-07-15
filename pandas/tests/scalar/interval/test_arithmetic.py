@@ -135,6 +135,9 @@ class TestIntervalArithmetic:
     @pytest.mark.parametrize(
         "delta", [Timedelta(days=7), timedelta(7), np.timedelta64(7, "D")]
     )
+    @pytest.mark.filterwarnings(
+        "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+    )
     def test_numeric_interval_add_timedelta_raises(self, interval, delta):
         # https://github.com/pandas-dev/pandas/issues/32023
         msg = "|".join(
@@ -150,9 +153,11 @@ class TestIntervalArithmetic:
         with pytest.raises((TypeError, ValueError), match=msg):
             delta + interval
 
-    @pytest.mark.parametrize("klass", [timedelta, np.timedelta64, Timedelta])
-    def test_timedelta_add_timestamp_interval(self, klass):
-        delta = klass(0)
+    @pytest.mark.parametrize(
+        "delta",
+        [timedelta(0), np.timedelta64(0, "ns"), Timedelta(0)],
+    )
+    def test_timedelta_add_timestamp_interval(self, delta):
         expected = Interval(Timestamp("2020-01-01"), Timestamp("2020-02-01"))
 
         result = delta + expected

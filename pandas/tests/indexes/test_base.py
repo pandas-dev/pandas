@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -170,7 +173,9 @@ class TestIndex:
         # infer freq of same
         if not using_infer_string:
             # Doesn't work with arrow strings
-            freq = pd.infer_freq(df["date"])
+            msg = "A future version of pandas will return a BaseOffset"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                freq = pd.infer_freq(df["date"])
             assert freq == "MS"
 
     def test_constructor_int_dtype_nan(self):
@@ -178,6 +183,37 @@ class TestIndex:
         data = [np.nan]
         expected = Index(data, dtype=np.float64)
         result = Index(data, dtype="float")
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_scalar(self):
+        idx = Index([1, 2, 3])
+
+        result = idx.replace(2, 9)
+
+        expected = Index([1, 9, 3])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_dict(self):
+        idx = Index(["a", "b", "c"])
+
+        result = idx.replace({"b": "x"})
+
+        expected = Index(["a", "x", "c"])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_preserves_name(self):
+        idx = Index([1, 2, 3], name="test")
+
+        result = idx.replace(2, 9)
+
+        assert result.name == "test"
+
+    def test_index_replace_regex(self):
+        idx = Index(["foo", "bar", "baz"])
+        result = idx.replace("^ba", "x", regex=True)
+        expected = Index(["foo", "xr", "xz"])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -353,11 +389,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = (
-                r"Cannot change data-type for array of references\.|"
-                r"Cannot change data-type for object array\.|"
-                r"Cannot change data-type for array of strings\.|"
-            )
+            msg = "Cannot change data-type"
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -534,7 +566,7 @@ class TestIndex:
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
         first_level = ["foo", "bar", "baz"]
-        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3]))
+        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3], strict=True))
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
@@ -562,7 +594,7 @@ class TestIndex:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -576,7 +608,7 @@ class TestIndex:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -1108,20 +1140,23 @@ class TestIndex:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = index.take(np.array([1, 0, -1]), fill_value=True)
+        result = index.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = Index(["B", "A", np.nan], name="xxx")
         tm.assert_index_equal(result, expected)
 
+        # fill_value is respected (not discarded in favor of _na_value)
+        result = index.take(np.array([1, 0, -1]), fill_value="X")
+        expected = Index(["B", "A", "X"], name="xxx")
+        tm.assert_index_equal(result, expected)
+
         # allow_fill=False
-        result = index.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = index.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index(["B", "A", "C"], name="xxx")
         tm.assert_index_equal(result, expected)
 
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
 
         with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -2]), fill_value=True)
@@ -1358,23 +1393,31 @@ class TestIndex:
 
         tm.assert_index_equal(result, expected)
 
+    def test_assert_index_equal_exact_equiv_default_deprecated(self):
+        # GH#57436
+        result = Index([0, 1, 2, 3], dtype=np.int64)
+        expected = RangeIndex(0, 4)
+        msg = "The default value of 'equiv' for the `exact` parameter is deprecated "
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            tm.assert_index_equal(result, expected)
+
 
 class TestMixedIntIndex:
-    # Mostly the tests from common.py for which the results differ
-    # in py2 and py3 because ints and strings are uncomparable in py3
-    # (GH 13514)
+    # (GH 13514) tests for mixed int/str indexes where ints and strings
+    # are not comparable
     @pytest.fixture
     def simple_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])
 
     def test_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             index.argsort()
 
     def test_numpy_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             np.argsort(index)
 
     def test_copy_name(self, simple_index):
@@ -1642,7 +1685,7 @@ def test_index_subclass_constructor_wrong_kwargs(klass):
 
 
 def test_deprecated_fastpath():
-    msg = "[Uu]nexpected keyword argument"
+    msg = "unexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
         Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
@@ -1749,3 +1792,71 @@ def test_index_comparison_different_string_dtype(string_dtype_no_object):
     result = s_str > s_obj
     expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
+
+
+def test_get_level_values_boolean_names():
+    # GH#62169
+    idx_true = Index(["a", "b"], name=True)
+    result = idx_true.get_level_values(True)
+    tm.assert_index_equal(idx_true, result)
+
+    idx_false = Index(["a", "b"], name=False)
+    result = idx_false.get_level_values(False)
+    tm.assert_index_equal(idx_false, result)
+
+    msg = r"Requested level \(False\) does not match index name \(True\)"
+    with pytest.raises(KeyError, match=msg):
+        idx_true.get_level_values(False)
+
+    result = idx_true.get_level_values(0)
+    tm.assert_index_equal(idx_true, result)
+
+
+def test_get_level_values_na_type_matching():
+    # GH#62169
+    idx_nan = Index(["a", "b"], name=np.nan)
+    result = idx_nan.get_level_values(np.nan)
+    tm.assert_index_equal(idx_nan, result)
+
+    idx_na = Index(["a", "b"], name=pd.NA)
+    result = idx_na.get_level_values(pd.NA)
+    tm.assert_index_equal(idx_na, result)
+
+    idx_nat = Index(["a", "b"], name=pd.NaT)
+    result = idx_nat.get_level_values(pd.NaT)
+    tm.assert_index_equal(idx_nat, result)
+
+    msg = r"Requested level \(.+\) does not match index name \(.+\)"
+    with pytest.raises(KeyError, match=msg):
+        idx_nan.get_level_values(pd.NA)
+
+    with pytest.raises(KeyError, match=msg):
+        idx_na.get_level_values(np.nan)
+
+    with pytest.raises(KeyError, match=msg):
+        idx_nat.get_level_values(np.nan)
+
+
+def test_get_level_values_integer_names():
+    # GH#62169
+    idx_5 = Index(["a", "b"], name=5)
+    result = idx_5.get_level_values(5)
+    tm.assert_index_equal(idx_5, result)
+
+    result = idx_5.get_level_values(0)
+    tm.assert_index_equal(idx_5, result)
+
+    result = idx_5.get_level_values(-1)
+    tm.assert_index_equal(idx_5, result)
+
+    idx_0 = Index(["a", "b"], name=0)
+    result = idx_0.get_level_values(0)
+    tm.assert_index_equal(idx_0, result)
+
+    idx_neg1 = Index(["a", "b"], name=-1)
+    result = idx_neg1.get_level_values(-1)
+    tm.assert_index_equal(idx_neg1, result)
+
+    msg = r"Too many levels: Index has only 1 level"
+    with pytest.raises(IndexError, match=msg):
+        idx_5.get_level_values(1)

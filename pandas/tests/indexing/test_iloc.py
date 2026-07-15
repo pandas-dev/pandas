@@ -561,6 +561,48 @@ class TestiLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_unordered_column_indexer_referenced_block(self):
+        # GH#65446 assignment was silently lost when the block was referenced
+        #  by another object and the column indexer was not sorted
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[:, [1, 0]] = DataFrame({"A": [10, 20], "B": [30, 40]})
+        df._mgr._verify_integrity()
+        expected = DataFrame({"A": [30, 40], "B": [10, 20]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_duplicate_column_indexer_referenced_block(self):
+        # GH#65446
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[:, [0, 0]] = np.array([[10, 30], [20, 40]])
+        df._mgr._verify_integrity()
+        expected = DataFrame({"A": [30, 40], "B": [3, 4]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_frame_swap_columns(self):
+        # GH#65446 positional swap when the RHS shares data with the target
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df.iloc[:, [1, 0]] = df[["A", "B"]]
+        expected = DataFrame({"A": [3, 4], "B": [1, 2]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_unordered_row_and_column_indexer_referenced_block(self):
+        # GH#65446 a list row indexer combined with an unsorted column indexer
+        #  must set the full cross product
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[[1, 0], [1, 0]] = np.array([[10, 20], [30, 40]])
+        df._mgr._verify_integrity()
+        expected = DataFrame({"A": [40, 20], "B": [30, 10]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
@@ -634,7 +676,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "index 5 is out of bounds for axis 0 with size 4|index out of bounds"
+        msg = "index 5 is out of bounds for axis 0 with size 4"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -740,6 +782,17 @@ class TestiLocBaseIndependent:
         df.iloc[2:4] = [["x", 11], ["y", 13]]
         expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    @pytest.mark.parametrize("value", [[[1], [2, 3]], [[2, 3], [1]]])
+    def test_setitem_ragged_list_of_lists_raises(self, indexer, value):
+        # GH#64229
+        df = DataFrame({"a": [0.0, 0.0], "b": [0, 0], "c": [0.0, 0.0]})
+        with pytest.raises(ValueError, match="Must have equal len keys"):
+            if indexer == "loc":
+                df.loc[:, ["a", "c"]] = value
+            else:
+                df.iloc[:, [0, 2]] = value
 
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
@@ -1244,6 +1297,32 @@ class TestiLocBaseIndependent:
         res = df.iloc[:, ::-1]
         expected = DataFrame({"B": df["B"], "A": df["A"]})
         tm.assert_frame_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "indexer, values, expected_values",
+        [
+            (slice(None, None, -2), [11, 5, 15], [15, 13, 5, 9, 11]),
+            (slice(None, None, -1), [11, 5, 15, 9, 3], [3, 9, 15, 5, 11]),
+            (slice(3, None, -1), [11, 5, 15, 9], [9, 15, 5, 11, 3]),
+        ],
+    )
+    def test_iloc_setitem_slice_negative_step_none_bounds(
+        self, indexer, values, expected_values
+    ):
+        # GH#66100 length_of_indexer previously returned a negative length
+        # for negative-step slices with start/stop left as None, causing
+        # a spurious "different length than the value" ValueError
+        ser = Series([2, 13, 7, 9, 3], index=["a", "b", "c", "d", "e"])
+        ser.iloc[indexer] = values
+        expected = Series(expected_values, index=["a", "b", "c", "d", "e"])
+        tm.assert_series_equal(ser, expected)
+
+    def test_iloc_setitem_slice_negative_step_full_reverse(self):
+        # GH#66100
+        ser = Series([2, 13, 7, 9, 3], index=["a", "b", "c", "d", "e"])
+        ser.iloc[::-2] = [11, 5, 15]
+        expected = Series([15, 13, 5, 9, 11], index=["a", "b", "c", "d", "e"])
+        tm.assert_series_equal(ser, expected)
 
     def test_iloc_setitem_2d_ndarray_into_ea_block(self):
         # GH#44703

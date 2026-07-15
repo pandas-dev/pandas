@@ -132,6 +132,24 @@ class TestDataFrameColor:
         ax = df.loc[:, [0]].plot.bar(color="DodgerBlue")
         _check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
 
+    def test_bar_colors_single_col_list(self):
+        # GH#18006 color maps per column, so a single-column frame uses only
+        # the first color of the list; use a Series or y= (see
+        # test_bar_colors_single_col_y_list) for one color per bar
+        df = DataFrame({"Test": [1, 3, 5, 7]})
+        colors = [(0.9, 0.9, 0.4), (0.8, 0.4, 0.6), (0.2, 0.7, 0.9), (0.4, 0.4, 0.5)]
+        ax = df.plot.bar(color=colors)
+        _check_colors(ax.patches, facecolors=[colors[0]] * 4)
+
+    def test_bar_colors_single_col_y_list(self):
+        # GH#18006 selecting a single column with y= colors each bar
+        # individually, unlike the per-column behavior in
+        # test_bar_colors_single_col_list
+        df = DataFrame({"Test": [1, 3, 5, 7]})
+        colors = [(0.9, 0.9, 0.4), (0.8, 0.4, 0.6), (0.2, 0.7, 0.9), (0.4, 0.4, 0.5)]
+        ax = df.plot.bar(y="Test", color=colors)
+        _check_colors(ax.patches, facecolors=colors)
+
     def test_bar_colors_green(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot(kind="bar", color="green")
@@ -365,7 +383,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         axes = df.plot(subplots=True)
-        for ax, c in zip(axes, list(default_colors)):
+        for ax, c in zip(axes, list(default_colors), strict=False):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("color", ["k", "green"])
@@ -535,7 +553,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         axes = df.plot(kind="kde", subplots=True)
-        for ax, c in zip(axes, list(default_colors)):
+        for ax, c in zip(axes, list(default_colors), strict=False):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("colormap", ["k", "red"])
@@ -722,7 +740,7 @@ class TestDataFrameColor:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 2)), columns=["A", "B"]
         )
-        msg = "(is not a valid value)|(is not a known colormap)"
+        msg = "|".join(["is not a valid value", "is not a known colormap"])
         with pytest.raises((ValueError, KeyError), match=msg):
             df.plot(colormap="invalid_colormap")
 

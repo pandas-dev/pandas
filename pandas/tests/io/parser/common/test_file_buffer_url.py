@@ -69,7 +69,6 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_path_path_lib(all_parsers, temp_file):
     parser = all_parsers
     df = DataFrame(
@@ -250,7 +249,7 @@ def test_temporary_file(all_parsers, temp_file):
         new_file.seek(0)
 
         if parser.engine == "pyarrow":
-            msg = "the 'pyarrow' engine does not support regex separators"
+            msg = "the 'pyarrow' engine does not support separators > 1 char"
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(new_file, sep=r"\s+", header=None)
             return

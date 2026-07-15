@@ -96,6 +96,95 @@ def generate_regular_range(
     return range_to_ndarray(range(b, e, stride))
 
 
+def generate_daily_offset_range(
+    start: Timestamp | None,
+    end: Timestamp | None,
+    periods: int | None,
+    freq: BaseOffset,
+    unit: TimeUnit = "ns",
+) -> npt.NDArray[np.int64]:
+    """
+    Generate a range for offsets whose on-offset dates are a subset of a
+    daily grid, by generating a daily range and filtering.
+
+    This is a performance optimization (GH#16463) for offsets like BusinessDay
+    that implement ``_get_daily_offset_mask``. Instead of iteratively applying
+    the offset, we generate a daily range and filter it vectorized.
+
+    Parameters
+    ----------
+    start : Timestamp or None
+    end : Timestamp or None
+    periods : int or None
+    freq : BaseOffset
+        Must have ``_supports_daily_offset_mask`` and ``n >= 1``
+        (caller ensures both).
+    unit : str, default "ns"
+
+    Returns
+    -------
+    ndarray[int64]
+        The filtered i8 values.
+    """
+    abs_n = freq.n  # caller ensures n >= 1
+
+    # Resolve the endpoints with offset arithmetic so the on-offset count is
+    # exact regardless of holidays/weekmasks. The old ``needed * 7 + 6``-day
+    # buffer assumed >=1 on-offset day per 7 calendar days, which fails for e.g.
+    # a CustomBusinessDay whose holidays blank out whole weeks -- the result was
+    # then silently short (GH#64648 post-merge). Arithmetic runs on normalized
+    # dates with the time-of-day re-attached, so ``normalize=True`` offsets
+    # don't strip it from the output (GH#44025).
+    if periods is not None and end is not None:
+        # end + periods: anchor at the last on-offset date <= end so that
+        # ``periods`` on-offset dates are returned (GH#64834).
+        tod: Timedelta = end - end.normalize()
+        # pyright can't see through the NaT-returning Timestamp constructor.
+        anchor: Timestamp = Timestamp(  # pyright: ignore[reportAssignmentType]
+            freq.rollback(end.normalize())
+        )
+        start = (anchor - (periods - 1) * freq + tod).as_unit(unit)
+        end = (anchor + tod).as_unit(unit)
+    else:
+        # start is guaranteed non-None here by the caller (exactly two of
+        # start/end/periods are given, and this branch is not end+periods).
+        assert start is not None
+        # Roll an off-offset start forward to the first on-offset date (n >= 1).
+        tod = start - start.normalize()
+        anchor = Timestamp(  # pyright: ignore[reportAssignmentType]
+            freq.rollforward(start.normalize())
+        )
+        start = (anchor + tod).as_unit(unit)
+        if periods is not None:
+            # start + periods.
+            end = (anchor + (periods - 1) * freq + tod).as_unit(unit)
+        elif (
+            # start + end. GH#64790: align end's time-of-day to start's so the
+            # last on-offset date isn't dropped when end's is earlier. Mask
+            # offsets preserve time-of-day unless ``freq.normalize``; testing
+            # that attribute rather than probing ``freq._apply(start)`` avoids
+            # raising near Timestamp.max (GH#64648).
+            tod and not freq.normalize and end >= start  # type: ignore[operator]
+        ):
+            try:
+                end = (end.normalize() + tod).as_unit(unit)  # type: ignore[union-attr]
+            except OutOfBoundsDatetime:
+                # the boundary element this alignment would admit is beyond
+                # Timestamp.max, so keeping the raw end excludes it correctly
+                pass
+
+    i8values = generate_regular_range(start, end, None, Day(), unit=unit)
+    dt64 = i8values.view(f"datetime64[{unit}]")
+    i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
+
+    if abs_n > 1:
+        # start is the first on-offset date and end the last, so a forward
+        # stride anchored at the front lands on end (GH#64648, GH#65604).
+        i8values = i8values[::abs_n]
+
+    return i8values
+
+
 def _generate_range_overflow_safe(
     endpoint: int, periods: int, stride: int, side: str = "start"
 ) -> int:

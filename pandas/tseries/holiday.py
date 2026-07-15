@@ -154,8 +154,83 @@ def after_nearest_workday(dt: datetime) -> datetime:
 
 class Holiday:
     """
-    Class that defines a holiday with start/end dates and rules
-    for observance.
+    Class that defines a holiday with start/end dates and rules for observance.
+
+    A ``Holiday`` can either be defined by a fixed ``year``/``month``/``day``,
+    or, more commonly, by a recurring ``month``/``day`` combined with an
+    ``offset`` or ``observance`` rule that adjusts the date in each year it
+    is calculated for. Instances of ``Holiday`` are typically collected in
+    the ``rules`` of an :class:`~pandas.tseries.holiday.AbstractHolidayCalendar`.
+
+    Parameters
+    ----------
+    name : str
+        Name of the holiday, defaults to class name.
+    year : int, default None
+        Year of the holiday.
+    month : int, default None
+        Month of the holiday.
+    day : int, default None
+        Day of the holiday.
+    offset : DateOffset or list of DateOffset, default None
+        Computes offset from date. See :mod:`pandas.tseries.offsets` for the
+        available offset classes.
+    observance : function, default None
+        Computes when holiday is given a pandas Timestamp.
+    start_date : datetime-like, default None
+        First date the holiday is observed.
+    end_date : datetime-like, default None
+        Last date the holiday is observed.
+    days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
+        Provide a tuple of days e.g  (0,1,2,3,) for Monday through Thursday
+        Monday=0,..,Sunday=6
+        Only instances of the holiday included in days_of_week will be computed.
+    exclude_dates : DatetimeIndex or default None
+        Specific dates to exclude e.g. skipping a specific year's holiday.
+
+    See Also
+    --------
+    tseries.holiday.AbstractHolidayCalendar : Abstract interface to create
+        holidays following certain rules.
+    tseries.holiday.Holiday.dates : Calculate holidays observed between
+        start date and end date.
+
+    Examples
+    --------
+    >>> from dateutil.relativedelta import MO
+
+    >>> USMemorialDay = pd.tseries.holiday.Holiday(
+    ...     "Memorial Day", month=5, day=31, offset=pd.DateOffset(weekday=MO(-1))
+    ... )
+    >>> USMemorialDay
+    Holiday: Memorial Day (month=5, day=31, offset=<DateOffset: weekday=MO(-1)>)
+
+    >>> USLaborDay = pd.tseries.holiday.Holiday(
+    ...     "Labor Day", month=9, day=1, offset=pd.DateOffset(weekday=MO(1))
+    ... )
+    >>> USLaborDay
+    Holiday: Labor Day (month=9, day=1, offset=<DateOffset: weekday=MO(+1)>)
+
+    >>> July3rd = pd.tseries.holiday.Holiday("July 3rd", month=7, day=3)
+    >>> July3rd
+    Holiday: July 3rd (month=7, day=3, )
+
+    >>> NewYears = pd.tseries.holiday.Holiday(
+    ...     "New Years Day",
+    ...     month=1,
+    ...     day=1,
+    ...     observance=pd.tseries.holiday.nearest_workday,
+    ... )
+    >>> NewYears  # doctest: +SKIP
+    Holiday: New Years Day (
+        month=1, day=1, observance=<function nearest_workday at 0x66545e9bc440>
+    )
+
+    >>> July3rd = pd.tseries.holiday.Holiday(
+    ...     "July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3)
+    ... )
+    >>> July3rd
+    Holiday: July 3rd (month=7, day=3, )
     """
 
     start_date: Timestamp | None
@@ -175,70 +250,6 @@ class Holiday:
         days_of_week: tuple | None = None,
         exclude_dates: DatetimeIndex | None = None,
     ) -> None:
-        """
-        Parameters
-        ----------
-        name : str
-            Name of the holiday , defaults to class name
-        year : int, default None
-            Year of the holiday
-        month : int, default None
-            Month of the holiday
-        day : int, default None
-            Day of the holiday
-        offset : list of pandas.tseries.offsets or
-                class from pandas.tseries.offsets, default None
-            Computes offset from date
-        observance : function, default None
-            Computes when holiday is given a pandas Timestamp
-        start_date : datetime-like, default None
-            First date the holiday is observed
-        end_date : datetime-like, default None
-            Last date the holiday is observed
-        days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
-            Provide a tuple of days e.g  (0,1,2,3,) for Monday through Thursday
-            Monday=0,..,Sunday=6
-            Only instances of the holiday included in days_of_week will be computed
-        exclude_dates : DatetimeIndex or default None
-            Specific dates to exclude e.g. skipping a specific year's holiday
-
-        Examples
-        --------
-        >>> from dateutil.relativedelta import MO
-
-        >>> USMemorialDay = pd.tseries.holiday.Holiday(
-        ...     "Memorial Day", month=5, day=31, offset=pd.DateOffset(weekday=MO(-1))
-        ... )
-        >>> USMemorialDay
-        Holiday: Memorial Day (month=5, day=31, offset=<DateOffset: weekday=MO(-1)>)
-
-        >>> USLaborDay = pd.tseries.holiday.Holiday(
-        ...     "Labor Day", month=9, day=1, offset=pd.DateOffset(weekday=MO(1))
-        ... )
-        >>> USLaborDay
-        Holiday: Labor Day (month=9, day=1, offset=<DateOffset: weekday=MO(+1)>)
-
-        >>> July3rd = pd.tseries.holiday.Holiday("July 3rd", month=7, day=3)
-        >>> July3rd
-        Holiday: July 3rd (month=7, day=3, )
-
-        >>> NewYears = pd.tseries.holiday.Holiday(
-        ...     "New Years Day",
-        ...     month=1,
-        ...     day=1,
-        ...     observance=pd.tseries.holiday.nearest_workday,
-        ... )
-        >>> NewYears  # doctest: +SKIP
-        Holiday: New Years Day (
-            month=1, day=1, observance=<function nearest_workday at 0x66545e9bc440>
-        )
-
-        >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3)
-        ... )
-        >>> July3rd
-        Holiday: July 3rd (month=7, day=3, )
-        """
         if offset is not None:
             if observance is not None:
                 raise NotImplementedError("Cannot use both offset and observance.")
@@ -300,12 +311,19 @@ class Holiday:
         self, start_date, end_date, return_name: bool = False
     ) -> Series | DatetimeIndex:
         """
-        Calculate holidays observed between start date and end date
+        Calculate holidays observed between start date and end date.
+
+        Dates are computed from the rules defined for this holiday, i.e. its
+        fixed ``year``/``month``/``day``, or its ``offset``/``observance``
+        applied to each occurrence of ``month``/``day`` between the year
+        before ``start_date`` and the year after ``end_date``.
 
         Parameters
         ----------
         start_date : starting date, datetime-like, optional
+            The earliest date to consider in the search.
         end_date : ending date, datetime-like, optional
+            The latest date to consider in the search.
         return_name : bool, optional, default=False
             If True, return a series that has dates and holiday names.
             False will only return dates.
@@ -313,7 +331,22 @@ class Holiday:
         Returns
         -------
         Series or DatetimeIndex
-            Series if return_name is True
+            Series if return_name is True, otherwise a DatetimeIndex of
+            the holiday's dates.
+
+        See Also
+        --------
+        tseries.holiday.AbstractHolidayCalendar.holidays : Return a curve
+            with holidays between start_date and end_date.
+
+        Examples
+        --------
+        >>> from dateutil.relativedelta import MO
+        >>> USMemorialDay = pd.tseries.holiday.Holiday(
+        ...     "Memorial Day", month=5, day=31, offset=pd.DateOffset(weekday=MO(-1))
+        ... )
+        >>> USMemorialDay.dates("2020-01-01", "2021-12-31")
+        DatetimeIndex(['2020-05-25', '2021-05-31'], dtype='datetime64[us]', freq=None)
         """
         start_date = Timestamp(start_date)
         end_date = Timestamp(end_date)
@@ -334,8 +367,7 @@ class Holiday:
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
                 np.isin(
-                    # error: "DatetimeIndex" has no attribute "dayofweek"
-                    holiday_dates.dayofweek,  # type: ignore[attr-defined]
+                    holiday_dates.day_of_week,
                     self.days_of_week,
                 ).ravel()
             ]
@@ -410,7 +442,7 @@ class Holiday:
             return dates.copy()
 
         if self.observance is not None:
-            return dates.map(lambda d: self.observance(d))
+            return dates.map(lambda d: self.observance(d))  # type: ignore[return-value, misc]  # pyright: ignore[reportOptionalCall]
 
         if self.offset is not None:
             if not isinstance(self.offset, list):
@@ -459,6 +491,35 @@ class HolidayCalendarMetaClass(type):
 class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     """
     Abstract interface to create holidays following certain rules.
+
+    A subclass normally defines its holidays by setting ``rules`` to a list
+    of :class:`~pandas.tseries.holiday.Holiday` instances directly on the
+    class body. Alternatively, a set of rules can be passed to the
+    constructor. The calendar can then be used to compute the holiday
+    dates falling within a given date range via
+    :meth:`~pandas.tseries.holiday.AbstractHolidayCalendar.holidays`.
+
+    Parameters
+    ----------
+    name : str
+        Name of the holiday calendar, defaults to class name.
+    rules : array of Holiday objects
+        A set of rules used to create the holidays.
+
+    See Also
+    --------
+    tseries.holiday.Holiday : Class that defines a holiday with start/end
+        dates and rules for observance.
+    tseries.offsets.CustomBusinessDay : DateOffset subclass representing
+        possibly n business days excluding holidays.
+
+    Examples
+    --------
+    >>> from pandas.tseries.holiday import AbstractHolidayCalendar, USLaborDay
+    >>> class MyCalendar(AbstractHolidayCalendar):
+    ...     rules = [USLaborDay]
+    >>> MyCalendar().holidays(start="2020-01-01", end="2020-12-31")
+    DatetimeIndex(['2020-09-07'], dtype='datetime64[us]', freq=None)
     """
 
     rules: list[Holiday] = []
@@ -467,17 +528,6 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     _cache: tuple[Timestamp, Timestamp, Series] | None = None
 
     def __init__(self, name: str = "", rules=None) -> None:
-        """
-        Initializes holiday object with a given set a rules.  Normally
-        classes just have the rules defined within them.
-
-        Parameters
-        ----------
-        name : str
-            Name of the holiday calendar, defaults to class name
-        rules : array of Holiday objects
-            A set of rules used to create the holidays.
-        """
         super().__init__()
         if not name:
             name = type(self).__name__
@@ -487,6 +537,36 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             self.rules = rules
 
     def rule_from_name(self, name: str) -> Holiday | None:
+        """
+        Return the rule for the holiday with the given name.
+
+        Searches ``self.rules`` for a :class:`~pandas.tseries.holiday.Holiday`
+        whose ``name`` attribute matches exactly.
+
+        Parameters
+        ----------
+        name : str
+            Name of the holiday whose rule should be returned.
+
+        Returns
+        -------
+        Holiday or None
+            The matching rule from ``self.rules``, or None if no rule with
+            the given name is found.
+
+        See Also
+        --------
+        tseries.holiday.AbstractHolidayCalendar.holidays : Return a curve
+            with holidays between start_date and end_date.
+
+        Examples
+        --------
+        >>> from pandas.tseries.holiday import AbstractHolidayCalendar, USLaborDay
+        >>> class MyCalendar(AbstractHolidayCalendar):
+        ...     rules = [USLaborDay]
+        >>> MyCalendar().rule_from_name("Labor Day")
+        Holiday: Labor Day (month=9, day=1, offset=<DateOffset: weekday=MO(+1)>)
+        """
         for rule in self.rules:
             if rule.name == name:
                 return rule
@@ -497,19 +577,43 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         self, start=None, end=None, return_name: bool = False
     ) -> DatetimeIndex | Series:
         """
-        Returns a curve with holidays between start_date and end_date
+        Return a curve with holidays between start_date and end_date.
+
+        The holidays for the calendar are computed by evaluating the
+        ``dates`` of each rule in ``self.rules`` and merging the results,
+        caching them so that repeated calls covering a previously
+        requested date range do not need to be recomputed.
 
         Parameters
         ----------
         start : starting date, datetime-like, optional
+            The earliest date to consider, defaults to
+            :attr:`AbstractHolidayCalendar.start_date`.
         end : ending date, datetime-like, optional
+            The latest date to consider, defaults to
+            :attr:`AbstractHolidayCalendar.end_date`.
         return_name : bool, optional
             If True, return a series that has dates and holiday names.
             False will only return a DatetimeIndex of dates.
 
         Returns
         -------
-            DatetimeIndex of holidays
+        DatetimeIndex or Series
+            DatetimeIndex of holidays, or a Series mapping holiday dates to
+            their names if ``return_name`` is True.
+
+        See Also
+        --------
+        tseries.holiday.Holiday.dates : Calculate holidays observed between
+            start date and end date.
+
+        Examples
+        --------
+        >>> from pandas.tseries.holiday import AbstractHolidayCalendar, USLaborDay
+        >>> class MyCalendar(AbstractHolidayCalendar):
+        ...     rules = [USLaborDay]
+        >>> MyCalendar().holidays(start="2020-01-01", end="2020-12-31")
+        DatetimeIndex(['2020-09-07'], dtype='datetime64[us]', freq=None)
         """
         if self.rules is None:
             raise Exception(
@@ -549,16 +653,44 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     @staticmethod
     def merge_class(base, other):
         """
-        Merge holiday calendars together. The base calendar
-        will take precedence to other. The merge will be done
-        based on each holiday's name.
+        Merge holiday calendars together.
+
+        The base calendar will take precedence to other. The merge will be
+        done based on each holiday's name.
 
         Parameters
         ----------
         base : AbstractHolidayCalendar
-          instance/subclass or array of Holiday objects
+            Instance/subclass or array of Holiday objects.
         other : AbstractHolidayCalendar
-          instance/subclass or array of Holiday objects
+            Instance/subclass or array of Holiday objects.
+
+        Returns
+        -------
+        list of Holiday
+            Combined list of holidays from both calendars, with ``base``
+            taking precedence over ``other`` for holidays sharing the
+            same name.
+
+        See Also
+        --------
+        tseries.holiday.AbstractHolidayCalendar.merge : Merge holiday
+            calendars together.
+
+        Examples
+        --------
+        >>> from pandas.tseries.holiday import (
+        ...     AbstractHolidayCalendar,
+        ...     USLaborDay,
+        ...     USMemorialDay,
+        ... )
+        >>> class Calendar1(AbstractHolidayCalendar):
+        ...     rules = [USMemorialDay]
+        >>> class Calendar2(AbstractHolidayCalendar):
+        ...     rules = [USLaborDay]
+        >>> merged = AbstractHolidayCalendar.merge_class(Calendar1, Calendar2)
+        >>> [holiday.name for holiday in merged]
+        ['Labor Day', 'Memorial Day']
         """
         try:
             other = other.rules
@@ -583,15 +715,45 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
     def merge(self, other, inplace: bool = False):
         """
-        Merge holiday calendars together.  The caller's class
-        rules take precedence.  The merge will be done
+        Merge holiday calendars together.
+
+        The caller's class rules take precedence. The merge will be done
         based on each holiday's name.
 
         Parameters
         ----------
         other : holiday calendar
+            Calendar, instance/subclass, or array of Holiday objects to
+            merge into this calendar's rules.
         inplace : bool (default=False)
-            If True set rule_table to holidays, else return array of Holidays
+            If True set rule_table to holidays, else return array of
+            Holidays.
+
+        Returns
+        -------
+        list of Holiday or None
+            The combined list of holidays if ``inplace`` is False,
+            otherwise None.
+
+        See Also
+        --------
+        tseries.holiday.AbstractHolidayCalendar.merge_class : Merge holiday
+            calendars together.
+
+        Examples
+        --------
+        >>> from pandas.tseries.holiday import (
+        ...     AbstractHolidayCalendar,
+        ...     USLaborDay,
+        ...     USMemorialDay,
+        ... )
+        >>> class Calendar1(AbstractHolidayCalendar):
+        ...     rules = [USMemorialDay]
+        >>> class Calendar2(AbstractHolidayCalendar):
+        ...     rules = [USLaborDay]
+        >>> merged = Calendar1().merge(Calendar2())
+        >>> [holiday.name for holiday in merged]
+        ['Labor Day', 'Memorial Day']
         """
         holidays = self.merge_class(self, other)
         if inplace:

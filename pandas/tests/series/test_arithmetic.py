@@ -1,3 +1,4 @@
+from collections import deque
 from datetime import (
     date,
     timedelta,
@@ -14,6 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -250,7 +252,12 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|'mod' not supported"
+        msg = "|".join(
+            [
+                "not all arguments converted during string formatting",
+                "'mod' not supported",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             s2 % s1
@@ -894,8 +901,11 @@ class TestTimeSeriesArithmetic:
         ts2 = ts_slice.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts + ts2
-        result2 = ts2 + ts
+        # GH#62158 alignment joins date-object Index with DatetimeIndex
+        msg = "Alignment of a DataFrame/Series with a DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts + ts2
+            result2 = ts2 + ts
         expected = ts + ts[5:]
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
@@ -925,14 +935,27 @@ class TestNamePreservation:
             if is_logical:
                 # Series doesn't have these as flex methods
                 return
-            result = getattr(left, name)(right)
+
+            warn = None
+            tuple_msg = "with a tuple is deprecated"
+            if box is tuple:
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=tuple_msg):
+                result = getattr(left, name)(right)
         else:
             if is_logical and box in [list, tuple]:
                 with pytest.raises(TypeError, match=msg):
                     # GH#52264 logical ops with dtype-less sequences deprecated
                     op(left, right)
                 return
-            result = op(left, right)
+
+            warn = None
+            depr_msg = "In a future version these will be treated as scalar-like"
+            if box is tuple:
+                # GH#62423 dunder ops with a tuple are deprecated
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
@@ -1105,3 +1128,100 @@ def test_comparison_mismatched_datetime_units(index):
     result2 = ser2 < ser
     expected2 = Series([False, False, False], index=ser2.index)
     tm.assert_series_equal(result2, expected2)
+
+
+def test_multiindex_single_entry_arith_preserves_all_levels():
+    # GH#25891 - MultiIndex level dropped when multiplying two Series with a
+    # single entry. When both Series have exactly one entry and overlapping
+    # MultiIndex levels, all non-common index levels must be preserved in the
+    # result.
+    index1 = pd.MultiIndex.from_product([[], []], names=["T", "N"])
+    s1 = Series(index=index1, dtype=float)
+    s1["T.1A", "N.0"] = 0.5
+
+    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    s2 = Series(index=index2, dtype=float)
+    s2["N.0", "M.0"] = 0.5
+
+    expected_index = pd.MultiIndex.from_tuples(
+        [("T.1A", "N.0", "M.0")], names=["T", "N", "M"]
+    )
+    expected = Series([0.25], index=expected_index)
+
+    # multiplication
+    result = s1 * s2
+    tm.assert_series_equal(result, expected)
+
+    # addition
+    result_add = s1 + s2
+    tm.assert_series_equal(result_add, Series([1.0], index=expected_index))
+
+    # subtraction
+    result_sub = s1 - s2
+    tm.assert_series_equal(result_sub, Series([0.0], index=expected_index))
+
+    # division
+    result_div = s1 / s2
+    tm.assert_series_equal(result_div, Series([1.0], index=expected_index))
+
+
+# ----------------------------------------------------------------------
+# GH#62423 deprecate non-standard listlikes in arithmetic/comparison ops
+
+depr_msg = "In a future version these will be treated as scalar-like"
+
+# factories for non-standard listlikes holding [4, 5, 6]
+non_standard_listlikes = [
+    pytest.param(lambda: (4, 5, 6), id="tuple"),
+    pytest.param(lambda: range(4, 7), id="range"),
+    pytest.param(lambda: deque([4, 5, 6]), id="deque"),
+]
+
+
+@pytest.mark.parametrize("box", non_standard_listlikes)
+@pytest.mark.parametrize("klass", [Series, Index])
+def test_arith_cmp_non_standard_listlike_deprecated(klass, box):
+    # GH#62423 numpy-dtype Series/Index dunder ops with a non-standard listlike
+    #  (tuple/range/deque) are deprecated in favor of scalar-like treatment
+    obj = klass([1, 2, 3])
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        obj + box()
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        obj == box()
+
+
+def test_arith_ea_backed_range_deprecated():
+    # GH#62423 range is converted to an ndarray before it reaches the EA, so
+    #  the Series-level arith path is responsible for the warning
+    ser = Series([1, 2, 3], dtype="Int64")
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        ser + range(4, 7)
+
+
+@pytest.mark.parametrize("box", non_standard_listlikes)
+def test_cmp_object_dtype_non_standard_listlike_not_deprecated(box):
+    # GH#62423 object dtype already treats a non-standard listlike as scalar-like
+    #  on comparison, so it must not warn
+    for obj in [Series([1, 2, 3], dtype=object), Index([1, 2, 3], dtype=object)]:
+        with tm.assert_produces_warning(None):
+            obj == box()
+
+
+def test_cmp_multiindex_tuple_not_deprecated():
+    # GH#62423 MultiIndex already treats a tuple as a single (scalar) entry
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
+    with tm.assert_produces_warning(None):
+        mi == ("a", 1)
+
+
+def test_cmp_categorical_positional_listlike_deprecated():
+    # GH#62423 a non-standard non-hashable listlike (deque) reaches the
+    #  positional comparison branch and is deprecated; a hashable tuple/range is
+    #  already treated as scalar-like and must not warn
+    cat = Categorical([1, 2, 3])
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        cat == deque([1, 2, 3])
+    for other in [(1, 2, 3), range(3)]:
+        with tm.assert_produces_warning(None):
+            cat == other

@@ -55,13 +55,6 @@ to find issues that interest you and are available to work on. Issues available 
 * Issues that have not been started by another contributor. Please check that another contributor has not commented their intent
   to work on the issue or already submitted an open pull request to address the issue before proceeding.
 
-.. tip::
-    We recommend issues labeled `Docs
-    <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs+no%3Aassignee>`_
-    and `good first issue
-    <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
-    for newer contributors.
-
 Once you've found an interesting, available issue, leave a comment with your intention
 to start working on it. If somebody else has
 already commented on the issue but they have shown a lack of activity in the issue
@@ -135,7 +128,7 @@ You will want to clone your fork to your machine
     git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
     git remote add upstream https://github.com/pandas-dev/pandas.git
-    git fetch upstream
+    git fetch upstream --tags
 
 This creates the directory ``pandas-yourname`` and connects your repository to
 the upstream (main project) *pandas* repository.

@@ -25,7 +25,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import NDFrameT
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -44,7 +43,6 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -98,6 +96,7 @@ if TYPE_CHECKING:
         Frequency,
         IndexLabel,
         InterpolateOptions,
+        NDFrameT,
         P,
         T,
         TimedeltaConvertibleTypes,
@@ -111,9 +110,8 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ArrowExtensionArray
     from pandas.core.generic import NDFrame
-
-_shared_docs_kwargs: dict[str, str] = {}
 
 
 @set_module("pandas.api.typing")
@@ -245,6 +243,7 @@ class Resampler(BaseGroupBy, PandasObject):
         if self._timegrouper._arrow_dtype is not None:
             binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
+        bin_grouper._is_resample = True
         return binner, bin_grouper
 
     @overload
@@ -346,6 +345,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def aggregate(self, func=None, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
+
+        This method applies aggregation functions to resampled groups, enabling
+        summary statistics to be computed for each time period.
 
         Parameters
         ----------
@@ -602,7 +604,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
-            result.index.name = self.obj.index.name
 
         return result
 
@@ -890,16 +891,16 @@ class Resampler(BaseGroupBy, PandasObject):
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
-        limit_direction : {{'forward', 'backward', 'both'}}, Optional
+        limit_direction : {'forward', 'backward', 'both'}, Optional
             Consecutive NaNs will be filled in this direction.
 
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -1058,6 +1059,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return the values at the new freq, essentially a reindex.
 
+        This method selects data at the specified frequency without aggregation,
+        useful for upsampling to a higher frequency or selecting specific time points.
+
         Parameters
         ----------
         fill_value : scalar, optional
@@ -1165,6 +1169,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute prod of group values.
 
+        This method calculates the product of all values within each resampled
+        time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1220,6 +1227,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute min value of group.
 
+        This method returns the minimum value within each resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1274,6 +1283,8 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute max value of group.
+
+        This method returns the maximum value within each resampled time period.
 
         Parameters
         ----------
@@ -1331,6 +1342,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute the first non-null entry of each column.
 
+        This method returns the first value encountered in each resampled time
+        period, skipping missing values by default.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1383,6 +1397,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute the last non-null entry of each column.
+
+        This method returns the last value encountered in each resampled time
+        period, skipping missing values by default.
 
         Parameters
         ----------
@@ -1485,6 +1502,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute mean of groups, excluding missing values.
 
+        This method calculates the arithmetic mean of values within each
+        resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1540,6 +1560,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute standard deviation of groups, excluding missing values.
 
+        This method calculates the sample standard deviation of values within
+        each resampled time period.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -1563,6 +1586,11 @@ class Resampler(BaseGroupBy, PandasObject):
             values.
         core.resample.Resampler.var : Compute variance of groups, excluding missing
             values.
+
+        Notes
+        -----
+        To use the same divisor as ``numpy.std``, use ``ddof=0`` instead of
+        the default ``ddof=1``.
 
         Examples
         --------
@@ -1595,6 +1623,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute variance of groups, excluding missing values.
+
+        This method calculates the sample variance of values within each
+        resampled time period.
 
         Parameters
         ----------
@@ -1710,6 +1741,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
+        This method computes OHLC (Open-High-Low-Close) values, commonly used
+        in financial data analysis to summarize price movements within time periods.
+
         Returns
         -------
         DataFrame
@@ -1764,6 +1798,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return number of unique elements in the group.
 
+        This method counts the number of distinct values within each resampled
+        time period.
+
         Returns
         -------
         Series
@@ -1798,6 +1835,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def size(self):
         """
         Compute group sizes.
+
+        This method returns the number of rows in each resampled time period,
+        including rows with missing values.
 
         Returns
         -------
@@ -1847,6 +1887,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def count(self):
         """
         Compute count of group, excluding missing values.
+
+        This method returns the number of non-null values in each resampled
+        time period.
 
         Returns
         -------
@@ -2059,7 +2102,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         new_rs = type(self)(
             groupby=groupby,
-            parent=cast(Resampler, self),
+            parent=cast("Resampler", self),
             selection=selection,
         )
         return new_rs
@@ -2140,7 +2183,7 @@ class DatetimeIndexResampler(Resampler):
         # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
-            and to_offset(ax.inferred_freq) == self.freq
+            and to_offset(ax._inferred_freq_str) == self.freq
             and len(obj) == len(res_index)
             and obj.index.equals(res_index)
         ):
@@ -2563,7 +2606,7 @@ class TimeGrouper(Grouper):
         """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r._grouper, cast(NDFrameT, r.obj)
+        return r._grouper, cast("NDFrameT", r.obj)
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
@@ -2578,9 +2621,25 @@ class TimeGrouper(Grouper):
             )
             return binner, [], labels
 
+        # GH#43486: filter NaTs up front, mirroring _get_period_bins
+        nat_count = 0
+        if ax.hasnans:
+            nat_count = ax.isna().sum()
+            ax = ax[~ax.isna()]
+
+        if len(ax) == 0:
+            # all-NaT case
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
+            bins = np.array([], dtype=np.int64)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
+            return binner, np.insert(bins, 0, nat_count), labels
+
         first, last = _get_timestamp_range_edges(
-            ax.min(),
-            ax.max(),
+            ax.min(),  # type: ignore[arg-type]
+            ax.max(),  # type: ignore[arg-type]
             self.freq,
             unit=ax.unit,
             closed=self.closed,
@@ -2609,9 +2668,7 @@ class TimeGrouper(Grouper):
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(
-            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-        )
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=False)
 
         if self.closed == "right":
             labels = binner
@@ -2620,7 +2677,10 @@ class TimeGrouper(Grouper):
         elif self.label == "right":
             labels = labels[1:]
 
-        if ax.hasnans:
+        if nat_count > 0:
+            # shift bins by the number of NaT (they sort to the front of asi8)
+            bins = bins + nat_count
+            bins = np.insert(bins, 0, nat_count)
             binner = binner.insert(0, NaT)
             labels = labels.insert(0, NaT)
 
@@ -2637,7 +2697,9 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
+        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
+            0
+        ] in (
             "BQE",
             "BYE",
             "QE",
@@ -2689,7 +2751,7 @@ class TimeGrouper(Grouper):
         start, end = ax.min(), ax.max()
 
         if self.closed == "right":
-            end += self.freq
+            end += self.freq  # type: ignore[operator]
 
         labels = binner = timedelta_range(
             start=start, end=end, freq=self.freq, name=ax.name
@@ -2759,8 +2821,8 @@ class TimeGrouper(Grouper):
 
         freq_mult = self.freq.n
 
-        start = ax.min().asfreq(self.freq, how=self.convention)
-        end = ax.max().asfreq(self.freq, how="end")
+        start = ax.min().asfreq(self.freq, how=self.convention)  # type: ignore[attr-defined]
+        end = ax.max().asfreq(self.freq, how="end")  # type: ignore[attr-defined]
         bin_shift = 0
 
         if isinstance(self.freq, Tick):
@@ -2813,7 +2875,8 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array(),
+                name=ax.name,
             )
         return obj, ax, indexer
 
@@ -3025,7 +3088,9 @@ def _adjust_dates_anchored(
         sub_freq_times = (origin_last._value - first._value) // freq_value
         if closed == "left":
             sub_freq_times += 1
-        first = origin_last - sub_freq_times * freq
+        #  error: Incompatible types in assignment (expression has type
+        # "Timestamp | NaTType", variable has type "Timestamp")
+        first = origin_last - sub_freq_times * freq  # type: ignore[assignment]
         origin_timestamp = first._value
     origin_timestamp += offset._value if offset else 0
 

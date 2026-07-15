@@ -11,6 +11,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import PY313
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -196,7 +197,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_sub_td64_nat(self):
         td = Timedelta(10, unit="D")
-        td_nat = np.timedelta64("NaT")
+        td_nat = np.timedelta64("NaT", "ns")
 
         result = td - td_nat
         assert result is NaT
@@ -256,7 +257,7 @@ class TestTimedeltaAdditionSubtraction:
         result = NaT - td
         assert result is NaT
 
-        result = np.datetime64("NaT") - td
+        result = np.datetime64("NaT", "ns") - td
         assert result is NaT
 
     def test_td_rsub_offset(self):
@@ -374,9 +375,7 @@ class TestTimedeltaMultiplicationDivision:
     # ---------------------------------------------------------------
     # Timedelta.__mul__, __rmul__
 
-    @pytest.mark.parametrize(
-        "td_nat", [NaT, np.timedelta64("NaT", "ns"), np.timedelta64("NaT")]
-    )
+    @pytest.mark.parametrize("td_nat", [NaT, np.timedelta64("NaT", "ns")])
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
     def test_td_mul_nat(self, op, td_nat):
         # GH#19819
@@ -566,12 +565,12 @@ class TestTimedeltaMultiplicationDivision:
         result = None / td
         assert np.isnan(result)
 
-        result = np.timedelta64("NaT") / td
+        result = np.timedelta64("NaT", "ns") / td
         assert np.isnan(result)
 
         msg = r"unsupported operand type\(s\) for /: 'numpy.datetime64' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
-            np.datetime64("NaT") / td
+            np.datetime64("NaT", "ns") / td
 
         msg = r"unsupported operand type\(s\) for /: 'float' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
@@ -625,7 +624,7 @@ class TestTimedeltaMultiplicationDivision:
 
         assert td // np.nan is NaT
         assert np.isnan(td // NaT)
-        assert np.isnan(td // np.timedelta64("NaT"))
+        assert np.isnan(td // np.timedelta64("NaT", "ns"))
 
     def test_td_floordiv_offsets(self):
         # GH#19738
@@ -637,14 +636,18 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
 
-        msg = "|".join(
-            [
-                r"Invalid dtype datetime64\[D\] for __floordiv__",
-                "'dtype' is an invalid keyword argument for this function",
-                "this function got an unexpected keyword argument 'dtype'",
-                r"ufunc '?floor_divide'? cannot use operands with types",
-            ]
-        )
+        # CPython 3.13 reworded the invalid-keyword error raised by the
+        # np.datetime64 constructor (boundary confirmed on CI: 3.12 old,
+        # 3.13 new; independent of NumPy version).
+        if PY313:
+            msg = "this function got an unexpected keyword argument 'dtype'"
+        else:
+            msg = "|".join(
+                [
+                    "'dtype' is an invalid keyword argument for this function",
+                    r"ufunc '?floor_divide'? cannot use operands with types",
+                ]
+            )
         with pytest.raises(TypeError, match=msg):
             td // np.datetime64("2016-01-01", dtype="datetime64[us]")
 
@@ -671,7 +674,9 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
-        res = (10 * td) // np.array([scalar.to_timedelta64(), np.timedelta64("NaT")])
+        res = (10 * td) // np.array(
+            [scalar.to_timedelta64(), np.timedelta64("NaT", "ns")]
+        )
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
 
@@ -705,7 +710,7 @@ class TestTimedeltaMultiplicationDivision:
         td = Timedelta(hours=3, minutes=3)
 
         assert np.isnan(td.__rfloordiv__(NaT))
-        assert np.isnan(td.__rfloordiv__(np.timedelta64("NaT")))
+        assert np.isnan(td.__rfloordiv__(np.timedelta64("NaT", "ns")))
 
     def test_td_rfloordiv_offsets(self):
         # GH#19738
@@ -757,7 +762,7 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
-        arr = np.array([(10 * scalar).to_timedelta64(), np.timedelta64("NaT")])
+        arr = np.array([(10 * scalar).to_timedelta64(), np.timedelta64("NaT", "ns")])
         res = td.__rfloordiv__(arr)
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
@@ -981,7 +986,7 @@ class TestTimedeltaMultiplicationDivision:
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         arr = np.array(arr)
-        msg = "unsupported operand type|cannot use operands with types"
+        msg = "|".join(["unsupported operand type", "cannot use operands with types"])
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
@@ -1235,17 +1240,23 @@ def test_ops_str_deprecated(box):
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             td // item
     else:
-        msg = "|".join(
+        # true division dispatches to NumPy; older NumPy raised via the ufunc
+        div_msg = "|".join(
             [
-                "ufunc 'divide' cannot use operands",
-                "Invalid dtype object for __floordiv__",
-                r"unsupported operand type\(s\) for /: 'int' and 'str'",
                 r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
+                "ufunc 'divide' cannot use operands",  # older NumPy
             ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=div_msg):
             td / item
-        with pytest.raises(TypeError, match=msg):
+        # floor division (either operand order) raises on the object dtype
+        floordiv_msg = "|".join(
+            [
+                "Invalid dtype object for __floordiv__",
+                r"unsupported operand type\(s\) for /: 'int' and 'str'",  # older NumPy
+            ]
+        )
+        with pytest.raises(TypeError, match=floordiv_msg):
             item // td
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=floordiv_msg):
             td // item

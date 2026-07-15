@@ -123,7 +123,39 @@ class TestDatetimeConcat:
         # Non-monotonic index result
         result = concat([expected[50:], expected[:50]])
         expected = DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
-        expected.index._data.freq = None
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_datetimeindex_freq_mixed_unit(self):
+        # GH#65920 - retain freq when concatting contiguous, evenly spaced
+        # DatetimeIndexes that share a freq but differ in unit
+        idx1 = date_range("2024-01-01", periods=3, freq="s", unit="s")
+        idx2 = date_range("2024-01-01 00:00:03", periods=3, freq="s", unit="ns")
+        result = idx1.append(idx2)
+        expected = date_range("2024-01-01", periods=6, freq="s", unit="ns")
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == "s"
+
+    def test_concat_datetimeindex_tz_convert_freq(self):
+        # GH#41585 - concat after tz_convert should not raise when
+        # the converted timestamps no longer conform to the original freq
+        dti1 = date_range(
+            start="2020-01-01", end="2021-01-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df1 = DataFrame({"full": [1] * len(dti1)}, index=dti1)
+
+        dti2 = date_range(
+            start="2020-01-01", end="2021-02-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df2 = DataFrame({"one_month_more": [1] * len(dti2)}, index=dti2)
+
+        result = concat([df1, df2], axis=1)
+        expected_index = dti2.copy()
+        expected_index.freq = result.index.freq
+        expected = DataFrame(
+            {"full": [1.0] * 12 + [np.nan], "one_month_more": [1] * 13},
+            index=expected_index,
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_concat_multiindex_datetime_object_index(self):
@@ -554,6 +586,30 @@ class TestPeriodConcat:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
 
+    def test_concat_keys_mixed_freq_period_columns(self):
+        # GH#51489 concat with keys must not raise IncompatibleFrequency
+        # when the inputs have PeriodIndex columns with different freq
+        q_period = pd.period_range("2022-1-1", "2022-12-31", freq="Q")
+        y_period = pd.period_range("2019-1-1", "2023-1-1", freq="Y")
+
+        q_df = DataFrame([range(len(q_period))], columns=q_period)
+        y_df = DataFrame([range(len(y_period))], columns=y_period)
+
+        result = concat([q_df, y_df], keys=["Quarterly", "Yearly"], axis=1)
+
+        expected_inner = Index(list(q_period) + list(y_period), dtype=object)
+        expected_columns = MultiIndex.from_arrays(
+            [
+                ["Quarterly"] * len(q_period) + ["Yearly"] * len(y_period),
+                expected_inner,
+            ]
+        )
+        expected = DataFrame(
+            [list(range(len(q_period))) + list(range(len(y_period)))],
+            columns=expected_columns,
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def test_concat_timedelta64_block():
     rng = to_timedelta(np.arange(10), unit="s")
@@ -608,4 +664,44 @@ def test_concat_float_datetime64():
     )
 
     result = concat([df_time, df_float.iloc[:0]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_datetime64_different_resolutions():
+    # GH#53307
+    # Concatenating datetime64 columns with different resolutions
+    # should preserve datetime64 dtype (not convert to object)
+    df = DataFrame(
+        {
+            "ints": range(2),
+            "dates": date_range("2000", periods=2, freq="min"),
+        },
+    )
+    df2 = df.copy()
+    df2["dates"] = df.dates.astype("M8[s]")
+
+    combined = concat([df, df2])
+
+    # The result should be a datetime64 dtype, not object
+    assert combined.dates.dtype.kind == "M"
+
+
+def test_concat_non_ns_datetime_axis1(unit):
+    # GH#58471 - concat with non-ns datetime unit on axis=1 should
+    # preserve all data, matching the behavior of ns-resolution
+    dti1 = date_range("2024-01-01 00:00", periods=3, freq="5min", unit=unit)
+    dti2 = date_range("2024-01-01 00:15", periods=3, freq="5min", unit=unit)
+    ser1 = Series([1.0, 2.0, 3.0], index=dti1, name="a")
+    ser2 = Series([4.0, 5.0, 6.0], index=dti2, name="b")
+
+    result = concat([ser1, ser2], axis=1)
+
+    expected_index = date_range("2024-01-01 00:00", periods=6, freq="5min", unit=unit)
+    expected = DataFrame(
+        {
+            "a": [1.0, 2.0, 3.0, np.nan, np.nan, np.nan],
+            "b": [np.nan, np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=expected_index,
+    )
     tm.assert_frame_equal(result, expected)

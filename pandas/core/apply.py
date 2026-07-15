@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-from collections.abc import Callable
 import functools
 from functools import partial
 import inspect
@@ -17,16 +16,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs.internals import BlockValuesRefs
-from pandas._typing import (
-    AggFuncType,
-    AggFuncTypeBase,
-    AggFuncTypeDict,
-    AggObjType,
-    Axis,
-    AxisInt,
-    NDFrameT,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
@@ -42,7 +31,11 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -52,6 +45,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     prepare_function_arguments,
@@ -59,6 +53,7 @@ from pandas.core.util.numba_ import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Hashable,
         Iterable,
@@ -66,10 +61,26 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._typing import (
+        AggFuncType,
+        AggFuncTypeBase,
+        AggFuncTypeDict,
+        AggObjType,
+        Axis,
+        AxisInt,
+        NDFrameT,
+        npt,
+    )
+
     from pandas import (
         DataFrame,
         Index,
         Series,
+    )
+    from pandas.core.arrays import (
+        ArrowExtensionArray,
+        BaseMaskedArray,
+        ExtensionArray,
     )
     from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
@@ -327,7 +338,13 @@ class Apply(metaclass=abc.ABCMeta):
             return obj.T.transform(func, 0, *args, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
-            func = cast(list[AggFuncTypeBase], func)
+            func = cast("list[AggFuncTypeBase]", func)
+            # GH#54929 - raise if duplicate function names are passed
+            if len(func) > len(set(func)):
+                raise SpecificationError(
+                    "Function names must be unique if there is no new column names "
+                    "assigned"
+                )
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -335,11 +352,11 @@ class Apply(metaclass=abc.ABCMeta):
                 func = dict.fromkeys(obj, func)
 
         if is_dict_like(func):
-            func = cast(AggFuncTypeDict, func)
+            func = cast("AggFuncTypeDict", func)
             return self.transform_dict_like(func)
 
         # func is either str or callable
-        func = cast(AggFuncTypeBase, func)
+        func = cast("AggFuncTypeBase", func)
         try:
             result = self.transform_str_or_callable(func)
         except TypeError:
@@ -366,7 +383,6 @@ class Apply(metaclass=abc.ABCMeta):
         """
         Compute transform in the case of a dict-like func
         """
-        from pandas.core.reshape.concat import concat
 
         obj = self.obj
         args = self.args
@@ -439,11 +455,11 @@ class Apply(metaclass=abc.ABCMeta):
             Data for result. When aggregating with a Series, this can contain any
             Python objects.
         """
-        func = cast(list[AggFuncTypeBase], self.func)
+        func = cast("list[AggFuncTypeBase]", self.func)
         obj = self.obj
 
         results = []
-        keys = []
+        keys: list[Hashable] = []
 
         # degenerate case
         if selected_obj.ndim == 1:
@@ -482,8 +498,6 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
-        from pandas.core.reshape.concat import concat
-
         obj = self.obj
 
         try:
@@ -546,7 +560,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-        func = cast(AggFuncTypeDict, self.func)
+        func = cast("AggFuncTypeDict", self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
         is_non_unique_col = (
@@ -612,7 +626,6 @@ class Apply(metaclass=abc.ABCMeta):
         result_data: list,
     ):
         from pandas import Index
-        from pandas.core.reshape.concat import concat
 
         obj = self.obj
 
@@ -674,7 +687,7 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series or DataFrame
         """
         # Caller is responsible for checking isinstance(self.f, str)
-        func = cast(str, self.func)
+        func = cast("str", self.func)
 
         obj = self.obj
 
@@ -840,6 +853,11 @@ class NDFrameApply(Apply):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
+        if op_name == "agg" and isinstance(self, FrameApply):
+            result = self._agg_list_like_frame_reductions()
+            if result is not None:
+                return result
+
         keys, results = self.compute_list_like(op_name, obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
@@ -918,7 +936,7 @@ class FrameApply(NDFrameApply):
     @functools.cache
     @abc.abstractmethod
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         pass
 
@@ -927,7 +945,7 @@ class FrameApply(NDFrameApply):
         pass
 
     def validate_values_for_numba(self) -> None:
-        # Validate column dtyps all OK
+        # Validate column dtypes all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
                 raise ValueError(
@@ -1035,6 +1053,65 @@ class FrameApply(NDFrameApply):
         if result is None:
             result = self.obj.apply(self.func, axis, args=self.args, **self.kwargs)
 
+        return result
+
+    def _agg_list_like_frame_reductions(self) -> DataFrame | None:
+        """
+        Aggregate a list of named functions using DataFrame-level reductions.
+
+        Instead of extracting each column as a Series and calling
+        Series.agg per column, call DataFrame-level reductions directly.
+        Operates per dtype group to preserve per-column dtypes.
+
+        Returns None if the fast path cannot be used (e.g. non-string
+        functions, functions that aren't valid DataFrame methods, or
+        functions that don't return a reduction result).
+        """
+        func = cast("list[AggFuncTypeBase]", self.func)
+
+        if not all(isinstance(f, str) for f in func):
+            return None
+
+        obj = self.obj
+        func_names = cast("list[str]", func)
+
+        # Cannot reindex with duplicate column names
+        if not obj.columns.is_unique:
+            return None
+
+        for func_name in func_names:
+            if not hasattr(obj, func_name):
+                return None
+
+        if self.kwargs.get("numeric_only"):
+            obj = obj._get_numeric_data()
+        elif self.kwargs.get("bool_only"):
+            obj = obj._get_bool_data()
+
+        if obj.columns.empty:
+            return obj._constructor(index=func_names, columns=obj.columns)
+
+        # Compute reductions per dtype group to preserve per-column dtypes.
+        groups = obj.columns.groupby(obj.dtypes)
+        pieces: list[DataFrame] = []
+        for dtype in groups:
+            cols = groups[dtype]
+            sub = obj[cols]
+            group_pieces: list[DataFrame] = []
+            for func_name in func_names:
+                try:
+                    row = getattr(sub, func_name)(*self.args, **self.kwargs)
+                except TypeError:
+                    return None
+                if not isinstance(row, ABCSeries):
+                    # Not a reduction (e.g. returns DataFrame), fall back
+                    return None
+                # to_frame().T avoids the slow DataFrame(list-of-Series) path
+                group_pieces.append(row.to_frame(func_name).T)
+            pieces.append(concat(group_pieces))
+
+        result = concat(pieces, axis=1)
+        result = result.reindex(columns=obj.columns)
         return result
 
     def apply_empty_result(self):
@@ -1243,7 +1320,7 @@ class FrameRowApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1256,7 +1333,7 @@ class FrameRowApply(FrameApply):
 
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
@@ -1270,7 +1347,7 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast(Callable, self.func)
+        func = cast("Callable", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1347,9 +1424,7 @@ class FrameColumnApply(FrameApply):
 
     @property
     def series_generator(self) -> Generator[Series]:
-        values = self.values
-        values = ensure_wrapped_if_datetimelike(values)
-        assert len(values) > 0
+        assert len(self.obj) > 0
 
         # We create one Series object, and will swap out the data inside
         #  of it.  Kids: don't do this at home.
@@ -1359,32 +1434,96 @@ class FrameColumnApply(FrameApply):
         is_view = mgr.blocks[0].refs.has_reference()
 
         if isinstance(ser.dtype, ExtensionDtype):
-            # values will be incorrect for this block
-            # TODO(EA2D): special case would be unnecessary with 2D EAs
+            # GH#61747 - Pre-extract column arrays and reuse a template
+            # Series to avoid the per-row block traversal and
+            # Series/manager construction overhead in fast_xs.
             obj = self.obj
-            for i in range(len(obj)):
-                yield obj._ixs(i, axis=0)
+            col_arrays = [obj._get_column_array(i) for i in range(len(obj.columns))]
+            dtype = ser.dtype
+            cls = dtype.construct_array_type()
+            mgr = ser._mgr
+
+            build_row = self._make_ea_row_builder(col_arrays, dtype, cls)
+
+            blk = mgr.blocks[0]
+            for row_idx in range(len(obj)):
+                ser._mgr = mgr
+                mgr.set_values(build_row(row_idx))
+                # EABackedBlock.array_values is @cache_readonly;
+                # clear it so Series.array sees the new values.
+                blk._cache.pop("array_values", None)
+                object.__setattr__(ser, "_name", obj.index[row_idx])
+                blk.refs = BlockValuesRefs(blk)
+                yield ser
 
         else:
+            values = self.values
+            values = ensure_wrapped_if_datetimelike(values)
+
             for arr, name in zip(values, self.index, strict=True):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 if not is_view:
-                    # In apply_series_generator we store the a shallow copy of the
+                    # In apply_series_generator we store a shallow copy of the
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset
-                    # the refs here to avoid triggering a unnecessary CoW inside the
+                    # the refs here to avoid triggering an unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
 
     @staticmethod
+    def _make_ea_row_builder(
+        col_arrays: list, dtype: ExtensionDtype, cls: type[ExtensionArray]
+    ) -> Callable[[int], ExtensionArray]:
+        """Build a callable that constructs an EA row for a given row index.
+
+        Special-cases BaseMaskedArray and ArrowExtensionArray to avoid the
+        overhead of _from_sequence per row. The fast paths require all columns
+        to share ``dtype``; mixed-dtype frames fall through to the generic
+        ``_from_sequence`` path (GH#65097).
+        """
+        homogeneous = all(col_arr.dtype == dtype for col_arr in col_arrays)
+
+        if homogeneous and isinstance(dtype, BaseMaskedDtype):
+            col_data = [col_arr._data for col_arr in col_arrays]
+            col_masks = [col_arr._mask for col_arr in col_arrays]
+            np_dtype = dtype.numpy_dtype
+            masked_cls = cast("type[BaseMaskedArray]", cls)
+
+            def build_row(row_idx: int) -> ExtensionArray:
+                data = np.array([cd[row_idx] for cd in col_data], dtype=np_dtype)
+                mask = np.array([cm[row_idx] for cm in col_masks], dtype=np.bool_)
+                return masked_cls._simple_new(data, mask)
+
+        elif homogeneous and isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
+            pa_arrays = [col_arr._pa_array for col_arr in col_arrays]
+            pa_type = dtype.pyarrow_dtype
+            arrow_cls = cast("type[ArrowExtensionArray]", cls)
+
+            def build_row(row_idx: int) -> ExtensionArray:
+                pa_scalars = [pa_col[row_idx] for pa_col in pa_arrays]
+                return arrow_cls(pa.array(pa_scalars, type=pa_type))
+
+        else:
+
+            def build_row(row_idx: int) -> ExtensionArray:
+                row_data = np.array(
+                    [col_arr[row_idx] for col_arr in col_arrays], dtype=object
+                )
+                return cls._from_sequence(row_data, dtype=dtype)
+
+        return build_row
+
+    @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1392,7 +1531,7 @@ class FrameColumnApply(FrameApply):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here
@@ -1412,7 +1551,7 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast(Callable, self.func)
+        func = cast("Callable", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1559,7 +1698,7 @@ class SeriesApply(NDFrameApply):
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
-        func = cast(Callable, self.func)
+        func = cast("Callable", self.func)
         obj = self.obj
 
         if isinstance(func, np.ufunc):
@@ -1770,6 +1909,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
+        normalization_needed = False
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1778,18 +1918,32 @@ def reconstruct_func(
         converted_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, NamedAgg):
+                column = val.column
                 aggfunc = val.aggfunc
                 if val.args or val.kwargs:
                     aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
                         x, *a, **kw
                     )
-                converted_kwargs[key] = (val.column, aggfunc)
             else:
-                converted_kwargs[key] = val
+                column, aggfunc = val
 
-        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            converted_kwargs
-        )
+            if column != key:
+                normalization_needed = True
+            converted_kwargs[key] = column, aggfunc
+
+        if normalization_needed:
+            func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+                converted_kwargs
+            )
+        else:
+            # When names match, convert to dict format {column: aggfunc}
+            # and disable relabeling since no reordering is needed
+            func = {
+                column: aggfunc for key, (column, aggfunc) in converted_kwargs.items()
+            }
+            # Normalization is skipped if all kwargs keys are the same as their
+            # corresponding column name.
+            relabeling = False
 
     assert func is not None
 
@@ -1879,7 +2033,7 @@ def normalize_keyword_aggregation(
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
     # get the new index of columns by comparison
-    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)  # type: ignore[arg-type]
     return aggspec, columns, col_idx_order
 
 
@@ -1970,7 +2124,8 @@ def relabel_result(
         # mean  1.5
         if reorder_mask:
             fun = [
-                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+                com.get_callable_name(f) if not isinstance(f, str) else f  # type: ignore[misc]
+                for f in fun
             ]
             col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1

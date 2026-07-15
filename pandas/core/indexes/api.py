@@ -5,8 +5,6 @@ from typing import (
     cast,
 )
 
-import numpy as np
-
 from pandas._libs import (
     NaT,
     lib,
@@ -33,6 +31,8 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from pandas._typing import Axis
 
 
@@ -97,11 +97,11 @@ def _get_distinct_objs(objs: list[Index]) -> list[Index]:
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.
     """
-    ids: set[int] = set()
+    ids = set()
     res = []
     for obj in objs:
-        if id(obj) not in ids:
-            ids.add(id(obj))
+        if obj._id not in ids:
+            ids.add(obj._id)
             res.append(obj)
     return res
 
@@ -173,7 +173,7 @@ def safe_sort_index(index: Index) -> Index:
         if isinstance(array_sorted, Index):
             return array_sorted
 
-        array_sorted = cast(np.ndarray, array_sorted)
+        array_sorted = cast("np.ndarray", array_sorted)
         if isinstance(index, MultiIndex):
             index = MultiIndex.from_tuples(array_sorted, names=index.names)
         else:

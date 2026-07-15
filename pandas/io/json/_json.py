@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs.json import (
+from pandas._libs._ujson import (
     ujson_dumps,
     ujson_loads,
 )
@@ -435,6 +435,77 @@ class JSONTableWriter(FrameWriter):
         return {"schema": self.schema, "data": self.obj}
 
 
+def _validate_pyarrow_engine_options(
+    *,
+    typ,
+    dtype,
+    convert_axes,
+    convert_dates,
+    keep_default_dates,
+    precise_float,
+    date_unit,
+    encoding,
+    encoding_errors,
+    compression,
+    storage_options,
+) -> None:
+    """
+    Reject ``read_json`` arguments the ``"pyarrow"`` engine cannot honor.
+
+    The pyarrow engine hands the input straight to ``pyarrow.json.read_json``,
+    so any argument that pandas would otherwise apply itself is silently
+    ignored, producing a wrong result rather than an error. Raise instead.
+
+    Called from ``read_json`` before ``convert_axes`` and ``dtype`` are
+    resolved from ``None`` to ``True``, so that an explicitly-passed value is
+    distinguishable from the default.
+    """
+
+    def raise_unsupported(argname: str) -> None:
+        raise ValueError(
+            f"The {argname!r} option is not supported with the 'pyarrow' engine"
+        )
+
+    if typ != "frame":
+        raise_unsupported("typ")
+    if convert_axes is not None:
+        raise_unsupported("convert_axes")
+    if convert_dates is not True:
+        raise_unsupported("convert_dates")
+    if keep_default_dates is not True:
+        raise_unsupported("keep_default_dates")
+    if precise_float is not False:
+        raise_unsupported("precise_float")
+    if date_unit is not None:
+        raise_unsupported("date_unit")
+    if storage_options is not None:
+        raise_unsupported("storage_options")
+    if compression != "infer":
+        # pyarrow infers compression from the file extension itself; pandas
+        # cannot honor an explicit method (or dict) or disable inference.
+        raise_unsupported("compression")
+    if encoding is not None and encoding.lower() not in ("utf-8", "utf8"):
+        # pyarrow assumes UTF-8 and ignores the encoding argument entirely.
+        raise_unsupported("encoding")
+    if encoding_errors is not None and encoding_errors != "strict":
+        raise_unsupported("encoding_errors")
+
+    if isinstance(dtype, dict):
+        # GH#59516 supports a mapping of ArrowDtype; any other dtype in the
+        # mapping is silently dropped, so reject it.
+        for field, field_dtype in dtype.items():
+            if not isinstance(pandas_dtype(field_dtype), ArrowDtype):
+                raise ValueError(
+                    "The 'pyarrow' engine only supports ArrowDtype values in "
+                    f"the 'dtype' mapping, got {field_dtype!r} for column "
+                    f"{field!r}"
+                )
+    elif dtype is not None:
+        # a scalar dtype (including True/False) applies to every column but is
+        # silently ignored by the pyarrow engine.
+        raise_unsupported("dtype")
+
+
 @overload
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
@@ -570,6 +641,10 @@ def read_json(
         expected. A local file could be:
         ``file://localhost/path/to/table.json``.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
@@ -584,34 +659,34 @@ def read_json(
         The set of possible orients is:
 
         - ``'split'`` : dict like
-          ``{{index -> [index], columns -> [columns], data -> [values]}}``
+          ``{index -> [index], columns -> [columns], data -> [values]}``
         - ``'records'`` : list like
-          ``[{{column -> value}}, ... , {{column -> value}}]``
-        - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
-        - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
+          ``[{column -> value}, ... , {column -> value}]``
+        - ``'index'`` : dict like ``{index -> {column -> value}}``
+        - ``'columns'`` : dict like ``{column -> {index -> value}}``
         - ``'values'`` : just the values array
-        - ``'table'`` : dict like ``{{'schema': {{schema}}, 'data': {{data}}}}``
+        - ``'table'`` : dict like ``{'schema': {schema}, 'data': {data}}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.
 
         * when ``typ == 'series'``,
 
-          - allowed orients are ``{{'split','records','index'}}``
+          - allowed orients are ``{'split','records','index'}``
           - default is ``'index'``
           - The Series index must be unique for orient ``'index'``.
 
         * when ``typ == 'frame'``,
 
-          - allowed orients are ``{{'split','records','index',
-            'columns','values', 'table'}}``
+          - allowed orients are ``{'split','records','index',
+            'columns','values', 'table'}``
           - default is ``'columns'``
           - The DataFrame index must be unique for orients ``'index'`` and
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
 
-    typ : {{'frame', 'series'}}, default 'frame'
+    typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
 
     dtype : bool or dict, default None
@@ -710,7 +785,7 @@ def read_json(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -722,9 +797,12 @@ def read_json(
 
         .. versionadded:: 2.0
 
-    engine : {{"ujson", "pyarrow"}}, default "ujson"
+    engine : {"ujson", "pyarrow"}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
-        ``lines=True``.
+        ``lines=True``, and only supports ``typ="frame"`` with default parsing
+        options; passing an option it cannot apply (for example ``convert_dates``,
+        ``date_unit``, ``precise_float``, ``encoding``, or a non-``ArrowDtype``
+        ``dtype``) raises ``ValueError``.
 
         .. versionadded:: 2.0
 
@@ -816,6 +894,24 @@ def read_json(
 
     check_dtype_backend(dtype_backend)
 
+    if engine == "pyarrow":
+        # Validate before dtype/convert_axes are resolved from None to True
+        # below, so an explicitly-passed value can be told apart from the
+        # default.
+        _validate_pyarrow_engine_options(
+            typ=typ,
+            dtype=dtype,
+            convert_axes=convert_axes,
+            convert_dates=convert_dates,
+            keep_default_dates=keep_default_dates,
+            precise_float=precise_float,
+            date_unit=date_unit,
+            encoding=encoding,
+            encoding_errors=encoding_errors,
+            compression=compression,
+            storage_options=storage_options,
+        )
+
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
@@ -861,6 +957,96 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     If initialized with ``lines=True`` and ``chunksize``, can be iterated over
     ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the
     whole document.
+
+    A ``JsonReader`` is returned by :func:`~pandas.read_json` when
+    ``chunksize`` is passed; it is not usually instantiated directly.
+
+    Parameters
+    ----------
+    filepath_or_buffer : a str path, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. pandas accepts any
+        ``os.PathLike``, or file-like object with a ``read()`` method, such
+        as a file handle or ``StringIO``.
+    orient : str
+        Indication of expected JSON string format. Compatible JSON strings
+        can be produced by ``to_json()`` with a corresponding orient value.
+        See :func:`~pandas.read_json` for the set of possible orients.
+    typ : {"frame", "series"}
+        The type of object to recover.
+    dtype : bool or dict
+        If True, infer dtypes; if a dict of column to dtype, then use those;
+        if False, then don't infer dtypes at all, applies only to the data.
+    convert_axes : bool or None
+        Try to convert the axes to the proper dtypes.
+    convert_dates : bool or list of str
+        If True then default datelike columns may be converted (depending on
+        ``keep_default_dates``). If False, no dates will be converted. If a
+        list of column names, then those columns will be converted and
+        default datelike columns may also be converted (depending on
+        ``keep_default_dates``).
+    keep_default_dates : bool
+        If parsing dates (``convert_dates`` is not False), then try to parse
+        the default datelike columns. See :func:`~pandas.read_json` for the
+        criteria used to determine whether a column label is datelike.
+    precise_float : bool
+        Set to enable usage of higher precision (strtod) function when
+        decoding string to double values.
+    date_unit : str or None
+        The timestamp unit to detect if converting dates. The default
+        behaviour is to try and detect the correct precision, but if this
+        is not desired then pass one of 's', 'ms', 'us' or 'ns' to force
+        parsing only seconds, milliseconds, microseconds or nanoseconds
+        respectively.
+    encoding : str or None
+        The encoding to use to decode py3 bytes.
+    lines : bool
+        Read the file as a json object per line.
+    chunksize : int or None
+        Return a ``JsonReader`` for iteration, yielding ``chunksize`` lines
+        at a time. Can only be passed if ``lines=True``. If this is None,
+        the file will be read into memory all at once.
+    compression : str or dict
+        For on-the-fly decompression of on-disk data, see
+        :func:`~pandas.read_json` for the accepted values.
+    nrows : int or None
+        The number of lines from the line-delimited json file that has to
+        be read. Can only be passed if ``lines=True``. If this is None, all
+        the rows will be returned.
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc. See
+        :func:`~pandas.read_json` for more details.
+    encoding_errors : str, optional, default "strict"
+        How encoding errors are treated. `List of possible values
+        <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+    dtype_backend : {"numpy_nullable", "pyarrow"}
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). See :func:`~pandas.read_json` for more
+        details.
+    engine : {"ujson", "pyarrow"}, default "ujson"
+        Parser engine to use. See :func:`~pandas.read_json` for the
+        restrictions on the ``"pyarrow"`` engine.
+
+    See Also
+    --------
+    read_json : Convert a JSON string to pandas object.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> reader = pd.read_json(
+    ...     StringIO(df.to_json(orient="records", lines=True)),
+    ...     lines=True,
+    ...     chunksize=1,
+    ... )
+    >>> for chunk in reader:
+    ...     print(chunk)
+       a  b
+    0  1  3
+       a  b
+    1  2  4
     """
 
     def __init__(
@@ -920,6 +1106,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+            if self.engine == "pyarrow":
+                raise NotImplementedError(
+                    "currently pyarrow engine doesn't support nrows parameter"
+                )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
@@ -931,7 +1121,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             data = self._get_data_from_filepath(filepath_or_buffer)
             # If self.chunksize, we prepare the data for the `__next__` method.
             # Otherwise, we read it into memory for the `read` method.
-            if not (self.chunksize or self.nrows):
+            if self.chunksize is None and self.nrows is None:
                 with self:
                     self.data = data.read()
             else:
@@ -980,6 +1170,34 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     def read(self) -> DataFrame | Series:
         """
         Read the whole JSON input into a pandas object.
+
+        Unlike iterating over the reader, this reads the entire underlying
+        JSON input in a single call, regardless of whether ``chunksize``
+        was specified when this reader was created.
+
+        Returns
+        -------
+        DataFrame or Series
+            The parsed pandas object, depending on the ``typ`` passed when
+            this reader was created.
+
+        See Also
+        --------
+        read_json : Convert a JSON string to pandas object.
+
+        Examples
+        --------
+        >>> from io import StringIO
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        >>> reader = pd.read_json(
+        ...     StringIO(df.to_json(orient="records", lines=True)),
+        ...     lines=True,
+        ...     chunksize=2,
+        ... )
+        >>> reader.read()
+           a  b
+        0  1  3
+        1  2  4
         """
         obj: DataFrame | Series
         with self:
@@ -1022,8 +1240,12 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         obj: DataFrame | Series
         if self.lines:
             if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
+                chunks = list(self)
+                if chunks:
+                    obj = concat(chunks)
+                else:
+                    obj = self._get_object_parser(self._combine_lines([]))
+            elif self.nrows is not None:
                 lines = list(islice(self.data, self.nrows))
                 lines_json = self._combine_lines(lines)
                 obj = self._get_object_parser(lines_json)
@@ -1068,10 +1290,26 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
     def close(self) -> None:
         """
-        If we opened a stream earlier, in _get_data_from_filepath, we should
+        Close the underlying file handle, if one was opened by the reader.
+
+        If an open stream or file-like object was passed to the reader
+        rather than a path, it is left open and this method does not
         close it.
 
-        If an open stream or file was passed, we leave it open.
+        See Also
+        --------
+        read_json : Convert a JSON string to pandas object.
+
+        Examples
+        --------
+        >>> from io import StringIO
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        >>> reader = pd.read_json(
+        ...     StringIO(df.to_json(orient="records", lines=True)),
+        ...     lines=True,
+        ...     chunksize=1,
+        ... )
+        >>> reader.close()
         """
         if self.handles is not None:
             self.handles.close()
@@ -1091,11 +1329,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
-        if self.nrows and self.nrows_seen >= self.nrows:
-            self.close()
-            raise StopIteration
+        chunk_size: int | None
+        if self.nrows is not None:
+            remaining = self.nrows - self.nrows_seen
+            if remaining <= 0:
+                self.close()
+                raise StopIteration
+            if self.chunksize is None:
+                chunk_size = remaining
+            else:
+                chunk_size = min(self.chunksize, remaining)
+        else:
+            chunk_size = self.chunksize
 
-        lines = list(islice(self.data, self.chunksize))
+        lines = list(islice(self.data, chunk_size))
         if not lines:
             self.close()
             raise StopIteration
@@ -1247,8 +1494,11 @@ class Parser:
                 filled = data.fillna(np.nan)
 
                 return filled, True
-
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type: "ExtensionDtype
+            # | str | dtype[Any] | type[object] | Mapping[Hashable, ExtensionDtype
+            # | str | dtype[Any] | type[str] | type[complex] | type[bool]
+            # | type[object]]", right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             elif not _should_convert_dates(
                 convert_dates, self.keep_default_dates, name

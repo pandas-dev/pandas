@@ -264,7 +264,9 @@ class TestAstype:
         expected = Series(ser.astype(object), dtype=object)
         tm.assert_series_equal(result, expected)
 
-        result = Series(ser.values).dt.tz_localize("UTC").dt.tz_convert(ser.dt.tz)
+        depr_msg = "Series.values returning an ndarray that drops timezone information"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = Series(ser.values).dt.tz_localize("UTC").dt.tz_convert(ser.dt.tz)
         tm.assert_series_equal(result, ser)
 
         # astype - object, preserves on construction
@@ -276,11 +278,13 @@ class TestAstype:
         msg = "Cannot use .astype to convert from timezone-naive"
         with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            Series(ser.values).astype("datetime64[ns, US/Eastern]")
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                Series(ser.values).astype("datetime64[ns, US/Eastern]")
 
         with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            Series(ser.values).astype(ser.dtype)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(
@@ -346,7 +350,7 @@ class TestAstype:
             result = ser.astype(float, errors="ignore")
             tm.assert_series_equal(result, expected)
         else:
-            msg = "(Cannot cast)|(could not convert)"
+            msg = "|".join(["Cannot cast", "could not convert"])
             with pytest.raises((ValueError, TypeError), match=msg):
                 ser.astype(float, errors=errors)
 
@@ -541,7 +545,7 @@ class TestAstypeCategorical:
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object|str dtype to float64"
+        msg = r"Cannot cast (object|str) dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
@@ -684,3 +688,26 @@ class TestAstypeCategorical:
         result = ser.astype("string[pyarrow]")
         expected = Series(["12", NA], dtype="string[pyarrow]")
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
+def test_astype_to_datetimelike_unit(arr_dtype, kind, unit):
+    # GH#19223
+    dtype = f"{kind}8[{unit}]"
+    arr = np.array([1, 2, 3], dtype=arr_dtype)
+    ser = Series(arr)
+    result = ser.astype(dtype)
+
+    expected = Series(arr.astype(dtype))
+
+    if unit in ["ns", "us", "ms", "s"]:
+        assert result.dtype == dtype
+        assert expected.dtype == dtype
+    else:
+        # Otherwise we cast to nearest-supported unit, i.e. seconds
+        assert result.dtype == f"{kind}8[s]"
+        assert expected.dtype == f"{kind}8[s]"
+
+    tm.assert_series_equal(result, expected)

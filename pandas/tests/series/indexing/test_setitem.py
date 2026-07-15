@@ -8,6 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
@@ -417,8 +418,8 @@ class TestSetitemBooleanMask:
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
-        # GH#24096 altering a datetime64tz Series inplace invalidates the
-        #  `freq` attribute on the underlying DatetimeIndex
+        # GH#24096 altering a datetime64tz Series inplace does not propagate
+        #  back to the underlying DatetimeIndex
 
         dti = date_range("20130101", periods=3, tz="US/Eastern")
         ts = dti[1]
@@ -427,7 +428,6 @@ class TestSetitemViewCopySemantics:
         assert ser._values._ndarray.base is dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
-        assert ser._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert ser._values is not dti
@@ -515,10 +515,6 @@ class TestSetitemWithExpansion:
     )
     def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
-        if using_infer_string and not isinstance(td, Timedelta):
-            # TODO: GH#56010
-            request.applymarker(pytest.mark.xfail(reason="inferred as string"))
-
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
         ser = Series(["x"])
@@ -592,17 +588,22 @@ class TestSetitemWithExpansion:
         # GH#48665
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
+
         dtype = (
             "str"
-            if using_infer_string and not isinstance(nulls_fixture, Decimal)
+            if using_infer_string
+            and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
             else object
         )
+
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
-        if using_infer_string:
+        if dtype == "str":
             ser[3] is np.nan
-        else:
+        elif using_infer_string:
             assert ser[3] is nulls_fixture
+        else:
+            assert type(ser[3]) is type(nulls_fixture)
 
 
 def test_setitem_scalar_into_readonly_backing_data():
@@ -852,16 +853,25 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        if is_list_like(val) and len(val) < len(obj):
+            # see test_series_where
+            return
+
         res = Index(obj).where(~mask, val)
-        expected_idx = Index(expected, dtype=expected.dtype)
-        tm.assert_index_equal(res, expected_idx)
+        ser_res = obj.where(~mask, val)
+        tm.assert_index_equal(res, Index(ser_res, dtype=ser_res.dtype))
 
     def test_index_putmask(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        if is_list_like(val) and len(val) < len(obj):
+            # see test_series_where
+            return
+
         res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        ser_res = obj.where(~mask, val)
+        tm.assert_index_equal(res, Index(ser_res, dtype=ser_res.dtype))
 
 
 @pytest.mark.parametrize(
@@ -1467,6 +1477,22 @@ class TestCoercionFloat32(CoercionTest):
 
         if isinstance(val, float):
             # the xfail would xpass bc test_slice_key short-circuits
+            raise AssertionError("xfail not relevant for this test.")
+
+    def test_index_where(self, obj, key, expected, raises, val):
+        super().test_index_where(obj, key, expected, raises, val)
+
+        if isinstance(val, float) and not np_version_gt2:
+            # Index.where delegates to Series.where, so the comparison is
+            #  trivially satisfied and the xfail would xpass
+            raise AssertionError("xfail not relevant for this test.")
+
+    def test_index_putmask(self, obj, key, expected, raises, val):
+        super().test_index_putmask(obj, key, expected, raises, val)
+
+        if isinstance(val, float) and not np_version_gt2:
+            # Index.putmask delegates to Series.where, so the comparison is
+            #  trivially satisfied and the xfail would xpass
             raise AssertionError("xfail not relevant for this test.")
 
 

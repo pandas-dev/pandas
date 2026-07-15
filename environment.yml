@@ -8,9 +8,9 @@ dependencies:
 
   # build dependencies
   - versioneer
-  - cython<4.0.0a0
-  - meson>=1.2.1,<2
-  - meson-python>=0.17.1,<1
+  - cython>=3.1.0,<4
+  - meson>=1.2.3,<2
+  - meson-python>=0.18.0,<1
 
   # test dependencies
   - pytest>=8.3.4
@@ -43,13 +43,14 @@ dependencies:
   - openpyxl>=3.1.5
   - odfpy>=1.4.1
   - psycopg2>=2.9.10
-  - pyarrow>=13.0.0
+  # TMP avoid pyarrow 24.0 due to typing issues (https://github.com/apache/arrow/issues/49831)
+  - pyarrow>=13.0.0,<24.0.0
   - pyiceberg>=0.8.1
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
   - pytables>=3.10.1
   - python-calamine>=0.3.0
-  - pytz>=2024.2
+  - pytz>=2020.1
   - pyxlsb>=1.0.10
   - s3fs>=2024.10.0
   - scipy>=1.14.1
@@ -69,15 +70,15 @@ dependencies:
   - moto
 
   # benchmarks
-  - asv>=0.6.1
+  - asv>=0.6.6
+  - py-rattler
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
 
   # code checks
-  - flake8=7.1.0  # run in subprocess over docstring examples
-  - mypy=1.17.1  # pre-commit uses locally installed mypy
+  - mypy=2.1.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
 
@@ -88,7 +89,7 @@ dependencies:
   - numpydoc
   # temporary installed with pip with custom patch until released
   # - pydata-sphinx-theme=0.16
-  - pytest-cython  # doctest
+  - pytest-cython>=0.4.0  # doctest
   - sphinx
   - sphinx-design
   - sphinx-copybutton
@@ -96,10 +97,9 @@ dependencies:
   # static typing
   - scipy-stubs
   - types-python-dateutil
-  - types-PyMySQL
+  - types-pymysql
   - types-pytz
-  - types-PyYAML
-  - types-setuptools
+  - types-pyyaml
 
   # documentation (jupyter notebooks)
   - nbconvert>=7.11.0

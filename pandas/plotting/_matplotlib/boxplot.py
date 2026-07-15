@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     NamedTuple,
 )
@@ -335,7 +336,7 @@ def _grouped_plot_by_column(
     if return_type is None:
         result = axes
 
-    byline = by[0] if len(by) == 1 else by
+    byline = by[0] if len(by) == 1 else by  # pyright: ignore[reportOptionalSubscript]
     fig.suptitle(f"Boxplot grouped by {byline}")
     maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
@@ -452,7 +453,8 @@ def boxplot(
             raise ValueError("The 'layout' keyword is not supported when 'by' is None")
 
         if ax is None:
-            rc = {"figure.figsize": figsize} if figsize is not None else {}
+            # Any: rc_context's accepted key type narrowed in matplotlib 3.11
+            rc: Any = {"figure.figsize": figsize} if figsize is not None else {}
             with mpl.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()

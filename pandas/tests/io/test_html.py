@@ -61,7 +61,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         )
     )
     assert both_frames, msg
-    for frame_i, frame_j in zip(list1, list2):
+    for frame_i, frame_j in zip(list1, list2, strict=True):
         tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, "frames are both empty"
 
@@ -387,8 +387,16 @@ class TestReadHtml:
     @pytest.mark.single_cpu
     def test_invalid_url(self, httpserver, flavor_read_html):
         httpserver.serve_content("Name or service not known", code=404)
-        with pytest.raises((URLError, ValueError), match="HTTP Error 404: NOT FOUND"):
-            flavor_read_html(httpserver.url, match=".*Water.*")
+        try:
+            with pytest.raises(
+                (URLError, ValueError), match="HTTP Error 404: NOT FOUND"
+            ) as err:
+                flavor_read_html(httpserver.url, match=".*Water.*")
+        finally:
+            if isinstance(err.value, URLError):
+                # Has a file-like handle that we can close
+                # https://docs.python.org/3/library/urllib.error.html#urllib.error.HTTPError
+                err.value.close()
 
     @pytest.mark.slow
     def test_file_url(self, banklist_data, flavor_read_html):
@@ -606,6 +614,47 @@ class TestReadHtml:
         )[0]
 
         expected = DataFrame(data=[[1, 2], [3, 4]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_nested_table(self, flavor_read_html):
+        # GH-64524
+        tables = flavor_read_html(
+            StringIO("""
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table id="descendant">
+                                    <thead>
+                                        <tr>
+                                            <th>A</th>
+                                            <th>B</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>2</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            """),
+            attrs={"id": "descendant"},
+        )
+        assert len(tables) == 1
+        result = tables[0]
+
+        expected = DataFrame(data=[[1, 2]], columns=["A", "B"])
 
         tm.assert_frame_equal(result, expected)
 
@@ -1658,4 +1707,16 @@ class TestReadHtml:
         """
         result = flavor_read_html(StringIO(data))[0]
         expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_html_comma_separated_digit_groups(self, flavor_read_html):
+        # GH#52619 - ensure read_html doesn't suffer from catastrophic
+        # backtracking when cells contain comma-separated digit groups
+        # followed by non-numeric text.
+        data = """<table>
+            <tr><th>Codes</th></tr>
+            <tr><td>41651,65125,17328,02872,49459,79208,ABCDE</td></tr>
+        </table>"""
+        result = flavor_read_html(StringIO(data))[0]
+        expected = DataFrame({"Codes": ["41651,65125,17328,02872,49459,79208,ABCDE"]})
         tm.assert_frame_equal(result, expected)

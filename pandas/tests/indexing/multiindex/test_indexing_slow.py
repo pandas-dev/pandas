@@ -35,7 +35,7 @@ def vals(n):
         np.random.default_rng(2).choice(list("ZYXWVUTSRQ"), n),
         np.random.default_rng(2).standard_normal(n),
     ]
-    vals = list(map(tuple, zip(*vals)))
+    vals = list(map(tuple, zip(*vals, strict=True)))
     return vals
 
 
@@ -50,7 +50,7 @@ def keys(n, m, vals):
         ),
         np.random.default_rng(2).choice(list("ZYXWVUTSRQP"), m),
     ]
-    keys = list(map(tuple, zip(*keys)))
+    keys = list(map(tuple, zip(*keys, strict=True)))
     keys += [t[:-1] for t in vals[:: n // m]]
     return keys
 
@@ -101,8 +101,7 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
             right = df[mask].copy(deep=False)
 
             if i + 1 != len(key):  # partial key
-                return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
-                assert return_value is None
+                right = right.drop(cols[: i + 1], axis=1)
                 return_value = right.set_index(cols[i + 1 : -1], inplace=True)
                 assert return_value is None
                 tm.assert_frame_equal(mi.loc[key[: i + 1]], right)

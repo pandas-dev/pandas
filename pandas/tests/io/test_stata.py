@@ -211,16 +211,7 @@ class TestStata:
             parsed_115 = self.read_dta(path2)
         with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_117 = self.read_dta(path3)
-            # FIXME: don't leave commented-out
-            # 113 is buggy due to limits of date format support in Stata
-            # parsed_113 = self.read_dta(
-            # datapath("io", "data", "stata", "stata2_113.dta")
-            # )
 
-        # FIXME: don't leave commented-out
-        # buggy test because of the NaT comparison on certain platforms
-        # Format 113 test fails since it does not support tc and tC formats
-        # tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)
         tm.assert_frame_equal(parsed_117, expected)
@@ -839,7 +830,7 @@ class TestStata:
             np.int32,
             np.float64,
         )
-        for c, t in zip(expected.columns, expected_types):
+        for c, t in zip(expected.columns, expected_types, strict=True):
             expected[c] = expected[c].astype(t)
 
         tm.assert_frame_equal(written_and_read_again, expected)
@@ -870,7 +861,9 @@ class TestStata:
 
         with StataReader(path) as sr:
             sr._ensure_open()  # The `_*list` variables are initialized here
-            for variable, fmt, typ in zip(sr._varlist, sr._fmtlist, sr._typlist):
+            for variable, fmt, typ in zip(
+                sr._varlist, sr._fmtlist, sr._typlist, strict=True
+            ):
                 assert int(variable[1:]) == int(fmt[1:-1])
                 assert int(variable[1:]) == typ
 
@@ -981,7 +974,9 @@ class TestStata:
         mm = [0, 0, 59, 0, 0, 0]
         ss = [0, 0, 59, 0, 0, 0]
         expected = []
-        for year, month, day, hour, minute, second in zip(yr, mo, dd, hr, mm, ss):
+        for year, month, day, hour, minute, second in zip(
+            yr, mo, dd, hr, mm, ss, strict=True
+        ):
             row = []
             for j in range(7):
                 if j == 0:
@@ -1843,6 +1838,24 @@ The repeated labels are:\n-+\nwolof
         with pytest.raises(ValueError, match=msg):
             original.to_stata(path, convert_dates={"wrong_name": "tc"})
 
+    def test_convert_dates_with_renamed_columns(self, temp_file):
+        # GH#60536 - convert_dates should not raise when a different column
+        # is renamed for Stata compatibility
+        df = DataFrame(
+            {
+                "1bad_name": [1, 2, 3],
+                "date_col": pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"]),
+            }
+        )
+        path = temp_file
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
+            df.to_stata(path, convert_dates={"date_col": "td"})
+
+        result = self.read_dta(path)
+        assert "_1bad_name" in result.columns
+        assert "date_col" in result.columns
+
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nonfile_writing(self, version, temp_file):
         # GH 21041
@@ -1944,7 +1957,7 @@ The repeated labels are:\n-+\nwolof
             "'ascii' codec can't decode byte 0xef in position 14: "
             r"ordinal not in range\(128\)"
         )
-        with pytest.raises(UnicodeEncodeError, match=f"{msg1}|{msg2}"):
+        with pytest.raises(UnicodeEncodeError, match="|".join([msg1, msg2])):
             df.to_stata(temp_file)
 
     def test_strl_latin1(self, temp_file):
@@ -2622,3 +2635,23 @@ def test_ascii_error(temp_file, version):
     df.to_stata(temp_file, write_index=0, version=version)
     df_input = read_stata(temp_file)
     tm.assert_frame_equal(df, df_input)
+
+
+def test_stata_v117_prefix_with_unsupported_version_raises_version_error():
+    # _read_new_header reads 27 bytes, then the next 3 are the release digits
+    buf = io.BytesIO(b"<stata_dta><header><release>999</release>" + b"\x00" * 64)
+    with pytest.raises(
+        ValueError,
+        match=r"either not a valid Stata dataset.*\(detected:\s*999\)",
+    ):
+        read_stata(buf)
+
+
+def test_read_stata_far_future_dates(datapath):
+    # GH#36096 day-format column with values ~20.5M (year ~58330) used to
+    # raise OverflowError via dateutil; non-nano datetime64[s] handles it.
+    path = datapath("io", "data", "stata", "stata-date-overflow-36096.dta")
+    result = read_stata(path)
+    assert result.shape == (10, 1)
+    assert result["tiempo_gen"].dtype == np.dtype("M8[s]")
+    assert result["tiempo_gen"].min().year == 58330

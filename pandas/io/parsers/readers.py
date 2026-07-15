@@ -6,11 +6,17 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 
 from __future__ import annotations
 
+import codecs
 from collections import (
     abc,
     defaultdict,
 )
+from concurrent.futures import ThreadPoolExecutor
+import contextlib
 import csv
+import io
+import mmap
+import os
 import sys
 from typing import (
     IO,
@@ -28,10 +34,14 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -41,12 +51,12 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
-    is_file_like,
     is_float,
     is_integer,
     is_list_like,
     pandas_dtype,
 )
+from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
 from pandas.core.frame import DataFrame
@@ -55,6 +65,7 @@ from pandas.core.indexes.api import RangeIndex
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    infer_compression,
     stringify_path,
     validate_header_arg,
 )
@@ -132,7 +143,7 @@ if TYPE_CHECKING:
         comment: str | None
         encoding: str | None
         encoding_errors: str | None
-        dialect: str | csv.Dialect | None
+        dialect: str | csv.Dialect | type[csv.Dialect] | None
         on_bad_lines: str
         low_memory: bool
         memory_map: bool
@@ -168,6 +179,10 @@ class _Fwf_Defaults(TypedDict):
 _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
+
+# Minimum file size (bytes) to attempt parallel CSV reading.
+# Below this threshold the overhead of splitting and threading outweighs the benefit.
+_PARALLEL_READ_MIN_BYTES = 50 * 1024 * 1024  # 50 MB
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -184,6 +199,7 @@ _pyarrow_unsupported = {
     "dayfirst",
     "skipinitialspace",
     "low_memory",
+    "na_filter",
 }
 
 
@@ -296,6 +312,52 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
+    if kwds.get("float_precision") is not None:
+        warnings.warn(
+            "The 'float_precision' argument is deprecated. "
+            "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+    # For large local uncompressed files with the C engine, attempt parallel reading.
+    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
+    # and type-conversion code in parsers.pyx runs truly in parallel.
+    if not iterator and chunksize is None and nrows is None:
+        _max = get_option("mode.max_threads")
+        if sys.platform == "emscripten":
+            # WASM cannot spawn threads, regardless of mode.max_threads.
+            _n_workers = 1
+        elif _max is not None:
+            _n_workers = _max
+        elif sys.platform == "win32":
+            # Parallel CSV reading does not currently speed up on Windows: even
+            # with the file warm in the OS cache, using more than one thread is
+            # no faster (and slower at two threads).  Default to serial there;
+            # users can still opt in explicitly via mode.max_threads.  See the
+            # benchmark numbers in the GH#64347 discussion:
+            # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
+            _n_workers = 1
+        else:
+            # Cap the default at 4 threads: parallel CSV reading sees
+            # diminishing returns beyond a handful of workers, and a lower
+            # default avoids oversubscribing the machine.  Users who want more
+            # can opt in explicitly via mode.max_threads.
+            _n_workers = min(os.cpu_count() or 1, 4)
+        if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
+            _filepath = stringify_path(filepath_or_buffer)
+            assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
+            try:
+                result = _read_csv_parallel(_filepath, kwds, _n_workers)
+            except (ParserError, UnicodeDecodeError):
+                # e.g. a chunk boundary landed inside a quoted field containing
+                # an embedded newline.  The serial path below handles anything
+                # the parallel path cannot.  Other exceptions propagate: they
+                # signal a parallel-path bug, not ineligible input.
+                result = None
+            if result is not None:
+                return result
+
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
@@ -304,6 +366,434 @@ def _read(
 
     with parser:
         return parser.read(nrows)
+
+
+def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
+    """
+    Return True when a ``read_csv`` call is eligible for parallel execution.
+
+    Parallel reading works by splitting the file's data section into
+    byte-range chunks at newline boundaries and processing them concurrently
+    with threads.  The following conditions must all hold:
+
+    * *filepath_or_buffer* is a local file path (not a URL or file object).
+    * The file is not compressed.
+    * The C engine is selected (``engine='c'``, the default).
+    * The call is not in iterator / chunked mode.
+    * The entire file is being read (no ``nrows`` limit).
+    * ``skiprows`` is a plain integer (or absent) - list/callable forms require
+      tracking absolute line numbers across chunks.
+    * ``header`` is a single integer or ``None`` - multi-level headers complicate
+      the preamble boundary.
+    * ``index_col`` is ``None`` or ``False`` - a column-based index would need its
+      name propagated to non-first chunks.
+    * ``usecols`` is ``None`` - column selection changes the mapping between raw
+      column positions and names in non-first chunks.
+    * The separator is a single character or ``r"\\s+"`` - anything else forces
+      the python engine inside ``TextFileReader``.
+    * The encoding is ``utf-8`` / ``utf-8-sig`` - chunk workers feed raw file
+      bytes to the C tokenizer, which decodes words as UTF-8.  ``ascii`` is
+      excluded so a non-ASCII byte still raises rather than being masked.
+    * ``comment`` is ``None`` and the preamble has no blank lines - full-line
+      comments and blank lines shift where pandas locates the header relative
+      to the physical line count used by :func:`_find_data_start_offset`.
+    * ``escapechar`` is ``None`` and ``dialect`` is not used - an escaped
+      literal newline would be split mid-field.
+    * ``parse_dates`` is unset - datetime format inference is per-chunk and may
+      disagree with the serial whole-column inference.
+    * ``storage_options`` is ``None`` - it raises for local paths in the serial
+      path, and that error must not be masked.
+    * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
+      chunk-relative (i.e. wrong) line numbers.
+    * The file is at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
+
+    Note that a chunk boundary landing on a newline embedded inside a quoted
+    field leaves that chunk's parser inside an open quote at EOF, which raises
+    ``ParserError`` in the worker and triggers the serial fallback in
+    :func:`_read` - it does not corrupt data silently.
+    """
+    # Must be a local file path, not a URL or file-like object.
+    if is_file_like(filepath_or_buffer):
+        return False
+    filepath = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath, str):
+        return False
+    if "://" in filepath:
+        return False
+
+    # storage_options on a local path raises ValueError in get_handle; the
+    # parallel path strips it and would mask that error.
+    if kwds.get("storage_options") is not None:
+        return False
+
+    # Uncompressed files only (splitting is only meaningful for raw bytes).
+    compression = kwds.get("compression", "infer")
+    if isinstance(compression, dict):
+        compression = compression.get("method")
+    if compression is not None:
+        try:
+            if infer_compression(filepath, compression) is not None:
+                return False
+        except ValueError:
+            # unrecognized compression argument; let the serial path raise
+            return False
+
+    # Iterator / chunked mode: caller handles chunking themselves.
+    if kwds.get("iterator", False) or kwds.get("chunksize") is not None:
+        return False
+
+    # Only the C engine benefits; pyarrow has its own parallelism.
+    # engine=None means "use the default", which is "c".
+    if kwds.get("engine") not in ("c", None):
+        return False
+
+    # nrows: we'd need to distribute the row budget across chunks - skip for now.
+    if kwds.get("nrows") is not None:
+        return False
+
+    # The chunk splitter scans for raw \n bytes.  A custom lineterminator
+    # (which the C engine does honour) would misalign chunk boundaries.
+    lineterminator = kwds.get("lineterminator")
+    if lineterminator is not None and lineterminator != "\n":
+        return False
+
+    # Chunk workers feed raw file bytes to the C tokenizer, which decodes
+    # words as UTF-8.  The serial path instead transcodes through a
+    # TextIOWrapper, so anything that is not already valid UTF-8 (latin-1,
+    # cp1252, UTF-16/32, ...) must take the serial path.  "ascii" is excluded
+    # for the same reason: the workers would decode a non-ASCII byte as UTF-8
+    # and succeed, masking the UnicodeDecodeError the serial path raises for
+    # bytes outside the declared encoding (GH#64347).
+    encoding = kwds.get("encoding")
+    if encoding is not None:
+        try:
+            codec_name = codecs.lookup(encoding).name
+        except LookupError:
+            return False
+        if codec_name not in ("utf-8", "utf-8-sig"):
+            return False
+
+    # Separators that force the python-engine fallback inside TextFileReader
+    # (sep=None sniffing, or multi-char/regex seps other than r"\s+") cannot
+    # use the C-engine buffer-loading fast path.
+    delimiter = kwds.get("delimiter", ",")
+    if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
+        return False
+
+    # Full-line comments before/inside the preamble shift the header location
+    # in ways _find_data_start_offset cannot see.
+    if kwds.get("comment") is not None:
+        return False
+
+    # An escaped literal newline (escapechar followed by "\n") would be split
+    # mid-field.
+    if kwds.get("escapechar") is not None:
+        return False
+
+    # dialect is merged into the kwds inside TextFileReader, i.e. after this
+    # function runs, so a dialect-specified escapechar would bypass the check
+    # above.  Be conservative and take the serial path.
+    if kwds.get("dialect") is not None:
+        return False
+
+    # Datetime format inference is per-chunk and may disagree with the serial
+    # whole-column inference.
+    if kwds.get("parse_dates"):
+        return False
+
+    # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
+    # would report chunk-relative (i.e. wrong) ones.
+    if kwds.get("on_bad_lines") == ParserBase.BadLineHandleMethod.BLHM_WARN:
+        return False
+
+    # Callable / list skiprows require tracking absolute line numbers.
+    skiprows = kwds.get("skiprows")
+    if skiprows is not None and not isinstance(skiprows, (int, np.integer)):
+        return False
+
+    # Multi-level (list) headers span multiple preamble lines - skip for now.
+    if isinstance(kwds.get("header", "infer"), (list, tuple)):
+        return False
+
+    # skipfooter: the C engine doesn't support it anyway, but be explicit.
+    if kwds.get("skipfooter", 0) > 0:
+        return False
+
+    # A column-based index_col would need its name propagated to non-first chunks.
+    index_col = kwds.get("index_col", None)
+    if index_col is not None and index_col is not False:
+        return False
+
+    # usecols changes the column name ↔ position mapping in non-first chunks.
+    if kwds.get("usecols") is not None:
+        return False
+
+    # Only bother for files large enough to amortise the threading overhead.
+    try:
+        file_size = os.path.getsize(filepath)
+        if file_size < _PARALLEL_READ_MIN_BYTES:
+            return False
+    except OSError:
+        return False
+
+    # Check that the *data section* (after header/skiprows preamble) is large
+    # enough to split into at least 2 chunks.  Without this, _read_csv_parallel
+    # would have to return None for files whose preamble eats most of the bytes.
+    _header = kwds.get("header", "infer")
+    if _header == "infer":
+        _header = 0 if kwds.get("names") is None else None
+    _skiprows = int(kwds.get("skiprows") or 0)
+    data_start = _find_data_start_offset(filepath, _header, _skiprows)
+    if file_size - data_start < _PARALLEL_READ_MIN_BYTES:
+        return False
+
+    # Blank lines in the preamble shift where pandas locates the header
+    # relative to the physical line count used by _find_data_start_offset.
+    with open(filepath, "rb") as fd:
+        preamble = fd.read(data_start)
+    if any(not line.rstrip(b"\r") for line in preamble.splitlines()):
+        return False
+
+    return True
+
+
+def _find_data_start_offset(
+    filepath: str,
+    header: int | None,
+    skiprows: int,
+) -> int:
+    """
+    Return the byte offset of the first data row in *filepath*.
+
+    Reads ``int(skiprows) + (header + 1 if header is not None else 0)``
+    physical lines from the start of the file and returns the position after
+    the last preamble byte.  This is the byte from which each non-first chunk
+    must begin.
+    """
+    if header is None:
+        header_lines = 0
+    else:
+        header_lines = int(header) + 1  # header=0 → 1 header line
+
+    preamble_lines = int(skiprows) + header_lines
+    with open(filepath, "rb") as fd:
+        for _ in range(preamble_lines):
+            if not fd.readline():
+                break
+        return fd.tell()
+
+
+def _find_chunk_byte_offsets(
+    filepath: str,
+    n_chunks: int,
+    data_start: int,
+) -> list[int]:
+    """
+    Compute byte offsets that partition the data portion of *filepath* into
+    *n_chunks* approximately equal pieces aligned to newline boundaries.
+
+    Returns a list of ``n + 1`` offsets where the byte range
+    ``[offsets[i], offsets[i+1])`` defines chunk *i*.
+    """
+    file_size = os.path.getsize(filepath)
+    data_size = file_size - data_start
+    offsets = [data_start]
+
+    if n_chunks <= 1 or data_size <= 0:
+        offsets.append(file_size)
+        return offsets
+
+    chunk_target = data_size // n_chunks
+    with open(filepath, "rb") as fd:
+        for i in range(1, n_chunks):
+            target = data_start + i * chunk_target
+            if target >= file_size:
+                break
+            fd.seek(target)
+            fd.readline()  # advance past the partial line at the split point
+            pos = fd.tell()
+            if pos >= file_size or pos == offsets[-1]:
+                break
+            offsets.append(pos)
+
+    offsets.append(file_size)
+    return offsets
+
+
+def _read_csv_parallel(
+    filepath: str,
+    kwds: dict,
+    n_workers: int,
+) -> DataFrame | None:
+    """
+    Read a large CSV file in parallel using *n_workers* threads.
+
+    The file's data section (everything after the header / skiprows preamble)
+    is split into up to *n_workers* byte-range chunks aligned to newline
+    boundaries.  Each chunk is parsed by an independent
+    :class:`TextFileReader` / C-engine instance.  Because the hot paths in
+    ``pandas/_libs/parsers.pyx`` (tokenisation, int/float/bool conversion)
+    are wrapped in ``with nogil:`` blocks, threads achieve real CPU-level
+    parallelism.
+
+    The caller must ensure the file is eligible via :func:`_can_parallelize_csv`
+    before calling this function.
+
+    Returns ``None`` when parallel reading turns out not to be applicable
+    after all (the data section cannot be split, the engine falls back to
+    python, or per-chunk dtype inference disagrees in a way that would not
+    match the serial result); the caller then reads serially.  Splitting is
+    done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
+    ``ParserError`` from the affected worker - the caller treats that as a
+    serial-fallback signal too.
+    """
+    # Resolve the effective header value (mirrors TextFileReader.__init__).
+    header = kwds.get("header", "infer")
+    if header == "infer":
+        header = 0 if kwds.get("names") is None else None
+
+    skiprows = int(kwds.get("skiprows") or 0)
+
+    # Byte offset at which real data rows begin.
+    data_start = _find_data_start_offset(filepath, header, skiprows)
+
+    # Split the data section into up to n_workers chunks.
+    offsets = _find_chunk_byte_offsets(filepath, n_workers, data_start)
+    n_chunks = len(offsets) - 1
+    if n_chunks < 2:
+        # e.g. a data section with no interior newlines (one giant line)
+        return None
+
+    # ------------------------------------------------------------------
+    # Infer column names from the preamble + one data line (very fast).
+    # ------------------------------------------------------------------
+    base_kwds: dict = {
+        **kwds,
+        "compression": None,
+        "memory_map": False,
+        "storage_options": None,
+    }
+
+    with open(filepath, "rb") as fd:
+        preamble = fd.read(data_start)
+        first_line = fd.readline()
+
+    name_buf = io.BytesIO(preamble + first_line)
+    name_reader = TextFileReader(name_buf, **base_kwds)
+    if not isinstance(name_reader._engine, CParserWrapper):
+        # TextFileReader fell back to the python engine for a reason the
+        # eligibility checks did not anticipate; load_buffer needs the C engine.
+        name_reader.close()
+        return None
+    if name_reader._engine._reader.leading_cols:
+        # Data rows have more fields than the header (implicit index).  The
+        # chunk workers would fail on the extra field; bail out up front.
+        name_reader.close()
+        return None
+    assert name_reader._engine.orig_names is not None
+    col_names: list = list(name_reader._engine.orig_names)
+    # name_buf holds the preamble plus exactly one data line.  Parsing it must
+    # yield exactly one row; anything else means the preamble's physical line
+    # count disagrees with its logical row count (e.g. a quoted embedded
+    # newline in the header), so data_start is wrong.
+    n_first_rows = len(name_reader.read())
+    name_reader.close()
+    if n_first_rows != 1:
+        return None
+
+    # A dict ``dtype`` is applied per raw header name: when a name is repeated,
+    # the serial path assigns that dtype to every de-duplicated column (``a``
+    # and ``a.1``), but the workers receive the already-de-duplicated
+    # ``col_names`` and would match only ``a``.  ``col_names`` no longer shows
+    # the duplication, so recover the raw header names (parse the header line
+    # as data) and fall back to serial when they collide.  GH#64347
+    if header is not None and isinstance(kwds.get("dtype"), dict):
+        header_line = preamble.splitlines(keepends=True)[-1]
+        raw_reader = TextFileReader(
+            io.BytesIO(header_line),
+            **{
+                **base_kwds,
+                "header": None,
+                "names": None,
+                "usecols": None,
+                "index_col": False,
+                "dtype": str,
+                "converters": None,
+                "skiprows": None,
+                "na_filter": False,
+            },
+        )
+        try:
+            raw_names = list(raw_reader.read().iloc[0])
+        finally:
+            raw_reader.close()
+        if len(set(raw_names)) != len(raw_names):
+            return None
+
+    # ------------------------------------------------------------------
+    # Dispatch all chunks in parallel.  Each worker gets a zero-copy
+    # memoryview slice of the mmapped file and calls load_buffer() so
+    # tokenisation is fully GIL-free.
+    # ------------------------------------------------------------------
+    chunk_kwds: dict = {
+        **base_kwds,
+        "header": None,
+        "names": col_names,
+        "skiprows": None,
+    }
+
+    # mmap the file once and pass zero-copy memoryview slices to each thread
+    # instead of having each thread open/seek/read its own copy.  mmap dups
+    # the file descriptor, so the file object can be closed right away.
+    with open(filepath, "rb") as fh:
+        mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+
+    def _process_chunk(start: int, end: int) -> DataFrame:
+        data = mv[start:end]
+        reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
+        assert isinstance(reader._engine, CParserWrapper)
+        # The serial C parser strips a UTF-8 BOM at byte 0 of the file only;
+        # strip_bom mirrors that for the chunk that starts there.
+        reader._engine._reader.load_buffer(data, strip_bom=start == 0)
+        try:
+            return reader.read()
+        finally:
+            reader.close()
+
+    try:
+        with (
+            memoryview(mm) as mv,
+            ThreadPoolExecutor(max_workers=n_workers) as pool,
+        ):
+            futures = [
+                pool.submit(_process_chunk, offsets[i], offsets[i + 1])
+                for i in range(n_chunks)
+            ]
+            dfs = [fut.result() for fut in futures]
+    finally:
+        # suppress: a worker exception's traceback still holds a memoryview
+        # export, in which case close() raises BufferError and would mask the
+        # real exception.  The mapping is unmapped once that traceback is
+        # garbage-collected.
+        with contextlib.suppress(BufferError):
+            mm.close()
+
+    # Per-chunk dtype inference can disagree with whole-file inference, e.g.
+    # a numeric column whose only non-numeric row sits in one chunk parses as
+    # int64 in the clean chunks but object in the dirty one, whereas serial
+    # gives object for the whole column.  Mixed signed-int/float chunks concat
+    # to the same float64 result serial would produce; anything else must be
+    # re-read serially.
+    for pos in range(dfs[0].shape[1]):
+        chunk_dtypes = {df.dtypes.iloc[pos] for df in dfs}
+        if len(chunk_dtypes) > 1 and not all(
+            dtype.kind in "if" for dtype in chunk_dtypes
+        ):
+            return None
+
+    from pandas import concat
+
+    return concat(dfs, ignore_index=True)
 
 
 @overload
@@ -394,7 +884,7 @@ def read_csv(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -420,10 +910,15 @@ def read_csv(
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -437,26 +932,30 @@ def read_csv(
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
-        Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior is to infer the column names:
-        if no ``names``
-        are passed the behavior is identical to ``header=0`` and column
-        names are inferred from the first line of the file, if column
-        names are passed explicitly to ``names`` then the behavior is identical to
-        ``header=None``. Explicitly pass ``header=0`` to be able to
-        replace existing names. The header can be a list of integers that
-        specify row locations for a :class:`~pandas.MultiIndex` on the columns
-        e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
-        skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
-        data rather than the first line of the file.
+        Row index or indices in the file to use as DataFrame column labels.
+        Indexing starts at 0 and counts only non-blank, non-commented lines
+        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
+        line of data rather than the first line of the file. Valid arguments
+        are:
+
+        * ``int``: line index at which column labels are read.
+        * Sequence of ``int``: line indices at which column labels are read
+          and combined into a :class:`~pandas.MultiIndex` on the columns,
+          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
+          be skipped (e.g. row 2 in this example).
+        * ``None``: no row in the file is interpreted as column labels.
+          Columns are labelled by integer position, or by the values passed
+          to ``names`` when provided. Use this for files with no header
+          row. If the file has a header row that should be overridden by
+          ``names``, pass ``header=0`` instead.
+        * ``'infer'`` (default): equivalent to ``header=0`` when no
+          ``names`` are passed, otherwise equivalent to ``header=None``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
-        ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
-        Empty headers are named ``"Unnamed: {{i}}"`` or ``
-        "Unnamed: {{i}}_level_{{level}}"``
+        ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+        Empty headers are named ``"Unnamed: {i}"`` or ``
+        "Unnamed: {i}_level_{level}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -493,9 +992,9 @@ def read_csv(
         example of a valid callable argument would be ``lambda x: x.upper() in
         ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
         parsing time and lower memory usage.
-    dtype : dtype or dict of {{Hashable : dtype}}, optional
+    dtype : dtype or dict of {Hashable : dtype}, optional
         Data type(s) to apply to either the whole dataset or individual columns.
-        E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
+        E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
@@ -503,14 +1002,14 @@ def read_csv(
         the default determines the ``dtype``
         of the columns which are not explicitly
         listed.
-    engine : {{'c', 'python', 'pyarrow'}}, optional
+    engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading
         is currently only supported by
         the pyarrow engine. Some features of the "pyarrow" engine
         are unsupported or may not work correctly.
-    converters : dict of {{Hashable : Callable}}, optional
+    converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
@@ -546,7 +1045,7 @@ def read_csv(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
         passed, specific
@@ -656,10 +1155,11 @@ def read_csv(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
-        2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
-        Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
-        ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
+    quoting : {0, 1, 2, 3}, default csv.QUOTE_MINIMAL
+        Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
+        ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
+        ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
+        Default is ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
         only fields containing special
         characters are quoted (e.g., characters defined
         in ``quotechar``, ``delimiter``,
@@ -694,7 +1194,7 @@ def read_csv(
         ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
-    on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
+    on_bad_lines : {'error', 'warn', 'skip'} or Callable, default 'error'
         Specifies what to do upon encountering a bad line (a line with too many fields).
         Allowed values are:
 
@@ -724,8 +1224,15 @@ def read_csv(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference.  To ensure no mixed
-        types either set ``False``, or specify the type with the ``dtype`` parameter.
+        while parsing, but possibly mixed type inference. Because each chunk
+        is type-inferred independently, the same literal can be parsed as an
+        ``int`` in one chunk and a ``str`` in another; after concatenation the
+        column has ``object`` dtype and contains both representations, so
+        comparisons such as ``df["col"] == 12345`` or
+        ``df["col"] == "12345"`` will match only a subset of the rows holding
+        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
+        this occurs. To ensure no mixed types either set ``False``, or specify
+        the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator``
         parameter to return the data in
@@ -734,11 +1241,15 @@ def read_csv(
         If a filepath is provided for ``filepath_or_buffer``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
-    float_precision : {{'high', 'legacy', 'round_trip'}}, optional
+    float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -750,7 +1261,7 @@ def read_csv(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -773,6 +1284,12 @@ def read_csv(
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_table : Read general delimited file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Notes
+    -----
+    Sufficiently large local uncompressed files read with the C engine may be
+    parsed by multiple threads in parallel.  Use the ``mode.max_threads``
+    option to cap or disable this; see :ref:`io.csv.parallel` for details.
 
     Examples
     --------
@@ -800,7 +1317,7 @@ def read_csv(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_csv("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_csv("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -844,7 +1361,7 @@ def read_csv(
     >>> df = pd.read_csv(
     ...     "tmp.csv",
     ...     parse_dates=[1, 2],
-    ...     date_format={{"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"}},
+    ...     date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
     ... )  # doctest: +SKIP
 
     >>> df.dtypes  # doctest: +SKIP
@@ -961,7 +1478,7 @@ def read_table(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -987,10 +1504,15 @@ def read_table(
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -1004,26 +1526,30 @@ def read_table(
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
-        Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior
-        is to infer the column names: if no ``names``
-        are passed the behavior is identical to ``header=0`` and column
-        names are inferred from the first line of the file, if column
-        names are passed explicitly to ``names`` then the behavior is identical to
-        ``header=None``. Explicitly pass ``header=0`` to be able to
-        replace existing names. The header can be a list of integers that
-        specify row locations for a :class:`~pandas.MultiIndex` on the columns
-        e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
-        skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
-        data rather than the first line of the file.
+        Row index or indices in the file to use as DataFrame column labels.
+        Indexing starts at 0 and counts only non-blank, non-commented lines
+        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
+        line of data rather than the first line of the file. Valid arguments
+        are:
+
+        * ``int``: line index at which column labels are read.
+        * Sequence of ``int``: line indices at which column labels are read
+          and combined into a :class:`~pandas.MultiIndex` on the columns,
+          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
+          be skipped (e.g. row 2 in this example).
+        * ``None``: no row in the file is interpreted as column labels.
+          Columns are labelled by integer position, or by the values passed
+          to ``names`` when provided. Use this for files with no header
+          row. If the file has a header row that should be overridden by
+          ``names``, pass ``header=0`` instead.
+        * ``'infer'`` (default): equivalent to ``header=0`` when no
+          ``names`` are passed, otherwise equivalent to ``header=None``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
-        ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+        ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
         Empty headers are named
-        ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+        ``"Unnamed: {i}"`` or ``"Unnamed: {i}_level_{level}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -1058,23 +1584,23 @@ def read_table(
         example of a valid callable argument would be ``lambda x: x.upper() in
         ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
         parsing time and lower memory usage.
-    dtype : dtype or dict of {{Hashable : dtype}}, optional
+    dtype : dtype or dict of {Hashable : dtype}, optional
         Data type(s) to apply to either the whole dataset or individual columns.
-        E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
+        E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which
         are not explicitly listed.
-    engine : {{'c', 'python', 'pyarrow'}}, optional
+    engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading is
         currently only supported by
         the pyarrow engine. The 'pyarrow' engine is an *experimental* engine,
         and some features are unsupported, or may not work correctly, with this engine.
-    converters : dict of {{Hashable : Callable}}, optional
+    converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
@@ -1110,7 +1636,7 @@ def read_table(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``.
         If ``dict`` passed, specific
@@ -1219,10 +1745,11 @@ def read_table(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
-        csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
-        Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
-        ``csv.QUOTE_MINIMAL`` (i.e., 0) which
+    quoting : {0, 1, 2, 3}, default csv.QUOTE_MINIMAL
+        Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
+        ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
+        ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
+        Default is ``csv.QUOTE_MINIMAL`` (i.e., 0) which
         implies that only fields containing special
         characters are quoted (e.g., characters defined
         in ``quotechar``, ``delimiter``,
@@ -1257,7 +1784,7 @@ def read_table(
         ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
-    on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
+    on_bad_lines : {'error', 'warn', 'skip'} or Callable, default 'error'
         Specifies what to do upon encountering a bad
         line (a line with too many fields).
         Allowed values are:
@@ -1287,8 +1814,15 @@ def read_table(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference.  To ensure no mixed
-        types either set ``False``, or specify the type with the ``dtype`` parameter.
+        while parsing, but possibly mixed type inference. Because each chunk
+        is type-inferred independently, the same literal can be parsed as an
+        ``int`` in one chunk and a ``str`` in another; after concatenation the
+        column has ``object`` dtype and contains both representations, so
+        comparisons such as ``df["col"] == 12345`` or
+        ``df["col"] == "12345"`` will match only a subset of the rows holding
+        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
+        this occurs. To ensure no mixed types either set ``False``, or specify
+        the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator`` parameter
         to return the data in
@@ -1297,11 +1831,15 @@ def read_table(
         If a filepath is provided for ``filepath_or_buffer``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
-    float_precision : {{'high', 'legacy', 'round_trip'}}, optional
+    float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -1313,7 +1851,7 @@ def read_table(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -1363,7 +1901,7 @@ def read_table(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_table("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_table("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -1407,7 +1945,7 @@ def read_table(
     >>> df = pd.read_table(
     ...     "tmp.csv",
     ...     parse_dates=[1, 2],
-    ...     date_format={{"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"}},
+    ...     date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
     ... )  # doctest: +SKIP
 
     >>> df.dtypes  # doctest: +SKIP
@@ -1498,11 +2036,19 @@ def read_fwf(
     Parameters
     ----------
     filepath_or_buffer : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a text ``read()`` function.The string could be a URL.
-        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be:
-        ``file://localhost/path/to/table.csv``.
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.csv``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
+        If you want to pass in a path object, pandas accepts any ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to] ).
@@ -1514,7 +2060,10 @@ def read_fwf(
         the intervals are contiguous.
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
-        `colspecs`.
+        ``colspecs``. Pass ``np.inf`` to infer column specifications from the
+        entire file, which is useful when columns vary in width and a value
+        wider than anything in the first ``infer_nrows`` rows would otherwise
+        be truncated.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.
@@ -1592,9 +2141,43 @@ def read_fwf(
 
 class TextFileReader(abc.Iterator):
     """
+    Iterator over chunks of a delimited text file.
 
-    Passed dialect overrides any of the related parser options
+    Returned by :func:`read_csv`, :func:`read_table`, and :func:`read_fwf`
+    when ``iterator=True`` or ``chunksize`` is given. Not intended to be
+    constructed directly by users.
 
+    A ``TextFileReader`` can be iterated over to yield successive chunks as
+    :class:`DataFrame` objects, used as a context manager to ensure the
+    underlying file handle is closed, or queried explicitly via
+    :meth:`~TextFileReader.read` and :meth:`~TextFileReader.get_chunk`.
+
+    Passed ``dialect`` overrides any of the related parser options.
+
+    Parameters
+    ----------
+    f : str, path object, or file-like object
+        Source to read from. Accepts the same inputs as :func:`read_csv`.
+    engine : {'c', 'python', 'pyarrow', 'python-fwf'}, optional
+        Parser engine to use. If not specified, defaults to ``'python'``.
+    **kwds
+        Any keyword argument accepted by :func:`read_csv`, :func:`read_table`,
+        or :func:`read_fwf`.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a DataFrame.
+    read_table : Read general delimited file into a DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into a DataFrame.
+
+    Examples
+    --------
+    >>> with pd.read_csv("data.csv", chunksize=1000) as reader:  # doctest: +SKIP
+    ...     for chunk in reader:
+    ...         process(chunk)
+
+    >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+    ...     first = reader.get_chunk(5)
     """
 
     def __init__(
@@ -1645,6 +2228,22 @@ class TextFileReader(abc.Iterator):
         self._engine = self._make_engine(f, self.engine)
 
     def close(self) -> None:
+        """
+        Close the underlying file handle and parser engine.
+
+        Called automatically when the ``TextFileReader`` is used as a context
+        manager.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file into a DataFrame.
+        TextFileReader.get_chunk : Read the next chunk of rows.
+
+        Examples
+        --------
+        >>> reader = pd.read_csv("data.csv", chunksize=5)  # doctest: +SKIP
+        >>> reader.close()  # doctest: +SKIP
+        """
         if self.handles is not None:
             self.handles.close()
         self._engine.close()
@@ -1696,15 +2295,6 @@ class TextFileReader(abc.Iterator):
         return options
 
     def _check_file_or_buffer(self, f, engine: CSVEngine) -> None:
-        # see gh-16530
-        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
-            # The C engine doesn't need the file-like to have the "__iter__"
-            # attribute. However, the Python engine needs "__iter__(...)"
-            # when iterating through such an object, meaning it
-            # needs to have that attribute
-            raise ValueError(
-                "The 'python' engine cannot iterate through this file buffer."
-            )
         if hasattr(f, "encoding"):
             file_encoding = f.encoding
             orig_reader_enc = self.orig_options.get("encoding", None)
@@ -1740,8 +2330,7 @@ class TextFileReader(abc.Iterator):
                 # wait until regex engine integrated
                 fallback_reason = (
                     f"the '{engine}' engine does not support "
-                    "regex separators (separators > 1 char and "
-                    r"different from '\s+' are interpreted as regex)"
+                    "separators > 1 char, including regex separators"
                 )
                 engine = "python"
         elif sep is not None:
@@ -1886,21 +2475,14 @@ class TextFileReader(abc.Iterator):
             )
         if not isinstance(f, list):
             # open file here
-            is_text = True
-            mode = "r"
-            if engine == "pyarrow":
-                is_text = False
-                mode = "rb"
-            elif (
+            # The c and pyarrow engines can decode utf-8 bytes natively;
+            # wrapping in TextIOWrapper makes them slower, especially for
+            # memory_map and remote file-like objects (GH#46823).
+            is_text = engine in ("python", "python-fwf") or (
                 engine == "c"
-                and self.options.get("encoding", "utf-8") == "utf-8"
-                and isinstance(stringify_path(f), str)
-            ):
-                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
-                # the c-engine especially for memory_map=True far slower
-                is_text = False
-                if "b" not in mode:
-                    mode += "b"
+                and self.options.get("encoding", "utf-8") not in (None, "utf-8")
+            )
+            mode = "r" if is_text else "rb"
             self.handles = get_handle(
                 f,
                 mode,
@@ -1929,6 +2511,36 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows: int | None = None) -> DataFrame:
+        """
+        Read rows from the file into a :class:`DataFrame`.
+
+        Advances the internal cursor by the number of rows returned, so
+        successive calls yield later rows of the file. Used with readers
+        created via :func:`read_csv` or :func:`read_table` with
+        ``iterator=True`` or ``chunksize`` set.
+
+        Parameters
+        ----------
+        nrows : int, optional
+            Number of rows to read. If ``None``, read until end of file.
+            Ignored when the underlying engine is ``"pyarrow"``, which always
+            reads the full file.
+
+        Returns
+        -------
+        DataFrame
+            The parsed rows.
+
+        See Also
+        --------
+        TextFileReader.get_chunk : Read the next chunk of rows.
+        read_csv : Read a comma-separated values (csv) file into a DataFrame.
+
+        Examples
+        --------
+        >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+        ...     df = reader.read()
+        """
         if self.engine == "pyarrow":
             try:
                 # error: "ParserBase" has no attribute "read"
@@ -2000,6 +2612,40 @@ class TextFileReader(abc.Iterator):
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
+        """
+        Read the next chunk of rows from the file.
+
+        Convenience wrapper around :meth:`TextFileReader.read` that defaults
+        ``size`` to the ``chunksize`` passed to :func:`read_csv` or
+        :func:`read_table`, and respects a configured ``nrows`` limit by
+        raising ``StopIteration`` once it has been reached.
+
+        Parameters
+        ----------
+        size : int, optional
+            Number of rows to read in this chunk. Defaults to the ``chunksize``
+            passed when the reader was created.
+
+        Returns
+        -------
+        DataFrame
+            The next chunk of parsed rows.
+
+        Raises
+        ------
+        StopIteration
+            If ``nrows`` was set and has already been reached.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file into a DataFrame.
+        read_csv : Read a comma-separated values (csv) file into a DataFrame.
+
+        Examples
+        --------
+        >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+        ...     first_five = reader.get_chunk(5)
+        """
         if size is None:
             size = self.chunksize
         if self.nrows is not None:
@@ -2033,7 +2679,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     ----------
     data : file-like object or list
     delimiter : separator character to use
-    dialect : str or csv.Dialect instance, optional
+    dialect : str or csv.Dialect class / instance, optional
         Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
@@ -2071,6 +2717,10 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
@@ -2154,7 +2804,7 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 
 def _refine_defaults_read(
-    dialect: str | csv.Dialect | None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None,
     delimiter: str | None | lib.NoDefault,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
@@ -2175,7 +2825,7 @@ def _refine_defaults_read(
         documentation for more details.
     delimiter : str or object
         Alias for sep.
-    engine : {{'c', 'python'}}
+    engine : {'c', 'python'}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
     sep : str or object
@@ -2244,11 +2894,11 @@ def _refine_defaults_read(
         kwds["engine_specified"] = False
 
     if on_bad_lines == "error":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_ERROR
     elif on_bad_lines == "warn":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_WARN
     elif on_bad_lines == "skip":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_SKIP
     elif callable(on_bad_lines):
         if engine not in ["python", "pyarrow"]:
             raise ValueError(
@@ -2266,7 +2916,9 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
+def _extract_dialect(
+    kwds: dict[str, str | csv.Dialect | type[csv.Dialect]],
+) -> csv.Dialect | type[csv.Dialect] | None:
     """
     Extract concrete csv dialect instance.
 
@@ -2280,12 +2932,12 @@ def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
     dialect = kwds["dialect"]
     if isinstance(dialect, str) and dialect in csv.list_dialects():
         # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
-        tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
+        tdialect = cast("csv.Dialect", csv.get_dialect(dialect))
         _validate_dialect(tdialect)
 
     else:
         _validate_dialect(dialect)
-        tdialect = cast(csv.Dialect, dialect)
+        tdialect = cast("csv.Dialect", dialect)
 
     return tdialect
 
@@ -2300,7 +2952,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect | str) -> None:
+def _validate_dialect(dialect: csv.Dialect | type[csv.Dialect] | str) -> None:
     """
     Validate csv dialect instance.
 
@@ -2315,7 +2967,7 @@ def _validate_dialect(dialect: csv.Dialect | str) -> None:
 
 
 def _merge_with_dialect_properties(
-    dialect: csv.Dialect,
+    dialect: csv.Dialect | type[csv.Dialect],
     defaults: dict[str, Any],
 ) -> dict[str, Any]:
     """

@@ -191,7 +191,7 @@ def create_and_load_iris(conn, iris_file: Path):
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
-        params = [dict(zip(header, row)) for row in reader]
+        params = [dict(zip(header, row, strict=True)) for row in reader]
         stmt = insert(iris).values(params)
         with conn.begin() as con:
             iris.drop(con, checkfirst=True)
@@ -991,11 +991,15 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
     if conn == "postgresql_adbc_conn" and not using_string_dtype():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
+        adbc_pg = pytest.importorskip("adbc_driver_postgresql")
+        if Version(adbc_pg.__version__) < Version("1.11"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "postgres ADBC driver < 1.11 cannot insert index with null type"
+                    ),
+                )
             )
-        )
 
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
@@ -1210,7 +1214,7 @@ def test_to_sql_callable(conn, test_frame1, request):
 
     def sample(pd_table, conn, keys, data_iter):
         check.append(1)
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         conn.execute(pd_table.table.insert(), data)
 
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
@@ -1338,7 +1342,7 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = (
             insert(table.table)
             .values(data)
@@ -1420,7 +1424,7 @@ def test_insertion_method_on_conflict_update(conn, request):
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = insert(table.table).values(data)
         stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         result = conn.execute(stmt)
@@ -1978,9 +1982,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
         request.applymarker(
-            pytest.mark.xfail(
-                reason="MySQL can fail using TEXT without length as key", strict=False
-            )
+            pytest.mark.xfail(reason="MySQL can fail using TEXT without length as key")
         )
     elif "adbc" in conn_name:
         request.node.add_marker(
@@ -2222,7 +2224,8 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match="^$"):
+        msg = "read_sql_table not supported for a DBAPI connection"
+        with pytest.raises(NotImplementedError, match=msg):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -2301,6 +2304,30 @@ def test_api_escaped_table_name(conn, request):
     res = sql.read_sql_query(query, conn)
 
     tm.assert_frame_equal(res, df)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_api_table_name_quoted(conn, request):
+    # GH#65065 ADBCDatabase did not escape SQL identifiers in
+    # delete_rows, read_table, and to_sql (DROP TABLE path)
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        pytest.skip("sqlite_buildin connection does not implement read_sql_table")
+
+    conn = request.getfixturevalue(conn)
+
+    tricky_name = "my table"
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    # to_sql: adbc_ingest handles quoting internally — should pass
+    df.to_sql(tricky_name, conn, index=False, if_exists="replace")
+    # read_table: was interpolating name raw into f-string
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+    # delete_rows: was interpolating name raw into DELETE FROM f-string
+    df.to_sql(tricky_name, conn, index=False, if_exists="delete_rows")
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2593,7 +2620,7 @@ def test_sql_open_close(temp_file, test_frame3):
 @td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
-    msg = "Using URI string without sqlalchemy installed"
+    msg = "Using a URI string requires 'sqlalchemy'"
     with pytest.raises(ImportError, match=msg):
         sql.read_sql("SELECT * FROM iris", conn)
 
@@ -3855,16 +3882,10 @@ def test_read_sql_string_inference(sqlite_engine):
     # GH#54430
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
+    expected = df.copy()
+
     df.to_sql(table, con=conn, index=False, if_exists="replace")
-
-    with pd.option_context("future.infer_string", True):
-        result = read_sql_table(table, conn)
-
-    dtype = pd.StringDtype(na_value=np.nan)
-    expected = DataFrame(
-        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
-    )
-
+    result = read_sql_table(table, conn)
     tm.assert_frame_equal(result, expected)
 
 
@@ -4070,7 +4091,7 @@ def test_sqlite_test_dtype(sqlite_buildin):
     assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
 
     assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
-    msg = r"B \(<class 'bool'>\) not a string"
+    msg = r"Invalid type '<class 'bool'>' for dtype of column 'B': expected a string"
     with pytest.raises(ValueError, match=msg):
         df.to_sql(name="error", con=conn, dtype={"B": bool})
 

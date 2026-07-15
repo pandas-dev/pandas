@@ -159,7 +159,7 @@ def to_timedelta(
     Parsing a list or array of strings:
 
     >>> pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
-    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
+    TimedeltaIndex(['1 days 06:05:01.000030000', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
@@ -237,7 +237,7 @@ def _convert_listlike(
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
         return arg
 
-    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)
 
     from pandas import TimedeltaIndex
 

@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -65,6 +67,7 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
 
 class TestDataFrameDrop:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_names(self):
         df = DataFrame(
             [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
@@ -112,6 +115,7 @@ class TestDataFrameDrop:
         expected = Index(["a", "b", "c"], name="first")
         tm.assert_index_equal(dropped.index, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop(self):
         simple = DataFrame({"A": [1, 2, 3, 4], "B": [0, 1, 2, 3]})
         tm.assert_frame_equal(simple.drop("A", axis=1), simple[["B"]])
@@ -144,7 +148,8 @@ class TestDataFrameDrop:
 
         # non-unique - wheee!
         nu_df = DataFrame(
-            list(zip(range(3), range(-3, 1), list("abc"))), columns=["a", "a", "b"]
+            list(zip(range(3), range(-3, 0), list("abc"), strict=True)),
+            columns=["a", "a", "b"],
         )
         tm.assert_frame_equal(nu_df.drop("a", axis=1), nu_df[["b"]])
         tm.assert_frame_equal(nu_df.drop("b", axis="columns"), nu_df["a"])
@@ -296,7 +301,7 @@ class TestDataFrameDrop:
             ["", "wx", "wy", "", "", ""],
         ]
 
-        tuples = sorted(zip(*arrays))
+        tuples = sorted(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
@@ -461,7 +466,9 @@ class TestDataFrameDrop:
         df["y"] = range(5)
         y = df["y"]
 
-        with tm.assert_produces_warning(None):
+        # For GH 63207 since pytest.mark.filterwarning did not filter warning here
+        msg = "The inplace keyword in DataFrame.drop is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             if inplace:
                 df.drop("y", axis=1, inplace=inplace)
             else:
@@ -516,6 +523,7 @@ class TestDataFrameDrop:
         result = df2.drop("C", axis=1)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
         df = DataFrame({"a": [1, 2, 3]}, columns=Index(["a"], dtype="object"))
@@ -543,6 +551,18 @@ class TestDataFrameDrop:
         ).set_index(idx)
         tm.assert_frame_equal(result, expected)
 
+    def test_drop_index_arrow_binary_dtype_na(self):
+        # GH#63304
+        pytest.importorskip("pyarrow")
+
+        idx = Index([None, b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
+        df = DataFrame(index=idx)
+
+        result = df.drop(index=[pd.NA])
+        idx = Index([b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
+        expected = DataFrame(index=idx)
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_parse_strings_datetime_index(self):
         # GH #5355
         df = DataFrame(
@@ -552,3 +572,21 @@ class TestDataFrameDrop:
         result = df.drop("2000-01-03", axis=0)
         expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
+    def test_drop_inplace_depr(self):
+        # GH 63207
+        df = DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]}
+        )
+        msg = "The inplace keyword in DataFrame.drop is deprecated"
+
+        # uses keyword, sets to true, warning
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.drop(columns=["a"], inplace=True)
+        # uses keyword, sets to false, warning
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.drop(columns=["b"], inplace=False)
+        # does not use keyword, no warning
+        with tm.assert_produces_warning(False):
+            df.drop(columns=["c"])

@@ -563,6 +563,22 @@ class TestMelt:
         with pytest.raises(ValueError, match=msg):
             df.melt(id_vars=["A"], value_vars=["B"])
 
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"id_vars": "id", "var_name": "id"},
+            {"id_vars": "id", "var_name": "x", "value_name": "x"},
+            {"id_vars": ["id", "variable"], "value_vars": ["a"]},
+        ],
+    )
+    def test_melt_var_name_collision_raises(self, kwargs):
+        # GH 65654
+        df = DataFrame(
+            {"id": [1, 2], "variable": [9, 9], "a": [10, 20], "b": [100, 200]}
+        )
+        with pytest.raises(ValueError, match="duplicate names"):
+            df.melt(**kwargs)
+
 
 class TestLreshape:
     def test_pairs(self):
@@ -801,7 +817,7 @@ class TestWideToLong:
                 "A1980": {0: "d", 1: "e", 2: "f"},
                 "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
         df["id"] = df.index
@@ -837,7 +853,7 @@ class TestWideToLong:
                 "A.1980": {0: "d", 1: "e", 2: "f"},
                 "B.1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B.1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
         df["id"] = df.index
@@ -861,7 +877,7 @@ class TestWideToLong:
                 "A(quarterly)1980": {0: "d", 1: "e", 2: "f"},
                 "B(quarterly)1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B(quarterly)1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
         df["id"] = df.index

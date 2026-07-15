@@ -85,9 +85,9 @@ if TYPE_CHECKING:
 
 class ParserBase:
     class BadLineHandleMethod(Enum):
-        ERROR = 0
-        WARN = 1
-        SKIP = 2
+        BLHM_ERROR = 0
+        BLHM_WARN = 1
+        BLHM_SKIP = 2
 
     _implicit_index: bool
     _first_chunk: bool
@@ -166,7 +166,9 @@ class ParserBase:
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
-        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
+        self.on_bad_lines = kwds.get(
+            "on_bad_lines", self.BadLineHandleMethod.BLHM_ERROR
+        )
 
     def close(self) -> None:
         pass
@@ -721,7 +723,7 @@ class ParserBase:
             # if dtype == None, default will be object.
             dtype_dict = defaultdict(lambda: dtype)
         else:
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             dtype_dict = defaultdict(
                 lambda: None,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
@@ -828,7 +830,7 @@ parser_defaults = {
     "compression": None,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
-    "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
+    "on_bad_lines": ParserBase.BadLineHandleMethod.BLHM_ERROR,
     "dtype_backend": lib.no_default,
 }
 

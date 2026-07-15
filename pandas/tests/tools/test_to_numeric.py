@@ -43,11 +43,21 @@ def multiple_elts(request):
     return request.param
 
 
+def _to_numpy_array(x):
+    import warnings
+
+    from pandas.errors import Pandas4Warning
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*values.*", category=Pandas4Warning)
+        return np.array(Index(x).values)
+
+
 @pytest.fixture(
     params=[
         (lambda x: Index(x, name="idx"), tm.assert_index_equal),
         (lambda x: Series(x, name="ser"), tm.assert_series_equal),
-        (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal),
+        (_to_numpy_array, tm.assert_numpy_array_equal),
     ]
 )
 def transform_assert_equal(request):
@@ -349,6 +359,7 @@ def test_str(data, exp, transform_assert_equal):
     assert_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 def test_datetime_like(tz_naive_fixture, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     idx = pd.date_range("20130101", periods=3, tz=tz_naive_fixture)
@@ -367,6 +378,7 @@ def test_timedelta(transform_assert_equal):
     assert_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 @pytest.mark.parametrize(
     "scalar",
     [
@@ -901,4 +913,12 @@ def test_coerce_pyarrow_backend():
     ser = Series(list("12x"), dtype=ArrowDtype(pa.string()))
     result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_large_exponent_coerce():
+    # GH#63650 - exponent overflow in precise_xstrtod should not segfault
+    ser = Series(["1E3000000000"])
+    result = to_numeric(ser, errors="coerce")
+    expected = Series([np.inf])
     tm.assert_series_equal(result, expected)

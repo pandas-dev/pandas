@@ -23,6 +23,7 @@ from io import (
     StringIO,
     TextIOBase,
     TextIOWrapper,
+    UnsupportedOperation,
 )
 import mmap
 import os
@@ -79,6 +80,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         CompressionDict,
         CompressionOptions,
+        DtypeArg,
         FilePath,
         ReadBuffer,
         StorageOptions,
@@ -99,6 +101,7 @@ class IOArgs:
     mode: str
     compression: CompressionDict
     should_close: bool = False
+    close_handles: list[Any] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
@@ -200,7 +203,7 @@ def validate_header_arg(header: object) -> None:
     if header is None:
         return
     if is_integer(header):
-        header = cast(int, header)
+        header = cast("int", header)
         if header < 0:
             # GH 27779
             raise ValueError(
@@ -209,7 +212,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header, allow_sets=False):
-        header = cast(Sequence, header)
+        header = cast("Sequence", header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
@@ -264,7 +267,7 @@ def stringify_path(
         # GH 38125: some fsspec objects implement os.PathLike but have already opened a
         # file. This prevents opening the file a second time. infer_compression calls
         # this function with convert_file_like=True to infer the compression.
-        return cast(BaseBufferT, filepath_or_buffer)
+        return cast("BaseBufferT", filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, os.PathLike):
         filepath_or_buffer = filepath_or_buffer.__fspath__()
@@ -367,7 +370,7 @@ def _get_filepath_or_buffer(
         and encoding in ["utf-16", "utf-32"]
     ):
         warnings.warn(
-            f"{compression} will not write the byte order mark for {encoding}",
+            f"{compression_method} will not write the byte order mark for {encoding}",
             UnicodeWarning,
             stacklevel=find_stack_level(),
         )
@@ -447,9 +450,10 @@ def _get_filepath_or_buffer(
             pass
 
         try:
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
             if storage_options is None:
@@ -458,14 +462,16 @@ def _get_filepath_or_buffer(
                 # don't mutate user input.
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
 
         return IOArgs(
             filepath_or_buffer=file_obj,
             encoding=encoding,
             compression=compression,
+            close_handles=[open_file],
             should_close=True,
             mode=fsspec_mode,
         )
@@ -483,8 +489,6 @@ def _get_filepath_or_buffer(
             mode=mode,
         )
 
-    # is_file_like requires (read | write) & __iter__ but __iter__ is only
-    # needed for read_csv(engine=python)
     if not (
         hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
     ):
@@ -846,7 +850,14 @@ def get_handle(
                 handles.append(handle)
                 zip_names = handle.buffer.namelist()
                 if len(zip_names) == 1:
-                    handle = handle.buffer.open(zip_names.pop())
+                    # Read the entire zip entry into memory rather than
+                    # returning a streaming ZipExtFile via .open(). On
+                    # Python <3.12, ZipExtFile has poor buffering that
+                    # causes O(n²) performance with pickle.load() and
+                    # other consumers that issue many small reads
+                    # (GH#59279). Can be reverted to .open() once the
+                    # minimum Python version is 3.12.
+                    handle = BytesIO(handle.buffer.read(zip_names.pop()))
                 elif not zip_names:
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
@@ -976,6 +987,7 @@ def get_handle(
     if ioargs.should_close:
         assert not isinstance(ioargs.filepath_or_buffer, str)
         handles.append(ioargs.filepath_or_buffer)
+        handles.extend(ioargs.close_handles)
 
     return IOHandles(
         # error: Argument "handle" to "IOHandles" has incompatible type
@@ -1117,7 +1129,7 @@ class _IOWrapper:
     # and writable. If we have a read-only buffer, we shouldn't need writable and vice
     # versa. Some buffers, are seek/read/writ-able but they do not have the "-able"
     # methods, e.g., tempfile.SpooledTemporaryFile.
-    # If a buffer does not have the above "-able" methods, we simple assume they are
+    # If a buffer does not have the above "-able" methods, we simply assume they are
     # seek/read/writ-able.
     def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
@@ -1180,7 +1192,7 @@ def _maybe_memory_map(
         return handle, memory_map, handles
 
     # mmap used by only read_csv
-    handle = cast(ReadCsvBuffer, handle)
+    handle = cast("ReadCsvBuffer", handle)
 
     # need to open the file first
     if isinstance(handle, str):
@@ -1198,6 +1210,14 @@ def _maybe_memory_map(
                 access=mmap.ACCESS_READ,  # type: ignore[arg-type]
             )
         )
+    except UnsupportedOperation as err:
+        # GH#45630 in-memory buffers like BytesIO/StringIO have a fileno
+        # method but raise UnsupportedOperation when it is called
+        raise ValueError(
+            "memory_map=True is only supported when reading from a file path "
+            "or a file-like object backed by a real file descriptor; "
+            "in-memory buffers (e.g. BytesIO, StringIO) are not supported."
+        ) from err
     finally:
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"
@@ -1243,7 +1263,7 @@ def _is_binary_mode(handle: FilePath | BaseBuffer, mode: str) -> bool:
 
 @functools.lru_cache
 def _get_binary_io_classes() -> tuple[type, ...]:
-    """IO classes that that expect bytes"""
+    """IO classes that expect bytes"""
     binary_classes: tuple[type, ...] = (BufferedIOBase, RawIOBase)
 
     # python-zstandard doesn't use any of the builtin base classes; instead we
@@ -1320,6 +1340,65 @@ def dedup_names(
             else:
                 col = f"{col}.{cur_count}"
             cur_count = counts[col]
+
+        names[i] = col
+        counts[col] = cur_count + 1
+
+    return names
+
+
+def mangle_dupe_names(
+    names: Sequence[Hashable],
+    unnamed_col_indices: Sequence[int] = (),
+    dtype: DtypeArg | None = None,
+) -> list[Hashable]:
+    """
+    De-duplicate column names, matching ``pandas._libs.parsers.TextReader``.
+
+    This is the header-mangling used by the read_csv engines, and it differs
+    from :func:`dedup_names` in three ways (see GH#50371):
+
+    - a mangled name that would collide with a name already present in
+      ``names`` is skipped, so ``["x", "x", "x.1"]`` becomes
+      ``["x", "x.2", "x.1"]`` rather than ``["x", "x.1", "x.1.1"]``;
+    - columns whose position is listed in ``unnamed_col_indices`` are mangled
+      only after the named columns, so the named columns keep their name;
+    - a dict ``dtype`` is updated in place so that a renamed column keeps the
+      dtype requested for its original name.
+
+    Examples
+    --------
+    >>> mangle_dupe_names(["x", "x", "x.1"])
+    ['x', 'x.2', 'x.1']
+    """
+    names = list(names)  # so we can index
+    unnamed = set(unnamed_col_indices)
+    # Ensure that regular columns are used before unnamed ones
+    # to keep given names and mangle unnamed columns
+    col_loop_order = [i for i in range(len(names)) if i not in unnamed] + list(
+        unnamed_col_indices
+    )
+    counts: dict[Hashable, int] = {}
+
+    for i in col_loop_order:
+        col = old_col = names[i]
+        cur_count = counts.get(col, 0)
+
+        if cur_count > 0:
+            while cur_count > 0:
+                counts[old_col] = cur_count + 1
+                col = f"{old_col}.{cur_count}"
+                if col in names:
+                    cur_count += 1
+                else:
+                    cur_count = counts.get(col, 0)
+
+            if (
+                isinstance(dtype, dict)
+                and dtype.get(old_col) is not None
+                and dtype.get(col) is None
+            ):
+                dtype[col] = dtype[old_col]
 
         names[i] = col
         counts[col] = cur_count + 1

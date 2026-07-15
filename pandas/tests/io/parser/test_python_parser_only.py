@@ -304,7 +304,7 @@ def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
     else:
-        msg = "unexpected end of data|expected after"
+        msg = "|".join(["unexpected end of data", "expected after"])
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
 
@@ -399,7 +399,7 @@ good{sep}bye
         {"0": "foo", "1": "bar"},
         {"0": "good", "1": "bye"},
     ]
-    for i, (result, expected) in enumerate(zip(result_iter, expecteds)):
+    for i, (result, expected) in enumerate(zip(result_iter, expecteds, strict=True)):
         expected = DataFrame(expected, index=range(i, i + 1))
         tm.assert_frame_equal(result, expected)
 
@@ -641,3 +641,19 @@ a b
     # don't skip anything
     with pytest.raises(ParserError, match="unexpected end of data"):
         parser.read_csv(StringIO(tbl), delimiter=" ", skiprows=0, engine="python")
+
+
+def test_memory_map_multichar_sep(python_parser_only, tmp_path):
+    # GH#34577 - memory_map with multi-character separator should not raise
+    # TypeError about mixing string patterns and bytes-like objects
+    parser = python_parser_only
+    path = tmp_path / "test.csv"
+    path.write_text("key1 - value1\nkey2 - value2\nkey3 - value3\n", encoding="utf-8")
+
+    result = parser.read_csv(
+        path, header=None, sep=" - ", names=["key", "value"], memory_map=True
+    )
+    expected = DataFrame(
+        {"key": ["key1", "key2", "key3"], "value": ["value1", "value2", "value3"]}
+    )
+    tm.assert_frame_equal(result, expected)

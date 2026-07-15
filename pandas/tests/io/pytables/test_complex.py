@@ -135,7 +135,7 @@ def test_complex_across_dimensions_fixed(temp_h5_path):
 
     objs = [s, df]
     comps = [tm.assert_series_equal, tm.assert_frame_equal]
-    for obj, comp in zip(objs, comps):
+    for obj, comp in zip(objs, comps, strict=True):
         obj.to_hdf(temp_h5_path, key="obj", format="fixed")
         reread = read_hdf(temp_h5_path, "obj")
         comp(obj, reread)

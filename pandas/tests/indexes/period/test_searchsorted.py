@@ -55,12 +55,7 @@ class TestSearchsorted:
 
         other = np.array([0, 1], dtype=np.int64)
 
-        msg = "|".join(
-            [
-                "searchsorted requires compatible dtype or scalar",
-                "value should be a 'Period', 'NaT', or array of those. Got",
-            ]
-        )
+        msg = "value should be a 'Period', 'NaT', or array of those. Got"
         with pytest.raises(TypeError, match=msg):
             pidx.searchsorted(other)
 
@@ -68,7 +63,7 @@ class TestSearchsorted:
             pidx.searchsorted(other.astype("timedelta64[ns]"))
 
         with pytest.raises(TypeError, match=msg):
-            pidx.searchsorted(np.timedelta64(4))
+            pidx.searchsorted(np.timedelta64(4, "ns"))
 
         with pytest.raises(TypeError, match=msg):
             pidx.searchsorted(np.timedelta64("NaT", "ms"))

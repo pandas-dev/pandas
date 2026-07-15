@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.compat import WASM
 
 import pandas as pd
 from pandas import (
@@ -45,21 +44,21 @@ class TestIntervalIndex:
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         ser = Series(list("abc"), idx)
 
-        for key, expected in zip(idx.left, ser):
+        for key, expected in zip(idx.left, ser, strict=True):
             if idx.closed_left:
                 assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
                     indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.right, ser):
+        for key, expected in zip(idx.right, ser, strict=True):
             if idx.closed_right:
                 assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
                     indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.mid, ser):
+        for key, expected in zip(idx.mid, ser, strict=True):
             assert indexer_sl(ser)[key] == expected
 
     def test_getitem_non_matching(self, series_with_interval_index, indexer_sl):
@@ -210,7 +209,6 @@ class TestIntervalIndexInsideMultiIndex:
         expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(WASM, reason="GH 23440")
     @pytest.mark.parametrize("base", [101, 1010])
     def test_reindex_behavior_with_interval_index(self, base):
         # GH 51826
@@ -232,3 +230,19 @@ class TestIntervalIndexInsideMultiIndex:
         result = df.loc[("b", 16)]
         expected = Series([7, 8], name=("b", pd.Interval(13, 17, closed="right")))
         tm.assert_series_equal(result, expected)
+
+
+def test_categorical_interval_index_getitem_scalar():
+    # GH#27437
+    # Scalar indexing on Series with CategoricalIndex of Intervals
+    # should use interval membership (point-in-interval lookup)
+    ser = Series(
+        ["a", "b", "c", "d", "e"],
+        index=pd.CategoricalIndex(IntervalIndex.from_breaks(range(6))),
+    )
+    # 0.5 is in (0, 1], 1.5 is in (1, 2], etc.
+    assert ser[0.5] == "a"
+    assert ser[1.5] == "b"
+    # Points on boundaries: 1 is in (0, 1] (right-closed)
+    assert ser[1] == "a"
+    assert ser[2] == "b"

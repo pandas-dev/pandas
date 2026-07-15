@@ -125,7 +125,7 @@ def test_index_ops(func, request):
         expected = expected.astype("Int64")
     idx = func(idx)
     view_.iloc[0, 0] = 100
-    tm.assert_index_equal(idx, expected, check_names=False)
+    tm.assert_index_equal(idx, expected, exact="equiv", check_names=False)
 
 
 def test_infer_objects():
@@ -144,6 +144,19 @@ def test_index_to_frame():
     assert not df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = 100
+    tm.assert_index_equal(idx, expected)
+
+
+def test_index_where_noop():
+    # GH#65265 CoW references should be tracked through Index.where
+    idx = Index([1, 2, 3])
+    result = idx.where([True] * 3, 100)
+    assert np.shares_memory(get_array(idx), get_array(result))
+    assert result._references.has_reference()
+
+    expected = idx.copy(deep=True)
+    result = Series(result)
+    result.iloc[0] = 100
     tm.assert_index_equal(idx, expected)
 
 

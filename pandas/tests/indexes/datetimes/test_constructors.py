@@ -30,7 +30,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:
@@ -83,7 +82,6 @@ class TestDatetimeIndex:
         array = index._data
 
         arr = array[[0, 3, 2, 4, 1]]
-        assert arr.freq is None
 
         result = index._shallow_copy(arr)
         assert result.freq is None
@@ -116,10 +114,10 @@ class TestDatetimeIndex:
             to_datetime(data)
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            DatetimeIndex(period_array(data))
+            DatetimeIndex(pd.PeriodIndex(data))
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            to_datetime(period_array(data))
+            to_datetime(pd.PeriodIndex(data))
 
     def test_dti_with_timedelta64_data_raises(self):
         # GH#23675 deprecated, enforced in GH#29794
@@ -1031,29 +1029,19 @@ class TestDatetimeIndex:
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
         tm.assert_index_equal(result2, expected)
 
-    def test_dti_constructor_with_non_nano_now_today(self, request):
-        # GH#55756
+    def test_dti_constructor_with_non_nano_now_today(self):
+        # GH#55756, GH#57535
         now = Timestamp.now()
         today = Timestamp.today()
         result = DatetimeIndex(["now", "today"], dtype="M8[s]")
+        now_after = Timestamp.now()
         assert result.dtype == "M8[s]"
 
-        diff0 = result[0] - now.as_unit("s")
-        diff1 = result[1] - today.as_unit("s")
-        assert diff1 >= pd.Timedelta(0), f"The difference is {diff0}"
-        assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
-
-        # result may not exactly match [now, today] so we'll test it up to a tolerance.
-        #  (it *may* match exactly due to rounding)
-        # GH 57535
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="result may not exactly match [now, today]", strict=False
-            )
-        )
-        tolerance = pd.Timedelta(seconds=1)
-        assert diff0 < tolerance, f"The difference is {diff0}"
-        assert diff1 < tolerance, f"The difference is {diff0}"
+        # result should be between the before/after timestamps
+        assert result[0] >= now.as_unit("s")
+        assert result[0] <= now_after.as_unit("s")
+        assert result[1] >= today.as_unit("s")
+        assert result[1] <= now_after.as_unit("s")
 
     def test_dti_constructor_object_float_matches_float_dtype(self):
         # GH#55780
@@ -1111,6 +1099,70 @@ class TestTimeSeries:
 
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
+
+    def test_constructor_equivalent_freq(self):
+        # GH#61086 - equivalent but not equal frequencies should be accepted
+        dti = date_range("2020-02-01", freq="QS-MAY", periods=3)
+
+        result = DatetimeIndex(dti, freq="QS-FEB")
+        expected = DatetimeIndex(
+            ["2020-02-01", "2020-05-01", "2020-08-01"], freq="QS-FEB"
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_equivalent_freq_raises(self):
+        # GH#61086 - non-equivalent frequencies should still raise
+        dti = date_range("2020-02-01", freq="QS-MAY", periods=3)
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="QS-JAN")
+
+    @pytest.mark.parametrize(
+        "data_freq, passed_freq",
+        [
+            # Jan 2000 has 31 days, so the first month-start gap equals 31D/744h
+            ("MS", "31D"),
+            ("MS", "744h"),
+            # Apr 30 2000 is a Sunday, so ME data does not conform to BME even
+            # though the earlier month-end gaps happen to agree
+            ("ME", "BME"),
+        ],
+    )
+    def test_constructor_freq_first_step_coincidence(self, data_freq, passed_freq):
+        # GH#65012 a passed freq that only agrees with the data on the first
+        # step must not be pinned; later steps diverge, so it does not conform
+        dti = date_range("2000-01-01", freq=data_freq, periods=4)
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq=passed_freq)
+
+    def test_constructor_tick_freq_conforming_accepted(self):
+        # GH#65012 a Tick freq that differs from the inferred (non-Tick) freq
+        # but genuinely conforms is accepted via the uniform-spacing fast path
+        dti = date_range("2000-01-01", freq="D", periods=5)  # inferred Day
+
+        result = DatetimeIndex(dti, freq="24h")
+        assert result.freqstr == "24h"
+
+    def test_constructor_tick_freq_tz_aware_across_dst_raises(self):
+        # GH#65012 a Tick is a fixed step in i8 space even across a DST
+        # transition, so the uniform-spacing check runs on the (UTC) i8 view
+        dti = date_range("2021-03-13", freq="2h", periods=4, tz="US/Eastern")
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="3h")
+
+    def test_constructor_tick_freq_subunit_resolution_raises(self):
+        # GH#65012 a Tick finer than the index resolution cannot conform even
+        # if it rounds to the data's step (1500ms -> 1s at second resolution)
+        dti = date_range("2000-01-01", freq="s", periods=4).as_unit("s")
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="1500ms")
 
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721

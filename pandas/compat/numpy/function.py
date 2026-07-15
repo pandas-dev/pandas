@@ -52,10 +52,10 @@ if TYPE_CHECKING:
 class CompatValidator:
     def __init__(
         self,
-        defaults,
-        fname=None,
+        defaults: dict[str, Any],
+        fname: str | None = None,
         method: str | None = None,
-        max_fname_arg_count=None,
+        max_fname_arg_count: int | None = None,
     ) -> None:
         self.fname = fname
         self.method = method
@@ -64,10 +64,10 @@ class CompatValidator:
 
     def __call__(
         self,
-        args,
-        kwargs,
-        fname=None,
-        max_fname_arg_count=None,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+        fname: str | None = None,
+        max_fname_arg_count: int | None = None,
         method: str | None = None,
     ) -> None:
         if not args and not kwargs:
@@ -82,12 +82,12 @@ class CompatValidator:
         method = self.method if method is None else method
 
         if method == "args":
-            validate_args(fname, args, max_fname_arg_count, self.defaults)
+            validate_args(fname, args, cast("int", max_fname_arg_count), self.defaults)
         elif method == "kwargs":
             validate_kwargs(fname, kwargs, self.defaults)
         elif method == "both":
             validate_args_and_kwargs(
-                fname, args, kwargs, max_fname_arg_count, self.defaults
+                fname, args, kwargs, cast("int", max_fname_arg_count), self.defaults
             )
         else:
             raise ValueError(f"invalid validation method '{method}'")
@@ -102,7 +102,9 @@ validate_argmax = CompatValidator(
 )
 
 
-def process_skipna(skipna: bool | ndarray | None, args) -> tuple[bool, Any]:
+def process_skipna(
+    skipna: bool | ndarray | None, args: tuple[Any, ...]
+) -> tuple[bool, tuple[Any, ...]]:
     if isinstance(skipna, ndarray) or skipna is None:
         args = (skipna, *args)
         skipna = True
@@ -110,19 +112,9 @@ def process_skipna(skipna: bool | ndarray | None, args) -> tuple[bool, Any]:
     return skipna, args
 
 
-def validate_argmin_with_skipna(skipna: bool | ndarray | None, args, kwargs) -> bool:
-    """
-    If 'Series.argmin' is called via the 'numpy' library, the third parameter
-    in its signature is 'out', which takes either an ndarray or 'None', so
-    check if the 'skipna' parameter is either an instance of ndarray or is
-    None, since 'skipna' itself should be a boolean
-    """
-    skipna, args = process_skipna(skipna, args)
-    validate_argmin(args, kwargs)
-    return skipna
-
-
-def validate_argmax_with_skipna(skipna: bool | ndarray | None, args, kwargs) -> bool:
+def validate_argmax_with_skipna(
+    skipna: bool | ndarray | None, args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> bool:
     """
     If 'Series.argmax' is called via the 'numpy' library, the third parameter
     in its signature is 'out', which takes either an ndarray or 'None', so
@@ -157,7 +149,9 @@ validate_argsort_kind = CompatValidator(
 )
 
 
-def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) -> bool:
+def validate_argsort_with_ascending(
+    ascending: bool | int | None, args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> bool:
     """
     If 'Categorical.argsort' is called via the 'numpy' library, the first
     parameter in its signature is 'axis', which takes either an integer or
@@ -169,7 +163,7 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    ascending = cast(bool, ascending)
+    ascending = cast("bool", ascending)
     return ascending
 
 
@@ -180,15 +174,19 @@ validate_clip = CompatValidator(
 
 
 @overload
-def validate_clip_with_axis(axis: ndarray, args, kwargs) -> None: ...
+def validate_clip_with_axis(
+    axis: ndarray, args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> None: ...
 
 
 @overload
-def validate_clip_with_axis(axis: AxisNoneT, args, kwargs) -> AxisNoneT: ...
+def validate_clip_with_axis(
+    axis: AxisNoneT, args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> AxisNoneT: ...
 
 
 def validate_clip_with_axis(
-    axis: ndarray | AxisNoneT, args, kwargs
+    axis: ndarray | AxisNoneT, args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> AxisNoneT | None:
     """
     If 'NDFrame.clip' is called via the numpy library, the third parameter in
@@ -219,7 +217,9 @@ validate_cumsum = CompatValidator(
 )
 
 
-def validate_cum_func_with_skipna(skipna: bool, args, kwargs, name) -> bool:
+def validate_cum_func_with_skipna(
+    skipna: bool, args: tuple[Any, ...], kwargs: dict[str, Any], name: str
+) -> bool:
     """
     If this function is called via the 'numpy' library, the third parameter in
     its signature is 'dtype', which takes either a 'numpy' dtype or 'None', so
@@ -320,7 +320,12 @@ validate_transpose = CompatValidator(
 )
 
 
-def validate_groupby_func(name: str, args, kwargs, allowed=None) -> None:
+def validate_groupby_func(
+    name: str,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    allowed: list[str] | None = None,
+) -> None:
     """
     'args' and 'kwargs' should be empty, except for allowed kwargs because all
     of their necessary parameters are explicitly listed in the function
@@ -329,9 +334,9 @@ def validate_groupby_func(name: str, args, kwargs, allowed=None) -> None:
     if allowed is None:
         allowed = []
 
-    kwargs = set(kwargs) - set(allowed)
+    extra_kwargs = set(kwargs) - set(allowed)
 
-    if len(args) + len(kwargs) > 0:
+    if len(args) + len(extra_kwargs) > 0:
         raise UnsupportedFunctionCall(
             "numpy operations are not valid with groupby. "
             f"Use .groupby(...).{name}() instead"
@@ -368,7 +373,7 @@ _validation_funcs = {
 }
 
 
-def validate_func(fname, args, kwargs) -> None:
+def validate_func(fname: str, args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
     if fname not in _validation_funcs:
         return validate_stat_func(args, kwargs, fname=fname)
 

@@ -59,6 +59,30 @@ if TYPE_CHECKING:
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
 
+# SAS uses a modified Gregorian calendar where years divisible by 4000 are
+# not leap years (unlike proleptic Gregorian). These are the SAS day counts
+# for the first day affected by each 4000-year boundary.
+# See https://communities.sas.com/t5/SAS-Programming/Leap-Years-divisible-by-4000/td-p/663467
+_SAS_MARCH1_4000 = 745154  # SAS day count for March 1, 4000
+_SAS_MARCH1_8000 = 2206123  # SAS day count for March 1, 8000
+
+
+def _sas_to_gregorian_correction(values: np.ndarray, unit: str) -> np.ndarray:
+    """
+    Compute the additive correction (in `unit`) to convert SAS day/second counts
+    to proleptic Gregorian day/second counts.
+
+    SAS omits Feb 29 for years divisible by 4000 (unlike proleptic Gregorian);
+    this adds back the missing days. `unit` must be "d" (days) or "s" (seconds).
+    """
+    scale = 86400 if unit == "s" else 1
+    thresholds = np.array([_SAS_MARCH1_4000, _SAS_MARCH1_8000], dtype=np.int64) * scale
+    correction = np.zeros(len(values), dtype=np.float64)
+    valid = ~np.isnan(values)
+    for threshold in thresholds:
+        correction[valid] += (values[valid] >= threshold).astype(np.float64) * scale
+    return correction
+
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
@@ -80,13 +104,17 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
     td = (_sas_origin - _unix_origin).as_unit("s")
     if unit == "s":
-        millis = cast_from_unit_vectorized(
-            sas_datetimes._values, unit="s", out_unit="ms"
+        corrected = sas_datetimes._values + _sas_to_gregorian_correction(
+            sas_datetimes._values, unit="s"
         )
+        millis = cast_from_unit_vectorized(corrected, unit="s", out_unit="ms")
         dt64ms = millis.view("M8[ms]") + td
         return pd.Series(dt64ms, index=sas_datetimes.index, copy=False)
     else:
-        vals = np.array(sas_datetimes, dtype="M8[D]") + td
+        corrected = sas_datetimes._values + _sas_to_gregorian_correction(
+            sas_datetimes._values, unit="d"
+        )
+        vals = np.array(corrected, dtype="M8[D]") + td
         return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
 
 
@@ -359,6 +387,19 @@ class SAS7BDATReader(SASReader):
             if len(self._cached_page) != self._page_length:
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
+
+        self._column_convert_types: list[str | None] = []
+        for j in range(self.column_count):
+            if self._column_types[j] == b"d" and self.convert_dates:
+                fmt = self.column_formats[j]
+                if fmt in const.sas_date_formats:
+                    self._column_convert_types.append("d")
+                elif fmt in const.sas_datetime_formats:
+                    self._column_convert_types.append("s")
+                else:
+                    self._column_convert_types.append(None)
+            else:
+                self._column_convert_types.append(None)
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
@@ -667,7 +708,8 @@ class SAS7BDATReader(SASReader):
 
         return rslt
 
-    def _read_next_page(self):
+    def _read_page_data(self):
+        """Read the next page from the file. Returns True if EOF."""
         self._current_page_data_subheader_pointers = []
         self._cached_page = self._path_or_buf.read(self._page_length)
         if len(self._cached_page) <= 0:
@@ -679,6 +721,12 @@ class SAS7BDATReader(SASReader):
                 f"{len(self._cached_page):d} of {self._page_length:d} bytes)"
             )
             raise ValueError(msg)
+        return False
+
+    def _read_next_page(self):
+        done = self._read_page_data()
+        if done:
+            return True
 
         self._read_page_header()
         if self._current_page_type in const.page_meta_types:
@@ -707,11 +755,9 @@ class SAS7BDATReader(SASReader):
             if self._column_types[j] == b"d":
                 col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
                 rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
-                if self.convert_dates:
-                    if self.column_formats[j] in const.sas_date_formats:
-                        rslt[name] = _convert_datetimes(rslt[name], "d")
-                    elif self.column_formats[j] in const.sas_datetime_formats:
-                        rslt[name] = _convert_datetimes(rslt[name], "s")
+                convert_type = self._column_convert_types[j]
+                if convert_type is not None:
+                    rslt[name] = _convert_datetimes(rslt[name], convert_type)
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)

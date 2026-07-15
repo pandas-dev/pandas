@@ -6,7 +6,6 @@ from datetime import (
 )
 import functools
 import operator
-from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -27,6 +26,7 @@ from pandas._config import is_nan_na
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
+    BaseOffset,
     Timedelta,
     Timestamp,
     timezones,
@@ -34,11 +34,18 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under14p0,
     pa_version_under21p0,
+    pa_version_under25p0,
 )
-from pandas.errors import Pandas4Warning
+from pandas.compat.numpy import function as nv
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
-    doc,
+    cache_readonly,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -59,22 +66,30 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     algorithms as algos,
+    arraylike,
     missing,
     ops,
     roperator,
 )
-from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
 )
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
@@ -95,7 +110,7 @@ if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.dtypes.dtypes import ArrowDtype
+    from pandas.compat.pyarrow import _safe_fill_null
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -172,6 +187,63 @@ if HAS_PYARROW:
             result = pc.floor(divided)
         return result
 
+    # Conversion factors for duration units to various time components.
+    # Maps component -> {unit: divisor} to extract that component from the unit.
+    # Units coarser than a component are absent (e.g. "s" is missing from
+    # "millisecond"), in which case that component is always 0.
+    _DURATION_DIVISORS: dict[str, dict[str, int]] = {
+        "day": {
+            "s": 86400,
+            "ms": 86_400_000,
+            "us": 86_400_000_000,
+            "ns": 86_400_000_000_000,
+        },
+        "hour": {
+            "s": 3600,
+            "ms": 3_600_000,
+            "us": 3_600_000_000,
+            "ns": 3_600_000_000_000,
+        },
+        "minute": {"s": 60, "ms": 60_000, "us": 60_000_000, "ns": 60_000_000_000},
+        "second": {"s": 1, "ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000},
+        "millisecond": {"ms": 1, "us": 1_000, "ns": 1_000_000},
+        "microsecond": {"us": 1, "ns": 1_000},
+        "nanosecond": {"ns": 1},
+    }
+
+    def floor_div_int64(
+        arr: pa.Array | pa.ChunkedArray, divisor: int
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Floor division for an int64 (chunked) array, handling negatives correctly.
+
+        PyArrow's ``pc.divide`` truncates toward zero, but we need floor division
+        (toward negative infinity) to match pandas behavior for negative durations.
+        Uses a fast path for all-non-negative arrays (the common case).
+        """
+        min_scalar = pc.min(arr)
+        if not min_scalar.is_valid or min_scalar.as_py() >= 0:
+            # Fast path: truncation equals floor when all values are non-negative
+            return pc.divide(arr, divisor)
+        # Truncated division (toward zero) and remainder with the dividend's sign
+        trunc_div = pc.divide(arr, divisor)
+        remainder = pc.subtract(arr, pc.multiply(trunc_div, divisor))
+        # floor(a/b) = trunc(a/b) - 1 when a < 0 and remainder != 0
+        needs_adjustment = pc.and_(pc.less(arr, 0), pc.not_equal(remainder, 0))
+        return pc.subtract(trunc_div, pc.if_else(needs_adjustment, 1, 0))
+
+    def mod_int(
+        arr: pa.Array | pa.ChunkedArray, modulo: int
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Compute ``arr % modulo`` for a non-negative int (chunked) array.
+
+        PyArrow lacks a modulo kernel, so emulate it with divide/multiply/subtract.
+        TODO: revisit once Arrow has a modulo kernel.
+        """
+        quotient = pc.divide(arr, modulo)
+        return pc.subtract(arr, pc.multiply(quotient, modulo))
+
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
         "radd": lambda x, y: pc.add_checked(y, x),
@@ -209,6 +281,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         Scalar,
         SortKind,
         TakeIndexer,
@@ -249,7 +323,7 @@ def to_pyarrow_type(
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
     ArrowStringArrayMixin,
 ):
     """
@@ -304,6 +378,8 @@ class ArrowExtensionArray(
 
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
+    # results from calls to methods decorated with cache_readonly get added here
+    _cache: dict[str, pa.ChunkedArray]
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if not HAS_PYARROW:
@@ -321,6 +397,7 @@ class ArrowExtensionArray(
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._pa_array.type)
+        self._cache = {}
 
     @classmethod
     def _from_sequence(
@@ -422,10 +499,22 @@ class ArrowExtensionArray(
 
     def _from_pyarrow_array(self, pa_array):
         """
-        Construct from the pyarrow array result of an operation, for
-        compatibility with ArrowStringArray.
+        Construct from a pyarrow Array/ChunkedArray result of an operation.
+
+        Avoids full __init__ overhead by reusing the dtype when the pyarrow
+        type is unchanged.
         """
-        return type(self)(pa_array)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
+        obj = type(self).__new__(type(self))
+        if isinstance(pa_array, pa.Array):
+            pa_array = pa.chunked_array([pa_array])
+        obj._pa_array = pa_array
+        pa_type = pa_array.type
+        obj._dtype = (
+            self._dtype if pa_type == self._dtype.pyarrow_dtype else ArrowDtype(pa_type)
+        )
+        obj._cache = {}
+        return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:
@@ -437,6 +526,17 @@ class ArrowExtensionArray(
                 values = np.asarray(values, dtype=object)
                 mask = is_pdna_or_none(values)
                 arr = pa.array(values, mask=mask)
+            elif hasattr(values, "__arrow_array__"):
+                arr = values.__arrow_array__()
+            elif hasattr(values, "_ndarray"):
+                # DatetimeArray, TimedeltaArray: pass underlying ndarray
+                # to avoid pyarrow calling Series.values (which is deprecated
+                # for tz-aware datetimes)
+                arr = pa.array(values._ndarray, from_pandas=True)
+                if hasattr(values.dtype, "tz") and values.dtype.tz is not None:
+                    arr = arr.cast(
+                        pa.timestamp(values.dtype.unit, tz=str(values.dtype.tz))
+                    )
             else:
                 arr = pa.array(values, from_pandas=True)
         except (ValueError, TypeError):
@@ -472,6 +572,12 @@ class ArrowExtensionArray(
                 result = result.astype(dtype)  # type: ignore[assignment]
             return result
 
+        elif pa.types.is_timestamp(arr.type) and pa.types.is_timestamp(
+            self._pa_array.type
+        ):
+            if arr.type.tz == self._pa_array.type.tz:
+                arr = arr.cast(self._pa_array.type)
+
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
             arr = arr.cast(self._pa_array.type)
         elif pa.types.is_time(arr.type) and pa.types.is_time(self._pa_array.type):
@@ -493,16 +599,6 @@ class ArrowExtensionArray(
                 # e.g. test_combine_add if we can't cast
                 pass
 
-        if isinstance(self.dtype, StringDtype):
-            if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
-                # ArrowStringArray preserves dtype.na_value
-                return self._from_pyarrow_array(arr)
-            if self.dtype.na_value is np.nan:
-                # ArrowEA has different semantics, so we return numpy-based
-                #  result instead
-                values = np.asarray(values, dtype=object)
-                return lib.maybe_convert_objects(values, convert_non_numeric=True)
-            return ArrowExtensionArray(arr)
         return self._from_pyarrow_array(arr)
 
     @classmethod
@@ -608,7 +704,7 @@ class ArrowExtensionArray(
                 )
             ):
                 # See https://github.com/apache/arrow/issues/35289
-                value = value.tolist()
+                value = np.asarray(value, dtype=object)
             elif copy and is_array_like(value):
                 # pa array should not get updated when numpy array is updated
                 value = value.copy()
@@ -741,6 +837,23 @@ class ArrowExtensionArray(
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
+        if isinstance(item, slice):
+            # Fast path for slices: avoid check_array_indexer (no-op for
+            # slices) and getitem_returns_view (always True for slices).
+            # Arrow bug https://github.com/apache/arrow/issues/38768
+            if item.start == item.stop:
+                pass
+            elif (
+                item.stop is not None
+                and item.stop < -len(self)
+                and item.step is not None
+                and item.step < 0
+            ):
+                item = slice(item.start, None, item.step)
+            result = self._from_pyarrow_array(self._pa_array[item])
+            result._readonly = self._readonly
+            return result
+
         item = check_array_indexer(self, item)
 
         if isinstance(item, np.ndarray):
@@ -782,18 +895,6 @@ class ArrowExtensionArray(
             )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
-        if isinstance(item, slice):
-            # Arrow bug https://github.com/apache/arrow/issues/38768
-            if item.start == item.stop:
-                pass
-            elif (
-                item.stop is not None
-                and item.stop < -len(self)
-                and item.step is not None
-                and item.step < 0
-            ):
-                item = slice(item.start, None, item.step)
-
         value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
             result = self._from_pyarrow_array(value)
@@ -839,6 +940,57 @@ class ArrowExtensionArray(
         return self._pa_array
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        if (
+            not is_nan_na()
+            and type(self) is ArrowExtensionArray
+            and (
+                pa.types.is_floating(self._pa_array.type)
+                or pa.types.is_integer(self._pa_array.type)
+            )
+        ):
+            # GH#62506 - when distinguish_nan_and_na is True,
+            # default_array_ufunc converts to numpy via np.asarray which
+            # produces object dtype that most ufuncs can't handle.
+            # Replicate ExtensionArray.__array_ufunc__ but convert with
+            # na_value=np.nan (float, not object) in the default fallback,
+            # then re-mask NA positions in the result.
+            if any(
+                isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame))
+                for other in inputs
+            ):
+                return NotImplemented
+
+            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
+            if "out" in kwargs:
+                return arraylike.dispatch_ufunc_with_out(
+                    self, ufunc, method, *inputs, **kwargs
+                )
+
+            if method == "reduce":
+                result = arraylike.dispatch_reduction_ufunc(
+                    self, ufunc, method, *inputs, **kwargs
+                )
+                if result is not NotImplemented:
+                    return result
+
+            # Default: convert to numpy with NaN for NA instead of
+            # object dtype, run the ufunc, then re-mask.
+            mask = self.isna()
+            new_inputs = [
+                self.to_numpy(na_value=np.nan) if x is self else x for x in inputs
+            ]
+            result = getattr(ufunc, method)(*new_inputs, **kwargs)
+
+            remask = functools.partial(pa.array, mask=mask, from_pandas=False)
+            if isinstance(result, tuple):
+                return tuple(type(self)(remask(res)) for res in result)
+            return type(self)(remask(result))
+
         # Need to wrap np.array results GH#62800
         result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
         if type(self) is ArrowExtensionArray:
@@ -892,6 +1044,8 @@ class ArrowExtensionArray(
     def __getstate__(self):
         state = self.__dict__.copy()
         state["_pa_array"] = self._pa_array.combine_chunks()
+        # cached properties can be recomputed; don't bloat the pickle
+        state["_cache"] = {}
         return state
 
     def __setstate__(self, state) -> None:
@@ -900,6 +1054,8 @@ class ArrowExtensionArray(
         else:
             data = state["_pa_array"]
         state["_pa_array"] = pa.chunked_array(data)
+        # pickles created before _cache existed
+        state.setdefault("_cache", {})
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
@@ -968,6 +1124,20 @@ class ArrowExtensionArray(
         )
 
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (np.ndarray, ExtensionArray, list))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} is deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         pa_type = self._pa_array.type
         other_original = other
         other = self._box_pa(other)
@@ -978,12 +1148,24 @@ class ArrowExtensionArray(
             or pa.types.is_binary(pa_type)
         ):
             if op in [operator.add, roperator.radd]:
-                sep = pa.scalar("", type=pa_type)
+                # binary_join_element_wise does not support mixed types, but we
+                # want to allow addition between string and large_string types
+                self_array = self._pa_array
+                if pa.types.is_string(pa_type) and pa.types.is_large_string(other.type):
+                    self_array = self._pa_array.cast(pa.large_string())
+                elif pa.types.is_large_string(pa_type) and pa.types.is_string(
+                    other.type
+                ):
+                    other = other.cast(pa.large_string())
+
+                sep = pa.scalar("", type=self_array.type)
+                if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
+                    other = other.cast(self_array.type)
                 try:
                     if op is operator.add:
-                        result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                        result = pc.binary_join_element_wise(self_array, other, sep)
                     elif op is roperator.radd:
-                        result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                        result = pc.binary_join_element_wise(other, self_array, sep)
                 except pa.ArrowNotImplementedError as err:
                     raise TypeError(
                         self._op_method_error_message(other_original, op)
@@ -1056,25 +1238,59 @@ class ArrowExtensionArray(
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
-        if (
-            op in [operator.truediv, roperator.rtruediv]
-            and isinstance(other, Path)
-            and (
-                pa.types.is_string(self._pa_array.type)
-                or pa.types.is_large_string(self._pa_array.type)
-            )
-        ):
-            # GH#61940
-            return np.array(
-                [
-                    op(x, other) if isinstance(x, str) else self.dtype.na_value
-                    for x in self
-                ],
-                dtype=object,
-            )
+    def _str_arith_method_object_fallback(
+        self, other, op
+    ) -> Self | npt.NDArray[np.object_]:
+        mask = isna(self) | isna(other)
+        valid = ~mask
 
-        result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        if is_list_like(other):
+            if len(other) != len(self):
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
+            if not is_array_like(other):
+                other = np.asarray(other)
+            other = other[valid]
+
+        result = np.empty(len(self), dtype=object)
+        result[mask] = self.dtype.na_value
+        result[valid] = op(np.asarray(self, dtype=object)[valid], other)
+
+        if not lib.is_string_array(result, skipna=True):
+            return result
+        return type(self)._from_sequence(result, dtype=self.dtype)
+
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if isinstance(other, BaseOffset) and pa.types.is_date(self._pa_array.type):
+            # Cast date32/date64 → timestamp, apply offset via DatetimeArray, cast back
+            ts_array = type(self)(self._pa_array.cast(pa.timestamp("us")))
+            dt_array = ts_array._to_datetimearray()
+
+            shifted = op(dt_array, other)
+            check = shifted[~shifted.isna()] if shifted._hasna else shifted
+            if not check.is_normalized:
+                raise TypeError(
+                    f"DateOffset {other} is intra-day and cannot be "
+                    f"applied to date32/date64 arrays"
+                )
+            result_pa = pa.array(shifted._ndarray, from_pandas=True).cast(
+                self._pa_array.type
+            )
+            return self._from_pyarrow_array(result_pa)
+
+        result: Self | npt.NDArray[np.object_]
+        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
+            try:
+                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
+                result = self._str_arith_method_object_fallback(other, op)
+        else:
+            result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        if isinstance(result, np.ndarray):
+            return result
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
             mask = pc.is_nan(parr).fill_null(False).to_numpy()
@@ -1294,6 +1510,26 @@ class ArrowExtensionArray(
         np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        # This override replaces self._pa_array directly, bypassing __setitem__,
+        # so enforce the read-only guard here to stay consistent with it and
+        # with the base ExtensionArray.sort.
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        sorted_array = self.take(sort_indices)
+        self._pa_array = sorted_array._pa_array
+        # Invalidate any cache_readonly properties that depend on _pa_array
+        self._cache.clear()
+
     def _argmin_max(self, skipna: bool, method: str) -> int:
         if self._pa_array.length() in (0, self._pa_array.null_count) or (
             self._hasna and not skipna
@@ -1327,6 +1563,26 @@ class ArrowExtensionArray(
         type(self)
         """
         return self._from_pyarrow_array(self._pa_array)
+
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # Override since the ExtensionArray.view create a new pa_array.
+        if dtype is not None:
+            return super().view(dtype)
+        result = type(self).__new__(type(self))
+        result._pa_array = self._pa_array
+        result._dtype = self._dtype
+        result._readonly = self._readonly
+        result._cache = {}
+        return result
+
+    def count(self) -> int:
+        return len(self) - self._pa_array.null_count
 
     def dropna(self) -> Self:
         """
@@ -1367,22 +1623,62 @@ class ArrowExtensionArray(
                 #   a kernel for duration types.
                 pass
 
-        # TODO: Why do we no longer need the above cases?
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
         return super()._pad_or_backfill(
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )
 
-    @doc(ExtensionArray.fillna)
     def fillna(
         self,
         value: object | ArrayLike,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
+        """
+        Fill NA/NaN values using the specified method.
+
+        Parameters
+        ----------
+        value : scalar, array-like
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, an array-like "value" can be given. It's expected
+            that the array-like have the same length as 'self'.
+        limit : int, default None
+            The maximum number of entries where NA values will be filled.
+        copy : bool, default True
+            Whether to make a copy of the data before filling. This parameter
+            is inherited from pandas.ExtensionArray and should be left at its
+            default value (Arrow arrays cannot be altered in place).
+
+        Returns
+        -------
+        ArrowExtensionArray
+            With NA/NaN filled.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.dropna : Return ExtensionArray without
+            NA values.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
+
+        Examples
+        --------
+        >>> arr = pd.array(
+        ...     [np.nan, np.nan, 2, 3, np.nan, np.nan], dtype="int64[pyarrow]"
+        ... )
+        >>> arr.fillna(0)
+        <ArrowExtensionArray>
+        [0, 0, 2, 3, 0, 0]
+        Length: 6, dtype: int64[pyarrow]
+        """
         if not self._hasna:
             return self.copy()
+
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
 
         if limit is not None:
             return super().fillna(value=value, limit=limit, copy=copy)
@@ -1404,7 +1700,7 @@ class ArrowExtensionArray(
 
         try:
             return self._from_pyarrow_array(
-                pc.fill_null(self._pa_array, fill_value=fill_value)
+                _safe_fill_null(self._pa_array, fill_value=fill_value)
             )
         except pa.ArrowNotImplementedError:
             # ArrowNotImplementedError: Function 'coalesce' has no kernel
@@ -1420,10 +1716,73 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(values))
+        value_set = self._box_pa(values)
+        result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hook for hash_pandas_object.
+
+        For string/binary types with categorize=True, uses pyarrow's
+        dictionary_encode to avoid the overhead of converting to numpy
+        and then factorizing.
+        """
+        from pandas.core.util.hashing import hash_array
+
+        pa_type = self._pa_array.type
+
+        if categorize and (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
+            # Use pyarrow's dictionary_encode instead of numpy factorize.
+            # dictionary_encode on a ChunkedArray unifies dictionaries
+            # across chunks, so we can work with the result directly.
+            encoded = pc.dictionary_encode(self._pa_array)
+            if encoded.num_chunks <= 1:
+                if encoded.num_chunks == 0:
+                    return np.array([], dtype=np.uint64)
+                encoded_arr = encoded.chunk(0)
+            else:
+                # Concatenate indices from chunks; dictionaries are unified.
+                indices_chunks = [chunk.indices for chunk in encoded.iterchunks()]
+                combined_indices = pa.concat_arrays(indices_chunks)
+                encoded_arr = pa.DictionaryArray.from_arrays(
+                    combined_indices, encoded.chunk(0).dictionary
+                )
+            dictionary = encoded_arr.dictionary.to_numpy(zero_copy_only=False)
+
+            # Hash the unique values
+            hashed = hash_array(dictionary, encoding, hash_key, categorize=False)
+
+            # Map indices to hashes, handling nulls
+            indices = encoded_arr.indices
+            null_mask = indices.is_null().to_numpy(zero_copy_only=False)
+            codes = indices.fill_null(0).to_numpy()
+
+            if len(hashed):
+                result = hashed.take(codes)
+            else:
+                result = np.zeros(len(codes), dtype=np.uint64)
+
+            if null_mask.any():
+                result[null_mask] = lib.u8max
+
+            return result
+
+        return hash_array(
+            self.to_numpy(),
+            encoding,
+            hash_key,
+            categorize,
+        )
 
     def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
@@ -1433,20 +1792,59 @@ class ArrowExtensionArray(
         -------
         values : ndarray
         na_value : pd.NA
-
-        Notes
-        -----
-        The values returned by this method are also used in
-        :func:`pandas.util.hash_pandas_object`.
         """
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
 
-    @doc(ExtensionArray.factorize)
     def factorize(
         self,
         use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
+        """
+        Encode the arrow array as an enumerated type.
+
+        Parameters
+        ----------
+        use_na_sentinel : bool, default True
+            If True, the sentinel -1 will be used for NaN values. If False,
+            NaN values will be encoded as non-negative integers and will not drop the
+            NaN from the uniques of the values.
+
+        Returns
+        -------
+        codes : ndarray
+            An integer NumPy array that's an indexer into the original
+            ArrowArray.
+        uniques : ArrowArray
+            An ArrowArray containing the unique values of `self`.
+
+            .. note::
+
+               uniques will *not* contain an entry for the NA value of
+               the ArrowArray if there are any missing values present
+               in `self`.
+
+        See Also
+        --------
+        factorize : Top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
+
+        Examples
+        --------
+        >>> arr = pd.array(
+        ...     ["Ant", "Badger", "Cobra", "Cobra", "Deer", "Ant"], dtype=str
+        ... )
+        >>> arr_codes, arr_uniques = arr.factorize()
+        >>> arr_codes
+        array([0, 1, 2, 2, 3, 0])
+        >>> arr_uniques
+        <ArrowStringArray>
+        ['Ant', 'Badger', 'Cobra', 'Deer']
+        Length: 4, dtype: str
+        """
         null_encoding = "mask" if use_na_sentinel else "encode"
 
         data = self._pa_array
@@ -1470,7 +1868,7 @@ class ArrowExtensionArray(
             combined = encoded.combine_chunks()
             pa_indices = combined.indices
             if pa_indices.null_count > 0:
-                pa_indices = pc.fill_null(pa_indices, -1)
+                pa_indices = _safe_fill_null(pa_indices, -1)
             indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
                 np.intp, copy=False
             )
@@ -1506,15 +1904,68 @@ class ArrowExtensionArray(
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
-        return self._from_pyarrow_array(pc.round(self._pa_array, ndigits=decimals))
+        if not self.dtype._is_numeric or self.dtype._is_boolean:
+            # pc.round raises ArrowNotImplementedError on boolean and
+            # non-numeric types; defer to the base for the (copy / TypeError)
+            # contract.
+            return super().round(decimals, *args, **kwargs)
+        result = pc.round(self._pa_array, ndigits=decimals)
+        if pa_version_under14p0:
+            # pyarrow < 14 upcasts integer inputs to double; cast back so the
+            # output dtype matches the input.
+            result = result.cast(self._pa_array.type)
+        return self._from_pyarrow_array(result)
 
-    @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Assuming that `self` is sorted:
+
+        ======  ================================
+        `side`  returned index `i` satisfies
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
+
+        Parameters
+        ----------
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        array of ints or int
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 5], dtype="int64[pyarrow]")
+        >>> arr.searchsorted([4])
+        array([3])
+        """
         if self._hasna:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
@@ -1666,13 +2117,35 @@ class ArrowExtensionArray(
             return np.asarray(self, dtype=object)
         return super()._values_for_json()
 
-    @doc(ExtensionArray.to_numpy)
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
+        """
+        Convert to a NumPy ndarray.
+
+        This is similar to :meth:`numpy.asarray`, but may provide additional control
+        over how the conversion is done.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`.
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the type of the array.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
         original_na_value = na_value
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
@@ -1728,20 +2201,37 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=na_action)
-        else:
-            # For "mM" cases, the super() method passes `self` without the
-            #  to_numpy call, which inside map_array casts to ndarray[object].
-            #  Without the to_numpy() call, NA is preserved instead of changed
-            #  to None.
-            return super().map(mapper, na_action)
-
-    @doc(ExtensionArray.duplicated)
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
+        """
+        Return boolean ndarray denoting duplicate values.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+
+        Returns
+        -------
+        ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
+
+        Examples
+        --------
+        >>> pd.array([1, 1, 2, 3, 3], dtype="int64[pyarrow]").duplicated()
+        array([False,  True, False, False,  True])
+        """
         pa_type = self._pa_array.type
         if pa.types.is_floating(pa_type) or pa.types.is_integer(pa_type):
             values = self.to_numpy(na_value=0)
@@ -1890,6 +2380,9 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
+        if name in ("cummax", "cummin") and pa.types.is_floating(data_to_accum.type):
+            kwargs["start"] = float("-inf") if name == "cummax" else float("inf")
+
         try:
             result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
         except pa.ArrowNotImplementedError as err:
@@ -1929,7 +2422,7 @@ class ArrowExtensionArray(
                 return self._from_pyarrow_array(pa_array)
             if skipna:
                 if name == "cumsum":
-                    pa_array = pc.fill_null(pa_array, "")
+                    pa_array = _safe_fill_null(pa_array, "")
                 else:
                     # We can retain the running min/max by forward/backward filling.
                     pa_array = pc.fill_null_forward(pa_array)
@@ -1980,7 +2473,10 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
-        if name in ["any", "all"] and (
+        if name == "count":
+            return self.count()
+
+        elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
@@ -2009,7 +2505,7 @@ class ArrowExtensionArray(
 
         if name == "sem":
 
-            def pyarrow_meth(data, skip_nulls, **kwargs):
+            def pyarrow_meth(data, skip_nulls, **kwargs):  # pyright: ignore[reportRedeclaration]
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
@@ -2043,6 +2539,8 @@ class ArrowExtensionArray(
                     [0, len(data)], data.combine_chunks()
                 )[0]
                 return pc.binary_join(data_list, "")
+        elif name in ["argmin", "argmax"]:
+            return super()._reduce(name, skipna=skipna, **kwargs)
 
         else:
             pyarrow_name = {
@@ -2056,15 +2554,20 @@ class ArrowExtensionArray(
             # "Callable[[Any, Any, KwArg(Any)], Any]")
             pyarrow_meth = getattr(pc, pyarrow_name, None)  # type: ignore[assignment]
             if pyarrow_meth is None:
-                # Let ExtensionArray._reduce raise the TypeError
-                return super()._reduce(name, skipna=skipna, **kwargs)
+                raise TypeError(
+                    f"'{type(self).__name__}' with dtype {self.dtype} "
+                    f"does not support operation '{name}'"
+                )
 
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
-        if name in ["any", "all"] and "min_count" not in kwargs:
+        if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
         elif name == "median":
             # GH 52679: Use quantile instead of approximate_median
             kwargs["q"] = 0.5
+        elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
+            # pyarrow defaults to ddof=0, pandas behavior is ddof=1
+            kwargs["ddof"] = 1
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -2105,7 +2608,13 @@ class ArrowExtensionArray(
         return result
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         """
         Return a scalar result of performing the reduction operation.
@@ -2118,6 +2627,8 @@ class ArrowExtensionArray(
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        axis : int or None, default 0
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -2130,6 +2641,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        nv.validate_minmax_axis(axis, self.ndim)
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if isinstance(result, pa.Array):
             return self._from_pyarrow_array(result)
@@ -2163,6 +2675,114 @@ class ArrowExtensionArray(
             return result
         else:
             return pa_result
+
+    def sum(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_sum((), kwargs)
+        return self._reduce(
+            "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
+
+    def min(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_min((), kwargs)
+        return self._reduce("min", skipna=skipna, axis=axis, **kwargs)
+
+    def max(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_max((), kwargs)
+        return self._reduce("max", skipna=skipna, axis=axis, **kwargs)
+
+    def mean(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_mean((), kwargs)
+        return self._reduce("mean", skipna=skipna, axis=axis, **kwargs)
+
+    def sem(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+
+    def skew(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+
+    def median(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_median((), kwargs)
+        return self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+
+    def var(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        return self._reduce("var", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+
+    def std(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        return self._reduce("std", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+
+    def prod(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_prod((), kwargs)
+        return self._reduce(
+            "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
 
     def _explode(self):
         """
@@ -2220,15 +2840,22 @@ class ArrowExtensionArray(
             key = key[0]
 
         key = check_array_indexer(self, key)
-        value = self._maybe_convert_setitem_value(value)
+        value = self._validate_setitem_value(value)
 
         if com.is_null_slice(key):
             # fast path (GH50248)
-            data = self._if_else(True, value, self._pa_array)
+            if (
+                isinstance(value, (pa.Array, pa.ChunkedArray))
+                and value.type == self._pa_array.type
+                and len(value) == len(self)
+            ):
+                data = value
+            else:
+                data = self._if_else(True, value, self._pa_array)
 
         elif is_integer(key):
             # fast path
-            key = cast(int, key)
+            key = cast("int", key)
             n = len(self)
             if key < 0:
                 key += n
@@ -2273,13 +2900,15 @@ class ArrowExtensionArray(
         if isinstance(data, pa.Array):
             data = pa.chunked_array([data])
         self._pa_array = data
+        # Invalidate any cache_readonly properties that depend on _pa_array
+        self._cache.clear()
 
     def _rank_calc(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):
@@ -2300,16 +2929,19 @@ class ArrowExtensionArray(
             return result
 
         data = self._pa_array.combine_chunks()
-        sort_keys = "ascending" if ascending else "descending"
+        order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
         tiebreaker = "min" if method == "average" else method
 
-        result = pc.rank(
-            data,
-            sort_keys=sort_keys,
-            null_placement=null_placement,
-            tiebreaker=tiebreaker,
-        )
+        rank_kwargs: dict[str, Any]
+        if pa_version_under25p0:
+            rank_kwargs = {"sort_keys": order, "null_placement": null_placement}
+        else:
+            # pyarrow 25 deprecated the null_placement keyword in favor of
+            # specifying it per sort key
+            rank_kwargs = {"sort_keys": [("", order, null_placement)]}
+
+        result = pc.rank(data, tiebreaker=tiebreaker, **rank_kwargs)
 
         if na_option == "keep":
             mask = pc.is_null(self._pa_array)
@@ -2317,12 +2949,7 @@ class ArrowExtensionArray(
             result = pc.if_else(mask, null, result)
 
         if method == "average":
-            result_max = pc.rank(
-                data,
-                sort_keys=sort_keys,
-                null_placement=null_placement,
-                tiebreaker="max",
-            )
+            result_max = pc.rank(data, tiebreaker="max", **rank_kwargs)
             result_max = result_max.cast(pa.float64())
             result_min = result.cast(pa.float64())
             result = pc.divide(pc.add(result_min, result_max), 2)
@@ -2338,12 +2965,38 @@ class ArrowExtensionArray(
 
         return result
 
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        try:
+            return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        try:
+            return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
+
     def _rank(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:
@@ -2441,7 +3094,7 @@ class ArrowExtensionArray(
         most_common = most_common.take(pc.array_sort_indices(most_common))
         return self._from_pyarrow_array(most_common)
 
-    def _maybe_convert_setitem_value(self, value):
+    def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         try:
             value = self._box_pa(value, self._pa_array.type)
@@ -2528,10 +3181,30 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
-        try:
-            return pc.if_else(cond, left, right)
-        except pa.ArrowNotImplementedError:
-            pass
+
+        # TODO: Remove this part when pa.if_else is fixed (GH#64320)
+        def _maybe_combine(arr):
+            if not isinstance(arr, pa.ChunkedArray) or not (
+                pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type)
+            ):
+                return arr
+            if not any(c.offset != 0 for c in arr.chunks):
+                return arr
+            try:
+                return arr.combine_chunks()
+            except (pa.ArrowInvalid, pa.ArrowCapacityError, MemoryError):
+                return None
+
+        left_c, right_c = _maybe_combine(left), _maybe_combine(right)
+        if left_c is not None and right_c is not None:
+            try:
+                return pc.if_else(cond, left_c, right_c)
+            except pa.ArrowNotImplementedError:
+                pass
+        if left_c is not None:
+            left = left_c
+        if right_c is not None:
+            right = right_c
 
         def _to_numpy_and_type(value) -> tuple[np.ndarray, pa.DataType | None]:
             if isinstance(value, (pa.Array, pa.ChunkedArray)):
@@ -2611,6 +3284,28 @@ class ArrowExtensionArray(
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)
 
+    def _to_groupby_compatible(self) -> ExtensionArray:
+        """Convert to a type compatible with groupby cython ops."""
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            return self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            return self._to_timedeltaarray()
+        else:
+            return self._to_masked()
+
+    def _groupby_result_to_arrow(self, result: ArrayLike) -> ArrayLike:
+        """Convert a groupby result from a delegated type back to Arrow."""
+        if isinstance(result, np.ndarray):
+            return result
+        elif isinstance(result, BaseMaskedArray):
+            pa_result = result.__arrow_array__()
+            return self._from_pyarrow_array(pa_result)
+        else:
+            # DatetimeArray, TimedeltaArray
+            pa_result = pa.array(result)
+            return self._from_pyarrow_array(pa_result)
+
     def _groupby_op(
         self,
         *,
@@ -2645,16 +3340,16 @@ class ArrowExtensionArray(
                 **kwargs,
             )
 
-        # maybe convert to a compatible dtype optimized for groupby
-        values: ExtensionArray
-        pa_type = self._pa_array.type
-        if pa.types.is_timestamp(pa_type):
-            values = self._to_datetimearray()
-        elif pa.types.is_duration(pa_type):
-            values = self._to_timedeltaarray()
-        else:
-            values = self._to_masked()
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
 
+        values = self._to_groupby_compatible()
         result = values._groupby_op(
             how=how,
             has_dropped_na=has_dropped_na,
@@ -2663,15 +3358,35 @@ class ArrowExtensionArray(
             ids=ids,
             **kwargs,
         )
-        if isinstance(result, np.ndarray):
-            return result
-        elif isinstance(result, BaseMaskedArray):
-            pa_result = result.__arrow_array__()
-            return self._from_pyarrow_array(pa_result)
-        else:
-            # DatetimeArray, TimedeltaArray
-            pa_result = pa.array(result)
-            return self._from_pyarrow_array(pa_result)
+        return self._groupby_result_to_arrow(result)
+
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        from pandas.core.arrays.string_ import StringDtype
+
+        if isinstance(self.dtype, StringDtype):
+            raise TypeError(
+                f"dtype '{self.dtype}' does not support operation 'quantile'"
+            )
+
+        values = self._to_groupby_compatible()
+        result = values._groupby_quantile(
+            qs=qs,
+            interpolation=interpolation,
+            ids=ids,
+            ngroups=ngroups,
+            starts=starts,
+            ends=ends,
+        )
+        return self._groupby_result_to_arrow(result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""
@@ -2792,9 +3507,14 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pa.chunked_array(result))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
-        predicate = lambda val: unicodedata.normalize(form, val)
-        result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        if form in ("NFC", "NFKC"):
+            # GH#64359 pc.utf8_normalize only decomposes; it skips the canonical
+            #  composition step, so for the composing forms it returns decomposed
+            #  output. Fall back to unicodedata for these.
+            predicate = lambda val: unicodedata.normalize(form, val)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)
@@ -2819,6 +3539,9 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1) -> Self:
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n in {-1, 0}:
             n = None
         if pat is None:
@@ -2848,75 +3571,146 @@ class ArrowExtensionArray(
             return type(self)(pa.chunked_array(result))
         return type(self)(pc.utf8_zfill(self._pa_array, width))
 
-    @property
-    def _dt_days(self) -> Self:
+    def _dt_zero_or_null_int32(self) -> Self:
+        """
+        Return an int32 result that is 0 where the input is valid and null
+        where the input is null.
+
+        Used for duration components that are always 0 because the array's
+        resolution is coarser than the component (e.g. nanoseconds of a
+        second-resolution duration).
+        """
         return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.days,
-                from_pandas=True,
-                type=pa.int32(),
+            pc.if_else(
+                pc.is_null(self._pa_array),
+                pa.scalar(None, type=pa.int32()),
+                pa.scalar(0, type=pa.int32()),
             )
         )
+
+    @property
+    def _duration_unit(self) -> str:
+        """
+        Return the time unit for a duration-typed array.
+
+        Raises ``AttributeError`` for non-duration dtypes so the duration
+        component accessors (``_dt_days``, ``_dt_seconds``, etc.) are rejected
+        for e.g. ``timestamp[pyarrow]`` instead of silently treating the
+        underlying int64 as a duration. The ``dt`` dispatcher turns this into
+        the usual "dt.<name> is not supported for <dtype>" error.
+        """
+        pa_type = self._pa_array.type
+        if not pa.types.is_duration(pa_type):
+            raise AttributeError(f"'{self.dtype}' does not have duration components")
+        return pa_type.unit
+
+    @cache_readonly
+    def _dt_day_remainder(self) -> pa.ChunkedArray:
+        """
+        Return the remainder after removing full days, always non-negative.
+
+        For negative durations like -22h 57m 57s (= -1 day + 1h 2m 3s),
+        this returns the positive offset from the day boundary.
+
+        This is cached because it's used by all sub-day component accessors.
+        """
+        unit = self._duration_unit
+        divisor = _DURATION_DIVISORS["day"][unit]
+        arr = self._pa_array.cast(pa.int64())
+        days = floor_div_int64(arr, divisor)
+        # remainder = arr - days * divisor (always non-negative)
+        return pc.subtract(arr, pc.multiply(days, divisor))
+
+    def _dt_subday_component(self, component: str, modulo: int) -> Self:
+        """
+        Extract a sub-day component (hours, minutes, etc.) from the day remainder.
+
+        The remainder is always non-negative, so we can use integer division.
+        """
+        unit = self._duration_unit
+        divisors = _DURATION_DIVISORS[component]
+        # For units coarser than this component, the result is always 0
+        if unit not in divisors:
+            return self._dt_zero_or_null_int32()
+        # Integer division is fine here since remainder is non-negative
+        result = pc.divide(self._dt_day_remainder, divisors[unit])
+        result = mod_int(result, modulo)
+        return self._from_pyarrow_array(result.cast(pa.int32()))
+
+    @property
+    def _dt_days(self) -> Self:
+        unit = self._duration_unit
+        arr = self._pa_array.cast(pa.int64())
+        result = floor_div_int64(arr, _DURATION_DIVISORS["day"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_hours(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.hours,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("hour", modulo=24)
 
     @property
     def _dt_minutes(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.minutes,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("minute", modulo=60)
 
     @property
     def _dt_seconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.seconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Total seconds in sub-day portion (0-86399), per Python timedelta semantics.
+        # Every duration unit (s/ms/us/ns) is at least as fine as seconds, so the
+        # remainder always has enough resolution and no zero-result shortcut is
+        # needed here.
+        unit = self._duration_unit
+        # Convert remainder to seconds (no modulo - we want total sub-day seconds)
+        result = pc.divide(self._dt_day_remainder, _DURATION_DIVISORS["second"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_milliseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.milliseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("millisecond", modulo=1000)
 
     @property
     def _dt_microseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.microseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Total microseconds in sub-second portion (0-999999), per Python timedelta
+        # semantics. For units coarser than microseconds (e.g. "ms") the sub-second
+        # portion must be scaled *up* to microseconds rather than returning 0.
+        unit = self._duration_unit
+        divisors = _DURATION_DIVISORS
+        # Sub-second portion, expressed in the storage unit (always non-negative)
+        sub_second = mod_int(self._dt_day_remainder, divisors["second"][unit])
+        units_per_second = divisors["second"][unit]
+        micros_per_second = divisors["second"]["us"]
+        if units_per_second >= micros_per_second:
+            # Unit at least as fine as microseconds: divide down (e.g. ns -> us)
+            result = pc.divide(sub_second, units_per_second // micros_per_second)
+        else:
+            # Unit coarser than microseconds: scale up (e.g. ms -> us)
+            result = pc.multiply(sub_second, micros_per_second // units_per_second)
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_nanoseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.nanoseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Nanoseconds only (0-999), per Python timedelta semantics
+        return self._dt_subday_component("nanosecond", modulo=1000)
+
+    @property
+    def _dt_components(self) -> dict[str, ArrowExtensionArray]:
+        """
+        Return all duration components.
+
+        The day remainder is computed once (and cached on ``_dt_day_remainder``),
+        so every sub-day component below reuses it. Note that the per-field
+        semantics differ from the like-named accessors: ``seconds`` here is the
+        0-59 seconds field (not the 0-86399 total) and ``microseconds`` is the
+        0-999 field (not the 0-999999 total).
+        """
+        return {
+            "days": self._dt_days,
+            "hours": self._dt_hours,
+            "minutes": self._dt_minutes,
+            "seconds": self._dt_subday_component("second", modulo=60),
+            "milliseconds": self._dt_milliseconds,
+            "microseconds": self._dt_subday_component("microsecond", modulo=1000),
+            "nanoseconds": self._dt_nanoseconds,
+        }
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
         data = self._pa_array.to_pylist()
@@ -2938,8 +3732,37 @@ class ArrowExtensionArray(
             target_type = pa.duration(unit)
         else:
             raise NotImplementedError(f"as_unit not implemented for {pa_type}")
-        # Use safe=False to allow truncation, matching pandas as_unit behavior
-        result = pc.cast(self._pa_array, target_type, safe=False)
+
+        nanos_per_unit = {"s": 1_000_000_000, "ms": 1_000_000, "us": 1_000, "ns": 1}
+        from_nanos = nanos_per_unit[pa_type.unit]
+        to_nanos = nanos_per_unit[unit]
+        if to_nanos <= from_nanos:
+            # Same or finer resolution: exact upscale. Use safe=True so that
+            # out-of-bounds values raise instead of silently wrapping, matching
+            # numpy/pandas as_unit.
+            try:
+                result = pc.cast(self._pa_array, target_type)
+            except pa.ArrowInvalid as err:
+                err_type = (
+                    OutOfBoundsDatetime
+                    if pa.types.is_timestamp(pa_type)
+                    else OutOfBoundsTimedelta
+                )
+                raise err_type(
+                    f"Cannot convert {pa_type} to {target_type} without overflow"
+                ) from err
+        else:
+            # Coarser resolution: floor toward -inf like numpy/pandas. pc.cast
+            # truncates toward zero, which is wrong for negative timedeltas and
+            # pre-epoch timestamps (GH#63573).
+            ratio = pa.scalar(to_nanos // from_nanos, type=pa.int64())
+            i8 = pc.cast(self._pa_array, pa.int64())
+            quotient = pc.divide(i8, ratio)
+            remainder = pc.subtract(i8, pc.multiply(quotient, ratio))
+            floored = pc.if_else(
+                pc.less(remainder, 0), pc.subtract(quotient, 1), quotient
+            )
+            result = pc.cast(floored, target_type)
         return self._from_pyarrow_array(result)
 
     @property
@@ -2957,15 +3780,41 @@ class ArrowExtensionArray(
         result = pc.day_of_week(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofweek = _dt_day_of_week
-    _dt_weekday = _dt_day_of_week
+    @property
+    def _dt_dayofweek(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofweek accessor is deprecated and will be removed "
+            "in a future version. Use day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
+
+    @property
+    def _dt_weekday(self) -> Self:
+        # GH#12816
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
 
     @property
     def _dt_day_of_year(self) -> Self:
         result = pc.day_of_year(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofyear = _dt_day_of_year
+    @property
+    def _dt_dayofyear(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofyear accessor is deprecated and will be removed "
+            "in a future version. Use day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_year
 
     @property
     def _dt_hour(self) -> Self:
@@ -3040,7 +3889,15 @@ class ArrowExtensionArray(
         )
         return self._from_pyarrow_array(result)
 
-    _dt_daysinmonth = _dt_days_in_month
+    @property
+    def _dt_daysinmonth(self) -> Self:
+        warnings.warn(
+            "ArrowDtype daysinmonth accessor is deprecated and will be removed "
+            "in a future version. Use days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_days_in_month
 
     @property
     def _dt_microsecond(self) -> Self:

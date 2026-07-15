@@ -28,6 +28,7 @@ import operator
 import pickle
 import re
 import sys
+import unicodedata
 
 import numpy as np
 import pytest
@@ -36,7 +37,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY312,
-    is_ci_environment,
     is_platform_windows,
     pa_version_under14p0,
     pa_version_under19p0,
@@ -44,7 +44,11 @@ from pandas.compat import (
     pa_version_under21p0,
 )
 from pandas.compat.pyarrow import pa_version_under22p0
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -74,7 +78,7 @@ from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 def _require_timezone_database(request):
-    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
+    if is_platform_windows() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
@@ -272,6 +276,9 @@ def data_for_twos(data):
 
 
 class TestArrowArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _construct_for_combine_add(self, left, right):
         dtype = left.dtype
 
@@ -292,30 +299,11 @@ class TestArrowArray(base.ExtensionTests):
                 dtype=dtype,
             )
 
-    def test_compare_scalar(self, data, comparison_op):
-        ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, data[0])
-
     def test_compare_range_len(self, data, comparison_op):
         # GH#63429
         ser = pd.Series(data)
         range_test = range(len(ser))
         self._compare_other(ser, range_test, comparison_op, range_test)
-
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action, using_nan_is_na):
-        if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
-            tm.assert_numpy_array_equal(result, expected)
-        else:
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]" and using_nan_is_na:
-                # map roundtrips through objects, which converts to float64
-                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-            else:
-                expected = data_missing.to_numpy()
-            tm.assert_numpy_array_equal(result, expected)
 
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -464,11 +452,21 @@ class TestArrowArray(base.ExtensionTests):
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew", "any", "all"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
+        ) and op_name in [
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "any",
+            "all",
+        ]:
             return False
 
         if (
@@ -513,25 +511,6 @@ class TestArrowArray(base.ExtensionTests):
             result = getattr(ser, op_name)(skipna=skipna)
             expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
-        pa_dtype = data.dtype.pyarrow_dtype
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_boolean_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-            # We *might* want to make this behave like the non-pyarrow cases,
-            #  but have not yet decided.
-            request.applymarker(xfail_mark)
-
-        return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         pa_type = arr._pa_array.type
@@ -685,21 +664,6 @@ class TestArrowArray(base.ExtensionTests):
         result = data.fillna(valid)
         assert result is not data
         tm.assert_extension_array_equal(result, data)
-
-    def test_fillna_readonly(self, data_missing):
-        data = data_missing.copy()
-        data._readonly = True
-
-        # by default fillna(copy=True), then this works fine
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is generally not honored by Arrow-backed array,
-        # but always returns new data -> same result as above
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
 
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
@@ -1093,6 +1057,80 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+    )
+    def test_values_for_json(self, data, request):
+        # GH 65127
+        # The date32 and date64 dtypes fail already in serialization due to as_unit not
+        # implemented for them. Currently the json serialization relies on the default
+        # 'epoch' format for datetimes, leading to the filtered Pandas4Warning.
+        if data.dtype in [ArrowDtype(pa.date32()), ArrowDtype(pa.date64())]:
+            try:
+                super().test_values_for_json(data)
+            # date32/date64
+            except NotImplementedError as err:
+                if "as_unit not implemented for date" in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=NotImplementedError,
+                            reason="as_unit not implemented for date",
+                        )
+                    )
+                raise
+        else:
+            super().test_values_for_json(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+    )
+    def test_json_roundtrip(self, data, request):
+        # GH 65127
+        # All datetime and duration ArrowDtypes with non default resolution of ms fail
+        # on roundtrip. The date32 and date64 dtypes fail already in serialization due
+        # to as_unit not implemented for them. Currently the json serialization relies
+        # on the default 'epoch' format for datetimes, leading to the filtered
+        # Pandas4Warning.
+        if ((data.dtype.kind in "Mm") and ("ms" not in str(data.dtype))) or (
+            data.dtype in [ArrowDtype(pa.date32()), ArrowDtype(pa.date64())]
+        ):
+            try:
+                super().test_json_roundtrip(data)
+            except NotImplementedError as err:
+                # date32/date64
+                if "as_unit not implemented for date" in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=NotImplementedError,
+                            reason="as_unit not implemented for date",
+                        )
+                    )
+                # timestamp with s unit and US/Pacific or US/Eastern tz
+                elif (
+                    "Localizing Timestamps which are outside the range of Python"
+                ) in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=NotImplementedError,
+                            reason=(
+                                "Localizing Timestamps which are outside the range of "
+                                "Python's standard library datetime is not supported"
+                            ),
+                        )
+                    )
+                raise
+            # all others
+            except AssertionError as err:
+                if "Series are different" in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=AssertionError, reason="Series are different"
+                        )
+                    )
+                raise
+        else:
+            super().test_json_roundtrip(data)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""
@@ -1324,6 +1362,40 @@ def test_arrow_string_multiplication_scalar_repeat():
     tm.assert_series_equal(result, expected)
     reflected_result = 2 * binary
     tm.assert_series_equal(reflected_result, expected)
+
+
+def test_arrow_string_addition_mixed_string_types():
+    # https://github.com/pandas-dev/pandas/issues/65220
+    left = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    right = pd.Series(["b", "c"], dtype=ArrowDtype(pa.large_string()))
+
+    result = left + right
+    expected = pd.Series(["ab", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(result, expected)
+
+    reflected_result = right + left
+    expected_reflected = pd.Series(["ba", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(reflected_result, expected_reflected)
+
+
+@pytest.mark.parametrize("string_type", [pa.string(), pa.large_string()])
+def test_arrow_string_addition_mixed_with_binary_raises(string_type):
+    left = pd.Series(["a", None], dtype=ArrowDtype(string_type))
+    right = pd.Series([b"b", b"c"], dtype=ArrowDtype(pa.binary()))
+
+    msg = (
+        f"operation 'add' not supported for dtype '{left.dtype}' "
+        f"with dtype '{right.dtype}'"
+    )
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        left + right
+
+    reflected_msg = (
+        f"operation 'add' not supported for dtype '{right.dtype}' "
+        f"with dtype '{left.dtype}'"
+    )
+    with pytest.raises(TypeError, match=re.escape(reflected_msg)):
+        right + left
 
 
 @pytest.mark.parametrize(
@@ -1782,6 +1854,14 @@ def test_str_contains_flags_unsupported():
         ser.str.contains("a", flags=1)
 
 
+def test_str_contains_re2_unicode_escape():
+    # GH 63901
+    ser = pd.Series(["a", "\u0e01", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
+    expected = pd.Series([False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
@@ -1839,6 +1919,13 @@ def test_str_replace(pat, repl, n, regex, exp):
     tm.assert_series_equal(result, expected)
 
 
+def test_str_replace_re2_unicode_property():
+    ser = pd.Series(["Jan", "Feb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(r"\p{Lu}", "U", regex=True)
+    expected = pd.Series(["Uan", "Ueb", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_replace_negative_n():
     # GH 56404
     ser = pd.Series(["abc", "aaaaaa"], dtype=ArrowDtype(pa.string()))
@@ -1856,6 +1943,19 @@ def test_str_replace_negative_n():
     actual3 = ser3.str.replace("a", "", -3, True)
     expected3 = expected.astype(ser3.dtype)
     tm.assert_series_equal(expected3, actual3)
+
+
+def test_str_replace_empty_pattern():
+    # https://github.com/pandas-dev/pandas/issues/64941
+    ser = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+
+    result = ser.str.replace("", "")
+    expected = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("", "X")
+    expected = pd.Series(["XaXbXcXdX"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_repeat_unsupported():
@@ -1918,18 +2018,18 @@ def test_str_fullmatch(pat, case, na, exp):
 
 
 @pytest.mark.parametrize(
-    "sub, start, end, exp, exp_type",
+    "sub, start, end, exp",
     [
-        ["ab", 0, None, [0, None], pa.int32()],
-        ["bc", 1, 3, [1, None], pa.int64()],
-        ["ab", 1, 3, [-1, None], pa.int64()],
-        ["ab", -3, -3, [-1, None], pa.int64()],
+        ["ab", 0, None, [0, None]],
+        ["bc", 1, 3, [1, None]],
+        ["ab", 1, 3, [-1, None]],
+        ["ab", -3, -3, [-1, None]],
     ],
 )
-def test_str_find(sub, start, end, exp, exp_type):
+def test_str_find(sub, start, end, exp):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
-    expected = pd.Series(exp, dtype=ArrowDtype(exp_type))
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
@@ -1991,8 +2091,9 @@ def test_str_find_negative_start_negative_end_no_match():
 
 
 @pytest.mark.parametrize(
-    "i, exp",
+    "idx, expected_values",
     [
+        [0, ["a", "d", None]],
         [1, ["b", "e", None]],
         [-1, ["c", "e", None]],
         [2, ["c", None, None]],
@@ -2000,10 +2101,29 @@ def test_str_find_negative_start_negative_end_no_match():
         [4, [None, None, None]],
     ],
 )
-def test_str_get(i, exp):
+def test_str_get(idx, expected_values):
     ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.get(i)
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    result = ser.str.get(idx)
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx, expected_values",
+    [
+        [0, ["a", "d", None]],
+        [1, ["b", "e", None]],
+        [-1, ["c", "e", None]],
+        [2, ["c", None, None]],
+        [-3, ["a", None, None]],
+        [4, [None, None, None]],
+    ],
+)
+def test_str_getitem(idx, expected_values):
+    # GH 65112
+    ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str[idx]
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2026,18 +2146,39 @@ def test_str_join_string_type():
 
 
 @pytest.mark.parametrize(
-    "start, stop, step, exp",
+    "start, stop, step, expected_values",
     [
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
         (None, None, -1, ["dcba", None]),
+        (1, None, 2, ["bd", None]),
+        (None, None, None, ["abcd", None]),
     ],
 )
-def test_str_slice(start, stop, step, exp):
+def test_str_slice(start, stop, step, expected_values):
     ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.slice(start, stop, step)
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, expected_values",
+    [
+        [None, 2, None, ["ab", None]],
+        [None, 2, 1, ["ab", None]],
+        [1, 3, 1, ["bc", None]],
+        (None, None, -1, ["dcba", None]),
+        (1, None, 2, ["bd", None]),
+        (None, None, None, ["abcd", None]),
+    ],
+)
+def test_str_getitem_range(start, stop, step, expected_values):
+    # GH 65112
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str[slice(start, stop, step)]
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2193,12 +2334,24 @@ def test_str_r_index(method, start, end):
         getattr(ser.str, method)("foo", start, end)
 
 
-@pytest.mark.parametrize("form", ["NFC", "NFKC"])
+@pytest.mark.parametrize("form", ["NFC", "NFD", "NFKC", "NFKD"])
 def test_str_normalize(form):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    # GH#64359 the composing forms (NFC/NFKC) must apply canonical composition,
+    #  not just decomposition: "e" + U+0301 must compose to U+00E9, and a
+    #  pre-composed character must round-trip unchanged. The compatibility
+    #  forms additionally fold e.g. the U+FB01 "fi" ligature.
+    data = ["abc", "e\u0301", "\u00e9", "\u212b", "\ufb01", None]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.string()))
     result = ser.str.normalize(form)
-    expected = ser.copy()
+    expected = pd.Series(
+        [unicodedata.normalize(form, val) if val is not None else None for val in data],
+        dtype=ArrowDtype(pa.string()),
+    )
     tm.assert_series_equal(result, expected)
+    if form in ("NFC", "NFKC"):
+        # decomposed and pre-composed inputs both yield the single U+00E9
+        assert result[1] == "\u00e9"
+        assert result[2] == "\u00e9"
 
 
 @pytest.mark.parametrize(
@@ -2410,10 +2563,8 @@ def test_unsupported_dt(data):
         ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
-        ["dayofweek", 0],
         ["weekday", 0],
         ["day_of_year", 2],
-        ["dayofyear", 2],
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
@@ -2443,7 +2594,13 @@ def test_dt_properties(prop, expected):
         ],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
-    result = getattr(ser.dt, prop)
+    if prop == "weekday":
+        # GH#12816
+        warn = Pandas4Warning
+    else:
+        warn = None
+    with tm.assert_produces_warning(warn, match="weekday"):
+        result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
         exp_type = pa.date32()
@@ -2532,7 +2689,7 @@ def test_dt_is_quarter_start_end():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["days_in_month", "daysinmonth"])
+@pytest.mark.parametrize("method", ["days_in_month"])
 def test_dt_days_in_month(method):
     ser = pd.Series(
         [
@@ -2605,6 +2762,23 @@ def test_dt_isocalendar():
     expected = pd.DataFrame(
         [[2023, 1, 1], [0, 0, 0]],
         columns=["year", "week", "day"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_isocalendar_preserves_index():
+    # GH#65894
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+        index=["a", "b"],
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        index=["a", "b"],
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
@@ -2896,6 +3070,59 @@ def test_as_unit_date_raises():
 
 
 @pytest.mark.parametrize(
+    "from_unit, to_unit",
+    [("ns", "s"), ("ns", "ms"), ("ns", "us"), ("us", "s"), ("ms", "s")],
+)
+def test_as_unit_duration_negative_floors(from_unit, to_unit):
+    # GH#63573 downcasting a negative duration must floor toward -inf like
+    # numpy, not truncate toward zero
+    values = [93784567890123, -93784567890123, None]
+    ser_arrow = pd.Series(pd.to_timedelta(values, unit="ns").as_unit(from_unit)).astype(
+        f"duration[{from_unit}][pyarrow]"
+    )
+
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = pd.Series(
+        pd.to_timedelta(values, unit="ns").as_unit(from_unit).as_unit(to_unit)
+    ).astype(f"duration[{to_unit}][pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("to_unit", ["s", "ms", "us"])
+def test_as_unit_timestamp_pre_epoch_floors(to_unit):
+    # GH#63573 downcasting a pre-epoch timestamp must floor toward -inf like
+    # numpy, not truncate toward zero (which would cross the epoch)
+    ser_arrow = pd.Series(
+        [pd.Timestamp("1969-12-31 23:59:59.123456789"), None],
+        dtype="timestamp[ns][pyarrow]",
+    )
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = pd.Series(ser_arrow.astype("datetime64[ns]").dt.as_unit(to_unit)).astype(
+        f"timestamp[{to_unit}][pyarrow]"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_as_unit_timestamp_overflow_raises():
+    # GH#63573 upcasting out-of-bounds values must raise instead of silently
+    # wrapping via int64 overflow
+    ser = pd.Series(
+        [pd.Timestamp("2600-01-01").as_unit("s"), None],
+        dtype="timestamp[s][pyarrow]",
+    )
+    with pytest.raises(OutOfBoundsDatetime, match="overflow"):
+        ser.dt.as_unit("ns")
+
+
+def test_as_unit_duration_overflow_raises():
+    # GH#63573 upcasting out-of-bounds durations must raise instead of silently
+    # wrapping via int64 overflow
+    ser = pd.Series([19880899200, None], dtype="duration[s][pyarrow]")
+    with pytest.raises(OutOfBoundsTimedelta, match="overflow"):
+        ser.dt.as_unit("ns")
+
+
+@pytest.mark.parametrize(
     "prop, expected",
     [
         ["days", 1],
@@ -2944,6 +3171,168 @@ def test_dt_timedelta_total_seconds():
         ArrowExtensionArray(pa.array([86402.000003, None], type=pa.float64()))
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_dt_timedelta_components():
+    # Test that .dt.components returns correct values for Arrow duration arrays
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=5, hours=3, minutes=2, seconds=1, milliseconds=4),
+            pd.Timedelta(days=0, hours=23, minutes=59, seconds=59),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        {
+            "days": pd.array([5, 0, None], dtype="Int32[pyarrow]"),
+            "hours": pd.array([3, 23, None], dtype="Int32[pyarrow]"),
+            "minutes": pd.array([2, 59, None], dtype="Int32[pyarrow]"),
+            "seconds": pd.array([1, 59, None], dtype="Int32[pyarrow]"),
+            "milliseconds": pd.array([4, 0, None], dtype="Int32[pyarrow]"),
+            "microseconds": pd.array([0, 0, None], dtype="Int32[pyarrow]"),
+            "nanoseconds": pd.array([0, 0, None], dtype="Int32[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_components_preserves_index():
+    # Test that .dt.components preserves the parent Series index
+    idx = pd.Index(["a", "b", "c"])
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=1, hours=2),
+            pd.Timedelta(days=3, hours=4),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+        index=idx,
+    )
+    result = ser.dt.components
+    tm.assert_index_equal(result.index, idx)
+
+
+def test_dt_timedelta_components_negative_and_nulls():
+    # Negative durations, unit boundaries, and interspersed nulls should all
+    # match the NumPy-backed result. pandas normalizes negatives so that the
+    # sub-day components stay non-negative (e.g. -22h57m57s -> -1 day + 1h2m3s).
+    values = [
+        pd.Timedelta(days=1, hours=2, minutes=3),  # ordinary positive
+        pd.Timedelta(days=0),  # zero
+        pd.NaT,  # null interspersed
+        pd.Timedelta(hours=-22, minutes=-57, seconds=-57),  # -1 day + 1h2m3s
+        pd.Timedelta(days=-2, hours=5),  # multi-day negative
+        pd.Timedelta(days=-1),  # exactly -1 day, sub-day fields all 0
+        pd.Timedelta(days=-100, hours=12),  # large negative
+        pd.Timedelta(nanoseconds=-1),  # -1 day + 23:59:59.999999999
+        pd.Timedelta(microseconds=-1),  # -1 of each unit below exercises borrow
+        pd.Timedelta(milliseconds=-1),
+        pd.Timedelta(seconds=-1),
+        pd.Timedelta(minutes=-1),
+        pd.Timedelta(hours=-1),
+        pd.Timedelta(days=-1, nanoseconds=-1),  # -1 day - 1ns
+        pd.NaT,
+    ]
+    ser_arrow = pd.Series(values, dtype=ArrowDtype(pa.duration("ns")))
+    ser_numpy = pd.Series(values)
+
+    # The direct .dt.<component> accessors should match the NumPy-backed result
+    for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
+        expected = pd.Series(
+            getattr(ser_numpy.dt, attr).values, dtype="Int32[pyarrow]"
+        ).where(ser_arrow.notna(), pd.NA)
+        tm.assert_series_equal(getattr(ser_arrow.dt, attr), expected)
+
+    # .dt.components
+    result = ser_arrow.dt.components
+    expected = ser_numpy.dt.components.astype("Int32[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_accessors_match_python_timedelta():
+    # GH 63470: .dt.seconds/.dt.microseconds previously returned the
+    # .dt.components field values (0-59 / 0-999) instead of Python timedelta
+    # semantics (total sub-day seconds, total sub-second microseconds)
+    td = timedelta(
+        days=1, hours=2, minutes=3, seconds=45, milliseconds=678, microseconds=123
+    )
+    ser = pd.Series([pd.Timedelta(td), None], dtype=ArrowDtype(pa.duration("ns")))
+
+    # .dt.days should match Python timedelta.days
+    assert ser.dt.days.iloc[0] == td.days
+
+    # .dt.seconds should be total seconds in sub-day portion (0-86399)
+    # = hours*3600 + minutes*60 + seconds = 2*3600 + 3*60 + 45 = 7425
+    assert ser.dt.seconds.iloc[0] == td.seconds
+
+    # .dt.microseconds should be total microseconds in sub-second portion (0-999999)
+    # = milliseconds*1000 + microseconds = 678*1000 + 123 = 678123
+    assert ser.dt.microseconds.iloc[0] == td.microseconds
+
+    # Null handling
+    assert pd.isna(ser.dt.days.iloc[1])
+    assert pd.isna(ser.dt.seconds.iloc[1])
+    assert pd.isna(ser.dt.microseconds.iloc[1])
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_dt_timedelta_components_different_units(unit):
+    # Test that components work correctly across all duration units,
+    # including coarser units where finer components should be zero.
+    td = pd.Timedelta(days=1, hours=2, minutes=3, seconds=4, milliseconds=5)
+    ser_arrow = pd.Series([td, None], dtype=ArrowDtype(pa.duration(unit)))
+
+    result = ser_arrow.dt.components
+
+    # Days, hours, minutes, seconds are representable at every unit
+    assert result["days"].iloc[0] == 1
+    assert result["hours"].iloc[0] == 2
+    assert result["minutes"].iloc[0] == 3
+    assert result["seconds"].iloc[0] == 4
+    # Milliseconds are 0 for the coarser "s" unit, otherwise the stored value.
+    # Micro/nanoseconds are 0 here regardless of unit (td has none).
+    assert result["milliseconds"].iloc[0] == (5 if unit != "s" else 0)
+    assert result["microseconds"].iloc[0] == 0
+    assert result["nanoseconds"].iloc[0] == 0
+
+    # Null handling across all units
+    for col in result.columns:
+        assert pd.isna(result[col].iloc[1])
+
+    # GH 63470: the direct .dt.<component> accessors must match the NumPy-backed
+    # result at every unit. In particular .dt.microseconds on a coarser unit
+    # (e.g. "ms") must scale up the sub-second portion rather than returning 0.
+    ser_numpy = pd.Series([td.as_unit(unit), None])
+    for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
+        expected = pd.Series(
+            getattr(ser_numpy.dt, attr).values, dtype="Int32[pyarrow]"
+        ).where(ser_arrow.notna(), pd.NA)
+        tm.assert_series_equal(getattr(ser_arrow.dt, attr), expected)
+
+
+def test_dt_timedelta_components_all_null():
+    # Test all-null array hits the min_scalar.is_valid fast path
+    ser = pd.Series(
+        [None, None, None],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    for col in result.columns:
+        assert result[col].isna().all()
+
+
+@pytest.mark.parametrize("attr", ["days", "seconds", "microseconds", "nanoseconds"])
+def test_dt_duration_components_reject_timestamp(attr):
+    # GH 63470: the duration component accessors must not silently treat a
+    # timestamp's underlying int64 as a duration; they should raise like the
+    # NumPy-backed datetime accessors do.
+    ser = pd.Series(
+        pd.to_datetime(["2020-01-01 01:02:03"]), dtype="timestamp[ns][pyarrow]"
+    )
+    with pytest.raises(NotImplementedError, match=f"dt.{attr} is not supported"):
+        getattr(ser.dt, attr)
 
 
 def test_dt_to_pytimedelta():
@@ -3023,6 +3412,72 @@ def test_dt_components_large_values():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_day_remainder_cache_invalidation():
+    # Test that _dt_day_remainder cache is invalidated after __setitem__
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+
+    # Access to cache the day remainder and verify initial values
+    result_before = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_before = pd.Series(
+        [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_before, expected_before)
+    assert "_dt_day_remainder" in arr._cache
+
+    # Modify the array
+    arr[0] = pd.Timedelta("3 days 7:08:09")
+
+    # Cache should be invalidated
+    assert "_dt_day_remainder" not in arr._cache
+
+    # Accessing again should give correct (recomputed) values, not stale cached values
+    result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_after = pd.Series(
+        [7 * 3600 + 8 * 60 + 9, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_after, expected_after)
+
+    # Verify the first value actually changed (not returning stale cache)
+    assert result_after.iloc[0] != result_before.iloc[0]
+
+
+def test_dt_day_remainder_cache_not_pickled(tmp_path):
+    # The _dt_day_remainder cache can be recomputed, so it should not be
+    # serialized with the array
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+    arr._dt_day_remainder  # populate the cache
+    assert "_dt_day_remainder" in arr._cache
+
+    result = tm.round_trip_pickle(arr, tmp_path / "cache.pkl")
+    assert result._cache == {}
+    tm.assert_extension_array_equal(result, arr)
+
+
+def test_dt_day_remainder_cache_invalidated_on_sort():
+    # GH 63470: sort() mutates _pa_array in place, so the _dt_day_remainder
+    # cache must be cleared or the duration components would be stale
+    arr = pd.array(
+        [pd.Timedelta("2 days 4:05:06"), pd.Timedelta("1 days 1:02:03")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr._dt_day_remainder  # populate the cache
+    assert "_dt_day_remainder" in arr._cache
+
+    arr.sort()
+    assert arr._cache == {}
+
+    # Components reflect the sorted order, not the pre-sort cache
+    assert arr._dt_seconds.tolist() == [3723, 14706]
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624
@@ -3094,6 +3549,22 @@ def test_setitem_boolean_replace_with_mask_segfault():
     expected = arr.copy()
     arr[np.zeros((N,), dtype=np.bool_)] = False
     assert arr._pa_array == expected._pa_array
+
+
+def test_setitem_na_chunked_string_if_else():
+    # GH#64320
+    df = pd.concat(
+        [
+            pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
+            pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
+        ],
+        ignore_index=True,
+    )
+    for _ in range(5):
+        df.loc[[0], "a"] = pd.NA
+    assert pd.isna(df["a"].iloc[0])
+    assert (df["a"].iloc[1:] == "x").all()
+    assert (df["b"] == "x").all()
 
 
 @pytest.mark.parametrize(
@@ -3196,10 +3667,12 @@ def test_infer_dtype_pyarrow_dtype(data, request):
     res = lib.infer_dtype(data)
     assert res != "unknown-array"
 
-    if data._hasna and res in ["datetime64", "timedelta64"]:
+    if res in ["datetime64", "timedelta64"]:
+        # infer_dtype on the pyarrow-backed array returns datetime64/timedelta64
+        # via _TYPE_MAP, but infer_dtype on list(data) returns datetime/timedelta
+        # because the elements are pd.Timestamp/pd.Timedelta (PyDateTime/PyDelta).
         mark = pytest.mark.xfail(
-            reason="in infer_dtype pd.NA is not ignored in these cases "
-            "even with skipna=True in the list(data) check below"
+            reason="infer_dtype(arrow_array) vs infer_dtype(list) naming mismatch"
         )
         request.applymarker(mark)
 
@@ -3363,6 +3836,28 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):
+    # GH#54627
+    arr = pd.array([1, 2, 3, 4], dtype=dtype)
+    df = pd.DataFrame({"key": ["a", "a", "b", "b"], "col": arr})
+    grouped = df.groupby("key")
+    expected_dtype = ArrowDtype(pa.float64())
+
+    result = getattr(grouped, op_name)()
+    assert result["col"].dtype == expected_dtype
+
+    result = grouped.aggregate(op_name)
+    assert result["col"].dtype == expected_dtype
+
+    result = getattr(grouped["col"], op_name)()
+    assert result.dtype == expected_dtype
+
+    result = grouped["col"].aggregate(op_name)
+    assert result.dtype == expected_dtype
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(
@@ -3511,7 +4006,8 @@ def test_arrow_floordiv_integral_invalid(pa_type):
     # GH 56676
     min_value = np.iinfo(pa_type.to_pandas_dtype()).min
     a = pd.Series([min_value], dtype=ArrowDtype(pa_type))
-    with pytest.raises(pa.lib.ArrowInvalid, match="overflow|not in range"):
+    msg = "|".join(["overflow", "not in range"])
+    with pytest.raises(pa.lib.ArrowInvalid, match=msg):
         a // -1
     with pytest.raises(pa.lib.ArrowInvalid, match="divide by zero"):
         a // 0
@@ -3626,13 +4122,11 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
     assert result.dtypes.iloc[0] == data_type
 
 
-def test_map_numeric_na_action(using_nan_is_na):
+def test_map_numeric_na_action():
+    # GH#62164 - _cast_pointwise_result retains Arrow dtype
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
-    if not using_nan_is_na:
-        expected = pd.Series([42.0, 42.0, pd.NA], dtype="object")
-    else:
-        expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    expected = pd.Series([42, 42, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
@@ -3724,7 +4218,7 @@ def test_date_vs_timestamp_scalar_comparison():
 # TODO: reuse assert_invalid_comparison?
 def test_date_vs_timestamp_array_comparison():
     # GH#62157 match non-pyarrow behavior
-    # GH#
+    # GH#60937
     ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser2 = ser.astype("timestamp[ns][pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
@@ -3791,6 +4285,33 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         ser[2] = np.nan
         assert isinstance(ser[2], float)
         assert np.isnan(ser[2])
+
+
+def test_np_ufunc_pyarrow_distinguish_nan_na():
+    # GH#62506 - ufuncs on pyarrow arrays with distinguish_nan_and_na=True
+    # should work instead of raising TypeError from object dtype conversion.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1.0, float("nan"), None], dtype="double[pyarrow]")
+
+        result = np.isnan(ser)
+        expected = pd.Series([False, True, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.isfinite(ser)
+        expected = pd.Series([True, False, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.sqrt(pd.Series([1.0, 4.0, None], dtype="double[pyarrow]"))
+        expected = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        # multi-return ufunc (tuple path)
+        ser = pd.Series([1.5, 2.7, None], dtype="double[pyarrow]")
+        frac, integ = np.modf(ser)
+        expected_frac = pd.Series([0.5, 0.7, pd.NA], dtype="double[pyarrow]")
+        expected_integ = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(frac, expected_frac)
+        tm.assert_series_equal(integ, expected_integ)
 
 
 def test_pow_with_all_na_float():
@@ -3934,3 +4455,110 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
+
+
+def test_fillna_zero():
+    # https://github.com/pandas-dev/pandas/issues/62878 - specific pyarrow bug
+    ser = pd.Series([1, 2, 3, 4, pd.NA, 6], dtype="int64[pyarrow]")
+    result = ser.fillna(0)
+    expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_sort_readonly():
+    arr = pd.array([3, 1, 2], dtype="int64[pyarrow]")
+    arr._readonly = True
+    with pytest.raises(ValueError, match="Cannot modify read-only array"):
+        arr.sort()
+    # the array must be left unchanged
+    tm.assert_extension_array_equal(arr, pd.array([3, 1, 2], dtype="int64[pyarrow]"))
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        pd.offsets.Hour(),
+        pd.offsets.Minute(),
+        pd.offsets.Second(),
+        pd.offsets.Milli(),
+        pd.offsets.Micro(),
+        pd.offsets.Nano(),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_intraday_offset_raises(offset, dtype):
+    ser = pd.Series([date(2022, 12, 30)], dtype=dtype)
+    with pytest.raises(TypeError, match="intra-day"):
+        ser + offset
+    with pytest.raises(TypeError, match="intra-day"):
+        ser - offset
+    with pytest.raises(TypeError, match="intra-day"):
+        offset + ser
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        pd.offsets.MonthEnd(),
+        pd.offsets.MonthBegin(),
+        pd.offsets.Day(5),
+        pd.DateOffset(years=1),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_dateoffset_add(offset, dtype):
+    ser = pd.Series([date(2022, 12, 30)], dtype=dtype)
+
+    result = ser + offset
+    expected = offset + date(2022, 12, 30)
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+    result = ser - offset
+    expected = date(2022, 12, 30) - offset
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+    result = offset + ser
+    expected = offset + date(2022, 12, 30)
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_dateoffset_with_nulls(dtype):
+    ser = pd.Series([date(2022, 12, 30), None], dtype=dtype)
+    result = ser + pd.offsets.MonthEnd()
+    assert result[0] == date(2022, 12, 31)
+    assert pd.isna(result[1])  # handles NA, NaT, None uniformly
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [0, None, -1])
+def test_reduction_axis_valid(method, axis):
+    # axis equivalent to 0 (the only axis of a 1-D array) or None is accepted
+    if method == "skew" and pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    result = getattr(arr, method)(axis=axis)
+    expected = getattr(arr, method)()
+    assert result == expected or (pd.isna(result) and pd.isna(expected))
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [1, 2])
+def test_reduction_axis_out_of_bounds(method, axis):
+    # axis beyond the array's dimensions is rejected rather than silently ignored
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    msg = "`axis` must be fewer than the number of dimensions"
+    with pytest.raises(ValueError, match=msg):
+        getattr(arr, method)(axis=axis)

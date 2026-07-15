@@ -80,7 +80,7 @@ class TestPeriodArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax"]
 
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        return op_name in ["min", "max", "median"]
+        return op_name in ["count", "min", "max", "median"]
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name == "median":
@@ -91,10 +91,10 @@ class TestPeriodArray(base.ExtensionTests):
             exp_op = getattr(alt, op_name)
             result = res_op(skipna=skipna)
             expected = exp_op(skipna=skipna)
-            # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
-            # attribute "freq"
-            freq = ser.dtype.freq  # type: ignore[union-attr]
-            expected = Period._from_ordinal(int(expected), freq=freq)
+            expected = Period._from_ordinal(
+                int(expected),
+                dtype=ser.dtype,  # type: ignore[arg-type]
+            )
             tm.assert_almost_equal(result, expected)
 
         else:
@@ -110,6 +110,22 @@ class TestPeriodArray(base.ExtensionTests):
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
+
+    @pytest.mark.xfail(
+        raises=OverflowError, reason="PeriodArray cannot be serialized to JSON"
+    )
+    def test_values_for_json(self, data):
+        # GH 65127
+        # PeriodArray currently cannot be serialized to JSON
+        super().test_values_for_json(data)
+
+    @pytest.mark.xfail(
+        raises=OverflowError, reason="PeriodArray cannot be serialized to JSON"
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # PeriodArray currently cannot be serialized to JSON
+        super().test_json_roundtrip(data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

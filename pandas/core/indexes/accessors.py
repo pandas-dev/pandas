@@ -222,17 +222,17 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
+        return cast("ArrowExtensionArray", self._parent.array)._dt_to_pytimedelta()
 
     def to_pydatetime(self) -> Series:
         # GH#20306
-        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
+        return cast("ArrowExtensionArray", self._parent.array)._dt_to_pydatetime()
 
     def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
 
         result = (
-            cast(ArrowExtensionArray, self._parent.array)
+            cast("ArrowExtensionArray", self._parent.array)
             ._dt_isocalendar()
             ._pa_array.combine_chunks()
         )
@@ -240,7 +240,8 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             {
                 col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
                 for i, col in enumerate(["year", "week", "day"])
-            }
+            },
+            index=self._parent.index,
         )
         return iso_calendar_df
 
@@ -248,21 +249,11 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
     def components(self) -> DataFrame:
         from pandas import DataFrame
 
-        components_df = DataFrame(
-            {
-                col: getattr(self._parent.array, f"_dt_{col}")
-                for col in [
-                    "days",
-                    "hours",
-                    "minutes",
-                    "seconds",
-                    "milliseconds",
-                    "microseconds",
-                    "nanoseconds",
-                ]
-            }
+        return (
+            DataFrame(cast("ArrowExtensionArray", self._parent.array)._dt_components)
+            .set_index(self._parent.index)
+            .__finalize__(self._parent)
         )
-        return components_df
 
 
 @delegate_names(
@@ -396,11 +387,15 @@ class DatetimeProperties(Properties):
         >>> ser.dt.freq
         '2YS-JAN'
         """
-        return self._get_values().inferred_freq
+        return self._get_values()._inferred_freq_str
 
     def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.
+
+        The ISO 8601 standard defines the first week of the year as the week
+        containing the first Thursday. This method returns a DataFrame with
+        columns for the ISO year, ISO week number, and ISO day of week.
 
         Returns
         -------
@@ -552,7 +547,7 @@ class TimedeltaProperties(Properties):
 
     @property
     def freq(self):
-        return self._get_values().inferred_freq
+        return self._get_values()._inferred_freq_str
 
 
 @delegate_names(

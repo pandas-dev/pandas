@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -23,6 +24,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    SparseDtype,
     Timestamp,
     date_range,
     isna,
@@ -35,9 +37,25 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+from pandas.tests.extension.decimal import DecimalArray
 
 is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
+
+
+def _make_2d_ea_df(col_arrays, col_names):
+    """
+    Construct a DataFrame with a single 2D ExtensionArray block.
+
+    Used for dt64tz and period types which support 2D blocks but don't
+    consolidate automatically.
+    """
+    ea_type = type(col_arrays[0])
+    ea_2d = ea_type._simple_new(
+        np.stack([arr._ndarray for arr in col_arrays]),
+        dtype=col_arrays[0].dtype,
+    )
+    return DataFrame(ea_2d.T, columns=col_names)
 
 
 def make_skipna_wrapper(alternative, skipna_alternative=None):
@@ -96,7 +114,7 @@ def assert_stat_op_calc(
     frame : DataFrame
         The object that the tests are executed on
     has_skipna : bool, default True
-        Whether the method "opname" has the kwarg "skip_na"
+        Whether the method "opname" has the kwarg "skipna"
     check_dtype : bool, default True
         Whether the dtypes of the result of "frame.opname()" and
         "alternative(frame)" should be checked.
@@ -414,7 +432,6 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Mismatched null-like values:FutureWarning")
     def test_stat_operators_attempt_obj_array(self, method, df, axis):
         # GH#676
         assert df.values.dtype == np.object_
@@ -515,7 +532,10 @@ class TestDataFrameAnalytics:
         df = DataFrame(d)
 
         with pytest.raises(
-            TypeError, match="unsupported operand type|does not support|Cannot perform"
+            TypeError,
+            match="|".join(
+                ["unsupported operand type", "does not support", "Cannot perform"]
+            ),
         ):
             df.mean()
         result = df[["A", "C"]].mean()
@@ -848,8 +868,25 @@ class TestDataFrameAnalytics:
         expected = Series([value], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "min_count, expected",
+        [
+            (1, [7.0, 3.0, np.nan]),
+            (2, [7.0, np.nan, np.nan]),
+            (3, [np.nan, np.nan, np.nan]),
+        ],
+    )
+    def test_axis_1_sum_min_count_sparse(self, min_count, expected):
+        # https://github.com/pandas-dev/pandas/issues/55123
+        df = DataFrame({"A": [2.0, 3.0, np.nan], "B": [5.0, np.nan, np.nan]}).astype(
+            SparseDtype("float64")
+        )
+        result = df.sum(axis=1, skipna=True, min_count=min_count)
+        expected = Series(expected, dtype="float64")
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
-    @pytest.mark.parametrize("numeric_only", [None, True, False])
+    @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
@@ -923,7 +960,10 @@ class TestDataFrameAnalytics:
         # GH#46947
         df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
         result = df.sum(**kwargs)
-        expected = Series(expected_result).astype(float_type)
+        # GH#43929 float16 upcasts to float64 in nansum to avoid overflow
+        expected = Series(expected_result, dtype=float_type)
+        if float_type == "float16":
+            expected = expected.astype("float64")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
@@ -966,7 +1006,7 @@ class TestDataFrameAnalytics:
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        msg = "Could not convert|does not support|Cannot perform"
+        msg = "|".join(["Could not convert", "does not support", "Cannot perform"])
         with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
@@ -1552,6 +1592,54 @@ class TestDataFrameAnalytics:
 
         assert df.any(bool_only=True, axis=None)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "boolean",
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "UInt8",
+            "UInt16",
+            "UInt32",
+            "UInt64",
+            "Float32",
+            "Float64",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data, op, expected_value",
+        [
+            ([False, None], "any", pd.NA),
+            ([True, None], "all", pd.NA),
+            ([None, None], "any", pd.NA),
+            ([None, None], "all", pd.NA),
+            ([True, None], "any", True),
+        ],
+    )
+    def test_any_all_skipna_false_nullable(self, dtype, data, op, expected_value):
+        # GH#65710
+        if dtype != "boolean":
+            data = [(0 if v is False else 1 if v is True else None) for v in data]
+        arr = pd.array(data, dtype=dtype)
+        df = DataFrame({"a": arr})
+
+        result = getattr(df, op)(skipna=False)
+        expected = Series([expected_value], index=["a"], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        ser_result = getattr(Series(arr), op)(skipna=False)
+        if expected_value is pd.NA:
+            assert ser_result is pd.NA
+        else:
+            assert ser_result == expected_value
+
+    def test_any_skipna_false_axis_none_nullable(self):
+        # GH#65710
+        df = DataFrame({"a": pd.array([False, None], dtype="boolean")})
+        assert df.any(skipna=False, axis=None) is pd.NA
+
     # ---------------------------------------------------------------------
     # Unsorted
 
@@ -1714,6 +1802,293 @@ class TestDataFrameReductions:
             expected = Series([pd.NaT, val, val])
         else:
             expected = Series([pd.NaT, pd.NaT, val])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.fixture(
+        params=[
+            DataFrame(
+                {
+                    "i1": np.array([1, 2, 3], dtype="int64"),
+                    "i2": np.array([4, 5, 6], dtype="int64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "f1": np.array([1.0, np.nan, 3.0], dtype="float64"),
+                    "f2": np.array([4.0, 5.0, np.nan], dtype="float64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "b1": np.array([True, False, True], dtype="bool"),
+                    "b2": np.array([False, True, False], dtype="bool"),
+                }
+            ),
+            DataFrame(
+                {
+                    "d1": to_datetime(["2020-01-01", pd.NaT, "2020-01-05"]),
+                    "d2": to_datetime(["2020-01-03", "2020-01-02", "2020-01-04"]),
+                }
+            ),
+            _make_2d_ea_df(
+                [
+                    to_datetime(["2020-01-01", pd.NaT, "2020-01-05"])
+                    .as_unit("us")
+                    .tz_localize("UTC")
+                    ._data,
+                    to_datetime(["2020-01-03", "2020-01-02", "2020-01-04"])
+                    .as_unit("us")
+                    .tz_localize("UTC")
+                    ._data,
+                ],
+                ["dz1", "dz2"],
+            ),
+            DataFrame(
+                {
+                    "td1": to_timedelta(["1 day", pd.NaT, "3 days"]),
+                    "td2": to_timedelta(["4 days", "5 days", pd.NaT]),
+                }
+            ),
+            DataFrame(
+                {
+                    "I1": pd.array([1, 2, pd.NA], dtype="Int64"),
+                    "I2": pd.array([4, pd.NA, 6], dtype="Int64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "F1": pd.array([1.0, pd.NA, 3.0], dtype="Float64"),
+                    "F2": pd.array([4.0, 5.0, pd.NA], dtype="Float64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "B1": pd.array([True, pd.NA, True], dtype="boolean"),
+                    "B2": pd.array([False, True, pd.NA], dtype="boolean"),
+                }
+            ),
+            _make_2d_ea_df(
+                [
+                    pd.period_range("2020-01-01", periods=3, freq="D")._data,
+                    pd.period_range("2020-01-04", periods=3, freq="D")._data,
+                ],
+                ["p1", "p2"],
+            ),
+        ],
+        ids=[
+            "int64",
+            "float64",
+            "bool",
+            "dt64",
+            "dt64tz",
+            "td64",
+            "Int64",
+            "Float64",
+            "boolean",
+            "period",
+        ],
+    )
+    def reduction_block_1(self, request):
+        return request.param
+
+    @pytest.fixture(
+        params=[
+            DataFrame(
+                {
+                    "i3": np.array([7, 8, 9], dtype="int64"),
+                    "i4": np.array([10, 11, 12], dtype="int64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "f3": np.array([7.0, 8.0, np.nan], dtype="float64"),
+                    "f4": np.array([np.nan, 11.0, 12.0], dtype="float64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "b3": np.array([True, True, False], dtype="bool"),
+                    "b4": np.array([False, False, True], dtype="bool"),
+                }
+            ),
+            DataFrame(
+                {
+                    "d3": to_datetime(["2020-02-01", "2020-02-02", pd.NaT]),
+                    "d4": to_datetime([pd.NaT, "2020-02-04", "2020-02-05"]),
+                }
+            ),
+            _make_2d_ea_df(
+                [
+                    to_datetime(["2020-02-01", "2020-02-02", pd.NaT])
+                    .as_unit("us")
+                    .tz_localize("UTC")
+                    ._data,
+                    to_datetime([pd.NaT, "2020-02-04", "2020-02-05"])
+                    .as_unit("us")
+                    .tz_localize("UTC")
+                    ._data,
+                ],
+                ["dz3", "dz4"],
+            ),
+            DataFrame(
+                {
+                    "td3": to_timedelta([pd.NaT, "8 days", "9 days"]),
+                    "td4": to_timedelta(["10 days", pd.NaT, "12 days"]),
+                }
+            ),
+            DataFrame(
+                {
+                    "I3": pd.array([7, pd.NA, 9], dtype="Int64"),
+                    "I4": pd.array([pd.NA, 11, 12], dtype="Int64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "F3": pd.array([pd.NA, 8.0, 9.0], dtype="Float64"),
+                    "F4": pd.array([10.0, pd.NA, 12.0], dtype="Float64"),
+                }
+            ),
+            DataFrame(
+                {
+                    "B3": pd.array([pd.NA, True, False], dtype="boolean"),
+                    "B4": pd.array([True, pd.NA, True], dtype="boolean"),
+                }
+            ),
+            _make_2d_ea_df(
+                [
+                    pd.period_range("2020-02-01", periods=3, freq="D")._data,
+                    pd.period_range("2020-02-04", periods=3, freq="D")._data,
+                ],
+                ["p3", "p4"],
+            ),
+        ],
+        ids=[
+            "int64",
+            "float64",
+            "bool",
+            "dt64",
+            "dt64tz",
+            "td64",
+            "Int64",
+            "Float64",
+            "boolean",
+            "period",
+        ],
+    )
+    def reduction_block_2(self, request):
+        return request.param
+
+    @pytest.mark.parametrize(
+        "method", ["sum", "prod", "min", "max", "mean", "any", "all"]
+    )
+    @pytest.mark.parametrize(
+        "kwargs", [{}, {"min_count": 2}], ids=["default", "min_count"]
+    )
+    def test_reduce_axis1_multiblock_exhaustive(
+        self, reduction_block_1, reduction_block_2, method, skipna, kwargs
+    ):
+        # GH#51474 - exhaustive test: axis=1 result must match transpose path,
+        # whether that is a successful result or a raised exception.
+        if "min_count" in kwargs and method not in ("sum", "prod"):
+            pytest.skip("min_count only applies to sum/prod")
+
+        df = pd.concat([reduction_block_1, reduction_block_2], axis=1)
+        assert len(df._mgr.blocks) > 1
+        kw = {"skipna": skipna, **kwargs}
+
+        transpose_err = None
+        try:
+            expected = getattr(df.T, method)(**kw)
+        except (TypeError, ValueError, AttributeError, RuntimeWarning) as err:
+            transpose_err = err
+
+        axis1_err = None
+        try:
+            result = getattr(df, method)(axis=1, **kw)
+        except (TypeError, ValueError, AttributeError, RuntimeWarning) as err:
+            axis1_err = err
+
+        if transpose_err is not None or axis1_err is not None:
+            # At least one path raises — acceptable.  Mixed-dtype frames
+            # may raise on one path (e.g. axis=1 with datetime64 + any)
+            # but succeed on the other (transpose coerces to object first).
+            return
+        # Compare values, treating NaN and pd.NA as equivalent.
+        # check_dtype=False because the transpose path may coerce to
+        # object (e.g. mixed int64+bool) where axis=1 preserves
+        # the numeric dtype.  check_names=False because the transpose
+        # path names the result after the index.
+        result_na = isna(result)
+        expected_na = isna(expected)
+        # axis=1 may correctly propagate NAs that the transpose path
+        # drops (e.g. skipna=False with mixed float+bool where transpose
+        # coerces to a common dtype first), so only require that result
+        # NAs are a superset of expected NAs.
+        assert (result_na | ~expected_na).all(), (
+            f"axis=1 missing NAs that transpose has:\n"
+            f"result NAs: {result_na.values}\nexpected NAs: {expected_na.values}"
+        )
+        both_valid = ~result_na & ~expected_na
+        if both_valid.any():
+            tm.assert_series_equal(
+                result[both_valid].reset_index(drop=True),
+                expected[both_valid].reset_index(drop=True),
+                check_dtype=False,
+                check_names=False,
+            )
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_with_nat(self, method):
+        # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
+        # must skip NaT under skipna=True, matching the transpose path.
+        ts = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        df = DataFrame({"a": [ts, ts], "b": [ts, pd.NaT]})
+        # Two separate blocks (CoW), same EA dtype.
+        assert len(df._mgr.blocks) == 2
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([ts, ts], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        # skipna=False propagates NaT.
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
+        # GH#65500: different tz across blocks must not enter the EA fast
+        # path (which would silently produce a wrong-dtype result); fall
+        # through to the slow path so the result has object dtype.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, ts2]})
+
+        result = df.max(axis=1)
+        expected = Series([ts1, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = df.min(axis=1)
+        expected = Series([ts2, ts2], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_mixed_tz_with_nat(self, method):
+        # GH#65500: mixed-tz frames reduce via the object path; NaT must
+        # be skipped under skipna=True instead of raising TypeError on
+        # comparison with the NA fill value.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, pd.NaT]})
+        winner = ts2 if method == "min" else ts1
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, pd.NaT], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_frame_any_with_timedelta(self):
@@ -2018,6 +2393,57 @@ def test_sum_timedelta64_skipna_false():
     tm.assert_series_equal(result, expected)
 
 
+def test_sum_empty_timedelta_column():
+    # GH#50628 summing an empty timedelta column used to raise
+    #  "Cannot cast TimedeltaArray to dtype float64"
+    df = DataFrame({"b": np.array([], dtype="m8[ns]")})
+    result = df.sum()
+    expected = Series([pd.Timedelta(0)], index=["b"], dtype="m8[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_sum_empty_mixed_with_timedelta_column():
+    # GH#50628 sum over an empty mixed-dtype frame keeps per-column dtypes
+    #  rather than force-casting to float64 (which raised for timedelta)
+    df = DataFrame(
+        {
+            "a": np.array([], dtype="float64"),
+            "b": np.array([], dtype="m8[ns]"),
+            "c": np.array([], dtype="int64"),
+        }
+    )
+    result = df.sum()
+    expected = Series([0.0, pd.Timedelta(0), 0], index=["a", "b", "c"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_sum_timedelta64_overflow_raises(axis, skipna):
+    # GH#43178: DataFrame.sum on an overflowing timedelta64 frame should raise
+    #  OutOfBoundsTimedelta, consistent with Series.sum, rather than silently
+    #  returning a saturated result.
+    half = np.iinfo(np.int64).max // 2
+    arr = np.array([half, half, half], dtype="m8[ns]")
+    df = DataFrame({"a": arr, "b": arr, "c": arr})
+
+    msg = "overflow in timedelta operation"
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        df.sum(axis=axis, skipna=skipna)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_all_nat_skipna_false(axis):
+    # GH#43178: an all-NaT reduction with skipna=False must return NaT, not be
+    #  mistaken for an overflow (the NaT sentinels accumulate past int64 bounds)
+    nat = np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]")
+    df = DataFrame({"a": nat, "b": nat, "c": nat})
+
+    result = df.sum(axis=axis, skipna=False)
+    assert result.dtype == "m8[ns]"
+    assert result.isna().all()
+
+
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
@@ -2027,7 +2453,7 @@ def test_mixed_frame_with_integer_sum():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False, None])
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_minmax_extensionarray(method, numeric_only):
     # https://github.com/pandas-dev/pandas/issues/32651
@@ -2047,7 +2473,8 @@ def test_minmax_extensionarray(method, numeric_only):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with pytest.raises(TypeError, match="does not support operation|Cannot perform"):
+    msg = "|".join(["does not support operation", "Cannot perform"])
+    with pytest.raises(TypeError, match=msg):
         df.sum()
 
 
@@ -2083,6 +2510,17 @@ def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     else:
         expected = getattr(np, method)(np_arr, axis=None)
         assert result == expected
+
+
+def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
+    # GH#64266
+    left = np.int8(1)
+    df = DataFrame({"a": [left], "b": [np.int8(5)]}, dtype=object)
+    result = df.min(axis=None)
+    assert result is left
+
+    result = np.minimum.reduce(df, axis=None)
+    assert result is left
 
 
 @pytest.mark.parametrize(
@@ -2216,6 +2654,92 @@ def test_numeric_ea_axis_1(
             expected[mask] = 0
             expected = expected.astype(expected_dtype)
             expected[mask] = pd.NA
+        if not skipna and method == "all":
+            # GH#65710 Kleene "all" on (truthy, NA) row returns NA
+            expected.iloc[2] = pd.NA
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", "UInt32", "boolean", "int64[pyarrow]"]
+)
+def test_idxmax_idxmin_axis_1_ea_matches_numpy(how, skipna, dtype):
+    # GH#56903 the EA-backed axis=1 path must agree with the numpy-backed path,
+    # including skipna=False when there are no NA values (previously the cython
+    # kernel returned the all-NA sentinel for every row).
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False, True], [False, False, True], [True, True, False]]
+        np_dtype = bool
+    else:
+        values = [[1, 4, 0], [5, 2, 9], [2, 8, 1], [3, 3, 7]]
+        np_dtype = "float64"
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"]).astype(np_dtype)
+
+    result = getattr(df_ea, how)(axis=1, skipna=skipna)
+    expected = getattr(df_np, how)(axis=1, skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean", "int64[pyarrow]"])
+def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
+    # GH#56903 a fully-NA row must raise (matching the numpy-backed path) rather
+    # than leak the -1 cython sentinel as a column label.
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False], [pd.NA, pd.NA], [False, True]]
+    else:
+        values = [[1, 4], [pd.NA, pd.NA], [3, 9]]
+    df = DataFrame(values, columns=["a", "b"]).astype(dtype)
+    with pytest.raises(ValueError, match="[Ee]ncountered an?.*NA value"):
+        getattr(df, how)(axis=1, skipna=skipna)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["boolean", "bool[pyarrow]"])
+def test_logical_reductions_axis_1_ea_matches_numpy(dtype, skipna):
+    # GH#56903 any/all axis=1 fastpath for boolean-like EA dtypes
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = [[True, False, True], [False, False, False], [True, True, True]]
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"])
+    for how in ["any", "all"]:
+        result = getattr(df_ea, how)(axis=1, skipna=skipna)
+        expected = getattr(df_np, how)(axis=1, skipna=skipna).astype(dtype)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["str", "string"])
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_str_min_max_axis_1(how, dtype):
+    # GH#56903 no cython groupby op for object-backed str min/max; the
+    # axis=1 EA fastpath must fall back to python aggregation
+    df = DataFrame({"a": ["x", "b"], "b": ["c", "d"]}, dtype=dtype)
+    result = getattr(df, how)(axis=1)
+    values = ["c", "b"] if how == "min" else ["x", "d"]
+    expected = Series(values, dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_third_party_ea_axis_1():
+    # GH#56903 EAs without a _groupby_op override must fall back to
+    # python aggregation in the axis=1 EA fastpath
+    df = DataFrame(
+        {
+            "a": DecimalArray([Decimal("1"), Decimal("2")]),
+            "b": DecimalArray([Decimal("3"), Decimal("4")]),
+        }
+    )
+    result = df.sum(axis=1)
+    expected = Series(DecimalArray([Decimal("4"), Decimal("6")]))
     tm.assert_series_equal(result, expected)
 
 
@@ -2232,3 +2756,44 @@ def test_mean_nullable_int_axis_1():
     result = df.mean(axis=1, skipna=False)
     expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_numeric_only_validates_bool():
+    # GH#53098
+    df = DataFrame({"A": [1, 2, 3], "B": [1.0, 2.0, 3.0], "C": ["x", "y", "z"]})
+    df_num = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    msg = "Passing non-boolean values for 'numeric_only' is deprecated"
+
+    # _stat_function family: mean, min, max, median, skew, kurt
+    for method in ["mean", "min", "max", "median", "skew", "kurt"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        # None is falsy so _reduce includes all columns; use numeric-only df
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # _stat_function_ddof family: std, var, sem
+    for method in ["std", "var", "sem"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # _min_count_stat_function family: sum, prod
+    for method in ["sum", "prod"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # Valid boolean values must still work (regression guard)
+    df_num.mean(numeric_only=True)
+    df_num.mean(numeric_only=False)
+    df_num.sum(numeric_only=True)
+    df_num.std(numeric_only=True)

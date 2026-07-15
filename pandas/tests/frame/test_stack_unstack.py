@@ -864,13 +864,13 @@ class TestDataFrameReshape:
         assert udf.notna().values.sum() == len(df)
         mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
         rows, cols = udf["jolie"].notna().values.nonzero()
-        for i, j in zip(rows, cols):
+        for i, j in zip(rows, cols, strict=True):
             left = sorted(udf["jolie"].iloc[i, j].split("."))
             right = mk_list(udf["jolie"].index[i]) + mk_list(udf["jolie"].columns[j])
             right = sorted(map(cast, right))
             assert left == right
 
-    @pytest.mark.parametrize("idx", itertools.permutations(["1st", "2nd", "3rd"]))
+    @pytest.mark.parametrize("idx", list(itertools.permutations(["1st", "2nd", "3rd"])))
     @pytest.mark.parametrize("lev", list(range(3)))
     @pytest.mark.parametrize("col", ["4th", "5th"])
     def test_unstack_nan_index_repeats(self, idx, lev, col):
@@ -928,7 +928,7 @@ class TestDataFrameReshape:
         assert udf.notna().values.sum() == 2 * len(df)
         mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
         rows, cols = udf[col].notna().values.nonzero()
-        for i, j in zip(rows, cols):
+        for i, j in zip(rows, cols, strict=True):
             left = sorted(udf[col].iloc[i, j].split("."))
             right = mk_list(udf[col].index[i]) + mk_list(udf[col].columns[j])
             right = sorted(map(cast, right))
@@ -946,7 +946,7 @@ class TestDataFrameReshape:
             [3, 0, 1, 2, np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan, 4, 5, 6, 7],
         ]
-        vals = list(map(list, zip(*vals)))
+        vals = list(map(list, zip(*vals, strict=True)))
         idx = Index([np.nan, 0, 1, 2, 4, 5, 6, 7], name="B")
         cols = MultiIndex(
             levels=[["C"], ["a", "b"]], codes=[[0, 0], [0, 1]], names=[None, "A"]
@@ -1416,11 +1416,46 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
     result = df.unstack(level="level2", sort=False)
     expected_data = [[0, 4], [1, 5], [2, 6], [3, 7]]
     expected = DataFrame(
-        dict(zip(expected_columns, expected_data)),
+        dict(zip(expected_columns, expected_data, strict=True)),
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(expected_columns, names=[None, "level2"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_unsorted_with_gaps():
+    # Unsorted MI with missing combinations, unstacking non-last level
+    # with sort=False. Exercises the identity=False, mask_all=False,
+    # sort=False path through _Unstacker.get_new_values.
+    index = MultiIndex.from_tuples([("b", 1), ("a", 2), ("b", 2)], names=["x", "y"])
+    ser = Series([10, 20, 30], index=index)
+    result = ser.unstack(level=0, sort=False)
+    expected = DataFrame(
+        {"b": [10.0, 30.0], "a": [np.nan, 20.0]},
+        index=Index([1, 2], name="y"),
+        columns=Index(["b", "a"], name="x"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_monotonic_values_unsorted_codes():
+    # GH#65107 An MI whose tuple *values* are monotonic but whose codes are
+    #  unsorted (here level 0 has unsorted levels ['b', 'a']) must still be
+    #  reordered before reshaping.  Previously the identity-indexer fast path
+    #  keyed off index.is_monotonic_increasing, which reflects values not
+    #  codes, so it skipped the take and placed values under the wrong labels.
+    index = MultiIndex(levels=[["b", "a"], [1, 2]], codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
+    # tuples are ("a", 1), ("a", 2), ("b", 1), ("b", 2)
+    ser = Series([10, 20, 30, 40], index=index)
+    result = ser.unstack()
+    expected = DataFrame(
+        {1: [30, 10], 2: [40, 20]},
+        index=Index(["b", "a"]),
+        columns=Index([1, 2]),
+    )
+    tm.assert_frame_equal(result, expected)
+    # ("a", 1) -> 10 must land under row "a", not row "b"
+    assert result.loc["a", 1] == 10
 
 
 def test_unstack_fill_frame_object():
@@ -2306,9 +2341,11 @@ class TestStackUnstackMultiLevel:
     )
     @pytest.mark.parametrize(
         "levels",
-        itertools.chain.from_iterable(
-            itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
-            for width in [2, 3]
+        list(
+            itertools.chain.from_iterable(
+                itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
+                for width in [2, 3]
+            )
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))

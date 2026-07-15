@@ -37,10 +37,12 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.string cimport memcmp
 
 from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
+from pandas.compat import PYARROW_INSTALLED
 from pandas.util._decorators import set_module
 
 import_datetime()
@@ -59,6 +61,8 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int8_t,
+    int16_t,
     int32_t,
     int64_t,
     intp_t,
@@ -122,13 +126,12 @@ i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
 
 
-cdef bint PYARROW_INSTALLED = False
+cdef bint c_PYARROW_INSTALLED = PYARROW_INSTALLED
 
-try:
+
+if c_PYARROW_INSTALLED:
     import pyarrow as pa
-
-    PYARROW_INSTALLED = True
-except ImportError:
+else:
     pa = None
 
 
@@ -158,6 +161,10 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
+
+    This function determines whether a given Python object is a scalar
+    value rather than a collection. Scalars include numeric types,
+    strings, bytes, dates, timedeltas, intervals, periods, and ``None``.
 
     Parameters
     ----------
@@ -317,7 +324,7 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim('foobar')
     'foobar'
     >>> item_from_zerodim(np.array(1))
-    1
+    np.int64(1)
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
@@ -392,6 +399,8 @@ def dicts_to_array(dicts: list, columns: list):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def fast_zip(list ndarrays) -> ndarray[object]:
     """
     For zipping multiple ndarrays into an ndarray of tuples.
@@ -434,6 +443,8 @@ def fast_zip(list ndarrays) -> ndarray[object]:
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     """
     Reverse indexing operation.
@@ -489,22 +500,141 @@ def has_infs(const floating[:] arr) -> bool:
     return ret
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).any()``; exits on the first NaN found.
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        Py_ssize_t n4 = n & ~3  # round down to multiple of 4
+        bint found = False
+
+    with nogil:
+        for i in range(0, n4, 4):
+            if (
+                (arr[i] != arr[i])
+                | (arr[i + 1] != arr[i + 1])
+                | (arr[i + 2] != arr[i + 2])
+                | (arr[i + 3] != arr[i + 3])
+            ):
+                found = True
+                break
+        if not found:
+            for i in range(n4, n):
+                if arr[i] != arr[i]:
+                    found = True
+                    break
+    return found
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def all_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).all()``; exits on the first non-NaN found.
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        Py_ssize_t n4 = n & ~3
+        bint found_non_nan = False
+
+    with nogil:
+        for i in range(0, n4, 4):
+            if (
+                (arr[i] == arr[i])
+                | (arr[i + 1] == arr[i + 1])
+                | (arr[i + 2] == arr[i + 2])
+                | (arr[i + 3] == arr[i + 3])
+            ):
+                found_non_nan = True
+                break
+        if not found_non_nan:
+            for i in range(n4, n):
+                if arr[i] == arr[i]:
+                    found_non_nan = True
+                    break
+    return not found_non_nan
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equivalent_float(const floating[:] left,
+                           const floating[:] right) -> bool:
+    """
+    Faster equivalent to ``((left == right) | (isnan(left) & isnan(right))).all()``;
+    exits on the first mismatch. Caller is responsible for checking shapes match.
+    """
+    cdef:
+        Py_ssize_t i, n = len(left)
+        floating lval, rval
+        bint mismatch = False
+
+    with nogil:
+        for i in range(n):
+            lval = left[i]
+            rval = right[i]
+            if lval != rval:
+                if not (lval != lval and rval != rval):
+                    mismatch = True
+                    break
+    return not mismatch
+
+
+def array_equivalent_bytes(left, right) -> bool:
+    """
+    Faster equivalent to ``np.array_equal(left, right)`` via ``memcmp`` on
+    C-contiguous inputs. Not safe for dtypes where distinct bit patterns can
+    represent the same value (e.g. floats with -0.0/+0.0 or NaN) or for arrays
+    that contain object pointers.
+    """
+    cdef:
+        Py_ssize_t nbytes
+        int ndim, idx
+        ndarray left_arr, right_arr
+
+    left_arr = np.asarray(left)
+    right_arr = np.asarray(right)
+
+    ndim = cnp.PyArray_NDIM(left_arr)
+    if ndim != cnp.PyArray_NDIM(right_arr):
+        return False
+    for idx in range(ndim):
+        if cnp.PyArray_DIM(left_arr, idx) != cnp.PyArray_DIM(right_arr, idx):
+            return False
+    if not (cnp.PyArray_IS_C_CONTIGUOUS(left_arr)
+            and cnp.PyArray_IS_C_CONTIGUOUS(right_arr)):
+        return np.array_equal(left_arr, right_arr)
+    nbytes = cnp.PyArray_NBYTES(left_arr)
+    if nbytes == 0:
+        return True
+    return memcmp(cnp.PyArray_DATA(left_arr), cnp.PyArray_DATA(right_arr),
+                  <size_t>nbytes) == 0
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
+        double i64_min = <double>INT64_MIN
+        double i64_max = <double>INT64_MAX
 
     for i in range(len(arr)):
         val = arr[i]
-        if (val != val) or (val == <int64_t>val):
+        if val != val:
             continue
-        else:
-            return False
+        # Check if val is integral and fits within int64_t
+        if i64_min <= val < i64_max and val == <int64_t>val:
+            continue
+        return False
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, intp_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
@@ -583,13 +713,13 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
     # left and right both have object dtype, but we cannot annotate that
     #  without limiting ndim.
     cdef:
-        Py_ssize_t i, n = left.size
+        Py_ssize_t _, n = left.size
         object x, y
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(left, right)
 
     # Caller is responsible for checking left.shape == right.shape
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: x = left[i]
         x = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 0))[0]
         y = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -654,16 +784,27 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        Py_ssize_t n4 = n & ~3
         bint ret = True
 
     if left.size != n:
         return False
 
     with nogil:
-        for i in range(n):
-            if left[i] != i:
+        for i in range(0, n4, 4):
+            if (
+                (left[i] != i)
+                | (left[i + 1] != i + 1)
+                | (left[i + 2] != i + 2)
+                | (left[i + 3] != i + 3)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if left[i] != i:
+                    ret = False
+                    break
     return ret
 
 
@@ -675,6 +816,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     """
     cdef:
         Py_ssize_t i, n = len(sequence)
+        Py_ssize_t n4 = n & ~3
         int6432_t first_element
         bint ret = True
 
@@ -684,11 +826,66 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
+    # sequence[0] == first_element by construction, so the i=0 lane of the
+    # unrolled loop is trivially true — skipping the explicit head loop
+    # costs one redundant compare on the first iteration.
     with nogil:
-        for i in range(1, n):
-            if sequence[i] != first_element + i * step:
+        for i in range(0, n4, 4):
+            if (
+                (sequence[i] != first_element + i * step)
+                | (sequence[i + 1] != first_element + (i + 1) * step)
+                | (sequence[i + 2] != first_element + (i + 2) * step)
+                | (sequence[i + 3] != first_element + (i + 3) * step)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if sequence[i] != first_element + i * step:
+                    ret = False
+                    break
+    return ret
+
+
+ctypedef fused signed_int_t:
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_sentinel(const signed_int_t[:] arr, signed_int_t sentinel) -> bool:
+    """
+    Faster equivalent to `(arr == sentinel).any()` for integer indexers.
+    """
+    cdef:
+        Py_ssize_t i, n = arr.shape[0]
+        Py_ssize_t n8 = n & ~7  # round down to multiple of 8
+        bint ret = False
+
+    with nogil:
+        for i in range(0, n8, 8):
+            # Bitwise | (not `or`) so all 8 lanes evaluate unconditionally,
+            # letting the compiler emit vectorized comparisons.
+            if (
+                (arr[i] == sentinel)
+                | (arr[i + 1] == sentinel)
+                | (arr[i + 2] == sentinel)
+                | (arr[i + 3] == sentinel)
+                | (arr[i + 4] == sentinel)
+                | (arr[i + 5] == sentinel)
+                | (arr[i + 6] == sentinel)
+                | (arr[i + 7] == sentinel)
+            ):
+                ret = True
+                break
+        if not ret:
+            for i in range(n8, n):
+                if arr[i] == sentinel:
+                    ret = True
+                    break
     return ret
 
 
@@ -765,7 +962,6 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
-        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -829,9 +1025,8 @@ cpdef ndarray[object] ensure_string_array(
 
         return result
 
-    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = newarr[i]
+        val = arr[i]
 
         if isinstance(val, str):
             continue
@@ -1185,6 +1380,10 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``bool`` type. It does not return True for numeric values like ``0``
+    or ``1`` that can evaluate as booleans.
+
     Parameters
     ----------
     obj : object
@@ -1215,6 +1414,9 @@ def is_bool(obj: object) -> bool:
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
+
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``complex`` type or numpy's complex type (e.g., ``numpy.complex128``).
 
     Parameters
     ----------
@@ -1326,7 +1528,7 @@ def is_pyarrow_array(obj):
     -------
     bool
     """
-    if PYARROW_INSTALLED:
+    if c_PYARROW_INSTALLED:
         return isinstance(obj, (pa.Array, pa.ChunkedArray))
     return False
 
@@ -1560,6 +1762,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - bytes
     - floating
     - integer
+    - integer-na
     - mixed-integer
     - mixed-integer-float
     - decimal
@@ -1573,7 +1776,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - timedelta
     - time
     - period
+    - interval
     - mixed
+    - empty
     - unknown-array
 
     Raises
@@ -1595,6 +1800,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'integer-na' are integers mixed with NaN, returned only when skipna=False
+    - 'empty' is returned for inputs with no inferable values (e.g. an empty
+      input, or all-NA with skipna=True)
     - 'unknown-array' is the catchall for something that *is* an array (has
       a dtype attribute), but has a dtype unknown to pandas (e.g. external
       extension array)
@@ -1653,7 +1861,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     'categorical'
     """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t _, n
         object val
         ndarray values
         bint seen_pdnat = False
@@ -1699,7 +1907,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # Iterate until we find our first valid value. We will use this
     #  value to decide which of the is_foo_array functions to call.
     it = PyArray_IterNew(values)
-    for i in range(n):
+    for _ in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -1795,7 +2003,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "interval"
 
     cnp.PyArray_ITER_RESET(it)
-    for i in range(n):
+    for _ in range(n):
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
 
@@ -1842,11 +2050,11 @@ cdef class Validator:
     @cython.boundscheck(False)
     cdef bint _validate(self, ndarray values) except -1:
         cdef:
-            Py_ssize_t i
+            Py_ssize_t _
             Py_ssize_t n = values.size
             flatiter it = PyArray_IterNew(values)
 
-        for i in range(n):
+        for _ in range(n):
             # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
             #  equivalents to `val = values[i]`
             val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -1860,11 +2068,11 @@ cdef class Validator:
     @cython.boundscheck(False)
     cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
-            Py_ssize_t i
+            Py_ssize_t _
             Py_ssize_t n = values.size
             flatiter it = PyArray_IterNew(values)
 
-        for i in range(n):
+        for _ in range(n):
             # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
             #  equivalents to `val = values[i]`
             val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -2065,7 +2273,9 @@ cdef class TemporalValidator(Validator):
     cdef bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
-            bint is_generic_null = value is None or util.is_nan(value)
+            bint is_generic_null = (
+                value is None or value is C_NA or util.is_nan(value)
+            )
         if not is_generic_null:
             self.all_generic_na = False
         return self.is_value_typed(value) or is_typed_null or is_generic_null
@@ -2124,6 +2334,8 @@ cdef bint is_datetime_or_datetime64_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -2217,7 +2429,7 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
     # values should be object-dtype, but ndarray[object] assumes 1D, while
     #  this _may_ be 2D.
     cdef:
-        Py_ssize_t i, N = values.size
+        Py_ssize_t _, N = values.size
         int dtype_code = -10000  # i.e. c_FreqGroup.FR_UND
         object val
         flatiter it
@@ -2226,7 +2438,7 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
         return False
 
     it = PyArray_IterNew(values)
-    for i in range(N):
+    for _ in range(N):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -2251,6 +2463,8 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
@@ -3082,6 +3296,8 @@ def map_infer(
         return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def to_object_array(rows: object, min_width: int = 0) -> ndarray:
     """
     Convert a list of lists into an object array.
@@ -3142,6 +3358,8 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def to_object_array_tuples(rows: object) -> np.ndarray:
     """
     Convert a list of tuples into an object array. Any subclass of
@@ -3250,6 +3468,8 @@ def is_bool_list(obj: list) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     """
     Check for `arr == key`, treating all values as not-equal to pd.NA.

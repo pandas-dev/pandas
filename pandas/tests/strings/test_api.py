@@ -185,10 +185,14 @@ def test_api_per_method(
         method(*args, **kwargs)  # works!
     else:
         # GH 23011, GH 23163
-        msg = (
-            f"Cannot use .str.{method_name} with values of "
-            f"inferred dtype {inferred_dtype!r}."
-            "|a bytes-like object is required, not 'str'"
+        msg = "|".join(
+            [
+                (
+                    f"Cannot use .str.{method_name} with values of "
+                    f"inferred dtype {inferred_dtype!r}."
+                ),
+                "a bytes-like object is required, not 'str'",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)

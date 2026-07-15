@@ -6,7 +6,6 @@ cimport numpy as cnp
 from libc.math cimport log10
 from numpy cimport (
     PyDatetimeScalarObject,
-    float64_t,
     int32_t,
     int64_t,
 )
@@ -79,7 +78,6 @@ from pandas._libs.tslibs.tzconversion cimport (
 from pandas._libs.tslibs.util cimport (
     is_float_object,
     is_integer_object,
-    is_nan,
 )
 
 # ----------------------------------------------------------------------
@@ -92,9 +90,6 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.overflowcheck(True)
 def cast_from_unit_vectorized(
     ndarray values,
     str unit,
@@ -107,7 +102,6 @@ def cast_from_unit_vectorized(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso, out_reso
-        Py_ssize_t i
 
     assert values.dtype.kind == "f"
 
@@ -131,40 +125,63 @@ def cast_from_unit_vectorized(
     out_reso = abbrev_to_npy_unit(out_unit)
     m, p = precision_from_unit(in_reso, out_reso)
 
-    cdef:
-        ndarray[int64_t] base, out
-        ndarray[float64_t] frac
-        tuple shape = (<object>values).shape
+    nan_mask = np.isnan(values)
+    nat_as_float = np.float64(NPY_NAT)
 
-    out = np.empty(shape, dtype="i8")
-    base = np.empty(shape, dtype="i8")
-    frac = np.zeros(shape, dtype="f8")
+    # Preserve float(iNaT) -> NaT, but reject other values that are already
+    # outside the int64 domain before the integer cast can alias them to NPY_NAT.
+    oob = (~nan_mask) & (values != nat_as_float) & (
+        (values >= np.float64(2**63)) | (values < nat_as_float)
+    )
+    if oob.any():
+        bad_idx = int(np.where(oob)[0][0])
+        raise OutOfBoundsDatetime(
+            f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+        )
 
-    for i in range(len(values)):
-        if is_nan(values[i]):
-            base[i] = NPY_NAT
-        else:
-            base[i] = <int64_t>values[i]
-            frac[i] = values[i] - base[i]
+    # Replace NaN with 0.0 for safe int casting; NaN positions set to NPY_NAT below
+    safe = np.where(nan_mask, 0.0, values)
+
+    # Split into integer and fractional parts separately to avoid precision loss
+    # from a direct float * m multiplication (GH#56037)
+    base = safe.astype("i8")
+    frac = safe - base.astype("f8")
+
+    # float(iNaT) == float(INT64_MIN) == -2**63, which should round-trip to NaT.
+    nat_mask = nan_mask | (safe == nat_as_float)
+    base[nat_mask] = 0
 
     if p:
         frac = np.round(frac, p)
 
-    for i in range(len(values)):
-        try:
-            if base[i] == NPY_NAT:
-                out[i] = NPY_NAT
-            else:
-                out[i] = <int64_t>(base[i] * m) + <int64_t>(frac[i] * m)
-        except (OverflowError, FloatingPointError) as err:
-            # FloatingPointError can be issued if we have float dtype and have
-            #  set np.errstate(over="raise")
-            raise OutOfBoundsDatetime(
-                f"cannot convert input {values[i]} with the unit '{unit}'"
-            ) from err
+    out = base * np.int64(m) + (frac * m).astype("i8")
+
+    # Overflow check. On overflow base * m + int64(frac * m) wraps modulo 2**64.
+    # A float bound check on the analytic result (result_f >= 2**63) is unreliable
+    # near the boundary because result_f is itself rounded, landing on the wrong
+    # side within half an ULP. Detect the wrap directly instead: the exact integer
+    # result tracks its float64 estimate to within a few ULP when it fits, but a
+    # wrap shifts it by ~2**64. (GH#57366)
+    if m != 1:
+        result_f = base.astype("f8") * m + frac * m
+        # Detecting the wrap costs an extra pass over the data, so gate it behind
+        # a cheap bound. result_f tracks the true result to ~2**-50 relative, well
+        # inside this margin, so a wrap can never land outside it.
+        near_bound = np.float64(2**63) * (1 - 2**-30)
+        if ((result_f >= near_bound) | (result_f <= -near_bound)).any():
+            oob = np.abs(result_f - out.astype("f8")) >= np.float64(2**63)
+            non_nat = ~nat_mask
+            if (oob & non_nat).any():
+                bad_idx = int(np.where(oob & non_nat)[0][0])
+                raise OutOfBoundsDatetime(
+                    f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+                )
+
+    out[nat_mask] = NPY_NAT
     return out
 
 
+@cython.overflowcheck(True)
 cdef int64_t cast_from_unit(
     object ts,
     str unit,
@@ -227,7 +244,7 @@ cdef int64_t cast_from_unit(
         frac = round(frac, p)
 
     try:
-        return <int64_t>(base * m) + <int64_t>(frac * m)
+        return base * m + <int64_t>(frac * m)
     except OverflowError as err:
         raise OutOfBoundsDatetime(
             f"cannot convert input {ts} with the unit '{unit}'"
@@ -364,6 +381,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
+        if type(ts) is not str:
+            # GH#48974 np.str_ object
+            ts = str(ts)
         return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
 
     if checknull_with_nat_and_na(ts):
@@ -711,7 +731,7 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso) noexcept:
+cdef int _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso) except -1:
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.
@@ -751,6 +771,8 @@ cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso) noexcep
         pandas_datetime_to_datetimestruct(local_val, reso, &obj.dts)
 
     obj.tzinfo = tz
+
+    return 1
 
 
 cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):

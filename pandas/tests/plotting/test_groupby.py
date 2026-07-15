@@ -140,6 +140,19 @@ class TestDataFrameGroupByPlots:
             _check_axes_shape(ax, axes_num=1, layout=(1, 1))
             _check_legend_labels(ax, ["1", "2"])
 
+    def test_groupby_plot_series_with_legend(self):
+        # GH#41090 - legend labels are the group keys, with no reliance on
+        #  the name attribute being pinned to the group key as a side effect
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)),
+            index=index,
+            columns=["a", "b"],
+        )
+
+        axes = df.groupby("c")["a"].plot(legend=True)
+        _check_legend_labels(axes.iloc[0], ["1", "2"])
+
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
@@ -152,3 +165,41 @@ class TestDataFrameGroupByPlots:
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             g.hist(legend=True, label="d")
+
+    def test_plot_kwargs_scatter_legend_labels(self):
+        # https://github.com/pandas-dev/pandas/pull/66027
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5],
+                "y": [1, 2, 3, 2, 1],
+                "z": list("ababa"),
+            }
+        )
+
+        res = df.groupby("z").plot.scatter(
+            x="x",
+            y="y",
+            legend=True,
+        )
+
+        _check_legend_labels(res["a"], ["a"])
+        _check_legend_labels(res["b"], ["b"])
+
+    def test_plot_kwargs_scatter_no_legend(self):
+        # https://github.com/pandas-dev/pandas/pull/66027
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5],
+                "y": [1, 2, 3, 2, 1],
+                "z": list("ababa"),
+            }
+        )
+
+        res = df.groupby("z").plot.scatter(
+            x="x",
+            y="y",
+            legend=False,
+        )
+
+        assert res["a"].get_legend() is None
+        assert res["b"].get_legend() is None

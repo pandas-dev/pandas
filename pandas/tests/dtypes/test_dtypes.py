@@ -156,7 +156,7 @@ class TestCategoricalDtype(Base):
             CategoricalDtype._from_values_or_dtype(values, categories, ordered, dtype)
 
     def test_from_values_or_dtype_invalid_dtype(self):
-        msg = "Cannot not construct CategoricalDtype from <class 'object'>"
+        msg = "Cannot construct CategoricalDtype from <class 'object'>"
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(None, None, None, object)
 
@@ -1061,7 +1061,6 @@ class TestCategoricalDtypeParametrized:
     def test_str_vs_repr(self, ordered, using_infer_string):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
-        # Py2 will have unicode prefixes
         dtype = "str" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "

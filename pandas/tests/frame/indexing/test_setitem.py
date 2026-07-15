@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -26,6 +29,7 @@ from pandas import (
     PeriodIndex,
     Series,
     Timestamp,
+    concat,
     cut,
     date_range,
     notna,
@@ -663,7 +667,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list_of_tuples(self, float_frame):
-        tuples = list(zip(float_frame["A"], float_frame["B"]))
+        tuples = list(zip(float_frame["A"], float_frame["B"], strict=True))
         float_frame["tuples"] = tuples
 
         result = float_frame["tuples"]
@@ -737,6 +741,38 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("cols", [3, 1])
+    def test_setitem_2d_existing_column_raises(self, cols):
+        # GH#46544 setting an existing column with a multi-column 2D array used
+        #  to silently keep only the first column; it should raise like the
+        #  new-column and .loc cases do. cols=1 exercises the single-column
+        #  Block fastpath, cols=3 the consolidated-block path.
+        df = DataFrame(np.zeros((4, cols)))
+        msg = r"Expected a 1D array, got an array with shape \(4, 2\)"
+        with pytest.raises(ValueError, match=msg):
+            df[0] = np.arange(8).reshape(4, 2)
+
+    def test_setitem_2d_single_column_ok(self):
+        # GH#46544 an (N, 1) array is still a single column and is allowed
+        df = DataFrame(np.zeros((4, 2)))
+        df[0] = np.arange(4).reshape(4, 1)
+        expected = DataFrame({0: np.arange(4), 1: np.zeros(4)})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_2d_duplicate_columns_ok(self):
+        # GH#46544 when the key maps to multiple columns, a matching 2D value
+        #  fills them and must keep working
+        df = DataFrame(np.zeros((4, 3)), columns=[0, 0, 1])
+        df[0] = np.arange(8).reshape(4, 2)
+        expected = concat(
+            [
+                DataFrame(np.arange(8).reshape(4, 2), columns=[0, 0]),
+                DataFrame(np.zeros((4, 1)), columns=[1]),
+            ],
+            axis=1,
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("vals", [{}, {"d": "a"}])
     def test_setitem_aligning_dict_with_index(self, vals):
         # GH#47216
@@ -774,10 +810,8 @@ class TestDataFrameSetItem:
 
     def test_setitem_string_option_object_index(self):
         # GH#55638
-        pytest.importorskip("pyarrow")
         df = DataFrame({"a": [1, 2]})
-        with pd.option_context("future.infer_string", True):
-            df["b"] = Index(["a", "b"], dtype=object)
+        df["b"] = Index(["a", "b"], dtype=object)
         expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
         tm.assert_frame_equal(df, expected)
 
@@ -1309,13 +1343,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         [
             "a",
             ["a"],
-            pytest.param(
-                [True, False],
-                marks=pytest.mark.xfail(
-                    reason="Boolean indexer incorrectly setting inplace",
-                    strict=False,  # passing on some builds, no obvious pattern
-                ),
-            ),
+            [True, False],
         ],
     )
     @pytest.mark.parametrize(
@@ -1498,3 +1526,13 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_tz_aware_column_expansion():
+    # GH#55423
+    # Enlarging a DataFrame with a tz-aware datetime via loc
+    # should preserve datetime64[us, tz] dtype, not fall back to object
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = datetime.fromtimestamp(1695887042, timezone.utc)
+    df.loc[df.id >= 2, "time"] = _time
+    assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")

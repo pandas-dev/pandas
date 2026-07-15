@@ -91,6 +91,45 @@ def test_pathlib_path_division(any_string_dtype, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_arithmetic_custom_object(any_string_dtype):
+    # GH#64107
+    class CustomObject:
+        def __init__(self, val):
+            self.val = val
+
+        def __add__(self, other):
+            if hasattr(other, "dtype"):
+                return NotImplemented
+            return CustomObject(self.val + other)
+
+        def __radd__(self, other):
+            if hasattr(other, "dtype"):
+                return NotImplemented
+            return CustomObject(other + self.val)
+
+        def __eq__(self, other):
+            return isinstance(other, CustomObject) and self.val == other.val
+
+        def __repr__(self):
+            return f"<CustomObject({self.val})>"
+
+    arr = np.array([CustomObject("a"), CustomObject("b")], dtype=object)
+    ser = Series(["1", "2"], dtype=any_string_dtype)
+    obj_ser = Series(arr)
+
+    cases = [
+        (ser + arr[0], [CustomObject("1a"), CustomObject("2a")]),
+        (ser + arr, [CustomObject("1a"), CustomObject("2b")]),
+        (ser + obj_ser, [CustomObject("1a"), CustomObject("2b")]),
+        (arr[0] + ser, [CustomObject("a1"), CustomObject("a2")]),
+        (arr + ser, [CustomObject("a1"), CustomObject("b2")]),
+        (obj_ser + ser, [CustomObject("a1"), CustomObject("b2")]),
+    ]
+    for result, expected_values in cases:
+        expected = Series(expected_values, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+
 def test_mixed_object_comparison(any_string_dtype):
     # GH#60228
     dtype = any_string_dtype
@@ -152,7 +191,7 @@ def test_mul_bool_invalid(any_string_dtype):
     ser = Series(["a", "b", "c"], dtype=dtype)
 
     if dtype == object:
-        pytest.skip("This is not expect to raise")
+        pytest.skip("This is not expected to raise")
     elif dtype.storage == "python":
         msg = "Cannot multiply StringArray by bools. Explicitly cast to integers"
     else:
@@ -198,7 +237,7 @@ def test_add(any_string_dtype, request):
 def test_add_2d(any_string_dtype, request):
     dtype = any_string_dtype
 
-    if dtype == object or dtype.storage == "pyarrow":
+    if dtype == object:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.applymarker(mark)
@@ -244,6 +283,21 @@ def test_add_sequence(any_string_dtype, request, using_infer_string):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_string_add_missing_values(string_dtype_no_object):
+    # GH#64968 Arrow-backed str arrays should return NA when added to missing
+    arr = pd.array(["y"], dtype=string_dtype_no_object)
+    expected = pd.array([NA], dtype=string_dtype_no_object)
+
+    for na_val in [None, np.nan, NA]:
+        # left side
+        result = arr + na_val
+        tm.assert_extension_array_equal(result, expected)
+
+        # right side
+        result = na_val + arr
+        tm.assert_extension_array_equal(result, expected)
+
+
 def test_mul(any_string_dtype):
     dtype = any_string_dtype
     a = pd.array(["a", "b", None], dtype=dtype)
@@ -255,11 +309,13 @@ def test_mul(any_string_dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_add_strings(any_string_dtype, request):
+def test_add_strings(any_string_dtype, request, using_infer_string):
     dtype = any_string_dtype
-    if dtype != np.dtype(object):
-        mark = pytest.mark.xfail(reason="GH-28527")
+    if dtype == object and using_infer_string:
+        # Only fails on objects while using infer_string
+        mark = pytest.mark.xfail(reason="object addition returns StringDtype")
         request.applymarker(mark)
+
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
     assert arr.__add__(df) is NotImplemented
@@ -273,11 +329,20 @@ def test_add_strings(any_string_dtype, request):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(dtype):
-    arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
-    df = pd.DataFrame([["x", np.nan, "y", np.nan]])
+def test_add_frame(any_string_dtype, request, using_infer_string):
+    if not using_infer_string:
+        pytest.skip(
+            "This doesn't fail on this build, but this build is going away, "
+            "so not worth more invasive fix."
+        )
 
+    dtype = any_string_dtype
+    if dtype == object:
+        marker = pytest.mark.xfail(reason="processed as NumpyEADtype, separate issue")
+        request.applymarker(marker)
+
+    arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
+    df = pd.DataFrame([["x", np.nan, "y", np.nan]], dtype=dtype)
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
@@ -338,7 +403,8 @@ def test_comparison_methods_scalar_not_string(comparison_op, any_string_dtype):
     other = 42
 
     if op_name not in ["__eq__", "__ne__"]:
-        with pytest.raises(TypeError, match="Invalid comparison|not supported between"):
+        msg = "|".join(["Invalid comparison", "not supported between"])
+        with pytest.raises(TypeError, match=msg):
             getattr(a, op_name)(other)
 
         return

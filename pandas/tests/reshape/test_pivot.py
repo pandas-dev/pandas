@@ -1196,13 +1196,74 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("margins", [True, False])
+    @pytest.mark.parametrize(
+        "aggfunc, value",
+        [
+            ("sum", [0.0, 0.0, 0.0]),
+            ("prod", [1.0, 1.0, 1.0]),
+            ("count", [0, 0, 0]),
+            ("size", [2, 1, 3]),
+            (len, [2, 1, 3]),
+        ],
+    )
+    def test_reducers_no_values_one_index(self, margins, aggfunc, value):
+        # https://github.com/pandas-dev/pandas/issues/46475
+        df = DataFrame({"a": [1, 1, 2]})
+        result = pivot_table(df, index=["a"], aggfunc=aggfunc, margins=margins)
+        if margins:
+            index = Index([1, 2, "All"], name="a")
+        else:
+            value = value[:-1]
+            index = Index([1, 2], name="a")
+        expected = Series(value, index=index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("margins", [True, False])
+    @pytest.mark.parametrize("index", [["a"], ["a", "b"]])
+    @pytest.mark.parametrize("columns", [["c"], ["c", "d"]])
+    def test_no_values_no_data(self, margins, index, columns):
+        # https://github.com/pandas-dev/pandas/issues/46475
+        df = DataFrame(columns=index + columns)
+        result = pivot_table(
+            df, index=index, columns=columns, aggfunc=len, margins=margins
+        )
+
+        if margins:
+            level0, level1, codes, data = ["All"], [""], [[0], [0]], [0]
+        else:
+            level0, level1, codes, data = [], [], [[], []], []
+
+        if index == ["a"]:
+            expected_index = Index(level0, name="a")
+        else:
+            expected_index = MultiIndex(
+                levels=[level0, level1], codes=codes, names=index
+            )
+        if columns == ["c"]:
+            expected_columns = Index(level0, name="c")
+        else:
+            expected_columns = MultiIndex(
+                levels=[level0, level1], codes=codes, names=columns
+            )
+
+        expected = DataFrame(data, index=expected_index, columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
     def test_margins_no_values_no_cols(self, data):
         # Regression test on pivot table: no values or cols passed.
         result = data[["A", "B"]].pivot_table(
             index=["A", "B"], aggfunc=len, margins=True
         )
-        result_list = result.tolist()
-        assert sum(result_list[:-1]) == result_list[-1]
+        expected = Series(
+            [3, 1, 4, 3, 11],
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=[None, None],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_margins_no_values_two_rows(self, data):
         # Regression test on pivot table: no values passed but rows are a
@@ -1210,7 +1271,20 @@ class TestPivotTable:
         result = data[["A", "B", "C"]].pivot_table(
             index=["A", "B"], columns="C", aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
+        expected = DataFrame(
+            data={
+                "dull": [1.0, 1.0, 2.0, 1.0, 5.0],
+                "shiny": [2.0, np.nan, 2.0, 2.0, 6.0],
+                "All": [3, 1, 4, 3, 11],
+            },
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=["A", "B"],
+            ),
+            columns=Index(["dull", "shiny", "All"], dtype="str", name="C"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_one_row_one_col(self, data):
         # Regression test on pivot table: no values passed but row and col
@@ -1218,7 +1292,16 @@ class TestPivotTable:
         result = data[["A", "B"]].pivot_table(
             index="A", columns="B", aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [4.0, 7.0, 11.0]
+        expected = DataFrame(
+            data={
+                "one": [3, 4, 7],
+                "two": [1, 3, 4],
+                "All": [4, 7, 11],
+            },
+            index=Index(["bar", "foo", "All"], name="A"),
+            columns=Index(["one", "two", "All"], dtype="str", name="B"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_two_row_two_cols(self, data):
         # Regression test on pivot table: no values passed but rows and cols
@@ -1227,14 +1310,45 @@ class TestPivotTable:
         result = data[["A", "B", "C", "D"]].pivot_table(
             index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
+        expected = DataFrame(
+            data={
+                ("dull", "a"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("dull", "b"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("dull", "d"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("dull", "e"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("dull", "h"): [np.nan, 1.0, np.nan, np.nan, 1.0],
+                ("shiny", "c"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("shiny", "f"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("shiny", "g"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("shiny", "i"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("shiny", "j"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("shiny", "k"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("All", ""): [3, 1, 4, 3, 11],
+            },
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=["A", "B"],
+            ),
+            columns=MultiIndex(
+                levels=[["dull", "shiny", "All"], [*list("abcdefghijk"), ""]],
+                codes=[
+                    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2],
+                    [0, 1, 3, 4, 7, 2, 5, 6, 8, 9, 10, 11],
+                ],
+                names=["C", "D"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
         # see gh-3335
-        msg = (
-            f'Conflicting name "{margin_name}" in margins|'
-            "margins_name argument must be a string"
+        msg = "|".join(
+            [
+                f'Conflicting name "{margin_name}" in margins',
+                "margins_name argument must be a string",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             # multi-index index
@@ -1730,11 +1844,11 @@ class TestPivotTable:
         ts = Series(np.arange(len(rng)), index=rng)
 
         result = pivot_table(
-            DataFrame(ts), index=ts.index.year, columns=ts.index.dayofyear
+            DataFrame(ts), index=ts.index.year, columns=ts.index.day_of_year
         )
         result.columns = result.columns.droplevel(0)
 
-        doy = np.asarray(ts.index.dayofyear)
+        doy = np.asarray(ts.index.day_of_year)
 
         expected = {}
         for y in ts.index.year.unique().values:
@@ -1996,8 +2110,8 @@ class TestPivotTable:
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
-        expected = DataFrame(index=index, columns=[])
-        tm.assert_frame_equal(table, expected)
+        expected = Series([1, 1, 1, 3], index=index)
+        tm.assert_series_equal(table, expected)
 
     def test_pivot_string_as_func(self):
         # GH #18713
@@ -2331,6 +2445,124 @@ class TestPivotTable:
             dtype="Int64",
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_ea_dtype_cannot_hold_na_margins(self):
+        # GH#55484 IntervalDtype with integer subtype has _can_hold_na=False;
+        # pivot_table with margins=True must still preserve the dtype.
+        ii = pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+        iarr = pd.array(list(ii), dtype=ii.dtype)
+        assert not iarr.dtype._can_hold_na
+
+        df = DataFrame(
+            {
+                "a": ["foo", "foo", "bar", "bar"],
+                "b": ["one", "two", "one", "two"],
+                "c": iarr,
+            }
+        )
+
+        result = df.pivot_table(
+            index="a",
+            columns="b",
+            values="c",
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {
+                "one": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype),
+                "two": pd.array([ii[3], ii[1], ii[1]], dtype=ii.dtype),
+                "All": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype),
+            },
+            index=Index(["bar", "foo", "All"], name="a"),
+        )
+        expected.columns.name = "b"
+        tm.assert_frame_equal(result, expected)
+
+        # no-cols path (previously raised TypeError on row_margin init)
+        result = df.pivot_table(
+            index="a",
+            values="c",
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {"c": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype)},
+            index=Index(["bar", "foo", "All"], name="a"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # no-cols with mixed EA-no-NA and numeric values
+        df["d"] = [1.0, 2.0, 3.0, 4.0]
+        result = df.pivot_table(
+            index="a",
+            values=["c", "d"],
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {
+                "c": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype),
+                "d": [3.0, 1.0, 1.0],
+            },
+            index=Index(["bar", "foo", "All"], name="a"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_distinct_ea_dtypes(self):
+        # GH#55484 with two parameterized EA columns of the same kind but
+        # different parameters, each margin cell must be cast to its own
+        # column's dtype, not another column's.
+        ii_int = pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+        ii_flt = pd.IntervalIndex.from_breaks([0.5, 1.5, 2.5, 3.5, 4.5])
+        df = DataFrame(
+            {
+                "key": ["a", "a", "b", "b"],
+                "i_int": pd.array(list(ii_int), dtype=ii_int.dtype),
+                "i_flt": pd.array(list(ii_flt), dtype=ii_flt.dtype),
+            }
+        )
+        result = df.pivot_table(
+            index="key",
+            values=["i_int", "i_flt"],
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {
+                "i_flt": pd.array(
+                    [ii_flt[0], ii_flt[2], ii_flt[0]], dtype=ii_flt.dtype
+                ),
+                "i_int": pd.array(
+                    [ii_int[0], ii_int[2], ii_int[0]], dtype=ii_int.dtype
+                ),
+            },
+            index=Index(["a", "b", "All"], name="key"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # two Categorical columns with disjoint categories
+        df2 = DataFrame(
+            {
+                "key": ["a", "a", "b", "b"],
+                "c1": Categorical(["x", "y", "x", "y"]),
+                "c2": Categorical(["p", "q", "p", "q"]),
+            }
+        )
+        result2 = df2.pivot_table(
+            index="key",
+            values=["c1", "c2"],
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected2 = DataFrame(
+            {
+                "c1": Categorical(["x", "x", "x"], categories=["x", "y"]),
+                "c2": Categorical(["p", "p", "p"], categories=["p", "q"]),
+            },
+            index=Index(["a", "b", "All"], name="key"),
+        )
+        tm.assert_frame_equal(result2, expected2)
 
     def test_pivot_table_sort_false_with_multiple_values(self):
         df = DataFrame(

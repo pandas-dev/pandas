@@ -12,12 +12,8 @@ pd_version = getattr(pd, "__version__", "")
 
 # fail early if pandas is not installed
 if not pd_version:
-    # fail on the CI, soft fail during local development
     warnings.warn("You need to install the development version of pandas", stacklevel=1)
-    if pd.compat.is_ci_environment():
-        sys.exit(1)
-    else:
-        sys.exit(0)
+    sys.exit(1)
 
 # GH 48260
 if "dev" not in pd_version:
@@ -46,9 +42,12 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.hashtable.HashTable.sizeof",
     "pandas._libs.hashtable.HashTable.unique",
     "pandas._libs.hashtable.HashTable.hash_inner_join",
+    # init and new differences
+    "pandas._libs.hashtable.StringHashTable.__init__",
+    "pandas._libs.hashtable.PyObjectHashTable.__init__",
+    "pandas._libs.internals.BlockManager.__init__",
     # stubtest might be too sensitive
     "pandas._libs.lib.NoDefault",
-    "pandas._libs.lib._NoDefault.no_default",
     # internal type alias (should probably be private)
     "pandas._libs.lib.ndarray_obj_2d",
     # runtime argument "owner" has a default value but stub argument does not
@@ -73,44 +72,6 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.tslibs.offsets.BusinessHour.rollforward ",
     # type alias
     "pandas._libs.tslibs.timedeltas.UnitChoices",
-    # enum types in cython vs PYI
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_ANN",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_BUS",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_DAY",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_HR",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_MIN",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_MS",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_MTH",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_NS",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_QTR",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_SEC",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_UND",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_US",
-    "pandas._libs.tslibs.dtypes.FreqGroup.FR_WK",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_D",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_GENERIC",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_M",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_W",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_Y",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_as",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_fs",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_h",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_m",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_ms",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_ns",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_ps",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_s",
-    "pandas._libs.tslibs.dtypes.NpyDatetimeUnit.NPY_FR_us",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_DAY",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_HR",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_MIN",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_MS",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_MTH",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_NS",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_QTR",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_SEC",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_US",
-    "pandas._libs.tslibs.dtypes.Resolution.RESO_YR",
 ]
 
 if __name__ == "__main__":
@@ -131,6 +92,7 @@ if __name__ == "__main__":
         args = [
             *pyi_modules,
             "--ignore-missing-stub",
+            "--ignore-disjoint-base",
             "--concise",
             "--mypy-config-file",
             "pyproject.toml",

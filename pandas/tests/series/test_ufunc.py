@@ -5,6 +5,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -17,7 +19,7 @@ def ufunc(request):
 
 
 @pytest.fixture(
-    params=[pytest.param(True, marks=pytest.mark.fails_arm_wheels), False],
+    params=[True, False],
     ids=["sparse", "dense"],
 )
 def sparse(request):
@@ -230,6 +232,21 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
     assert result.name is None
 
 
+def test_binary_ufunc_out_pandas_object():
+    # GH#43190 passing a Series as the ufunc `out` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of writing the result.
+    a = pd.Series([1, 2])
+    b = pd.Series([3, 4])
+    out = pd.Series([0, 0])
+
+    result = np.fmin(a, b, out=out)
+
+    expected = pd.Series([1, 2])
+    tm.assert_series_equal(result, expected)
+    # the result is also written into `out` in place
+    tm.assert_series_equal(out, expected)
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:
@@ -349,7 +366,12 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[1]
-            if using_python_scalars and values.dtype.kind in "if":
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -374,7 +396,12 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[0]
-            if using_python_scalars and values.dtype.kind in ["i", "f"]:
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -387,7 +414,11 @@ def test_binary_ufunc_other_types(type_):
     a = pd.Series([1, 2, 3], name="name")
     b = type_([3, 4, 5])
 
-    result = np.add(a, b)
+    # GH#62423 tuple/deque operands are deprecated in favor of scalar-like
+    warn = None if type_ is list else Pandas4Warning
+    depr_msg = "In a future version these will be treated as scalar-like"
+    with tm.assert_produces_warning(warn, match=depr_msg):
+        result = np.add(a, b)
     expected = pd.Series(np.add(a.to_numpy(), b), name="name")
     tm.assert_series_equal(result, expected)
 

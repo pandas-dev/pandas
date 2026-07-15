@@ -155,3 +155,23 @@ class TestSeriesClip:
         expected = Series([lower, upper], dtype=dtype)
 
         tm.assert_series_equal(result, expected)
+
+    def test_clip_with_scalar_array_lower(self):
+        # GH#59053
+        ser = Series([-1, 2, 3])
+        lower = np.array(0)
+        result = ser.clip(lower=lower)
+        expected = Series([0, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("bound", [1e-8, 1e-15])
+    def test_clip_int_with_tiny_float_bound(self, bound):
+        # GH#25066 clipping an int Series with a tiny float bound (1e-8 lands
+        # exactly on the old downcast atol) must keep the float values, not
+        # silently round them back to int
+        ser = Series([0, 1, 0, 1])
+        result = ser.clip(bound, 1)
+        expected = Series([bound, 1.0, bound, 1.0])
+        tm.assert_series_equal(result, expected)
+        # the np.clip ufunc dispatches to Series.clip
+        tm.assert_series_equal(np.clip(ser, bound, 1), expected)

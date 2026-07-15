@@ -5,7 +5,6 @@ import zoneinfo
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
@@ -342,45 +341,45 @@ def test_resample_basic_from_daily(unit):
         result = s.resample("w-sun").last()
 
     assert len(result) == 3
-    assert (result.index.dayofweek == [6, 6, 6]).all()
+    assert (result.index.day_of_week == [6, 6, 6]).all()
     assert result.iloc[0] == s["1/2/2005"]
     assert result.iloc[1] == s["1/9/2005"]
     assert result.iloc[2] == s.iloc[-1]
 
     result = s.resample("W-MON").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [0, 0]).all()
+    assert (result.index.day_of_week == [0, 0]).all()
     assert result.iloc[0] == s["1/3/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-TUE").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [1, 1]).all()
+    assert (result.index.day_of_week == [1, 1]).all()
     assert result.iloc[0] == s["1/4/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-WED").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [2, 2]).all()
+    assert (result.index.day_of_week == [2, 2]).all()
     assert result.iloc[0] == s["1/5/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-THU").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [3, 3]).all()
+    assert (result.index.day_of_week == [3, 3]).all()
     assert result.iloc[0] == s["1/6/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-FRI").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [4, 4]).all()
+    assert (result.index.day_of_week == [4, 4]).all()
     assert result.iloc[0] == s["1/7/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     # to biz day
     result = s.resample("B").last()
     assert len(result) == 7
-    assert (result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all()
+    assert (result.index.day_of_week == [4, 0, 1, 2, 3, 4, 0]).all()
 
     assert result.iloc[0] == s["1/2/2005"]
     assert result.iloc[1] == s["1/3/2005"]
@@ -1136,8 +1135,7 @@ def test_resample_anchored_intraday2(unit):
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
-    expected.index._data.freq = "QE"
-    expected.index._freq = lib.no_default
+    expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -1146,8 +1144,7 @@ def test_resample_anchored_intraday2(unit):
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
-    expected.index._data.freq = "QE"
-    expected.index._freq = lib.no_default
+    expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -2136,6 +2133,23 @@ def test_resample_b_55282(unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("n", [2, 3, 7, 14])
+def test_resample_multiday_closed_right_43198(n, unit):
+    # GH#43198 multi-day downsampling with closed="right" used to raise
+    # "Values falls before first bin" when no value landed on a bin edge
+    dti = DatetimeIndex(["2013-04-01 22:00:00"]).as_unit(unit)
+    ser = Series([0.0], index=dti)
+
+    result = ser.resample(f"{n}D", closed="right").max()
+
+    exp_dti = DatetimeIndex(
+        [Timestamp("2013-04-01") - n * Day(), Timestamp("2013-04-01")],
+        freq=f"{n}D",
+    ).as_unit(unit)
+    expected = Series([np.nan, 0.0], index=exp_dti)
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "tz",
@@ -2170,6 +2184,20 @@ def test_arrow_timestamp_resample_keep_index_name():
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
+def test_arrow_timestamp_resample_on_keep_index_name():
+    # GH#59823 resampling on a pyarrow-backed column should keep its name
+    df = DataFrame(
+        {
+            "date": date_range("2020-01-01", periods=5),
+            "metric": np.arange(5, dtype=np.int64),
+        }
+    ).astype({"date": "timestamp[ns][pyarrow]"})
+    result = df.resample("1D", on="date").sum()
+    assert result.index.name == "date"
+    assert result.index.dtype == "timestamp[ns][pyarrow]"
+
+
 def test_resample_unit_second_large_years():
     # GH#57427
     index = DatetimeIndex(
@@ -2188,3 +2216,32 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_sum_with_inat_value():
+    # GH#16674 - int64 min value (same as iNaT sentinel) should not
+    # cause incorrect dtype casting during resample aggregation
+    max_int = np.iinfo(np.int64).max
+    min_int = np.iinfo(np.int64).min
+    df = DataFrame(
+        [max_int, min_int],
+        index=[datetime(2013, 1, 1), datetime(2013, 1, 1)],
+    )
+    result = df.resample("MS").apply(np.sum)
+    expected = DataFrame([-1], index=date_range("2013-01-01", periods=1, freq="MS"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiday_grouper_closed_right_intraday():
+    # GH#43896 intraday values with a multi-day Grouper and closed="right"
+    #  used to raise "Values falls before first bin"
+    index = date_range("2019-12-31 00:10:00", "2020-01-04 00:10:00", freq="12h")
+    df = DataFrame({"a": np.arange(len(index), dtype=float)}, index=index)
+    result = df.groupby(Grouper(freq="2D", closed="right")).sum()
+    expected = DataFrame(
+        {"a": [0.0, 6.0, 22.0, 8.0]},
+        index=DatetimeIndex(
+            ["2019-12-29", "2019-12-31", "2020-01-02", "2020-01-04"], freq="2D"
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

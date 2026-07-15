@@ -95,7 +95,9 @@ class ObjectStringArrayMixin:
             )
 
             if len(err.args) >= 1 and re.search(p_err, err.args[0]):
-                # FIXME: this should be totally avoidable
+                # NOTE: matches CPython's TypeError when a user-supplied
+                # callable (e.g. `repl` in str.replace) is called with the
+                # wrong number of positional arguments.
                 raise err
 
             def g(x):
@@ -197,7 +199,7 @@ class ObjectStringArrayMixin:
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if lib.is_integer(repeats):
-            rint = cast(int, repeats)
+            rint = cast("int", repeats)
 
             def scalar_rep(x):
                 try:
@@ -306,17 +308,11 @@ class ObjectStringArrayMixin:
         return self._str_map(f)
 
     def _str_index(self, sub, start: int = 0, end=None):
-        if end:
-            f = lambda x: x.index(sub, start, end)
-        else:
-            f = lambda x: x.index(sub, start, end)
+        f = lambda x: x.index(sub, start, end)
         return self._str_map(f, dtype="int64")
 
     def _str_rindex(self, sub, start: int = 0, end=None):
-        if end:
-            f = lambda x: x.rindex(sub, start, end)
-        else:
-            f = lambda x: x.rindex(sub, start, end)
+        f = lambda x: x.rindex(sub, start, end)
         return self._str_map(f, dtype="int64")
 
     def _str_join(self, sep: str):
@@ -389,6 +385,9 @@ class ObjectStringArrayMixin:
         return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n is None or n == 0:
             n = -1
         f = lambda x: x.rsplit(pat, n)

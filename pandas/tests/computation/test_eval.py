@@ -7,7 +7,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import PY312
+from pandas.compat import (
+    PY312,
+    PY314,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
@@ -179,7 +182,7 @@ class TestEval:
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
                 r"(`|')bool(`|')",
-                "argument of type 'bool' is not iterable",
+                "argument of type 'bool' is not .*",
             ]
         )
         if cmp_op in ("in", "not in") and not is_list_like(rhs):
@@ -224,7 +227,7 @@ class TestEval:
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
                 r"(`|')float(`|')",
-                "argument of type 'float' is not iterable",
+                "argument of type 'float' is not .*",
             ]
         )
         if is_scalar(rhs) and op in skip_these:
@@ -568,7 +571,9 @@ class TestEval:
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
         warn = None
-        if PY312 and not (engine == "numexpr" and parser == "pandas"):
+        if (PY314 and engine == "numexpr" and parser == "pandas") or (
+            PY312 and not (engine == "numexpr" and parser == "pandas")
+        ):
             warn = DeprecationWarning
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)
@@ -653,7 +658,9 @@ class TestEval:
         x, a, b = np.random.default_rng(2).standard_normal(3), 1, 2  # noqa: F841
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))  # noqa: F841
 
-        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        msg = "|".join(
+            ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
+        )
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 
@@ -921,21 +928,8 @@ class TestAlignment:
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
-        self, request, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
+        self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
-        if (
-            engine == "numexpr"
-            and parser in ("pandas", "python")
-            and index_name == "index"
-            and r_idx_type == "i"
-            and c_idx_type == "s"
-        ):
-            reason = (
-                f"Flaky column ordering when engine={engine}, "
-                f"parser={parser}, index_name={index_name}, "
-                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
-            )
-            request.applymarker(pytest.mark.xfail(reason=reason, strict=False))
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 7)),
             index=idx_func_dict[r_idx_type](10),
@@ -1110,7 +1104,7 @@ class TestOperations:
             ex3 = f"1 {op} (x + 1)"
 
             if op in ("in", "not in"):
-                msg = "argument of type 'int' is not iterable"
+                msg = "argument of type 'int' is not .*"
                 with pytest.raises(TypeError, match=msg):
                     pd.eval(ex, engine=engine, parser=parser)
             else:
@@ -1306,7 +1300,6 @@ class TestOperations:
         expected = Series([True], name="a")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
@@ -1318,7 +1311,8 @@ class TestOperations:
 
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(actual, expected)
+        assert list(df.columns) == ["a", "b"]
 
     def test_multi_line_expression(self):
         # GH 11149
@@ -1888,6 +1882,15 @@ def test_empty_string_raises(engine, parser):
         pd.eval("", engine=engine, parser=parser)
 
 
+@pytest.mark.parametrize("box", [Series, DataFrame])
+def test_pandas_object_raises(box, engine, parser):
+    # GH#16289 passing a Series/DataFrame parsed its (possibly truncated) repr
+    obj = box(["1 == 1", "2 == 1"] * 1000)
+    msg = "expr must be a string to be evaluated"
+    with pytest.raises(ValueError, match=msg):
+        pd.eval(obj, engine=engine, parser=parser)
+
+
 def test_more_than_one_expression_raises(engine, parser):
     with pytest.raises(SyntaxError, match="only a single expression is allowed"):
         pd.eval("1 + 1; 2 + 2", engine=engine, parser=parser)
@@ -1910,7 +1913,9 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
     ex3 = f"(lhs {cmp} mid) & (mid {cmp} rhs)"
     for ex in (ex1, ex2, ex3):
-        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        msg = "|".join(
+            ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
+        )
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 
@@ -1968,13 +1973,13 @@ def test_negate_lt_eq_le(engine, parser):
     "column",
     DEFAULT_GLOBALS.keys(),
 )
-def test_eval_no_support_column_name(request, column):
-    # GH 44603
+def test_eval_no_support_column_name(request, engine, parser, column):
+    # GH#44603, GH#35695
     if column in ["True", "False", "inf", "Inf"]:
         request.applymarker(
             pytest.mark.xfail(
                 raises=KeyError,
-                reason=f"GH 47859 DataFrame eval not supported with {column}",
+                reason=f"GH#47859 DataFrame eval not supported with {column}",
             )
         )
 
@@ -1983,7 +1988,7 @@ def test_eval_no_support_column_name(request, column):
         columns=[column, "col1"],
     )
     expected = df[df[column] > 6]
-    result = df.query(f"{column}>6")
+    result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
 

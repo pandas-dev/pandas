@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from collections import (
-    abc,
-    defaultdict,
-)
+from collections import abc
 import csv
 from io import StringIO
 import re
@@ -11,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     Literal,
     cast,
     final,
@@ -21,7 +17,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -44,7 +39,6 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -57,6 +51,7 @@ from pandas.core.indexes.api import Index
 from pandas.io.common import (
     dedup_names,
     is_potential_multi_index,
+    mangle_dupe_names,
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -78,6 +73,7 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
+        Scalar,
         T,
     )
 
@@ -190,9 +186,13 @@ class PythonParser(ParserBase):
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
+            # GH#52619 - use non-backtracking structure to avoid catastrophic
+            # backtracking on cells with many comma-separated digit groups
+            # followed by non-numeric text.
             regex = (
-                rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                rf"([0-9]?(E|e)\-?[0-9]+)?$"
+                rf"^[\-\+]?(?:[0-9]+(?:{thousands}[0-9]+)*{thousands}?)?"
+                rf"({decimal}[0-9]*)?"
+                rf"((E|e)\-?[0-9]+)?$"
             )
         return re.compile(regex)
 
@@ -235,7 +235,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(list[str], lines)
+                lines_str = cast("list[str]", lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
@@ -425,7 +425,10 @@ class PythonParser(ParserBase):
             if c in parse_date_cols:
                 # GH#26203 Do not convert columns which get converted to dates
                 # but replace nans to ensure to_datetime works
-                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)  # pyright: ignore[reportArgumentType]
+                mask = algorithms.isin(
+                    values,
+                    set(col_na_values) | col_na_fvalues,  # pyright: ignore[reportArgumentType]
+                )
                 np.putmask(values, mask, np.nan)
                 result[c] = values
                 continue
@@ -635,39 +638,10 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    counts: DefaultDict = defaultdict(int)
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [
-                        i
-                        for i in range(len(this_columns))
-                        if i not in this_unnamed_cols
-                    ] + this_unnamed_cols
-
-                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
-                    for i in col_loop_order:
-                        col = this_columns[i]
-                        old_col = col
-                        cur_count = counts[col]
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_columns:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts[col]
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-                        this_columns[i] = col
-                        counts[col] = cur_count + 1
+                    this_columns = cast(
+                        "list[Scalar | None]",
+                        mangle_dupe_names(this_columns, this_unnamed_cols, self.dtype),
+                    )
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but it's not in our
                     # format so save in the buffer, and create a blank extra
@@ -830,7 +804,7 @@ class PythonParser(ParserBase):
         the name, not the middle of it.
         """
         # first_row will be a list, so we need to check
-        # that that list is not empty before proceeding.
+        # that the list is not empty before proceeding.
         if not first_row:
             return first_row
 
@@ -948,8 +922,8 @@ class PythonParser(ParserBase):
         Alert a user about a malformed row, depending on value of
         `self.on_bad_lines` enum.
 
-        If `self.on_bad_lines` is ERROR, the alert will be `ParserError`.
-        If `self.on_bad_lines` is WARN, the alert will be printed out.
+        If `self.on_bad_lines` is BLHM_ERROR, the alert will be `ParserError`.
+        If `self.on_bad_lines` is BLHM_WARN, the alert will be printed out.
 
         Parameters
         ----------
@@ -960,9 +934,9 @@ class PythonParser(ParserBase):
             Because this row number is displayed, we 1-index,
             even though we 0-index internally.
         """
-        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_WARN or callable(
             self.on_bad_lines
         ):
             warnings.warn(
@@ -991,8 +965,8 @@ class PythonParser(ParserBase):
             return line  # type: ignore[return-value]
         except csv.Error as e:
             if self.on_bad_lines in (
-                self.BadLineHandleMethod.ERROR,
-                self.BadLineHandleMethod.WARN,
+                self.BadLineHandleMethod.BLHM_ERROR,
+                self.BadLineHandleMethod.BLHM_WARN,
             ):
                 msg = str(e)
 
@@ -1203,7 +1177,7 @@ class PythonParser(ParserBase):
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            new_l = cast(list[Scalar], new_l)
+                            new_l = cast("list[Scalar]", new_l)
                             if len(new_l) > col_len:
                                 row_num = self.pos - (content_len - i + footers)
                                 bad_lines.append((row_num, len(new_l), "callable"))
@@ -1211,12 +1185,12 @@ class PythonParser(ParserBase):
                             content.append(new_l)
 
                     elif self.on_bad_lines in (
-                        self.BadLineHandleMethod.ERROR,
-                        self.BadLineHandleMethod.WARN,
+                        self.BadLineHandleMethod.BLHM_ERROR,
+                        self.BadLineHandleMethod.BLHM_WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len, "normal"))
-                        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+                        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
                             break
                 else:
                     content.append(_content)
@@ -1318,7 +1292,6 @@ class PythonParser(ParserBase):
 
                             if next_row is not None:
                                 new_rows.append(next_row)
-                        len_new_rows = len(new_rows)
 
                 except StopIteration:
                     len_new_rows = len(new_rows)
@@ -1553,5 +1526,4 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
-    # Incompatible return value type (got "Union[int, integer[Any]]", expected "int")
-    return skipfooter  # type: ignore[return-value]
+    return skipfooter  # pyright: ignore[reportReturnType]

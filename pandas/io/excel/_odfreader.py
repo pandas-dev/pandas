@@ -7,12 +7,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -23,6 +17,12 @@ if TYPE_CHECKING:
     from odf.opendocument import OpenDocument
 
     from pandas._libs.tslibs.nattype import NaTType
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+    )
 
 
 class ODFReader(BaseExcelReader["OpenDocument"]):
@@ -217,7 +217,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         elif cell_type == "time":
             stamp = pd.Timestamp(str(cell))
             # cast needed here because Scalar doesn't include datetime.time
-            return cast(Scalar, stamp.time())
+            return cast("Scalar", stamp.time())
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

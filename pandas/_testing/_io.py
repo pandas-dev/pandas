@@ -46,7 +46,9 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     return pd.read_pickle(tmp_path)
 
 
-def round_trip_pathlib(writer, reader, tmp_path: Path):
+def round_trip_pathlib(
+    writer: Callable, reader: Callable, tmp_path: Path
+) -> DataFrame | Series:
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -69,7 +71,9 @@ def round_trip_pathlib(writer, reader, tmp_path: Path):
     return obj
 
 
-def write_to_compressed(compression, path: str, data, dest: str = "test") -> None:
+def write_to_compressed(
+    compression: str, path: str, data: bytes, dest: str = "test"
+) -> None:
     """
     Write data to a compressed file.
 

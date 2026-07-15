@@ -287,9 +287,9 @@ def radviz(
     the value on each Series. Highly correlated `Series` in the `DataFrame`
     are placed closer on the unit circle.
 
-    RadViz allow to project an N-dimensional data set into a 2D space where the
-    influence of each dimension can be interpreted as a balance between the
-    influence of all dimensions.
+    RadViz allows you to project an N-dimensional data set into a 2D space
+    where the influence of each dimension can be interpreted as a balance
+    between the influence of all dimensions.
 
     More info available at the `original article
     <https://doi.org/10.1145/331770.331775>`_
@@ -417,10 +417,26 @@ def andrews_curves(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.read_csv(
-        ...     "https://raw.githubusercontent.com/pandas-dev/"
-        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "SepalLength": [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
+        ...         "SepalWidth": [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
+        ...         "PetalLength": [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
+        ...         "PetalWidth": [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
+        ...         "Name": [
+        ...             "virginica",
+        ...             "virginica",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "virginica",
+        ...             "versicolor",
+        ...             "versicolor",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "setosa",
+        ...         ],
+        ...     }
+        ... )
         >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -514,6 +530,11 @@ def parallel_coordinates(
     """
     Parallel coordinates plotting.
 
+    This visualization technique represents each observation as a polyline
+    connecting values across vertical axes, one for each feature. Lines are
+    colored by class membership, making it useful for identifying clusters
+    and separability in multivariate data.
+
     Parameters
     ----------
     frame : DataFrame
@@ -558,10 +579,26 @@ def parallel_coordinates(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.read_csv(
-        ...     "https://raw.githubusercontent.com/pandas-dev/"
-        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "SepalLength": [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
+        ...         "SepalWidth": [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
+        ...         "PetalLength": [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
+        ...         "PetalWidth": [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
+        ...         "Name": [
+        ...             "virginica",
+        ...             "virginica",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "virginica",
+        ...             "versicolor",
+        ...             "versicolor",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "setosa",
+        ...         ],
+        ...     }
+        ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP

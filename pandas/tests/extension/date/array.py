@@ -96,7 +96,7 @@ class DateArray(ExtensionArray):
             # check if all elements have the same type
             if any(not isinstance(x, np.ndarray) for x in dates):
                 raise TypeError("invalid type")
-            ly, lm, ld = (len(cast(np.ndarray, d)) for d in dates)
+            ly, lm, ld = (len(cast("np.ndarray", d)) for d in dates)
             if not ly == lm == ld:
                 raise ValueError(
                     f"tuple members must have the same length: {(ly, lm, ld)}"

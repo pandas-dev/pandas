@@ -1,10 +1,13 @@
 from datetime import (
+    date,
     datetime,
     timezone,
 )
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -151,3 +154,14 @@ class TestJoin:
         assert result.freq is None
         expected = dti.delete(5)
         tm.assert_index_equal(result, expected)
+
+
+def test_join_date_objects_with_datetimeindex():
+    # GH#62158
+    dti = date_range("2016-01-01", periods=3)
+    date_idx = Index([date(2016, 1, 1), date(2016, 1, 2), date(2016, 1, 3)])
+
+    msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = dti.join(date_idx, how="inner")
+    tm.assert_index_equal(result, dti)

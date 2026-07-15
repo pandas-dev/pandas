@@ -35,6 +35,7 @@ from pandas.core.dtypes.dtypes import (
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
+        Dtype,
         DtypeObj,
         IgnoreRaise,
     )
@@ -86,8 +87,8 @@ def _astype_nansafe(
     if arr.dtype.kind in "mM":
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
-        arr = ensure_wrapped_if_datetimelike(arr)
-        res = arr.astype(dtype, copy=copy)
+        wrapped = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
+        res = wrapped.astype(dtype, copy=copy)
         return np.asarray(res)
 
     if issubclass(dtype.type, str):
@@ -99,7 +100,7 @@ def _astype_nansafe(
         ).reshape(shape)
 
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
-        return _astype_float_to_int_nansafe(arr, dtype, copy)
+        return astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif arr.dtype == object:
         # if we have a datetime/timedelta array of objects
@@ -119,7 +120,7 @@ def _astype_nansafe(
             #  does not require a circular import.
             tdvals = array_to_timedelta64(arr)
 
-            tda = ensure_wrapped_if_datetimelike(tdvals)
+            tda = ensure_wrapped_if_datetimelike(tdvals)  # type: ignore[no-untyped-call]
             return tda.astype(dtype, copy=False)._ndarray
 
     if dtype.name in ("datetime64", "timedelta64"):
@@ -136,7 +137,7 @@ def _astype_nansafe(
     return arr.astype(dtype, copy=copy)
 
 
-def _astype_float_to_int_nansafe(
+def astype_float_to_int_nansafe(
     values: np.ndarray, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     """
@@ -144,8 +145,8 @@ def _astype_float_to_int_nansafe(
     """
     if not np.isfinite(values).all():
         raise IntCastingNaNError(
-            "Cannot convert non-finite values (NA or inf) to integer."
-            "Replace or remove non-finite values or cast to an integer type"
+            "Cannot convert non-finite values (NA or inf) to integer. "
+            "Replace or remove non-finite values or cast to an integer type "
             "that supports these values (e.g. 'Int64')"
         )
     if dtype.kind == "u":
@@ -192,7 +193,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
 
 def astype_array_safe(
-    values: ArrayLike, dtype, copy: bool = False, errors: IgnoreRaise = "raise"
+    values: ArrayLike, dtype: Dtype, copy: bool = False, errors: IgnoreRaise = "raise"
 ) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
@@ -273,10 +274,23 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return True
 
     elif isinstance(dtype, np.dtype) and isinstance(new_dtype, np.dtype):
+        # GH#63936: pandas realizes a numpy str ("<U") target as an object
+        #  array via ensure_string_array, which views an object source.
+        if is_object_dtype(dtype) and is_string_dtype(new_dtype):
+            return True
         # Only equal numpy dtypes avoid a copy
         return False
 
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        from pandas.core.arrays.string_ import StringDtype
+
+        if (
+            isinstance(dtype, StringDtype)
+            and dtype.storage == "pyarrow"
+            and new_dtype == "object"
+        ):
+            # for conversion of pyarrow array to numpy object array -> always a copy
+            return False
         # Potentially! a view when converting from object to string
         return True
 

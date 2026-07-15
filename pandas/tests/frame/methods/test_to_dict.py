@@ -132,7 +132,7 @@ class TestDataFrameToDict:
         ]
         assert isinstance(recons_data, list)
         assert len(recons_data) == 3
-        for left, right in zip(recons_data, expected_records):
+        for left, right in zip(recons_data, expected_records, strict=True):
             tm.assert_dict_equal(left, right)
 
         # GH#10844
@@ -528,6 +528,22 @@ class TestDataFrameToDict:
             "column_names": [None],
         }
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame({"B": ["x", "y"], "A": ["a", "b"]}),  # all EA cols
+            DataFrame({"B": [1, 2], "A": ["x", "y"]}),  # mixed EA/non-EA
+            DataFrame({"B": [1, 2], "A": [3, 4]}),  # no EA cols
+        ],
+    )
+    def test_to_dict_index_into_applies_to_nested_mappings(self, df: DataFrame):
+        # https://github.com/pandas-dev/pandas/issues/65778
+
+        result = df.to_dict(orient="index", into=OrderedDict)
+
+        assert isinstance(result, OrderedDict)
+        assert all(isinstance(row, OrderedDict) for row in result.values())
 
 
 @pytest.mark.parametrize(

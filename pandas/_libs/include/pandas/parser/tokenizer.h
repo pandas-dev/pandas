@@ -36,13 +36,6 @@ See LICENSE for the license
  *  functions.
  */
 
-// #define VERBOSE
-#if defined(VERBOSE)
-#  define TRACE(X) printf X;
-#else
-#  define TRACE(X)
-#endif // VERBOSE
-
 #define PARSER_OUT_OF_MEMORY -1
 
 /*
@@ -78,7 +71,7 @@ typedef enum {
   QUOTE_NONE
 } QuoteStyle;
 
-typedef enum { ERROR, WARN, SKIP } BadLineHandleMethod;
+typedef enum { BLHM_ERROR, BLHM_WARN, BLHM_SKIP } BadLineHandleMethod;
 
 typedef char *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                              int *status, const char *encoding_errors);
@@ -150,13 +143,18 @@ typedef struct parser_t {
   int64_t skip_first_N_rows;
   int64_t skip_footer;
   double (*double_converter)(const char *, char **, char, char, char, int,
-                             int *, int *);
+                             int *, int *, const char *);
 
   // error handling
   char *warn_msg;
   char *error_msg;
 
   int skip_empty_lines;
+
+  // Boolean: 1 when the input was pre-loaded via TextReader.load_buffer.
+  // The buffer then never starts with a header row, so the first line gets
+  // no special treatment: no BOM strip, no exemption from field-count checks.
+  int preloaded;
 } parser_t;
 
 typedef struct coliter_t {
@@ -167,17 +165,33 @@ typedef struct coliter_t {
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
-#define COLITER_NEXT(iter, word)                                               \
-  do {                                                                         \
-    const int64_t i = *iter.line_start++ + iter.col;                           \
-    word = i >= *iter.line_start ? "" : iter.words[i];                         \
-  } while (0)
+// Advance the column iterator and return the next field's token, emitting its
+// resolved index via idx_out so callers needing the token length can compute
+// it as word_starts[idx+1] - word_starts[idx] - 1 (using parser->stream_len
+// for the last token where idx+1 == words_len). A missing field yields "" and
+// idx_out = -1, which callers must treat as length 0 rather than indexing into
+// word_starts.
+static inline const char *coliter_next_with_idx(coliter_t *self,
+                                                int64_t *idx_out) {
+  const int64_t idx = *self->line_start++ + self->col;
+  if (idx >= *self->line_start) {
+    *idx_out = -1;
+    return "";
+  }
+  *idx_out = idx;
+  return self->words[idx];
+}
+
+static inline const char *coliter_next(coliter_t *self) {
+  int64_t idx;
+  return coliter_next_with_idx(self, &idx);
+}
 
 parser_t *parser_new(void);
 
 int parser_init(parser_t *self);
 
-int parser_consume_rows(parser_t *self, size_t nrows);
+int parser_consume_rows(parser_t *self, uint64_t nrows);
 
 int parser_trim_buffers(parser_t *self);
 
@@ -191,7 +205,7 @@ void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
 
-int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors);
+int tokenize_nrows(parser_t *self, uint64_t nrows, const char *encoding_errors);
 
 int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 
@@ -208,16 +222,15 @@ void uint_state_init(uint_state *self);
 
 int uint64_conflict(uint_state *self);
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
-                       char tsep);
-int64_t str_to_int64(const char *p_item, int *error, char tsep);
-double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-               int skip_trailing, int *error, int *maybe_int);
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep);
+int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
-
-// GH-15140 - round_trip requires and acquires the GIL on its own
-double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing, int *error, int *maybe_int);
+// As precise_xstrtod, but takes the known end of the token (one past its
+// last byte) to skip the end-of-token scan; pass NULL to locate it as usual.
+double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
+                                char tsep, int skip_trailing, int *error,
+                                int *maybe_int, const char *end);
 int to_boolean(const char *item, uint8_t *val);
