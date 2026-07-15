@@ -983,8 +983,7 @@ Missing data
 ------------
 
 pandas primarily uses the value ``np.nan`` to represent missing data. It is by
-default not included in computations. See the :ref:`Missing Data page
-<missing_data>`.
+default not included in computations. See :ref:`<missing_data>`.
 
 Missing values should **not** be included in the Categorical's ``categories``,
 only in the ``values``.
