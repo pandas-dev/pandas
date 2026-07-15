@@ -348,6 +348,29 @@ class TestRangeIndexSetOps:
         result = union_indexes([idx4, idx12])
         tm.assert_index_equal(result, idx4, exact=True)
 
+        # 8. Contained ranges (GH issue/PR review checks)
+        idx13 = RangeIndex(0, 10, name="foo")
+        idx14 = RangeIndex(2, 5, name="foo")
+        result = union_indexes([idx13, idx14])
+        tm.assert_index_equal(result, idx13, exact=True)
+
+        # 9. Duplicate starts
+        idx15 = RangeIndex(0, 5, name="foo")
+        result = union_indexes([idx13, idx15])
+        tm.assert_index_equal(result, idx13, exact=True)
+
+        # 10. Step > 1 overlapping/contained
+        idx16 = RangeIndex(0, 10, 2, name="foo")
+        idx17 = RangeIndex(2, 6, 2, name="foo")
+        result = union_indexes([idx16, idx17])
+        tm.assert_index_equal(result, idx16, exact=True)
+
+        # 11. Negative step contained
+        idx18 = RangeIndex(10, 5, -1, name="foo")
+        idx19 = RangeIndex(8, 6, -1, name="foo")
+        result = union_indexes([idx18, idx19])
+        tm.assert_index_equal(result, idx18, exact=True)
+
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex

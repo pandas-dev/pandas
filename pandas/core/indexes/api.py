@@ -239,19 +239,20 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
             if all(idx.step == step for idx in non_empty):
                 if step > 0:
                     sorted_indexes = sorted(non_empty, key=lambda x: x.start)
+                    current_stop = sorted_indexes[0].stop
                     possible = True
-                    for i in range(len(sorted_indexes) - 1):
-                        if sorted_indexes[i].stop < sorted_indexes[i + 1].start:
+                    for idx in sorted_indexes[1:]:
+                        if idx.start > current_stop:
                             possible = False
                             break
-                        diff = sorted_indexes[i + 1].start - sorted_indexes[i].start
-                        if diff % step != 0:
+                        if (idx.start - sorted_indexes[0].start) % step != 0:
                             possible = False
                             break
+                        current_stop = max(current_stop, idx.stop)
                     if possible:
                         return RangeIndex(
                             sorted_indexes[0].start,
-                            sorted_indexes[-1].stop,
+                            current_stop,
                             step,
                             name=name,
                         )
@@ -259,19 +260,20 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
                     sorted_indexes = sorted(
                         non_empty, key=lambda x: x.start, reverse=True
                     )
+                    current_stop = sorted_indexes[0].stop
                     possible = True
-                    for i in range(len(sorted_indexes) - 1):
-                        if sorted_indexes[i].stop > sorted_indexes[i + 1].start:
+                    for idx in sorted_indexes[1:]:
+                        if idx.start < current_stop:
                             possible = False
                             break
-                        diff = sorted_indexes[i + 1].start - sorted_indexes[i].start
-                        if diff % step != 0:
+                        if (idx.start - sorted_indexes[0].start) % step != 0:
                             possible = False
                             break
+                        current_stop = min(current_stop, idx.stop)
                     if possible:
                         return RangeIndex(
                             sorted_indexes[0].start,
-                            sorted_indexes[-1].stop,
+                            current_stop,
                             step,
                             name=name,
                         )
