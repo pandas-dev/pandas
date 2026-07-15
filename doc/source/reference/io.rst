@@ -92,6 +92,13 @@ JSON
 
    build_table_schema
 
+.. currentmodule:: pandas.api.typing
+
+.. autosummary::
+   :toctree: api/
+
+   JsonReader
+
 .. currentmodule:: pandas
 
 HTML
