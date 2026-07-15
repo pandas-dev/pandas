@@ -776,3 +776,45 @@ def test_get_strings(any_string_dtype):
     result = ser.str.get(2)
     expected = Series([np.nan, np.nan, np.nan, "c"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["split", "partition", "rpartition"])
+def test_split_category_returns_list_not_string(method):
+    # GH 66341
+    ser = Series(
+        [
+            "this is a regular sentence",
+            "https://docs.python.org/3/tutorial/index.html",
+            np.nan,
+        ]
+    ).astype("category")
+
+    if method == "split":
+        result = ser.str.split()
+        expected = Series(
+            [
+                ["this", "is", "a", "regular", "sentence"],
+                ["https://docs.python.org/3/tutorial/index.html"],
+                np.nan,
+            ]
+        )
+    elif method == "partition":
+        result = ser.str.partition(expand=False)
+        expected = Series(
+            [
+                ("this", " ", "is a regular sentence"),
+                ("https://docs.python.org/3/tutorial/index.html", "", ""),
+                np.nan,
+            ]
+        )
+    else:
+        result = ser.str.rpartition(expand=False)
+        expected = Series(
+            [
+                ("this is a regular", " ", "sentence"),
+                ("", "", "https://docs.python.org/3/tutorial/index.html"),
+                np.nan,
+            ]
+        )
+
+    tm.assert_series_equal(result, expected)
