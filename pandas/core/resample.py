@@ -203,11 +203,19 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return object.__getattribute__(self, attr)
 
-    def __getitem__(self, key):
-        if isinstance(key, tuple) and len(key) > 1:
-            subset = self.obj[key]
-            return self._gotitem(key, ndim=subset.ndim, subset=subset)
+    # def __getitem__(self, key):
+    #     if isinstance(key, tuple) and len(key) > 1:
+    #         warnings.warn(
+    #             "Passing a tuple to Resampler.__getitem__ is deprecated and "
+    #             "will raise a KeyError in a future version. Use a list instead.",
+    #             FutureWarning,
+    #             stacklevel=find_stack_level(),
+    #         )
+    #         return super().__getitem__(list(key))
 
+    #     return super().__getitem__(key)
+
+    def __getitem__(self, key):
         return super().__getitem__(key)
 
     @final
