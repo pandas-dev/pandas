@@ -2,7 +2,7 @@ project(
     'fast_float',
     'cpp',
     license: 'Apache-2.0',
-    version: '8.2.3',
+    version: '8.2.10',
 )
 
 fast_float_inc = include_directories('include')

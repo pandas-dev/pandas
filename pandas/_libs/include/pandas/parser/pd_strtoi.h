@@ -1,7 +1,7 @@
 /*
-Locale-independent integer parsing via std::from_chars.
-Faster than libc strtoll/strtoull because std::from_chars skips locale and
-errno. Defined in pd_strtoi.cpp.
+Locale-independent integer parsing via fast_float::from_chars.
+Faster than libc strtoll/strtoull because fast_float skips locale and errno
+and parses runs of 8 digits at a time. Defined in pd_strtoi.cpp.
 */
 #pragma once
 

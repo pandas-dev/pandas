@@ -1,14 +1,14 @@
 /*
 Integer parsing for the tokenizer, implemented in C++ (with C linkage) so the
-hot paths can use std::from_chars and fast_float's digit helpers directly and
-have them inline. std::from_chars is locale-independent and skips errno,
-making it measurably faster than libc strtoll/strtoull on platforms where
-those functions consult the current locale on every call.
+hot paths can use fast_float::from_chars directly and have it inline.
+fast_float::from_chars is locale-independent, skips errno, and parses runs of
+8 digits at a time, making it measurably faster than libc strtoll/strtoull.
 */
 #include "pandas/parser/pd_strtoi.h"
 
-#include <charconv>
+#include <algorithm>
 #include <cstring>
+#include <optional>
 #include <system_error>
 
 #include "fast_float/fast_float.h"
@@ -17,7 +17,7 @@ those functions consult the current locale on every call.
 
 pd_strtoi_status pd_strtoll(const char *start, const char *end, int64_t *value,
                             const char **endptr) {
-  auto result = std::from_chars(start, end, *value, 10);
+  auto result = fast_float::from_chars(start, end, *value, 10);
   *endptr = result.ptr;
   if (result.ec == std::errc()) {
     return PD_STRTOI_OK;
@@ -30,7 +30,7 @@ pd_strtoi_status pd_strtoll(const char *start, const char *end, int64_t *value,
 
 pd_strtoi_status pd_strtoull(const char *start, const char *end,
                              uint64_t *value, const char **endptr) {
-  auto result = std::from_chars(start, end, *value, 10);
+  auto result = fast_float::from_chars(start, end, *value, 10);
   *endptr = result.ptr;
   if (result.ec == std::errc()) {
     return PD_STRTOI_OK;
@@ -43,101 +43,53 @@ pd_strtoi_status pd_strtoull(const char *start, const char *end,
 
 // Arrow256 allows up to 76 decimal digits.
 // We rounded up to the next power of 2.
-#define PROCESSED_WORD_CAPACITY 128
+constexpr size_t PROCESSED_WORD_CAPACITY = 128;
 
-/* Copy a numeric token without `tsep` into `output`.
+/* Copy a numeric token without `tsep` into `output` (requires tsep != '\0').
  *
- * Returns the number of bytes written (excluding NUL), or -1 on overflow.
- * `*endptr` is set to the position in `str` where copying stopped (the first
- * non-digit / non-tsep char or the end of input) so the caller can detect
- * trailing garbage like "1 ," (GH#64631).
+ * Returns the number of bytes written (excluding NUL), or std::nullopt if the
+ * token does not fit in `output`. `*endptr` is set to the position in `str`
+ * where copying stopped (the first non-digit / non-tsep char or the end of
+ * input) so the caller can detect trailing garbage like "1 ," (GH#64631).
  */
-static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, const char **endptr,
-                                    size_t str_len, char tsep) {
+static std::optional<size_t>
+copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY], const char *str,
+                         const char **endptr, size_t str_len, char tsep) {
   const char *p = str;
-  const char *end = str + str_len;
-  size_t bytes_written = 0;
+  const char *const end = str + str_len;
+  char *out = output;
 
   if (p < end && (*p == '+' || *p == '-')) {
-    output[bytes_written++] = *p++;
+    *out++ = *p++;
   }
 
-  while (p < end && (isdigit_ascii(*p) || (tsep != '\0' && *p == tsep))) {
-    if (*p != tsep) {
-      if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
-        return -1;
-      }
-      output[bytes_written++] = *p;
-    }
-    p++;
+  const char *const token_end = std::find_if(
+      p, end, [tsep](char ch) { return !isdigit_ascii(ch) && ch != tsep; });
+  const size_t n_digits = static_cast<size_t>(token_end - p) -
+                          static_cast<size_t>(std::count(p, token_end, tsep));
+  if (static_cast<size_t>(out - output) + n_digits + 1 >
+      PROCESSED_WORD_CAPACITY) {
+    return std::nullopt;
   }
 
-  output[bytes_written] = '\0';
+  out = std::remove_copy(p, token_end, out, tsep);
+  *out = '\0';
   if (endptr != NULL) {
-    *endptr = p;
+    *endptr = token_end;
   }
-  return (int)bytes_written;
-}
-
-/* SWAR fast path for the common case: an optional sign followed by 1-18
- * digits filling the whole [p_item, p_item+length) span. 18 digits cannot
- * overflow int64, and a pure-digit span can contain no thousands separator,
- * spaces or trailing junk, so full consumption means the token is exactly a
- * clean integer. Digit validation and parsing use fast_float's 8-digits-at-a-
- * time helpers, which inline here (calling them from tokenizer.c instead
- * costs a per-token cross-TU call). Returns true and stores the value in
- * *result on success; anything else returns false so the caller falls
- * through to the slow path. */
-static inline bool swar_try_parse_int64(const char *p_item, int64_t length,
-                                        int64_t *result) {
-  if (length < 1) {
-    return false;
-  }
-  const char *p_end = p_item + length;
-  const bool neg = *p_item == '-';
-  const char *digits = p_item + (neg || *p_item == '+');
-  size_t rem = (size_t)(p_end - digits);
-  if (rem < 1 || rem > 18) {
-    return false;
-  }
-  uint64_t acc = 0;
-  while (rem >= 8) {
-    const uint64_t block = fast_float::read8_to_u64(digits);
-    if (!fast_float::is_made_of_eight_digits_fast(block)) {
-      return false;
-    }
-    acc = acc * 100000000ULL + fast_float::parse_eight_digits_unrolled(block);
-    digits += 8;
-    rem -= 8;
-  }
-  for (; rem > 0; rem--, digits++) {
-    const unsigned char digit = (unsigned char)(*digits - '0');
-    if (digit > 9) {
-      return false;
-    }
-    acc = acc * 10 + digit;
-  }
-  *result = neg ? -(int64_t)acc : (int64_t)acc;
-  return true;
+  return static_cast<size_t>(out - output);
 }
 
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
-  int64_t swar_result;
-  if (swar_try_parse_int64(p_item, length, &swar_result)) {
-    *error = 0;
-    return swar_result;
-  }
-
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
   }
 
-  // Handle sign. std::from_chars accepts '-' but rejects '+', so strip '+'
-  // after verifying the following char is a digit (not another sign).
+  // Handle sign. fast_float::from_chars accepts '-' but rejects '+', so strip
+  // '+' after verifying the following char is a digit (not another sign).
   const bool has_sign = *p == '-' || *p == '+';
   const char *digit_start = has_sign ? p + 1 : p;
   if (!isdigit_ascii(*digit_start)) {
@@ -155,15 +107,15 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
       length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int written =
+    const std::optional<size_t> written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (written < 0) {
+    if (!written.has_value()) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
-    str_len = (size_t)written;
+    str_len = *written;
   }
 
   int64_t number;
@@ -231,15 +183,15 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
       length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int written =
+    const std::optional<size_t> written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (written < 0) {
+    if (!written.has_value()) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
-    str_len = (size_t)written;
+    str_len = *written;
   }
 
   uint64_t number;
