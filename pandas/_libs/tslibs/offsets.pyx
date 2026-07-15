@@ -1961,7 +1961,21 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = localize_pydatetime(other, tzinfo)
 
-            return Timestamp(other)
+            result = Timestamp(other)
+            # GH#64806 The computation above uses Python timedelta /
+            # relativedelta, which floor sub-second components to microseconds
+            # and lose the offset's declared resolution (e.g. milliseconds).
+            # Coerce to that resolution when lossless so the scalar result
+            # matches the vectorized DatetimeIndex/Series path; apply_wraps
+            # then narrows back to ``other``'s unit where that is also lossless.
+            try:
+                offset_unit = self._pd_timedelta.unit
+            except NotImplementedError:
+                return result
+            result2 = result.as_unit(offset_unit)
+            if result == result2:
+                result = result2
+            return result
         else:
             return other + timedelta(self._n)
 
@@ -2008,6 +2022,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
                     delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
+            elif not kwds:
+                # GH#61870: bare DateOffset(n) with no keywords defaults to
+                # n days (matching the scalar path); without this branch it
+                # would incorrectly become a no-op on the vectorized path.
+                delta = Timedelta(days=1).as_unit("s")
             else:
                 delta = Timedelta(0).as_unit("s")
 
@@ -7268,6 +7287,8 @@ cdef _validate_to_offset_alias(str alias, bint is_period):
         str alias_upper, renamed, period_alias
 
     if not is_period:
+        if alias in deprec_to_valid_alias:
+            raise_invalid_freq(freq=alias)
         alias_upper = alias.upper()
         renamed = c_OFFSET_RENAMED_FREQSTR.get(alias_upper)
         if renamed is not None:

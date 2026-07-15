@@ -1557,7 +1557,8 @@ class LinePlot(MPLPlot):
             self.data = self.data.fillna(value=0)
 
     def _make_plot(self, fig: Figure) -> None:
-        if self._is_ts_plot():
+        is_ts = self._is_ts_plot()
+        if is_ts:
             ax0 = self._get_ax(0)
             data = maybe_convert_index(ax0, self.data)
             # For BDay, maybe_convert_index produces a plain int64 index (to
@@ -1587,6 +1588,10 @@ class LinePlot(MPLPlot):
         is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
+        # Collect unique ts axes so date-axis formatting + xlim run once per
+        # axis at the end, not once per column (GH#61398).
+        ts_axes: list[Axes] = []
+        seen_ax_ids: set[int] = set()
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1620,9 +1625,15 @@ class LinePlot(MPLPlot):
             )
             self._append_legend_handles_labels(newlines[0], label)
 
-            if self._is_ts_plot():
-                # reset of xlim should be used for ts data
-                # TODO: GH28021, should find a way to change view limit on xaxis
+            if is_ts and id(ax) not in seen_ax_ids:
+                ts_axes.append(ax)
+                seen_ax_ids.add(id(ax))
+
+        if is_ts:
+            # TODO: GH28021, should find a way to change view limit on xaxis
+            for ax in ts_axes:
+                # TODO #54485
+                format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
@@ -1653,15 +1664,13 @@ class LinePlot(MPLPlot):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = prepare_ts_data(data, ax, kwds)
+        _freq, data = prepare_ts_data(data, ax, kwds)
 
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
-        # set date formatter, locators and rescale limits
-        # TODO #54485
-        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+        # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
     @final

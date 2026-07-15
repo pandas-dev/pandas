@@ -147,7 +147,7 @@ typedef struct parser_t {
   int64_t skip_first_N_rows;
   int64_t skip_footer;
   double (*double_converter)(const char *, char **, char, char, char, int,
-                             int *, int *);
+                             int *, int *, const char *);
 
   // error handling
   char *warn_msg;
@@ -169,27 +169,27 @@ typedef struct coliter_t {
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
-#define COLITER_NEXT(iter, word)                                               \
-  do {                                                                         \
-    const int64_t i = *iter.line_start++ + iter.col;                           \
-    word = i >= *iter.line_start ? "" : iter.words[i];                         \
-  } while (0)
+// Advance the column iterator and return the next field's token, emitting its
+// resolved index via idx_out so callers needing the token length can compute
+// it as word_starts[idx+1] - word_starts[idx] - 1 (using parser->stream_len
+// for the last token where idx+1 == words_len). A missing field yields "" and
+// idx_out = -1, which callers must treat as length 0 rather than indexing into
+// word_starts.
+static inline const char *coliter_next_with_idx(coliter_t *self,
+                                                int64_t *idx_out) {
+  const int64_t idx = *self->line_start++ + self->col;
+  if (idx >= *self->line_start) {
+    *idx_out = -1;
+    return "";
+  }
+  *idx_out = idx;
+  return self->words[idx];
+}
 
-// Emits the resolved token index via idx_out so callers needing the token
-// length can compute it as word_starts[idx+1] - word_starts[idx] - 1
-// (using parser->stream_len for the last token where idx+1 == words_len).
-// Missing fields yield word = "" and idx_out = -1; callers must treat
-// those as length 0 rather than indexing into word_starts.
-#define COLITER_NEXT_WITH_IDX(iter, word, idx_out)                             \
-  do {                                                                         \
-    idx_out = *iter.line_start++ + iter.col;                                   \
-    if (idx_out >= *iter.line_start) {                                         \
-      word = "";                                                               \
-      idx_out = -1;                                                            \
-    } else {                                                                   \
-      word = iter.words[idx_out];                                              \
-    }                                                                          \
-  } while (0)
+static inline const char *coliter_next(coliter_t *self) {
+  int64_t idx;
+  return coliter_next_with_idx(self, &idx);
+}
 
 parser_t *parser_new(void);
 
@@ -232,6 +232,11 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
+// As precise_xstrtod, but takes the known end of the token (one past its
+// last byte) to skip the end-of-token scan; pass NULL to locate it as usual.
+double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
+                                char tsep, int skip_trailing, int *error,
+                                int *maybe_int, const char *end);
 int to_boolean(const char *item, uint8_t *val);
 
 #ifdef __cplusplus
