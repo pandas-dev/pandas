@@ -190,6 +190,27 @@ class TestDatetimeIndexSetOps:
         assert not result.is_monotonic_increasing
         assert result.freq is None
 
+    def test_union_sort_false_other_extends_past_self(self):
+        # GH#66322 with sort=False and self starting after other, the result
+        #  is non-monotonic, so the fast path does not apply; previously it
+        #  appended only other[:self[0]] and silently dropped the tail.
+        dti = date_range("2016-01-01", periods=6, freq="MS")
+        left = dti[2:4]
+
+        result = left.union(dti, sort=False)
+        expected = DatetimeIndex(
+            [
+                "2016-03-01",
+                "2016-04-01",
+                "2016-01-01",
+                "2016-02-01",
+                "2016-05-01",
+                "2016-06-01",
+            ]
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
+
     def test_union_dataframe_index(self):
         rng1 = date_range("1/1/1999", "1/1/2012", freq="MS")
         s1 = Series(np.random.default_rng(2).standard_normal(len(rng1)), rng1)
