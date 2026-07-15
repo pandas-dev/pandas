@@ -37,11 +37,9 @@ int pd_fast_double(const char *start, const char *end, char decimal,
       !(*q == decimal && q[1] >= '0' && q[1] <= '9')) {
     return -1;
   }
-  fast_float::parse_options options{fast_float::chars_format::general, decimal};
-  auto result = fast_float::from_chars_advanced(start, end, *out, options);
-  if ((result.ec == std::errc() ||
-       result.ec == std::errc::result_out_of_range) &&
-      result.ptr == end) {
+  const char *endptr;
+  if (fast_float_strtod(start, end, out, &endptr, decimal) == 0 &&
+      endptr == end) {
     return 0;
   }
   return -1;

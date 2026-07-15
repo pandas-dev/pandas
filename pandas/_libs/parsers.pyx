@@ -258,11 +258,6 @@ cdef extern from "pandas/parser/tokenizer.h":
                                     int *error, int *maybe_int,
                                     const char *end) nogil
 
-    # Linked directly from tokenizer.c, not exported via the pd_parser capsule
-    double precise_xstrtod_with_end(const char *p, char **q, char decimal,
-                                    char sci, char tsep, int skip_trailing,
-                                    int *error, int *maybe_int,
-                                    const char *end) nogil
     int pd_fast_double(const char *start, const char *end, char decimal,
                        double *out) nogil
 
@@ -1999,9 +1994,9 @@ cdef int _try_double_nogil(parser_t *parser,
                 data[0] = NA
             else:
                 word_end = word + _token_len(parser, token_idx)
-                if (not fastpath or
+                if not (fastpath and
                         pd_fast_double(word, word_end,
-                                       parser.decimal, data) != 0):
+                                       parser.decimal, data) == 0):
                     data[0] = double_converter(word, &p_end, parser.decimal,
                                                parser.sci, parser.thousands,
                                                1, &error, NULL, word_end)
@@ -2027,8 +2022,8 @@ cdef int _try_double_nogil(parser_t *parser,
         for _ in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
             word_end = word + _token_len(parser, token_idx)
-            if (not fastpath or
-                    pd_fast_double(word, word_end, parser.decimal, data) != 0):
+            if not (fastpath and
+                    pd_fast_double(word, word_end, parser.decimal, data) == 0):
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL, word_end)
