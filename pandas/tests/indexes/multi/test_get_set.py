@@ -205,7 +205,9 @@ def test_set_levels(idx):
 
     # a single scalar level with a nested (list-of-lists) value is rejected with
     # a message that says the value must be flat, not merely "list-like"
-    with pytest.raises(TypeError, match="Levels must be list-like, not a list of lists"):
+    with pytest.raises(
+        TypeError, match="Levels must be list-like, not a list of lists"
+    ):
         idx.set_levels([["a", "b"]], level=0)
     assert_matching(idx.levels, original_index.levels, check_dtype=True)
 
