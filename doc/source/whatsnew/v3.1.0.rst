@@ -257,11 +257,6 @@ Bug fixes
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
-Reshaping
-^^^^^^^^^
-- Fixed bug in :meth:`DataFrame.pivot_table` with ``margins=True`` and a dictionary ``aggfunc`` raising ``KeyError`` when a column in the data is missing from the dictionary (:issue:`66151`)
--
-
 Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.__repr__` where the values and categories lines could exceed ``display.width`` (:issue:`12066`)
@@ -479,6 +474,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Fixed bug in :meth:`DataFrame.pivot_table` with ``margins=True`` and a dictionary ``aggfunc`` raising ``KeyError`` when a column in the data is missing from the dictionary (:issue:`66151`)
 - Bug in :func:`concat` raising ``InvalidIndexError`` when ``keys`` or the concatenated objects' index was an overlapping :class:`IntervalIndex` (:issue:`64825`)
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :meth:`DataFrame.melt` where ``var_name`` colliding with an ``id_vars`` column or ``value_name`` silently overwrote the affected column data instead of raising (:issue:`65654`)
