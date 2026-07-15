@@ -16267,12 +16267,10 @@ class DataFrame(NDFrame, OpsMixin):
                     bvalues = blocks[0].values
                     result = None
                     if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
-                        # A block with few rows and many columns is
-                        # (ncols, nrows), so reducing it along axis=0 walks the
-                        # long axis with a strided inner loop that barely
-                        # vectorizes (only nrows output lanes).  sum/prod/mean
-                        # are faster on the transpose path for that shape, so
-                        # leave those frames to it.
+                        # The block is (ncols, nrows), so for a frame with few
+                        # rows the axis=0 reduction has only nrows output lanes
+                        # and barely vectorizes.  sum/prod/mean are faster on
+                        # the transpose path there, so leave those to it.
                         if not (
                             name in ("sum", "prod", "mean") and bvalues.shape[1] < 6
                         ):
