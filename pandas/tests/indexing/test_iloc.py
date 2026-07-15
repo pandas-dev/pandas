@@ -813,8 +813,25 @@ class TestiLocBaseIndependent:
         else:
             df.iloc[:, [0, 2]] = value
 
-        expected = DataFrame(np.array(value, dtype="float64"), columns=["a", "c"])
-        tm.assert_frame_equal(df[["a", "c"]], expected)
+        arr = np.array(value, dtype="float64")
+        expected = DataFrame(
+            {"a": arr[:, 0], "b": np.zeros(nrows, dtype="int64"), "c": arr[:, 1]}
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_arrays_single_column(self, indexer):
+        # GH#64230 a list of 1-D arrays targeting a single column is a shape
+        # mismatch, same as a list of lists; unlike mismatched-length tuples
+        # (GH#65264) arrays are not scalar-like, so no per-cell storage
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [np.array([1, 2]), np.array([3, 4])]
+        msg = "Must have equal len keys and value when setting with an ndarray"
+        with pytest.raises(ValueError, match=msg):
+            if indexer == "loc":
+                df.loc[:, ["a"]] = value
+            else:
+                df.iloc[:, [0]] = value
 
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_list_of_0d_arrays(self, indexer):
