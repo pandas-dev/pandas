@@ -653,8 +653,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
 
                 if out_local == 1:
                     obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
-                    # Faster equivalent of localizing to this fixed offset
-                    #  and converting to UTC
+                    # equiv: tz_localize_to_utc_single(
+                    #  ival, obj.tzinfo, creso=reso)
                     obj.value = ival - out_tzoffset * 60 * periods_per_second(reso)
                     if tz is None:
                         check_overflows(obj, reso)

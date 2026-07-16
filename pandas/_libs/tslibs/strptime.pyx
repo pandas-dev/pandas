@@ -520,8 +520,8 @@ def array_strptime(
                     nsecs = out_tzoffset * 60
                     state.out_tzoffset_vals.add(nsecs)
                     state.found_aware_str = True
-                    # Faster equivalent of localizing to the parsed fixed
-                    #  offset and converting to UTC
+                    # equiv: tz_localize_to_utc_single(
+                    #  value, timezone(timedelta(minutes=out_tzoffset)), creso=creso)
                     value -= nsecs * periods_per_second(creso)
                 else:
                     tz = None
@@ -569,8 +569,8 @@ def array_strptime(
             if tz is not None:
                 ival = iresult[i]
                 if type(tz) is timezone:
-                    # i.e. a fixed offset from the %z directive; faster
-                    #  equivalent of localizing and converting to UTC
+                    # i.e. a fixed offset from the %z directive
+                    # equiv: tz_localize_to_utc_single(ival, tz, creso=creso)
                     nsecs = int(tz.utcoffset(None).total_seconds())
                     iresult[i] = ival - nsecs * periods_per_second(creso)
                 else:
