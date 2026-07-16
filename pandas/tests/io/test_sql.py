@@ -3771,6 +3771,34 @@ def dtype_backend_expected():
     return func
 
 
+def test_convert_arrays_to_dataframe_pyarrow_date_time():
+    # GH#56551 tested directly because SQLite returns date/time columns as text,
+    # so a round-trip cannot exercise the object-to-arrow conversion path
+    pytest.importorskip("pyarrow")
+    from pandas.io.sql import _convert_arrays_to_dataframe
+
+    data = [
+        (date(2024, 1, 1), time(12, 30), datetime(2024, 1, 1, 12, 30)),
+        (date(2024, 2, 2), time(1, 15), datetime(2024, 2, 2, 1, 15)),
+    ]
+    columns = ["date", "time", "datetime"]
+    result = _convert_arrays_to_dataframe(data, columns, dtype_backend="pyarrow")
+
+    expected = DataFrame(
+        {
+            "date": pd.array(
+                [date(2024, 1, 1), date(2024, 2, 2)], dtype="date32[day][pyarrow]"
+            ),
+            "time": pd.array([time(12, 30), time(1, 15)], dtype="time64[us][pyarrow]"),
+            "datetime": pd.array(
+                [datetime(2024, 1, 1, 12, 30), datetime(2024, 2, 2, 1, 15)],
+                dtype="timestamp[us][pyarrow]",
+            ),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_chunksize_empty_dtypes(conn, request):
     # GH#50245

@@ -165,8 +165,9 @@ def _convert_arrays_to_dataframe(
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
+    object_columns = list(content.T)
     arrays = convert_object_array(
-        list(content.T),
+        object_columns,
         dtype=None,
         coerce_float=coerce_float,
         dtype_backend=dtype_backend,
@@ -175,13 +176,22 @@ def _convert_arrays_to_dataframe(
         pa = import_optional_dependency("pyarrow")
 
         result_arrays = []
-        for arr in arrays:
-            pa_array = pa.array(arr, from_pandas=True)
-            if arr.dtype == "string":
-                # TODO: Arrow still infers strings arrays as regular strings instead
-                # of large_string, which is what we preserver everywhere else for
-                # dtype_backend="pyarrow". We may want to reconsider this
-                pa_array = pa_array.cast(pa.string())
+        for arr, obj_col in zip(arrays, object_columns, strict=True):
+            if arr.dtype == "string" and lib.infer_dtype(obj_col, skipna=True) in (
+                "date",
+                "time",
+            ):
+                # GH#56551: date/time objects have no numpy dtype, so the
+                # object-array conversion falls back to string. Infer the proper
+                # date32/time64 type from the original values with pyarrow instead.
+                pa_array = pa.array(obj_col, from_pandas=True)
+            else:
+                pa_array = pa.array(arr, from_pandas=True)
+                if arr.dtype == "string":
+                    # TODO: Arrow still infers strings arrays as regular strings
+                    # instead of large_string, which is what we preserver everywhere
+                    # else for dtype_backend="pyarrow". We may want to reconsider this
+                    pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
