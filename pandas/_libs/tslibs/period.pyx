@@ -881,7 +881,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
     int64_t
     """
     cdef:
-        int64_t sub, factor
+        int64_t periods_per_day, nanos_per_period, periods_since_midnight
         int64_t nanos_in_day = 24 * 3600 * 10**9
 
     freq = get_freq_group(freq)
@@ -890,26 +890,30 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
         return 0
 
     elif freq == FR_NS:
-        factor = 1
+        nanos_per_period = 1
 
     elif freq == FR_US:
-        factor = 10**3
+        nanos_per_period = 10**3
 
     elif freq == FR_MS:
-        factor = 10**6
+        nanos_per_period = 10**6
 
     elif freq == FR_SEC:
-        factor = 10 **9
+        nanos_per_period = 10 **9
 
     elif freq == FR_MIN:
-        factor = 10**9 * 60
+        nanos_per_period = 10**9 * 60
 
     else:
         # We must have freq == FR_HR
-        factor = 10**9 * 3600
+        nanos_per_period = 10**9 * 3600
 
-    sub = ordinal - unix_date * (nanos_in_day / factor)
-    return sub * factor
+    periods_per_day = nanos_in_day // nanos_per_period
+    periods_since_midnight = ordinal % periods_per_day
+    if periods_since_midnight < 0:
+        periods_since_midnight += periods_per_day
+
+    return periods_since_midnight * nanos_per_period
 
 
 cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
@@ -2270,18 +2274,22 @@ cdef class _Period(PeriodMixin):
         """
         how = validate_end_alias(how)
 
-        if self._dtype._dtype_code == PeriodDtypeCode.N or freq == "ns":
-            unit = "ns"
-        else:
-            unit = "us"
-
         end = how == "E"
         if end:
+            if freq is not None:
+                # GH#63760 normalize so e.g. "1ns" is recognized as nanosecond
+                freq = self._maybe_convert_freq(freq)
+            ns_target = (
+                freq is not None and freq._period_dtype_code == PeriodDtypeCode.N
+            )
             if freq == "B" or self._freq == "B":
                 # roll forward to ensure we land on B date
+                stamp = self.to_timestamp(how="start")
+                unit = "ns" if ns_target else stamp.unit
                 adjust = np.timedelta64(1, "D") - np.timedelta64(1, unit)
-                return self.to_timestamp(how="start") + adjust
+                return stamp + adjust
             endpoint = (self + self._freq).to_timestamp(how="start")
+            unit = "ns" if ns_target else endpoint.unit
             return endpoint - np.timedelta64(1, unit)
 
         if freq is None:
@@ -2292,6 +2300,14 @@ cdef class _Period(PeriodMixin):
         else:
             freq = self._maybe_convert_freq(freq)
             base = freq._period_dtype_code
+
+        # GH#63760 period_ordinal_to_dt64 gives nanoseconds only for the
+        #  nanosecond target base and microseconds otherwise, so the result
+        #  unit is determined by the normalized target base.
+        if base == PeriodDtypeCode.N:
+            unit = "ns"
+        else:
+            unit = "us"
 
         val = self.asfreq(freq, how)
 

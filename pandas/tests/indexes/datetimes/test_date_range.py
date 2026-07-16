@@ -1242,8 +1242,66 @@ class TestBusinessDateRange:
         expected = DatetimeIndex(["2026-03-12", "2026-03-17", "2026-03-20"])
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("freq", ["B", "C", "2B", "2C"])
+    def test_date_range_business_freq_start_end_time_of_day(self, freq):
+        # GH#64648 (post-merge): the business-day fast path must apply the
+        # GH#35342/GH#64790 time-of-day fix -- when end's time-of-day is
+        # earlier than start's, the last on-offset date must not be excluded.
+        result = date_range("2024-01-01 09:00", "2024-01-09 08:00", freq=freq)
+        # identical to giving end the same time-of-day as start (no boundary lost)
+        expected = date_range("2024-01-01 09:00", "2024-01-09 09:00", freq=freq)
+        tm.assert_index_equal(result, expected)
+        assert result[-1] == Timestamp("2024-01-09 09:00")
+
+    def test_date_range_business_start_end_near_timestamp_max(self):
+        # GH#64648 (post-merge): the GH#64790 time-of-day fix must not raise
+        # OutOfBoundsDatetime when start is a business day with time-of-day
+        # within one offset step of Timestamp.max (2262-04-11 is a Friday)
+        start = Timestamp("2262-04-11 10:00").as_unit("ns")
+        end = Timestamp("2262-04-11 15:00").as_unit("ns")
+        result = date_range(start, end, freq="B")
+        expected = DatetimeIndex([start], freq="B")
+        tm.assert_index_equal(result, expected)
+
+        # aligning end to start's time-of-day would exceed Timestamp.max; the
+        # unrepresentable boundary element is excluded, not raised on
+        start = Timestamp("2262-04-10 23:59:59.999999").as_unit("ns")
+        end = Timestamp("2262-04-11 01:00").as_unit("ns")
+        result = date_range(start, end, freq="B")
+        expected = DatetimeIndex([start], freq="B")
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDateRange:
+    def test_cdate_range_periods_holidays_starve_buffer(self):
+        # GH#64648 (post-merge): with periods and a CustomBusinessDay whose
+        # holidays blank out whole weeks, the fast path must still return
+        # exactly `periods` business days -- previously a fixed calendar-day
+        # buffer held too few on-offset days and the result was silently short.
+        holidays = list(date_range("2024-01-01", "2024-02-29"))
+        cday = CDay(holidays=holidays)
+
+        result = date_range(start="2024-01-01", periods=6, freq=cday)
+        expected = DatetimeIndex(
+            [
+                "2024-03-01",
+                "2024-03-04",
+                "2024-03-05",
+                "2024-03-06",
+                "2024-03-07",
+                "2024-03-08",
+            ]
+        )
+        tm.assert_index_equal(result, expected)
+
+        holidays = list(date_range("2024-01-15", "2024-03-13"))
+        cday = CDay(holidays=holidays)
+        result = bdate_range(end="2024-03-15", periods=4, freq=cday)
+        expected = DatetimeIndex(
+            ["2024-01-11", "2024-01-12", "2024-03-14", "2024-03-15"]
+        )
+        tm.assert_index_equal(result, expected)
+
     def test_constructor(self):
         bdate_range(START, END, freq=CDay())
         bdate_range(START, periods=20, freq=CDay())

@@ -981,10 +981,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return maybe_unbox_numpy_scalar(result)
+            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
         elif is_scalar(result):
             # e.g. matmul
-            return maybe_unbox_numpy_scalar(result)
+            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -1554,7 +1554,6 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return range(1) if self.name is None else [self.name]
 
-    @final
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
@@ -6622,10 +6621,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
-                result = type(other)(self), other
+                result = type(other)(self)
             except OutOfBoundsDatetime:
                 return self, other
             else:
+                if self.is_unique and not result.is_unique:
+                    return self, other
                 warnings.warn(
                     # GH#62158 deprecate special-case treatment of date objects
                     "Indexing a DatetimeIndex with a sequence of datetime.date "
@@ -6633,7 +6634,7 @@ class Index(IndexOpsMixin, PandasObject):
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
-                return result
+                return result, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
@@ -8053,7 +8054,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return maybe_unbox_numpy_scalar(first)
+                return maybe_unbox_numpy_scalar(first, dtype=self.dtype)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8064,7 +8065,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="min", skipna=skipna)
 
-        return maybe_unbox_numpy_scalar(nanops.nanmin(self._values, skipna=skipna))
+        return maybe_unbox_numpy_scalar(
+            nanops.nanmin(self._values, skipna=skipna), dtype=self.dtype
+        )
 
     def max(
         self,
@@ -8126,7 +8129,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return maybe_unbox_numpy_scalar(last)
+                return maybe_unbox_numpy_scalar(last, dtype=self.dtype)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8137,7 +8140,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="max", skipna=skipna)
 
-        return maybe_unbox_numpy_scalar(nanops.nanmax(self._values, skipna=skipna))
+        return maybe_unbox_numpy_scalar(
+            nanops.nanmax(self._values, skipna=skipna), dtype=self.dtype
+        )
 
     # --------------------------------------------------------------------
 
