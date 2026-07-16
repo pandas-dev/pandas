@@ -82,15 +82,7 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
-            # TODO: the message being checked here isn't actually checking anything
-            msg = "|".join(
-                [
-                    "[Cc]annot perform",
-                    "Categorical is not ordered for operation",
-                    "does not support operation",
-                    "",
-                ]
-            )
+            msg = "|".join(["[Cc]annot perform", "does not support operation"])
 
             with pytest.raises(TypeError, match=msg):
                 getattr(ser, op_name)(skipna=skipna)
@@ -105,13 +97,16 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
-            # TODO: the message being checked here isn't actually checking anything
             msg = "|".join(
                 [
                     "[Cc]annot perform",
+                    "does not support",
                     "Categorical is not ordered for operation",
-                    "does not support operation",
-                    "",
+                    "is not implemented for",
+                    r"complex\(\) (first )?argument must be a string or a number",
+                    "can't multiply sequence by non-int",
+                    "setting an array element with a sequence",
+                    "Cannot convert .* to numeric",
                 ]
             )
 
@@ -142,11 +137,8 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         kwargs = {}
-        if op_name in ["mean", "any", "all"] and isinstance(
-            ser.array, pd.arrays.SparseArray
-        ):
-            # https://github.com/pandas-dev/pandas/issues/65478
-            # Methods are missing the skipna argument
+        if op_name in ["any", "all"] and isinstance(ser.array, pd.arrays.SparseArray):
+            # SparseArray.any/all do not accept a skipna argument
             pass
         elif op_name != "count":
             kwargs["skipna"] = skipna
@@ -171,17 +163,6 @@ class BaseReduceTests:
             with pytest.raises((TypeError, AttributeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
             return
-
-        if (
-            isinstance(ser.array.dtype, pd.SparseDtype)
-            and not skipna
-            and (
-                (op_name in ["min", "max"] and data._hasna)
-                or (op_name == "sum" and not data._hasna)
-            )
-        ):
-            msg = "GH#63512: _reduce doesn't properly handle not skipna"
-            request.node.add_marker(pytest.mark.xfail(reason=msg))
 
         res_op = getattr(ser.array, op_name)
         expected = ser.array._reduce(op_name, **kwargs)

@@ -38,6 +38,7 @@ import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 import re
+import warnings
 
 import numpy as np
 
@@ -84,6 +85,7 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslibs.timestamps import Timestamp
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
@@ -171,7 +173,8 @@ cdef dict _parse_code_table = {"y": 0,
                                "z": 19,
                                "G": 20,
                                "V": 21,
-                               "u": 22}
+                               "u": 22,
+                               "N": 23}
 
 
 cdef _validate_fmt(str fmt):
@@ -387,6 +390,7 @@ def array_strptime(
         bint string_to_dts_succeeded = 0
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
+        bint warned_numeric = False
 
     assert is_raise or is_coerce
 
@@ -464,6 +468,20 @@ def array_strptime(
             ):
                 iresult[i] = NPY_NAT
                 continue
+            elif is_integer_object(val) or is_float_object(val):
+                if not warned_numeric:
+                    from pandas.errors import Pandas4Warning
+                    warnings.warn(
+                        "Parsing integer or float values with a format in "
+                        "to_datetime is deprecated. In a future version these "
+                        "will be interpreted as epochs via the 'unit' keyword "
+                        "instead. Cast them to strings first to retain the "
+                        "current behavior.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    warned_numeric = True
+                val = str(val)
             else:
                 val = str(val)
 
@@ -755,6 +773,13 @@ cdef tzinfo _parse_with_format(
             us = int(s)
             ns = us % 1000
             us = us // 1000
+        elif parse_code == 23:
+            # e.g. val='123456789'; fmt='%H:%M:%S.%N'
+            s = group_val
+            item_reso[0] = NPY_FR_ns
+            us = int(s)
+            ns = us % 1000
+            us = us // 1000
         elif parse_code == 11:
             # e.g val='Tuesday 24 Aug 2021 01:30:48 AM'; fmt='%A %d %b %Y %I:%M:%S %p'
             weekday = f_weekday_lookup[group_val.lower()]
@@ -859,7 +884,8 @@ class TimeRE(_TimeRE):
         super().__init__(locale_time=locale_time)
         # GH 48767: Overrides for cpython's TimeRE
         #  1) Parse up to nanos instead of micros
-        self.update({"f": r"(?P<f>[0-9]{1,9})"}),
+        self.update({"f": r"(?P<f>[0-9]{1,9})"})
+        self.update({"N": r"(?P<N>[0-9]{9})"})
 
     def __getitem__(self, key):
         if key == "Z":

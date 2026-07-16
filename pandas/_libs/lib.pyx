@@ -619,13 +619,17 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
+        double i64_min = <double>INT64_MIN
+        double i64_max = <double>INT64_MAX
 
     for i in range(len(arr)):
         val = arr[i]
-        if (val != val) or (val == <int64_t>val):
+        if val != val:
             continue
-        else:
-            return False
+        # Check if val is integral and fits within int64_t
+        if i64_min <= val < i64_max and val == <int64_t>val:
+            continue
+        return False
     return True
 
 
@@ -709,13 +713,13 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
     # left and right both have object dtype, but we cannot annotate that
     #  without limiting ndim.
     cdef:
-        Py_ssize_t i, n = left.size
+        Py_ssize_t _, n = left.size
         object x, y
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(left, right)
 
     # Caller is responsible for checking left.shape == right.shape
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: x = left[i]
         x = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 0))[0]
         y = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -958,7 +962,6 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
-        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -1022,9 +1025,8 @@ cpdef ndarray[object] ensure_string_array(
 
         return result
 
-    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = newarr[i]
+        val = arr[i]
 
         if isinstance(val, str):
             continue
@@ -1859,7 +1861,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     'categorical'
     """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t _, n
         object val
         ndarray values
         bint seen_pdnat = False
@@ -1905,7 +1907,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # Iterate until we find our first valid value. We will use this
     #  value to decide which of the is_foo_array functions to call.
     it = PyArray_IterNew(values)
-    for i in range(n):
+    for _ in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -2001,7 +2003,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "interval"
 
     cnp.PyArray_ITER_RESET(it)
-    for i in range(n):
+    for _ in range(n):
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
 
@@ -2048,11 +2050,11 @@ cdef class Validator:
     @cython.boundscheck(False)
     cdef bint _validate(self, ndarray values) except -1:
         cdef:
-            Py_ssize_t i
+            Py_ssize_t _
             Py_ssize_t n = values.size
             flatiter it = PyArray_IterNew(values)
 
-        for i in range(n):
+        for _ in range(n):
             # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
             #  equivalents to `val = values[i]`
             val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -2066,11 +2068,11 @@ cdef class Validator:
     @cython.boundscheck(False)
     cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
-            Py_ssize_t i
+            Py_ssize_t _
             Py_ssize_t n = values.size
             flatiter it = PyArray_IterNew(values)
 
-        for i in range(n):
+        for _ in range(n):
             # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
             #  equivalents to `val = values[i]`
             val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
@@ -2156,7 +2158,7 @@ cdef class IntegerFloatValidator(Validator):
         return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
-cdef bint is_integer_float_array(ndarray values, bint skipna=True):
+cpdef bint is_integer_float_array(ndarray values, bint skipna=True):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(values.size,
                                                                 values.dtype,
@@ -2427,7 +2429,7 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
     # values should be object-dtype, but ndarray[object] assumes 1D, while
     #  this _may_ be 2D.
     cdef:
-        Py_ssize_t i, N = values.size
+        Py_ssize_t _, N = values.size
         int dtype_code = -10000  # i.e. c_FreqGroup.FR_UND
         object val
         flatiter it
@@ -2436,7 +2438,7 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
         return False
 
     it = PyArray_IterNew(values)
-    for i in range(N):
+    for _ in range(N):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
