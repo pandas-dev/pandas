@@ -314,6 +314,7 @@ Timedelta
 - Bug in :meth:`Series.sum` and :meth:`DataFrame.sum` on an overflowing ``timedelta64`` object where :meth:`Series.sum` raised a plain ``ValueError`` and :meth:`DataFrame.sum` silently returned a saturated result instead of raising :class:`OutOfBoundsTimedelta` (:issue:`43178`)
 - Bug in ``Series.dt.seconds`` and ``Series.dt.microseconds`` with :class:`ArrowDtype` durations returning the ``Series.dt.components`` field values (e.g. 0-59 for seconds, or 0 for ``microseconds`` on a ``"ms"`` unit) instead of the totals within each day and second respectively, inconsistent with NumPy-backed timedeltas (:issue:`63470`)
 - Bug in multiplying a :class:`Series` of ``timedelta64`` by an integer or float, or dividing it by a float, where an overflowing result silently wrapped or saturated instead of raising :class:`OutOfBoundsTimedelta`; multiplying by ``inf`` now raises :class:`OutOfBoundsTimedelta` instead of returning ``NaT`` (:issue:`43178`)
+- Bug in the :class:`Series` and :class:`DataFrame` constructors not honoring the unit of a ``timedelta64[unit]`` dtype when constructing from floats or a mix of integers and floats, e.g. ``pd.Series([1.5, 90.0], dtype="timedelta64[s]")`` interpreted the numbers as nanoseconds and silently truncated them to zero instead of interpreting them as seconds (:issue:`63499`)
 
 Timezones
 ^^^^^^^^^

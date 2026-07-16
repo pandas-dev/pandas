@@ -2158,7 +2158,7 @@ cdef class IntegerFloatValidator(Validator):
         return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
-cdef bint is_integer_float_array(ndarray values, bint skipna=True):
+cpdef bint is_integer_float_array(ndarray values, bint skipna=True):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(values.size,
                                                                 values.dtype,
