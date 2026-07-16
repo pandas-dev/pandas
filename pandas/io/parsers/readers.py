@@ -43,6 +43,7 @@ from pandas.errors import (
     Pandas4Warning,
     ParserError,
     ParserWarning,
+    EmptyDataError,
 )
 from pandas.util._decorators import (
     set_module,
@@ -689,8 +690,6 @@ def _read_csv_parallel(
         first_line = fd.readline()
 
     name_buf = io.BytesIO(preamble + first_line)
-    
-    from pandas.errors import EmptyDataError
     try:
         name_reader = TextFileReader(name_buf, **base_kwds)
     except EmptyDataError:
