@@ -427,6 +427,46 @@ class TestRangeIndexSetOps:
         result = union_indexes([idx1, idx3])
         tm.assert_index_equal(result, RangeIndex(10, 5, -1, name=None), exact=True)
 
+    def test_union_indexes_range_all_empty(self):
+        # All empty range indexes
+        idx1 = RangeIndex(0, 0, name="foo")
+        idx2 = RangeIndex(5, 5, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # All empty, mismatched names
+        idx3 = RangeIndex(5, 5, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+    def test_union_indexes_range_mismatched_steps(self):
+        # Mismatched steps -> falls back to standard union
+        idx1 = RangeIndex(0, 10, 1, name="foo")
+        idx2 = RangeIndex(10, 20, 2, name="foo")
+        result = union_indexes([idx1, idx2])
+        expected = Index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18], name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_union_indexes_range_sort_false(self):
+        # sort=False with contiguous inputs in order
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(5, 10, name="foo")
+        result = union_indexes([idx1, idx2], sort=False)
+        tm.assert_index_equal(result, RangeIndex(0, 10, name="foo"), exact=True)
+
+        # sort=False with contiguous inputs out of order
+        result2 = union_indexes([idx2, idx1], sort=False)
+        expected2 = Index([5, 6, 7, 8, 9, 0, 1, 2, 3, 4], name="foo")
+        tm.assert_index_equal(result2, expected2, exact=True)
+
+    def test_union_indexes_range_multiple_indexes(self):
+        # Three or more contiguous indexes
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(5, 10, name="foo")
+        idx3 = RangeIndex(10, 15, name="foo")
+        result = union_indexes([idx1, idx2, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 15, name="foo"), exact=True)
+
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex
