@@ -63,27 +63,24 @@ static std::optional<without_tsep_result>
 copy_number_without_tsep(std::span<char> output, std::string_view str,
                          char tsep) {
   auto out = output.begin();
-  std::string_view rest = str;
 
-  if (!rest.empty() && (rest.front() == '+' || rest.front() == '-')) {
-    *out++ = rest.front();
-    rest.remove_prefix(1);
+  if (!str.empty() && (str.front() == '+' || str.front() == '-')) {
+    *out++ = str.front();
+    str.remove_prefix(1);
   }
 
-  const auto token_end =
-      std::find_if(rest.begin(), rest.end(), [tsep](char ch) {
-        return !isdigit_ascii(ch) && ch != tsep;
-      });
-  const size_t token_len = static_cast<size_t>(token_end - rest.begin());
+  const auto token_end = std::find_if(str.begin(), str.end(), [tsep](char ch) {
+    return !isdigit_ascii(ch) && ch != tsep;
+  });
+  const size_t token_len = static_cast<size_t>(token_end - str.begin());
   const size_t n_digits =
-      token_len -
-      static_cast<size_t>(std::count(rest.begin(), token_end, tsep));
+      token_len - static_cast<size_t>(std::count(str.begin(), token_end, tsep));
   const size_t sign_len = static_cast<size_t>(out - output.begin());
   if (sign_len + n_digits + 1 > output.size()) {
     return std::nullopt;
   }
 
-  out = std::remove_copy(rest.begin(), token_end, out, tsep);
+  out = std::remove_copy(str.begin(), token_end, out, tsep);
   *out = '\0';
   return without_tsep_result{static_cast<size_t>(out - output.begin()),
                              sign_len + token_len};
