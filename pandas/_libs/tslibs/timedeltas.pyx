@@ -820,8 +820,9 @@ cdef timedelta_from_spec(object number, object frac, object unit,
 cdef c_Resolution _timedelta_unit_to_reso(str abbrev):
     """
     Map a canonical timedelta unit abbreviation (as returned by
-    parse_timedelta_unit) to a Resolution. Units coarser than a day ("W",
-    "M", "Y") collapse to RESO_DAY, matching how the index treats them.
+    parse_timedelta_unit) to a Resolution. "W" collapses to RESO_DAY,
+    matching how the index treats it; ambiguous "M"/"Y" are rejected
+    upstream in timedelta_from_spec.
     """
     if abbrev == "ns":
         return c_Resolution.RESO_NS
@@ -835,7 +836,7 @@ cdef c_Resolution _timedelta_unit_to_reso(str abbrev):
         return c_Resolution.RESO_MIN
     elif abbrev == "h":
         return c_Resolution.RESO_HR
-    else:  # "D", "W", "M", "Y"
+    else:  # "D", "W"
         return c_Resolution.RESO_DAY
 
 
