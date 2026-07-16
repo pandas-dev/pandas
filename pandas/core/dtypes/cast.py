@@ -1735,7 +1735,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs
+                #  losslessly iff it has no NAs and the values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1743,6 +1743,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 )
                 if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
+                # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
+                #  to reject a negative value going into an unsigned dtype.
+                np_can_hold_element(dtype, np.asarray(arr))
                 return element
 
             return element
@@ -1776,6 +1779,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
+                #  and the values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1783,11 +1787,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 )
                 if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
+                # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
+                #  to reject a value that overflows the target float dtype.
+                np_can_hold_element(dtype, np.asarray(arr))
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
-                    casted = element.astype(dtype)
+                    with np.errstate(over="ignore"):
+                        # We check afterwards whether the cast was lossless, so
+                        #  no need to show the overflow warning.
+                        casted = element.astype(dtype)
                     if np.array_equal(casted, element, equal_nan=True):
                         return casted
                     raise LossySetitemError
