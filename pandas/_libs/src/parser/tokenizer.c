@@ -795,6 +795,251 @@ typedef uint32_t block_mask_t;
 #  define BLOCK_MASK_TEST(mask, p) (((mask) >> (p)) & 1u)
 #endif
 
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+// Loop-invariant configuration for block_fast_lane, built once per
+// tokenize_bytes call so entering the lane costs no per-character setup.
+typedef struct {
+  char delimiter;
+  char lineterminator;
+  bool has_carriage;
+  bool has_escape;
+  bool has_comment;
+#  ifdef PANDAS_HAVE_NEON
+  uint8x16_t vdelim;
+  uint8x16_t vterm;
+  uint8x16_t vcr;
+  uint8x16_t vquote;
+  uint8x16_t vescape;
+  uint8x16_t vcomment;
+#  else // PANDAS_HAVE_SSE2
+  __m128i vdelim;
+  __m128i vterm;
+  __m128i vcr;
+  __m128i vquote;
+  __m128i vescape;
+  __m128i vcomment;
+#  endif
+} block_lane_config;
+
+typedef enum {
+  BLOCK_LANE_DONE,         // lane finished; resume the state machine at *ip
+  BLOCK_LANE_PARSINGERROR, // end_field/end_line failed; goto parsingerror
+  BLOCK_LANE_LINELIMIT,    // line_limit reached; goto linelimit
+} block_lane_status;
+
+// Block fast lane: while the next 16 bytes contain only ordinary characters,
+// delimiters and line terminators, copy them to the stream in one shot and
+// emit every field/line boundary from the SIMD match mask, bypassing the
+// per-character state machine in tokenize_bytes. The block is copied
+// verbatim; end_field()'s NUL then lands exactly on the copied
+// delimiter/terminator byte, so the stream layout is identical to the state
+// machine's.
+//
+// Only called with self->state in {START_RECORD, START_FIELD, IN_FIELD} and
+// with self->stream_len synced to tokenize_bytes' local slen. *ip is the
+// scan position (tokenize_bytes' i, which tracks buf == self->data + i); on
+// return it holds the resume position and self->stream_len is current, so
+// the caller re-derives its buf/stream/slen locals.
+static block_lane_status block_fast_lane(parser_t *self,
+                                         const block_lane_config *config,
+                                         uint64_t line_limit,
+                                         uint64_t start_lines, int64_t *ip) {
+  const char delimiter = config->delimiter;
+  const char lineterminator = config->lineterminator;
+  const bool has_carriage = config->has_carriage;
+  const bool has_escape = config->has_escape;
+  const bool has_comment = config->has_comment;
+#  ifdef PANDAS_HAVE_NEON
+  const uint8x16_t vdelim = config->vdelim;
+  const uint8x16_t vterm = config->vterm;
+  const uint8x16_t vcr = config->vcr;
+  const uint8x16_t vquote = config->vquote;
+  const uint8x16_t vescape = config->vescape;
+  const uint8x16_t vcomment = config->vcomment;
+#  else // PANDAS_HAVE_SSE2
+  const __m128i vdelim = config->vdelim;
+  const __m128i vterm = config->vterm;
+  const __m128i vcr = config->vcr;
+  const __m128i vquote = config->vquote;
+  const __m128i vescape = config->vescape;
+  const __m128i vcomment = config->vcomment;
+#  endif
+
+  int64_t i = *ip;
+  const int64_t lane_start_i = i;
+  const char *buf = self->data + i;
+  // True when the next byte to scan is the first byte of a line (and
+  // nothing of it is buffered yet). Tracked across blocks so the
+  // whitespace-line probe below runs once per line, not once per block;
+  // line ends that fall inside a block are probed in the specials loop.
+  bool at_line_edge = (self->line_fields[self->lines] == 0 &&
+                       self->stream_len == (uint64_t)self->word_start);
+  // The 16-byte block copy and the <=15-byte tail re-copy below are the
+  // lane's only unchecked stream writes; requiring 32 bytes of slack per
+  // block keeps them within stream_cap no matter how end_line moves
+  // stream_len (checked writes inside end_field/end_line error out on
+  // their own).
+  while (i + 16 <= self->datalen && self->stream_len + 32 <= self->stream_cap) {
+    if (at_line_edge && (*buf == ' ' || *buf == '\t') && *buf != delimiter) {
+      // A line starting with a blank may be a whitespace-only line
+      // (WHITESPACE_LINE handling); defer to the state machine.
+      break;
+    }
+    at_line_edge = false;
+#  ifdef PANDAS_HAVE_NEON
+    const uint8x16_t chunk = vld1q_u8((const uint8_t *)buf);
+    const uint8x16_t eq_delim = vceqq_u8(chunk, vdelim);
+    const uint8x16_t eq_term = vceqq_u8(chunk, vterm);
+    uint8x16_t dirty = vdupq_n_u8(0);
+    if (self->quoting != QUOTE_NONE)
+      dirty = vorrq_u8(dirty, vceqq_u8(chunk, vquote));
+    if (has_escape)
+      dirty = vorrq_u8(dirty, vceqq_u8(chunk, vescape));
+    if (has_comment)
+      dirty = vorrq_u8(dirty, vceqq_u8(chunk, vcomment));
+    if (block_movemask(dirty))
+      break;
+    const block_mask_t crs =
+        has_carriage ? block_movemask(vceqq_u8(chunk, vcr)) : 0;
+    block_mask_t specials = block_movemask(vorrq_u8(eq_delim, eq_term)) | crs;
+    const block_mask_t terms = block_movemask(eq_term);
+#  else // PANDAS_HAVE_SSE2
+    const __m128i chunk = _mm_loadu_si128((const __m128i *)buf);
+    const __m128i eq_delim = _mm_cmpeq_epi8(chunk, vdelim);
+    const __m128i eq_term = _mm_cmpeq_epi8(chunk, vterm);
+    __m128i dirty = _mm_setzero_si128();
+    if (self->quoting != QUOTE_NONE)
+      dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, vquote));
+    if (has_escape)
+      dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, vescape));
+    if (has_comment)
+      dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, vcomment));
+    if (_mm_movemask_epi8(dirty))
+      break;
+    const block_mask_t crs =
+        has_carriage
+            ? (block_mask_t)_mm_movemask_epi8(_mm_cmpeq_epi8(chunk, vcr))
+            : 0;
+    block_mask_t specials =
+        (block_mask_t)_mm_movemask_epi8(_mm_or_si128(eq_delim, eq_term)) | crs;
+    const block_mask_t terms = (block_mask_t)_mm_movemask_epi8(eq_term);
+#  endif
+    memcpy(self->stream + self->stream_len, buf, 16);
+    if (!specials) {
+      self->stream_len += 16;
+      buf += 16;
+      i += 16;
+      continue;
+    }
+    uint64_t block_base = self->stream_len;
+    while (specials) {
+      const int p = (int)BLOCK_MASK_POS(specials);
+      int is_term = BLOCK_MASK_TEST(terms, p) != 0;
+      // Extra input bytes the terminator consumes (1 for the \n of a
+      // \r\n pair; the field's NUL replaces the \r).
+      int term_extra = 0;
+      if (has_carriage && BLOCK_MASK_TEST(crs, p)) {
+        if (p >= 15 || buf[p + 1] != lineterminator) {
+          // \r\n split across blocks, or a lone \r: defer to the
+          // state machine's EAT_CRNL handling.
+          self->stream_len = block_base + (uint64_t)p;
+          buf += p;
+          i += p;
+          goto block_lane_exit;
+        }
+        is_term = 1;
+        term_extra = 1;
+      }
+      if (is_term && self->line_fields[self->lines] == 0 &&
+          block_base + (uint64_t)p == (uint64_t)self->word_start) {
+        // Line terminator with no line content: defer to the state
+        // machine, which knows about skip_empty_lines.
+        self->stream_len = block_base + (uint64_t)p;
+        buf += p;
+        i += p;
+        goto block_lane_exit;
+      }
+      self->stream_len = block_base + (uint64_t)p;
+      if (end_field(self) < 0) {
+        *ip = i + p;
+        return BLOCK_LANE_PARSINGERROR;
+      }
+      if (is_term) {
+        if (end_line(self) < 0) {
+          *ip = i + p;
+          return BLOCK_LANE_PARSINGERROR;
+        }
+        if (line_limit > 0 && self->lines == start_lines + line_limit) {
+          // Must run before the tail re-copy bail below: end_line has
+          // already counted this line, and the state machine's ==-based
+          // limit checks would never match again.
+          self->state = START_RECORD;
+          // index of the terminator's last byte; the caller's linelimit
+          // label increments one past it
+          *ip = i + p + term_extra;
+          return BLOCK_LANE_LINELIMIT;
+        }
+        if (term_extra || self->stream_len != block_base + (uint64_t)(p + 1)) {
+          // The write position no longer tracks the input position:
+          // the terminator consumed an extra input byte (\r\n), or
+          // end_line moved stream_len (synthetic trailing fields for a
+          // short row, or a skipped bad row). Re-copy the unconsumed
+          // tail of the block after the new position and rebase so
+          // block_base + q stays correct for later specials.
+          if (self->stream_len + 16 > self->stream_cap) {
+            // Not enough slack for the unchecked tail re-copy; hand
+            // the rest of the input back to the state machine, whose
+            // writes are capacity-checked.
+            buf += p + 1 + term_extra;
+            i += p + 1 + term_extra;
+            goto block_lane_exit;
+          }
+          memcpy(self->stream + self->stream_len, buf + p + 1 + term_extra,
+                 (size_t)(15 - p - term_extra));
+          block_base = self->stream_len - (uint64_t)(p + 1 + term_extra);
+        }
+        if (p + 1 + term_extra < 16) {
+          const char nxt = buf[p + 1 + term_extra];
+          if ((nxt == ' ' || nxt == '\t') && nxt != delimiter) {
+            // Next line starts with a blank: defer to the state
+            // machine (see the whitespace-line check at block top).
+            buf += p + 1 + term_extra;
+            i += p + 1 + term_extra;
+            goto block_lane_exit;
+          }
+        } else {
+          // Line ends exactly at the block edge: probe the next
+          // line's first byte at the next block top.
+          at_line_edge = true;
+        }
+        if (term_extra) {
+          BLOCK_MASK_CLEAR(specials, p + 1); // the \n of the pair
+        }
+      }
+      BLOCK_MASK_CLEAR(specials, p);
+    }
+    self->stream_len = block_base + 16;
+    buf += 16;
+    i += 16;
+  }
+block_lane_exit:
+  if (i != lane_start_i) {
+    // Only reset the state when the lane consumed input; a no-progress
+    // exit must preserve states like the post-WHITESPACE_LINE
+    // START_FIELD, or the machine and the lane ping-pong forever.
+    if (self->stream_len != (uint64_t)self->word_start) {
+      self->state = IN_FIELD;
+    } else if (self->line_fields[self->lines] > 0) {
+      self->state = START_FIELD;
+    } else {
+      self->state = START_RECORD;
+    }
+  }
+  *ip = i;
+  return BLOCK_LANE_DONE;
+}
+#endif
+
 static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
@@ -852,6 +1097,22 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       (self->escapechar != '\0') ? _mm_set1_epi8(self->escapechar) : vquote;
   const __m128i vcomment =
       (self->commentchar != '\0') ? _mm_set1_epi8(self->commentchar) : vterm;
+#endif
+
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+  const block_lane_config lane_config = {
+      .delimiter = delimiter,
+      .lineterminator = lineterminator,
+      .has_carriage = has_carriage,
+      .has_escape = has_escape,
+      .has_comment = has_comment,
+      .vdelim = vdelim,
+      .vterm = vterm,
+      .vcr = vcr,
+      .vquote = vquote,
+      .vescape = vescape,
+      .vcomment = vcomment,
+  };
 #endif
 
   // Reserve worst-case stream space up front: the bulk-scan copies below
@@ -916,201 +1177,21 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   int64_t i;
   for (i = self->datapos; i < self->datalen; ++i) {
 #if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
-    // Block fast lane: while the next 16 bytes contain only ordinary
-    // characters, delimiters and line terminators, copy them to the stream
-    // in one shot and emit every field/line boundary from the SIMD match
-    // mask, bypassing the per-character state machine. The block is copied
-    // verbatim; end_field()'s NUL then lands exactly on the copied
-    // delimiter/terminator byte, so the stream layout is identical to the
-    // state machine's.
     if (lane_ok && (self->state == START_FIELD || self->state == IN_FIELD ||
                     self->state == START_RECORD)) {
-      const int64_t lane_start_i = i;
       self->stream_len = slen;
-      // True when the next byte to scan is the first byte of a line (and
-      // nothing of it is buffered yet). Tracked across blocks so the
-      // whitespace-line probe below runs once per line, not once per block;
-      // line ends that fall inside a block are probed in the specials loop.
-      bool at_line_edge = (self->line_fields[self->lines] == 0 &&
-                           self->stream_len == (uint64_t)self->word_start);
-      // The 16-byte block copy and the <=15-byte tail re-copy below are the
-      // lane's only unchecked stream writes; requiring 32 bytes of slack per
-      // block keeps them within stream_cap no matter how end_line moves
-      // stream_len (checked writes inside end_field/end_line error out on
-      // their own).
-      while (i + 16 <= self->datalen &&
-             self->stream_len + 32 <= self->stream_cap) {
-        if (at_line_edge && (*buf == ' ' || *buf == '\t') &&
-            *buf != delimiter) {
-          // A line starting with a blank may be a whitespace-only line
-          // (WHITESPACE_LINE handling); defer to the state machine.
-          break;
-        }
-        at_line_edge = false;
-#  ifdef PANDAS_HAVE_NEON
-        const uint8x16_t chunk = vld1q_u8((const uint8_t *)buf);
-        const uint8x16_t eq_delim = vceqq_u8(chunk, vdelim);
-        const uint8x16_t eq_term = vceqq_u8(chunk, vterm);
-        uint8x16_t dirty = vdupq_n_u8(0);
-        if (self->quoting != QUOTE_NONE)
-          dirty = vorrq_u8(dirty, vceqq_u8(chunk, vquote));
-        if (has_escape)
-          dirty = vorrq_u8(dirty, vceqq_u8(chunk, vescape));
-        if (has_comment)
-          dirty = vorrq_u8(dirty, vceqq_u8(chunk, vcomment));
-        if (block_movemask(dirty))
-          break;
-        const block_mask_t crs =
-            has_carriage ? block_movemask(vceqq_u8(chunk, vcr)) : 0;
-        block_mask_t specials =
-            block_movemask(vorrq_u8(eq_delim, eq_term)) | crs;
-        const block_mask_t terms = block_movemask(eq_term);
-#  else // PANDAS_HAVE_SSE2
-        const __m128i chunk = _mm_loadu_si128((const __m128i *)buf);
-        const __m128i eq_delim = _mm_cmpeq_epi8(chunk, vdelim);
-        const __m128i eq_term = _mm_cmpeq_epi8(chunk, vterm);
-        __m128i dirty = _mm_setzero_si128();
-        if (self->quoting != QUOTE_NONE)
-          dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, vquote));
-        if (has_escape)
-          dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, vescape));
-        if (has_comment)
-          dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, vcomment));
-        if (_mm_movemask_epi8(dirty))
-          break;
-        const block_mask_t crs =
-            has_carriage
-                ? (block_mask_t)_mm_movemask_epi8(_mm_cmpeq_epi8(chunk, vcr))
-                : 0;
-        block_mask_t specials =
-            (block_mask_t)_mm_movemask_epi8(_mm_or_si128(eq_delim, eq_term)) |
-            crs;
-        const block_mask_t terms = (block_mask_t)_mm_movemask_epi8(eq_term);
-#  endif
-        memcpy(self->stream + self->stream_len, buf, 16);
-        if (!specials) {
-          self->stream_len += 16;
-          buf += 16;
-          i += 16;
-          continue;
-        }
-        uint64_t block_base = self->stream_len;
-        while (specials) {
-          const int p = (int)BLOCK_MASK_POS(specials);
-          int is_term = BLOCK_MASK_TEST(terms, p) != 0;
-          // Extra input bytes the terminator consumes (1 for the \n of a
-          // \r\n pair; the field's NUL replaces the \r).
-          int term_extra = 0;
-          if (has_carriage && BLOCK_MASK_TEST(crs, p)) {
-            if (p >= 15 || buf[p + 1] != lineterminator) {
-              // \r\n split across blocks, or a lone \r: defer to the
-              // state machine's EAT_CRNL handling.
-              self->stream_len = block_base + (uint64_t)p;
-              buf += p;
-              i += p;
-              goto block_lane_exit;
-            }
-            is_term = 1;
-            term_extra = 1;
-          }
-          if (is_term && self->line_fields[self->lines] == 0 &&
-              block_base + (uint64_t)p == (uint64_t)self->word_start) {
-            // Line terminator with no line content: defer to the state
-            // machine, which knows about skip_empty_lines.
-            self->stream_len = block_base + (uint64_t)p;
-            buf += p;
-            i += p;
-            goto block_lane_exit;
-          }
-          self->stream_len = block_base + (uint64_t)p;
-          if (end_field(self) < 0) {
-            slen = self->stream_len;
-            i += p;
-            goto parsingerror;
-          }
-          if (is_term) {
-            if (end_line(self) < 0) {
-              slen = self->stream_len;
-              i += p;
-              goto parsingerror;
-            }
-            if (line_limit > 0 && self->lines == start_lines + line_limit) {
-              // Must run before the tail re-copy bail below: end_line has
-              // already counted this line, and the state machine's ==-based
-              // limit checks would never match again.
-              slen = self->stream_len;
-              // index of the terminator's last byte; the label increments
-              // one past it
-              i += p + term_extra;
-              self->state = START_RECORD;
-              goto linelimit;
-            }
-            if (term_extra ||
-                self->stream_len != block_base + (uint64_t)(p + 1)) {
-              // The write position no longer tracks the input position:
-              // the terminator consumed an extra input byte (\r\n), or
-              // end_line moved stream_len (synthetic trailing fields for a
-              // short row, or a skipped bad row). Re-copy the unconsumed
-              // tail of the block after the new position and rebase so
-              // block_base + q stays correct for later specials.
-              if (self->stream_len + 16 > self->stream_cap) {
-                // Not enough slack for the unchecked tail re-copy; hand
-                // the rest of the input back to the state machine, whose
-                // writes are capacity-checked.
-                buf += p + 1 + term_extra;
-                i += p + 1 + term_extra;
-                goto block_lane_exit;
-              }
-              memcpy(self->stream + self->stream_len, buf + p + 1 + term_extra,
-                     (size_t)(15 - p - term_extra));
-              block_base = self->stream_len - (uint64_t)(p + 1 + term_extra);
-            }
-            if (line_limit > 0 && self->lines == start_lines + line_limit) {
-              slen = self->stream_len;
-              // index of the terminator's last byte; the label increments
-              // one past it
-              i += p + term_extra;
-              self->state = START_RECORD;
-              goto linelimit;
-            }
-            if (p + 1 + term_extra < 16) {
-              const char nxt = buf[p + 1 + term_extra];
-              if ((nxt == ' ' || nxt == '\t') && nxt != delimiter) {
-                // Next line starts with a blank: defer to the state
-                // machine (see the whitespace-line check at block top).
-                buf += p + 1 + term_extra;
-                i += p + 1 + term_extra;
-                goto block_lane_exit;
-              }
-            } else {
-              // Line ends exactly at the block edge: probe the next
-              // line's first byte at the next block top.
-              at_line_edge = true;
-            }
-            if (term_extra) {
-              BLOCK_MASK_CLEAR(specials, p + 1); // the \n of the pair
-            }
-          }
-          BLOCK_MASK_CLEAR(specials, p);
-        }
-        self->stream_len = block_base + 16;
-        buf += 16;
-        i += 16;
-      }
-    block_lane_exit:
+      const block_lane_status lane_status =
+          block_fast_lane(self, &lane_config, line_limit, start_lines, &i);
       slen = self->stream_len;
       stream = self->stream + slen;
-      if (i != lane_start_i) {
-        // Only reset the state when the lane consumed input; a no-progress
-        // exit must preserve states like the post-WHITESPACE_LINE
-        // START_FIELD, or the machine and the lane ping-pong forever.
-        if (slen != (uint64_t)self->word_start) {
-          self->state = IN_FIELD;
-        } else if (self->line_fields[self->lines] > 0) {
-          self->state = START_FIELD;
-        } else {
-          self->state = START_RECORD;
-        }
+      // The lane advances its input pointer and i in lockstep, preserving
+      // the loop's buf == self->data + i invariant.
+      buf = self->data + i;
+      if (lane_status == BLOCK_LANE_PARSINGERROR) {
+        goto parsingerror;
+      }
+      if (lane_status == BLOCK_LANE_LINELIMIT) {
+        goto linelimit;
       }
       if (i >= self->datalen) {
         break;
