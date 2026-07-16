@@ -210,6 +210,76 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
                 result = Index(sorted(result))
         return result
 
+    if all(isinstance(idx, RangeIndex) for idx in indexes):
+        seen = set()
+        unique_indexes = []
+        for idx in indexes:
+            key = (idx._range, idx.name)
+            if key not in seen:
+                seen.add(key)
+                unique_indexes.append(idx)
+        if len(unique_indexes) == 1:
+            return unique_indexes[0]
+
+        if sort is not False:
+            non_empty = [idx for idx in unique_indexes if len(idx) > 0]
+            if len(non_empty) == 0:
+                return unique_indexes[0]
+            if len(non_empty) == 1:
+                return non_empty[0]
+
+            first = non_empty[0]
+            step = first.step
+            first_name = first.name
+            if all(idx.name == first_name for idx in non_empty):
+                name = first_name
+            else:
+                name = None
+
+            if all(idx.step == step for idx in non_empty):
+                if step > 0:
+                    sorted_indexes = sorted(non_empty, key=lambda x: x.start)
+                    current_stop = sorted_indexes[0].stop
+                    possible = True
+                    for idx in sorted_indexes[1:]:
+                        if idx.start > current_stop:
+                            possible = False
+                            break
+                        if (idx.start - sorted_indexes[0].start) % step != 0:
+                            possible = False
+                            break
+                        current_stop = max(current_stop, idx.stop)
+                    if possible:
+                        return RangeIndex(
+                            sorted_indexes[0].start,
+                            current_stop,
+                            step,
+                            name=name,
+                        )
+                else:
+                    sorted_indexes = sorted(
+                        non_empty, key=lambda x: x.start, reverse=True
+                    )
+                    current_stop = sorted_indexes[0].stop
+                    possible = True
+                    for idx in sorted_indexes[1:]:
+                        if idx.start < current_stop:
+                            possible = False
+                            break
+                        if (idx.start - sorted_indexes[0].start) % step != 0:
+                            possible = False
+                            break
+                        current_stop = min(current_stop, idx.stop)
+                    if possible:
+                        return RangeIndex(
+                            sorted_indexes[0].start,
+                            current_stop,
+                            step,
+                            name=name,
+                        )
+
+        indexes = unique_indexes
+
     indexes, kind = _sanitize_and_check(indexes)
 
     if kind == "special":

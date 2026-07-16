@@ -16,6 +16,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import union_indexes
 
 
 class TestRangeIndexSetOps:
@@ -303,6 +304,168 @@ class TestRangeIndexSetOps:
         result = left.union(right)
         expected = Index([0, 1, 4, 5, 8, 9, 12, 13, 16, 17])
         tm.assert_index_equal(result, expected, exact=True)
+
+    def test_union_indexes_range_identical(self):
+        # Homogeneous identical
+        idx1 = RangeIndex(0, 10, name="foo")
+        idx2 = RangeIndex(0, 10, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # Homogeneous identical, mismatched names
+        idx3 = RangeIndex(0, 10, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 10, name=None), exact=True)
+
+    def test_union_indexes_range_contiguous_positive_step(self):
+        # Contiguous, same name, step > 0
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(5, 12, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, RangeIndex(0, 12, name="foo"), exact=True)
+
+        # Contiguous, mismatched names, step > 0
+        idx3 = RangeIndex(5, 12, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 12, name=None), exact=True)
+
+    def test_union_indexes_range_contiguous_negative_step(self):
+        # Contiguous, same name, step < 0
+        idx1 = RangeIndex(10, 5, -1, name="foo")
+        idx2 = RangeIndex(5, 0, -1, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, RangeIndex(10, 0, -1, name="foo"), exact=True)
+
+        # Contiguous, mismatched names, step < 0
+        idx3 = RangeIndex(5, 0, -1, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(10, 0, -1, name=None), exact=True)
+
+    def test_union_indexes_range_overlapping(self):
+        # Overlapping, same name
+        idx1 = RangeIndex(0, 6, 2, name="foo")
+        idx2 = RangeIndex(4, 10, 2, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, RangeIndex(0, 10, 2, name="foo"), exact=True)
+
+        # Overlapping, mismatched names
+        idx3 = RangeIndex(4, 10, 2, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 10, 2, name=None), exact=True)
+
+    def test_union_indexes_range_non_contiguous(self):
+        # Non-contiguous, same name (falls back to standard union)
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(7, 12, name="foo")
+        result = union_indexes([idx1, idx2])
+        expected = Index([0, 1, 2, 3, 4, 7, 8, 9, 10, 11], name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # Non-contiguous, mismatched names (falls back to standard union)
+        idx3 = RangeIndex(7, 12, name="bar")
+        result = union_indexes([idx1, idx3])
+        expected_mismatched = Index([0, 1, 2, 3, 4, 7, 8, 9, 10, 11], name=None)
+        tm.assert_index_equal(result, expected_mismatched, exact=True)
+
+    def test_union_indexes_range_with_empty(self):
+        # With empty ranges, same name
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(0, 0, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # With empty ranges, mismatched names
+        idx3 = RangeIndex(0, 0, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+    def test_union_indexes_range_contained(self):
+        # Contained ranges, same name
+        idx1 = RangeIndex(0, 10, name="foo")
+        idx2 = RangeIndex(2, 5, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # Contained ranges, mismatched names
+        idx3 = RangeIndex(2, 5, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 10, name=None), exact=True)
+
+    def test_union_indexes_range_duplicate_starts(self):
+        # Duplicate starts, same name
+        idx1 = RangeIndex(0, 10, name="foo")
+        idx2 = RangeIndex(0, 5, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # Duplicate starts, mismatched names
+        idx3 = RangeIndex(0, 5, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 10, name=None), exact=True)
+
+    def test_union_indexes_range_overlapping_contained_step_gt_1(self):
+        # Step > 1 overlapping/contained, same name
+        idx1 = RangeIndex(0, 10, 2, name="foo")
+        idx2 = RangeIndex(2, 6, 2, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # Step > 1 overlapping/contained, mismatched names
+        idx3 = RangeIndex(2, 6, 2, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 10, 2, name=None), exact=True)
+
+    def test_union_indexes_range_contained_negative_step(self):
+        # Negative step contained, same name
+        idx1 = RangeIndex(10, 5, -1, name="foo")
+        idx2 = RangeIndex(8, 6, -1, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # Negative step contained, mismatched names
+        idx3 = RangeIndex(8, 6, -1, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(10, 5, -1, name=None), exact=True)
+
+    def test_union_indexes_range_all_empty(self):
+        # All empty range indexes
+        idx1 = RangeIndex(0, 0, name="foo")
+        idx2 = RangeIndex(5, 5, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # All empty, mismatched names
+        idx3 = RangeIndex(5, 5, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+    def test_union_indexes_range_mismatched_steps(self):
+        # Mismatched steps -> falls back to standard union
+        idx1 = RangeIndex(0, 10, 1, name="foo")
+        idx2 = RangeIndex(10, 20, 2, name="foo")
+        result = union_indexes([idx1, idx2])
+        expected = Index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18], name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_union_indexes_range_sort_false(self):
+        # sort=False with contiguous inputs in order
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(5, 10, name="foo")
+        result = union_indexes([idx1, idx2], sort=False)
+        tm.assert_index_equal(result, RangeIndex(0, 10, name="foo"), exact=True)
+
+        # sort=False with contiguous inputs out of order
+        result2 = union_indexes([idx2, idx1], sort=False)
+        expected2 = Index([5, 6, 7, 8, 9, 0, 1, 2, 3, 4], name="foo")
+        tm.assert_index_equal(result2, expected2, exact=True)
+
+    def test_union_indexes_range_multiple_indexes(self):
+        # Three or more contiguous indexes
+        idx1 = RangeIndex(0, 5, name="foo")
+        idx2 = RangeIndex(5, 10, name="foo")
+        idx3 = RangeIndex(10, 15, name="foo")
+        result = union_indexes([idx1, idx2, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 15, name="foo"), exact=True)
 
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
