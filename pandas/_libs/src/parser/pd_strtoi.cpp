@@ -78,29 +78,19 @@ template <typename T>
 static T parse_integer(const char *p_item, int64_t length, int *error,
                        char tsep, uint_state *state = nullptr) {
   const char *p = p_item;
-  // Skip leading spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
-  }
-
-  if constexpr (!std::is_signed_v<T>) {
-    // fast_float rejects '-' for unsigned types; record it for the caller's
-    // int64/uint64 reconciliation instead.
-    if (*p == '-') {
-      state->seen_sint = 1;
-      *error = 0;
-      return 0;
-    }
-  }
-
-  char buffer[PROCESSED_WORD_CAPACITY];
   // length == strlen(p_item) supplied by the caller (-1 to compute here);
   // lets from_chars get its end pointer without a strlen scan.
-  size_t str_len = length < 0 ? strlen(p)
-                              : static_cast<size_t>(length) -
-                                    static_cast<size_t>(p - p_item);
+  size_t str_len = length < 0 ? std::strlen(p) : static_cast<size_t>(length);
+
+  char buffer[PROCESSED_WORD_CAPACITY];
   const char *number_end = nullptr;
-  if (tsep != '\0' && memchr(p, tsep, str_len) != nullptr) {
+  if (tsep != '\0' && std::memchr(p, tsep, str_len) != nullptr) {
+    // copy_number_without_tsep needs the token start, so strip leading
+    // spaces here; the no-tsep path leaves that to skip_white_space.
+    while (isspace_ascii(*p)) {
+      ++p;
+      --str_len;
+    }
     const std::optional<without_tsep_result> copied =
         copy_number_without_tsep(buffer, std::string_view(p, str_len), tsep);
     if (!copied.has_value()) {
@@ -115,7 +105,8 @@ static T parse_integer(const char *p_item, int64_t length, int *error,
 
   T number;
   constexpr fast_float::parse_options options(
-      fast_float::chars_format::allow_leading_plus);
+      fast_float::chars_format::allow_leading_plus |
+      fast_float::chars_format::skip_white_space);
   const auto result =
       fast_float::from_chars_advanced(p, p + str_len, number, options);
   const char *endptr = result.ptr;
@@ -132,6 +123,15 @@ static T parse_integer(const char *p_item, int64_t length, int *error,
     return 0;
   }
   if (result.ec != std::errc()) {
+    if constexpr (!std::is_signed_v<T>) {
+      // fast_float rejects '-' outright for unsigned types (leaving ptr on
+      // the sign); record it for the caller's int64/uint64 reconciliation.
+      if (*result.ptr == '-') {
+        state->seen_sint = 1;
+        *error = 0;
+        return 0;
+      }
+    }
     // invalid_argument: no digits after the optional sign.
     *error = ERROR_NO_DIGITS;
     return 0;
