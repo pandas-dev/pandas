@@ -23,6 +23,11 @@ cdef class _TSObject:
         tzinfo tzinfo
         bint fold
         NPY_DATETIMEUNIT creso
+        # True if this came from a string parsed by the dateutil fallback;
+        #  these resolve ambiguous/nonexistent wall times via `fold` rather
+        #  than raising like ISO strings, so tz-localization of the wall
+        #  value cannot be deferred to a vectorized localize-or-raise call.
+        bint parsed_by_dateutil
 
     cdef int64_t ensure_reso(
         self, NPY_DATETIMEUNIT creso, val=*, bint round_ok=*

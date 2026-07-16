@@ -5,6 +5,7 @@ from datetime import timezone
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
+    datetime,
     import_datetime,
     timedelta,
     tzinfo,
@@ -64,6 +65,7 @@ from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
+    convert_datetime_to_tsobject,
     convert_str_to_tsobject,
     convert_to_tsobject,
     get_datetime64_nanos,
@@ -612,6 +614,7 @@ def array_to_datetime_with_tz(
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
         str abbrev
+        datetime dt
         bint is_wall
         Py_ssize_t wall_count = 0
         ndarray wall_mask = np.zeros(n, dtype=np.uint8)
@@ -645,7 +648,7 @@ def array_to_datetime_with_tz(
                 #  - ints/floats are treated as UTC epoch values, i.e. never
                 #    localized
                 #  - datetime/date objects resolve ambiguous/nonexistent wall
-                #    times via `fold` instead of raising like strings do
+                #    times via `fold` instead of raising like ISO strings do
                 tsobj = convert_to_tsobject(
                     item,
                     tz=None,
@@ -656,6 +659,21 @@ def array_to_datetime_with_tz(
                 )
                 # aware strings come back with tzinfo set and value in UTC
                 is_wall = tsobj.tzinfo is None
+                if is_wall and tsobj.parsed_by_dateutil:
+                    # Like datetime objects, dateutil-parsed strings resolve
+                    #  ambiguous/nonexistent wall times via `fold` instead of
+                    #  raising like the vectorized localization below does.
+                    #  Rebuild the parsed datetime and localize it
+                    #  per-element to retain those semantics.
+                    dt = datetime(
+                        tsobj.dts.year, tsobj.dts.month, tsobj.dts.day,
+                        tsobj.dts.hour, tsobj.dts.min, tsobj.dts.sec,
+                        tsobj.dts.us, None, fold=tsobj.fold,
+                    )
+                    tsobj = convert_datetime_to_tsobject(
+                        dt, tz, nanos=tsobj.dts.ps // 1000, reso=tsobj.creso
+                    )
+                    is_wall = False
             else:
                 tsobj = convert_to_tsobject(
                     item,

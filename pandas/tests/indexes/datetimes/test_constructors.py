@@ -1257,3 +1257,32 @@ class TestTimeSeries:
         result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
         expected2 = DatetimeIndex([yfirst])
         tm.assert_index_equal(result2, expected2)
+
+
+@pytest.mark.parametrize("tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")])
+@pytest.mark.parametrize(
+    "dtstr",
+    [
+        "11/5/2023 01:30",  # DST-ambiguous wall time
+        "3/12/2023 02:30",  # nonexistent wall time
+    ],
+)
+def test_dti_noniso_dst_transition_matches_timestamp(dtstr, tz):
+    # GH#66123 dateutil-parsed (non-ISO) strings at ambiguous/nonexistent
+    #  wall times resolve via fold=0 like Timestamp and datetime objects,
+    #  rather than raising like ISO strings
+    expected = Timestamp(dtstr, tz=tz)
+    result = DatetimeIndex([dtstr], tz=tz)
+    assert result[0] == expected
+
+
+def test_dti_noniso_ambiguous_pytz_raises():
+    # GH#66123 with pytz, dateutil-parsed strings at ambiguous wall times
+    #  raise, matching the Timestamp constructor
+    pytz = pytest.importorskip("pytz")
+    tz = pytz.timezone("US/Eastern")
+    dtstr = "11/5/2023 01:30"
+    with pytest.raises(ValueError, match="2023-11-05 01:30:00"):
+        Timestamp(dtstr, tz=tz)
+    with pytest.raises(ValueError, match="2023-11-05 01:30:00"):
+        DatetimeIndex([dtstr], tz=tz)
