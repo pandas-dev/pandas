@@ -68,6 +68,7 @@ from pandas.core import algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -2920,6 +2921,11 @@ class _iLocIndexer(_LocationIndexer):
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
+                # GH#62523 infer_and_maybe_downcast may return a raw M8/m8
+                #  ndarray for datetimelike; wrap it so concat_compat does not
+                #  mix a bare ndarray with the DatetimeArray/TimedeltaArray
+                #  _values
+                new_values = ensure_wrapped_if_datetimelike(new_values)
                 new_values = concat_compat([self.obj._values, new_values])
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
