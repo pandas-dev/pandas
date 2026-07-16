@@ -628,7 +628,7 @@ def _get_result(
         sample = cast("DataFrame", objs[0])
 
         mgrs_indexers = []
-        result_axes = new_axes(
+        result_axes, all_equal = new_axes(
             objs,
             bm_axis,
             intersect,
@@ -650,7 +650,7 @@ def _get_result(
 
                 # 1-ax to convert BlockManager axis to DataFrame axis
                 obj_labels = obj.axes[1 - ax]
-                if not new_labels.equals(obj_labels):
+                if not all_equal[ax] and not new_labels.equals(obj_labels):
                     indexers[ax] = obj_labels.get_indexer(new_labels)
 
             mgrs_indexers.append((obj._mgr, indexers))
@@ -676,27 +676,37 @@ def new_axes(
     levels,
     verify_integrity: bool,
     ignore_index: bool,
-) -> list[Index]:
+) -> tuple[list[Index], list[bool]]:
     """Return the new [index, column] result for concat."""
-    return [
-        _get_concat_axis_dataframe(
-            objs,
-            axis,
-            ignore_index,
-            keys,
-            names,
-            levels,
-            verify_integrity,
-        )
-        if i == bm_axis
-        else get_objs_combined_axis(
-            objs,
-            axis=objs[0]._get_block_manager_axis(i),
-            intersect=intersect,
-            sort=sort,
-        )
-        for i in range(2)
-    ]
+    result_axes: list[Index] = []
+    all_equal: list[bool] = []
+
+    for i in range(2):
+        if i == bm_axis:
+            result_axis = _get_concat_axis_dataframe(
+                objs,
+                axis,
+                ignore_index,
+                keys,
+                names,
+                levels,
+                verify_integrity,
+            )
+            is_all_equal = False
+        else:
+            result = get_objs_combined_axis(
+                objs,
+                axis=objs[0]._get_block_manager_axis(i),
+                intersect=intersect,
+                sort=sort,
+                return_is_all_equal=True,
+            )
+            result_axis, is_all_equal = cast("tuple[Index, bool]", result)
+
+        result_axes.append(result_axis)
+        all_equal.append(is_all_equal)
+
+    return result_axes, all_equal
 
 
 def _get_concat_axis_series(
