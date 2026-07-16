@@ -421,14 +421,14 @@ class TestTimedeltas:
         # raise instead of silently wrapping to a large positive timedelta...
         wrapped = np.array([-(2**63 + 200) / 1e9], dtype="float64")
         with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input"):
-            to_timedelta(wrapped, unit="s")
+            to_timedelta(wrapped, input_unit="s")
 
         # ...and an in-bounds float just shy of int64 max must not spuriously
         # raise (it did for units D/W, diverging from the scalar path).
         oneday_in_ns = 1e9 * 60 * 60 * 24
         val = (2**63 - 1 - 100) / oneday_in_ns
         arr = np.array([val], dtype="float64")
-        assert to_timedelta(arr, unit="D")[0] == pd.Timedelta(val, unit="D")
+        assert to_timedelta(arr, input_unit="D")[0] == pd.Timedelta(val, input_unit="D")
 
     def test_to_timedelta_day_offset(self):
         # GH#64240

@@ -3077,13 +3077,13 @@ def test_as_unit_duration_negative_floors(from_unit, to_unit):
     # GH#63573 downcasting a negative duration must floor toward -inf like
     # numpy, not truncate toward zero
     values = [93784567890123, -93784567890123, None]
-    ser_arrow = pd.Series(pd.to_timedelta(values, unit="ns").as_unit(from_unit)).astype(
-        f"duration[{from_unit}][pyarrow]"
-    )
+    ser_arrow = pd.Series(
+        pd.to_timedelta(values, input_unit="ns").as_unit(from_unit)
+    ).astype(f"duration[{from_unit}][pyarrow]")
 
     result = ser_arrow.dt.as_unit(to_unit)
     expected = pd.Series(
-        pd.to_timedelta(values, unit="ns").as_unit(from_unit).as_unit(to_unit)
+        pd.to_timedelta(values, input_unit="ns").as_unit(from_unit).as_unit(to_unit)
     ).astype(f"duration[{to_unit}][pyarrow]")
     tm.assert_series_equal(result, expected)
 

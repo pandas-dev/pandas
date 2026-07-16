@@ -1973,7 +1973,7 @@ class TestSeriesConstructors:
         #  the dtype's unit, matching the integer case, instead of as
         #  nanoseconds (which silently truncated these to zero)
         result = Series(data, dtype="timedelta64[s]")
-        expected = Series(pd.to_timedelta(data, unit="s").as_unit("s"))
+        expected = Series(pd.to_timedelta(data, input_unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):

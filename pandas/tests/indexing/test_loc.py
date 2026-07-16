@@ -2504,7 +2504,7 @@ class TestLocSetitemWithExpansion:
                 to_datetime(["2020-01-01", "2020-01-02"]).as_unit("us"),
                 Timestamp("2020-01-03"),
             ),
-            (to_timedelta([1, 2], unit="D").as_unit("us"), Timedelta(days=3)),
+            (to_timedelta([1, 2], input_unit="D").as_unit("us"), Timedelta(days=3)),
         ],
     )
     def test_loc_setitem_with_expansion_datetimelike_retains_dtype(self, values, item):
