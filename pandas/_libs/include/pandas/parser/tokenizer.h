@@ -20,6 +20,8 @@ See LICENSE for the license
 
 #include <stdint.h>
 
+#include "pandas/parser/pd_strtoi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -216,19 +218,12 @@ int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream
 
-typedef struct uint_state {
-  int seen_sint;
-  int seen_uint;
-  int seen_null;
-} uint_state;
-
+// uint_state itself is defined in pd_strtoi.h (included above) alongside
+// str_to_uint64; these helpers remain implemented in tokenizer.c.
 void uint_state_init(uint_state *self);
 
 int uint64_conflict(uint_state *self);
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
-                       int *error, char tsep);
-int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);

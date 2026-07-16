@@ -22,6 +22,16 @@ pd_strtoi_status pd_strtoll(const char *start, const char *end, int64_t *value,
 pd_strtoi_status pd_strtoull(const char *start, const char *end,
                              uint64_t *value, const char **endptr);
 
+typedef struct uint_state {
+  int seen_sint;
+  int seen_uint;
+  int seen_null;
+} uint_state;
+
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep);
+int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

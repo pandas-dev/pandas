@@ -9,6 +9,8 @@ fast_float::from_chars is locale-independent, skips errno, and parses runs of
 #include <algorithm>
 #include <cstring>
 #include <optional>
+#include <span>
+#include <string_view>
 #include <system_error>
 
 #include "fast_float/fast_float.h"
@@ -45,39 +47,46 @@ pd_strtoi_status pd_strtoull(const char *start, const char *end,
 // We rounded up to the next power of 2.
 constexpr size_t PROCESSED_WORD_CAPACITY = 128;
 
+struct without_tsep_result {
+  size_t written;  // bytes written to output, excluding the NUL
+  size_t consumed; // bytes of the source consumed
+};
+
 /* Copy a numeric token without `tsep` into `output` (requires tsep != '\0').
  *
- * Returns the number of bytes written (excluding NUL), or std::nullopt if the
- * token does not fit in `output`. `*endptr` is set to the position in `str`
- * where copying stopped (the first non-digit / non-tsep char or the end of
- * input) so the caller can detect trailing garbage like "1 ," (GH#64631).
+ * Copying stops at the first non-digit / non-tsep char or the end of input;
+ * `consumed` reports how far that got so the caller can detect trailing
+ * garbage like "1 ," (GH#64631). Returns std::nullopt if the token does not
+ * fit in `output`.
  */
-static std::optional<size_t>
-copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY], const char *str,
-                         const char **endptr, size_t str_len, char tsep) {
-  const char *p = str;
-  const char *const end = str + str_len;
-  char *out = output;
+static std::optional<without_tsep_result>
+copy_number_without_tsep(std::span<char> output, std::string_view str,
+                         char tsep) {
+  auto out = output.begin();
+  std::string_view rest = str;
 
-  if (p < end && (*p == '+' || *p == '-')) {
-    *out++ = *p++;
+  if (!rest.empty() && (rest.front() == '+' || rest.front() == '-')) {
+    *out++ = rest.front();
+    rest.remove_prefix(1);
   }
 
-  const char *const token_end = std::find_if(
-      p, end, [tsep](char ch) { return !isdigit_ascii(ch) && ch != tsep; });
-  const size_t n_digits = static_cast<size_t>(token_end - p) -
-                          static_cast<size_t>(std::count(p, token_end, tsep));
-  if (static_cast<size_t>(out - output) + n_digits + 1 >
-      PROCESSED_WORD_CAPACITY) {
+  const auto token_end =
+      std::find_if(rest.begin(), rest.end(), [tsep](char ch) {
+        return !isdigit_ascii(ch) && ch != tsep;
+      });
+  const size_t token_len = static_cast<size_t>(token_end - rest.begin());
+  const size_t n_digits =
+      token_len -
+      static_cast<size_t>(std::count(rest.begin(), token_end, tsep));
+  const size_t sign_len = static_cast<size_t>(out - output.begin());
+  if (sign_len + n_digits + 1 > output.size()) {
     return std::nullopt;
   }
 
-  out = std::remove_copy(p, token_end, out, tsep);
+  out = std::remove_copy(rest.begin(), token_end, out, tsep);
   *out = '\0';
-  if (endptr != NULL) {
-    *endptr = token_end;
-  }
-  return static_cast<size_t>(out - output);
+  return without_tsep_result{static_cast<size_t>(out - output.begin()),
+                             sign_len + token_len};
 }
 
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
@@ -107,15 +116,16 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
       length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const std::optional<size_t> written =
-        copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (!written.has_value()) {
+    const std::optional<without_tsep_result> copied =
+        copy_number_without_tsep(buffer, std::string_view(p, str_len), tsep);
+    if (!copied.has_value()) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
+    number_end = p + copied->consumed;
     p = buffer;
-    str_len = *written;
+    str_len = copied->written;
   }
 
   int64_t number;
@@ -183,15 +193,16 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
       length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const std::optional<size_t> written =
-        copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (!written.has_value()) {
+    const std::optional<without_tsep_result> copied =
+        copy_number_without_tsep(buffer, std::string_view(p, str_len), tsep);
+    if (!copied.has_value()) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
+    number_end = p + copied->consumed;
     p = buffer;
-    str_len = *written;
+    str_len = copied->written;
   }
 
   uint64_t number;
