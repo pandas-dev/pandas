@@ -3417,7 +3417,13 @@ class _iAtIndexer(_ScalarAccessIndexer):
 def _is_2d_value(value) -> bool:
     """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
     if isinstance(value, list):
-        return len(value) > 0 and isinstance(value[0], (list, tuple))
+        if len(value) == 0:
+            return False
+        first = value[0]
+        if isinstance(first, np.ndarray):
+            # a 0-d element is a scalar and a 2-D element makes value 3D
+            return first.ndim == 1
+        return isinstance(first, (list, tuple))
     return np.ndim(value) == 2
 
 
