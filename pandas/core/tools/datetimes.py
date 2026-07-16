@@ -860,6 +860,13 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
+        .. deprecated:: 3.1.0
+
+            Passing integer or float values together with ``format`` is
+            deprecated; cast them to strings first. In a future version numeric
+            values will be interpreted as epochs via ``unit`` instead, and
+            ``format`` will only apply to string input.
+
         .. note::
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
@@ -1241,6 +1248,37 @@ _unit_map = {
 }
 
 
+def stringify_numeric_column(values: Series) -> Series:
+    """
+    Cast a numeric column to object-dtype strings so that to_datetime with a
+    ``format`` doesn't have to infer how to interpret numeric input. GH#55663
+
+    Floats that can't be represented as int64 (e.g. +/-inf) get their plain
+    ``str`` form, which fails to parse downstream: raise for errors="raise",
+    NaT for errors="coerce".
+    """
+    notna_mask = values.notna().to_numpy()
+    int_mask = notna_mask
+    if is_float_dtype(values.dtype):
+        iinfo = np.iinfo(np.int64)
+        # float64(iinfo.max) rounds up to 2**63, just out of range, so
+        # exclude the right endpoint
+        in_range = values.between(iinfo.min, iinfo.max, inclusive="left")
+        int_mask = notna_mask & in_range.to_numpy(dtype=bool, na_value=False)
+
+    result = np.full(len(values), np.nan, dtype=object)
+    oob_mask = notna_mask & ~int_mask
+    if oob_mask.any():
+        result[oob_mask] = np.asarray(values[oob_mask].astype(str), dtype=object)
+    if int_mask.any():
+        result[int_mask] = np.asarray(
+            values[int_mask].astype("int64").astype(str), dtype=object
+        )
+    return values._constructor(
+        result, index=values.index, name=values.name, dtype=object
+    )
+
+
 def _assemble_from_unit_mappings(
     arg, errors: DateTimeErrorChoices, utc: bool
 ) -> Series:
@@ -1322,8 +1360,11 @@ def _assemble_from_unit_mappings(
         + coerce(arg[unit_rev["month"]]) * 100
         + coerce(arg[unit_rev["day"]])
     )
+    # GH#55663 cast to strings up front so to_datetime doesn't need to
+    # infer what to do with numeric data when a format is given.
+    str_values = stringify_numeric_column(values)
     try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
+        values = to_datetime(str_values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
