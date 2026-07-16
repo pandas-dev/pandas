@@ -1199,10 +1199,6 @@ class FrameApply(NDFrameApply):
             result = np.squeeze(result)
         else:
             wrapped = wrap_function(self.func)
-            if self.values.shape[1 - self.axis] == 0:
-                raise ValueError(
-                    "Cannot apply_along_axis when any iteration dimensions are 0"
-                )
             obj_iter = self.values.T if self.axis == 0 else self.values
             res_list = [wrapped(val, *self.args, **self.kwargs) for val in obj_iter]
             first_res = res_list[0]
