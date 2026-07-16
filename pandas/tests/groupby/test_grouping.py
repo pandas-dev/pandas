@@ -120,6 +120,47 @@ class TestSelection:
         with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby("A")["C", "D"].mean()
 
+    def test_getitem_multiindex_columns_tuple(self):
+        # GH#58282 a multi-element tuple is a (possibly partial) key into
+        # MultiIndex columns, following DataFrame.__getitem__ instead of raising
+        df = DataFrame(
+            {
+                "a": [1, 1, 2],
+                "p": [0, 1, 2],
+                "q": [3, 4, 5],
+                "r": [6, 7, 8],
+            }
+        ).set_index("a")
+        df.columns = MultiIndex.from_tuples(
+            [("b", "x", 1), ("b", "x", 2), ("c", "y", 1)]
+        )
+
+        # a full key selects a single column -> Series result
+        result = df.groupby("a")[("b", "x", 1)].sum()
+        expected = Series(
+            [1, 2], index=Index([1, 2], name="a"), name=("b", "x", 1)
+        )
+        tm.assert_series_equal(result, expected)
+
+        # a partial key selects multiple columns -> DataFrame result
+        result = df.groupby("a")[("b", "x")].sum()
+        expected = DataFrame(
+            {1: [1, 2], 2: [7, 5]}, index=Index([1, 2], name="a")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_getitem_multiindex_columns_duplicate(self):
+        # GH#58282 a tuple matching duplicate columns returns a DataFrame
+        df = DataFrame({"a": [1, 1, 2], "x": [3, 5, 7], "y": [4, 6, 8]}).set_index("a")
+        df.columns = MultiIndex.from_tuples([("b", 1), ("b", 1)])
+        result = df.groupby("a")[("b", 1)].sum()
+        expected = DataFrame(
+            [[8, 10], [7, 8]],
+            index=Index([1, 2], name="a"),
+            columns=MultiIndex.from_tuples([("b", 1), ("b", 1)]),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_single_column(self):
         df = DataFrame(
             {
