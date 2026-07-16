@@ -40,10 +40,10 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    EmptyDataError,
     Pandas4Warning,
     ParserError,
     ParserWarning,
-    EmptyDataError,
 )
 from pandas.util._decorators import (
     set_module,
