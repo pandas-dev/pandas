@@ -1977,6 +1977,28 @@ def test_agg_list_like_series_method_not_reduction():
         assert result.loc["memory_usage", col] == df_mixed[col].memory_usage()
 
 
+def test_agg_list_like_square_frame_matching_labels():
+    # GH#65031 a square frame with identical row/column labels must not let
+    # a row-indexed result (DataFrame.duplicated) slip through the fast path
+    df = DataFrame([[0, 1], [0, 2]])
+    result = df.agg(["duplicated"])
+    expected = DataFrame(
+        {
+            (0, "duplicated"): [False, True],
+            (1, "duplicated"): [False, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_empty_frame_reduction():
+    # GH#65031 empty frame with a list of reductions returns an empty frame
+    # indexed by the func names (pandas 3.0 raised "No objects to concatenate")
+    result = DataFrame().agg(["sum"])
+    expected = DataFrame(index=["sum"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = DataFrame(

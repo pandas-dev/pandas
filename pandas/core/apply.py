@@ -88,6 +88,34 @@ if TYPE_CHECKING:
 
 ResType: TypeAlias = dict[int, Any]
 
+# DataFrame methods that reduce column-wise to a Series indexed by the
+# columns, making them eligible for the fast path in
+# FrameApply._agg_list_like_frame_reductions.
+_frame_reduction_names = frozenset(
+    {
+        "all",
+        "any",
+        "count",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurtosis",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "nunique",
+        "prod",
+        "product",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    }
+)
+
 
 @set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
@@ -1064,8 +1092,7 @@ class FrameApply(NDFrameApply):
         Operates per dtype group to preserve per-column dtypes.
 
         Returns None if the fast path cannot be used (e.g. non-string
-        functions, functions that aren't valid DataFrame methods, or
-        functions that don't return a reduction result).
+        functions or functions that aren't known column-wise reductions).
         """
         func = cast("list[AggFuncTypeBase]", self.func)
 
@@ -1080,7 +1107,11 @@ class FrameApply(NDFrameApply):
             return None
 
         for func_name in func_names:
-            if not hasattr(obj, func_name):
+            if func_name not in _frame_reduction_names:
+                # GH#65031 anything that isn't a known column-wise reduction
+                # (e.g. value_counts, duplicated) must use the per-column
+                # fallback; a Series-returning method could otherwise slip
+                # through the shape checks below and give wrong results.
                 return None
 
         if self.kwargs.get("numeric_only"):
@@ -1104,12 +1135,13 @@ class FrameApply(NDFrameApply):
                 except TypeError:
                     return None
                 if not isinstance(row, ABCSeries):
-                    # Not a reduction (e.g. returns DataFrame), fall back
+                    # Not a reduction result for these args (e.g. quantile
+                    # with a list q returns a DataFrame); fall back
                     return None
                 if not row.index.equals(sub.columns):
-                    # Series-returning method that isn't a column-wise
-                    # reduction, so its result isn't indexed by the columns
-                    # (e.g. value_counts, duplicated, memory_usage); fall back.
+                    # Backstop: a genuine column-wise reduction is indexed
+                    # by the columns; anything else would silently misalign
+                    # in the concat below.
                     return None
                 # to_frame().T avoids the slow DataFrame(list-of-Series) path
                 group_pieces.append(row.to_frame(func_name).T)
