@@ -999,9 +999,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         n_groupings = len(self._grouper.groupings)
 
+        def full_key(name: Hashable) -> Hashable:
+            # GH#17024 expanding MultiIndex columns with a partial key is
+            #  deprecated; pad the key to full length ourselves
+            if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
+                return (name,) + ("",) * (result.columns.nlevels - 1)
+            return name
+
         if qs is not None:
             result.insert(
-                0, f"level_{n_groupings}", np.tile(qs, len(result) // len(qs))
+                0, full_key(f"level_{n_groupings}"), np.tile(qs, len(result) // len(qs))
             )
 
         # zip in reverse so we can always insert at loc 0
@@ -1025,9 +1032,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if name not in result.columns:
                 # if in_axis:
                 if qs is None:
-                    result.insert(0, name, lev)
+                    result.insert(0, full_key(name), lev)
                 else:
-                    result.insert(0, name, Index(np.repeat(lev, len(qs)), copy=False))
+                    result.insert(
+                        0, full_key(name), Index(np.repeat(lev, len(qs)), copy=False)
+                    )
 
         return result
 

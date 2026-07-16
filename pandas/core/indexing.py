@@ -2916,14 +2916,6 @@ class _iLocIndexer(_LocationIndexer):
             )._mgr
 
         elif self.ndim == 2:
-            if not len(self.obj.columns):
-                # GH#17895 no columns, just expand the index
-                new_index = self.obj.index.insert(len(self.obj.index), indexer)
-                self.obj._mgr = self.obj._constructor(
-                    index=new_index, columns=self.obj.columns
-                )._mgr
-                return
-
             maybe_warn_multiindex_expansion(
                 self.obj.index,
                 indexer,
@@ -2931,6 +2923,14 @@ class _iLocIndexer(_LocationIndexer):
                 hint="Use a full-length tuple key and an explicit column "
                 "indexer instead, e.g. df.loc[key, :] = values.",
             )
+
+            if not len(self.obj.columns):
+                # GH#17895 no columns, just expand the index
+                new_index = self.obj.index.insert(len(self.obj.index), indexer)
+                self.obj._mgr = self.obj._constructor(
+                    index=new_index, columns=self.obj.columns
+                )._mgr
+                return
 
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
