@@ -653,13 +653,9 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
 
                 if out_local == 1:
                     obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
-                    obj.value = tz_localize_to_utc_single(
-                        ival,
-                        obj.tzinfo,
-                        ambiguous="raise",
-                        nonexistent=None,
-                        creso=reso,
-                    )
+                    # equiv: tz_localize_to_utc_single(
+                    #  ival, obj.tzinfo, creso=reso)
+                    obj.value = ival - out_tzoffset * 60 * periods_per_second(reso)
                     if tz is None:
                         check_overflows(obj, reso)
                         return obj
@@ -685,7 +681,9 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         reso = get_supported_reso(out_bestunit)
         if reso < NPY_FR_us:
             reso = NPY_FR_us
-        return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        obj = convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        obj.parsed_by_dateutil = True
+        return obj
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
