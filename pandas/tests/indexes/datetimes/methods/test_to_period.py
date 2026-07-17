@@ -12,6 +12,7 @@ from pandas import (
     DatetimeIndex,
     Period,
     PeriodIndex,
+    Series,
     Timestamp,
     date_range,
     period_range,
@@ -62,6 +63,75 @@ class TestToPeriod:
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
         assert prng.freq == "YE-DEC"
+
+    @pytest.mark.parametrize(
+        "off, expected_freq",
+        [
+            ("QS-APR", "Q-MAR"),
+            ("BQS-APR", "Q-MAR"),
+            ("BQE-APR", "Q-APR"),
+            # start-offset month is shifted back one; JAN wraps to DEC
+            ("QS-JAN", "Q-DEC"),
+            ("QS-DEC", "Q-NOV"),
+        ],
+    )
+    def test_to_period_quarterly_anchored(self, off, expected_freq):
+        # GH#36939 - anchored quarter offsets should preserve the anchor
+        rng = date_range("01-Apr-2012", periods=4, freq=off)
+        result = rng.to_period()
+        assert result.freqstr == expected_freq
+
+    @pytest.mark.parametrize(
+        "dates, expected_freq, expected_periods",
+        [
+            (
+                ["2012-01-01", "2012-04-01", "2012-07-01", "2012-10-01"],
+                "Q-DEC",
+                ["2012Q1", "2012Q2", "2012Q3", "2012Q4"],
+            ),
+            (
+                ["2012-02-01", "2012-05-01", "2012-08-01", "2012-11-01"],
+                "Q-JAN",
+                ["2013Q1", "2013Q2", "2013Q3", "2013Q4"],
+            ),
+            (
+                ["2012-03-01", "2012-06-01", "2012-09-01", "2012-12-01"],
+                "Q-FEB",
+                ["2013Q1", "2013Q2", "2013Q3", "2013Q4"],
+            ),
+        ],
+    )
+    def test_to_period_quarter_start_inferred(
+        self, dates, expected_freq, expected_periods
+    ):
+        # GH#36939 - without a set freq the anchor is only inferred up to
+        #  mod 3; calendar quarter starts must keep the calendar Q-DEC labels
+        dti = DatetimeIndex(dates)
+        result = dti.to_period()
+        expected = PeriodIndex(expected_periods, freq=expected_freq)
+        tm.assert_index_equal(result, expected)
+
+        # Series.dt.to_period goes through DatetimeArray.to_period, which
+        #  infers the freq itself rather than receiving it from the Index
+        result2 = Series(dti).dt.to_period()
+        tm.assert_series_equal(result2, Series(expected))
+
+    @pytest.mark.parametrize(
+        "off, expected_freq",
+        [
+            ("YS-APR", "Y-MAR"),
+            ("BYS-APR", "Y-MAR"),
+            ("BYE-APR", "Y-APR"),
+            # start-offset month is shifted back one; JAN wraps to DEC
+            ("YS-JAN", "Y-DEC"),
+            ("YS-DEC", "Y-NOV"),
+        ],
+    )
+    def test_to_period_annual_anchored(self, off, expected_freq):
+        # GH#36939 - anchored annual offsets should preserve the anchor
+        rng = date_range("01-Apr-2012", periods=3, freq=off)
+        result = rng.to_period()
+        assert result.freqstr == expected_freq
 
     def test_to_period_monthish(self):
         offsets = ["MS", "BME"]
