@@ -109,7 +109,7 @@ def test_to_csv(cleared_fs, df1):
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The default read_excel engine:pandas.errors.Pandas4Warning"
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
 )
 def test_to_excel(cleared_fs, df1):
     pytest.importorskip("openpyxl")
@@ -170,7 +170,7 @@ def test_read_table_options(fsspectest):
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The default read_excel engine:pandas.errors.Pandas4Warning"
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
 )
 def test_excel_options(fsspectest):
     pytest.importorskip("openpyxl")

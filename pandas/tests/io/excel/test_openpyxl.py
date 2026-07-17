@@ -22,7 +22,7 @@ openpyxl = pytest.importorskip("openpyxl")
 # These tests read xlsx back with the default engine; the pending
 # calamine-default change (GH#56542) is not what they exercise.
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:The default read_excel engine:pandas.errors.Pandas4Warning"
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
 )
 
 

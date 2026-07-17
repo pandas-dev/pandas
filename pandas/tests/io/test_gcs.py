@@ -54,7 +54,7 @@ def gcs_buffer():
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
 @pytest.mark.filterwarnings(
-    "ignore:The default read_excel engine:pandas.errors.Pandas4Warning"
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
 def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
