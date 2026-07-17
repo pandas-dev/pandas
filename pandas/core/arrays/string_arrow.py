@@ -16,7 +16,6 @@ from pandas._libs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
-    pa_version_under16p0,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import set_module
@@ -77,7 +76,7 @@ def _check_pyarrow_available() -> None:
 
 
 def _is_string_view(typ):
-    return not pa_version_under16p0 and pa.types.is_string_view(typ)
+    return pa.types.is_string_view(typ)
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from

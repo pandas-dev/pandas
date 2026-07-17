@@ -112,7 +112,7 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
     assert optional == {
         "beautifulsoup4": "4.12.3",
         "hypothesis": "6.116.0",
-        "pyarrow": "13.0.0",
+        "pyarrow": "16.0.0",
         "pytest": "8.3.4",
         "pytables": "3.10.1",
         "qtpy": "2.4.2",

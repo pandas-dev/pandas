@@ -38,7 +38,6 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY312,
     is_platform_windows,
-    pa_version_under14p0,
     pa_version_under19p0,
     pa_version_under20p0,
     pa_version_under21p0,
@@ -871,11 +870,14 @@ class TestArrowArray(base.ExtensionTests):
     def _is_temporal_supported(self, opname, pa_dtype):
         return (
             (
-                opname in ("__add__", "__radd__")
-                or (
-                    opname
-                    in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
-                    and not pa_version_under14p0
+                opname
+                in (
+                    "__add__",
+                    "__radd__",
+                    "__truediv__",
+                    "__rtruediv__",
+                    "__floordiv__",
+                    "__rfloordiv__",
                 )
             )
             and pa.types.is_duration(pa_dtype)
