@@ -86,9 +86,10 @@ def get_objs_combined_axis(
 
     Returns
     -------
-    tuple of (Index, bool)
-        The combined index, together with a boolean indicating
-        whether all indexes are equal.
+    Index
+        The combined index.
+    bool
+        Whether all indexes are equal.
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
     return _get_combined_index(
@@ -133,9 +134,10 @@ def _get_combined_index(
 
     Returns
     -------
-    tuple of (Index, bool)
-        The combined index, together with a boolean indicating
-        whether all indexes are equal.
+    Index
+        The combined index.
+    bool
+        Whether all indexes are equal.
     """
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
@@ -215,9 +217,10 @@ def union_indexes(
 
     Returns
     -------
-    tuple of (Index, bool)
-        The union index, together with a boolean indicating
-        whether all indexes are equal.
+    Index
+        The union index.
+    bool
+        Whether all indexes are equal.
     """
 
     if len(indexes) == 0:
