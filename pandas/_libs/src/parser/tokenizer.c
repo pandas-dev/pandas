@@ -26,6 +26,59 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 #include <stdlib.h>
 
+// Arch selection comes from the build-time SIMD config (pandas/_libs/simd),
+// which sets exactly one of PANDAS_HAVE_NEON / PANDAS_HAVE_SSE2 /
+// PANDAS_HAVE_SCALAR from the host CPU family. Pull in the matching intrinsics
+// header for whichever applies; the scalar case defines neither and falls back
+// to the byte-at-a-time scan.
+#include "pandas_simd_config.h"
+
+#if defined(PANDAS_HAVE_NEON)
+#  include <arm_neon.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#elif defined(PANDAS_HAVE_SSE2)
+#  include <emmintrin.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#endif
+
+// Portable count-trailing-zeros, defined only for the architecture that uses
+// it: pandas_ctzll for NEON (64-bit lane), pandas_ctz for SSE2 (32-bit
+// movemask). The __builtin_ctz* form is preferred where available (including
+// clang-cl and mingw on Windows); MSVC falls back to _BitScanForward*.
+#ifndef __has_builtin
+#  define __has_builtin(x) 0
+#endif
+
+#if defined(PANDAS_HAVE_NEON)
+static inline int pandas_ctzll(unsigned long long mask) {
+#  if __has_builtin(__builtin_ctzll)
+  return __builtin_ctzll(mask);
+#  elif defined(_MSC_VER)
+  unsigned long index;
+  _BitScanForward64(&index, mask);
+  return (int)index;
+#  else
+#    error "no count-trailing-zeros builtin available"
+#  endif
+}
+#elif defined(PANDAS_HAVE_SSE2)
+static inline int pandas_ctz(unsigned int mask) {
+#  if __has_builtin(__builtin_ctz)
+  return __builtin_ctz(mask);
+#  elif defined(_MSC_VER)
+  unsigned long index;
+  _BitScanForward(&index, mask);
+  return (int)index;
+#  else
+#    error "no count-trailing-zeros builtin available"
+#  endif
+}
+#endif
+
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
@@ -57,26 +110,35 @@ static void free_if_not_null(void **ptr) {
 static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
                          int64_t space, int64_t elsize, int *error) {
   uint64_t cap = *capacity;
-  void *newbuffer = buffer;
 
-  // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
-  while ((length + space >= cap) && (newbuffer != NULL)) {
-    cap = cap ? cap << 1 : 2;
-    buffer = newbuffer;
-    newbuffer = realloc(newbuffer, elsize * cap);
+  // Can we already fit length + space (tokens + null terminators)?
+  if (length + space < cap) {
+    *error = 0;
+    return buffer;
   }
 
+  // Compute the final power-of-two capacity first, then realloc *once*.
+  // Doubling with a realloc inside the loop reallocs (and copies) at every
+  // step; the up-front stream reservation in tokenize_bytes grows the buffer
+  // from its initial size to the whole chunk in a single call, so that would
+  // be ~log2(chunk / init) copying reallocs.  On allocators with a single
+  // process-wide heap lock (notably the Windows UCRT heap) those extra
+  // reallocs serialize the parallel read_csv workers against each other, so
+  // we size the buffer in one shot instead.
+  uint64_t newcap = cap ? cap : 2;
+  while (length + space >= newcap) {
+    newcap <<= 1;
+  }
+
+  void *newbuffer = realloc(buffer, elsize * newcap);
   if (newbuffer == NULL) {
     // realloc failed so don't change *capacity, set *error to errno
-    // and return the last good realloc'd buffer so it can be freed
+    // and return the still-valid old buffer so it can be freed
     *error = errno;
-    newbuffer = buffer;
-  } else {
-    // realloc worked, update *capacity and set *error to 0
-    // sigh, multiple return values
-    *capacity = cap;
-    *error = 0;
+    return buffer;
   }
+  *capacity = newcap;
+  *error = 0;
   return newbuffer;
 }
 
@@ -102,6 +164,7 @@ void parser_set_default_options(parser_t *self) {
 
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
+  self->preloaded = 0;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -391,8 +454,12 @@ static int end_line(parser_t *self) {
     return 0;
   }
 
-  if (!(self->lines <= self->header_end + 1) && (fields > ex_fields) &&
-      !(self->usecols)) {
+  /* The first line is normally exempt from the field-count check: it is the
+   * header, or it defines the table width (implicit-index inference).  In
+   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
+   * the first line is plain data, so the exemption must not apply. */
+  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
+      (fields > ex_fields) && !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -621,6 +688,94 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
+#ifdef PANDAS_HAVE_NEON
+
+// Scan data for any special character using NEON.
+// Returns the byte offset of the first special character,
+// or the number of bytes scanned (all clean) if none found.
+static inline size_t fast_scan_simd(const char *data, size_t len,
+                                    uint8x16_t vdelim, uint8x16_t vterm,
+                                    uint8x16_t vcr, uint8x16_t vquote,
+                                    uint8x16_t vescape, uint8x16_t vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vdelim);
+    m = vorrq_u8(m, vceqq_u8(chunk, vterm));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcr));
+    m = vorrq_u8(m, vceqq_u8(chunk, vquote));
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcomment));
+
+    // Each matching byte is 0xFF, non-matching is 0x00. NEON has no movemask,
+    // so narrow each byte to a nibble (shift-right-narrow by 4): byte k becomes
+    // nibble k of a single u64, 0xF if matched else 0x0. ctzll/4 is the offset.
+    const uint8x8_t m8 = vshrn_n_u16(vreinterpretq_u16_u8(m), 4);
+    const uint64_t matches = vget_lane_u64(vreinterpret_u64_u8(m8), 0);
+    if (matches)
+      return i + pandas_ctzll(matches) / 4;
+  }
+  return i;
+}
+
+// Lighter scan for quoted fields: only check quote and escape chars.
+static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
+                                           uint8x16_t vquote,
+                                           uint8x16_t vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vquote);
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+
+    const uint8x8_t m8 = vshrn_n_u16(vreinterpretq_u16_u8(m), 4);
+    const uint64_t matches = vget_lane_u64(vreinterpret_u64_u8(m8), 0);
+    if (matches)
+      return i + pandas_ctzll(matches) / 4;
+  }
+  return i;
+}
+
+#elif defined(PANDAS_HAVE_SSE2)
+
+static inline size_t fast_scan_simd(const char *data, size_t len,
+                                    __m128i vdelim, __m128i vterm, __m128i vcr,
+                                    __m128i vquote, __m128i vescape,
+                                    __m128i vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vdelim);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vterm));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcr));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vquote));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcomment));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + pandas_ctz(mask);
+  }
+  return i;
+}
+
+static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
+                                           __m128i vquote, __m128i vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vquote);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + pandas_ctz(mask);
+  }
+  return i;
+}
+
+#endif
+
 static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
@@ -640,6 +795,40 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
                          self->skip_first_N_rows >= 0);
 
+#ifdef PANDAS_HAVE_NEON
+  const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
+  const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
+  const uint8x16_t vcr =
+      has_carriage ? vdupq_n_u8((uint8_t)carriage_symbol) : vterm;
+  const uint8x16_t vquote = (self->quoting != QUOTE_NONE)
+                                ? vdupq_n_u8((uint8_t)self->quotechar)
+                                : vterm;
+  // Fall back to vquote (not vterm) so the quoted-field scan is not
+  // broken by line terminators inside quoted fields.
+  const uint8x16_t vescape = (self->escapechar != '\0')
+                                 ? vdupq_n_u8((uint8_t)self->escapechar)
+                                 : vquote;
+  const uint8x16_t vcomment = (self->commentchar != '\0')
+                                  ? vdupq_n_u8((uint8_t)self->commentchar)
+                                  : vterm;
+#elif defined(PANDAS_HAVE_SSE2)
+  const __m128i vdelim = _mm_set1_epi8(delimiter);
+  const __m128i vterm = _mm_set1_epi8(lineterminator);
+  const __m128i vcr = has_carriage ? _mm_set1_epi8(carriage_symbol) : vterm;
+  const __m128i vquote =
+      (self->quoting != QUOTE_NONE) ? _mm_set1_epi8(self->quotechar) : vterm;
+  // Fall back to vquote (not vterm) so the quoted-field scan is not
+  // broken by line terminators inside quoted fields.
+  const __m128i vescape =
+      (self->escapechar != '\0') ? _mm_set1_epi8(self->escapechar) : vquote;
+  const __m128i vcomment =
+      (self->commentchar != '\0') ? _mm_set1_epi8(self->commentchar) : vterm;
+#endif
+
+  // Reserve worst-case stream space up front: the bulk-scan copies below
+  // (scalar and SIMD) write input data 1:1 with no per-copy capacity check, so
+  // the stream must already hold all remaining input. Field null-terminators
+  // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
     self->error_msg = malloc(bufsize);
@@ -687,7 +876,10 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     breaks_field_scan[index] |= 0x2;
   }
 
-  if (self->file_lines == 0) {
+  if (self->file_lines == 0 && !self->preloaded) {
+    /* In preloaded mode the buffer usually starts mid-file, where a BOM
+     * byte sequence is real data; load_buffer strips a leading BOM itself
+     * when the buffer really is the start of the file. */
     CHECK_FOR_BOM();
   }
 
@@ -929,8 +1121,27 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-        // Bulk scan: copy remaining ordinary characters directly,
-        // bypassing the per-char state machine overhead.
+        // SIMD bulk scan: process 16 bytes at a time, copying
+        // normal characters directly without state-machine overhead.
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+        if (!self->delim_whitespace) {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip = fast_scan_simd(buf, remaining, vdelim, vterm, vcr,
+                                         vquote, vescape, vcomment);
+            if (skip > 0) {
+              // in-bounds; see stream reservation at loop start
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#endif
+        // Scalar bulk scan fallback: copy remaining ordinary characters
+        // directly, bypassing the per-char state machine overhead.
         while (i + 1 < self->datalen &&
                !(breaks_field_scan[(uint8_t)*buf] & 0x1)) {
           *stream++ = *buf++;
@@ -957,8 +1168,26 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-        // Bulk scan: copy remaining ordinary characters directly,
-        // bypassing the per-char state machine overhead.
+        // SIMD bulk scan for quoted fields: only quote and escape
+        // chars are special, so use a lighter scan.
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+        {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip =
+                fast_scan_quoted_simd(buf, remaining, vquote, vescape);
+            if (skip > 0) {
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#endif
+        // Scalar bulk scan fallback: copy remaining ordinary characters
+        // directly, bypassing the per-char state machine overhead.
         while (i + 1 < self->datalen &&
                !(breaks_field_scan[(uint8_t)*buf] & 0x2)) {
           *stream++ = *buf++;
@@ -1140,12 +1369,18 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
 
-  /* if word_deletions == 0 (i.e. this case) then char_count must
-   * be 0 too, as no data needs to be skipped */
-  const uint64_t char_count =
-      word_deletions >= 1 ? (self->word_starts[word_deletions - 1] +
-                             strlen(self->words[word_deletions - 1]) + 1)
-                          : 0;
+  uint64_t char_count;
+  if (word_deletions < 1) {
+    /* nothing deleted, so no data needs to be skipped */
+    char_count = 0;
+  } else if ((uint64_t)word_deletions < self->words_len) {
+    /* start of the first surviving word, which equals the end (past the
+     * trailing '\0') of the last deleted word */
+    char_count = (uint64_t)self->word_starts[word_deletions];
+  } else {
+    /* every word is being deleted */
+    char_count = self->stream_len;
+  }
 
   /* move stream, only if something to move */
   if (char_count < self->stream_len) {
@@ -1288,6 +1523,16 @@ static int _tokenize_helper(parser_t *self, uint64_t nrows, int all,
       break;
 
     if (self->datapos == self->datalen) {
+      if (self->source == NULL) {
+        /* Pre-loaded buffer mode: the entire chunk has been consumed.
+         * Signal EOF without invoking the Python I/O callback so the
+         * GIL is never re-acquired during tokenisation. */
+        self->datalen = 0;
+        status = parser_handle_eof(self);
+        self->state = FINISHED;
+        break;
+      }
+
       status = parser_buffer_bytes(self, self->chunksize, encoding_errors);
 
       if (status == REACHED_EOF) {
@@ -1385,14 +1630,14 @@ int to_boolean(const char *item, uint8_t *val) {
 //
 // -----------------------------------------------------------------------
 
-// Defined in fast_float_strtod.cpp — provides IEEE 754 correctly-rounded
+// Defined in fast_float_wrappers.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error,
-                       int *maybe_int) {
+double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
+                                char sci, char tsep, int skip_trailing,
+                                int *error, int *maybe_int, const char *end) {
   // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
   if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
@@ -1409,10 +1654,15 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL).
-    const char *end = p;
-    while (*end && !isspace_ascii(*end))
-      end++;
+    // Find end of token (next whitespace or NUL) unless the caller passed
+    // it; fast_float stops at the first non-numeric byte regardless, so a
+    // looser end bound is harmless.
+    if (end == NULL) {
+      const char *scan = p;
+      while (*scan && !isspace_ascii(*scan))
+        scan++;
+      end = scan;
+    }
 
     double value;
     const char *parsed_end;
@@ -1597,6 +1847,13 @@ fallback:
   return number;
 }
 
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
+  return precise_xstrtod_with_end(str, endptr, decimal, sci, tsep,
+                                  skip_trailing, error, maybe_int, NULL);
+}
+
 // End of xstrtod code
 // ---------------------------------------------------------------------------
 
@@ -1645,7 +1902,8 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
-int64_t str_to_int64(const char *p_item, int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, int64_t length, int *error,
+                     char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1665,7 +1923,10 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
@@ -1714,8 +1975,8 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
-                       char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1738,7 +1999,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
