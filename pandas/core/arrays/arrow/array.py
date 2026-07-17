@@ -16,6 +16,7 @@ from typing import (
     cast,
     overload,
 )
+import unicodedata
 import warnings
 
 import numpy as np
@@ -575,14 +576,29 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             if arr.type.tz == self._pa_array.type.tz:
-                arr = arr.cast(self._pa_array.type)
+                try:
+                    arr = arr.cast(self._pa_array.type)
+                except pa.lib.ArrowInvalid:
+                    # GH#62523 a finer-resolution result can't be cast down to
+                    #  the original coarser unit without losing data; keep the
+                    #  inferred unit rather than raising
+                    pass
 
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
             arr = arr.cast(self._pa_array.type)
         elif pa.types.is_time(arr.type) and pa.types.is_time(self._pa_array.type):
-            arr = arr.cast(self._pa_array.type)
+            try:
+                arr = arr.cast(self._pa_array.type)
+            except pa.lib.ArrowInvalid:
+                # GH#62523 as above for the timestamp branch
+                pass
         elif pa.types.is_decimal(arr.type) and pa.types.is_decimal(self._pa_array.type):
-            arr = arr.cast(self._pa_array.type)
+            try:
+                arr = arr.cast(self._pa_array.type)
+            except pa.lib.ArrowInvalid:
+                # GH#62523 rescaling to the original decimal type would lose
+                #  data; keep the inferred precision/scale rather than raising
+                pass
         elif pa.types.is_integer(arr.type) and pa.types.is_integer(self._pa_array.type):
             try:
                 arr = arr.cast(self._pa_array.type)
@@ -2379,6 +2395,9 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
+        if name in ("cummax", "cummin") and pa.types.is_floating(data_to_accum.type):
+            kwargs["start"] = float("-inf") if name == "cummax" else float("inf")
+
         try:
             result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
         except pa.ArrowNotImplementedError as err:
@@ -3503,6 +3522,13 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pa.chunked_array(result))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
+        if form in ("NFC", "NFKC"):
+            # GH#64359 pc.utf8_normalize only decomposes; it skips the canonical
+            #  composition step, so for the composing forms it returns decomposed
+            #  output. Fall back to unicodedata for these.
+            predicate = lambda val: unicodedata.normalize(form, val)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
         return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:

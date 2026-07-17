@@ -1408,9 +1408,36 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> Any:
+    """
+    Maybe convert a NumPy scalar to its Python equivalent.
+
+    If future.python_scalars is disabled or ``value`` is not a NumPy scalar, ``value``
+    is returned unchanged. ``np.datetime64`` and ``np.timedelta64`` values are
+    converted to ``Timestamp`` and ``Timedelta`` respectively. Converting
+    ``np.longdouble`` to ``float`` and ``np.complex256`` to ``complex`` can
+    lose precision.
+
+    Parameters
+    ----------
+    value : Any
+        The value to unbox.
+    dtype : DtypeObj or None, default None
+        The dtype of the data ``value`` came from. Pass this whenever
+        ``value`` is an element of the data or is derived from its elements:
+        object dtype stores arbitrary user objects, so a NumPy scalar coming
+        from object-dtype data is a stored value rather than a boxing
+        artifact, and is returned unchanged. Omit for values whose
+        type does not follow the data's dtype, e.g. positions, counts, and
+        the results of any/all.
+
+    Returns
+    -------
+    Any
+        The equivalent Python scalar, or ``value`` unchanged.
+    """
     result = value
-    if using_python_scalars() and isinstance(value, np.generic):
+    if dtype != object and using_python_scalars() and isinstance(value, np.generic):
         if isinstance(result, np.longdouble):
             result = float(result)
         elif isinstance(result, np.complex256):
@@ -1708,7 +1735,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs
+                #  losslessly iff it has no NAs and the values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1716,6 +1743,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 )
                 if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
+                # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
+                #  to reject a negative value going into an unsigned dtype.
+                np_can_hold_element(dtype, np.asarray(arr))
                 return element
 
             return element
@@ -1749,6 +1779,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
+                #  and the values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1756,11 +1787,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 )
                 if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
+                # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
+                #  to reject a value that overflows the target float dtype.
+                np_can_hold_element(dtype, np.asarray(arr))
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
-                    casted = element.astype(dtype)
+                    with np.errstate(over="ignore"):
+                        # We check afterwards whether the cast was lossless, so
+                        #  no need to show the overflow warning.
+                        casted = element.astype(dtype)
                     if np.array_equal(casted, element, equal_nan=True):
                         return casted
                     raise LossySetitemError

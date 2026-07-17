@@ -28,6 +28,7 @@ import operator
 import pickle
 import re
 import sys
+import unicodedata
 
 import numpy as np
 import pytest
@@ -2333,12 +2334,24 @@ def test_str_r_index(method, start, end):
         getattr(ser.str, method)("foo", start, end)
 
 
-@pytest.mark.parametrize("form", ["NFC", "NFKC"])
+@pytest.mark.parametrize("form", ["NFC", "NFD", "NFKC", "NFKD"])
 def test_str_normalize(form):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    # GH#64359 the composing forms (NFC/NFKC) must apply canonical composition,
+    #  not just decomposition: "e" + U+0301 must compose to U+00E9, and a
+    #  pre-composed character must round-trip unchanged. The compatibility
+    #  forms additionally fold e.g. the U+FB01 "fi" ligature.
+    data = ["abc", "e\u0301", "\u00e9", "\u212b", "\ufb01", None]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.string()))
     result = ser.str.normalize(form)
-    expected = ser.copy()
+    expected = pd.Series(
+        [unicodedata.normalize(form, val) if val is not None else None for val in data],
+        dtype=ArrowDtype(pa.string()),
+    )
     tm.assert_series_equal(result, expected)
+    if form in ("NFC", "NFKC"):
+        # decomposed and pre-composed inputs both yield the single U+00E9
+        assert result[1] == "\u00e9"
+        assert result[2] == "\u00e9"
 
 
 @pytest.mark.parametrize(
@@ -4114,6 +4127,44 @@ def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42, 42, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, func, expected_dtype",
+    [
+        (
+            ArrowDtype(pa.timestamp("s")),
+            lambda x: x + timedelta(microseconds=123456),
+            ArrowDtype(pa.timestamp("us")),
+        ),
+        (
+            ArrowDtype(pa.time32("s")),
+            lambda x: x.replace(microsecond=123456),
+            ArrowDtype(pa.time64("us")),
+        ),
+        (
+            ArrowDtype(pa.decimal128(3, 1)),
+            lambda x: x + Decimal("0.01"),
+            ArrowDtype(pa.decimal128(3, 2)),
+        ),
+    ],
+)
+def test_map_finer_resolution_no_arrowinvalid(dtype, func, expected_dtype):
+    # GH#62523 mapping to a finer resolution/precision that cannot be cast
+    #  down to the original dtype should keep the finer dtype rather than
+    #  raising ArrowInvalid
+    if pa.types.is_timestamp(dtype.pyarrow_dtype):
+        data = [datetime(2020, 1, 1), datetime(2020, 1, 2)]
+    elif pa.types.is_time(dtype.pyarrow_dtype):
+        data = [time(1, 2, 3), time(4, 5, 6)]
+    else:
+        data = [Decimal("1.5"), Decimal("2.5")]
+
+    ser = pd.Series(data, dtype=dtype)
+    result = ser.map(func)
+    assert result.dtype == expected_dtype
+    expected = pd.Series([func(x) for x in data], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
