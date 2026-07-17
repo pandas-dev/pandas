@@ -17,13 +17,17 @@ Behavioral contract (inherited from the tokenizer.c implementations):
 #include "pandas/parser/pd_strtoi.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <cstddef>
 #include <cstring>
+#include <iterator>
 #include <optional>
 #include <span>
 #include <string_view>
 #include <system_error>
 #include <type_traits>
+#include <utility>
 
 #include "fast_float/fast_float.h"
 #include "pandas/parser/tokenizer.h"
@@ -32,6 +36,10 @@ Behavioral contract (inherited from the tokenizer.c implementations):
 // Arrow256 allows up to 76 decimal digits.
 // We rounded up to the next power of 2.
 constexpr size_t PROCESSED_WORD_CAPACITY = 128;
+
+// The ASCII whitespace accepted around numbers; matches both isspace_ascii
+// and fast_float::is_space (relied on by skip_white_space below).
+constexpr std::string_view ascii_spaces = " \t\n\v\f\r";
 
 /* Copy the leading numeric token of `str` into `output`, dropping `tsep`.
  *
@@ -49,59 +57,59 @@ copy_number_without_tsep(std::span<char> output, std::string_view &str,
   assert(tsep != '\0');
   auto out = output.begin();
 
+  std::ptrdiff_t sign_len = 0;
   if (!str.empty() && (str.front() == '+' || str.front() == '-')) {
     *out++ = str.front();
     str.remove_prefix(1);
+    sign_len = 1;
   }
-  const size_t sign_len = static_cast<size_t>(out - output.begin());
 
   if (str.empty() || !isdigit_ascii(str.front())) {
     // No digits to copy; a leading tsep is not part of a number.
     return output.subspan(0, sign_len);
   }
 
-  const auto token_end = std::find_if(str.begin(), str.end(), [tsep](char ch) {
-    return !isdigit_ascii(ch) && ch != tsep;
-  });
-  const size_t token_len = static_cast<size_t>(token_end - str.begin());
-  const size_t n_digits =
-      token_len - static_cast<size_t>(std::count(str.begin(), token_end, tsep));
-  if (sign_len + n_digits > output.size()) {
+  const auto token_end = std::ranges::find_if(
+      str, [tsep](char ch) { return !isdigit_ascii(ch) && ch != tsep; });
+  const auto token_len = token_end - str.begin();
+  const auto n_digits = token_len - std::count(str.begin(), token_end, tsep);
+  if (sign_len + n_digits > std::ssize(output)) {
     return std::nullopt;
   }
 
   out = std::remove_copy(str.begin(), token_end, out, tsep);
   str.remove_prefix(token_len);
-  return output.subspan(0, static_cast<size_t>(out - output.begin()));
+  return output.subspan(0, out - output.begin());
 }
 
-/* Shared body of str_to_int64/str_to_uint64; `state` is only used for the
- * unsigned instantiation. */
+/* Shared body of str_to_int64/str_to_uint64. */
 template <typename T>
 static T parse_integer(std::string_view str, int *error, char tsep,
                        uint_state *state = nullptr) {
-  char buffer[PROCESSED_WORD_CAPACITY];
-  // The token handed to from_chars: `str` itself, or its tsep-stripped copy.
-  std::string_view num = str;
-  // Where the number ends in `str`; on the tsep path from_chars only sees
-  // the copy, so its end pointer cannot detect trailing junk (GH#64631).
+  if constexpr (std::is_unsigned_v<T>) {
+    assert(state != nullptr); // for seen_sint/seen_uint
+  }
+  // `str` is consumed while parsing; boundary checks use the original end.
+  const char *const str_end = str.data() + str.size();
+  std::array<char, PROCESSED_WORD_CAPACITY> buffer;
+  // Number end in the original input; the tsep path parses a copy, so
+  // from_chars' own end pointer cannot flag trailing junk (GH#64631).
   const char *number_end = nullptr;
 
-  if (tsep != '\0' && num.find(tsep) != std::string_view::npos) {
+  if (tsep != '\0' && std::ranges::find(str, tsep) != str.end()) {
     // copy_number_without_tsep needs the token start, so strip leading
     // spaces here; the no-tsep path leaves that to skip_white_space.
-    while (!num.empty() && isspace_ascii(num.front())) {
-      num.remove_prefix(1);
-    }
+    str.remove_prefix(
+        std::min(str.find_first_not_of(ascii_spaces), str.size()));
     const std::optional<std::span<char>> copied =
-        copy_number_without_tsep(buffer, num, tsep);
+        copy_number_without_tsep(buffer, str, tsep);
     if (!copied.has_value()) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
-    number_end = num.data(); // the token was consumed from `num`
-    num = std::string_view(copied->data(), copied->size());
+    number_end = str.data(); // the token was consumed from `str`
+    str = std::string_view(copied->data(), copied->size());
   }
 
   T number;
@@ -109,8 +117,7 @@ static T parse_integer(std::string_view str, int *error, char tsep,
       fast_float::chars_format::allow_leading_plus |
       fast_float::chars_format::skip_white_space);
   const auto result = fast_float::from_chars_advanced(
-      num.data(), num.data() + num.size(), number, options);
-  const char *const str_end = str.data() + str.size();
+      str.data(), str.data() + str.size(), number, options);
   const char *endptr = number_end != nullptr ? number_end : result.ptr;
   if (result.ec == std::errc::result_out_of_range) {
     // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
@@ -120,10 +127,10 @@ static T parse_integer(std::string_view str, int *error, char tsep,
     return 0;
   }
   if (result.ec != std::errc()) {
-    if constexpr (!std::is_signed_v<T>) {
+    if constexpr (std::is_unsigned_v<T>) {
       // fast_float rejects '-' outright for unsigned types, leaving ptr on
       // the sign; record it for the caller's int64/uint64 reconciliation.
-      if (result.ptr != num.data() + num.size() && *result.ptr == '-') {
+      if (result.ptr != str.data() + str.size() && *result.ptr == '-') {
         state->seen_sint = 1;
         *error = 0;
         return 0;
@@ -134,17 +141,15 @@ static T parse_integer(std::string_view str, int *error, char tsep,
     return 0;
   }
 
-  // Skip trailing spaces, then require the whole input consumed.
-  while (endptr != str_end && isspace_ascii(*endptr)) {
-    ++endptr;
-  }
-  if (endptr != str_end) {
+  // Only trailing spaces may follow the number.
+  const std::string_view trailing(endptr, str_end - endptr);
+  if (trailing.find_first_not_of(ascii_spaces) != std::string_view::npos) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
-  if constexpr (!std::is_signed_v<T>) {
-    if (number > static_cast<uint64_t>(INT64_MAX)) {
+  if constexpr (std::is_unsigned_v<T>) {
+    if (std::cmp_greater(number, INT64_MAX)) {
       state->seen_uint = 1;
     }
   }
