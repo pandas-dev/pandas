@@ -389,6 +389,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     _str_isalnum = ArrowStringArrayMixin._str_isalnum
     _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isascii = ArrowStringArrayMixin._str_isascii
     _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
     _str_isdigit = ArrowStringArrayMixin._str_isdigit
     _str_islower = ArrowStringArrayMixin._str_islower

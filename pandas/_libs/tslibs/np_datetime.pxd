@@ -123,3 +123,4 @@ cdef int64_t convert_reso(
 ) except? -1
 
 cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)
+cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right)

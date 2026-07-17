@@ -5,6 +5,7 @@ from datetime import timezone
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
+    datetime,
     import_datetime,
     timedelta,
     tzinfo,
@@ -19,6 +20,7 @@ cimport numpy as cnp
 from numpy cimport (
     int64_t,
     ndarray,
+    uint8_t,
 )
 
 import numpy as np
@@ -29,6 +31,7 @@ from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
     npy_unit_to_abbrev,
+    periods_per_day,
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -50,15 +53,19 @@ from pandas._libs.tslibs.strptime cimport (
     parse_today_now,
 )
 from pandas._libs.util cimport (
+    INT64_MAX,
+    INT64_MIN,
     is_float_object,
     is_integer_object,
 )
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
+    convert_datetime_to_tsobject,
     convert_str_to_tsobject,
     convert_to_tsobject,
     get_datetime64_nanos,
@@ -602,11 +609,16 @@ def array_to_datetime_with_tz(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         Py_ssize_t i, n = values.size
         object item
-        int64_t ival
+        int64_t ival, margin
         _TSObject tsobj
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
         str abbrev
+        datetime dt
+        bint is_wall
+        Py_ssize_t wall_count = 0
+        ndarray wall_mask = np.zeros(n, dtype=np.uint8)
+        uint8_t[::1] wall_mask_view = wall_mask
 
     if infer_reso:
         # We treat ints/floats as nanoseconds
@@ -618,19 +630,54 @@ def array_to_datetime_with_tz(
         # Analogous to `item = values[i]`
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
+        is_wall = False
         if checknull_with_nat_and_na(item):
             # this catches pd.NA which would raise in the Timestamp constructor
             ival = NPY_NAT
 
         else:
-            tsobj = convert_to_tsobject(
-                item,
-                tz=tz,
-                unit=abbrev,
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                nanos=0,
-            )
+            if (
+                cnp.is_datetime64_object(item)
+                or (isinstance(item, str) and item != "now" and item != "today")
+            ):
+                # Parse without tz; wall values get localized in one
+                #  vectorized call below. Other cases go per-element:
+                #  - "now"/"today" need tz at parse time
+                #  - ints/floats are UTC epochs, never localized
+                #  - datetime/date resolve ambiguous/nonexistent wall
+                #    times via `fold` instead of raising
+                tsobj = convert_to_tsobject(
+                    item,
+                    tz=None,
+                    unit=abbrev,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    nanos=0,
+                )
+                # aware strings come back with tzinfo set and value in UTC
+                is_wall = tsobj.tzinfo is None
+                if is_wall and tsobj.parsed_by_dateutil:
+                    # dateutil-parsed strings resolve ambiguous/nonexistent
+                    #  wall times via `fold` like datetime objects, so
+                    #  rebuild the datetime and localize it per-element
+                    dt = datetime(
+                        tsobj.dts.year, tsobj.dts.month, tsobj.dts.day,
+                        tsobj.dts.hour, tsobj.dts.min, tsobj.dts.sec,
+                        tsobj.dts.us, None, fold=tsobj.fold,
+                    )
+                    tsobj = convert_datetime_to_tsobject(
+                        dt, tz, nanos=tsobj.dts.ps // 1000, reso=tsobj.creso
+                    )
+                    is_wall = False
+            else:
+                tsobj = convert_to_tsobject(
+                    item,
+                    tz=tz,
+                    unit=abbrev,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    nanos=0,
+                )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)
                 if infer_reso:
@@ -638,19 +685,48 @@ def array_to_datetime_with_tz(
                 tsobj.ensure_reso(creso, item, round_ok=True)
             ival = tsobj.value
 
+            if is_wall and ival != NPY_NAT:
+                margin = 2 * periods_per_day(creso)
+                if ival > INT64_MAX - margin or ival < INT64_MIN + margin:
+                    # localizing could overflow int64; take the per-element
+                    #  path, which checks for overflows
+                    tsobj = convert_to_tsobject(
+                        item,
+                        tz=tz,
+                        unit=abbrev,
+                        dayfirst=dayfirst,
+                        yearfirst=yearfirst,
+                        nanos=0,
+                    )
+                    tsobj.ensure_reso(creso, item, round_ok=True)
+                    ival = tsobj.value
+                else:
+                    wall_mask_view[i] = 1
+                    wall_count += 1
+
         # Analogous to: result[i] = ival
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if infer_reso and state.creso_ever_changed:
+        # We encountered mismatched resolutions, need to re-parse with
+        #  the correct one.
+        return array_to_datetime_with_tz(
+            values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso
+        )
+
+    if wall_count > 0:
+        # Localize all wall values in one vectorized call
+        result_flat = result.ravel()
+        mask = wall_mask.view(np.bool_)
+        utc_vals = tz_localize_to_utc(
+            result_flat[mask], tz, ambiguous="raise", nonexistent=None, creso=creso
+        )
+        result_flat[mask] = utc_vals
+
     if infer_reso:
-        if state.creso_ever_changed:
-            # We encountered mismatched resolutions, need to re-parse with
-            #  the correct one.
-            return array_to_datetime_with_tz(
-                values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso
-            )
-        elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        if creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This
             # ensures that insert and concat-like operations with NaT
             # do not upcast units

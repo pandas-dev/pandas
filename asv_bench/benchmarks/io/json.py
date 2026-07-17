@@ -5,6 +5,7 @@ import numpy as np
 from pandas import (
     DataFrame,
     Index,
+    Series,
     concat,
     date_range,
     json_normalize,
@@ -204,6 +205,24 @@ class ToJSONISO(BaseIO):
 
     def time_iso_format(self, orient):
         self.df.to_json(orient=orient, date_format="iso")
+
+
+class ToJSONISODatetimeTZ(BaseIO):
+    fname = "__test__.json"
+    params = [["split", "columns", "index", "values", "records"]]
+    param_names = ["orient"]
+
+    def setup(self, orient):
+        N = 10**5
+        dti = date_range("20000101", periods=N, freq="h", tz="US/Eastern")
+        self.ser_tz_values = Series(dti)
+        self.ser_tz_index = Series(np.random.randn(N), index=dti)
+
+    def time_iso_tz_values(self, orient):
+        self.ser_tz_values.to_json(self.fname, orient=orient, date_format="iso")
+
+    def time_iso_tz_index(self, orient):
+        self.ser_tz_index.to_json(self.fname, orient=orient, date_format="iso")
 
 
 class ToJSONLines(BaseIO):

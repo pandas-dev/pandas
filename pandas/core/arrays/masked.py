@@ -421,6 +421,65 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self._validate_setitem_value(item)
         return super().insert(loc, item)
 
+    def _validate_listlike(self, value) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+        """
+        Validate a non-scalar setitem value and return ``(data, mask)``.
+
+        Raises
+        ------
+        TypeError
+            If `value` cannot be losslessly stored in self.dtype.
+        """
+        kind = self.dtype.kind
+
+        if hasattr(value, "dtype"):
+            their_kind = value.dtype.kind
+            # Compatible numeric/bool ndarrays defer to _coerce_to_array,
+            # which handles precision/NaN checks via _safe_cast.  Bool
+            # ndarrays are accepted for numeric targets to preserve the
+            # long-standing bool-as-int treatment exercised by Series.mask.
+            if (kind == "b" and their_kind == "b") or (
+                kind in "iuf" and their_kind in "iufb"
+            ):
+                if kind in "iuf" and isinstance(value, type(self)):
+                    return self._coerce_same_family(value)
+                return self._coerce_to_array(value, dtype=self.dtype)
+        elif not is_list_like(value):
+            # is_scalar in __setitem__ misses some non-listlike inputs
+            # (e.g. an opaque ``object()`` instance); route them through
+            # the scalar validator, which will raise.
+            self._validate_setitem_value(value)
+        else:
+            # Materialize other list-likes (e.g. a tuple, for which isna
+            # returns a scalar) as an object ndarray so that
+            # _cast_pointwise_result infers their type element-wise.
+            value = np.asarray(value, dtype=object)
+
+        # Otherwise let _cast_pointwise_result infer the natural type of
+        # `value` (without the silent string-/bool-to-numeric coercions
+        # that _coerce_to_array performs).  A kind-mismatch is invalid.
+        casted = self._cast_pointwise_result(value)
+        casted_kind = casted.dtype.kind
+        if not (
+            (kind == "b" and casted_kind == "b")
+            or (kind in "iuf" and casted_kind in "iuf")
+        ):
+            raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+        if kind in "iuf" and isinstance(casted, type(self)):
+            return self._coerce_same_family(casted)
+        return self._coerce_to_array(casted, dtype=self.dtype)
+
+    def _coerce_same_family(
+        self, value: BaseMaskedArray
+    ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+        # ``value`` is a masked array of the same numeric family as self.
+        # Coerce its underlying ndarray rather than the masked array itself:
+        # _coerce_to_array's isinstance fast path would raw-astype and
+        # silently wrap out-of-bounds values (GH#65510), whereas the ndarray
+        # takes the general path that rejects a lossy cast via _safe_cast.
+        data, _ = self._coerce_to_array(value._data, dtype=self.dtype)
+        return data, value._mask
+
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
@@ -438,7 +497,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 self._mask[key] = False
             return
 
-        value, mask = self._coerce_to_array(value, dtype=self.dtype)
+        value, mask = self._validate_listlike(value)
 
         self._data[key] = value
         self._mask[key] = mask
