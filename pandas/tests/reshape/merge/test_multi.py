@@ -1000,16 +1000,16 @@ def test_merge_multi_int_keys_sort(dtype, join_type):
     result = merge(left, right, on=["k1", "k2"], how=join_type, sort=True)
     assert result.set_index(["k1", "k2"]).index.is_monotonic_increasing
 
-    result_inner = merge(left, right, on=["k1", "k2"], how="inner", sort=True)
-    expected_inner = DataFrame(
-        {
-            "k1": np.array([2, 3], dtype=dtype),
-            "k2": np.array([20, 5], dtype=dtype),
-            "lval": [3, 2],
-            "rval": [1, 0],
-        }
-    )
-    tm.assert_frame_equal(result_inner, expected_inner)
+    if join_type == "inner":
+        expected = DataFrame(
+            {
+                "k1": np.array([2, 3], dtype=dtype),
+                "k2": np.array([20, 5], dtype=dtype),
+                "lval": [3, 2],
+                "rval": [1, 0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_merge_multi_int64_extreme_values():
@@ -1136,6 +1136,73 @@ def test_merge_multi_datetime_keys_with_nat():
             "k2": np.array([1, 2], dtype=np.int64),
             "lval": [0, 1],
             "rval": [0, 1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_datetime_nat_fused_sort():
+    # GH#66124 NaT only reaches the fused path when the dates sit near the
+    #  datetime64[ns] lower bound (so the NaT<->date span fits in int64);
+    #  NaT must still match NaT and sort first, like its i8 value
+    dti = pd.to_datetime(["1680-01-01", "NaT", "1680-01-03", "NaT"]).as_unit("ns")
+    left = DataFrame(
+        {"k1": dti, "k2": np.array([1, 2, 3, 2], dtype=np.int64), "lval": [0, 1, 2, 3]}
+    )
+    right = DataFrame(
+        {"k1": dti[[1, 0]], "k2": np.array([2, 1], dtype=np.int64), "rval": [0, 1]}
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner", sort=True)
+    expected = DataFrame(
+        {
+            "k1": dti[[1, 1, 0]],
+            "k2": np.array([2, 2, 1], dtype=np.int64),
+            "lval": [1, 3, 0],
+            "rval": [0, 0, 1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_datetimetz_int_keys():
+    # GH#66124 tz-aware datetime plus integer key columns
+    dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-01"]).tz_localize(
+        "US/Pacific"
+    )
+    left = DataFrame(
+        {"k1": dti, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
+    )
+    right = DataFrame(
+        {"k1": dti[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": dti,
+            "k2": np.array([1, 2, 1], dtype=np.int64),
+            "lval": [0, 1, 2],
+            "rval": [0, 1, 0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_timedelta_int_keys():
+    # GH#66124 timedelta64 plus integer key columns
+    tdi = pd.to_timedelta([1, 2, 1], unit="s")
+    left = DataFrame(
+        {"k1": tdi, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
+    )
+    right = DataFrame(
+        {"k1": tdi[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": tdi,
+            "k2": np.array([1, 2, 1], dtype=np.int64),
+            "lval": [0, 1, 2],
+            "rval": [0, 1, 0],
         }
     )
     tm.assert_frame_equal(result, expected)
