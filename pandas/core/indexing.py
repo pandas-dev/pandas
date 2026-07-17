@@ -68,6 +68,7 @@ from pandas.core import algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -2458,6 +2459,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         _setitem_with_indexer cases that can go through DataFrame.__setitem__.
         """
+        # GH#65418 a dict is a label->value mapping; treat it as a Series so it
+        #  is aligned by key like the non-expansion paths, rather than being
+        #  sanitized positionally into its keys.
+        if isinstance(value, dict):
+            from pandas import Series
+
+            value = Series(value)
+
         # add the new item, and set the value
         # must have all defined axes if we have a scalar
         # or a list-like on the non-info axes if we have a
@@ -2912,6 +2921,11 @@ class _iLocIndexer(_LocationIndexer):
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
+                # GH#62523 infer_and_maybe_downcast may return a raw M8/m8
+                #  ndarray for datetimelike; wrap it so concat_compat does not
+                #  mix a bare ndarray with the DatetimeArray/TimedeltaArray
+                #  _values
+                new_values = ensure_wrapped_if_datetimelike(new_values)
                 new_values = concat_compat([self.obj._values, new_values])
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
@@ -3409,7 +3423,13 @@ class _iAtIndexer(_ScalarAccessIndexer):
 def _is_2d_value(value) -> bool:
     """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
     if isinstance(value, list):
-        return len(value) > 0 and isinstance(value[0], (list, tuple))
+        if len(value) == 0:
+            return False
+        first = value[0]
+        if isinstance(first, np.ndarray):
+            # a 0-d element is a scalar and a 2-D element makes value 3D
+            return first.ndim == 1
+        return isinstance(first, (list, tuple))
     return np.ndim(value) == 2
 
 

@@ -174,6 +174,43 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, dti)
         assert result.freq == "D"
 
+    def test_union_sort_false_no_freq(self):
+        # GH#65191 union(sort=False) can produce a non-monotonic result;
+        #  it must not retain a freq, which previously caused shift to
+        #  silently return an empty index (start > end in _generate_range).
+        dti = date_range("2016-01-01", periods=5, freq="D")
+        left = dti[3:]
+        right = dti[:3]
+
+        result = left.union(right, sort=False)
+        expected = DatetimeIndex(
+            ["2016-01-04", "2016-01-05", "2016-01-01", "2016-01-02", "2016-01-03"]
+        )
+        tm.assert_index_equal(result, expected)
+        assert not result.is_monotonic_increasing
+        assert result.freq is None
+
+    def test_union_sort_false_other_extends_past_self(self):
+        # GH#66322 with sort=False and self starting after other, the result
+        #  is non-monotonic, so the fast path does not apply; previously it
+        #  appended only other[:self[0]] and silently dropped the tail.
+        dti = date_range("2016-01-01", periods=6, freq="MS")
+        left = dti[2:4]
+
+        result = left.union(dti, sort=False)
+        expected = DatetimeIndex(
+            [
+                "2016-03-01",
+                "2016-04-01",
+                "2016-01-01",
+                "2016-02-01",
+                "2016-05-01",
+                "2016-06-01",
+            ]
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
+
     def test_union_dataframe_index(self):
         rng1 = date_range("1/1/1999", "1/1/2012", freq="MS")
         s1 = Series(np.random.default_rng(2).standard_normal(len(rng1)), rng1)

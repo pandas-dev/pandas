@@ -87,7 +87,12 @@ class TestDataFrameInterpolate:
         )
         expected["D"] = expected["D"].astype(dtype)
 
-        msg = f"[Cc]annot interpolate with {dtype} dtype"
+        # the EA path (str dtype) and the object-block path word the error
+        # differently; pin each to its dtype rather than hedging the case
+        if dtype == "object":
+            msg = "cannot interpolate with object dtype"
+        else:
+            msg = f"Cannot interpolate with {dtype} dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
         tm.assert_frame_equal(df, df_orig)

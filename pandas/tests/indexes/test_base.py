@@ -390,14 +390,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = "|".join(
-                [
-                    r"Cannot change data-type for array of references\.",
-                    r"Cannot change data-type for object array\.",
-                    r"Cannot change data-type for array of strings\.",
-                    "",
-                ]
-            )
+            msg = "Cannot change data-type"
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -1717,7 +1710,7 @@ def test_index_subclass_constructor_wrong_kwargs(klass):
 
 
 def test_deprecated_fastpath():
-    msg = "[Uu]nexpected keyword argument"
+    msg = "unexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
         Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 

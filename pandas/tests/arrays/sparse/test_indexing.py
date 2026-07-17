@@ -177,6 +177,24 @@ class TestTake:
         expected = pd.array([0, np.nan], dtype=sparse.dtype)
         tm.assert_sp_array_equal(expected, result)
 
+    def test_take_fill_bool_upcasts_to_object(self):
+        # GH#32119 numpy bool can't hold NA, so taking a fill position from a
+        #  boolean SparseArray upcasts to object (matching dense reindex)
+        #  rather than raising.
+        sparse = SparseArray([False, False, True], fill_value=False)
+        result = sparse.take([0, 2, -1], allow_fill=True)
+        expected = SparseArray([False, True, np.nan], fill_value=False)
+        assert result.dtype == SparseDtype(object, False)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_bool_all_fill_upcasts_to_object(self):
+        # GH#32119 same as above for an all-fill (sp_index.npoints == 0) array
+        sparse = SparseArray([False, False], fill_value=False)
+        result = sparse.take([0, -1], allow_fill=True)
+        expected = SparseArray([False, np.nan], fill_value=False)
+        assert result.dtype == SparseDtype(object, False)
+        tm.assert_sp_array_equal(result, expected)
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)

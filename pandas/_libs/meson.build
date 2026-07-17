@@ -63,7 +63,7 @@ subdir('simd')
 # search path of unrelated extensions.
 tokenizer_lib = static_library(
     'pandas_tokenizer',
-    'src/parser/fast_float_strtod.cpp',
+    'src/parser/fast_float_wrappers.cpp',
     'src/parser/pd_strtoi.cpp',
     'src/parser/tokenizer.c',
     include_directories: [inc_pd, simd_config_inc],
@@ -82,7 +82,7 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': [_khash_primitive_helper_dep, m_dep],
+        'deps': [_khash_primitive_helper_dep, m_dep, moments_simd_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},
