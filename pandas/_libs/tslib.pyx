@@ -640,15 +640,12 @@ def array_to_datetime_with_tz(
                 cnp.is_datetime64_object(item)
                 or (isinstance(item, str) and item != "now" and item != "today")
             ):
-                # Parse the wall time without localizing here; wall values are
-                #  localized in a single vectorized call below. Other cases
-                #  need the per-element path:
-                #  - "now"/"today" need tz at parse time to get the current
-                #    wall time in that timezone
-                #  - ints/floats are treated as UTC epoch values, i.e. never
-                #    localized
-                #  - datetime/date objects resolve ambiguous/nonexistent wall
-                #    times via `fold` instead of raising like ISO strings do
+                # Parse without tz; wall values get localized in one
+                #  vectorized call below. Other cases go per-element:
+                #  - "now"/"today" need tz at parse time
+                #  - ints/floats are UTC epochs, never localized
+                #  - datetime/date resolve ambiguous/nonexistent wall
+                #    times via `fold` instead of raising
                 tsobj = convert_to_tsobject(
                     item,
                     tz=None,
@@ -660,11 +657,9 @@ def array_to_datetime_with_tz(
                 # aware strings come back with tzinfo set and value in UTC
                 is_wall = tsobj.tzinfo is None
                 if is_wall and tsobj.parsed_by_dateutil:
-                    # Like datetime objects, dateutil-parsed strings resolve
-                    #  ambiguous/nonexistent wall times via `fold` instead of
-                    #  raising like the vectorized localization below does.
-                    #  Rebuild the parsed datetime and localize it
-                    #  per-element to retain those semantics.
+                    # dateutil-parsed strings resolve ambiguous/nonexistent
+                    #  wall times via `fold` like datetime objects, so
+                    #  rebuild the datetime and localize it per-element
                     dt = datetime(
                         tsobj.dts.year, tsobj.dts.month, tsobj.dts.day,
                         tsobj.dts.hour, tsobj.dts.min, tsobj.dts.sec,
@@ -722,8 +717,7 @@ def array_to_datetime_with_tz(
         )
 
     if wall_count > 0:
-        # Localize all wall values in a single vectorized call, much faster
-        #  than localizing per element
+        # Localize all wall values in one vectorized call
         result_flat = result.ravel()
         mask = wall_mask.view(np.bool_)
         utc_vals = tz_localize_to_utc(
