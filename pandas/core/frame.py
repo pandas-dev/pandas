@@ -16258,19 +16258,14 @@ class DataFrame(NDFrame, OpsMixin):
             if df.shape[1]:
                 blocks = df._mgr.blocks
                 if len(blocks) == 1 and name not in ("argmax", "argmin"):
-                    # GH#51474: single homogeneous block; reducing its values
-                    # along axis=0 is exactly the computation the transpose
-                    # path below would do, without the per-column overhead of
-                    # wrapping the transposed frame.  argmax/argmin are
-                    # excluded since their positional results depend on
-                    # column order.
+                    # GH#51474: reduce a single homogeneous block along axis=0
+                    # directly, matching the transpose path below with less
+                    # overhead. argmax/argmin depend on column order, so skip.
                     bvalues = blocks[0].values
                     result = None
                     if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
-                        # The block is (ncols, nrows), so for a frame with few
-                        # rows the axis=0 reduction has only nrows output lanes
-                        # and barely vectorizes.  sum/prod/mean are faster on
-                        # the transpose path there, so leave those to it.
+                        # block is (ncols, nrows); few rows barely vectorizes,
+                        # so leave narrow sum/prod/mean to the transpose path.
                         if not (
                             name in ("sum", "prod", "mean") and bvalues.shape[1] < 6
                         ):

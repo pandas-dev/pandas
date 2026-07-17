@@ -2063,15 +2063,13 @@ class TestDataFrameReductions:
     def test_reduce_axis1_single_block_exhaustive(
         self, reduction_block_1, method, skipna, kwargs
     ):
-        # GH#51474 - single-block frames reduce the block values directly
-        # along axis=1; the result must match the transpose path, whether
-        # that is a successful result or a raised exception.
+        # GH#51474: single-block fastpath must match the transpose path,
+        # result or raised exception alike.
         if "min_count" in kwargs and method not in ("sum", "prod"):
             pytest.skip("min_count only applies to sum/prod")
         df = reduction_block_1
         if len(df._mgr.blocks) != 1:
-            # 1D EA columns do not consolidate; those frames are covered
-            # by test_reduce_axis1_multiblock_exhaustive
+            # 1D EA columns don't consolidate; covered by the multiblock test
             pytest.skip("fixture frame is not single-block")
         kw = {"skipna": skipna, **kwargs}
 
@@ -2083,8 +2081,7 @@ class TestDataFrameReductions:
             transpose_err = err
 
         if isinstance(df._mgr.blocks[0].values, np.ndarray):
-            # numpy block: the fastpath performs the identical computation,
-            # so the result (or exception) must match exactly, dtype included
+            # numpy block: identical computation, so match exactly incl. dtype
             if transpose_err is not None:
                 with pytest.raises(
                     type(transpose_err), match=re.escape(str(transpose_err))
@@ -2094,8 +2091,7 @@ class TestDataFrameReductions:
                 result = getattr(df, method)(axis=1, **kw)
                 tm.assert_series_equal(result, expected, check_names=False)
         else:
-            # 2D EA block: paths differ more, so mirror the lax comparison
-            # of test_reduce_axis1_multiblock_exhaustive
+            # 2D EA block: paths differ; mirror the multiblock test's lax compare
             axis1_err = None
             result = None
             try:
@@ -2136,10 +2132,8 @@ class TestDataFrameReductions:
 
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_reduce_axis1_single_block_dt64tz_with_nat(self, method):
-        # GH#51474, GH#65500: the single-block fastpath reduces a 2D EA block
-        # directly rather than going through _reduce_axis1 or the transpose.
-        # NaT must be skipped under skipna=True and propagated under
-        # skipna=False, without raising and without changing dtype.
+        # GH#51474, GH#65500: 2D EA block fastpath must skip NaT (skipna=True)
+        # and propagate it (skipna=False) without raising or changing dtype.
         df = _make_2d_ea_df(
             [
                 to_datetime(["2020-01-01", "2020-01-02"])

@@ -1505,7 +1505,7 @@ def _maybe_null_out(
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
     if min_count <= 0:
-        # no reduction can be below min_count=0; short-circuit
+        # min_count <= 0 never nulls out; short-circuit
         return result
 
     if axis is not None and isinstance(result, np.ndarray):
