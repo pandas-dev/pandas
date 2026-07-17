@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -16,9 +19,16 @@ from pandas.core.dtypes.cast import (
     find_common_type,
 )
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.concat import (
+    concat_compat,
+    union_categoricals,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 
+from pandas.core.arrays import Categorical
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.blocks import (
     ensure_block_shape,
@@ -328,7 +338,7 @@ def _concatenate_join_units(
     """
     Concatenate values from several join units along axis=1.
     """
-    empty_dtype = _get_empty_dtype(join_units)
+    empty_dtype = _get_empty_dtype(join_units, union_categories=union_categories)
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
     upcasted_na = _dtype_to_na_value(empty_dtype, has_none_blocks)
@@ -383,7 +393,9 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     raise NotImplementedError
 
 
-def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
+def _get_empty_dtype(
+    join_units: Sequence[JoinUnit], union_categories: bool = False
+) -> DtypeObj:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -400,6 +412,18 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
 
     dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
+
+    if union_categories and has_none_blocks:
+        if all(isinstance(dt, CategoricalDtype) for dt in dtypes):
+            cat_dtypes = cast("list[CategoricalDtype]", dtypes)
+            if lib.dtypes_all_equal([dt.categories.dtype for dt in cat_dtypes]):
+                # GH#14177 give the all-NA filler for missing columns the
+                #  unioned categorical dtype so that concat_compat sees
+                #  all-categorical inputs and unions instead of falling back
+                #  to the common dtype.
+                empties = [Categorical([], dtype=dt) for dt in cat_dtypes]
+                ignore_order = not lib.dtypes_all_equal(dtypes)
+                return union_categoricals(empties, ignore_order=ignore_order).dtype
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
