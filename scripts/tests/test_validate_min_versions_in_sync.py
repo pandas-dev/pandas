@@ -90,7 +90,7 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
         qtpy = ">=2.4.2"
 
         [feature.pyarrow.dependencies]
-        pyarrow = ">=13.0.0"
+        pyarrow = ">=16.0.0"
 
         [feature.pyarrow21.dependencies]
         pyarrow = "21.*"
