@@ -4,8 +4,10 @@ import pytest
 from pandas import (
     DataFrame,
     Index,
+    Interval,
     Series,
     array,
+    interval_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -199,6 +201,48 @@ def test_index_array_readonly(data, dtype):
     assert result._readonly is True
     with pytest.raises(ValueError, match="read-only"):
         result[0] = data[1]
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        (["a", "b", "a"], "category"),
+        (["2020-01-01", "2020-01-02"], "M8[ns]"),
+        (["2020-01-01", "2020-01-02"], "M8[ns, UTC]"),
+        (["1 day", "2 days"], "m8[ns]"),
+        (["2020-01-01", "2020-01-02"], "period[D]"),
+        ([1, 2, 3], "Int64"),
+    ],
+)
+def test_index_array_inplace_op_raises(data, dtype):
+    # GH#38547 in-place Series ops must not be able to write into the
+    #  zero-copy readonly array escaping through Index.array
+    idx = Index(data, dtype=dtype)
+    expected = idx.copy(deep=True)
+    ser = Series(idx.array, copy=False)
+
+    msg = "Cannot modify read-only array"
+    with pytest.raises(ValueError, match=msg):
+        ser.iloc[0] = idx[1]
+    with pytest.raises(ValueError, match=msg):
+        ser.mask(ser == idx[0], idx[1], inplace=True)
+
+    tm.assert_index_equal(idx, expected)
+
+
+def test_index_array_inplace_op_raises_interval():
+    # GH#38547 IntervalArray._putmask has its own path mutating _left/_right
+    idx = interval_range(0, 2)
+    expected = idx.copy(deep=True)
+    ser = Series(idx.array, copy=False)
+
+    msg = "Cannot modify read-only array"
+    with pytest.raises(ValueError, match=msg):
+        ser.iloc[0] = Interval(8, 9)
+    with pytest.raises(ValueError, match=msg):
+        ser.mask(ser == idx[0], Interval(8, 9), inplace=True)
+
+    tm.assert_index_equal(idx, expected)
 
 
 def test_columns_values_setitem_raises():

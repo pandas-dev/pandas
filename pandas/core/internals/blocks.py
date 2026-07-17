@@ -1744,6 +1744,12 @@ class EABackedBlock(Block):
         value = self._maybe_squeeze_arg(value)
 
         values = self.values
+        if values._readonly:
+            # GH#38547 raise here instead of letting the ValueError from
+            #  EA.__setitem__ reach the except clause below, which would
+            #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
+            #  whose __setitem__ does not check the flag.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
@@ -1858,6 +1864,11 @@ class EABackedBlock(Block):
 
         self = self._maybe_copy(inplace=True)
         values = self.values
+        if values._readonly:
+            # GH#38547 as in EABackedBlock.setitem, raise instead of letting
+            #  the except clause below misinterpret the EA-level ValueError
+            #  as a cast failure.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#64620 Reorient the read-only inputs to the block's storage
             #  layout and putmask into self.values in place. We must not
