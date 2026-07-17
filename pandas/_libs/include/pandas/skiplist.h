@@ -41,6 +41,10 @@ struct chunk_t {
   size_t capacity;
 };
 
+// Offset of node data within a chunk, rounded up so nodes stay 8-aligned
+// even where sizeof(chunk_t) is not a multiple of 8 (32-bit builds).
+#define SKIPLIST_CHUNK_HEADER ((sizeof(chunk_t) + 7) & ~(size_t)7)
+
 // First arena chunk for large windows. Windows whose full node budget fits in
 // one chunk of this size are allocated exactly (identical to a single-chunk
 // arena); larger windows start here and grow geometrically, so a window that
@@ -62,7 +66,12 @@ typedef struct {
   // freelist[k] holds nodes with levels == k, so a recycled node's
   // next/width arrays always have exactly the capacity needed.
   node_t **freelist;
+  // Arena chunks in allocation order; nodes are bump-allocated from
+  // chunk_cursor onward. skiplist_reset rewinds the cursor so retained
+  // chunks are refilled before any new chunk is malloc'd.
   chunk_t *chunks;
+  chunk_t *chunk_tail;
+  chunk_t *chunk_cursor;
   size_t chunk_bytes;
   uint64_t rng_state;
 } skiplist_t;
@@ -114,20 +123,29 @@ static inline node_t *skiplist_alloc_node(skiplist_t *skp, int levels) {
   }
 
   nbytes = node_alloc_size(levels);
-  chunk = skp->chunks;
-  if (chunk == NULL || chunk->capacity - chunk->used < nbytes) {
+  chunk = skp->chunk_cursor;
+  // refill chunks retained by skiplist_reset before allocating new ones
+  while (chunk != NULL && chunk->capacity - chunk->used < nbytes) {
+    chunk = chunk->next;
+  }
+  if (chunk == NULL) {
     size_t capacity = skp->chunk_bytes;
     if (capacity < nbytes) {
       capacity = nbytes;
     }
-    chunk = (chunk_t *)malloc(sizeof(chunk_t) + capacity);
+    chunk = (chunk_t *)malloc(SKIPLIST_CHUNK_HEADER + capacity);
     if (chunk == NULL) {
       return NULL;
     }
     chunk->used = 0;
     chunk->capacity = capacity;
-    chunk->next = skp->chunks;
-    skp->chunks = chunk;
+    chunk->next = NULL;
+    if (skp->chunk_tail != NULL) {
+      skp->chunk_tail->next = chunk;
+    } else {
+      skp->chunks = chunk;
+    }
+    skp->chunk_tail = chunk;
     // next chunk doubles (capped), so filling a full window costs O(log)
     // allocations while an underfilled one stops early
     if (skp->chunk_bytes < SKIPLIST_MAX_CHUNK) {
@@ -136,7 +154,8 @@ static inline node_t *skiplist_alloc_node(skiplist_t *skp, int levels) {
           grown > SKIPLIST_MAX_CHUNK ? SKIPLIST_MAX_CHUNK : grown;
     }
   }
-  node = (node_t *)((char *)chunk + sizeof(chunk_t) + chunk->used);
+  skp->chunk_cursor = chunk;
+  node = (node_t *)((char *)chunk + SKIPLIST_CHUNK_HEADER + chunk->used);
   chunk->used += nbytes;
   return node_init_arrays(node, levels);
 }
@@ -210,6 +229,8 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   result->maxlevels = maxlevels;
   result->size = 0;
   result->chunks = NULL;
+  result->chunk_tail = NULL;
+  result->chunk_cursor = NULL;
   result->rng_state = 0x9E3779B97F4A7C15ULL ^ (uint64_t)expected_size;
   // First chunk covers a full window's node budget (~96 B/node incl. free-list
   // slack) but is capped at SKIPLIST_INIT_CHUNK; bigger windows grow from there
@@ -231,6 +252,7 @@ static inline void skiplist_reset(skiplist_t *skp) {
   for (chunk = skp->chunks; chunk != NULL; chunk = chunk->next) {
     chunk->used = 0;
   }
+  skp->chunk_cursor = skp->chunks;
   memset(skp->freelist, 0, (size_t)(skp->maxlevels + 1) * sizeof(node_t *));
   for (i = 0; i < skp->maxlevels; ++i) {
     skp->head->next[i] = skp->nil;
