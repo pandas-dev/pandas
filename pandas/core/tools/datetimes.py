@@ -23,10 +23,14 @@ from pandas._libs import (
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     get_supported_dtype,
+    iNaT,
     is_supported_dtype,
+    periods_per_second,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -92,7 +96,10 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-    from pandas.core.arrays import ArrowExtensionArray
+    from pandas.core.arrays import (
+        ArrowExtensionArray,
+        TimedeltaArray,
+    )
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -609,7 +616,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     return result
 
 
-def _adjust_to_origin(arg, origin, unit):
+def _adjust_to_origin(arg, origin, unit, errors: DateTimeErrorChoices = "raise"):
     """
     Helper function for to_datetime.
     Adjust input argument to the specified origin
@@ -622,6 +629,9 @@ def _adjust_to_origin(arg, origin, unit):
         origin offset for the arg
     unit : str
         passed unit from to_datetime, must be 'D'
+    errors : {'raise', 'coerce'}, default 'raise'
+        under ``"coerce"``, values for which ``origin + value`` overflows
+        datetime64 become ``NaT`` instead of raising.
 
     Returns
     -------
@@ -671,8 +681,54 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        arg = offset + extract_array(to_timedelta(arg, unit=unit))
+        tda = extract_array(to_timedelta(arg, unit=unit, errors=errors))
+        try:
+            arg = offset + tda
+        except (OutOfBoundsDatetime, OutOfBoundsTimedelta, OverflowError) as err:
+            # GH#63419 the timedeltas fit their own resolution, but
+            # offset + tda overflows datetime64
+            if errors == "raise":
+                if isinstance(err, OutOfBoundsDatetime):
+                    raise
+                raise OutOfBoundsDatetime(
+                    f"cannot add values to origin {origin} without overflow"
+                ) from err
+            if isinstance(tda, Timedelta):
+                arg = NaT
+            else:
+                arg = _coerce_origin_overflow(offset, tda)
     return arg
+
+
+def _coerce_origin_overflow(offset: Timestamp, tda: TimedeltaArray) -> DatetimeArray:
+    """
+    Redo ``offset + tda`` with entries that cannot be represented in the
+    resolution the addition would produce coerced to NaT.
+    """
+    res_unit = tda.unit if tda._creso >= offset._creso else offset.unit
+    pps_res = periods_per_second(max(tda._creso, offset._creso))
+    # exact conversion factors as Python ints to avoid intermediate overflow
+    td_factor = pps_res // periods_per_second(tda._creso)
+    off_factor = pps_res // periods_per_second(offset._creso)
+    offset_i8 = int(offset._value) * off_factor
+
+    i8max = np.iinfo(np.int64).max
+    if not -i8max <= offset_i8 <= i8max:
+        # the origin itself is not representable in the result resolution,
+        # so no entry can be computed
+        nat_vals = np.full(len(tda), iNaT).view(f"M8[{res_unit}]")
+        return DatetimeArray._simple_new(nat_vals, dtype=nat_vals.dtype)
+
+    # valid iff the sum stays within [-i8max, i8max] (-2**63 is the NaT
+    # sentinel) and the timedelta itself is castable to the result unit
+    hi = min((i8max - offset_i8) // td_factor, i8max // td_factor)
+    lo = max(-((i8max + offset_i8) // td_factor), -(i8max // td_factor))
+
+    i8vals = tda.asi8
+    mask = (i8vals < lo) | (i8vals > hi)
+    new_vals = np.where(mask, iNaT, i8vals).view(tda.dtype)
+    tda = type(tda)._simple_new(new_vals, dtype=tda.dtype)
+    return offset + tda
 
 
 @overload
@@ -803,6 +859,13 @@ def to_datetime(
           time string (not necessarily in exactly the same format);
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
+
+        .. deprecated:: 3.1.0
+
+            Passing integer or float values together with ``format`` is
+            deprecated; cast them to strings first. In a future version numeric
+            values will be interpreted as epochs via ``unit`` instead, and
+            ``format`` will only apply to string input.
 
         .. note::
 
@@ -1072,25 +1135,21 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
-        from pandas import Series
-
+        # Capture name/index before _adjust_to_origin replaces arg with a
+        # DatetimeArray (or Timestamp scalar) for non-julian origins.
         arg_name = getattr(arg, "name", None)
-        is_series = False
-        if isinstance(arg, Series):
-            arg_idx = getattr(arg, "index", None)
-            is_series = True
-        arg = _adjust_to_origin(arg, origin, unit)
+        arg_index = arg.index if isinstance(arg, ABCSeries) else None
+        is_series = isinstance(arg, ABCSeries)
+        arg = _adjust_to_origin(arg, origin, unit, errors=errors)
         if origin != "julian":
-            # GH#63419 _adjust_to_origin returned the final datetime result
+            # GH#63419 _adjust_to_origin already produced the final datetime
+            # result; localize and re-wrap into the input's container type.
             if utc:
-                if isinstance(arg, Timestamp):
-                    arg = arg.tz_localize("utc")
-                elif isinstance(arg, ABCSeries):
-                    arg = arg.dt.tz_localize("utc")
-                elif hasattr(arg, "tz_localize"):
-                    arg = arg.tz_localize("utc")  # type: ignore[union-attr]
+                arg = arg.tz_localize("utc")  # type: ignore[union-attr]
             if is_series:
-                return Series(arg, index=arg_idx, name=arg_name)
+                from pandas import Series
+
+                return Series(arg, index=arg_index, name=arg_name)
             if is_list_like(arg):
                 return DatetimeIndex(arg, name=arg_name)
             else:
@@ -1189,6 +1248,37 @@ _unit_map = {
 }
 
 
+def stringify_numeric_column(values: Series) -> Series:
+    """
+    Cast a numeric column to object-dtype strings so that to_datetime with a
+    ``format`` doesn't have to infer how to interpret numeric input. GH#55663
+
+    Floats that can't be represented as int64 (e.g. +/-inf) get their plain
+    ``str`` form, which fails to parse downstream: raise for errors="raise",
+    NaT for errors="coerce".
+    """
+    notna_mask = values.notna().to_numpy()
+    int_mask = notna_mask
+    if is_float_dtype(values.dtype):
+        iinfo = np.iinfo(np.int64)
+        # float64(iinfo.max) rounds up to 2**63, just out of range, so
+        # exclude the right endpoint
+        in_range = values.between(iinfo.min, iinfo.max, inclusive="left")
+        int_mask = notna_mask & in_range.to_numpy(dtype=bool, na_value=False)
+
+    result = np.full(len(values), np.nan, dtype=object)
+    oob_mask = notna_mask & ~int_mask
+    if oob_mask.any():
+        result[oob_mask] = np.asarray(values[oob_mask].astype(str), dtype=object)
+    if int_mask.any():
+        result[int_mask] = np.asarray(
+            values[int_mask].astype("int64").astype(str), dtype=object
+        )
+    return values._constructor(
+        result, index=values.index, name=values.name, dtype=object
+    )
+
+
 def _assemble_from_unit_mappings(
     arg, errors: DateTimeErrorChoices, utc: bool
 ) -> Series:
@@ -1270,8 +1360,11 @@ def _assemble_from_unit_mappings(
         + coerce(arg[unit_rev["month"]]) * 100
         + coerce(arg[unit_rev["day"]])
     )
+    # GH#55663 cast to strings up front so to_datetime doesn't need to
+    # infer what to do with numeric data when a format is given.
+    str_values = stringify_numeric_column(values)
     try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
+        values = to_datetime(str_values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 

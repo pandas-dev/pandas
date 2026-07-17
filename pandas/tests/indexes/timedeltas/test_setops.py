@@ -42,6 +42,23 @@ class TestTimedeltaIndex:
         result = left.union(right, sort=False)
         expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
         tm.assert_index_equal(result, expected)
+        # GH#65191 the sort=False result is non-monotonic, so it must not
+        #  retain a freq; otherwise e.g. shift silently returns an empty index.
+        assert result.freq is None
+
+    def test_union_sort_false_other_extends_past_self(self):
+        # GH#66322 with sort=False and self starting after other, the result
+        #  is non-monotonic, so the fast path does not apply; previously the
+        #  tail past self[-1] was silently dropped.
+        tdi = timedelta_range("1day", periods=6)
+        left = tdi[2:4]
+
+        result = left.union(tdi, sort=False)
+        expected = TimedeltaIndex(
+            ["3 Days", "4 Days", "1 Days", "2 Days", "5 Days", "6 Days"]
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
 
     def test_union_coverage(self):
         # GH#59051

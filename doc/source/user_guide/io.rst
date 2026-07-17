@@ -1522,6 +1522,39 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 
 Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
+.. _io.csv.parallel:
+
+Reading large files in parallel
+'''''''''''''''''''''''''''''''
+
+.. versionadded:: 3.1.0
+
+When reading a large file with the C engine, :func:`read_csv` splits the file
+into chunks and parses them in multiple threads, which can speed up reading
+considerably. This happens automatically when all of the following hold:
+
+* ``filepath_or_buffer`` is a local, uncompressed file path
+* the C engine is used (the default)
+* the file is at least 50 MB
+* no options are passed that require parsing the file as a whole, such as
+  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
+  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
+  non-UTF-8 encodings
+
+Calls that are not eligible fall back to the serial path, and the result is
+always identical to a serial read.
+
+The number of threads is controlled with the ``mode.max_threads`` option,
+which defaults to the number of CPU cores, capped at ``4``. On Windows the
+default is ``1`` (serial), as parallel reading currently does not improve
+performance there. Set the option to ``1`` to disable parallel reading, e.g.
+when pandas runs inside an application that already parallelizes work:
+
+.. code-block:: python
+
+   with pd.option_context("mode.max_threads", 1):
+       df = pd.read_csv("large.csv")
+
 .. _io.remote:
 
 Reading/writing remote files
@@ -4868,7 +4901,10 @@ control compression: ``complevel`` and ``complib``.
   ``0<complevel<10`` enables compression.
 
 * ``complib`` specifies which compression library to use.
-  If nothing is  specified the default library ``zlib`` is used. A
+  If nothing is  specified the default library ``zlib`` is used. Note that
+  ``complib`` only takes effect when ``complevel`` is set greater than ``0``;
+  passing ``complib`` on its own writes the data uncompressed and emits a
+  ``UserWarning``. A
   compression library usually optimizes for either good compression rates
   or speed and the results will depend on the type of data. Which type of
   compression to choose depends on your specific needs and data. The list
@@ -6455,7 +6491,9 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
+       df.to_hdf(
+           "test_fixed_compress.hdf", key="test", mode="w", complib="blosc", complevel=9
+       )
 
 
    def test_hdf_fixed_read_compress():
@@ -6472,7 +6510,12 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf",
+           key="test",
+           mode="w",
+           complib="blosc",
+           complevel=9,
+           format="table",
        )
 
 
