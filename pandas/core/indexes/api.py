@@ -65,9 +65,7 @@ def get_objs_combined_axis(
     intersect: bool = False,
     axis: Axis = 0,
     sort: bool | lib.NoDefault = True,
-    *,
-    return_is_all_equal: bool = False,
-) -> Index | tuple[Index, bool]:
+) -> tuple[Index, bool]:
     """
     Extract combined index: return intersection or union (depending on the
     value of "intersect") of indexes on given axis, or None if all objects
@@ -85,13 +83,11 @@ def get_objs_combined_axis(
     sort : bool, default True
         Whether the result index should come out sorted or not. NoDefault
         use for deprecation in GH#57335.
-    return_is_all_equal : bool, default False
-        Whether to also return whether all indexes are equal.
 
     Returns
     -------
-    Index or tuple of (Index, bool)
-        The combined index, optionally together with a boolean indicating
+    tuple of (Index, bool)
+        The combined index, together with a boolean indicating
         whether all indexes are equal.
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
@@ -99,7 +95,6 @@ def get_objs_combined_axis(
         obs_idxes,
         intersect=intersect,
         sort=sort,
-        return_is_all_equal=return_is_all_equal,
     )
 
 
@@ -121,9 +116,7 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool | lib.NoDefault = False,
-    *,
-    return_is_all_equal: bool = False,
-) -> Index | tuple[Index, bool]:
+) -> tuple[Index, bool]:
     """
     Return the union or intersection of indexes.
 
@@ -137,13 +130,11 @@ def _get_combined_index(
     sort : bool, default False
         Whether the result index should come out sorted or not. NoDefault
         used for deprecation of GH#57335
-    return_is_all_equal : bool, default False
-        Whether to also return whether all indexes are equal.
 
     Returns
     -------
-    Index or tuple of (Index, bool)
-        The combined index, optionally together with a boolean indicating
+    tuple of (Index, bool)
+        The combined index, together with a boolean indicating
         whether all indexes are equal.
     """
     # TODO: handle index names!
@@ -163,16 +154,13 @@ def _get_combined_index(
         index, all_equal = union_indexes(
             indexes,
             sort=sort if sort is lib.no_default else False,
-            return_is_all_equal=True,
         )
         index = ensure_index(index)
 
     if sort and sort is not lib.no_default:
         index = safe_sort_index(index)
         all_equal = False
-    if return_is_all_equal:
-        return index, all_equal
-    return index
+    return index, all_equal
 
 
 def safe_sort_index(index: Index) -> Index:
@@ -212,9 +200,7 @@ def safe_sort_index(index: Index) -> Index:
 def union_indexes(
     indexes,
     sort: bool | lib.NoDefault = True,
-    *,
-    return_is_all_equal: bool = False,
-) -> Index | tuple[Index, bool]:
+) -> tuple[Index, bool]:
     """
     Return the union of indexes.
 
@@ -226,23 +212,13 @@ def union_indexes(
     sort : bool, default True
         Whether the result index should come out sorted or not. NoDefault
         used for deprecation of GH#57335.
-    return_is_all_equal : bool, default False
-        Whether to also return whether all indexes are equal.
 
     Returns
     -------
-    Index or tuple of (Index, bool)
-        The union index, optionally together with a boolean indicating
+    tuple of (Index, bool)
+        The union index, together with a boolean indicating
         whether all indexes are equal.
     """
-
-    def prepare_final_union_result(
-        result: Index,
-        all_equal: bool,
-    ) -> Index | tuple[Index, bool]:
-        if return_is_all_equal:
-            return result, all_equal
-        return result
 
     if len(indexes) == 0:
         raise AssertionError("Must have at least 1 Index to union")
@@ -253,7 +229,7 @@ def union_indexes(
                 result = Index(result)
             else:
                 result = Index(sorted(result))
-        return prepare_final_union_result(result, True)
+        return result, True
 
     indexes, kind = _sanitize_and_check(indexes)
 
@@ -291,7 +267,7 @@ def union_indexes(
 
         for other in indexes[1:]:
             result = result.union(other, sort=None if sort else False)
-        return prepare_final_union_result(result, False)
+        return result, False
 
     elif kind == "array":
         all_equal = all_indexes_same(indexes)
@@ -311,7 +287,7 @@ def union_indexes(
         name = get_unanimous_names(*indexes)[0]
         if name != index.name:
             index = index.rename(name)
-        return prepare_final_union_result(index, all_equal)
+        return index, all_equal
 
     elif kind == "list":
         dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
@@ -324,7 +300,7 @@ def union_indexes(
             lib.fast_unique_multiple_list_gen(all_lists, sort=bool(sort)),
             dtype=dtype,
         )
-        return prepare_final_union_result(result, False)
+        return result, False
     else:
         raise ValueError(f"{kind=} must be 'special', 'array' or 'list'.")
 

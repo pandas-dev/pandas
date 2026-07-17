@@ -486,7 +486,7 @@ def concat(
             ]
         else:
             non_concat_axis = [obj.index for obj in objs]
-        no_sort_result_index = union_indexes(non_concat_axis, sort=False)
+        no_sort_result_index, _ = union_indexes(non_concat_axis, sort=False)
         orig = result.index if orig_axis == 1 else result.columns
         if not no_sort_result_index.equals(orig):
             msg = (
@@ -608,7 +608,7 @@ def _get_result(
             # GH28330 Preserves subclassed objects through concat
             cons = sample._constructor_expanddim
 
-            index = get_objs_combined_axis(
+            index, _ = get_objs_combined_axis(
                 objs,
                 axis=objs[0]._get_block_manager_axis(0),
                 intersect=intersect,
@@ -694,14 +694,12 @@ def new_axes(
             )
             is_all_equal = False
         else:
-            result = get_objs_combined_axis(
+            result_axis, is_all_equal = get_objs_combined_axis(
                 objs,
                 axis=objs[0]._get_block_manager_axis(i),
                 intersect=intersect,
                 sort=sort,
-                return_is_all_equal=True,
             )
-            result_axis, is_all_equal = cast("tuple[Index, bool]", result)
 
         result_axes.append(result_axis)
         all_equal.append(is_all_equal)
