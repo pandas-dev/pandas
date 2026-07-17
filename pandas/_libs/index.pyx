@@ -444,11 +444,13 @@ cdef class IndexEngine:
         if (
             dtype == targets.dtype
             and dtype.isnative
-            and (dtype.kind in "iu" or (dtype.kind == "f" and dtype.itemsize >= 4))
+            and (dtype.kind in "iu" or dtype.char in "fd")
         ):
             # Hash the target values themselves instead of boxing every
             # element into a Python object.  khash matches float NaNs
             # to each other, like the is_matching_na machinery below.
+            # char "fd" excludes float16/longdouble, which have no
+            # specialization in _hash.get_indexer_non_unique.
             # With few targets on a monotonic index, binary search per unique
             # target beats a full scan (same heuristic as the path below).
             use_searchsorted = (
@@ -1344,7 +1346,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         if (
             dtype == target_vals.dtype
             and dtype.isnative
-            and (dtype.kind in "iu" or (dtype.kind == "f" and dtype.itemsize >= 4))
+            and (dtype.kind in "iu" or dtype.char in "fd")
             and not np.any(mask)
             and not np.any(target_mask)
         ):
