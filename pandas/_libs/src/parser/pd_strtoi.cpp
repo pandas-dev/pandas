@@ -21,8 +21,8 @@ Behavioral contract (inherited from the tokenizer.c implementations):
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <iterator>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <system_error>
@@ -71,14 +71,16 @@ copy_number_without_tsep(std::span<char> output, std::string_view &str,
 
   const auto token_end = std::ranges::find_if(
       str, [tsep](char ch) { return !isdigit_ascii(ch) && ch != tsep; });
-  const auto token_len = token_end - str.begin();
-  const auto n_digits = token_len - std::count(str.begin(), token_end, tsep);
-  if (sign_len + n_digits > std::ssize(output)) {
-    return std::nullopt;
+  for (const char ch : std::ranges::subrange(str.begin(), token_end)) {
+    if (ch == tsep) {
+      continue;
+    }
+    if (out == output.end()) {
+      return std::nullopt;
+    }
+    *out++ = ch;
   }
-
-  out = std::remove_copy(str.begin(), token_end, out, tsep);
-  str.remove_prefix(token_len);
+  str.remove_prefix(token_end - str.begin());
   return output.subspan(0, out - output.begin());
 }
 
