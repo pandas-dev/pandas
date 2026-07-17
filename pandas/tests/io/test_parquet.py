@@ -844,6 +844,10 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(data=data, columns=["fp16"])
         check_round_trip(df, temp_file, pa)
 
+    @pytest.mark.skipif(
+        not pa_version_under17p0,
+        reason="float16 is supported in Parquet with pyarrow>=17",
+    )
     @pytest.mark.xfail(
         is_platform_windows(),
         reason=(
