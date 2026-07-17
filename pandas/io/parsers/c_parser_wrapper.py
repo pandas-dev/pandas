@@ -204,21 +204,15 @@ class CParserWrapper(ParserBase):
         # directly, skipping the Python-str ndarray round-trip. In low_memory
         # mode the C parser keeps raw-byte receipts per chunk so a fallback in
         # any chunk restores the whole column to the object-string path.
+        # With a list parse_dates, noconvert_columns is exactly the resolved
+        # parse_dates targets (integer colspecs usecols-relative, matching
+        # _do_date_conversions).
         # Not with implicit-index files (leading_cols > 0): noconvert indices
         # are not shifted by leading_cols, so the fastpath gate in
         # _convert_tokens cannot line up with them.
         if isinstance(self.parse_dates, list) and self._reader.leading_cols == 0:
-            for colspec in self.parse_dates:
-                if isinstance(colspec, int):
-                    if 0 <= colspec < len(self.orig_names):
-                        name = self.orig_names[colspec]
-                    else:
-                        continue
-                else:
-                    name = colspec
-                col_idx = names_dict.get(name)
-                if col_idx is None:
-                    continue
+            for col_idx in noconvert_columns:
+                name = self.orig_names[col_idx]
                 require_consistent = self._parse_dates_fastpath_strictness(name)
                 if require_consistent is not None:
                     self._reader.set_datetime_convert(col_idx, require_consistent)

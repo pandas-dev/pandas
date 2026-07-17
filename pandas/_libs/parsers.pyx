@@ -1811,6 +1811,10 @@ cdef _collect_arena(parser_t *parser, int64_t col,
     per-row offsets (-1 for na_values hits). Together with `_box_arena_utf8`
     this lets the fastpath reconstruct exactly what `_string_box_utf8` would
     have produced.
+
+    Only reached for chunks whose every non-NA word ISO-parsed at its full
+    `_token_len`, so words contain no embedded NULs and strlen is exact here
+    and in `_box_arena_utf8`.
     """
     cdef:
         Py_ssize_t i, lines, word_len, pos = 0
@@ -1916,6 +1920,7 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
         Py_ssize_t arena_size = 0
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
         ndarray result
         int64_t[::1] iresult
         npy_datetimestruct dts
@@ -1956,14 +1961,16 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        word = coliter_next(&it)
+        word = coliter_next_with_idx(&it, &token_idx)
 
         if na_filter and kh_get_str_starts_item(na_hashset, word):
             na_count += 1
             iresult[i] = NPY_NAT
             continue
 
-        word_len = strlen(word)
+        # _token_len, not strlen: an embedded NUL must reach the ISO parser
+        # (and fail) so the column falls back like the object path.
+        word_len = _token_len(parser, token_idx)
         arena_size += word_len + 1
         if word_len == 0:
             na_count += 1

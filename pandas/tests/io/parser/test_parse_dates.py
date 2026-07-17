@@ -8,11 +8,15 @@ from datetime import (
     timedelta,
     timezone,
 )
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
@@ -929,13 +933,22 @@ def test_from_csv_with_mixed_offsets(all_parsers):
     ],
 )
 @pytest.mark.parametrize("low_memory", [False, True])
-def test_parse_dates_c_fastpath_matches_python_engine(data, low_memory):
+@pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
+def test_parse_dates_c_fastpath_matches_python_engine(data, low_memory, dtype_backend):
     # GH#65353 the C parser parses ISO8601 parse_dates columns directly to
     # datetime64; results must match the slow path
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
     result = read_csv(
-        StringIO(data), parse_dates=["a"], engine="c", low_memory=low_memory
+        StringIO(data),
+        parse_dates=["a"],
+        engine="c",
+        low_memory=low_memory,
+        dtype_backend=dtype_backend,
     )
-    expected = read_csv(StringIO(data), parse_dates=["a"], engine="python")
+    expected = read_csv(
+        StringIO(data), parse_dates=["a"], engine="python", dtype_backend=dtype_backend
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -954,6 +967,34 @@ def test_parse_dates_c_fastpath_iso8601_format_matches_python_engine(data, low_m
     result = read_csv(StringIO(data), engine="c", low_memory=low_memory, **kwargs)
     expected = read_csv(StringIO(data), engine="python", **kwargs)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_embedded_nul(low_memory):
+    # GH#65353 an embedded NUL after a valid ISO prefix must not be silently
+    # truncated to a parsed datetime; the column stays strings like the
+    # object path (which warns: the NUL word defeats format inference)
+    data = b"a,b\n2020-01-01\x00X,1\n2020-01-02,2\n"
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        result = read_csv(
+            BytesIO(data), parse_dates=["a"], engine="c", low_memory=low_memory
+        )
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        expected = read_csv(BytesIO(data), parse_dates=["a"], engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["2020-01-01\x00X", "2020-01-02"]
+
+
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_usecols_integer_colspec(low_memory):
+    # GH#65353 integer parse_dates colspecs are positions within usecols,
+    # not the full table
+    data = "a,b,c,d\n1,2020-01-01,x,2020-02-01\n2,2020-01-02,y,2020-02-02\n"
+    kwargs = {"usecols": [1, 3], "parse_dates": [1]}
+    result = read_csv(StringIO(data), engine="c", low_memory=low_memory, **kwargs)
+    expected = read_csv(StringIO(data), engine="python", **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert result["d"].dtype.kind == "M"
 
 
 @pytest.mark.parametrize("low_memory", [False, True])
@@ -994,6 +1035,29 @@ def test_parse_dates_low_memory_iso_then_mismatched_layout_chunks():
     data = _multichunk_csv(date_strings)
 
     with tm.assert_produces_warning(None):
+        result = read_csv(StringIO(data), parse_dates=["a"], low_memory=True)["a"]
+    assert result.tolist() == date_strings
+
+
+@pytest.mark.parametrize("position", ["first", "last"])
+def test_parse_dates_low_memory_embedded_nul_chunks(position):
+    # GH#65353 an embedded-NUL value in any chunk keeps the whole column on
+    # the string path with the NUL preserved, whether the fastpath bails
+    # before converting anything ("first") or rebuilds earlier chunks from
+    # receipts ("last")
+    date_strings = [f"2020-01-{(i % 28) + 1:02d}" for i in range(19_999)]
+    # unique date prefix: avoids the NUL-terminated intern-table collision
+    # in _string_box_utf8, which is not under test here
+    nul_value = "2021-06-15\x00X"
+    if position == "first":
+        date_strings.insert(0, nul_value)
+    else:
+        date_strings.append(nul_value)
+    data = _multichunk_csv(date_strings)
+
+    # leading NUL word defeats to_datetime's format inference, which warns
+    warn = UserWarning if position == "first" else None
+    with tm.assert_produces_warning(warn, match="Could not infer format"):
         result = read_csv(StringIO(data), parse_dates=["a"], low_memory=True)["a"]
     assert result.tolist() == date_strings
 
