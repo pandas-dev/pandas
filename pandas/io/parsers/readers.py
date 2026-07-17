@@ -421,12 +421,7 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
         return False
     if "://" in filepath:
         return False
-
-    # GH-66259: The parallel path evaluates types per-chunk, which contradicts the
-    # whole-file type inference guaranteed by low_memory=False.
-    if kwds.get("low_memory") is False:
-        return False
-
+    
     # GH-66259: Pyarrow chunk concatenation does a strict checked int->double
     # cast that fails for integers > 2^53. Fallback to serial.
     if kwds.get("dtype_backend") == "pyarrow":
