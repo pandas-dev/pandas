@@ -20,6 +20,7 @@ from pandas.errors import (
 
 from pandas import DataFrame
 import pandas._testing as tm
+
 import pandas.io.parsers.readers as parsers
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -338,9 +339,10 @@ a,b
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
 
+
 def test_parallel_read_csv_empty_data_fallback(monkeypatch, tmp_path):
     """
-    Ensure parallel read_csv falls back to serial and raises EmptyDataError 
+    Ensure parallel read_csv falls back to serial and raises EmptyDataError
     instead of diverging or crashing when low_memory=False.
     GH 66259
     """
@@ -353,12 +355,8 @@ def test_parallel_read_csv_empty_data_fallback(monkeypatch, tmp_path):
     msg = "No columns to parse from file"
 
     with pytest.raises(EmptyDataError, match=msg):
-        # Using the globally imported `pandas` (which is aliased as pd in other files, 
+        # Using the globally imported `pandas` (which is aliased as pd in other files,
         # but here we use the specific DataFrame/read_csv imports or just pandas)
         import pandas as pd
-        pd.read_csv(
-            empty_file,
-            engine="c",
-            low_memory=False,
-            header=None
-        )
+
+        pd.read_csv(empty_file, engine="c", low_memory=False, header=None)
