@@ -387,6 +387,23 @@ static const char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc,
     PyObject *tmp = str;
     str = PyUnicode_AsUTF8String(str);
     Py_DECREF(tmp);
+    if (str == NULL) {
+      *outLen = 0;
+      if (!PyErr_Occurred()) {
+        PyErr_SetString(PyExc_ValueError, "Failed to convert time");
+      }
+      ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+      return NULL;
+    }
+  }
+  if (!PyBytes_Check(str)) {
+    *outLen = 0;
+    Py_DECREF(str);
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(PyExc_ValueError, "Failed to convert time");
+    }
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
   }
 
   GET_TC(tc)->newObj = str;
@@ -412,6 +429,10 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
 
   Py_ssize_t s_len;
   char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  if (outValue == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
   *len = s_len;
 
   return outValue;
@@ -1975,7 +1996,18 @@ static double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 static const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
                                                size_t *_outLen) {
   PyObject *repr = PyObject_Str(obj);
+  if (repr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    *_outLen = 0;
+    return NULL;
+  }
   const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *)_outLen);
+  if (str == NULL) {
+    Py_DECREF(repr);
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    *_outLen = 0;
+    return NULL;
+  }
   char *bytes = PyObject_Malloc(*_outLen + 1);
   memcpy(bytes, str, *_outLen + 1);
   GET_TC(tc)->cStr = bytes;

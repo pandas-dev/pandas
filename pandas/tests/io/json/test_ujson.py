@@ -5,6 +5,7 @@ import json
 import locale
 import math
 import re
+import sys
 import time
 
 import dateutil
@@ -26,6 +27,8 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+
+LONE_SURROGATE = "\ud800"
 
 
 def _clean_dict(d):
@@ -374,6 +377,22 @@ class TestUltraJSONTests:
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_dumps(val, date_unit="foo")
 
+    def test_encode_time_invalid_subclass_surrogate(self):
+        class InvalidTime(datetime.time):
+            def isoformat(self):
+                return LONE_SURROGATE
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(InvalidTime())
+
+    def test_encode_time_invalid_subclass_non_str(self):
+        class InvalidTime(datetime.time):
+            def isoformat(self):
+                return 1
+
+        with pytest.raises(ValueError, match="Failed to convert time"):
+            ujson.ujson_dumps(InvalidTime())
+
     def test_encode_to_utf8(self):
         unencoded = "\xe6\x97\xa5\xd1\x88"
 
@@ -676,6 +695,14 @@ class TestUltraJSONTests:
             "d": 4,
         }
 
+    def test_encode_invalid_decimal_subclass(self):
+        class InvalidDecimal(decimal.Decimal):
+            def __format__(self, *a, **kw):
+                return LONE_SURROGATE
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(InvalidDecimal(1))
+
     def test_ujson__name__(self):
         # GH 52898
         assert ujson.__name__ == "pandas._libs._ujson"
@@ -804,6 +831,15 @@ class TestNumpyJSONTests:
         )
         with pytest.raises(TypeError, match=msg):
             ujson.ujson_dumps(np.longdouble(1234.5))
+
+    def test_encode_large_int_object(self):
+        cur_limit = sys.get_int_max_str_digits()
+        sys.set_int_max_str_digits(1000)
+        try:
+            with pytest.raises(ValueError, match="Exceeds the limit"):
+                ujson.ujson_dumps(1 << 1_000_000)
+        finally:
+            sys.set_int_max_str_digits(cur_limit)
 
 
 class TestPandasJSONTests:
