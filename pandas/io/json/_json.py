@@ -640,7 +640,8 @@ def read_json(
         keep_default_dates).
 
         .. deprecated:: 3.1.0
-            Use the ``dtype`` parameter instead to control type conversion.
+            Pass ``dtype=False`` to disable type conversion, or parse date
+            columns with :func:`~pandas.to_datetime` after reading.
 
     keep_default_dates : bool, default True
         If parsing dates (convert_dates is not False), then try to parse the
@@ -658,7 +659,8 @@ def read_json(
         * it is ``'date'``.
 
         .. deprecated:: 3.1.0
-            Use the ``dtype`` parameter instead to control type conversion.
+            Pass ``dtype=False`` to disable type conversion, or parse date
+            columns with :func:`~pandas.to_datetime` after reading.
 
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
@@ -831,8 +833,8 @@ def read_json(
     if convert_dates is not lib.no_default:
         warnings.warn(
             "The 'convert_dates' keyword in read_json is deprecated and will be "
-            "removed in a future version. Use the 'dtype' parameter instead to "
-            "control type conversion.",
+            "removed in a future version. Pass dtype=False to disable type "
+            "conversion, or parse date columns with pd.to_datetime after reading.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -842,8 +844,8 @@ def read_json(
     if keep_default_dates is not lib.no_default:
         warnings.warn(
             "The 'keep_default_dates' keyword in read_json is deprecated and will "
-            "be removed in a future version. Use the 'dtype' parameter instead to "
-            "control type conversion.",
+            "be removed in a future version. Pass dtype=False to disable type "
+            "conversion, or parse date columns with pd.to_datetime after reading.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )

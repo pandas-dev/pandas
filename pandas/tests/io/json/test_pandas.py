@@ -137,14 +137,19 @@ class TestPandasContainer:
     def test_frame_non_unique_columns(self, orient, data, request):
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
-        # GH#59161 convert_dates is deprecated; a datetime64[s] column also
-        #  triggers the epoch date-format warning on the to_json side (both
-        #  Pandas4Warning)
+        expected_warning = None
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        if df.iloc[:, 0].dtype == "datetime64[s]":
+            expected_warning = Pandas4Warning
+
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            json = StringIO(df.to_json(orient=orient))
         depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = read_json(
-                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
-            )
+            result = read_json(json, orient=orient, convert_dates=["x"])
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
