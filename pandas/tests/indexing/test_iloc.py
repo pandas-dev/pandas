@@ -676,9 +676,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "|".join(
-            ["index 5 is out of bounds for axis 0 with size 4", "index out of bounds"]
-        )
+        msg = "index 5 is out of bounds for axis 0 with size 4"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -795,6 +793,75 @@ class TestiLocBaseIndependent:
                 df.loc[:, ["a", "c"]] = value
             else:
                 df.iloc[:, [0, 2]] = value
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    @pytest.mark.parametrize("nrows", [2, 3])
+    def test_setitem_split_path_list_of_arrays_is_2d(self, indexer, nrows):
+        # GH#64230 a list of 1-D arrays is a 2D value (a list of rows), just
+        # like a list of lists / an ndarray; the split path used to transpose
+        # it into columns instead.
+        df = DataFrame(
+            {
+                "a": np.zeros(nrows),
+                "b": np.zeros(nrows, dtype="int64"),
+                "c": np.zeros(nrows),
+            }
+        )
+        value = [np.array([2 * i + 1, 2 * i + 2]) for i in range(nrows)]
+        if indexer == "loc":
+            df.loc[:, ["a", "c"]] = value
+        else:
+            df.iloc[:, [0, 2]] = value
+
+        arr = np.array(value, dtype="float64")
+        expected = DataFrame(
+            {"a": arr[:, 0], "b": np.zeros(nrows, dtype="int64"), "c": arr[:, 1]}
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_arrays_single_column(self, indexer):
+        # GH#64230 a list of 1-D arrays targeting a single column is a shape
+        # mismatch, same as a list of lists; unlike mismatched-length tuples
+        # (GH#65264) arrays are not scalar-like, so no per-cell storage
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [np.array([1, 2]), np.array([3, 4])]
+        msg = "Must have equal len keys and value when setting with an ndarray"
+        with pytest.raises(ValueError, match=msg):
+            if indexer == "loc":
+                df.loc[:, ["a"]] = value
+            else:
+                df.iloc[:, [0]] = value
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_0d_arrays(self, indexer):
+        # GH#64230 0-d array elements are scalars, not rows, so a list of
+        # them is not a 2D value; set one scalar per column
+        df = DataFrame({"a": [0.0, 0.0], "b": [0, 0], "c": [0.0, 0.0]})
+        value = [np.array(1.0), np.array(2.0)]
+        if indexer == "loc":
+            df.loc[0, ["a", "c"]] = value
+        else:
+            df.iloc[0, [0, 2]] = value
+
+        expected = DataFrame({"a": [1.0, 0.0], "b": [0, 0], "c": [2.0, 0.0]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_2d_arrays(self, indexer):
+        # GH#64230 2-D array elements make the value 3D, not 2D; they get
+        # stored per-cell in an object column
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [np.ones((2, 2)), np.zeros((2, 2))]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        result = df["a"].tolist()
+        assert len(result) == 2
+        tm.assert_numpy_array_equal(result[0], value[0])
+        tm.assert_numpy_array_equal(result[1], value[1])
 
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
@@ -1299,6 +1366,32 @@ class TestiLocBaseIndependent:
         res = df.iloc[:, ::-1]
         expected = DataFrame({"B": df["B"], "A": df["A"]})
         tm.assert_frame_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "indexer, values, expected_values",
+        [
+            (slice(None, None, -2), [11, 5, 15], [15, 13, 5, 9, 11]),
+            (slice(None, None, -1), [11, 5, 15, 9, 3], [3, 9, 15, 5, 11]),
+            (slice(3, None, -1), [11, 5, 15, 9], [9, 15, 5, 11, 3]),
+        ],
+    )
+    def test_iloc_setitem_slice_negative_step_none_bounds(
+        self, indexer, values, expected_values
+    ):
+        # GH#66100 length_of_indexer previously returned a negative length
+        # for negative-step slices with start/stop left as None, causing
+        # a spurious "different length than the value" ValueError
+        ser = Series([2, 13, 7, 9, 3], index=["a", "b", "c", "d", "e"])
+        ser.iloc[indexer] = values
+        expected = Series(expected_values, index=["a", "b", "c", "d", "e"])
+        tm.assert_series_equal(ser, expected)
+
+    def test_iloc_setitem_slice_negative_step_full_reverse(self):
+        # GH#66100
+        ser = Series([2, 13, 7, 9, 3], index=["a", "b", "c", "d", "e"])
+        ser.iloc[::-2] = [11, 5, 15]
+        expected = Series([15, 13, 5, 9, 11], index=["a", "b", "c", "d", "e"])
+        tm.assert_series_equal(ser, expected)
 
     def test_iloc_setitem_2d_ndarray_into_ea_block(self):
         # GH#44703

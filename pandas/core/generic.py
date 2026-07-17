@@ -2767,7 +2767,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-            Specifies the compression library to be used.
+            Specifies the compression library to be used. This has no effect
+            unless ``complevel`` is set to a value greater than 0; passing
+            ``complib`` alone emits a ``UserWarning`` and writes the data
+            uncompressed.
             These additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
             {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
@@ -7273,7 +7276,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif isinstance(value, ABCDataFrame) and self.ndim == 2:
             new_data = self.where(self.notna(), value)._mgr
         else:
-            raise ValueError(f"invalid fill value with a {type(value)}")
+            raise ValueError(
+                "Invalid fill value: expected scalar, dict, Series or DataFrame; "
+                f"got {type(value).__name__}"
+            )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
@@ -7825,6 +7831,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if not (
             is_scalar(to_replace)
+            or to_replace is Ellipsis  # GH#50373
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
@@ -10178,7 +10185,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            # GH#45153 suppress Pandas4Warning from fillna with
+            # incompatible value; if cond is not boolean, the dtype
+            # check below will raise TypeError anyway.
+            warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
+            cond = cond.fillna(fill_value)
         cond = cond.infer_objects()
 
         msg = "Boolean array expected for the condition, not {dtype}"

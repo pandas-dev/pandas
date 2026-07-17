@@ -34,14 +34,38 @@ def test_empty_decimal_marker(all_parsers):
     msg = "Only length-1 decimal markers supported"
     parser = all_parsers
 
-    if parser.engine == "pyarrow":
-        msg = (
-            "only single character unicode strings can be "
-            "converted to Py_UCS4, got length 0"
-        )
-
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), decimal="")
+
+
+@pytest.mark.parametrize("escapechar", ["", "xx"])
+def test_bad_escapechar(all_parsers, escapechar):
+    # GH#66317
+    data = "a,b\n1,2"
+    parser = all_parsers
+
+    if parser.engine == "python":
+        # message and exception type come from the csv module
+        err = TypeError
+        msg = '"escapechar" must be'
+    else:
+        err = ValueError
+        msg = "Only length-1 escapes supported"
+
+    with pytest.raises(err, match=msg):
+        parser.read_csv(StringIO(data), escapechar=escapechar)
+
+
+def test_empty_sep(pyarrow_parser_only):
+    # GH#66317 previously leaked a cryptic error from pyarrow option
+    #  conversion; the C engine has a similarly-cryptic error here and the
+    #  python engine treats sep="" as a regex, so pyarrow-only.
+    data = "a,b\n1,2"
+    parser = pyarrow_parser_only
+
+    msg = "Only length-1 delimiters supported"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), sep="")
 
 
 def test_bad_stream_exception(all_parsers, csv_dir_path):
@@ -118,7 +142,6 @@ skip
             reader.read(nrows)
 
 
-@xfail_pyarrow  # does not raise
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\

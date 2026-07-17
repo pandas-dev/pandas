@@ -604,7 +604,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
-            result.index.name = self.obj.index.name
 
         return result
 
@@ -2269,25 +2268,23 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         ax = self.ax
 
-        if is_subperiod(ax.freq, self.freq):
-            # Downsampling
-            return self._groupby_and_aggregate(how, **kwargs)
-        elif is_superperiod(ax.freq, self.freq):
-            if how == "ohlc":
-                # GH #13083
-                # upsampling to subperiods is handled as an asfreq, which works
-                # for pure aggregating/reducing methods
-                # OHLC reduces along the time dimension, but creates multiple
-                # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how)
-            return self.asfreq()
-        elif ax.freq == self.freq:
-            return self.asfreq()
+        if not (
+            is_subperiod(ax.freq, self.freq)
+            or is_superperiod(ax.freq, self.freq)
+            or ax.freq == self.freq
+        ):
+            raise IncompatibleFrequency(
+                f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
+                "as they are not sub or super periods"
+            )
 
-        raise IncompatibleFrequency(
-            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
-            "as they are not sub or super periods"
-        )
+        if not len(ax):
+            # reset to the new freq
+            obj = self._obj_with_exclusions.copy()
+            obj.index = obj.index.asfreq(self.freq)
+            return obj
+
+        return self._groupby_and_aggregate(how, **kwargs)
 
     def _upsample(self, method, limit: int | None = None, fill_value=None):
         """
@@ -2876,7 +2873,8 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array(),
+                name=ax.name,
             )
         return obj, ax, indexer
 

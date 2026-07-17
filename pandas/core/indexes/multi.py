@@ -4198,32 +4198,51 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-
-                    # GH#55786 Vectorized path: use the level's hashtable to
-                    # map all labels to codes at once, then use algos.isin
-                    # instead of looping with per-element _get_level_indexer.
                     if any(not is_hashable(x) for x in k):
+                        # e.g. slice
                         raise err
-                    level_codes = self.codes[i]
-                    k_codes = self.levels[i].get_indexer(k)
-                    # NaN labels are stored as code -1 and are absent
-                    # from levels, so get_indexer returns -1 for them.
-                    # Separate true missing labels from NaN labels.
-                    k_isna = isna(k if not isinstance(k, tuple) else list(k))
-                    na_count = k_isna.sum()
-                    missing_mask = k_codes == -1
-                    if na_count:
-                        if missing_mask.sum() > na_count:
+
+                    if self.levels[i]._supports_partial_string_indexing:
+                        # GH#64807 A level that supports partial indexing (e.g.
+                        #  DatetimeIndex/PeriodIndex) can map a single label to a
+                        #  *range* of positions (partial-string/partial-date
+                        #  slicing). The exact-match vectorized path below cannot
+                        #  express that, so resolve each label individually.
+                        for x in k:
+                            # GH 42351: not-founds raise KeyError (enforced in 2.0)
+                            item_indexer = self._get_level_indexer(
+                                x, level=i, indexer=indexer
+                            )
+                            if lvl_indexer is None:
+                                lvl_indexer = _to_bool_indexer(item_indexer)
+                            elif isinstance(item_indexer, slice):
+                                lvl_indexer[item_indexer] = True  # type: ignore[index]
+                            else:
+                                lvl_indexer |= item_indexer
+                    else:
+                        # GH#55786 Vectorized path: use the level's hashtable to
+                        # map all labels to codes at once, then use algos.isin
+                        # instead of looping with per-element _get_level_indexer.
+                        level_codes = self.codes[i]
+                        k_codes = self.levels[i].get_indexer(k)
+                        # NaN labels are stored as code -1 and are absent
+                        # from levels, so get_indexer returns -1 for them.
+                        # Separate true missing labels from NaN labels.
+                        k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                        na_count = k_isna.sum()
+                        missing_mask = k_codes == -1
+                        if na_count:
+                            if missing_mask.sum() > na_count:
+                                raise KeyError(k) from None
+                            # NaN is in k but must also be present in the data
+                            if not lib.has_sentinel(level_codes, -1):
+                                raise KeyError(k) from None
+                        elif missing_mask.any():
                             raise KeyError(k) from None
-                        # NaN is in k but must also be present in the data
-                        if not lib.has_sentinel(level_codes, -1):
-                            raise KeyError(k) from None
-                    elif missing_mask.any():
-                        raise KeyError(k) from None
-                    k_codes = k_codes[~missing_mask]
-                    lvl_indexer = algos.isin(level_codes, k_codes)
-                    if na_count:
-                        lvl_indexer = lvl_indexer | (level_codes == -1)
+                        k_codes = k_codes[~missing_mask]
+                        lvl_indexer = algos.isin(level_codes, k_codes)
+                        if na_count:
+                            lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
                     # no matches we are done
@@ -4957,7 +4976,7 @@ def _require_listlike(level, arr, arrname: str):
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):
-        if not is_list_like(arr) or not is_list_like(arr[0]):
+        if not is_list_like(arr) or (len(arr) > 0 and not is_list_like(arr[0])):
             raise TypeError(f"{arrname} must be list of lists-like")
     return level, arr
 

@@ -123,7 +123,7 @@ def _pprint_seq(
     if isinstance(seq, set):
         fmt = "{{{body}}}"
     elif isinstance(seq, frozenset):
-        fmt = "frozenset({{{body}}})"
+        fmt = "frozenset()" if not seq else "frozenset({{{body}}})"
     else:
         fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
@@ -253,6 +253,8 @@ def pprint_thing(
                 ABCNDFrame,
             ),
         )
+        # GH#64638 0-d arrays are not iterable; fall through to str()
+        and not (isinstance(thing, np.ndarray) and thing.ndim == 0)
         and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_seq(
