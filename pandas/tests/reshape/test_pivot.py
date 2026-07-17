@@ -3191,3 +3191,55 @@ class TestPivot:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_margins_dict_aggfunc_gh65765(self):
+        # GH 65765
+        df = DataFrame(
+            {"A": [1, 1], "B": [1, 2], "C": [10.0, np.nan], "D": [100.0, 200.0]}
+        )
+        result = pivot_table(
+            df,
+            index="A",
+            columns="B",
+            values=["C", "D"],
+            aggfunc={"C": "mean", "D": "sum"},
+            margins=True,
+        )
+        # ("C", 2) is dropped because mean() of an all-NaN group returns NaN,
+        # and the resulting all-NaN column gets removed by the final
+        # dropna(how="all", axis=1) cleanup step
+        expected_columns = MultiIndex.from_tuples(
+            [("C", 1), ("C", "All"), ("D", 1), ("D", 2), ("D", "All")],
+            names=[None, "B"],
+        )
+        expected_index = Index([1, "All"], name="A")
+        expected = DataFrame(
+            [[10.0, 10.0, 100.0, 200.0, 300.0], [10.0, 10.0, 100.0, 200.0, 300.0]],
+            index=expected_index,
+            columns=expected_columns,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_margins_api_consistency_str_vs_dict_gh65765(self):
+        # GH 65765: Proves that string aggfunc and dict aggfunc yield identical
+        # results when applying the same mathematical operation.
+        df = DataFrame(
+            {"A": [1, 1], "B": [1, 2], "C": [10.0, np.nan], "D": [100.0, 200.0]}
+        )
+        result_dict = pivot_table(
+            df,
+            index="A",
+            columns="B",
+            values=["C", "D"],
+            aggfunc={"C": "sum", "D": "sum"},
+            margins=True,
+        )
+        result_str = pivot_table(
+            df,
+            index="A",
+            columns="B",
+            values=["C", "D"],
+            aggfunc="sum",
+            margins=True,
+        )
+        tm.assert_frame_equal(result_dict, result_str)
