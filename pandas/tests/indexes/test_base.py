@@ -42,6 +42,7 @@ from pandas.core.indexes.api import (
     _get_combined_index,
     ensure_index,
     ensure_index_from_sequences,
+    union_indexes,
 )
 from pandas.testing import assert_series_equal
 
@@ -1408,6 +1409,30 @@ class TestIndex:
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "indexes, expected, expected_all_equal",
+        [
+            (
+                [Index(["a", "b"]), Index(["a", "b"])],
+                Index(["a", "b"]),
+                True,
+            ),
+            (
+                [Index(["a", "b"]), Index(["b", "c"])],
+                Index(["a", "b", "c"]),
+                False,
+            ),
+        ],
+    )
+    def test_union_indexes_returns_all_equal(
+        self, indexes, expected, expected_all_equal
+    ):
+        # GH#65393
+        result, all_equal = union_indexes(indexes, sort=False)
+
+        tm.assert_index_equal(result, expected)
+        assert all_equal is expected_all_equal
 
 
 class TestMixedIntIndex:
