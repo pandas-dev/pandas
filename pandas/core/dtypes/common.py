@@ -97,27 +97,29 @@ def is_array_like_deprecate_non_pandas(obj: object) -> bool:
     ``ndarray``, ``ExtensionArray``, ``Index``, or ``Series``). These call
     sites will eventually use ``isinstance(obj, (np.ndarray, ExtensionArray,
     Index, Series))`` directly, at which point such objects will no longer be
-    treated as array-like.
+    treated as array-like. That isinstance check will need a ``ndim != 0``
+    carve-out for ndarray: ``is_array_like`` is False for 0-dimensional
+    ndarrays (effective scalars), and among these classes only ndarray can
+    be 0-dimensional.
     """
+    if not is_array_like(obj):
+        return False
     # Note: ABCExtensionArray excludes NumpyExtensionArray (_typ="npy_extension"),
     #  so ABCNumpyExtensionArray must be listed separately to cover all
     #  ExtensionArray subclasses.
-    if isinstance(
+    if not isinstance(
         obj,
         (np.ndarray, ABCExtensionArray, ABCNumpyExtensionArray, ABCIndex, ABCSeries),
     ):
-        return True
-    if not is_array_like(obj):
-        return False
-    warnings.warn(
-        "Treating an array-like object that is not a numpy ndarray, "
-        "ExtensionArray, Index, or Series as array-like is deprecated. In a "
-        "future version these objects will no longer be treated as array-like; "
-        "wrap the input in np.asarray, pd.array, or pd.Index to retain the "
-        "current behavior.",
-        Pandas4Warning,
-        stacklevel=find_stack_level(),
-    )
+        warnings.warn(
+            "Treating an array-like object that is not a numpy ndarray, "
+            "ExtensionArray, Index, or Series as array-like is deprecated. In a "
+            "future version these objects will no longer be treated as "
+            "array-like; wrap the input in np.asarray, pd.array, or pd.Index "
+            "to retain the current behavior.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
     return True
 
 

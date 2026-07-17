@@ -321,6 +321,10 @@ def test_is_array_like_deprecate_non_pandas():
         assert not is_array_like_deprecate_non_pandas([1, 2, 3])
         assert not is_array_like_deprecate_non_pandas("foo")
 
+    # 0-dim ndarrays are effective scalars, matching is_array_like
+    with tm.assert_produces_warning(None):
+        assert not is_array_like_deprecate_non_pandas(np.array(5))
+
 
 @pytest.mark.parametrize(
     "inner",
