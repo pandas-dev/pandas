@@ -248,6 +248,20 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(parse_dates=None))
         assert _can_parallelize_csv(path, self._kwds(parse_dates=False))
 
+    def test_rejects_low_memory_false(self, tmp_path, monkeypatch):
+        # low_memory=False guarantees whole-file type inference, which the
+        # per-chunk parallel path cannot honour; low_memory=True (and the unset
+        # default) document per-chunk divergence, so they stay eligible
+        # (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(low_memory=False))
+        assert _can_parallelize_csv(path, self._kwds(low_memory=True))
+        assert _can_parallelize_csv(path, self._kwds())
+
     def test_rejects_storage_options(self, tmp_path):
         # storage_options raises for local paths in the serial path; the
         # parallel path strips it and would mask that error (GH#64347).
@@ -885,6 +899,25 @@ def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # serial semantics: the whole column stays as strings
     assert result.loc[0, "col1"] == "0"
+
+
+def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch):
+    # low_memory=False promises whole-file type inference.  A chunk holding only
+    # NA tokens and a uint64-range int hits the C parser's na_filter=0
+    # uint64-conflict path (gh-14983) and keeps "nan" as a literal string, while
+    # the serial whole-file pass masks it to NaN.  Both chunk results are object
+    # dtype, so the per-column dtype-consistency check cannot catch it - the
+    # parallel path must step aside for low_memory=False (GH#64347).
+    raw = b"col\n" + b"hello\n" * 500 + (b"nan\n" + b"9223372036854775808\n") * 3000
+    path = tmp_path / "uint64.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, low_memory=False)
+    expected = read_csv(io.BytesIO(raw), low_memory=False)
+    tm.assert_frame_equal(result, expected)
+    # serial semantics: every "nan" token is masked to NaN, none survive as text
+    assert (result["col"] == "nan").sum() == 0
+    assert result["col"].isna().sum() == 3000
 
 
 def test_parallel_quoted_newline_in_header_matches_serial(tmp_path, monkeypatch):

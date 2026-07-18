@@ -49,6 +49,7 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     c_DEPR_UNITS,
+    c_Resolution,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -586,10 +587,17 @@ def array_to_timedelta64(
 
 
 @cython.cpow(True)
-cdef int64_t parse_timedelta_string(str ts) except? -1:
+cdef int64_t parse_timedelta_string(
+    str ts, c_Resolution* out_reso=NULL
+) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
+
+    If ``out_reso`` is non-NULL, it receives the finest Resolution unit
+    explicitly written in ``ts`` (e.g. RESO_SEC for "720s", even though
+    720s == 12min). This is tracked by the same single pass that computes
+    the value, so the two can never disagree.
     """
 
     cdef:
@@ -598,6 +606,11 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
         str current_unit = None
         int64_t result = 0, m = 0, r
         list number = [], frac = [], unit = []
+        # finest reso seen; RESO_DAY is the coarsest a timedelta string reaches.
+        #  spec_ptr is NULL (skipping all reso work) unless a caller wants it.
+        c_Resolution reso = c_Resolution.RESO_DAY
+        c_Resolution spec_reso = c_Resolution.RESO_DAY
+        c_Resolution* spec_ptr = &spec_reso if out_reso is not NULL else NULL
 
     # neg : tracks if we have a leading negative for the value
     # have_dot : tracks if we are processing a dot (either post hhmmss or
@@ -642,7 +655,9 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
                 number.append(c)
 
             else:
-                r = timedelta_from_spec(number, frac, unit)
+                r = timedelta_from_spec(number, frac, unit, spec_ptr)
+                if spec_reso < reso:
+                    reso = spec_reso
                 unit, number, frac = [], [c], []
 
                 result += timedelta_as_neg(r, neg)
@@ -688,6 +703,11 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
                 result += timedelta_as_neg(r, neg)
                 have_value = 1
                 unit, number, frac = [], [], []
+                # hh:mm:ss always carries a seconds field; any sub-second
+                #  precision from the fraction is folded in later via the
+                #  parsed value's own resolution.
+                if c_Resolution.RESO_SEC < reso:
+                    reso = c_Resolution.RESO_SEC
 
             have_dot = 1
 
@@ -700,7 +720,9 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
     # we had a dot, but we have a fractional
     # value since we have a unit
     if have_dot and len(unit):
-        r = timedelta_from_spec(number, frac, unit)
+        r = timedelta_from_spec(number, frac, unit, spec_ptr)
+        if spec_reso < reso:
+            reso = spec_reso
         result += timedelta_as_neg(r, neg)
 
     # we have a dot as part of a regular format
@@ -731,11 +753,15 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
         m = 1000000000
         r = <int64_t>int("".join(number)) * m
         result += timedelta_as_neg(r, neg)
+        if c_Resolution.RESO_SEC < reso:
+            reso = c_Resolution.RESO_SEC
 
     # we have a last abbreviation
     elif len(unit):
         if len(number):
-            r = timedelta_from_spec(number, frac, unit)
+            r = timedelta_from_spec(number, frac, unit, spec_ptr)
+            if spec_reso < reso:
+                reso = spec_reso
             result += timedelta_as_neg(r, neg)
         else:
             raise ValueError("unit abbreviation w/o a number")
@@ -750,9 +776,13 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
         if have_value:
             raise ValueError("have leftover units")
         if len(number):
-            r = timedelta_from_spec(number, frac, "ns")
+            r = timedelta_from_spec(number, frac, "ns", spec_ptr)
+            if spec_reso < reso:
+                reso = spec_reso
             result += timedelta_as_neg(r, neg)
 
+    if out_reso is not NULL:
+        out_reso[0] = reso
     return result
 
 
@@ -769,7 +799,8 @@ cdef int64_t timedelta_as_neg(int64_t value, bint neg):
     return value
 
 
-cdef timedelta_from_spec(object number, object frac, object unit):
+cdef timedelta_from_spec(object number, object frac, object unit,
+                         c_Resolution* out_reso=NULL):
     """
 
     Parameters
@@ -777,6 +808,7 @@ cdef timedelta_from_spec(object number, object frac, object unit):
     number : a list of number digits
     frac : a list of frac digits
     unit : a list of unit characters
+    out_reso : optional pointer that receives the Resolution of ``unit``
     """
     cdef:
         str n
@@ -789,9 +821,36 @@ cdef timedelta_from_spec(object number, object frac, object unit):
         )
 
     unit = parse_timedelta_unit(unit)
+    if out_reso is not NULL:
+        # reuse the canonical unit we just resolved, so the reported reso can
+        #  never drift from the value parse_timedelta_unit drives.
+        out_reso[0] = _timedelta_unit_to_reso(unit)
 
     n = "".join(number) + "." + "".join(frac)
     return cast_from_unit(float(n), unit)
+
+
+cdef c_Resolution _timedelta_unit_to_reso(str abbrev):
+    """
+    Map a canonical timedelta unit abbreviation (as returned by
+    parse_timedelta_unit) to a Resolution. "W" collapses to RESO_DAY,
+    matching how the index treats it; ambiguous "M"/"Y" are rejected
+    upstream in timedelta_from_spec.
+    """
+    if abbrev == "ns":
+        return c_Resolution.RESO_NS
+    elif abbrev == "us":
+        return c_Resolution.RESO_US
+    elif abbrev == "ms":
+        return c_Resolution.RESO_MS
+    elif abbrev == "s":
+        return c_Resolution.RESO_SEC
+    elif abbrev == "m":
+        return c_Resolution.RESO_MIN
+    elif abbrev == "h":
+        return c_Resolution.RESO_HR
+    else:  # "D", "W"
+        return c_Resolution.RESO_DAY
 
 
 cdef bint needs_nano_unit(int64_t ival, str item):
@@ -945,7 +1004,9 @@ cpdef disallow_ambiguous_unit(unit):
         )
 
 
-cdef int64_t parse_iso_format_string(str ts) except? -1:
+cdef int64_t parse_iso_format_string(
+    str ts, c_Resolution* out_reso=NULL
+) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
     groups for each component of an ISO 8601 duration
@@ -954,6 +1015,8 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
     ----------
     ts: str
         ISO 8601 Duration formatted string
+    out_reso : optional pointer that, if non-NULL, receives the finest
+        Resolution unit explicitly written in ``ts``.
 
     Returns
     -------
@@ -973,6 +1036,9 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
         object dec_unit = "ms", err_msg
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
+        c_Resolution reso = c_Resolution.RESO_DAY
+        c_Resolution spec_reso = c_Resolution.RESO_DAY
+        c_Resolution* spec_ptr = &spec_reso if out_reso is not NULL else NULL
 
     err_msg = f"Invalid ISO 8601 Duration format - {ts}"
 
@@ -998,7 +1064,9 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             if not len(unit):
                 number.append(c)
             else:
-                r = timedelta_from_spec(number, "0", unit)
+                r = timedelta_from_spec(number, "0", unit, spec_ptr)
+                if spec_reso < reso:
+                    reso = spec_reso
                 result += timedelta_as_neg(r, neg)
 
                 neg = 0
@@ -1019,7 +1087,9 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
                 if c in ["M", "H"]:
                     c = c.replace("M", "min").replace("H", "h")
                 unit.append(c)
-                r = timedelta_from_spec(number, "0", unit)
+                r = timedelta_from_spec(number, "0", unit, spec_ptr)
+                if spec_reso < reso:
+                    reso = spec_reso
                 result += timedelta_as_neg(r, neg)
 
                 neg = 0
@@ -1032,6 +1102,11 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
                     unit, number = [], []
                 have_dot = 1
             elif c == "S":
+                # seconds field present (whole and/or fractional); any
+                #  sub-second precision from the fraction is folded in later
+                #  via the parsed value's own resolution.
+                if c_Resolution.RESO_SEC < reso:
+                    reso = c_Resolution.RESO_SEC
                 if have_dot:  # ms, us, or ns
                     if not len(number) or p > 3:
                         raise ValueError(err_msg)
@@ -1053,7 +1128,53 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
         # Received string only - never parsed any values
         raise ValueError(err_msg)
 
+    if out_reso is not NULL:
+        out_reso[0] = reso
     return sign*result
+
+
+def parse_timedelta_string_reso(str ts):
+    """
+    Parse a timedelta string into a Timedelta (or NaT) together with the
+    finest Resolution explicitly written in the string.
+
+    A single tokenization pass produces both the value and the resolution, so
+    the two can never disagree. The resolution reflects the units as written:
+    "720s" -> RESO_SEC even though 720s == 12 minutes. Sub-unit precision
+    contributed only by a fractional component (e.g. "1.5min" -> seconds) is
+    left for the caller to fold in from the parsed value's own resolution.
+
+    Parameters
+    ----------
+    ts : str
+
+    Returns
+    -------
+    tuple[Timedelta | NaTType, int]
+        The parsed value and the integer Resolution code (``Resolution.value``).
+    """
+    cdef:
+        int64_t ival
+        c_Resolution reso = c_Resolution.RESO_DAY
+
+    if (len(ts) > 0 and ts[0] == "P") or (len(ts) > 1 and ts[:2] == "-P"):
+        ival = parse_iso_format_string(ts, &reso)
+    else:
+        ival = parse_timedelta_string(ts, &reso)
+
+    if ival == NPY_NAT:
+        # matches Timedelta(NaT-string); resolution is unused by the caller
+        return NaT, <int>c_Resolution.RESO_SEC
+
+    # Mirror Timedelta.__new__'s string branch: default to microsecond storage
+    #  unless the string genuinely needs nanoseconds.
+    if not needs_nano_unit(ival, ts):
+        parsed = Timedelta._from_value_and_reso(
+            ival // 1000, NPY_DATETIMEUNIT.NPY_FR_us
+        )
+    else:
+        parsed = Timedelta._from_value_and_reso(ival, NPY_DATETIMEUNIT.NPY_FR_ns)
+    return parsed, <int>reso
 
 
 cdef _to_py_int_float(v):

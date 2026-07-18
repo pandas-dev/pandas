@@ -74,6 +74,7 @@ def array_to_timedelta64(
     creso: int = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
+def parse_timedelta_string_reso(ts: str) -> tuple[Timedelta | NaTType, int]: ...
 def delta_to_nanoseconds(
     delta: np.timedelta64 | timedelta | Tick,
     reso: int = ...,  # NPY_DATETIMEUNIT

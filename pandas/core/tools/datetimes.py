@@ -33,7 +33,10 @@ from pandas._libs.tslibs import (
     periods_per_second,
     timezones as libtimezones,
 )
-from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas._libs.tslibs.conversion import (
+    cast_from_unit_vectorized,
+    datetime_from_fields,
+)
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -50,6 +53,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -873,6 +877,13 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
+        .. deprecated:: 3.1.0
+
+            Passing integer or float values together with ``format`` is
+            deprecated; cast them to strings first. In a future version numeric
+            values will be interpreted as epochs via ``unit`` instead, and
+            ``format`` will only apply to string input.
+
         .. note::
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
@@ -1271,6 +1282,37 @@ _unit_map = {
 }
 
 
+def stringify_numeric_column(values: Series) -> Series:
+    """
+    Cast a numeric column to object-dtype strings so that to_datetime with a
+    ``format`` doesn't have to infer how to interpret numeric input. GH#55663
+
+    Floats that can't be represented as int64 (e.g. +/-inf) get their plain
+    ``str`` form, which fails to parse downstream: raise for errors="raise",
+    NaT for errors="coerce".
+    """
+    notna_mask = values.notna().to_numpy()
+    int_mask = notna_mask
+    if is_float_dtype(values.dtype):
+        iinfo = np.iinfo(np.int64)
+        # float64(iinfo.max) rounds up to 2**63, just out of range, so
+        # exclude the right endpoint
+        in_range = values.between(iinfo.min, iinfo.max, inclusive="left")
+        int_mask = notna_mask & in_range.to_numpy(dtype=bool, na_value=False)
+
+    result = np.full(len(values), np.nan, dtype=object)
+    oob_mask = notna_mask & ~int_mask
+    if oob_mask.any():
+        result[oob_mask] = np.asarray(values[oob_mask].astype(str), dtype=object)
+    if int_mask.any():
+        result[int_mask] = np.asarray(
+            values[int_mask].astype("int64").astype(str), dtype=object
+        )
+    return values._constructor(
+        result, index=values.index, name=values.name, dtype=object
+    )
+
+
 def _assemble_from_unit_mappings(
     arg, errors: DateTimeErrorChoices, utc: bool
 ) -> Series:
@@ -1294,6 +1336,7 @@ def _assemble_from_unit_mappings(
     """
     from pandas import (
         DataFrame,
+        Series,
         to_numeric,
         to_timedelta,
     )
@@ -1347,17 +1390,150 @@ def _assemble_from_unit_mappings(
             values = values.astype("int64")
         return values
 
-    values = (
-        coerce(arg[unit_rev["year"]]) * 10000
-        + coerce(arg[unit_rev["month"]]) * 100
-        + coerce(arg[unit_rev["day"]])
-    )
-    try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
-    except (TypeError, ValueError) as err:
-        raise ValueError(f"cannot assemble the datetimes: {err}") from err
+    # Convert field values to int64 arrays, tracking rows where a
+    #  year/month/day column has NaN (e.g. from errors="coerce" parsing)
+    nan_mask = np.zeros(len(arg), dtype=bool)
 
-    units: list[UnitChoices] = ["h", "m", "s", "ms", "us", "ns"]
+    field_spec = [
+        ("year", 2000),
+        ("month", 1),
+        ("day", 1),
+        ("h", 0),
+        ("m", 0),
+        ("s", 0),
+    ]
+    i32info = np.iinfo(np.int32)
+    field_arrs = []
+    # hour/minute/second columns that cannot go through datetime_from_fields
+    #  (fractional e.g. hour=1.5, NaN, bool, or out-of-int32 values); added
+    #  via to_timedelta below, keeping the column-wise semantics of the
+    #  non-vectorized implementation
+    td_units: list[tuple[UnitChoices, AnyArrayLike]] = []
+    for field, default in field_spec:
+        col_name = unit_rev.get(field)
+        if col_name is None:
+            field_arrs.append(np.zeros(len(arg), dtype=np.int64))
+            continue
+        vals = coerce(arg[col_name])
+        arr = np.asarray(vals)
+
+        if field in ("h", "m", "s"):
+            # the npy_datetimestruct time fields are int32
+            if is_integer_dtype(arr.dtype):
+                fits_struct = len(arr) == 0 or (
+                    arr.min() >= i32info.min and arr.max() <= i32info.max
+                )
+            elif is_float_dtype(arr.dtype):
+                fits_struct = bool(
+                    (
+                        (arr == np.floor(arr))
+                        & (arr >= i32info.min)
+                        & (arr <= i32info.max)
+                    ).all()
+                )
+            else:
+                fits_struct = False
+            if fits_struct:
+                field_arrs.append(arr.astype(np.int64, copy=False))
+            else:
+                td_units.append((cast("UnitChoices", field), vals))
+                field_arrs.append(np.zeros(len(arg), dtype=np.int64))
+            continue
+
+        # year/month/day
+        if is_bool_dtype(vals.dtype):
+            if errors == "raise":
+                raise ValueError(
+                    f"cannot assemble the datetimes: column {col_name!r} has dtype bool"
+                )
+            nan_mask[:] = True
+            field_arrs.append(np.full(len(arg), default, dtype=np.int64))
+            continue
+        if not is_float_dtype(arr.dtype):
+            field_arrs.append(arr.astype(np.int64, copy=False))
+            continue
+        isnan = np.isnan(arr)
+        fractional = (~isnan) & (arr != np.floor(arr))
+        if fractional.any() and errors == "raise":
+            raise ValueError(
+                f"cannot assemble the datetimes: column {col_name!r} "
+                f"contains fractional values"
+            )
+        # +/-inf and values beyond int64 range cannot be cast meaningfully
+        out_of_range = (arr >= 2**63) | (arr < -(2**63))
+        if out_of_range.any() and errors == "raise":
+            raise ValueError(
+                f"cannot assemble the datetimes: column {col_name!r} "
+                f"contains out-of-bounds values"
+            )
+        bad = isnan | fractional | out_of_range
+        if bad.any():
+            nan_mask[bad] = True
+            arr = np.where(bad, default, arr)
+        field_arrs.append(arr.astype(np.int64))
+
+    # Construct datetime64[us] directly from fields, avoiding the
+    # object-dtype round-trip through format="%Y%m%d" string parsing.
+    # Rows with NaN in a year/month/day column get valid placeholders in
+    # every field and NaT at the end; the Cython function writes iNaT for
+    # invalid or out-of-bounds dates.
+    if nan_mask.any():
+        for idx, (_, default) in enumerate(field_spec):
+            field_arrs[idx] = np.where(nan_mask, default, field_arrs[idx])
+
+    year_arr, month_arr, day_arr, hour_arr, minute_arr, second_arr = field_arrs
+
+    usecs, first_invalid = datetime_from_fields(
+        year_arr,
+        month_arr,
+        day_arr,
+        hour_arr,
+        minute_arr,
+        second_arr,
+    )
+    if first_invalid >= 0 and errors == "raise":
+        bad_val = (
+            f"{year_arr[first_invalid]}-{month_arr[first_invalid]:02d}"
+            f"-{day_arr[first_invalid]:02d}"
+        )
+        if (
+            hour_arr[first_invalid]
+            or minute_arr[first_invalid]
+            or second_arr[first_invalid]
+        ):
+            bad_val += (
+                f" {hour_arr[first_invalid]:02d}:{minute_arr[first_invalid]:02d}"
+                f":{second_arr[first_invalid]:02d}"
+            )
+        raise ValueError(
+            f'cannot assemble the datetimes: invalid or out-of-bounds date "{bad_val}"'
+        )
+    # errors="coerce": invalid entries already have iNaT from Cython
+    if nan_mask.any():
+        usecs[nan_mask] = iNaT
+
+    dt64_values = usecs.view("M8[us]")
+
+    if utc:
+        dta = DatetimeArray._simple_new(
+            dt64_values, dtype=DatetimeTZDtype(tz="UTC", unit="us")
+        )
+        values = Series(dta, index=arg.index, copy=False)
+    else:
+        values = Series(dt64_values, index=arg.index, copy=False)
+
+    # Add hour/minute/second columns that couldn't go through the
+    #  vectorized path
+    for u, vals in td_units:
+        try:
+            values += to_timedelta(vals, input_unit=u, errors=errors)
+        except (TypeError, ValueError) as err:
+            raise ValueError(
+                f"cannot assemble the datetimes [{unit_rev[u]}]: {err}"
+            ) from err
+
+    # Add sub-second components as timedeltas
+    units: list[UnitChoices] = ["ms", "us", "ns"]
     for u in units:
         value = unit_rev.get(u)
         if value is not None and value in arg:
