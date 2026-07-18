@@ -1024,11 +1024,12 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     )
 
     if "adbc" in conn:
+        exp_warning = None
+        msg = ""
+
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        else:
-            exp_warning = None
-            msg = ""
+
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
