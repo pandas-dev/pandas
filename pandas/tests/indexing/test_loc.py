@@ -2350,6 +2350,20 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_dict_partial(self):
+        # GH#65418 — partial assignment of a dict used to write the dict keys
+        #  positionally instead of aligning its values by key.
+        df = DataFrame({"a": [10, 20, 30, 40]})
+        df.loc[[0, 1, 2], "data"] = {0: "x", 1: "y", 2: "z"}
+        expected = DataFrame({"a": [10, 20, 30, 40], "data": ["x", "y", "z", np.nan]})
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+        # a dict aligns by key, so it matches the equivalent Series and the
+        #  non-expansion (existing-column / null-slice) paths
+        alt = DataFrame({"a": [10, 20, 30, 40]})
+        alt.loc[[0, 1, 2], "data"] = Series({0: "x", 1: "y", 2: "z"})
+        tm.assert_frame_equal(df, alt, check_column_type=False)
+
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime
         # should not be interpreted as a row indexer
@@ -2479,6 +2493,49 @@ class TestLocSetitemWithExpansion:
         ser[1] = item
 
         expected = Series([ts1, ts2], dtype="date32[pyarrow]")
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "values, item",
+        [
+            (
+                to_datetime(["2020-01-01", "2020-01-02"]).as_unit("us"),
+                Timestamp("2020-01-03"),
+            ),
+            (to_timedelta([1, 2], unit="D").as_unit("us"), Timedelta(days=3)),
+        ],
+    )
+    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(self, values, item):
+        # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
+        #  raise AttributeError instead of retaining dtype
+        ser = Series(values)
+        ser.loc[2] = item
+        expected = Series([*values, item], dtype=values.dtype)
+        tm.assert_series_equal(ser, expected)
+
+        # a missing (NaT) value should behave the same way
+        ser2 = Series(values)
+        ser2.loc[2] = pd.NaT
+        expected2 = Series([*values, pd.NaT], dtype=values.dtype)
+        tm.assert_series_equal(ser2, expected2)
+
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
+        # GH#62523 expanding with a finer-resolution value that cannot be cast
+        #  down to the original coarser unit should keep the finer unit rather
+        #  than raising ArrowInvalid
+        ser = Series(
+            to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
+        )
+        ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        expected = Series(
+            [
+                Timestamp("2020-01-01"),
+                Timestamp("2020-01-02"),
+                Timestamp("2020-01-03 00:00:00.123456"),
+            ],
+            dtype="timestamp[us][pyarrow]",
+        )
         tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_with_expansion_multiindex_retains_dtypes(self):

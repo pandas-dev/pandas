@@ -4,6 +4,11 @@ import numpy as np
 
 cimport numpy as cnp
 from libc.math cimport log10
+from libc.stdint cimport (
+    INT32_MAX,
+    INT32_MIN,
+)
+from libc.string cimport memset
 from numpy cimport (
     PyDatetimeScalarObject,
     int32_t,
@@ -29,6 +34,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
@@ -154,21 +160,29 @@ def cast_from_unit_vectorized(
     if p:
         frac = np.round(frac, p)
 
-    # Overflow check: 2**63 and -(2**63) are exactly representable in float64
-    # so this comparison is exact at the boundary. The actual integer result
-    # base * m + int64(frac * m) cannot exceed the float result (truncation
-    # toward zero), so if the float result is in bounds, the int result is too.
+    out = base * np.int64(m) + (frac * m).astype("i8")
+
+    # Overflow check. On overflow base * m + int64(frac * m) wraps modulo 2**64.
+    # A float bound check on the analytic result (result_f >= 2**63) is unreliable
+    # near the boundary because result_f is itself rounded, landing on the wrong
+    # side within half an ULP. Detect the wrap directly instead: the exact integer
+    # result tracks its float64 estimate to within a few ULP when it fits, but a
+    # wrap shifts it by ~2**64. (GH#57366)
     if m != 1:
         result_f = base.astype("f8") * m + frac * m
-        oob = (result_f >= 2**63) | (result_f < -(2**63))
-        non_nat = ~nat_mask
-        if (oob & non_nat).any():
-            bad_idx = int(np.where(oob & non_nat)[0][0])
-            raise OutOfBoundsDatetime(
-                f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
-            )
+        # Detecting the wrap costs an extra pass over the data, so gate it behind
+        # a cheap bound. result_f tracks the true result to ~2**-50 relative, well
+        # inside this margin, so a wrap can never land outside it.
+        near_bound = np.float64(2**63) * (1 - 2**-30)
+        if ((result_f >= near_bound) | (result_f <= -near_bound)).any():
+            oob = np.abs(result_f - out.astype("f8")) >= np.float64(2**63)
+            non_nat = ~nat_mask
+            if (oob & non_nat).any():
+                bad_idx = int(np.where(oob & non_nat)[0][0])
+                raise OutOfBoundsDatetime(
+                    f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+                )
 
-    out = base * np.int64(m) + (frac * m).astype("i8")
     out[nat_mask] = NPY_NAT
     return out
 
@@ -310,6 +324,81 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
             ) from err
 
     return ival
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def datetime_from_fields(
+    const int64_t[:] years,
+    const int64_t[:] months,
+    const int64_t[:] days,
+    const int64_t[:] hours,
+    const int64_t[:] minutes,
+    const int64_t[:] seconds,
+):
+    """
+    Construct datetime64[us] values from arrays of date/time fields.
+
+    Entries with an invalid month/day, an hour/minute/second outside int32
+    range, or an out-of-bounds datetime get NPY_NAT.
+
+    Parameters
+    ----------
+    years, months, days, hours, minutes, seconds : int64 arrays
+
+    Returns
+    -------
+    (ndarray[int64], int)
+        The datetime64[us] values (as int64), and the index of the first
+        invalid entry (-1 if all entries are valid).
+    """
+    cdef:
+        Py_ssize_t i, n = len(years)
+        int64_t[::1] result = np.empty(n, dtype="i8")
+        npy_datetimestruct dts
+        int64_t month, day, hour, minute, second
+        Py_ssize_t first_invalid = -1
+
+    memset(&dts, 0, sizeof(npy_datetimestruct))
+
+    for i in range(n):
+        month = months[i]
+        day = days[i]
+        hour = hours[i]
+        minute = minutes[i]
+        second = seconds[i]
+        # The cast to C int can wrap for |year| > 2**31, but any such year
+        #  raises OverflowError below regardless of the leap-year check.
+        # hour/min/sec land in int32 npy_datetimestruct fields, so values
+        #  outside int32 range would silently wrap; treat them as invalid.
+        if (
+            month < 1
+            or month > 12
+            or day < 1
+            or day > get_days_in_month(<int>years[i], month)
+            or not (INT32_MIN <= hour <= INT32_MAX)
+            or not (INT32_MIN <= minute <= INT32_MAX)
+            or not (INT32_MIN <= second <= INT32_MAX)
+        ):
+            result[i] = NPY_NAT
+            if first_invalid == -1:
+                first_invalid = i
+            continue
+
+        dts.year = years[i]
+        dts.month = month
+        dts.day = day
+        dts.hour = hour
+        dts.min = minute
+        dts.sec = second
+        try:
+            result[i] = npy_datetimestruct_to_datetime(NPY_FR_us, &dts)
+        except OverflowError:
+            result[i] = NPY_NAT
+            if first_invalid == -1:
+                first_invalid = i
+
+    return result.base, first_invalid
 
 
 # ----------------------------------------------------------------------
@@ -645,13 +734,9 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
 
                 if out_local == 1:
                     obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
-                    obj.value = tz_localize_to_utc_single(
-                        ival,
-                        obj.tzinfo,
-                        ambiguous="raise",
-                        nonexistent=None,
-                        creso=reso,
-                    )
+                    # equiv: tz_localize_to_utc_single(
+                    #  ival, obj.tzinfo, creso=reso)
+                    obj.value = ival - out_tzoffset * 60 * periods_per_second(reso)
                     if tz is None:
                         check_overflows(obj, reso)
                         return obj
@@ -677,7 +762,9 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         reso = get_supported_reso(out_bestunit)
         if reso < NPY_FR_us:
             reso = NPY_FR_us
-        return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        obj = convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        obj.parsed_by_dateutil = True
+        return obj
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):

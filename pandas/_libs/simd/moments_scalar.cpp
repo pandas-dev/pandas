@@ -43,8 +43,8 @@ std::optional<MeanAcc<double, std::size_t>> accumulate_mean<xsimd::common>(
     return std::nullopt;
   }
 
-  return MeanAcc{.sum = left->sum + right->sum,
-                 .count = left->count + right->count};
+  return MeanAcc<double, std::size_t>{.sum = left->sum + right->sum,
+                                      .count = left->count + right->count};
 }
 
 template <>

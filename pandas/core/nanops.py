@@ -203,6 +203,15 @@ def _get_fill_value(
             return np.inf
         else:
             return -np.inf
+    elif dtype.kind == "u":
+        # Unsigned ints: use a uint64 sentinel so np.where keeps the values
+        # unsigned.  An int64 fill would force a uint64/int64 mix to promote to
+        # float64, losing precision for values above 2**53 and giving the wrong
+        # idxmin/idxmax/min/max (GH#64478).  u8max/0 also bracket the full
+        # uint64 range, unlike i8max which real values can exceed.
+        if fill_value_typ == "+inf":
+            return np.uint64(lib.u8max)
+        return np.uint64(0)
     elif fill_value_typ == "+inf":
         # need the max int here
         # Return as np.int64 so that np.where promotes the dtype
@@ -346,7 +355,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
     return not issubclass(dtype.type, np.integer)
 
 
-def _wrap_results(result, dtype: np.dtype, fill_value=None):
+def _wrap_results(result, dtype: np.dtype, fill_value=None, result_mask=None):
     """wrap our results if needed"""
     if result is NaT:
         pass
@@ -371,7 +380,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
             result = result.astype(dtype)
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
-            if result == fill_value or np.isnan(result):
+            if result_mask or result == fill_value or np.isnan(result):
                 unit = np.datetime_data(dtype)[0]
                 result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
@@ -383,6 +392,15 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.int64(result).astype(dtype, copy=False)
 
         else:
+            overflow = np.abs(result) > lib.i8max
+            if result_mask is not None:
+                # GH#43178: positions that will be set to NaT (skipna=False) are
+                #  exempt from the overflow check and must not trip the cast below
+                overflow &= ~result_mask
+                result = np.where(result_mask, 0, result)
+            if overflow.any():
+                # GH#43178: raise if any result is too large for the dtype's unit
+                raise OutOfBoundsTimedelta("overflow in timedelta operation")
             result = result.astype("m8[ns]").view(dtype)
 
     return result
@@ -412,7 +430,18 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
-            result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
+            result_mask = None
+            if not skipna:
+                assert mask is not None  # checked above
+                # positions with any NA reduce to NaT, so exempt them from the
+                # timedelta overflow guard in _wrap_results
+                if isinstance(result, np.ndarray):
+                    result_mask = mask.any(axis=axis)
+                else:
+                    result_mask = mask.any()
+            result = _wrap_results(
+                result, orig_values.dtype, fill_value=iNaT, result_mask=result_mask
+            )
             if not skipna:
                 assert mask is not None  # checked above
                 result = _mask_datetimelike_result(result, axis, mask, orig_values)
@@ -1196,9 +1225,10 @@ def nanargmax(
     """
     values, mask = _get_values(values, True, fill_value_typ="-inf", mask=mask)
     result = values.argmax(axis)
-    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
-    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
+    result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
+    result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
 
@@ -1242,9 +1272,10 @@ def nanargmin(
     """
     values, mask = _get_values(values, True, fill_value_typ="+inf", mask=mask)
     result = values.argmin(axis)
-    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
-    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
+    result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
+    result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
 
@@ -1405,6 +1436,30 @@ def nanprod(
     return _maybe_null_out(  # type: ignore[return-value]
         result, axis, mask, values.shape, min_count=min_count
     )
+
+
+def _maybe_fix_arg_at_na(
+    result: np.ndarray,
+    mask: npt.NDArray[np.bool_] | None,
+    axis: AxisInt | None,
+) -> np.ndarray:
+    # helper function for nanargmin/nanargmax: an argmin/argmax that landed on
+    # a masked position means the extremum equals the sentinel fill, so every
+    # unmasked value ties with the fill; the first unmasked position is the
+    # correct result (GH#64478)
+    if mask is None or not mask.any():
+        return result
+    if axis is None or mask.ndim == 1:
+        if mask.ravel()[result] and not mask.all():
+            # error: Incompatible return value type (got "signedinteger[_32Bit
+            # | _64Bit]", expected "ndarray[tuple[Any, ...], dtype[Any]]")
+            return (~mask).ravel().argmax()  # type: ignore[return-value]
+    else:
+        indexer = np.expand_dims(result, axis)
+        arg_is_na = np.take_along_axis(mask, indexer, axis).squeeze(axis)
+        if arg_is_na.any():
+            result = np.where(arg_is_na, (~mask).argmax(axis), result)
+    return result
 
 
 def _maybe_arg_null_out(
@@ -1605,7 +1660,7 @@ def get_corr_func(
     elif method == "pearson":
 
         def func(a, b):
-            return np.corrcoef(a, b)[0, 1]
+            return _pearson_corr(a, b)
 
         return func
     elif callable(method):
@@ -1615,6 +1670,41 @@ def get_corr_func(
         f"Unknown method '{method}', expected one of "
         "'kendall', 'spearman', 'pearson', or callable"
     )
+
+
+def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
+    if a.ndim != 1 or b.ndim != 1 or np.iscomplexobj(a) or np.iscomplexobj(b):
+        return np.corrcoef(a, b)[0, 1]
+
+    if len(a) < 2:
+        return np.nan
+
+    a = a.astype(np.float64, copy=False)
+    b = b.astype(np.float64, copy=False)
+
+    a = a - a.mean()
+    b = b - b.mean()
+    a_scale = np.max(np.abs(a))
+    b_scale = np.max(np.abs(b))
+
+    if a_scale == 0 or b_scale == 0:
+        return np.nan
+
+    a = a / a_scale
+    b = b / b_scale
+    fact = len(a) - 1
+    divisor = np.sqrt(np.dot(a, a) / fact)
+
+    if divisor == 0:
+        return np.nan
+
+    result = np.dot(a, b) / fact / divisor
+    divisor = np.sqrt(np.dot(b, b) / fact)
+
+    if divisor == 0:
+        return np.nan
+
+    return np.clip(result / divisor, -1.0, 1.0)
 
 
 @disallow("M8", "m8")
