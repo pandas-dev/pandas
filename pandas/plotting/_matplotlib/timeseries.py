@@ -296,6 +296,15 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     if freq_str is None:
         return False
 
+    # GH#65915: create a check for the DateTimeIndex containing tz-info
+    # this fixes the cited issue for regular dataframes
+    # however, the issue persists when non-regular dataframes are used:
+    #   i.e., when dataframes have indexes of non-equal lengths
+    #   this suggests that the issue could potentially lie with the
+    #   PeriodConverter class in plotting/_matplotlib
+    if isinstance(index, ABCDatetimeIndex) and index.tz is not None:
+        return False
+
     # GH#2571: for DatetimeIndex, fall back to non-dynamic plotting if the
     # timestamps don't align with the inferred period frequency. We only
     # inspect the first element because the index has a (possibly inferred)
@@ -352,6 +361,14 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> tuple[NDFrameT, str | None]
                     dtype=np.int64,
                 )
             else:
+                # GH#65915: create a check for the DateTimeIndex containing tz-info
+                # this fixes the cited issue for regular dataframes
+                # however, the issue persists when non-regular dataframes are used:
+                #   i.e., when dataframes have indexes of non-equal lengths
+                #   this suggests that the issue could potentially lie with the
+                #   PeriodConverter class in plotting/_matplotlib
+                if data.index.tz is not None:
+                    return data, None
                 data = data.tz_localize(None).to_period(freq=freq_str)
         elif isinstance(data.index, ABCPeriodIndex):
             if freq_str == "B":
