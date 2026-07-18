@@ -2250,6 +2250,11 @@ class Timedelta(_Timedelta):
         * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
+        .. deprecated:: 3.0.0
+
+            Allowing the values `w`, `d`, `MIN`, `MS`, `US` and `NS` to denote units
+            are deprecated in favour of the values `W`, `D`, `min`, `ms`, `us` and `ns`.
+
     **kwargs
         Available kwargs: {days, seconds, microseconds,
         milliseconds, minutes, nanoseconds, hours, weeks}.
