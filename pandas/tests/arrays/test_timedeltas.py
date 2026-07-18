@@ -120,6 +120,24 @@ class TestNonNano:
         expected = [Timedelta(val).total_seconds() for val in values]
         assert list(result) == expected
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_total_seconds_matches_scalar_non_nano(self, unit):
+        # The split division and boundary guard apply at every unit: above
+        # 2**53 ticks a single asi8 / pps division loses precision relative
+        # to the scalar, and a sub-second residual can collapse onto an
+        # integer-second boundary (GH#46819)
+        values = [
+            1,
+            2**53 + 1,
+            20_000_000_000_000_001,
+            9_223_372_036_854_775_807,  # int64 max
+        ]
+        values = values + [-val for val in values]
+        tdi = pd.TimedeltaIndex(np.array(values, dtype=f"m8[{unit}]"))
+        result = tdi.total_seconds()
+        expected = [Timedelta(val, unit=unit).total_seconds() for val in values]
+        assert list(result) == expected
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )

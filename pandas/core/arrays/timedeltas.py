@@ -757,35 +757,33 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         pps = periods_per_second(self._creso)
         asi8 = self.asi8
-        if self.unit == "ns":
-            # Divide the integer-second part and the sub-second residual
-            # separately, mirroring the scalar's `int_seconds + sub_ns / 1e9`,
-            # so the result matches Timedelta.total_seconds bit-for-bit. A
-            # single asi8 / pps division rounds at the nanosecond magnitude and
-            # loses precision relative to the scalar for ns values above 2**53.
-            floor_s, residual = np.divmod(asi8, pps)
-            result = floor_s + residual / pps
-            if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():
-                # Only above 2**53 ns can the float result round onto an
-                # integer-second boundary. A sub-second residual puts the true
-                # value strictly inside (floor, floor + 1), so nudge off either
-                # boundary, otherwise bisect-style lookups (e.g. dateutil DST,
-                # GH#31043) misclassify the timestamp as on a transition. This
-                # mirrors the scalar guard in `_Timedelta.total_seconds`.
-                has_residual = residual != 0
-                floor_f = floor_s.astype(np.float64)
-                on_floor = has_residual & (result == floor_f)
-                on_ceil = has_residual & (result == floor_f + 1.0)
-                if on_floor.any():
-                    result = np.where(
-                        on_floor, np.nextafter(result, result + 1.0), result
-                    )
-                if on_ceil.any():
-                    result = np.where(
-                        on_ceil, np.nextafter(result, result - 1.0), result
-                    )
-        else:
-            result = asi8 / pps
+        # Divide the integer-second part and the sub-second residual
+        # separately, mirroring the scalar's `int_seconds + sub_ns / 1e9`,
+        # so the result matches Timedelta.total_seconds bit-for-bit. A
+        # single asi8 / pps division rounds at the tick magnitude and
+        # loses precision relative to the scalar for values above 2**53.
+        floor_s, residual = np.divmod(asi8, pps)
+        result = floor_s + residual / pps
+        if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():
+            # Only above 2**53 ticks can the float result round onto an
+            # integer-second boundary; the threshold is unit-independent
+            # because a collapse needs ulp(floor_s) > 2 / pps, i.e.
+            # |asi8| ~ floor_s * pps > 2**53. A sub-second residual puts the
+            # true value strictly inside (floor, floor + 1), so nudge off
+            # either boundary, otherwise bisect-style lookups (e.g. dateutil
+            # DST, GH#31043) misclassify the timestamp as on a transition.
+            # This mirrors the scalar guard in `_Timedelta.total_seconds`,
+            # including its bound: beyond 2**52 seconds float64s are spaced
+            # >= 1 second apart, so every representable value sits on a
+            # boundary and nudging would only add error.
+            fixable = (residual != 0) & (np.abs(floor_s) < 2**52)
+            floor_f = floor_s.astype(np.float64)
+            on_floor = fixable & (result == floor_f)
+            on_ceil = fixable & (result == floor_f + 1.0)
+            if on_floor.any():
+                result = np.where(on_floor, np.nextafter(result, result + 1.0), result)
+            if on_ceil.any():
+                result = np.where(on_ceil, np.nextafter(result, result - 1.0), result)
         return self._maybe_mask_results(result, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:

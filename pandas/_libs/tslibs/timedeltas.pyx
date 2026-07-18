@@ -1415,22 +1415,21 @@ cdef class _Timedelta(timedelta):
             int64_t int_seconds = (
                 self._d * 86400 + self._h * 3600 + self._m * 60 + self._s
             )
-            int64_t sub_ns
+            int64_t sub_ns = self._ms * 1_000_000 + self._us * 1_000 + self._ns
             double result
-        if self._ns == 0:
-            # Without a sub-microsecond residual, sub-second contributions are
-            # large enough relative to ulp(int_seconds) that float rounding
-            # cannot collapse the result onto an integer-second boundary.
-            return int_seconds + (self._ms * 1000 + self._us) / 1_000_000
-        sub_ns = self._ms * 1_000_000 + self._us * 1_000 + self._ns
+        if sub_ns == 0:
+            return <double>int_seconds
         result = int_seconds + sub_ns / 1e9
         # sub_ns puts the true value strictly inside (int_seconds, int_seconds + 1),
         # so guard against float rounding collapsing onto the boundary; otherwise
-        # bisect-style lookups treat us as exactly on a transition.
-        if result == int_seconds + 1:
-            result = nextafter(result, <double>int_seconds)
-        elif result == int_seconds:
-            result = nextafter(result, <double>(int_seconds + 1))
+        # bisect-style lookups treat us as exactly on a transition. Beyond 2**52
+        # seconds float64s are spaced >= 1 second apart, so every representable
+        # value sits on a boundary and nudging would only add error.
+        if -4_503_599_627_370_496 < int_seconds < 4_503_599_627_370_496:  # 2**52
+            if result == int_seconds + 1:
+                result = nextafter(result, <double>int_seconds)
+            elif result == int_seconds:
+                result = nextafter(result, <double>(int_seconds + 1))
         return result
 
     @property

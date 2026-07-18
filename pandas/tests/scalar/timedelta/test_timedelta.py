@@ -679,6 +679,29 @@ class TestTimedeltas:
         neg_below = Timedelta(-1_552_212_000_000_000_001).total_seconds()
         assert neg_below < -1_552_212_000
 
+    @pytest.mark.parametrize(
+        "value, unit, boundary",
+        [
+            (20_000_000_000_000_001, "us", 20_000_000_000),
+            (2**44 * 1000 + 1, "ms", 2**44),
+        ],
+    )
+    def test_total_seconds_boundary_non_nano(self, value, unit, boundary):
+        # GH#46819 the boundary guard applies at every resolution: here the
+        # sub-second residual is smaller than half an ulp, so the naive sum
+        # collapses onto the integer-second boundary
+        assert Timedelta(value, unit=unit).total_seconds() > boundary
+        assert Timedelta(-value, unit=unit).total_seconds() < -boundary
+
+    def test_total_seconds_above_float64_integer_spacing(self):
+        # Beyond 2**52 seconds every float64 is a whole number of seconds,
+        # so the boundary cannot be avoided; return the nearest value rather
+        # than nudging 2 full seconds away
+        result = Timedelta(2**53 * 1000 + 500, unit="ms").total_seconds()
+        assert result == float(2**53)
+        result = Timedelta(-(2**53) * 1000 - 500, unit="ms").total_seconds()
+        assert result == -float(2**53)
+
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"
         assert Timedelta(days=1, hours=6).resolution_string == "h"
