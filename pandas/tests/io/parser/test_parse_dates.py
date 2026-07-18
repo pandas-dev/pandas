@@ -999,11 +999,15 @@ def test_parse_dates_c_fastpath_usecols_integer_colspec(low_memory):
 
 @pytest.mark.parametrize("low_memory", [False, True])
 def test_parse_dates_c_fastpath_out_of_bounds_offset(low_memory):
-    # GH#65353 shifting to UTC here overflows datetime64[ns]; match the
-    # OverflowError from the slow path instead of silently wrapping
+    # GH#65353 shifting this value to UTC overflows datetime64[ns]; the fastpath
+    # must not silently wrap it to a bogus in-bounds datetime. Like any
+    # unparsable parse_dates value it falls back to the raw strings, matching
+    # the python engine.
     data = "a\n2262-04-11T20:00:00.000000000-11:00\n"
-    with pytest.raises(OverflowError):
-        read_csv(StringIO(data), parse_dates=["a"], low_memory=low_memory)
+    result = read_csv(StringIO(data), parse_dates=["a"], low_memory=low_memory)["a"]
+    expected = read_csv(StringIO(data), parse_dates=["a"], engine="python")["a"]
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[0] == "2262-04-11T20:00:00.000000000-11:00"
 
 
 def _multichunk_csv(date_strings):

@@ -931,10 +931,7 @@ cdef class TextReader:
             list chunks = []
 
         if self.datetime_cols:
-            # Per-read state for the parse_dates fastpath: keeps format/tz
-            # consistency across chunks and holds raw-byte receipts so a
-            # later chunk's fallback can restore earlier chunks to the exact
-            # strings the object path would have produced.
+            # Per-chunk fastpath state keyed by column; see _DatetimeChunkState.
             self.dt_chunk_states = {}
 
         try:
@@ -2065,9 +2062,9 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
         offset_in_unit = first_tzoffset * tz_offset_mult
         for i in range(lines):
             if iresult[i] != NPY_NAT:
-                # Guard against int64 wraparound (or landing exactly on NaT)
-                # near the implementation bounds; the slow path raises for
-                # these, so fall back.
+                # GH#65353 guard against int64 wraparound (or landing on NaT)
+                # near the datetime64 bounds; bail so the value falls back to
+                # the object path like any other unparsable date.
                 if offset_in_unit > 0:
                     if iresult[i] <= INT64_MIN + offset_in_unit:
                         return None, 0

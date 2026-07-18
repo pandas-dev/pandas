@@ -11,6 +11,10 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cython cimport Py_ssize_t
+from libc.stdint cimport (
+    INT64_MAX,
+    INT64_MIN,
+)
 
 import_datetime()
 
@@ -39,6 +43,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 import_pandas_datetime()
+
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -163,6 +169,23 @@ cdef class Localizer:
             return utc_val + self.deltas[pos[0]]
 
 
+cdef int64_t _shift_to_utc(
+    int64_t val, int64_t delta, NPY_DATETIMEUNIT creso
+) except? -1:
+    # GH#65353 the shift to UTC (val - delta) must not wrap int64 silently;
+    # raise OutOfBoundsDatetime, matching to_datetime, when the UTC value would
+    # leave the representable datetime64 range.
+    if (
+        (delta < 0 and val > INT64_MAX + delta)
+        or (delta > 0 and val < INT64_MIN + delta)
+    ):
+        raise OutOfBoundsDatetime(
+            f"Converting {_render_tstamp(val, creso)} to UTC overflows "
+            "datetime64 bounds"
+        )
+    return val - delta
+
+
 cdef int64_t tz_localize_to_utc_single(
     int64_t val,
     tzinfo tz,
@@ -182,7 +205,8 @@ cdef int64_t tz_localize_to_utc_single(
         return val
 
     elif is_tzlocal(tz):
-        return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
+        delta = _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
+        return _shift_to_utc(val, delta, creso)
 
     elif is_fixed_offset(tz):
         _, deltas, _, _ = get_dst_info(tz)
@@ -196,7 +220,7 @@ cdef int64_t tz_localize_to_utc_single(
             elif creso == NPY_DATETIMEUNIT.NPY_FR_s:
                 delta = delta // 1_000_000_000
 
-        return val - delta
+        return _shift_to_utc(val, delta, creso)
 
     else:
         return tz_localize_to_utc(
