@@ -3191,3 +3191,18 @@ class TestPivot:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dict_aggfunc_missing_col(self):
+        # GH#66151
+        df = DataFrame(
+            {
+                "random1": [1.0, 2.0, 3.0, 4.0],
+                "random2": [10, 20, 30, 40],
+                "type": ["a", "a", "b", "b"],
+            }
+        )
+        result = df.pivot_table(index="type", aggfunc={"random1": "mean"}, margins=True)
+        expected = DataFrame(
+            {"random1": [1.5, 3.5, 2.5]}, index=Index(["a", "b", "All"], name="type")
+        )
+        tm.assert_frame_equal(result, expected)
