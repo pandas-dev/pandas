@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas import (
     ArrowDtype,
@@ -288,15 +289,25 @@ class Writer(ABC):
         raise AbstractMethodError(self)
 
     def write(self) -> str:
+        obj_to_write = self.obj_to_write
+        default_handler = self.default_handler
+
+        if (
+            default_handler is None
+            and isinstance(obj_to_write, ABCSeries)
+            and any(isinstance(obj, np.dtype) for obj in obj_to_write.array)
+        ):
+            default_handler = str
+
         iso_dates = self.date_format == "iso"
         return ujson_dumps(
-            self.obj_to_write,
+            obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
             ensure_ascii=self.ensure_ascii,
             date_unit=self.date_unit,
             iso_dates=iso_dates,
-            default_handler=self.default_handler,
+            default_handler=default_handler,
             indent=self.indent,
         )
 

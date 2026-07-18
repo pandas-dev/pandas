@@ -2301,6 +2301,14 @@ class TestPandasContainer:
         series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
         assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
 
+    def test_series_with_dtype_values_to_json(self):
+        ser = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).dtypes
+
+        result = ser.to_json()
+
+        expected = '{"A":"int64","B":"int64"}'
+        assert result == expected
+
     @pytest.mark.parametrize(
         "data,expected",
         [
