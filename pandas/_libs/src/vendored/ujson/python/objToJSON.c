@@ -1697,12 +1697,25 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     pc->longValue = value;
     return;
   } else if (PyArray_IsScalar(obj, Integer)) {
-    tc->type = JT_LONG;
-    PyArray_CastScalarToCtype(obj, &(pc->longValue),
-                              PyArray_DescrFromType(NPY_INT64));
+    if (PyArray_IsScalar(obj, UInt64)) {
+      // Convert to Python int and reuse the PyLong overflow path
+      PyObject *pylong =
+          PyLong_FromUnsignedLongLong(((PyUInt64ScalarObject *)obj)->obval);
+      if (pylong == NULL) {
+        goto INVALID;
+      }
+      int overflow = 0;
+      pc->longValue = PyLong_AsLongLongAndOverflow(pylong, &overflow);
+      Py_DECREF(pylong);
+      tc->type = overflow ? JT_BIGNUM : JT_LONG;
+    } else {
+      tc->type = JT_LONG;
+      PyArray_CastScalarToCtype(obj, &(pc->longValue),
+                                PyArray_DescrFromType(NPY_INT64));
 
-    if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_OverflowError)) {
-      goto INVALID;
+      if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+        goto INVALID;
+      }
     }
 
     return;
