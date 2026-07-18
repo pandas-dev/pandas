@@ -3,16 +3,7 @@ Integer parsing for the tokenizer, implemented in C++ (with C linkage) so the
 hot paths can use fast_float::from_chars directly and have it inline.
 fast_float is locale-independent, skips errno, and parses runs of 8 digits at
 a time, making it measurably faster than libc strtoll/strtoull.
-
-Behavioral contract (inherited from the tokenizer.c implementations):
-- ERROR_NO_DIGITS if no digits follow the optional sign; ERROR_INVALID_CHARS
-  if non-space junk follows the number; ERROR_OVERFLOW only for a clean token
-  that exceeds the target type. Callers choose the uint64/float fallbacks
-  based on this distinction.
-- str_to_uint64 reports a leading '-' via state->seen_sint with *error = 0.
-- Stripping tsep must not lose where the token ended in the original input;
-  trailing junk is detected there (GH#64631).
-- No heap allocation on any path.
+See pd_strtoi.h for the error-code contract these functions preserve.
 */
 #include "pandas/parser/pd_strtoi.h"
 
@@ -22,7 +13,6 @@ Behavioral contract (inherited from the tokenizer.c implementations):
 #include <cstddef>
 #include <cstring>
 #include <optional>
-#include <ranges>
 #include <span>
 #include <string_view>
 #include <system_error>
@@ -45,13 +35,13 @@ constexpr std::string_view ascii_spaces = " \t\n\v\f\r";
  *
  * The token (optional sign, then digits/tseps) is consumed from `str`, so on
  * return `str` starts at the first unconsumed char — trailing garbage like
- * "1 ," (GH#64631) is left for the caller to detect. Returns the written
- * subspan of `output`, or std::nullopt if the token does not fit. A token
- * with no digit after the optional sign yields the sign-only subspan so the
+ * "1 ," (GH#64631) is left for the caller to detect. Returns a view of the
+ * stripped token in `output`, or std::nullopt if it does not fit. A token
+ * with no digit after the optional sign yields the sign-only view so the
  * subsequent from_chars reports no-digits, matching the non-tsep path
  * (",1" with tsep=',' is not 1).
  */
-static std::optional<std::span<char>>
+static std::optional<std::string_view>
 copy_number_without_tsep(std::span<char> output, std::string_view &str,
                          char tsep) {
   assert(tsep != '\0');
@@ -66,22 +56,24 @@ copy_number_without_tsep(std::span<char> output, std::string_view &str,
 
   if (str.empty() || !isdigit_ascii(str.front())) {
     // No digits to copy; a leading tsep is not part of a number.
-    return output.subspan(0, sign_len);
+    return std::string_view(output.data(), sign_len);
   }
 
-  const auto token_end = std::ranges::find_if(
-      str, [tsep](char ch) { return !isdigit_ascii(ch) && ch != tsep; });
-  for (const char ch : std::ranges::subrange(str.begin(), token_end)) {
-    if (ch == tsep) {
+  auto it = str.begin();
+  for (; it != str.end(); ++it) {
+    if (*it == tsep) {
       continue;
+    }
+    if (!isdigit_ascii(*it)) {
+      break;
     }
     if (out == output.end()) {
       return std::nullopt;
     }
-    *out++ = ch;
+    *out++ = *it;
   }
-  str.remove_prefix(token_end - str.begin());
-  return output.subspan(0, out - output.begin());
+  str.remove_prefix(it - str.begin());
+  return std::string_view(output.data(), out - output.begin());
 }
 
 /* Shared body of str_to_int64/str_to_uint64. */
@@ -103,7 +95,7 @@ static T parse_integer(std::string_view str, int *error, char tsep,
     // spaces here; the no-tsep path leaves that to skip_white_space.
     str.remove_prefix(
         std::min(str.find_first_not_of(ascii_spaces), str.size()));
-    const std::optional<std::span<char>> copied =
+    const std::optional<std::string_view> copied =
         copy_number_without_tsep(buffer, str, tsep);
     if (!copied.has_value()) {
       // Word is too big, probably will cause an overflow
@@ -111,7 +103,7 @@ static T parse_integer(std::string_view str, int *error, char tsep,
       return 0;
     }
     number_end = str.data(); // the token was consumed from `str`
-    str = std::string_view(copied->data(), copied->size());
+    str = *copied;
   }
 
   T number;
@@ -132,6 +124,8 @@ static T parse_integer(std::string_view str, int *error, char tsep,
     if constexpr (std::is_unsigned_v<T>) {
       // fast_float rejects '-' outright for unsigned types, leaving ptr on
       // the sign; record it for the caller's int64/uint64 reconciliation.
+      // On an empty token ptr == end, and dereferencing it would read an
+      // uninitialized buffer byte — hence the first check.
       if (result.ptr != str.data() + str.size() && *result.ptr == '-') {
         state->seen_sint = 1;
         *error = 0;
