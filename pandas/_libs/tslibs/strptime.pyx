@@ -76,6 +76,11 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+
+cdef extern from "pandas/portable.h":
+    int checked_sub(int64_t a, int64_t b, int64_t *res)
+
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -522,7 +527,12 @@ def array_strptime(
                     state.found_aware_str = True
                     # equiv: tz_localize_to_utc_single(
                     #  value, timezone(timedelta(minutes=out_tzoffset)), creso=creso)
-                    value -= nsecs * periods_per_second(creso)
+                    # GH#65353 the shift to UTC must not wrap int64 silently
+                    if checked_sub(value, nsecs * periods_per_second(creso), &value):
+                        raise OutOfBoundsDatetime(
+                            f"Out of bounds {npy_unit_to_attrname[creso]} "
+                            f"timestamp: {val}"
+                        )
                 else:
                     tz = None
                     state.out_tzoffset_vals.add("naive")
@@ -572,7 +582,13 @@ def array_strptime(
                     # i.e. a fixed offset from the %z directive
                     # equiv: tz_localize_to_utc_single(ival, tz, creso=creso)
                     nsecs = int(tz.utcoffset(None).total_seconds())
-                    iresult[i] = ival - nsecs * periods_per_second(creso)
+                    # GH#65353 the shift to UTC must not wrap int64 silently
+                    if checked_sub(ival, nsecs * periods_per_second(creso), &ival):
+                        raise OutOfBoundsDatetime(
+                            f"Out of bounds {npy_unit_to_attrname[creso]} "
+                            f"timestamp: {val}"
+                        )
+                    iresult[i] = ival
                 else:
                     iresult[i] = tz_localize_to_utc_single(
                         ival, tz, ambiguous="raise", nonexistent=None, creso=creso
