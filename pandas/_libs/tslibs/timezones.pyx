@@ -371,17 +371,10 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
         future_trans.sort()
 
-        # Some zones (e.g. Africa/Casablanca and Africa/El_Aaiun, whose
-        # Ramadan-based rule keeps the DST offset in effect for nearly the whole
-        # year) have per-year (start, end) intervals that overlap across calendar
-        # years, so flattening them into a sorted transition list yields wrong
-        # offsets. Depending on the tzdata build the POSIX rule may or may not
-        # resemble ordinary DST, so verify the flattened transitions against
-        # zoneinfo directly rather than inferring it from the offsets. If any
-        # disagree, drop them and leave has_future_dst=True so the per-value
-        # zoneinfo fallback (see Localizer.utc_val_to_local_val and
-        # _get_utc_bounds) handles dates beyond the last historical transition.
-        # GH#65712, GH#65733
+        # Verify the flattened future transitions against zoneinfo; if any
+        # disagree, drop them all and leave the per-value zoneinfo fallback to
+        # handle these dates. See test_zoneinfo_negative_dst_distant_dates for
+        # why. GH#65712, GH#65733
         valid = True
         try:
             for future_ts, future_delta in future_trans:
