@@ -8211,7 +8211,13 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
         and iinfo.min <= stop <= iinfo.max
         and (len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff))
     ):
-        return range(first, stop, diff)
+        # GH#64148: is_sequence_range compares in modular uint64 arithmetic, so
+        # a sequence that wraps past INT64_MAX rather than forming a true range
+        # can slip through. A wrapping match yields a range of the wrong length,
+        # so the length check below rejects it and keeps the conversion exact.
+        candidate = range(first, stop, diff)
+        if len(candidate) == len(sequence):
+            return candidate
     return sequence
 
 

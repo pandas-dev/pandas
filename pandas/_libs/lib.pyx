@@ -813,7 +813,13 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     cdef:
         Py_ssize_t i, n = len(sequence)
         Py_ssize_t n4 = n & ~3
-        int6432_t first_element
+        # GH#64148: accumulate ``first + i * step`` in uint64 (well-defined
+        # modular arithmetic). In int64 this overflows -- undefined behavior --
+        # for a range spanning more than INT64_MAX (e.g. a step of 2**62). Two
+        # int64 values are equal iff their uint64 bit patterns match, so the
+        # modular comparison stays exact for any range representable in int64.
+        uint64_t first
+        uint64_t step_u = <uint64_t>step
         bint ret = True
 
     if step == 0:
@@ -821,23 +827,23 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     if n == 0:
         return True
 
-    first_element = sequence[0]
-    # sequence[0] == first_element by construction, so the i=0 lane of the
-    # unrolled loop is trivially true — skipping the explicit head loop
-    # costs one redundant compare on the first iteration.
+    first = <uint64_t>sequence[0]
+    # sequence[0] == first by construction, so the i=0 lane of the unrolled
+    # loop is trivially true -- skipping the explicit head loop costs one
+    # redundant compare on the first iteration.
     with nogil:
         for i in range(0, n4, 4):
             if (
-                (sequence[i] != first_element + i * step)
-                | (sequence[i + 1] != first_element + (i + 1) * step)
-                | (sequence[i + 2] != first_element + (i + 2) * step)
-                | (sequence[i + 3] != first_element + (i + 3) * step)
+                (<uint64_t>sequence[i] != first + <uint64_t>i * step_u)
+                | (<uint64_t>sequence[i + 1] != first + <uint64_t>(i + 1) * step_u)
+                | (<uint64_t>sequence[i + 2] != first + <uint64_t>(i + 2) * step_u)
+                | (<uint64_t>sequence[i + 3] != first + <uint64_t>(i + 3) * step_u)
             ):
                 ret = False
                 break
         if ret:
             for i in range(n4, n):
-                if sequence[i] != first_element + i * step:
+                if <uint64_t>sequence[i] != first + <uint64_t>i * step_u:
                     ret = False
                     break
     return ret
