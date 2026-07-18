@@ -23,6 +23,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    Timestamp,
     concat,
     isna,
     to_datetime,
@@ -60,9 +61,15 @@ class TestTSPlot:
         _check_plot_works(ts.plot)
         ax = ts.plot()
         xdata = next(iter(ax.get_lines())).get_xdata()
-        # xdata are raw Period ordinals (int64); reconstruct to check labels
-        first = Period(ordinal=int(xdata[0]), freq=ax.freq)
-        last = Period(ordinal=int(xdata[-1]), freq=ax.freq)
+        # xdata are may be Period ordinals (int64) or TimeStamps for timezone aware data
+        # check if xdata are timestamps
+        if isinstance(xdata[0], Timestamp):
+            first = xdata[0]
+            last = xdata[-1]
+        else:
+            # xdata are Period intervals (int64)
+            first = Period(ordinal=int(xdata[0]), freq=ax.freq)
+            last = Period(ordinal=int(xdata[-1]), freq=ax.freq)
         assert (first.hour, first.minute) == (0, 0)
         assert (last.hour, last.minute) == (1, 0)
 
