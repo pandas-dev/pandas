@@ -78,6 +78,20 @@ def test_rolling_cov_corr_degenerate(method, expected_values):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method,expected_last",
+    [("cov", 50.0), ("corr", 1.0)],
+)
+def test_rolling_cov_corr_nan_gap_recovery(method, expected_last):
+    # GH#65739 a window whose valid-pair count drops to 0 must not poison
+    # subsequent overlapping windows with NaN
+    a = Series([1.0, 10.0, 20.0, 30.0])
+    b = Series([1.0, np.nan, 20.0, 30.0])
+    result = getattr(a.rolling(2), method)(b)
+    expected = Series([np.nan, np.nan, np.nan, expected_last])
+    tm.assert_series_equal(result, expected)
+
+
 def test_rolling_corr_bias_correction():
     # test for correct bias correction
     a = Series(

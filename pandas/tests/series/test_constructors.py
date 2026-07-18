@@ -1967,6 +1967,15 @@ class TestSeriesConstructors:
         expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="us"))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("data", [[1.5, 2.5, 90.0], [1, 2.5, 90], [1.5, NaT, 90]])
+    def test_constructor_dtype_timedelta_float_honors_unit(self, data):
+        # GH#63499 float and mixed int/float data should be interpreted in
+        #  the dtype's unit, matching the integer case, instead of as
+        #  nanoseconds (which silently truncated these to zero)
+        result = Series(data, dtype="timedelta64[s]")
+        expected = Series(pd.to_timedelta(data, unit="s").as_unit("s"))
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
