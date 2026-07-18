@@ -2471,7 +2471,7 @@ class TestToDatetimeDataFrame:
         df[field] = [1.5, np.nan]
         result = to_datetime(df)
         expected = Series(
-            [Timestamp("2000-01-01") + Timedelta(1.5, unit=unit), NaT],
+            [Timestamp("2000-01-01") + Timedelta(1.5, input_unit=unit), NaT],
             dtype="datetime64[ns]",
         )
         tm.assert_series_equal(result, expected)
