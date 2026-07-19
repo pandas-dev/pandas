@@ -295,6 +295,7 @@ class Writer(ABC):
         if (
             default_handler is None
             and isinstance(obj_to_write, ABCSeries)
+            and obj_to_write.dtype == object
             and any(isinstance(obj, np.dtype) for obj in obj_to_write.array)
         ):
             default_handler = str
