@@ -210,7 +210,8 @@ def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
 def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend):
     # GH#56044 categories are inferred, but the c and python engines do not yet
     #  honor dtype_backend and give numpy categories where a non-categorical
-    #  read would give Int64/int64[pyarrow]; pin the current behavior
+    #  read would give Int64/int64[pyarrow]; pin the current behavior, see
+    #  GH#66382
     parser = all_parsers
     data = "a\n1\n2"
     result = parser.read_csv(
