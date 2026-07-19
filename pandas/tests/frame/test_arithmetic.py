@@ -2422,3 +2422,15 @@ def test_dataframe_comparison_preserve_na(other, expect, expected):
     df2 = DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
     res2 = df2 == other
     tm.assert_frame_equal(res2, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize(
+    "arraylike",
+    [Series, Index, pd.array, np.array],
+)
+def test_dataframe_comparison_with_arraylike_preserve_na(arraylike):
+    # GH#63328
+    df = DataFrame([[0, 1, 2], [pd.NA, pd.NA, pd.NA]])
+    expected = np.array([[pd.NA, True, False], [pd.NA, pd.NA, pd.NA]])
+    result = np.asarray(df.eq(arraylike([pd.NA, 1, 1]), axis=1))
+    tm.assert_numpy_array_equal(result, expected)
