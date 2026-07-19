@@ -208,8 +208,9 @@ def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
 
 
 def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend):
-    # GH#56044 category inference does not yet respect dtype_backend, and
-    #  the engines disagree on the result; pin the current behavior
+    # GH#56044 categories are inferred, but the c and python engines do not yet
+    #  honor dtype_backend and give numpy categories where a non-categorical
+    #  read would give Int64/int64[pyarrow]; pin the current behavior
     parser = all_parsers
     data = "a\n1\n2"
     result = parser.read_csv(
@@ -218,13 +219,10 @@ def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend)
     cat_dtype = result["a"].cat.categories.dtype
     if parser.engine == "pyarrow" and dtype_backend == "numpy_nullable":
         assert cat_dtype == pd.Int64Dtype()
-    elif parser.engine == "pyarrow":
+    elif dtype_backend == "pyarrow" and parser.engine in ("pyarrow", "python"):
+        # the python parser's arrow-backed strings convert straight to arrow
         pyarrow = pytest.importorskip("pyarrow")
         assert cat_dtype == pd.ArrowDtype(pyarrow.int64())
-    elif parser.engine == "python" and dtype_backend == "pyarrow":
-        # no inference is applied at all
-        pyarrow = pytest.importorskip("pyarrow")
-        assert cat_dtype == pd.ArrowDtype(pyarrow.string())
     else:
         assert cat_dtype == np.dtype("int64")
 

@@ -692,7 +692,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             to_numeric,
         )
 
-        if len(cats) == 0 or cats.dtype.kind != "O":
+        # "U" covers arrow-backed strings, which arrive with dtype_backend="pyarrow"
+        if len(cats) == 0 or cats.dtype.kind not in "OU":
             # empty categories stay object dtype, matching the zero-row case
             return None
 
