@@ -790,6 +790,10 @@ def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
             rows.append("")  # blank line, skipped by skip_blank_lines
         elif i % 11 == 0:
             rows.append(f"  {i},{i * 2},{i * 3}")  # leading whitespace
+        elif i % 13 == 0:
+            # trailing whitespace is inert for the lane (only line *starts*
+            # can begin a WHITESPACE_LINE); included to prove it
+            rows.append(f"{i},{i * 2},{i * 3}  ")
         else:
             rows.append(f"{i},{i * 2},{i * 3}")
     data = "a,b,c" + lineterm + lineterm.join(rows) + lineterm
