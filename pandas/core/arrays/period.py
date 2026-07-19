@@ -1127,6 +1127,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             self.asi8, self.dtype._dtype_code, na_rep, date_format
         )
 
+    def _values_for_json(self) -> np.ndarray:
+        # GH#55490 the C JSON encoder cannot serialize Period objects, so
+        # render them as ISO-8601 strings (with NaT mapped to NaN/null).
+        return self._format_native_types(na_rep=np.nan)
+
     # ------------------------------------------------------------------
 
     def astype(self, dtype, copy: bool = True):
