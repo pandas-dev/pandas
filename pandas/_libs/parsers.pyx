@@ -43,7 +43,12 @@ from cpython.exc cimport (
 )
 from cpython.long cimport PyLong_FromString
 from cpython.object cimport PyObject
+from cpython.pycapsule cimport (
+    PyCapsule_GetPointer,
+    PyCapsule_New,
+)
 from cpython.ref cimport (
+    Py_INCREF,
     Py_XDECREF,
 )
 from cpython.unicode cimport (
@@ -58,7 +63,10 @@ from libc.stdint cimport (
     INT64_MIN,
     int64_t as c_int64_t,
 )
-from libc.stdlib cimport free
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 from libc.string cimport (
     memcpy,
     strcasecmp,
@@ -2611,27 +2619,145 @@ cdef:
 
 
 # -> tuple[ndarray[float64_t], int]  | tuple[None, None]
+cdef void _free_malloc_capsule(object capsule) noexcept:
+    free(PyCapsule_GetPointer(capsule, NULL))
+
+
+cdef ndarray _wrap_malloc_array(void *data, Py_ssize_t lines, int typenum):
+    """
+    Wrap nogil-malloc'd memory as a 1D ndarray that owns it (via a capsule
+    base). Compared to np.empty this keeps the allocation itself out of the
+    GIL-held window, which matters when many parser threads convert columns
+    concurrently.
+    """
+    cdef:
+        cnp.npy_intp dims = lines
+        ndarray arr
+
+    arr = cnp.PyArray_SimpleNewFromData(1, &dims, typenum, data)
+    capsule = PyCapsule_New(data, NULL, _free_malloc_capsule)
+    # PyArray_SetBaseObject steals a reference; balance the decref Cython
+    # emits when the local goes out of scope.
+    Py_INCREF(capsule)
+    cnp.PyArray_SetBaseObject(arr, capsule)
+    return arr
+
+
+# The _probe_* helpers parse only the first non-NA token of a column, nogil,
+# so a column that will not convert (e.g. strings tried as int) is rejected
+# before the result buffer is allocated.
+cdef int _probe_int64(parser_t *parser, int64_t col,
+                      int64_t line_start, int64_t line_end,
+                      bint na_filter,
+                      const kh_str_starts_t *na_hashset) noexcept nogil:
+    cdef:
+        int error = 0
+        Py_ssize_t lines = line_end - line_start
+        coliter_t it
+        const char *word = NULL
+        c_int64_t token_idx = 0
+
+    coliter_setup(&it, parser, col, line_start)
+    for _ in range(lines):
+        word = coliter_next_with_idx(&it, &token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            continue
+        str_to_int64(word, _token_len(parser, token_idx),
+                     &error, parser.thousands)
+        return error
+    return 0
+
+
+cdef int _probe_double(parser_t *parser, int64_t col,
+                       int64_t line_start, int64_t line_end,
+                       bint na_filter,
+                       kh_str_starts_t *na_hashset) noexcept nogil:
+    cdef:
+        int error = 0
+        Py_ssize_t lines = line_end - line_start
+        coliter_t it
+        const char *word = NULL
+        const char *word_end = NULL
+        c_int64_t token_idx = 0
+        char *p_end
+
+    coliter_setup(&it, parser, col, line_start)
+    for _ in range(lines):
+        word = coliter_next_with_idx(&it, &token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            continue
+        word_end = word + _token_len(parser, token_idx)
+        parser.double_converter(word, &p_end, parser.decimal,
+                                parser.sci, parser.thousands,
+                                1, &error, NULL, word_end)
+        if error != 0 or p_end == word or p_end[0]:
+            if (strcasecmp(word, cinf) == 0 or
+                    strcasecmp(word, cposinf) == 0 or
+                    strcasecmp(word, cinfty) == 0 or
+                    strcasecmp(word, cposinfty) == 0 or
+                    strcasecmp(word, cneginf) == 0 or
+                    strcasecmp(word, cneginfty) == 0):
+                return 0
+            return 1
+        return 0
+    return 0
+
+
+cdef int _probe_bool_flex(parser_t *parser, int64_t col,
+                          int64_t line_start, int64_t line_end,
+                          bint na_filter,
+                          const kh_str_starts_t *na_hashset,
+                          const kh_str_starts_t *true_hashset,
+                          const kh_str_starts_t *false_hashset) noexcept nogil:
+    cdef:
+        Py_ssize_t lines = line_end - line_start
+        coliter_t it
+        const char *word = NULL
+        uint8_t tmp
+
+    coliter_setup(&it, parser, col, line_start)
+    for _ in range(lines):
+        word = coliter_next(&it)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            continue
+        if kh_get_str_starts_item(true_hashset, word):
+            return 0
+        if kh_get_str_starts_item(false_hashset, word):
+            return 0
+        return to_boolean(word, &tmp)
+    return 0
+
+
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_starts_t *na_hashset, set na_fset):
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
-        float64_t *data
+        float64_t *data = NULL
         float64_t NA = na_values[np.float64]
         kh_float64_t *na_fhashset
         ndarray[float64_t] result
         bint use_na_flist = len(na_fset) > 0
 
     lines = line_end - line_start
-    result = np.empty(lines, dtype=np.float64)
-    data = <float64_t *>result.data
     na_fhashset = kset_float64_from_set(na_fset)
     with nogil:
-        error = _try_double_nogil(parser, parser.double_converter,
-                                  col, line_start, line_end,
-                                  na_filter, na_hashset, use_na_flist,
-                                  na_fhashset, NA, data, &na_count)
+        error = _probe_double(parser, col, line_start, line_end,
+                              na_filter, na_hashset)
+        if error == 0:
+            data = <float64_t *>malloc(
+                (lines if lines > 0 else 1) * sizeof(float64_t))
+    if error == 0:
+        if data == NULL:
+            kh_destroy_float64(na_fhashset)
+            raise MemoryError()
+        result = _wrap_malloc_array(data, lines, cnp.NPY_FLOAT64)
+        with nogil:
+            error = _try_double_nogil(parser, parser.double_converter,
+                                      col, line_start, line_end,
+                                      na_filter, na_hashset, use_na_flist,
+                                      na_fhashset, NA, data, &na_count)
 
     kh_destroy_float64(na_fhashset)
     if error != 0:
@@ -2824,18 +2950,25 @@ cdef _try_int64(parser_t *parser, int64_t col,
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
-        coliter_t it
-        int64_t *data
+        int64_t *data = NULL
         ndarray[int64_t] result
         int64_t NA = na_values[np.int64]
 
     lines = line_end - line_start
-    result = np.empty(lines, dtype=np.int64)
-    data = <int64_t *>result.data
-    coliter_setup(&it, parser, col, line_start)
     with nogil:
-        error = _try_int64_nogil(parser, col, line_start, line_end,
-                                 na_filter, na_hashset, NA, data, &na_count)
+        error = _probe_int64(parser, col, line_start, line_end,
+                             na_filter, na_hashset)
+        if error == 0:
+            data = <int64_t *>malloc(
+                (lines if lines > 0 else 1) * sizeof(int64_t))
+    if error == 0:
+        if data == NULL:
+            raise MemoryError()
+        result = _wrap_malloc_array(data, lines, cnp.NPY_INT64)
+        with nogil:
+            error = _try_int64_nogil(parser, col, line_start, line_end,
+                                     na_filter, na_hashset, NA, data,
+                                     &na_count)
     if error != 0:
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
@@ -2929,17 +3062,26 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
-        uint8_t *data
+        uint8_t *data = NULL
         ndarray[uint8_t] result
         uint8_t NA = na_values[np.bool_]
 
     lines = line_end - line_start
-    result = np.empty(lines, dtype=np.uint8)
-    data = <uint8_t *>result.data
     with nogil:
-        error = _try_bool_flex_nogil(parser, col, line_start, line_end,
-                                     na_filter, na_hashset, true_hashset,
-                                     false_hashset, NA, data, &na_count)
+        error = _probe_bool_flex(parser, col, line_start, line_end,
+                                 na_filter, na_hashset, true_hashset,
+                                 false_hashset)
+        if error == 0:
+            data = <uint8_t *>malloc(
+                (lines if lines > 0 else 1) * sizeof(uint8_t))
+    if error == 0:
+        if data == NULL:
+            raise MemoryError()
+        result = _wrap_malloc_array(data, lines, cnp.NPY_UINT8)
+        with nogil:
+            error = _try_bool_flex_nogil(parser, col, line_start, line_end,
+                                         na_filter, na_hashset, true_hashset,
+                                         false_hashset, NA, data, &na_count)
     if error != 0:
         return None, None
     return result.view(np.bool_), na_count
