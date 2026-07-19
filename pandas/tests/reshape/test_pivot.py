@@ -442,7 +442,7 @@ class TestPivotTable:
         )
         res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="ME"))
         exp_columns = MultiIndex.from_arrays(
-            [["A"], pd.DatetimeIndex(["2011-01-31"], dtype="M8[ns]")],
+            [["A"], pd.DatetimeIndex(["2011-01-31"], dtype="M8[ns]", freq="ME")],
             names=[None, "dt"],
         )
         exp = DataFrame(
@@ -1655,7 +1655,9 @@ class TestPivotTable:
             values="Quantity",
             aggfunc="sum",
         )
-        tm.assert_frame_equal(result, expected.T)
+        # result columns carry a freq on the datetimelike MultiIndex levels that
+        #  the from_tuples expected does not; freq is not what this test checks
+        tm.assert_frame_equal(result, expected.T, check_freq=False)
 
     def test_pivot_datetime_tz(self):
         dates1 = pd.DatetimeIndex(

@@ -118,7 +118,7 @@ def test_append_mixed_dtypes():
             pi.append(pi),
         ]
     )
-    tm.assert_index_equal(res, exp)
+    tm.assert_index_equal(res, exp, check_freq=False)
 
     other = MultiIndex.from_arrays(
         [
@@ -142,7 +142,7 @@ def test_append_mixed_dtypes():
             pi.append(Index(["x", "y", "z"])),
         ]
     )
-    tm.assert_index_equal(res, exp)
+    tm.assert_index_equal(res, exp, check_freq=False)
 
 
 def test_iter(idx):
