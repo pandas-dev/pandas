@@ -37,6 +37,39 @@ def test_split_more_than_one_char(any_string_dtype, method):
     tm.assert_series_equal(result, exp)
 
 
+@pytest.mark.parametrize("method", ["split", "rsplit"])
+def test_split_whitespace(any_string_dtype, method):
+    # GH#66368
+    values = pd.Series(
+        ["  hi  there ", "", "   ", "a b c", np.nan], dtype=any_string_dtype
+    )
+    result = getattr(values.str, method)()
+    exp = pd.Series([["hi", "there"], [], [], ["a", "b", "c"], np.nan])
+    exp = _convert_na_value(values, exp)
+    tm.assert_series_equal(result, exp)
+
+
+def test_split_whitespace_arrow_dtype():
+    # GH#66368
+    pa = pytest.importorskip("pyarrow")
+    list_dtype = pd.ArrowDtype(pa.list_(pa.string()))
+
+    ser = pd.Series(
+        ["  hi  there ", "", "   ", "a b c", None], dtype=pd.ArrowDtype(pa.string())
+    )
+    exp = pd.Series([["hi", "there"], [], [], ["a", "b", "c"], None], dtype=list_dtype)
+    tm.assert_series_equal(ser.str.split(), exp)
+    tm.assert_series_equal(ser.str.rsplit(), exp)
+
+    ser = pd.Series(["  a  b  c "], dtype=pd.ArrowDtype(pa.string()))
+    tm.assert_series_equal(
+        ser.str.split(n=1), pd.Series([["a", "b  c "]], dtype=list_dtype)
+    )
+    tm.assert_series_equal(
+        ser.str.rsplit(n=1), pd.Series([["  a  b", "c"]], dtype=list_dtype)
+    )
+
+
 def test_split_more_regex_split(any_string_dtype):
     # regex split
     values = pd.Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
