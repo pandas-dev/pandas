@@ -1112,3 +1112,41 @@ def test_parallel_string_dtype_python_storage(tmp_path, monkeypatch):
         with option_context("mode.max_threads", 4):
             parallel = read_csv(path)
     tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_blank_line_run(tmp_path, monkeypatch):
+    # A run of blank lines spanning entire chunks parses those chunks to zero
+    # rows; the reused worker parsers must not leak StopIteration out of
+    # read_csv (GH#66275).
+    import pandas.io.parsers.readers as _readers
+
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},{i * 2}" for i in range(100))
+    path.write_text(
+        "a,b\n" + rows + "\n" + "\n" * 20000 + rows + "\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
+    # Same for chunks whose lines are all skipped via on_bad_lines="skip"
+    # (GH#66275).
+    import pandas.io.parsers.readers as _readers
+
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},{i * 2}" for i in range(100))
+    bad = "\n".join("x,y,z,w,v" for _ in range(5000))
+    path.write_text("a,b\n" + rows + "\n" + bad + "\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, on_bad_lines="skip")
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path, on_bad_lines="skip")
+    tm.assert_frame_equal(result, expected)

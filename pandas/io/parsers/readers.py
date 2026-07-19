@@ -814,6 +814,11 @@ def _read_csv_parallel(
             reader._engine._reader.load_buffer(data, strip_bom=offsets[chunk_idx] == 0)
             # the reader holds its own reference for the parse duration
             del data
+            # A zero-row chunk (a chunk-sized run of blank lines or skipped
+            # bad lines) must return empty meta the way a fresh parser
+            # would; on a reused parser read() would instead raise
+            # StopIteration and close the reader.
+            reader._engine._first_chunk = True
             # Collect raw column arrays rather than a DataFrame: per-chunk
             # DataFrame assembly happens under the GIL (serializing the pool)
             # and a final concat would push every column back through the
@@ -872,7 +877,18 @@ def _read_csv_parallel(
             close_futures = [pool.submit(reader.close) for reader in workers_readers]
             readers_closing = True
 
-            chunk_results = cast("list[tuple]", results)
+            # Zero-row chunks contribute nothing to the gather but carry
+            # empty-meta object dtypes that would needlessly trip the dtype
+            # reconciliation below; drop them.
+            chunk_results = [
+                res
+                for res in cast("list[tuple]", results)
+                if res[1] and len(next(iter(res[1].values()))) > 0
+            ]
+            if not chunk_results:
+                # every chunk parsed to zero rows (e.g. all blank lines);
+                # let the serial path build the empty frame
+                return None
             columns = list(chunk_results[0][0])
             chunk_dicts = [col_dict for _, col_dict in chunk_results]
             col_list = list(chunk_dicts[0])
