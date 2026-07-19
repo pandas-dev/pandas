@@ -1538,12 +1538,17 @@ class TestPandasContainer:
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
         serexp = '{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}}'
+        splitexp = (
+            '{"name":null,'
+            '"data":["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]}'
+        )
 
         assert ujson_dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
         # Series[dt64tz] must preserve the tz like the DTI case
         assert ujson_dumps(Series(dti), iso_dates=True) == serexp
@@ -1558,10 +1563,14 @@ class TestPandasContainer:
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
         serexp = '{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+        splitexp = (
+            '{"name":null,"data":["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]}'
+        )
 
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
         assert ujson_dumps(Series(dti), iso_dates=True) == serexp
         df = DataFrame({"DT": dti})
@@ -1588,6 +1597,25 @@ class TestPandasContainer:
         assert df.to_json(orient=orient, date_format="iso") == df_expected.to_json(
             orient=orient, date_format="iso"
         )
+
+    def test_tz_aware_index_naive_datetime64_data(self):
+        # GH#66007 a dt64tz index must not leak a stale UTC flag onto naive
+        # np.datetime64 scalars serialized from object-dtype data
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02"], tz="UTC")
+        ser = Series(
+            np.array(
+                [np.datetime64("2021-06-01"), np.datetime64("2021-06-02")],
+                dtype=object,
+            ),
+            index=idx,
+        )
+        result = ser.to_json(orient="split", date_format="iso")
+        expected = (
+            '{"name":null,'
+            '"index":["2020-01-01T00:00:00.000Z","2020-01-02T00:00:00.000Z"],'
+            '"data":["2021-06-01T00:00:00.000","2021-06-02T00:00:00.000"]}'
+        )
+        assert result == expected
 
     def test_read_inline_jsonl(self):
         # GH9180

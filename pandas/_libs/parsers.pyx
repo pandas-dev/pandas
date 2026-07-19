@@ -6,6 +6,10 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
+from datetime import (
+    timedelta,
+    timezone,
+)
 import warnings
 
 from pandas._config import (
@@ -23,12 +27,16 @@ from pandas import (
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
+    DatetimeArray,
     FloatingArray,
     IntegerArray,
 )
 
 cimport cython
-from cpython.bytes cimport PyBytes_AsString
+from cpython.bytes cimport (
+    PyBytes_AsString,
+    PyBytes_FromStringAndSize,
+)
 from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
@@ -51,6 +59,8 @@ from cpython.unicode cimport (
 from cython cimport Py_ssize_t
 from libc.stdint cimport (
     INT32_MAX,
+    INT64_MAX,
+    INT64_MIN,
     int64_t as c_int64_t,
 )
 from libc.stdlib cimport (
@@ -92,6 +102,7 @@ from pandas._libs.khash cimport (
     kh_get_float64,
     kh_get_str,
     kh_get_str_starts_item,
+    kh_get_strbox,
     kh_init_float64,
     kh_init_str,
     kh_init_str_starts,
@@ -115,12 +126,43 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    npy_unit_to_abbrev,
+)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    import_pandas_datetime,
+    npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
+)
+
+import_pandas_datetime()
+
+
+cdef extern from "pandas/datetime/pd_datetime.h":
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT
+
+    int parse_iso_8601_datetime(const char *str, int length, int want_exc,
+                                npy_datetimestruct *out,
+                                NPY_DATETIMEUNIT *out_bestunit,
+                                int *out_local, int *out_tzoffset,
+                                const char *format, int format_len,
+                                FormatRequirement exact) nogil
+
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -266,10 +308,13 @@ cdef extern from "pandas/parser/tokenizer.h":
                                     int *error, int *maybe_int,
                                     const char *end) nogil
 
+    int try_parse_plain_double(const char *start, const char *end, char decimal,
+                               double *out) nogil
+
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
-    void del_rd_source(void *src)
+    void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
                           size_t *bytes_read, int *status, const char *encoding_errors)
@@ -330,7 +375,7 @@ cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    const char *encoding_errors) noexcept:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
-cdef void del_rd_source_wrapper(void *src) noexcept:
+cdef void del_rd_source_wrapper(void *src) noexcept nogil:
     del_rd_source(src)
 
 
@@ -358,6 +403,9 @@ cdef class TextReader:
         list dtype_cast_order  # list[np.dtype]
         list names   # can be None
         set noconvert  # set[int]
+        dict datetime_cols  # dict[int, bool]
+        dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
+        int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
 
     cdef public:
@@ -530,6 +578,9 @@ cdef class TextReader:
         self.dtype_backend = dtype_backend
 
         self.noconvert = set()
+        self.datetime_cols = {}
+        self.dt_chunk_states = None
+        self.lm_chunk_idx = 0
 
         self.index_col = index_col
 
@@ -891,37 +942,71 @@ cdef class TextReader:
             size_t rows_read = 0
             list chunks = []
 
-        if rows is None:
-            while True:
-                try:
-                    chunk = self._read_rows(self.buffer_lines, 0)
-                    if len(chunk) == 0:
+        if self.datetime_cols:
+            # Per-chunk fastpath state keyed by column; see _DatetimeChunkState.
+            self.dt_chunk_states = {}
+
+        try:
+            if rows is None:
+                while True:
+                    try:
+                        self.lm_chunk_idx = len(chunks)
+                        chunk = self._read_rows(self.buffer_lines, 0)
+                        if len(chunk) == 0:
+                            break
+                    except StopIteration:
                         break
-                except StopIteration:
-                    break
-                else:
-                    chunks.append(chunk)
-        else:
-            while rows_read < rows:
-                try:
-                    crows = min(self.buffer_lines, rows - rows_read)
+                    else:
+                        chunks.append(chunk)
+            else:
+                while rows_read < rows:
+                    try:
+                        crows = min(self.buffer_lines, rows - rows_read)
 
-                    chunk = self._read_rows(crows, 0)
-                    if len(chunk) == 0:
+                        self.lm_chunk_idx = len(chunks)
+                        chunk = self._read_rows(crows, 0)
+                        if len(chunk) == 0:
+                            break
+
+                        rows_read += len(list(chunk.values())[0])
+                    except StopIteration:
                         break
+                    else:
+                        chunks.append(chunk)
 
-                    rows_read += len(list(chunk.values())[0])
-                except StopIteration:
-                    break
-                else:
-                    chunks.append(chunk)
+            parser_trim_buffers(self.parser)
 
-        parser_trim_buffers(self.parser)
+            if len(chunks) == 0:
+                raise StopIteration
 
-        if len(chunks) == 0:
-            raise StopIteration
+            self._finalize_datetime_chunks(chunks)
+            return chunks
+        finally:
+            self.dt_chunk_states = None
 
-        return chunks
+    cdef _finalize_datetime_chunks(self, list chunks):
+        """
+        For parse_dates fastpath columns where a chunk fell back to strings,
+        rebuild the already-converted chunks' object-string arrays from their
+        raw-byte receipts so the column is all-or-nothing, exactly like a
+        non-chunked read.
+        """
+        cdef _DatetimeChunkState state
+
+        if self.dt_chunk_states is None:
+            return
+        for col, state in self.dt_chunk_states.items():
+            if not state.failed:
+                continue
+            for chunk_idx, arena, offsets, use_dtype_backend in state.receipts:
+                strs = _box_arena_utf8(arena, offsets, self.encoding_errors)
+                if use_dtype_backend:
+                    strs = _maybe_upcast(
+                        strs,
+                        use_dtype_backend=True,
+                        dtype_backend=self.dtype_backend,
+                    )
+                chunks[chunk_idx][col] = strs
 
     cdef _tokenize_rows(self, uint64_t nrows):
         cdef:
@@ -989,6 +1074,11 @@ cdef class TextReader:
 
     def remove_noconvert(self, i: int) -> None:
         self.noconvert.remove(i)
+
+    def set_datetime_convert(
+        self, i: int, require_consistent_format: bool = True
+    ) -> None:
+        self.datetime_cols[i] = require_consistent_format
 
     def _convert_column_data(self, rows: int | None) -> dict[int, "ArrayLike"]:
         cdef:
@@ -1119,8 +1209,25 @@ cdef class TextReader:
                 return col_res, na_count
 
         if i in self.noconvert:
-            # noconvert columns are parse_dates targets; keep them as
-            # object ndarray so to_datetime can take its fast path.
+            if i in self.datetime_cols:
+                # Try direct char-buffer -> datetime64 fastpath; fall back to
+                # object-strings if the input isn't ISO8601 (handled downstream
+                # by date_converter via to_datetime).
+                state = None
+                if self.dt_chunk_states is not None:
+                    state = self.dt_chunk_states.get(i)
+                    if state is None:
+                        state = _DatetimeChunkState()
+                        self.dt_chunk_states[i] = state
+                if state is None or not state.failed:
+                    col_res, na_count = _datetime_box_utf8(
+                        self.parser, i, start, end, na_filter, na_hashset,
+                        self.datetime_cols[i], state, self.lm_chunk_idx,
+                        self.dtype_backend != "numpy" and col_dtype is None)
+                    if col_res is not None:
+                        return col_res, na_count
+                    if state is not None:
+                        state.failed = True
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
@@ -1224,6 +1331,43 @@ cdef class TextReader:
             return cat, na_count
 
         elif isinstance(dtype, ExtensionDtype):
+            if isinstance(dtype, BaseMaskedDtype) and dtype.kind in "iuf":
+                # Fast path for nullable Integer/Floating dtypes: parse straight
+                # from the C buffers via the nogil numeric converters, instead
+                # of materializing an intermediate ndarray[object] of strings
+                # and re-parsing it through to_numeric in
+                # _from_sequence_of_strings.
+                masked = self._convert_masked_numeric(
+                    dtype, i, start, end, na_filter, na_hashset, na_fset)
+                if masked is not None:
+                    return masked
+                # Not confidently numeric-parseable (e.g. values that overflow
+                # uint64, or non-numeric data); fall through to the generic
+                # _from_sequence_of_strings path, which handles it identically
+                # to before.
+            elif isinstance(dtype, BooleanDtype):
+                # Fast path for the nullable boolean dtype.
+                boolean = self._convert_boolean_masked(
+                    i, start, end, na_filter, na_hashset)
+                if boolean is not None:
+                    return boolean
+                # An unrecognized token spelling; fall through to the generic
+                # path (which raises the canonical error, or applies
+                # user-supplied none_values).
+            elif (isinstance(dtype, ArrowDtype)
+                    and HAS_PYARROW
+                    and self.encoding_errors == b"strict"):
+                # Fast path for pyarrow-backed dtypes: build a pyarrow
+                # large_string array from the C buffers (nogil) and convert it
+                # with pyarrow compute, instead of materializing an
+                # ndarray[object] and re-parsing via to_numeric / to_datetime.
+                arrow = self._convert_arrow(dtype, i, start, end,
+                                            na_filter, na_hashset, na_fset)
+                if arrow is not None:
+                    return arrow
+                # Invalid UTF-8 or a conversion pyarrow could not perform;
+                # fall through to the generic path for identical behavior.
+
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
 
@@ -1349,6 +1493,183 @@ cdef class TextReader:
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
 
+    # -> ExtensionArray | None
+    cdef _parse_numeric_natural(self, Py_ssize_t i, int64_t start,
+                                int64_t end, bint na_filter,
+                                kh_str_starts_t *na_hashset, set na_fset):
+        # Parse a column with the same nogil converters the col_dtype=None
+        # inference path uses (int64 -> uint64 -> float64) and build the natural
+        # numpy-nullable array (IntegerArray / FloatingArray) -- i.e. what
+        # ``read_csv(dtype_backend="numpy_nullable")`` produces.  Returns that
+        # array, or None to signal "not confidently numeric" (non-numeric data,
+        # or ints wider than uint64 which the string path renders as Python
+        # ints), in which case the caller should fall back to the string path.
+        cdef:
+            object ivals = None
+            # NA count from the int64 parse; -1 == unknown (uint64 path),
+            # None if the int64 parse bailed (falls through to the float parse)
+            object int_na_count = -1
+
+        try:
+            ivals, int_na_count = _try_int64(self.parser, i, start, end,
+                                             na_filter, na_hashset, True)
+        except OverflowError:
+            try:
+                ivals = _try_uint64(self.parser, i, start, end,
+                                    na_filter, na_hashset, True)
+            except (OverflowError, ValueError):
+                return None
+            if ivals is None:
+                return None
+        except ValueError as err:
+            if str(err) != "Number is not int":
+                return None
+            # decimal / exponent form -> fall through to the float parse
+            ivals = None
+
+        if ivals is not None:
+            # Build the NA mask from the actual NA positions rather than from
+            # the integer sentinel value, so a legitimate int64-min / uint64-max
+            # token is preserved instead of being mistaken for NA (which the
+            # sentinel-based _maybe_upcast inference path gets wrong).  The
+            # common no-NA case skips the extra scan.
+            if not na_filter or int_na_count == 0:
+                mask = np.zeros(len(ivals), dtype=bool)
+            else:
+                mask = self._na_bool_mask(i, start, end, na_filter, na_hashset)
+            return IntegerArray(ivals, mask)
+
+        fvals, _ = _try_double(self.parser, i, start, end,
+                               na_filter, na_hashset, na_fset)
+        if fvals is None:
+            return None
+        return _maybe_upcast(fvals, use_dtype_backend=True,
+                             dtype_backend="numpy_nullable")
+
+    # -> tuple[ExtensionArray, int] | None
+    cdef _reconcile_numeric(self, natural, array_type, dtype):
+        # Reconcile the natural nullable array to the requested nullable /
+        # pyarrow dtype through _from_sequence -- exactly what
+        #   _from_sequence_of_strings(to_numeric(strings, "numpy_nullable"))
+        # does after parsing.  Returns (ExtensionArray, na_count), or None so
+        # the caller falls back to the generic string path when the requested
+        # dtype cannot hold the parsed values -- so the raised error matches
+        # legacy behavior exactly.
+        try:
+            result = array_type._from_sequence(natural, dtype=dtype)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return result, int(natural._mask.sum())
+
+    # -> tuple[ExtensionArray, int] | None
+    cdef _convert_masked_numeric(self, dtype, Py_ssize_t i, int64_t start,
+                                 int64_t end, bint na_filter,
+                                 kh_str_starts_t *na_hashset, set na_fset):
+        # Fast path for numpy-nullable Integer/Floating dtypes, bypassing the
+        # ndarray[object] + to_numeric round-trip in _from_sequence_of_strings.
+        natural = self._parse_numeric_natural(
+            i, start, end, na_filter, na_hashset, na_fset)
+        if natural is None:
+            return None
+        return self._reconcile_numeric(natural, dtype.construct_array_type(),
+                                       dtype)
+
+    # -> tuple[BooleanArray, int] | None
+    cdef _convert_boolean_masked(self, Py_ssize_t i, int64_t start,
+                                 int64_t end, bint na_filter,
+                                 kh_str_starts_t *na_hashset):
+        # Fast path for the nullable "boolean" dtype, bypassing the
+        # ndarray[object] + Python map() round-trip in _from_sequence_of_strings.
+        cdef:
+            Py_ssize_t lines = end - start
+            ndarray[uint8_t] data = np.empty(lines, dtype=np.uint8)
+            ndarray[uint8_t] mask = np.zeros(lines, dtype=np.uint8)
+            int error
+
+        with nogil:
+            error = _try_boolean_masked_nogil(
+                self.parser, i, start, end, na_filter, na_hashset,
+                self.true_set, self.false_set,
+                <uint8_t *>data.data, <uint8_t *>mask.data)
+        if error != 0:
+            # Unrecognized token spelling; defer to the generic string path so
+            # the raised error (and any user none_values) matches legacy exactly.
+            return None
+        return (BooleanArray(data.view(np.bool_), mask.view(np.bool_)),
+                int(mask.sum()))
+
+    cdef _na_bool_mask(self, Py_ssize_t i, int64_t start, int64_t end,
+                       bint na_filter, kh_str_starts_t *na_hashset):
+        # Boolean mask of the NA rows in a column, derived from the NA hashset.
+        cdef:
+            Py_ssize_t j, lines = end - start
+            coliter_t it
+            const char *word = NULL
+            ndarray[uint8_t, cast=True] mask = np.zeros(lines, dtype=bool)
+            uint8_t *mptr = <uint8_t *>mask.data
+
+        if na_filter:
+            coliter_setup(&it, self.parser, i, start)
+            with nogil:
+                for j in range(lines):
+                    word = coliter_next(&it)
+                    if kh_get_str_starts_item(na_hashset, word):
+                        mptr[j] = 1
+        return mask
+
+    # -> tuple[ExtensionArray, int] | None
+    cdef _convert_arrow(self, dtype, Py_ssize_t i, int64_t start,
+                        int64_t end, bint na_filter,
+                        kh_str_starts_t *na_hashset, set na_fset):
+        # Fast path for pyarrow-backed (:class:`ArrowDtype`) columns.
+        import pyarrow as pa
+
+        pa_type = dtype.pyarrow_dtype
+        if pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type):
+            # Parse with the same C converters as dtype_backend="pyarrow"
+            # inference (and the nullable fast path above), then wrap as pyarrow.
+            # This keeps explicit "int64[pyarrow]" parsing identical to
+            # dtype_backend="pyarrow" rather than adopting pyarrow's more lenient
+            # string casting (which would e.g. accept "0x1F").
+            natural = self._parse_numeric_natural(
+                i, start, end, na_filter, na_hashset, na_fset)
+            if natural is None:
+                return None
+            return self._reconcile_numeric(
+                natural, dtype.construct_array_type(), dtype)
+
+        if not (pa.types.is_timestamp(pa_type)
+                or pa.types.is_date(pa_type)
+                or pa.types.is_duration(pa_type)
+                or pa.types.is_time(pa_type)
+                or pa.types.is_boolean(pa_type)
+                or pa.types.is_string(pa_type)
+                or pa.types.is_large_string(pa_type)
+                or pa.types.is_binary(pa_type)):
+            # decimal and any other type keep the generic path (unchanged).
+            return None
+
+        # Build a pyarrow large_string array straight from the C buffers (nogil)
+        # and let _from_sequence_of_strings convert it with pyarrow compute
+        # (to_datetime / cast, nogil C++).  These conversions use the same
+        # engine as the generic object path, so results are unchanged.
+        strings, na_count = _string_pyarrow_utf8(
+            self.parser, i, start, end, na_filter, na_hashset, "str_nan")
+        if isinstance(strings, np.ndarray):
+            # _string_pyarrow_utf8 fell back to the object path (invalid UTF-8)
+            return None
+
+        array_type = dtype.construct_array_type()
+        try:
+            result = array_type._from_sequence_of_strings(
+                strings._pa_array, dtype=dtype)
+        except (ValueError, TypeError, NotImplementedError):
+            # pyarrow raises ArrowInvalid (a ValueError) / ArrowNotImplemented
+            # (a NotImplementedError) on values it cannot convert; defer to the
+            # generic path so the error matches legacy behavior.
+            return None
+        return result, na_count
+
     cdef void _validate_usecols_and_names(self, int num_cols):
         usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
         names_larger_num_cols = (self.names and
@@ -1458,8 +1779,17 @@ cdef class TextReader:
 # which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
-    # also preemptively free all allocated memory
-    parser_free(reader.parser)
+    # Drop the pre-loaded buffer reference deterministically so the caller
+    # can close the backing mmap (free-threaded builds may otherwise delay
+    # the release past pool shutdown).
+    reader._buffer_ref = None
+    # Preemptively free all allocated memory, without the GIL: on macOS
+    # freeing the (potentially large) data buffers gives pages back to the
+    # OS via madvise, which would otherwise stall every other parser thread
+    # in the parallel-read path. del_rd_source re-acquires the GIL for its
+    # decrefs.
+    with nogil:
+        parser_free(reader.parser)
     if reader.true_set:
         kh_destroy_str_starts(reader.true_set)
         reader.true_set = NULL
@@ -1537,6 +1867,11 @@ def _maybe_upcast(
     if isinstance(arr.dtype, ExtensionDtype):
         # TODO: the docstring says arr is an ndarray, in which case this cannot
         #  be reached. Is that incorrect?
+        return arr
+
+    if arr.dtype.kind in "Mm":
+        # datetime64/timedelta64 already carry NaT as the missing-value
+        # sentinel; no upcast is required.
         return arr
 
     na_value = na_values[arr.dtype]
@@ -1646,6 +1981,359 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     kh_destroy_strbox(table)
 
     return result, na_count
+
+
+cdef inline bint _same_format_shape(const char *left, Py_ssize_t left_len,
+                                    const char *right, Py_ssize_t right_len) noexcept:
+    """
+    Check whether two datetime strings share a layout: same length, digits and
+    non-digits in the same positions, and identical non-digit characters.
+    This conservatively approximates "both match the strptime format inferred
+    from the first" — false negatives only cost the fastpath.
+    """
+    cdef:
+        Py_ssize_t j
+        bint left_digit, right_digit
+
+    if left_len != right_len:
+        return False
+    for j in range(left_len):
+        left_digit = 48 <= <unsigned char>left[j] <= 57  # "0"-"9"
+        right_digit = 48 <= <unsigned char>right[j] <= 57
+        if left_digit != right_digit:
+            return False
+        if not left_digit and left[j] != right[j]:
+            return False
+    return True
+
+
+cdef class _DatetimeChunkState:
+    """
+    Per-read state for the parse_dates fastpath in low_memory mode: keeps the
+    format template and tz-awareness consistent across chunks, and holds
+    raw-byte receipts so a later chunk's fallback can rebuild earlier chunks'
+    object-string arrays exactly.
+    """
+    cdef public:
+        bint failed
+        bint saw_tz, saw_naive
+        int first_tzoffset
+        int creso_seen  # NPY_DATETIMEUNIT of the last parsed chunk, -1 unset
+        bytes template
+        list receipts  # list[tuple[chunk_idx, arena, offsets, use_be]]
+
+    def __cinit__(self):
+        self.failed = False
+        self.saw_tz = False
+        self.saw_naive = False
+        self.first_tzoffset = 0
+        self.creso_seen = -1
+        self.template = None
+        self.receipts = []
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _collect_arena(parser_t *parser, int64_t col,
+                    int64_t line_start, int64_t line_end,
+                    bint na_filter, kh_str_starts_t *na_hashset,
+                    Py_ssize_t arena_size):
+    """
+    Copy a column's raw NUL-terminated words into one bytes arena, with
+    per-row offsets (-1 for na_values hits). Together with `_box_arena_utf8`
+    this lets the fastpath reconstruct exactly what `_string_box_utf8` would
+    have produced.
+
+    Only reached for chunks whose every non-NA word ISO-parsed at its full
+    `_token_len`, so words contain no embedded NULs and strlen is exact here
+    and in `_box_arena_utf8`.
+    """
+    cdef:
+        Py_ssize_t i, lines, word_len, pos = 0
+        coliter_t it
+        const char *word = NULL
+        bytes arena = PyBytes_FromStringAndSize(NULL, arena_size)
+        char *buf = PyBytes_AsString(arena)
+        ndarray[int64_t] offsets
+
+    lines = line_end - line_start
+    offsets = np.empty(lines, dtype=np.int64)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        word = coliter_next(&it)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            offsets[i] = -1
+            continue
+        word_len = strlen(word) + 1  # include the NUL
+        memcpy(buf + pos, word, word_len)
+        offsets[i] = pos
+        pos += word_len
+
+    return arena, offsets
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
+                     const char *encoding_errors):
+    """
+    Rebuild the object-string array `_string_box_utf8` would have produced,
+    from an arena captured by `_collect_arena`.
+    """
+    cdef:
+        Py_ssize_t i, lines = offsets.shape[0]
+        const char *buf = PyBytes_AsString(arena)
+        const char *word
+        ndarray[object] result = np.empty(lines, dtype=np.object_)
+        int ret = 0
+        kh_strbox_t *table
+        object pyval
+        object NA = na_values[np.object_]
+        khiter_t k
+
+    table = kh_init_strbox()
+    for i in range(lines):
+        if offsets[i] == -1:
+            result[i] = NA
+            continue
+        word = buf + offsets[i]
+
+        k = kh_get_strbox(table, word)
+        if k != table.n_buckets:
+            pyval = <object>table.vals[k]
+        else:
+            pyval = PyUnicode_DecodeUTF8(word, strlen(word), encoding_errors)
+            k = kh_put_strbox(table, word, &ret)
+            table.vals[k] = <PyObject *>pyval
+
+        result[i] = pyval
+
+    kh_destroy_strbox(table)
+    return result
+
+
+# -> tuple[ArrayLike, int] | tuple[None, 0]
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _datetime_box_utf8(parser_t *parser, int64_t col,
+                        int64_t line_start, int64_t line_end,
+                        bint na_filter, kh_str_starts_t *na_hashset,
+                        bint require_consistent_format,
+                        _DatetimeChunkState state=None,
+                        int64_t chunk_idx=0,
+                        bint use_dtype_backend=False,
+                        NPY_DATETIMEUNIT force_creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC):
+    """
+    Faster equivalent to `_string_box_utf8` + `to_datetime(...)` for
+    ISO8601-formatted datetime columns: parse each tokenized field directly
+    from the tokenizer's `const char *` buffer into a datetime64 output array,
+    skipping the intermediate object ndarray of Python strings.
+
+    With `require_consistent_format=True` (the `date_format=None` case), every
+    value must share the layout of the first parsed value, mirroring
+    `to_datetime`'s infer-format-from-first-element behavior. With False (the
+    `date_format="ISO8601"` case), any mix of ISO8601 layouts is accepted.
+
+    `state` is the cross-chunk state in low_memory mode (None otherwise); on
+    success it is updated and a raw-byte receipt of this chunk is recorded,
+    with `use_dtype_backend` stored for fallback reconstruction.
+
+    `force_creso` is used during a recursive reparse triggered by mid-column
+    resolution bumps. When it is the sentinel `NPY_FR_GENERIC`, resolution is
+    inferred per-row.
+
+    Returns (result, na_count) on success, or (None, 0) to signal that the
+    caller should fall back to the object-string path.
+    """
+    cdef:
+        int na_count = 0
+        Py_ssize_t i, lines, word_len
+        Py_ssize_t arena_size = 0
+        coliter_t it
+        const char *word = NULL
+        c_int64_t token_idx = 0
+        ndarray result
+        int64_t[::1] iresult
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit, item_reso
+        NPY_DATETIMEUNIT creso = NPY_DATETIMEUNIT.NPY_FR_us
+        int out_local = 0, out_tzoffset = 0
+        int ret
+        bint creso_set = False
+        bint tz_set = False
+        bint saw_tz = False, saw_naive = False
+        int first_tzoffset = 0
+        int64_t offset_in_unit, tz_offset_mult
+        const char *template_word = NULL
+        Py_ssize_t template_len = 0
+        bytes state_template = None
+
+    if force_creso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        creso = force_creso
+        creso_set = True
+
+    if state is not None:
+        saw_tz = state.saw_tz
+        saw_naive = state.saw_naive
+        tz_set = state.saw_tz
+        first_tzoffset = state.first_tzoffset
+        # Keep a reference so the char buffer stays valid for the loop.
+        state_template = state.template
+        if state_template is not None:
+            template_word = state_template
+            template_len = len(state_template)
+
+    lines = line_end - line_start
+    # Output buffer holds int64s at `creso` resolution; the final dtype is
+    # assigned via a view once the final creso is known (matching
+    # array_strptime's behavior of flooring at us for ISO8601 inputs).
+    result = np.empty(lines, dtype="M8[us]")
+    iresult = result.view("i8")
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        word = coliter_next_with_idx(&it, &token_idx)
+
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            na_count += 1
+            iresult[i] = NPY_NAT
+            continue
+
+        # _token_len, not strlen: an embedded NUL must reach the ISO parser
+        # (and fail) so the column falls back like the object path.
+        word_len = _token_len(parser, token_idx)
+        arena_size += word_len + 1
+        if word_len == 0:
+            na_count += 1
+            iresult[i] = NPY_NAT
+            continue
+
+        if require_consistent_format:
+            if template_word == NULL:
+                # Word pointers stay valid for the duration of this chunk's
+                # conversion, so we can hold on to the first one.
+                template_word = word
+                template_len = word_len
+            elif not _same_format_shape(template_word, template_len,
+                                        word, word_len):
+                return None, 0
+
+        ret = parse_iso_8601_datetime(
+            word, <int>word_len, 0,
+            &dts, &out_bestunit, &out_local, &out_tzoffset,
+            NULL, 0, INFER_FORMAT,
+        )
+        if ret:
+            # Not ISO8601 — signal caller to fall back to the object path.
+            return None, 0
+
+        if out_local:
+            # Tracked here so we can uniformly shift to UTC after the loop.
+            # Mixed naive+aware or differing offsets defer to the slow path,
+            # matching the existing error behavior.
+            if saw_naive:
+                return None, 0
+            if not tz_set:
+                first_tzoffset = out_tzoffset
+                tz_set = True
+            elif out_tzoffset != first_tzoffset:
+                return None, 0
+            saw_tz = True
+        else:
+            if saw_tz:
+                return None, 0
+            saw_naive = True
+
+        item_reso = get_supported_reso(out_bestunit)
+        if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+            item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+
+        if not creso_set:
+            creso = item_reso
+            creso_set = True
+        elif item_reso > creso:
+            # Higher-resolution row encountered mid-column — reparse the whole
+            # column at the new resolution. Mirrors array_strptime's recursive
+            # reparse on `creso_ever_changed` and keeps output values
+            # consistent with one another.
+            return _datetime_box_utf8(
+                parser, col, line_start, line_end,
+                na_filter, na_hashset, require_consistent_format,
+                state, chunk_idx, use_dtype_backend,
+                force_creso=item_reso,
+            )
+        # else: item_reso <= creso; fine to write at the higher creso.
+
+        try:
+            iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+        except OverflowError:
+            return None, 0
+
+    if not creso_set:
+        if state is not None and state.creso_seen != -1:
+            # All-NA chunk after a parsed chunk: emit all-NaT at the prior
+            # chunk's resolution (NA rows never affect resolution inference,
+            # and EA concat upcasts mixed units losslessly anyway).
+            creso = <NPY_DATETIMEUNIT>state.creso_seen
+        else:
+            # No values parsed in the whole read (all-NA or empty); defer to
+            # the slow path so the dtype matches it (datetime64[s]).
+            return None, 0
+
+    if creso != NPY_DATETIMEUNIT.NPY_FR_us:
+        result = iresult.base.view(f"M8[{npy_unit_to_abbrev(creso)}]")
+
+    if saw_tz:
+        # Normalize each non-NaT entry to UTC by subtracting the fixed offset.
+        if creso == NPY_DATETIMEUNIT.NPY_FR_s:
+            tz_offset_mult = 60
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
+            tz_offset_mult = 60_000
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
+            tz_offset_mult = 60_000_000
+        else:  # ns
+            tz_offset_mult = 60_000_000_000
+        offset_in_unit = first_tzoffset * tz_offset_mult
+        for i in range(lines):
+            if iresult[i] != NPY_NAT:
+                # GH#65353 guard against int64 wraparound (or landing on NaT)
+                # near the datetime64 bounds; bail so the value falls back to
+                # the object path like any other unparsable date.
+                if offset_in_unit > 0:
+                    if iresult[i] <= INT64_MIN + offset_in_unit:
+                        return None, 0
+                elif iresult[i] > INT64_MAX + offset_in_unit:
+                    return None, 0
+                iresult[i] -= offset_in_unit
+
+        if first_tzoffset == 0:
+            tz = timezone.utc
+        else:
+            tz = timezone(timedelta(minutes=first_tzoffset))
+        dtype = DatetimeTZDtype(tz=tz, unit=npy_unit_to_abbrev(creso))
+        out = DatetimeArray._simple_new(result, dtype=dtype)
+    else:
+        # Wrap naive output in a DatetimeArray for consistency with the
+        # tz-aware case; the ExtensionArray concat path then upcasts
+        # mixed-unit datetime64 across chunks correctly where raw mixed-unit
+        # M8 ndarrays would silently demote to object.
+        out = DatetimeArray._simple_new(result, dtype=result.dtype)
+
+    if state is not None:
+        state.saw_tz = saw_tz
+        state.saw_naive = saw_naive
+        state.first_tzoffset = first_tzoffset
+        state.creso_seen = <int>creso
+        if (require_consistent_format and state.template is None
+                and template_word != NULL):
+            state.template = template_word[:template_len]
+        arena, offsets = _collect_arena(
+            parser, col, line_start, line_end, na_filter, na_hashset,
+            arena_size)
+        state.receipts.append((chunk_idx, arena, offsets, use_dtype_backend))
+
+    return out, na_count
 
 
 # -> tuple[ExtensionArray, int]
@@ -2097,6 +2785,12 @@ cdef int _try_double_nogil(parser_t *parser,
         c_int64_t token_idx = 0
         char *p_end
         khiter_t k64
+        # try_parse_plain_double covers the default converter with default
+        # settings; tokens it rejects (spaces, inf/nan spellings, junk) take
+        # the generic converter below for the legacy semantics.
+        bint fastpath = (double_converter == precise_xstrtod_wrapper
+                         and parser.thousands == b"\0"
+                         and (parser.sci == b"e" or parser.sci == b"E"))
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -2111,6 +2805,37 @@ cdef int _try_double_nogil(parser_t *parser,
                 data[0] = NA
             else:
                 word_end = word + _token_len(parser, token_idx)
+                if not (fastpath and
+                        try_parse_plain_double(word, word_end,
+                                               parser.decimal, data) == 0):
+                    data[0] = double_converter(word, &p_end, parser.decimal,
+                                               parser.sci, parser.thousands,
+                                               1, &error, NULL, word_end)
+                    if error != 0 or p_end == word or p_end[0]:
+                        error = 0
+                        if (strcasecmp(word, cinf) == 0 or
+                                strcasecmp(word, cposinf) == 0 or
+                                strcasecmp(word, cinfty) == 0 or
+                                strcasecmp(word, cposinfty) == 0):
+                            data[0] = INF
+                        elif (strcasecmp(word, cneginf) == 0 or
+                                strcasecmp(word, cneginfty) == 0):
+                            data[0] = NEGINF
+                        else:
+                            return 1
+                if use_na_flist:
+                    k64 = kh_get_float64(na_fhashset, data[0])
+                    if k64 != na_fhashset.n_buckets:
+                        na_count[0] += 1
+                        data[0] = NA
+            data += 1
+    else:
+        for _ in range(lines):
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_end = word + _token_len(parser, token_idx)
+            if not (fastpath and
+                    try_parse_plain_double(word, word_end,
+                                           parser.decimal, data) == 0):
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL, word_end)
@@ -2126,31 +2851,6 @@ cdef int _try_double_nogil(parser_t *parser,
                         data[0] = NEGINF
                     else:
                         return 1
-                if use_na_flist:
-                    k64 = kh_get_float64(na_fhashset, data[0])
-                    if k64 != na_fhashset.n_buckets:
-                        na_count[0] += 1
-                        data[0] = NA
-            data += 1
-    else:
-        for _ in range(lines):
-            word = coliter_next_with_idx(&it, &token_idx)
-            word_end = word + _token_len(parser, token_idx)
-            data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands,
-                                       1, &error, NULL, word_end)
-            if error != 0 or p_end == word or p_end[0]:
-                error = 0
-                if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0 or
-                        strcasecmp(word, cinfty) == 0 or
-                        strcasecmp(word, cposinfty) == 0):
-                    data[0] = INF
-                elif (strcasecmp(word, cneginf) == 0 or
-                        strcasecmp(word, cneginfty) == 0):
-                    data[0] = NEGINF
-                else:
-                    return 1
             data += 1
 
     return 0
@@ -2446,6 +3146,61 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
             if error != 0:
                 return error
             data += 1
+
+    return 0
+
+
+cdef inline int _bool_numeric_literal(const char *word) noexcept nogil:
+    # The numeric boolean spellings BooleanArray accepts by default:
+    # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.
+    if word[0] == ord("1"):
+        if word[1] == 0:
+            return 1
+        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+            return 1
+    elif word[0] == ord("0"):
+        if word[1] == 0:
+            return 0
+        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+            return 0
+    return -1
+
+
+cdef int _try_boolean_masked_nogil(parser_t *parser, int64_t col,
+                                   int64_t line_start, int64_t line_end,
+                                   bint na_filter,
+                                   const kh_str_starts_t *na_hashset,
+                                   const kh_str_starts_t *true_hashset,
+                                   const kh_str_starts_t *false_hashset,
+                                   uint8_t *data, uint8_t *mask) noexcept nogil:
+    # Fill data (0/1) and mask (1 == NA) for a nullable "boolean" column,
+    # recognizing the true/false hash sets plus the "1"/"1.0"/"0"/"0.0" numeric
+    # spellings -- i.e. BooleanArray._from_sequence_of_strings' token set.  The
+    # true set is tested before the false set, matching map_string()'s ordering.
+    # Returns -1 on the first unrecognized token so the caller falls back to the
+    # generic path (which raises the canonical error).
+    cdef:
+        Py_ssize_t i, lines = line_end - line_start
+        coliter_t it
+        const char *word = NULL
+        int numeric
+
+    coliter_setup(&it, parser, col, line_start)
+    for i in range(lines):
+        word = coliter_next(&it)
+
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            mask[i] = 1
+            data[i] = 0
+            continue
+
+        numeric = _bool_numeric_literal(word)
+        if kh_get_str_starts_item(true_hashset, word) or numeric == 1:
+            data[i] = 1
+        elif kh_get_str_starts_item(false_hashset, word) or numeric == 0:
+            data[i] = 0
+        else:
+            return -1
 
     return 0
 

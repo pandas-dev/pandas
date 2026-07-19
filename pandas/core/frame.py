@@ -106,6 +106,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -1775,6 +1776,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
+            if (
+                orient == "columns"
+                and isinstance(data, dict)
+                and len(data) > 0
+                and all(is_scalar(value) for value in data.values())
+            ):
+                # GH#25515
+                raise ValueError(
+                    "If using all scalar values, pass orient='index' to use "
+                    "the keys as the index, or use the DataFrame constructor."
+                )
         else:  # pragma: no cover
             raise ValueError(
                 f"Expected 'index', 'columns' or 'tight' for orient parameter. "
@@ -5356,8 +5368,9 @@ class DataFrame(NDFrame, OpsMixin):
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
           of dtypes. Under-specified instances like a unitless
-          ``np.dtype("datetime64")`` or a bare ``pd.CategoricalDtype()``
-          select their whole family
+          ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
+          ``pd.IntervalDtype("int64")`` without a ``closed`` select their
+          whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5477,6 +5490,22 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
+            def matches_interval_subtype(
+                target: IntervalDtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # GH#66119, GH#66120: an interval spec with a subtype but no
+                # ``closed`` (e.g. the string "interval[int64]" or the instance
+                # IntervalDtype("int64")) has closed=None, which ``==`` never
+                # matches since no column has closed=None. Treat it as naming
+                # the subtype family, matching that subtype for any closed.
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return (
+                        isinstance(dtype_obj, IntervalDtype)
+                        and dtype_obj.subtype == target.subtype
+                    )
+
+                return func
+
             def matches_np_dtype(
                 np_dtype: np.dtype,
             ) -> Callable[[DtypeObj], bool]:
@@ -5531,6 +5560,17 @@ class DataFrame(NDFrame, OpsMixin):
                         # "category" string
                         resolved.add(dtype.type)
                         funcs.append(matches_type(dtype.type))
+                        continue
+                    elif (
+                        isinstance(dtype, IntervalDtype)
+                        and dtype.subtype is not None
+                        and dtype.closed is None
+                    ):
+                        # GH#66119: a partially-specified IntervalDtype instance
+                        # (subtype but no closed, e.g. IntervalDtype("int64"))
+                        # names the subtype family, matching any closed value
+                        resolved.add(dtype)
+                        ea_funcs.append(matches_interval_subtype(dtype))
                         continue
                     resolved.add(dtype)
                     instances.append(dtype)
@@ -5611,8 +5651,19 @@ class DataFrame(NDFrame, OpsMixin):
                                 # a bare name (e.g. "Int64", "category") names
                                 # the dtype's class and matches any instance.
                                 if "[" in dtype:
-                                    resolved.add(pdtype)
-                                    ea_funcs.append(matches_ea_instance(pdtype))
+                                    if (
+                                        isinstance(pdtype, IntervalDtype)
+                                        and pdtype.closed is None
+                                    ):
+                                        # GH#66120: "interval[int64]" resolves to
+                                        # closed=None; match the subtype family
+                                        resolved.add(pdtype)
+                                        ea_funcs.append(
+                                            matches_interval_subtype(pdtype)
+                                        )
+                                    else:
+                                        resolved.add(pdtype)
+                                        ea_funcs.append(matches_ea_instance(pdtype))
                                 else:
                                     resolved.add(type(pdtype))
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
@@ -16183,7 +16234,10 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            return maybe_unbox_numpy_scalar(func(df.values))
+            return maybe_unbox_numpy_scalar(
+                func(df.values),
+                dtype=None if name in ["any", "all"] else dtype,
+            )
         elif axis == 1:
             if len(df.index) == 0:
                 # Taking a transpose would result in no columns, losing the dtype.
@@ -16202,16 +16256,37 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
+                blocks = df._mgr.blocks
+                if len(blocks) == 1 and name not in ("argmax", "argmin"):
+                    # GH#51474: reduce a single homogeneous block along axis=0
+                    # directly, matching the transpose path below with less
+                    # overhead. argmax/argmin depend on column order, so skip.
+                    bvalues = blocks[0].values
+                    result = None
+                    if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
+                        # block is (ncols, nrows); few rows barely vectorizes,
+                        # so leave narrow sum/prod/mean to the transpose path.
+                        if not (
+                            name in ("sum", "prod", "mean") and bvalues.shape[1] < 6
+                        ):
+                            result = op(bvalues, axis=0, skipna=skipna, **kwds)
+                    elif isinstance(bvalues, ExtensionArray) and bvalues.ndim == 2:
+                        result = bvalues._reduce(name, axis=0, skipna=skipna, **kwds)
+                    if result is not None:
+                        out = df._constructor_sliced(result, index=df.index, copy=False)
+                        if out_dtype is not None and out.dtype != "boolean":
+                            out = out.astype(out_dtype)
+                        return out
                 # GH#51474: block-wise axis=1 reduction avoiding an expensive
                 # transpose for numpy-backed blocks.  EA blocks are excluded
                 # (GH#65500) and handled below by the EA fastpath or transpose.
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all", "mean")
-                    and len(df._mgr.blocks) > 1
+                    and len(blocks) > 1
                     and all(
                         isinstance(block.values, np.ndarray)
                         and block.values.dtype.kind != "O"
-                        for block in df._mgr.blocks
+                        for block in blocks
                     )
                 ):
                     return df._reduce_axis1(
@@ -16224,22 +16299,56 @@ class DataFrame(NDFrame, OpsMixin):
                     [block.values.dtype for block in df._mgr.blocks]
                 )
                 if isinstance(dtype, ExtensionDtype):
-                    # GH 54341: fastpath for EA-backed axis=1 reductions
-                    # This flattens the frame into a single 1D array while keeping
-                    # track of the row and column indices of the original frame. Once
-                    # flattened, grouping by the row indices and aggregating should
-                    # be equivalent to transposing the original frame and aggregating
-                    # with axis=0.
+                    # GH#54341: fastpath for EA-backed axis=1 reductions.
+                    # Flatten the frame into a 1D EA and call _groupby_op
+                    # directly with row indices as pre-computed group codes,
+                    # which is equivalent to transposing and reducing with
+                    # axis=0 but avoids the expensive factorize step that
+                    # ser.groupby(row_index) would otherwise perform on the
+                    # already-known codes (GH#56903).
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype)
                     arr = concat_compat(list(df._iter_column_arrays()))
+                    assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
-                    row_index = np.tile(np.arange(nrows), ncols)
-                    col_index = np.repeat(np.arange(ncols), nrows)
-                    ser = Series(arr, index=col_index, copy=False)
-                    result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
-                    result.index = df.index
-                    return result
+                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
+                    if name in ("idxmin", "idxmax"):
+                        if not skipna and arr.isna().any():
+                            # Match the error raised by GroupBy._idxmax_idxmin
+                            raise ValueError(
+                                f"{name} with skipna=False encountered an NA value."
+                            )
+                    op_kwargs = dict(kwds)
+                    min_count = op_kwargs.pop("min_count", -1)
+                    try:
+                        res_values = arr._groupby_op(
+                            how=name,
+                            has_dropped_na=False,
+                            min_count=min_count,
+                            ngroups=nrows,
+                            ids=row_index,
+                            skipna=skipna,
+                            **op_kwargs,
+                        )
+                    except NotImplementedError:
+                        # e.g. min/max on object-backed str dtype, or a
+                        # third-party EA without _groupby_op; groupby falls
+                        # back to pure-python aggregation for these.
+                        col_index = np.repeat(np.arange(ncols), nrows)
+                        ser = Series(arr, index=col_index, copy=False)
+                        result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
+                        result.index = df.index
+                        return result
+                    if name in ("idxmin", "idxmax"):
+                        # res_values are positions in the flattened arr.
+                        # Position k = row + col * nrows, so col = k // nrows;
+                        # preserve -1 (all-NA) sentinel from the cython op.
+                        assert isinstance(res_values, np.ndarray)
+                        result_values = np.where(
+                            res_values >= 0, res_values // nrows, -1
+                        ).astype(np.intp, copy=False)
+                        return Series(result_values, index=df.index)
+                    return Series(res_values, index=df.index)
 
             df = df.T
 
@@ -16250,7 +16359,9 @@ class DataFrame(NDFrame, OpsMixin):
         out.name = None
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
+        elif name not in ["any", "all"] and any(
+            blk.dtype == object for blk in df._mgr.blocks
+        ):
             out = out.astype(object)
 
         return out
