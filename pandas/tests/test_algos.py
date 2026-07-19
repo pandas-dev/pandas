@@ -1207,6 +1207,68 @@ class TestIsin:
         expected = Series(False)
         tm.assert_series_equal(result, expected)
 
+    def test_isin_uint64_vs_float_no_precision_loss(self):
+        # GH#46485: a uint64 magnitude > 2**53 must not be down-cast to float64
+        # when checking membership against float targets.
+        value = 2**63 + 3
+        ser = Series([value], dtype=np.uint64)
+        result = ser.isin([float(value)])  # float(value) rounds to 2.0**63
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_float_vs_int64_no_precision_loss(self):
+        # GH#46485: the symmetric case -- a float caller against int64 targets
+        # whose magnitude exceeds 2**53 must not collide via a float64 cast.
+        ser = Series([2.0**53], dtype="float64")
+        result = ser.isin([2**53 + 1])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_uint64_vs_complex_no_precision_loss(self):
+        # GH#46485: complex128 components are float64, so casting a uint64
+        # with magnitude > 2**53 to complex128 is just as lossy as float64.
+        ser = Series([2**63 + 3], dtype=np.uint64)
+        result = ser.isin([complex(2**63)])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_complex_vs_int64_no_precision_loss(self):
+        # GH#46485: the symmetric case -- a complex caller against int64
+        # targets whose magnitude exceeds 2**53.
+        ser = Series([complex(2**53)], dtype="complex128")
+        result = ser.isin([2**53 + 1])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["float32", "complex128"])
+    def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
+        # GH#46485: a mixed int/float targets list is cast to float64 by
+        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
+        # can see it; we must still object-cast and compare exactly.
+        ser = Series([2**53], dtype="int64").astype(dtype)
+        result = ser.isin([2**53 + 1, 1.5])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_float_vs_small_int_keeps_numeric_path(self, monkeypatch):
+        # GH#46485: int targets that fit exactly in float64 (|x| <= 2**53) are
+        # safe to compare numerically, so they must not fall back to the slower
+        # object-dtype path. 2**53 is the inclusive boundary.
+        called = []
+        monkeypatch.setattr(
+            algos,
+            "construct_1d_object_array_from_listlike",
+            lambda values: called.append(values) or np.asarray(values, dtype=object),
+        )
+        ser = Series([1.0, 2.0, 2.0**53], dtype="float64")
+        result = ser.isin([2, 2**53])
+        tm.assert_series_equal(result, Series([False, True, True]))
+        assert called == []  # numeric path, no object cast
+
+        # ... while an out-of-range target still forces the object path.
+        ser.isin([2**53 + 1])
+        assert len(called) == 1
+
 
 class TestValueCounts:
     def test_value_counts(self):
