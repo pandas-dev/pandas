@@ -1290,7 +1290,8 @@ class TestCustomDateRange:
                 "2024-03-06",
                 "2024-03-07",
                 "2024-03-08",
-            ]
+            ],
+            freq=cday,
         )
         tm.assert_index_equal(result, expected)
 
@@ -1298,7 +1299,7 @@ class TestCustomDateRange:
         cday = CDay(holidays=holidays)
         result = bdate_range(end="2024-03-15", periods=4, freq=cday)
         expected = DatetimeIndex(
-            ["2024-01-11", "2024-01-12", "2024-03-14", "2024-03-15"]
+            ["2024-01-11", "2024-01-12", "2024-03-14", "2024-03-15"], freq=cday
         )
         tm.assert_index_equal(result, expected)
 
