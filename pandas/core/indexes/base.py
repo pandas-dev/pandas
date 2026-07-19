@@ -8193,31 +8193,24 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
         and sequence.dtype.kind == "u"
         and (np_sequence < 0).any()
     ):
-        # GH#64148: uint64 values above INT64_MAX silently wrap to negative when
-        # cast to int64; don't fabricate an incorrect range for them.
+        # GH#64148: uint64 values above INT64_MAX wrapped negative in the cast
         return sequence
-    # GH#64148: compute the step and stop with python ints so widely-separated
-    # values (e.g. INT64_MIN and INT64_MAX) don't overflow int64 and corrupt the
-    # resulting range. Only build a range when its stop and step stay within the
-    # int64 domain that RangeIndex relies on.
+    # GH#64148: use python ints so widely-separated values (e.g. INT64_MIN and
+    # INT64_MAX) don't overflow the int64 domain RangeIndex relies on.
     first = int(np_sequence[0])
     diff = int(np_sequence[1]) - first
-    if diff == 0:
+    if diff == 0 or not -(2**63) <= diff < 2**63:
+        return sequence
+    if len(sequence) != 2 and not lib.is_sequence_range(np_sequence, diff):
         return sequence
     stop = int(np_sequence[-1]) + diff
-    iinfo = np.iinfo(np.int64)
-    if (
-        iinfo.min <= diff <= iinfo.max
-        and iinfo.min <= stop <= iinfo.max
-        and (len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff))
-    ):
-        # GH#64148: is_sequence_range compares in modular uint64 arithmetic, so
-        # a sequence that wraps past INT64_MAX rather than forming a true range
-        # can slip through. A wrapping match yields a range of the wrong length,
-        # so the length check below rejects it and keeps the conversion exact.
-        candidate = range(first, stop, diff)
-        if len(candidate) == len(sequence):
-            return candidate
+    if not -(2**63) <= stop < 2**63:
+        return sequence
+    # is_sequence_range matches modularly, so a sequence that wraps past
+    # INT64_MAX can slip through; such a match has the wrong length.
+    candidate = range(first, stop, diff)
+    if len(candidate) == len(sequence):
+        return candidate
     return sequence
 
 

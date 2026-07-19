@@ -813,11 +813,9 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     cdef:
         Py_ssize_t i, n = len(sequence)
         Py_ssize_t n4 = n & ~3
-        # GH#64148: accumulate ``first + i * step`` in uint64 (well-defined
-        # modular arithmetic). In int64 this overflows -- undefined behavior --
-        # for a range spanning more than INT64_MAX (e.g. a step of 2**62). Two
-        # int64 values are equal iff their uint64 bit patterns match, so the
-        # modular comparison stays exact for any range representable in int64.
+        # GH#64148: accumulate in uint64; ``first + i * step`` overflows int64
+        # (UB) for ranges spanning more than INT64_MAX. int64 values are equal
+        # iff their uint64 bit patterns are, so the comparison stays exact.
         uint64_t first
         uint64_t step_u = <uint64_t>step
         bint ret = True
