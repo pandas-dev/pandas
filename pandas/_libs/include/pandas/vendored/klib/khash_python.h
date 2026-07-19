@@ -386,14 +386,12 @@ typedef struct {
   kh_str_t *table;
   int starts[256];
   // Pairwise (first byte, second byte) presence bitmap: bit ch2 of
-  // starts2[ch] marks a key starting with bytes ch, ch2. Tokens sharing
-  // only a first byte with a key (e.g. "-12" vs the "-NaN" NA spelling)
-  // then skip the full hash lookup.
+  // starts2[ch] marks a key starting with bytes ch, ch2, so tokens
+  // sharing only a first byte with a key skip the full hash lookup.
   uint8_t starts2[256][32];
   // 8192-bit bloom filter over the first (up to) 4 bytes of each key.
-  // Two bytes are not enough for numeric tokens vs the default NA
-  // spellings ("1.23" vs "1.#IND", "-1.5" vs "-1.#QNAN"); four bytes
-  // are ("1.23" vs "1.#I", "-1.5" vs "-1.#").
+  // Two bytes do not separate numeric tokens from the default NA
+  // spellings ("1.23" vs "1.#IND", "-1.5" vs "-1.#QNAN"); four do.
   uint8_t prefix4[1024];
 } kh_str_starts_t;
 
@@ -442,8 +440,7 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
 // Slow path once the first-byte table hits: the starts2/prefix4 bloom
 // layers, then the full hash lookup. Kept out of line so the common
 // first-byte reject stays a tiny inline check in the parser's per-token
-// loops. Marked KH_NOINLINE (not "inline") since GCC rejects an inline
-// function that also carries the noinline attribute under -Werror.
+// loops. Not marked "inline": GCC rejects that alongside noinline.
 static KH_NOINLINE khuint_t
 kh_get_str_starts_item_slow(const kh_str_starts_t *table, const char *key) {
   const unsigned char ch2 = (unsigned char)key[1];
@@ -468,10 +465,9 @@ static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
 }
 
 // First-byte-only variant for hit-dominated lookups (the parser's
-// true/false sets, where nearly every token is in one of the two sets):
-// the bloom layers above filter nothing on a hit and would be pure
-// overhead, while the first-byte table still rejects the opposite set
-// ("True" vs the false set) in one load.
+// true/false sets): on a hit the bloom layers filter nothing and are
+// pure overhead, while the first-byte table still rejects the opposite
+// set in one load.
 static inline khuint_t
 kh_get_str_starts_item_expect_hit(const kh_str_starts_t *table,
                                   const char *key) {

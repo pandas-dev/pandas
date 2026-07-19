@@ -3257,9 +3257,8 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
         for _ in range(lines):
             word = coliter_next(&it)
 
-            # expect_hit for all three sets: bool tokens either reject on
-            # the first byte or are genuine hits, so the deeper filters in
-            # kh_get_str_starts_item would be pure overhead here
+            # bool tokens either reject on the first byte or are genuine
+            # hits; the deeper bloom filters would be pure overhead
             if kh_get_str_starts_item_expect_hit(na_hashset, word):
                 # in the hash table
                 na_count[0] += 1
