@@ -197,6 +197,8 @@ _python_unsupported = {"low_memory", "float_precision"}
 # Below this threshold the overhead of splitting and threading outweighs the benefit.
 # Break-even is around 1-2 MB; 5 MB leaves margin for cold-cache reads.
 _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
+# Minimum rows per parallel chunk, bounding how finely a file is split.
+_PARALLEL_MIN_CHUNK_ROWS = 2000
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -633,8 +635,13 @@ def _find_chunk_byte_offsets(
             fd.seek(target)
             fd.readline()  # advance past the partial line at the split point
             pos = fd.tell()
-            if pos >= file_size or pos == offsets[-1]:
+            if pos >= file_size:
                 break
+            if pos == offsets[-1]:
+                # This target fell inside the line the previous boundary
+                # already ended; skip it rather than abandoning the boundaries
+                # after it, so one long line cannot collapse the whole split.
+                continue
             offsets.append(pos)
 
     offsets.append(file_size)
@@ -681,11 +688,25 @@ def _read_csv_parallel(
     # More chunks than workers, pulled from a shared queue: an equal split
     # leaves fast cores idle while a slow one finishes its single oversized
     # chunk.  Factors larger than 3x showed no further gain.
-    offsets = _find_chunk_byte_offsets(filepath, n_workers * 3, data_start)
+    #
+    # But every chunk repeats a fixed per-column cost (dtype inference and an
+    # array allocation for each of the n_columns), so on a wide frame a fine
+    # split costs more than the parse it parallelises.  Estimate the row count
+    # from the first data line and keep chunks at least
+    # _PARALLEL_MIN_CHUNK_ROWS rows deep.
+    with open(filepath, "rb") as fh:
+        fh.seek(data_start)
+        bytes_per_row = max(len(fh.readline()), 1)
+    est_rows = (os.path.getsize(filepath) - data_start) // bytes_per_row
+    n_target = max(2, min(n_workers * 3, est_rows // _PARALLEL_MIN_CHUNK_ROWS))
+
+    offsets = _find_chunk_byte_offsets(filepath, n_target, data_start)
     n_chunks = len(offsets) - 1
     if n_chunks < 2:
         # e.g. a data section with no interior newlines (one giant line)
         return None
+    # Spare threads would only spin up to find the queue empty.
+    n_workers = min(n_workers, n_chunks)
 
     # ------------------------------------------------------------------
     # Infer column names from the preamble + one data line (very fast).
@@ -808,10 +829,11 @@ def _read_csv_parallel(
             _, chunk_columns, col_dict = reader._engine.read()
             results[chunk_idx] = (chunk_columns, col_dict)
 
-    def _copy_piece(dst: np.ndarray, pos: int, piece: np.ndarray) -> None:
+    def _copy_pieces(jobs: list[tuple[np.ndarray, int, np.ndarray]]) -> None:
         # ndarray slice assignment releases the GIL for the memcpy, so the
         # gather parallelises across the pool.
-        dst[pos : pos + len(piece)] = piece
+        for dst, pos, piece in jobs:
+            dst[pos : pos + len(piece)] = piece
 
     def _piece_ndarray(piece) -> np.ndarray | None:
         # The ndarray behind pieces whose final block is ndarray-backed:
@@ -902,17 +924,25 @@ def _read_csv_parallel(
                     else:
                         leftover_pos.append(pos)
 
-                copy_futures = []
+                copy_jobs: list[tuple[np.ndarray, int, np.ndarray]] = []
                 for group_dtype, positions in groups.items():
                     values2d = np.empty((len(positions), total), dtype=group_dtype)
                     for row, pos in enumerate(positions):
                         offset = 0
                         for piece in col_nd_pieces[pos]:
-                            copy_futures.append(
-                                pool.submit(_copy_piece, values2d[row], offset, piece)
-                            )
+                            copy_jobs.append((values2d[row], offset, piece))
                             offset += len(piece)
                     block_specs.append((values2d, np.array(positions, dtype=np.intp)))
+
+                # Batch the copies instead of submitting one task per
+                # (column, chunk): on a wide frame that is n_columns * n_chunks
+                # tasks, each moving a sliver of one column, and the dispatch
+                # then costs many times the memcpy it schedules.
+                batch = -(-len(copy_jobs) // (n_workers * 4)) or 1
+                copy_futures = [
+                    pool.submit(_copy_pieces, copy_jobs[start : start + batch])
+                    for start in range(0, len(copy_jobs), batch)
+                ]
                 for fut in copy_futures:
                     fut.result()
             for fut in close_futures:

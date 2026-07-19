@@ -424,6 +424,20 @@ class TestFindChunkByteOffsets:
         # Can't produce 8 distinct split points in 4 bytes.
         assert len(offsets) >= 2
 
+    def test_one_long_line_does_not_collapse_the_split(self, tmp_path):
+        # A line long enough to swallow several split targets must only cost
+        # those targets, not every boundary after it.
+        path = tmp_path / "data.csv"
+        lines = [b"a,b\n"] + [b"1,2\n"] * 20_000
+        lines.insert(10, b'1,"' + b"x" * 40_000 + b'"\n')
+        path.write_bytes(b"".join(lines))
+
+        offsets = _find_chunk_byte_offsets(str(path), 32, data_start=4)
+        # Without skipping past the long line the split degenerates to ~2.
+        # The line itself swallows roughly a third of the 32 split targets.
+        assert len(offsets) - 1 >= 20
+        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
+
 
 # ---------------------------------------------------------------------------
 # _read_csv_parallel  (correctness: parallel == serial)
