@@ -118,6 +118,7 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -1322,6 +1323,43 @@ cdef class TextReader:
             return cat, na_count
 
         elif isinstance(dtype, ExtensionDtype):
+            if isinstance(dtype, BaseMaskedDtype) and dtype.kind in "iuf":
+                # Fast path for nullable Integer/Floating dtypes: parse straight
+                # from the C buffers via the nogil numeric converters, instead
+                # of materializing an intermediate ndarray[object] of strings
+                # and re-parsing it through to_numeric in
+                # _from_sequence_of_strings.
+                masked = self._convert_masked_numeric(
+                    dtype, i, start, end, na_filter, na_hashset, na_fset)
+                if masked is not None:
+                    return masked
+                # Not confidently numeric-parseable (e.g. values that overflow
+                # uint64, or non-numeric data); fall through to the generic
+                # _from_sequence_of_strings path, which handles it identically
+                # to before.
+            elif isinstance(dtype, BooleanDtype):
+                # Fast path for the nullable boolean dtype.
+                boolean = self._convert_boolean_masked(
+                    i, start, end, na_filter, na_hashset)
+                if boolean is not None:
+                    return boolean
+                # An unrecognized token spelling; fall through to the generic
+                # path (which raises the canonical error, or applies
+                # user-supplied none_values).
+            elif (isinstance(dtype, ArrowDtype)
+                    and HAS_PYARROW
+                    and self.encoding_errors == b"strict"):
+                # Fast path for pyarrow-backed dtypes: build a pyarrow
+                # large_string array from the C buffers (nogil) and convert it
+                # with pyarrow compute, instead of materializing an
+                # ndarray[object] and re-parsing via to_numeric / to_datetime.
+                arrow = self._convert_arrow(dtype, i, start, end,
+                                            na_filter, na_hashset, na_fset)
+                if arrow is not None:
+                    return arrow
+                # Invalid UTF-8 or a conversion pyarrow could not perform;
+                # fall through to the generic path for identical behavior.
+
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
 
@@ -1446,6 +1484,183 @@ cdef class TextReader:
 
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
+
+    # -> ExtensionArray | None
+    cdef _parse_numeric_natural(self, Py_ssize_t i, int64_t start,
+                                int64_t end, bint na_filter,
+                                kh_str_starts_t *na_hashset, set na_fset):
+        # Parse a column with the same nogil converters the col_dtype=None
+        # inference path uses (int64 -> uint64 -> float64) and build the natural
+        # numpy-nullable array (IntegerArray / FloatingArray) -- i.e. what
+        # ``read_csv(dtype_backend="numpy_nullable")`` produces.  Returns that
+        # array, or None to signal "not confidently numeric" (non-numeric data,
+        # or ints wider than uint64 which the string path renders as Python
+        # ints), in which case the caller should fall back to the string path.
+        cdef:
+            object ivals = None
+            # NA count from the int64 parse; -1 == unknown (uint64 path),
+            # None if the int64 parse bailed (falls through to the float parse)
+            object int_na_count = -1
+
+        try:
+            ivals, int_na_count = _try_int64(self.parser, i, start, end,
+                                             na_filter, na_hashset, True)
+        except OverflowError:
+            try:
+                ivals = _try_uint64(self.parser, i, start, end,
+                                    na_filter, na_hashset, True)
+            except (OverflowError, ValueError):
+                return None
+            if ivals is None:
+                return None
+        except ValueError as err:
+            if str(err) != "Number is not int":
+                return None
+            # decimal / exponent form -> fall through to the float parse
+            ivals = None
+
+        if ivals is not None:
+            # Build the NA mask from the actual NA positions rather than from
+            # the integer sentinel value, so a legitimate int64-min / uint64-max
+            # token is preserved instead of being mistaken for NA (which the
+            # sentinel-based _maybe_upcast inference path gets wrong).  The
+            # common no-NA case skips the extra scan.
+            if not na_filter or int_na_count == 0:
+                mask = np.zeros(len(ivals), dtype=bool)
+            else:
+                mask = self._na_bool_mask(i, start, end, na_filter, na_hashset)
+            return IntegerArray(ivals, mask)
+
+        fvals, _ = _try_double(self.parser, i, start, end,
+                               na_filter, na_hashset, na_fset)
+        if fvals is None:
+            return None
+        return _maybe_upcast(fvals, use_dtype_backend=True,
+                             dtype_backend="numpy_nullable")
+
+    # -> tuple[ExtensionArray, int] | None
+    cdef _reconcile_numeric(self, natural, array_type, dtype):
+        # Reconcile the natural nullable array to the requested nullable /
+        # pyarrow dtype through _from_sequence -- exactly what
+        #   _from_sequence_of_strings(to_numeric(strings, "numpy_nullable"))
+        # does after parsing.  Returns (ExtensionArray, na_count), or None so
+        # the caller falls back to the generic string path when the requested
+        # dtype cannot hold the parsed values -- so the raised error matches
+        # legacy behavior exactly.
+        try:
+            result = array_type._from_sequence(natural, dtype=dtype)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return result, int(natural._mask.sum())
+
+    # -> tuple[ExtensionArray, int] | None
+    cdef _convert_masked_numeric(self, dtype, Py_ssize_t i, int64_t start,
+                                 int64_t end, bint na_filter,
+                                 kh_str_starts_t *na_hashset, set na_fset):
+        # Fast path for numpy-nullable Integer/Floating dtypes, bypassing the
+        # ndarray[object] + to_numeric round-trip in _from_sequence_of_strings.
+        natural = self._parse_numeric_natural(
+            i, start, end, na_filter, na_hashset, na_fset)
+        if natural is None:
+            return None
+        return self._reconcile_numeric(natural, dtype.construct_array_type(),
+                                       dtype)
+
+    # -> tuple[BooleanArray, int] | None
+    cdef _convert_boolean_masked(self, Py_ssize_t i, int64_t start,
+                                 int64_t end, bint na_filter,
+                                 kh_str_starts_t *na_hashset):
+        # Fast path for the nullable "boolean" dtype, bypassing the
+        # ndarray[object] + Python map() round-trip in _from_sequence_of_strings.
+        cdef:
+            Py_ssize_t lines = end - start
+            ndarray[uint8_t] data = np.empty(lines, dtype=np.uint8)
+            ndarray[uint8_t] mask = np.zeros(lines, dtype=np.uint8)
+            int error
+
+        with nogil:
+            error = _try_boolean_masked_nogil(
+                self.parser, i, start, end, na_filter, na_hashset,
+                self.true_set, self.false_set,
+                <uint8_t *>data.data, <uint8_t *>mask.data)
+        if error != 0:
+            # Unrecognized token spelling; defer to the generic string path so
+            # the raised error (and any user none_values) matches legacy exactly.
+            return None
+        return (BooleanArray(data.view(np.bool_), mask.view(np.bool_)),
+                int(mask.sum()))
+
+    cdef _na_bool_mask(self, Py_ssize_t i, int64_t start, int64_t end,
+                       bint na_filter, kh_str_starts_t *na_hashset):
+        # Boolean mask of the NA rows in a column, derived from the NA hashset.
+        cdef:
+            Py_ssize_t j, lines = end - start
+            coliter_t it
+            const char *word = NULL
+            ndarray[uint8_t, cast=True] mask = np.zeros(lines, dtype=bool)
+            uint8_t *mptr = <uint8_t *>mask.data
+
+        if na_filter:
+            coliter_setup(&it, self.parser, i, start)
+            with nogil:
+                for j in range(lines):
+                    word = coliter_next(&it)
+                    if kh_get_str_starts_item(na_hashset, word):
+                        mptr[j] = 1
+        return mask
+
+    # -> tuple[ExtensionArray, int] | None
+    cdef _convert_arrow(self, dtype, Py_ssize_t i, int64_t start,
+                        int64_t end, bint na_filter,
+                        kh_str_starts_t *na_hashset, set na_fset):
+        # Fast path for pyarrow-backed (:class:`ArrowDtype`) columns.
+        import pyarrow as pa
+
+        pa_type = dtype.pyarrow_dtype
+        if pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type):
+            # Parse with the same C converters as dtype_backend="pyarrow"
+            # inference (and the nullable fast path above), then wrap as pyarrow.
+            # This keeps explicit "int64[pyarrow]" parsing identical to
+            # dtype_backend="pyarrow" rather than adopting pyarrow's more lenient
+            # string casting (which would e.g. accept "0x1F").
+            natural = self._parse_numeric_natural(
+                i, start, end, na_filter, na_hashset, na_fset)
+            if natural is None:
+                return None
+            return self._reconcile_numeric(
+                natural, dtype.construct_array_type(), dtype)
+
+        if not (pa.types.is_timestamp(pa_type)
+                or pa.types.is_date(pa_type)
+                or pa.types.is_duration(pa_type)
+                or pa.types.is_time(pa_type)
+                or pa.types.is_boolean(pa_type)
+                or pa.types.is_string(pa_type)
+                or pa.types.is_large_string(pa_type)
+                or pa.types.is_binary(pa_type)):
+            # decimal and any other type keep the generic path (unchanged).
+            return None
+
+        # Build a pyarrow large_string array straight from the C buffers (nogil)
+        # and let _from_sequence_of_strings convert it with pyarrow compute
+        # (to_datetime / cast, nogil C++).  These conversions use the same
+        # engine as the generic object path, so results are unchanged.
+        strings, na_count = _string_pyarrow_utf8(
+            self.parser, i, start, end, na_filter, na_hashset, "str_nan")
+        if isinstance(strings, np.ndarray):
+            # _string_pyarrow_utf8 fell back to the object path (invalid UTF-8)
+            return None
+
+        array_type = dtype.construct_array_type()
+        try:
+            result = array_type._from_sequence_of_strings(
+                strings._pa_array, dtype=dtype)
+        except (ValueError, TypeError, NotImplementedError):
+            # pyarrow raises ArrowInvalid (a ValueError) / ArrowNotImplemented
+            # (a NotImplementedError) on values it cannot convert; defer to the
+            # generic path so the error matches legacy behavior.
+            return None
+        return result, na_count
 
     cdef void _validate_usecols_and_names(self, int num_cols):
         usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
@@ -2789,6 +3004,61 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
             if error != 0:
                 return error
             data += 1
+
+    return 0
+
+
+cdef inline int _bool_numeric_literal(const char *word) noexcept nogil:
+    # The numeric boolean spellings BooleanArray accepts by default:
+    # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.
+    if word[0] == ord("1"):
+        if word[1] == 0:
+            return 1
+        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+            return 1
+    elif word[0] == ord("0"):
+        if word[1] == 0:
+            return 0
+        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+            return 0
+    return -1
+
+
+cdef int _try_boolean_masked_nogil(parser_t *parser, int64_t col,
+                                   int64_t line_start, int64_t line_end,
+                                   bint na_filter,
+                                   const kh_str_starts_t *na_hashset,
+                                   const kh_str_starts_t *true_hashset,
+                                   const kh_str_starts_t *false_hashset,
+                                   uint8_t *data, uint8_t *mask) noexcept nogil:
+    # Fill data (0/1) and mask (1 == NA) for a nullable "boolean" column,
+    # recognizing the true/false hash sets plus the "1"/"1.0"/"0"/"0.0" numeric
+    # spellings -- i.e. BooleanArray._from_sequence_of_strings' token set.  The
+    # true set is tested before the false set, matching map_string()'s ordering.
+    # Returns -1 on the first unrecognized token so the caller falls back to the
+    # generic path (which raises the canonical error).
+    cdef:
+        Py_ssize_t i, lines = line_end - line_start
+        coliter_t it
+        const char *word = NULL
+        int numeric
+
+    coliter_setup(&it, parser, col, line_start)
+    for i in range(lines):
+        word = coliter_next(&it)
+
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            mask[i] = 1
+            data[i] = 0
+            continue
+
+        numeric = _bool_numeric_literal(word)
+        if kh_get_str_starts_item(true_hashset, word) or numeric == 1:
+            data[i] = 1
+        elif kh_get_str_starts_item(false_hashset, word) or numeric == 0:
+            data[i] = 0
+        else:
+            return -1
 
     return 0
 
