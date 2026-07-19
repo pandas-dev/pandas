@@ -692,13 +692,29 @@ def _read_csv_parallel(
     # But every chunk repeats a fixed per-column cost (dtype inference and an
     # array allocation for each of the n_columns), so on a wide frame a fine
     # split costs more than the parse it parallelises.  Estimate the row count
-    # from the first data line and keep chunks at least
-    # _PARALLEL_MIN_CHUNK_ROWS rows deep.
+    # from the median of a few line lengths sampled across the data section (a
+    # single probe would let one atypical line skew the estimate badly) and
+    # keep chunks at least _PARALLEL_MIN_CHUNK_ROWS rows deep.
+    data_size = os.path.getsize(filepath) - data_start
+    line_lens = []
     with open(filepath, "rb") as fh:
-        fh.seek(data_start)
-        bytes_per_row = max(len(fh.readline()), 1)
-    est_rows = (os.path.getsize(filepath) - data_start) // bytes_per_row
-    n_target = max(2, min(n_workers * 3, est_rows // _PARALLEL_MIN_CHUNK_ROWS))
+        for probe in range(9):
+            fh.seek(data_start + data_size * probe // 9)
+            fh.readline(1 << 20)  # advance past the partial line at the probe
+            line = fh.readline(1 << 20)
+            if line:
+                line_lens.append(len(line))
+    line_lens.sort()
+    bytes_per_row = line_lens[len(line_lens) // 2] if line_lens else data_size
+    est_rows = data_size // bytes_per_row
+    n_target = min(n_workers * 3, est_rows // _PARALLEL_MIN_CHUNK_ROWS)
+    if n_target < 2:
+        # So few rows that even a 2-way split falls short of
+        # _PARALLEL_MIN_CHUNK_ROWS per chunk: worth it only when each half is
+        # big enough that the per-column fixed costs are amortised anyway.
+        if data_size < 2 * _PARALLEL_READ_MIN_BYTES:
+            return None
+        n_target = 2
 
     offsets = _find_chunk_byte_offsets(filepath, n_target, data_start)
     n_chunks = len(offsets) - 1

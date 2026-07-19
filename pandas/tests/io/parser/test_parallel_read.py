@@ -596,6 +596,47 @@ class TestReadCsvParallel:
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
+    def test_long_first_line_keeps_fine_split(self, tmp_path, monkeypatch):
+        # The chunk count comes from an estimated row count.  The estimate
+        # samples several lines across the data section, so one huge first
+        # data line must not collapse the split (or worse, force a serial
+        # read via the few-rows bailout) (GH#66275).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        lines = ["a,b\n", f"0,s{'x' * 50_000}\n"]
+        lines += [f"{i},s{i}\n" for i in range(30_000)]
+        path.write_text("".join(lines), encoding="utf-8")
+
+        n_targets = []
+        orig = _readers._find_chunk_byte_offsets
+
+        def spy(filepath, n_chunks, data_start):
+            n_targets.append(n_chunks)
+            return orig(filepath, n_chunks, data_start)
+
+        monkeypatch.setattr(_readers, "_find_chunk_byte_offsets", spy)
+        kwds = self._base_kwds(path)
+        result = _read_csv_parallel(str(path), kwds, 4)
+        assert result is not None
+        expected = self._serial_read(path)
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        # 30k rows over the 2000-row chunk floor supports the full 4*3
+        # split; an estimate from the first line alone would give 2 chunks.
+        assert n_targets[0] >= 10
+
+    def test_few_estimated_rows_returns_none(self, tmp_path):
+        # ~300 long rows: even a 2-way split would leave each chunk far
+        # below _PARALLEL_MIN_CHUNK_ROWS, and the file is small enough that
+        # the per-chunk per-column fixed costs would outweigh the
+        # parallelism (GH#66275).
+        path = tmp_path / "wide.csv"
+        header = ",".join(f"c{i}" for i in range(500)) + "\n"
+        row = ",".join(["123456789"] * 500) + "\n"
+        path.write_text(header + row * 300, encoding="utf-8")
+        kwds = self._base_kwds(path)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
     def test_quoted_newline_in_header_returns_none(self, tmp_path):
         # A quoted embedded newline in the header makes the physical line
         # count disagree with the logical row count, so data_start would land
