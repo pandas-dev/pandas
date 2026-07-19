@@ -96,6 +96,24 @@ def test_resample_offset_with_timedeltaindex():
     tm.assert_index_equal(with_base.index, exp_with_base)
 
 
+def test_resample_day_offset_origin_with_timedeltaindex():
+    # GH#44996: with a Day freq, offset takes effect (like the equivalent
+    # Hour freq, without warning) while origin is ignored with a warning
+    rng = timedelta_range(start="0 days", periods=10, freq="12h")
+    ts = Series(np.arange(10), index=rng)
+
+    with tm.assert_produces_warning(None):
+        result = ts.resample("2D", offset="3h").sum()
+    expected = ts.resample("48h", offset="3h").sum()
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+    msg = "The 'origin' keyword does not take effect"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ts.resample("2D", origin=pd.Timestamp("2021-01-04")).sum()
+    expected = ts.resample("2D").sum()
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_categorical_data_with_timedeltaindex():
     # GH #12169
     df = DataFrame({"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s"))
@@ -216,3 +234,17 @@ def test_arrow_duration_resample():
     expected = Series(np.arange(5, dtype=np.float64), index=idx)
     result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_arrow_duration_resample_on_keep_index_name():
+    # GH#59823 resampling on a pyarrow-backed duration column should keep its name
+    df = DataFrame(
+        {
+            "td": timedelta_range("1 day", periods=5),
+            "metric": np.arange(5, dtype=np.int64),
+        }
+    ).astype({"td": "duration[ns][pyarrow]"})
+    result = df.resample("1D", on="td").sum()
+    assert result.index.name == "td"
+    assert result.index.dtype == "duration[ns][pyarrow]"

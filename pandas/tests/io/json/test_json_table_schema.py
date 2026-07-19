@@ -1,6 +1,10 @@
 """Tests for Table Schema integration."""
 
 from collections import OrderedDict
+from datetime import (
+    timedelta,
+    timezone,
+)
 from io import StringIO
 import json
 
@@ -507,6 +511,23 @@ class TestTableOrient:
         expected.update(extra_exp)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "offset,expected_tz",
+        [
+            (timedelta(hours=1), "UTC+01:00"),
+            (timedelta(hours=-5, minutes=-30), "UTC-05:30"),
+        ],
+    )
+    def test_convert_pandas_type_to_json_field_fixed_offset(self, offset, expected_tz):
+        # GH#39537 fixed-offset stdlib timezones were silently dropped from the
+        # schema instead of being serialized as a round-trippable "UTC+HH:MM"
+        data = pd.Series(
+            pd.to_datetime([1.0], utc=True).tz_convert(timezone(offset)),
+            name="values",
+        )
+        result = convert_pandas_type_to_json_field(data)
+        assert result == {"name": "values", "type": "datetime", "tz": expected_tz}
+
     def test_convert_pandas_type_to_json_period_range(self):
         arr = pd.period_range("2016", freq="Y-DEC", periods=4)
         result = convert_pandas_type_to_json_field(arr)
@@ -715,6 +736,15 @@ class TestTableOrientReader:
                 "timezones": pd.date_range(
                     "2016-01-01", freq="D", periods=4, tz="US/Central", unit="ns"
                 )  # added in # GH 35973
+            },
+            {
+                "fixed_offset": pd.date_range(
+                    "2016-01-01",
+                    freq="D",
+                    periods=4,
+                    tz=timezone(timedelta(hours=1)),
+                    unit="ns",
+                )  # GH#39537
             },
         ],
     )

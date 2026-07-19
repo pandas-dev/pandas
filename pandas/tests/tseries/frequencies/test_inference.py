@@ -102,6 +102,22 @@ def test_infer_freq_range(periods, freq):
         assert is_dec_range or is_nov_range or is_oct_range
 
 
+@pytest.mark.parametrize("offset_prefix", ["QS", "BQS"])
+@pytest.mark.parametrize("month", MONTHS)
+def test_infer_freq_quarter_start(offset_prefix, month):
+    # GH#36939 the start anchor is only known up to mod 3; the inferred
+    #  freq uses the first-calendar-quarter representative (JAN/FEB/MAR)
+    gen = date_range("1/1/2000", periods=5, freq=f"{offset_prefix}-{month}")
+    index = DatetimeIndex(gen.values)
+    expected_month = MONTHS[(gen[0].month - 1) % 3]
+    inferred = frequencies.infer_freq(index)
+    if offset_prefix == "QS":
+        assert inferred == f"QS-{expected_month}"
+    else:
+        # a BQS range whose stamps all fall on the 1st infers as QS
+        assert inferred in (f"BQS-{expected_month}", f"QS-{expected_month}")
+
+
 def test_raise_if_period_index():
     index = period_range(start="1/1/1990", periods=20, freq="M")
     msg = "Check the `freq` attribute instead of using infer_freq"

@@ -104,14 +104,7 @@ class TestDatetimeArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax"]
 
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        return op_name in ["min", "max", "median", "mean", "std", "any", "all", "count"]
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
-        meth = all_boolean_reductions
-        msg = f"datetime64 type does not support operation '{meth}'"
-        with pytest.raises(TypeError, match=msg):
-            super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
+        return op_name in ["min", "max", "median", "mean", "std", "count"]
 
     def test_series_constructor(self, data):
         # Series construction drops any .freq attr
@@ -123,6 +116,10 @@ class TestDatetimeArray(base.ExtensionTests):
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
+
+    @pytest.mark.skip("DatetimeArray.round uses a different signature (freq).")
+    def test_round(self, data):
+        pass
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["median", "mean", "std"]:

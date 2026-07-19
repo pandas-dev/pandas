@@ -1522,6 +1522,39 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 
 Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
+.. _io.csv.parallel:
+
+Reading large files in parallel
+'''''''''''''''''''''''''''''''
+
+.. versionadded:: 3.1.0
+
+When reading a large file with the C engine, :func:`read_csv` splits the file
+into chunks and parses them in multiple threads, which can speed up reading
+considerably. This happens automatically when all of the following hold:
+
+* ``filepath_or_buffer`` is a local, uncompressed file path
+* the C engine is used (the default)
+* the file is at least 50 MB
+* no options are passed that require parsing the file as a whole, such as
+  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
+  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
+  non-UTF-8 encodings
+
+Calls that are not eligible fall back to the serial path, and the result is
+always identical to a serial read.
+
+The number of threads is controlled with the ``mode.max_threads`` option,
+which defaults to the number of CPU cores, capped at ``4``. On Windows the
+default is ``1`` (serial), as parallel reading currently does not improve
+performance there. Set the option to ``1`` to disable parallel reading, e.g.
+when pandas runs inside an application that already parallelizes work:
+
+.. code-block:: python
+
+   with pd.option_context("mode.max_threads", 1):
+       df = pd.read_csv("large.csv")
+
 .. _io.remote:
 
 Reading/writing remote files
@@ -4072,8 +4105,18 @@ similar to how ``read_csv`` and ``to_csv`` work.
 .. ipython:: python
 
    df_tl = pd.DataFrame({"A": list(range(5)), "B": list(range(5))})
-   df_tl.to_hdf("store_tl.h5", key="table", append=True)
+   df_tl.to_hdf("store_tl.h5", key="table", format="table", append=True)
    pd.read_hdf("store_tl.h5", "table", where=["index>2"])
+
+.. note::
+
+   ``append=True`` only works for the :ref:`table format <io.hdf5-table>`. The
+   default format is ``fixed``, which is faster but cannot be appended to or
+   queried; calling ``to_hdf`` with ``append=True`` against an existing
+   ``fixed``-format object raises ``ValueError``. Pass ``format="table"`` (or
+   set ``pd.set_option("io.hdf.default_format", "table")``) when you intend to
+   append later. Each append must use exactly the same columns, in the same
+   order, as the existing table.
 
 .. ipython:: python
    :suppress:
@@ -4188,6 +4231,12 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. note::
 
    You can also create a ``table`` by passing ``format='table'`` or ``format='t'`` to a ``put`` operation.
+
+.. note::
+
+   Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
+   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
+   emitted. Use ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
 
@@ -4445,8 +4494,25 @@ returned, this is equivalent to passing a
 
    store.select("df", "columns=['A', 'B']")
 
+.. note::
+
+   ``PyTables`` ``table`` stores are row-oriented, so passing ``columns`` does
+   not avoid reading the full row width from disk -- it only filters the
+   returned object. To bound peak memory when selecting from a wide table,
+   pass ``chunksize`` and concatenate the chunks::
+
+      pd.concat(store.select("df", columns=["A", "B"], chunksize=50000))
+
 ``start`` and ``stop`` parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
+
+.. note::
+
+   ``start`` and ``stop`` are applied to the table **before** the ``where``
+   filter, not after. ``select(..., where="A > 0", stop=1)`` reads only
+   the first row from the table and *then* applies ``where`` to that row, so
+   it returns an empty result if the first row does not match. This differs
+   from the SQL idiom ``SELECT * FROM df WHERE A > 0 LIMIT 1``.
 
 .. note::
 
@@ -4835,7 +4901,10 @@ control compression: ``complevel`` and ``complib``.
   ``0<complevel<10`` enables compression.
 
 * ``complib`` specifies which compression library to use.
-  If nothing is  specified the default library ``zlib`` is used. A
+  If nothing is  specified the default library ``zlib`` is used. Note that
+  ``complib`` only takes effect when ``complevel`` is set greater than ``0``;
+  passing ``complib`` on its own writes the data uncompressed and emits a
+  ``UserWarning``. A
   compression library usually optimizes for either good compression rates
   or speed and the results will depend on the type of data. Which type of
   compression to choose depends on your specific needs and data. The list
@@ -5189,6 +5258,9 @@ Several caveats.
 * The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
   type (this can also work for external extension types, requiring the extension type to implement the needed protocols,
   see the :ref:`extension types documentation <extending.extension.arrow>`).
+* With the ``pyarrow`` engine, ``uint32`` data written with parquet format ``version="1.0"``
+  is stored as ``int64``, so it does not survive a round trip. The default format version
+  (``"2.4"`` or higher) preserves ``uint32`` (:issue:`37327`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
@@ -5791,6 +5863,34 @@ with respect to the timezone.
 timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
 will convert the data to UTC.
 
+.. note::
+
+   When using :func:`~pandas.DataFrame.to_sql` with Microsoft SQL Server and pyodbc
+   with ``fast_executemany=True``, datetime precision may be lost when writing to
+   local temporary tables (tables with names starting with ``#``). This is because
+   that code path binds parameters as arrays and relies on the ODBC driver inferring
+   the temporary table's column types, which it cannot do for temporary tables. The
+   default (per-row) insert path is unaffected.
+
+   To preserve datetime precision with SQL Server temporary tables, add
+   ``UseFMTONLY=Yes`` to your connection string:
+
+   .. code-block:: python
+
+      from sqlalchemy import create_engine
+
+      connection_string = (
+          "mssql+pyodbc://user:password@server/database"
+          "?driver=ODBC+Driver+17+for+SQL+Server"
+          "&UseFMTONLY=Yes"
+      )
+      engine = create_engine(connection_string)
+
+   Alternatively, use global temporary tables (``##table_name``) instead of
+   local temporary tables (``#table_name``). See the `pyodbc documentation
+   <https://github.com/mkleehammer/pyodbc/wiki/Tips-and-Tricks-by-Database-Platform#using-fast_executemany-with-a-temporary-table>`__
+   for more details.
+
 .. _io.sql.method:
 
 Insertion method
@@ -6391,7 +6491,9 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
+       df.to_hdf(
+           "test_fixed_compress.hdf", key="test", mode="w", complib="blosc", complevel=9
+       )
 
 
    def test_hdf_fixed_read_compress():
@@ -6408,7 +6510,12 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf",
+           key="test",
+           mode="w",
+           complib="blosc",
+           complevel=9,
+           format="table",
        )
 
 
