@@ -195,8 +195,7 @@ _python_unsupported = {"low_memory", "float_precision"}
 
 # Minimum file size (bytes) to attempt parallel CSV reading.
 # Below this threshold the overhead of splitting and threading outweighs the benefit.
-# Parallel reading breaks even around 1-2 MB (thread spawn plus chunk-split
-# overhead is sub-millisecond); 5 MB leaves margin for cold-cache reads.
+# Break-even is around 1-2 MB; 5 MB leaves margin for cold-cache reads.
 _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
 _pyarrow_unsupported = {
     "skipfooter",
@@ -354,12 +353,9 @@ def _read(
             # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
             _n_workers = 1
         else:
-            # Use every core by default: with the parse, convert and gather
-            # phases all GIL-free and the allocator out of the hot path,
-            # parallel reading keeps scaling through heterogeneous
-            # (performance + efficiency) core sets.  Users embedding pandas
-            # in an already-parallel workload can lower this via
-            # mode.max_threads.
+            # Use every core: with parse, convert and gather all GIL-free,
+            # scaling holds through heterogeneous core sets.  Callers already
+            # inside a parallel workload can lower this via mode.max_threads.
             _n_workers = os.cpu_count() or 1
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             _filepath = stringify_path(filepath_or_buffer)
@@ -682,12 +678,9 @@ def _read_csv_parallel(
     # Byte offset at which real data rows begin.
     data_start = _find_data_start_offset(filepath, header, skiprows)
 
-    # Split the data section into 3x n_workers chunks pulled from a shared
-    # queue: on heterogeneous CPUs (performance + efficiency cores) an equal
-    # split leaves the fast cores idle while the slow ones finish their single
-    # oversized chunk.  3x strikes the balance now that per-chunk overhead is
-    # low (readers and their buffers are reused across the chunks a worker
-    # pulls); larger factors showed no further gain.
+    # More chunks than workers, pulled from a shared queue: an equal split
+    # leaves fast cores idle while a slow one finishes its single oversized
+    # chunk.  Factors larger than 3x showed no further gain.
     offsets = _find_chunk_byte_offsets(filepath, n_workers * 3, data_start)
     n_chunks = len(offsets) - 1
     if n_chunks < 2:
@@ -770,10 +763,8 @@ def _read_csv_parallel(
         "header": None,
         "names": col_names,
         "skiprows": None,
-        # low_memory chunking exists to bound peak memory during type
-        # inference; a worker's byte slice is already bounded, and skipping
-        # it avoids a per-worker GIL-held np.concatenate over the internal
-        # chunks.
+        # A worker's byte slice already bounds peak memory, and skipping
+        # low_memory avoids a per-worker GIL-held concatenate.
         "low_memory": False,
     }
 
@@ -783,10 +774,8 @@ def _read_csv_parallel(
     with open(filepath, "rb") as fh:
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
 
-    # Work-stealing over more chunks than workers: each of n_workers threads
-    # reuses one parser to drain the queue, so a thread that draws cheap
-    # chunks (or a fast core) keeps going instead of stalling the gather on a
-    # straggler - without paying to construct a parser per chunk.
+    # Each thread reuses one parser to drain the queue, so no worker stalls
+    # the gather on a straggler and no chunk pays parser construction.
     chunk_queue: queue.SimpleQueue = queue.SimpleQueue()
     for chunk_idx in range(n_chunks):
         chunk_queue.put(chunk_idx)
@@ -796,9 +785,8 @@ def _read_csv_parallel(
     def _worker() -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
-        # Buffers are reused at high-water mark across the queued chunks and
-        # freed at close; trimming between chunks would only stall the other
-        # workers with shrink-reallocs.
+        # Buffers are reused across the queued chunks and freed at close;
+        # trimming between chunks would stall other workers on reallocs.
         reader._engine._reader.trim_after_read = False
         workers_readers.append(reader)
         while True:
@@ -808,21 +796,15 @@ def _read_csv_parallel(
                 return
             data = mv[offsets[chunk_idx] : offsets[chunk_idx + 1]]
             # The serial C parser strips a UTF-8 BOM at byte 0 of the file
-            # only; strip_bom mirrors that for the chunk that starts there
-            # (offset 0, i.e. a headerless file - with a header the first data
-            # chunk begins after it, so a leading BOM on a data line is kept).
+            # only; strip_bom mirrors that for the chunk starting there.
             reader._engine._reader.load_buffer(data, strip_bom=offsets[chunk_idx] == 0)
             # the reader holds its own reference for the parse duration
             del data
-            # A zero-row chunk (a chunk-sized run of blank lines or skipped
-            # bad lines) must return empty meta the way a fresh parser
-            # would; on a reused parser read() would instead raise
-            # StopIteration and close the reader.
+            # On a reused parser a zero-row chunk would raise StopIteration
+            # and close the reader; reset so it returns empty meta instead.
             reader._engine._first_chunk = True
-            # Collect raw column arrays rather than a DataFrame: per-chunk
-            # DataFrame assembly happens under the GIL (serializing the pool)
-            # and a final concat would push every column back through the
-            # block machinery.  The columns are gathered once, below.
+            # Raw column arrays, not DataFrames: per-chunk frame assembly
+            # holds the GIL and the concat would redo the block machinery.
             _, chunk_columns, col_dict = reader._engine.read()
             results[chunk_idx] = (chunk_columns, col_dict)
 
@@ -832,16 +814,12 @@ def _read_csv_parallel(
         dst[pos : pos + len(piece)] = piece
 
     def _piece_ndarray(piece) -> np.ndarray | None:
-        # The ndarray behind a parsed column piece, for pieces whose final
-        # block is ndarray-backed: plain ndarrays plus tz-naive
-        # datetime64/timedelta64 arrays (from parse_dates conversion).
+        # The ndarray behind pieces whose final block is ndarray-backed:
+        # plain ndarrays plus tz-naive datetime64/timedelta64.
         if isinstance(piece, np.ndarray):
             if piece.dtype == object:
-                # Object pieces take the leftover path below, where the
-                # gathered column runs through the same constructor
-                # inference as a serial read (e.g. object -> str dtype
-                # under ``future.infer_string`` when the pyarrow string
-                # fast path is unavailable).
+                # Object pieces take the leftover path below, which runs
+                # the same constructor inference as a serial read.
                 return None
             return piece
         if isinstance(piece, (DatetimeArray, TimedeltaArray)) and isinstance(
@@ -851,9 +829,8 @@ def _read_csv_parallel(
         return None
 
     dtype_arg = kwds.get("dtype")
-    # Mirror TextFileReader.read: a dict dtype or a str/object dtype request
-    # needs a Series-per-column wrap, so it takes the plain dict-based
-    # constructor below instead of direct block assembly.
+    # Mirror TextFileReader.read: a dict or str/object dtype needs a
+    # Series-per-column wrap, so it skips direct block assembly.
     needs_series_wrap = isinstance(dtype_arg, dict) or (
         dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
     )
@@ -872,14 +849,13 @@ def _read_csv_parallel(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
-            # Freeing each worker's parser buffers costs a few ms of madvise,
-            # so it runs on the pool, overlapped with the gather copies below.
+            # Freeing parser buffers costs a few ms of madvise; run it on the
+            # pool, overlapped with the gather copies below.
             close_futures = [pool.submit(reader.close) for reader in workers_readers]
             readers_closing = True
 
-            # Zero-row chunks contribute nothing to the gather but carry
-            # empty-meta object dtypes that would needlessly trip the dtype
-            # reconciliation below; drop them.
+            # Zero-row chunks carry empty-meta object dtypes that would
+            # needlessly trip the dtype reconciliation below.
             chunk_results = [
                 res
                 for res in cast("list[tuple]", results)
@@ -896,11 +872,9 @@ def _read_csv_parallel(
                 total = sum(len(chunk_dict[col_list[0]]) for chunk_dict in chunk_dicts)
 
             # Per-chunk dtype inference can disagree with whole-file inference
-            # (e.g. a numeric column whose only non-numeric row sits in one
-            # chunk parses int64 in clean chunks but object in the dirty one,
-            # whereas serial gives object for the whole column).  Mixed
-            # signed-int/float chunks gather to the same float64 result serial
-            # would produce; anything else must be re-read serially.
+            # (a lone non-numeric row makes only its own chunk object).  Mixed
+            # signed-int/float chunks gather to the float64 serial would give;
+            # anything else must be re-read serially.
             for name in col_list:
                 chunk_dtypes = {chunk_dict[name].dtype for chunk_dict in chunk_dicts}
                 if len(chunk_dtypes) > 1 and not all(
@@ -909,11 +883,9 @@ def _read_csv_parallel(
                     return None
 
             if not needs_series_wrap:
-                # Group gatherable (same-dtype ndarray) columns by dtype and
-                # gather each group straight into one preallocated consolidated
-                # block via GIL-free slice-assign copies on the pool.  Anything
-                # else (extension arrays, int/float mixes) is left to
-                # _concatenate_chunks below.
+                # Gather same-dtype ndarray columns straight into one
+                # preallocated consolidated block per dtype; anything else
+                # falls to _concatenate_chunks below.
                 groups: dict[np.dtype, list[int]] = {}
                 col_nd_pieces: dict[int, list[np.ndarray]] = {}
                 for pos, name in enumerate(col_list):

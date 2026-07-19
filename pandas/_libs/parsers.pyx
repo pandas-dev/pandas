@@ -386,10 +386,9 @@ cdef class TextReader:
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
         bint allow_leading_cols
-        # Trim the parser's buffers back down after a whole-file read.  The
-        # parallel reader sets this False on its worker parsers: buffers are
-        # reused at their high-water mark across the worker's chunks and
-        # freed at close, so shrinking them between chunks is wasted work.
+        # Trim the parser's buffers after a whole-file read.  The parallel
+        # reader turns this off on its workers, whose buffers are reused
+        # across chunks and freed at close.
         public bint trim_after_read
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
