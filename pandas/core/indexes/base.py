@@ -5239,6 +5239,12 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, np.ndarray):
             data = data.view()
             data.flags.writeable = False
+        else:
+            # GH#38547 don't allow mutating the Index through its .values;
+            #  an Index is immutable, and in-place mutation here would
+            #  silently corrupt it (e.g. leave a stale lookup engine).
+            data = data.view()
+            data._readonly = True
         return data
 
     @cache_readonly
@@ -5250,6 +5256,10 @@ class Index(IndexOpsMixin, PandasObject):
         an Index without requiring conversion to a NumPy array. It
         returns an ExtensionArray, which is the native storage format for
         pandas extension dtypes.
+
+        .. versionchanged:: 3.1.0
+
+           The returned array is read-only, since an Index is immutable.
 
         Returns
         -------
@@ -5314,9 +5324,11 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
-        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
-        # array = array.view()
-        # array._readonly = True
+        # GH#38547 an Index is immutable; return a read-only view so the
+        #  Index cannot be silently corrupted by mutating the returned array
+        #  (which would also leave a stale lookup engine behind).
+        array = array.view()
+        array._readonly = True
         return array
 
     @property
