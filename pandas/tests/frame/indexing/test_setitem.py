@@ -1539,9 +1539,7 @@ def test_loc_setitem_tz_aware_column_expansion():
 
 
 def test_setitem_boolean_mask_length_mismatch_message_gh45593():
-    # GH#45593 setting with a boolean-DataFrame mask and a value whose length
-    # does not match the number of True entries should give an actionable
-    # message, not the cryptic "cannot assign mismatch length to masked array"
+    # GH#45593
     df = DataFrame({"a": [1], "b": [1]})
     # split the columns into separate blocks so the value mismatch surfaces
     df[["a", "b"]] = [[2, 2]]

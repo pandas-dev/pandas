@@ -3189,18 +3189,17 @@ class TestPivot:
         expected = DataFrame(
             index=expected_index, columns=expected_columns, dtype=dtype
         )
+
         tm.assert_frame_equal(result, expected)
 
 
 def test_pivot_non_column_label_raises_gh35785():
-    # GH#35785 passing a non-column label (e.g. an Index object) for
-    # index/columns/values should raise a clear error naming the offending
-    # labels instead of a cryptic downstream TypeError.
+    # GH#35785
     df = DataFrame.from_records(
         [{"date": datetime(2016, 3, 2), "col1": 1, "col2": 2}], index=["date"]
     )
 
-    # passing the frame's Index object as ``index`` (its values are not columns)
+    # the frame's Index object; its values are not columns
     msg = "The following 'index' labels are not columns of the DataFrame"
     with pytest.raises(KeyError, match=msg):
         df.pivot(index=df.index, columns="col1")

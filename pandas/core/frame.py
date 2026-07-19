@@ -4729,10 +4729,8 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             self._where(-key, value, inplace=True)
         except ValueError as err:
-            # GH#45593 the cryptic "cannot assign mismatch length to masked
-            # array" from putmask_without_repeat gives no hint that it refers
-            # to a boolean-DataFrame-mask setitem; restate it with the two
-            # mismatched lengths so the user can act on it.
+            # GH#45593 restate putmask_without_repeat's message with the
+            #  mismatched lengths.
             if "mismatch length to masked array" not in str(err):
                 raise
             num_true = int(key.to_numpy(dtype=bool, na_value=False).sum())

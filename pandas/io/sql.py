@@ -2783,8 +2783,7 @@ class SQLiteDatabase(PandasSQL):
 
             if re.fullmatch(r"[A-Za-z_]\w*", sql.strip()):
                 # GH#54233 a bare identifier is almost certainly an attempt to
-                # read a table by name, which is only supported with a
-                # SQLAlchemy connection, not a DBAPI one.
+                #  read a table by name.
                 ex = DatabaseError(
                     f"Execution failed on sql '{sql}': {exc}\n\n"
                     "Reading a table by name is only supported when using a "

@@ -301,9 +301,8 @@ class Writer(ABC):
                 indent=self.indent,
             )
         except OverflowError as err:
-            # GH#36211 the C ujson encoder recurses without bound on object
-            # types it does not understand, surfacing as a cryptic
-            # "Maximum recursion level reached" OverflowError.
+            # GH#36211 the C encoder recurses without bound on object types it
+            #  does not understand.
             if "Maximum recursion level reached" not in str(err):
                 raise
             raise ValueError(

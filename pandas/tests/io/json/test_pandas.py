@@ -2576,8 +2576,7 @@ def test_large_number_string_column():
 
 
 def test_to_json_unsupported_object_gh36211():
-    # GH#36211 to_json on an object type the encoder cannot serialize should
-    # raise a clear ValueError instead of a cryptic recursion OverflowError
+    # GH#36211
     df = DataFrame({"a": [Path("m1")]})
     msg = "Unable to serialize object to JSON: encountered an unsupported object type"
     with pytest.raises(ValueError, match=msg):

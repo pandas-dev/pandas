@@ -221,8 +221,7 @@ def test_ewm_sum_adjust_false_notimplemented():
 
 
 def test_ewm_aggregate_callable_gh41700(frame_or_series):
-    # GH#41700 arbitrary callables raise a clear NotImplementedError instead of
-    # a confusing "no attribute 'apply'" AttributeError
+    # GH#41700
     obj = frame_or_series(range(5)).ewm(alpha=0.1)
     msg = "aggregate does not support arbitrary callables"
     with pytest.raises(NotImplementedError, match=msg):

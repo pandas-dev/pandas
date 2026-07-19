@@ -533,12 +533,8 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
     """
-    # GH#46093 a dtype that never overrides the abstract ``name`` property
-    #  cannot be constructed from a string and previously surfaced a bare
-    #  AssertionError (or an opaque "data type not understood") only when the
-    #  dtype was later used. Fail fast at registration with a clear message.
-    #  Compare identity against the base property so dtypes that define ``name``
-    #  as an instance-level property (e.g. DatetimeTZDtype) are not flagged.
+    # GH#46093 identity check against the base property, so dtypes defining
+    #  ``name`` as an instance-level property (e.g. DatetimeTZDtype) pass.
     if inspect.getattr_static(cls, "name", None) is ExtensionDtype.__dict__["name"]:
         raise TypeError(
             f"Cannot register '{cls.__name__}' because it does not define a "

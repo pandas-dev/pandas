@@ -135,8 +135,7 @@ def test_reindex_not_all_tuples():
 
 
 def test_reindex_flat_integer_target_raises_gh26460():
-    # GH#26460 reindexing a unique integer MultiIndex onto a flat integer
-    #  target used to raise a cryptic Cython "Buffer dtype mismatch" error
+    # GH#26460
     mi = MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]])
     msg = (
         "cannot reindex a MultiIndex with a flat 'int64' index; the reindex "

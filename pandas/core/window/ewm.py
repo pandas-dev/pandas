@@ -522,9 +522,8 @@ class ExponentialMovingWindow(BaseWindow):
         2  2.428571  5.428571  8.428571
         """
         if callable(func):
-            # GH#41700 ExponentialMovingWindow has no ``apply`` method, so the
-            # BaseWindow.aggregate fallback to ``self.apply(...)`` raises a
-            # confusing AttributeError. Give a clear message instead.
+            # GH#41700 BaseWindow.aggregate falls back to ``self.apply(...)``,
+            #  which ExponentialMovingWindow does not implement.
             raise NotImplementedError(
                 f"{type(self).__name__}.aggregate does not support arbitrary "
                 "callables; supported aggregations are mean, sum, std, var, "

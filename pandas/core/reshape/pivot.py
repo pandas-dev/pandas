@@ -899,17 +899,13 @@ def pivot(
     """
     columns_listlike = com.convert_to_list_like(columns)
 
-    # GH#35785 Validate up front that index/columns/values reference actual
-    # columns of the frame. Otherwise passing e.g. an Index object for ``index``
-    # raises a cryptic error from downstream label arithmetic instead of a clear
-    # message naming the offending labels.
+    # GH#35785 without this, downstream label arithmetic raises cryptically.
     labels_to_check: list[tuple[str, list]] = [("columns", list(columns_listlike))]
     if index is not lib.no_default:
         labels_to_check.append(("index", list(com.convert_to_list_like(index))))
     if values is not lib.no_default and not isinstance(values, tuple):
-        # a tuple ``values`` is treated as a single (MultiIndex) column label;
-        #  leave it to the existing lookup, which raises a KeyError naming the
-        #  tuple (GH#17160). Any other value must reference columns of the frame.
+        # GH#17160 a tuple ``values`` is a single (MultiIndex) label; the
+        #  existing lookup already raises a KeyError naming it.
         labels_to_check.append(("values", list(com.convert_to_list_like(values))))
     for param_name, labels in labels_to_check:
         missing = [label for label in labels if label not in data.columns]

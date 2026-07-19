@@ -3334,10 +3334,8 @@ class MultiIndex(Index):
                     # not all tuples, see test_constructor_dict_multiindex_reindex_flat
                     return target
                 except ValueError as err:
-                    # GH#26460 from_tuples was handed a non-object (e.g. integer)
-                    #  flat target, which fails the Cython buffer check with a
-                    #  cryptic "Buffer dtype mismatch" message. Re-raise something
-                    #  the user can act on.
+                    # GH#26460 from_tuples on a non-object (e.g. integer) flat
+                    #  target fails the Cython buffer check.
                     raise ValueError(
                         "cannot reindex a MultiIndex with a flat "
                         f"'{target.dtype}' index; the reindex target must "
@@ -4831,10 +4829,8 @@ class MultiIndex(Index):
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
-                # GH#20252, GH#26622 validate that every element is a
-                #  tuple-like of length nlevels before handing to
-                #  from_tuples, which otherwise silently produces wrong
-                #  results or raises a cryptic error.
+                # GH#20252, GH#26622 from_tuples silently gives wrong results
+                #  for elements that aren't tuple-likes of length nlevels.
                 for position, value in enumerate(values):
                     if is_list_like(value) and len(value) == self.nlevels:
                         continue

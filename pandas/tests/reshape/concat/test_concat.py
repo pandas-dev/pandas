@@ -1030,8 +1030,7 @@ def test_concat_keys_overlapping_intervalindex_level():
 
 
 def test_concat_mismatched_nlevels_with_keys_gh25413():
-    # GH#25413 concatenating a mix of single-level and MultiIndex objects while
-    #  passing keys= should raise a clear ValueError, not an AssertionError
+    # GH#25413
     df1 = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
     df2 = DataFrame(
         np.arange(12).reshape(4, 3),

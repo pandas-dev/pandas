@@ -105,8 +105,7 @@ def test_isin_generator():
 
 
 def test_isin_scalar_values_raises_gh20252():
-    # GH#20252 passing scalars (non-tuples) should raise a clear error, not
-    #  a cryptic "object of type 'int' has no len()" TypeError
+    # GH#20252
     midx = MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
     msg = (
         "MultiIndex.isin expects an iterable of tuples of length 2 "
@@ -126,9 +125,7 @@ def test_isin_scalar_values_raises_gh20252():
     ],
 )
 def test_isin_wrong_length_tuples_raises_gh26622(values, bad_len, position):
-    # GH#26622 tuples whose length does not match nlevels used to silently
-    #  give wrong results (partial/short tuples) or raise an AssertionError
-    #  (too-long tuples); now they raise a clear ValueError
+    # GH#26622 short tuples used to silently give wrong results
     midx = MultiIndex.from_product([["foo", "bar"], ["one", "two"], ["A", "B"]])
     msg = (
         "MultiIndex.isin expects an iterable of tuples of length 3 "

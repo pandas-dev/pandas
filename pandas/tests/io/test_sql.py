@@ -1530,9 +1530,7 @@ SELECT * FROM groups;
 
 
 def test_read_sql_bare_table_name_dbapi_message_gh54233(sqlite_buildin):
-    # GH#54233 a bare table name on a DBAPI connection cannot be reflected, so
-    # give a clear message pointing to SQLAlchemy / a SQL query instead of a
-    # cryptic SQL syntax error.
+    # GH#54233 a bare table name on a DBAPI connection cannot be reflected
     DataFrame({"a": [1], "b": [2]}).to_sql("demo", sqlite_buildin, index=False)
 
     msg = "Reading a table by name is only supported when using a SQLAlchemy"

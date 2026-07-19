@@ -1135,8 +1135,7 @@ def test_registry_find(dtype, expected):
 
 
 def test_construct_from_string_no_name_gh46093():
-    # GH#46093 an ExtensionDtype subclass without a string `name` should give a
-    #  clear TypeError instead of a bare AssertionError.
+    # GH#46093
     class FooType(ExtensionDtype):
         pass
 
@@ -1149,9 +1148,7 @@ def test_construct_from_string_no_name_gh46093():
 
 
 def test_register_extension_dtype_no_name_gh46093():
-    # GH#46093 registering an ExtensionDtype subclass that never overrides the
-    #  abstract `name` property fails fast with a clear message rather than a
-    #  bare AssertionError (or an opaque "data type not understood") on use.
+    # GH#46093 registration fails fast rather than erroring later on use
     msg = "Cannot register 'NamelessType' because it does not define a string"
     with pytest.raises(TypeError, match=msg):
 
