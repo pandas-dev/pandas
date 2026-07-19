@@ -10,9 +10,9 @@ See pd_strtoi.h for the error-code contract these functions preserve.
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cctype>
 #include <cstddef>
 #include <cstring>
-#include <optional>
 #include <span>
 #include <string_view>
 #include <system_error>
@@ -21,7 +21,6 @@ See pd_strtoi.h for the error-code contract these functions preserve.
 
 #include "fast_float/fast_float.h"
 #include "pandas/parser/tokenizer.h"
-#include "pandas/portable.h"
 
 namespace {
 
@@ -33,19 +32,26 @@ constexpr size_t PROCESSED_WORD_CAPACITY = 128;
 // and fast_float::is_space (relied on by skip_white_space below).
 constexpr std::string_view ascii_spaces = " \t\n\v\f\r";
 
-/* Copy the leading numeric token of `str` into `output`, dropping `tsep`.
+// Result of copy_number_without_tsep, following the from_chars conventions:
+// `token` views the stripped copy in the caller's buffer, `ptr` is the first
+// unconsumed char of the source, and `ec` is errc::value_too_large if the
+// token does not fit in the buffer.
+struct without_tsep_result {
+  std::string_view token;
+  const char *ptr;
+  std::errc ec;
+};
+
+/* Copy the leading numeric token of `str` (optional sign, then digits/tseps)
+ * into `output`, dropping `tsep`.
  *
- * The token (optional sign, then digits/tseps) is consumed from `str`, so on
- * return `str` starts at the first unconsumed char — trailing garbage like
- * "1 ," (GH#64631) is left for the caller to detect. Returns a view of the
- * stripped token in `output`, or std::nullopt if it does not fit. A token
- * with no digit after the optional sign yields the sign-only view so the
- * subsequent from_chars reports no-digits, matching the non-tsep path
- * (",1" with tsep=',' is not 1).
+ * Trailing garbage like "1 ," (GH#64631) is left past `ptr` for the caller
+ * to detect. A token with no digit after the optional sign yields a
+ * sign-only `token` so the subsequent from_chars reports no-digits,
+ * matching the non-tsep path (",1" with tsep=',' is not 1).
  */
-std::optional<std::string_view> copy_number_without_tsep(std::span<char> output,
-                                                         std::string_view &str,
-                                                         char tsep) {
+without_tsep_result copy_number_without_tsep(std::span<char> output,
+                                             std::string_view str, char tsep) {
   assert(tsep != '\0');
   auto out = output.begin();
 
@@ -56,23 +62,25 @@ std::optional<std::string_view> copy_number_without_tsep(std::span<char> output,
     sign_len = 1;
   }
 
-  if (str.empty() || !isdigit_ascii(str.front())) {
+  if (str.empty() || !std::isdigit(static_cast<unsigned char>(str.front()))) {
     // No digits to copy; a leading tsep is not part of a number.
-    return std::string_view(output.data(), sign_len);
+    return {std::string_view(output.data(), sign_len), str.data(), std::errc()};
   }
 
   auto it = str.begin();
-  for (; it != str.end() && (*it == tsep || isdigit_ascii(*it)); ++it) {
+  for (; it != str.end() &&
+         (*it == tsep || std::isdigit(static_cast<unsigned char>(*it)));
+       ++it) {
     if (*it == tsep) {
       continue;
     }
     if (out == output.end()) {
-      return std::nullopt;
+      return {std::string_view(), str.data(), std::errc::value_too_large};
     }
     *out++ = *it;
   }
-  str.remove_prefix(it - str.begin());
-  return std::string_view(output.data(), out - output.begin());
+  return {std::string_view(output.data(), out - output.begin()),
+          str.data() + (it - str.begin()), std::errc()};
 }
 
 /* Shared body of str_to_int64/str_to_uint64. */
@@ -94,15 +102,15 @@ T parse_integer(std::string_view str, int *error, char tsep,
     // spaces here; the no-tsep path leaves that to skip_white_space.
     str.remove_prefix(
         std::min(str.find_first_not_of(ascii_spaces), str.size()));
-    const std::optional<std::string_view> copied =
+    const without_tsep_result copied =
         copy_number_without_tsep(buffer, str, tsep);
-    if (!copied.has_value()) {
+    if (copied.ec != std::errc()) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
-    number_end = str.data(); // the token was consumed from `str`
-    str = *copied;
+    number_end = copied.ptr;
+    str = copied.token;
   }
 
   T number;
