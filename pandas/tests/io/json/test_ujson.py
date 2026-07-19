@@ -28,8 +28,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-LONE_SURROGATE = "\ud800"
-
 
 def _clean_dict(d):
     """
@@ -380,7 +378,7 @@ class TestUltraJSONTests:
     def test_encode_time_invalid_subclass_surrogate(self):
         class InvalidTime(datetime.time):
             def isoformat(self):
-                return LONE_SURROGATE
+                return "\ud800"
 
         with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
             ujson.ujson_dumps(InvalidTime())
@@ -698,7 +696,7 @@ class TestUltraJSONTests:
     def test_encode_invalid_decimal_subclass(self):
         class InvalidDecimal(decimal.Decimal):
             def __format__(self, *a, **kw):
-                return LONE_SURROGATE
+                return "\ud800"
 
         with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
             ujson.ujson_dumps(InvalidDecimal(1))
@@ -840,6 +838,14 @@ class TestNumpyJSONTests:
                 ujson.ujson_dumps(1 << 1_000_000)
         finally:
             sys.set_int_max_str_digits(cur_limit)
+
+    def test_encode_invalid_int_subclass(self):
+        class InvalidInt(int):
+            def __str__(self):
+                return "\ud800"
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(InvalidInt(1 << 1_000_000))
 
 
 class TestPandasJSONTests:
