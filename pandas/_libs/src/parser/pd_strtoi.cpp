@@ -23,6 +23,8 @@ See pd_strtoi.h for the error-code contract these functions preserve.
 #include "pandas/parser/tokenizer.h"
 #include "pandas/portable.h"
 
+namespace {
+
 // Arrow256 allows up to 76 decimal digits.
 // We rounded up to the next power of 2.
 constexpr size_t PROCESSED_WORD_CAPACITY = 128;
@@ -41,9 +43,9 @@ constexpr std::string_view ascii_spaces = " \t\n\v\f\r";
  * subsequent from_chars reports no-digits, matching the non-tsep path
  * (",1" with tsep=',' is not 1).
  */
-static std::optional<std::string_view>
-copy_number_without_tsep(std::span<char> output, std::string_view &str,
-                         char tsep) {
+std::optional<std::string_view> copy_number_without_tsep(std::span<char> output,
+                                                         std::string_view &str,
+                                                         char tsep) {
   assert(tsep != '\0');
   auto out = output.begin();
 
@@ -60,12 +62,9 @@ copy_number_without_tsep(std::span<char> output, std::string_view &str,
   }
 
   auto it = str.begin();
-  for (; it != str.end(); ++it) {
+  for (; it != str.end() && (*it == tsep || isdigit_ascii(*it)); ++it) {
     if (*it == tsep) {
       continue;
-    }
-    if (!isdigit_ascii(*it)) {
-      break;
     }
     if (out == output.end()) {
       return std::nullopt;
@@ -78,8 +77,8 @@ copy_number_without_tsep(std::span<char> output, std::string_view &str,
 
 /* Shared body of str_to_int64/str_to_uint64. */
 template <typename T>
-static T parse_integer(std::string_view str, int *error, char tsep,
-                       uint_state *state = nullptr) {
+T parse_integer(std::string_view str, int *error, char tsep,
+                uint_state *state = nullptr) {
   if constexpr (std::is_unsigned_v<T>) {
     assert(state != nullptr); // for seen_sint/seen_uint
   }
@@ -153,6 +152,8 @@ static T parse_integer(std::string_view str, int *error, char tsep,
   *error = 0;
   return number;
 }
+
+} // namespace
 
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
