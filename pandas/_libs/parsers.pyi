@@ -5,7 +5,10 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from typing import Literal
+from typing import (
+    Any,
+    Literal,
+)
 
 import numpy as np
 
@@ -24,6 +27,10 @@ def sanitize_objects(
     values: npt.NDArray[np.object_],
     na_values: set[Hashable],
 ) -> int: ...
+
+class _PendingStringColumn:
+    def __len__(self) -> int: ...
+    def materialize(self) -> Any: ...  # -> pyarrow.Array
 
 class TextReader:
     unnamed_cols: set[str]

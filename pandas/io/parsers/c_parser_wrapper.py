@@ -367,9 +367,9 @@ def _pa_arrays_to_ea(arrs) -> ArrayLike:
 def _wrap_deferred_pa(values):
     """Wrap a pending string column from the deferred fast path; pass through
     everything else."""
-    if hasattr(values, "dtype"):
-        return values
-    return _pa_arrays_to_ea([values])
+    if isinstance(values, parsers._PendingStringColumn):
+        return _pa_arrays_to_ea([values])
+    return values
 
 
 def _concatenate_chunks(
@@ -388,17 +388,17 @@ def _concatenate_chunks(
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
 
-        # Pending string columns from the deferred fast path have no `dtype`
-        # attribute.  The homogeneous case (every chunk deferred) combines
-        # zero-copy into a single chunked ExtensionArray; mixed cases (e.g.
-        # earlier chunks inferred numeric) wrap each pending column and fall
-        # through to the regular concat below.
-        if not hasattr(arrs[0], "dtype"):
-            if all(not hasattr(arr, "dtype") for arr in arrs):
+        # The homogeneous case (every chunk a pending string column from the
+        # deferred fast path) combines zero-copy into a single chunked
+        # ExtensionArray; mixed cases (e.g. earlier chunks inferred numeric)
+        # wrap each pending column and fall through to the regular concat
+        # below.
+        if isinstance(arrs[0], parsers._PendingStringColumn):
+            if all(isinstance(arr, parsers._PendingStringColumn) for arr in arrs):
                 result[name] = _pa_arrays_to_ea(arrs)
                 continue
             arrs = [_wrap_deferred_pa(arr) for arr in arrs]
-        elif any(not hasattr(arr, "dtype") for arr in arrs):
+        elif any(isinstance(arr, parsers._PendingStringColumn) for arr in arrs):
             arrs = [_wrap_deferred_pa(arr) for arr in arrs]
 
         # Check each arr for consistent types.

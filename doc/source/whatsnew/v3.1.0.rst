@@ -180,7 +180,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and string columns (:issue:`65350`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default except on Windows and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, particularly when strings do not repeat (:issue:`65283`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns: column buffers are now built entirely without the GIL and wrapped into an ExtensionArray once per column, improving multi-threaded reads and ``low_memory`` chunked reads (:issue:`66277`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns, particularly for multi-threaded reads and chunked (``low_memory``) reads (:issue:`66277`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_hdf` for the fixed (default) format, especially on large frames (:issue:`47726`)

@@ -1723,9 +1723,13 @@ cdef class _PendingStringColumn:
     def materialize(self):
         """
         Build a pyarrow Array from the buffers; ownership moves to pyarrow
-        via capsule-based foreign buffers.
+        via capsule-based foreign buffers, so this can be called only once.
         """
         cdef uintptr_t addr
+        if self.data_ptr == NULL:
+            # A fresh instance always has a non-NULL data_ptr (malloc'd at
+            # least 1 byte); NULL means the buffers were already transferred.
+            raise RuntimeError("materialize() may only be called once")
         helpers = _get_pa_string_helpers()
         pa = helpers[0]
 
@@ -1984,6 +1988,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         arr = ArrowExtensionArray.__new__(ArrowExtensionArray)
         arr._dtype = arrow_str_dtype
     arr._pa_array = pa.chunked_array([pa_arr])
+    arr._cache = {}
     return arr, na_count
 
 
