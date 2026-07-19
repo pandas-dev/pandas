@@ -3333,6 +3333,15 @@ class MultiIndex(Index):
                 except TypeError:
                     # not all tuples, see test_constructor_dict_multiindex_reindex_flat
                     return target
+                except ValueError as err:
+                    # GH#26460 from_tuples on a non-object (e.g. integer) flat
+                    #  target fails the Cython buffer check.
+                    raise ValueError(
+                        "cannot reindex a MultiIndex with a flat "
+                        f"'{target.dtype}' index; the reindex target must "
+                        f"contain tuples of length {self.nlevels} (the number "
+                        "of levels)"
+                    ) from err
 
         target = self._maybe_preserve_names(target, preserve_names)
         return target
@@ -4820,6 +4829,21 @@ class MultiIndex(Index):
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
+                # GH#20252, GH#26622 from_tuples silently gives wrong results
+                #  for elements that aren't tuple-likes of length nlevels.
+                for position, value in enumerate(values):
+                    if is_list_like(value) and len(value) == self.nlevels:
+                        continue
+                    if is_list_like(value):
+                        got = f"an element of length {len(value)}"
+                    else:
+                        got = f"a scalar ({value!r})"
+                    raise ValueError(
+                        "MultiIndex.isin expects an iterable of tuples of "
+                        f"length {self.nlevels} (the number of levels); got "
+                        f"{got} at position {position}. To match on a single "
+                        "level, pass the level= argument."
+                    )
                 values = MultiIndex.from_tuples(values)
             return values.unique().get_indexer_for(self) != -1
         else:
