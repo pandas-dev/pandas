@@ -677,20 +677,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             Strings recognized as False, in addition to the defaults
             "False", "FALSE", and "false."
         convert_numeric : bool, default True
-            Whether to attempt numeric conversion. Callers pass False when
-            the strings may not round-trip through ``to_numeric`` (e.g.
-            read_csv with non-default ``thousands``/``decimal``).
+            Whether to attempt numeric conversion.
         convert_bool : bool, default True
-            Whether to attempt boolean conversion. The C parser passes
-            False for low-memory chunks, deferring inference until the
-            chunks have been concatenated.
+            Whether to attempt boolean conversion.
 
         Returns
         -------
         Index or None
-            The converted categories, possibly containing duplicates (e.g.
-            "1" and "1.0" both convert to 1.0), or None if no conversion
-            applies.
+            The converted categories, which may contain duplicates (e.g. "1"
+            and "1.0"), or None if no conversion applies.
         """
         from pandas import (
             Index,
@@ -702,7 +697,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return None
 
         if convert_numeric:
-            # e.g. "1" -> 1, "3.4" -> 3.4
             try:
                 converted = Index(to_numeric(cats, errors="raise"), copy=False)
             except (ValueError, TypeError):
@@ -711,10 +705,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if not converted.hasnans:
                     return converted
                 # to_numeric converts "" to NaN, which cannot be a category
-                #  (e.g. na_filter=False keeps "" as a string); fall back
 
         if convert_bool:
-            # e.g. "True"/"False" -> bool
             inferred_bool, _ = libops.maybe_convert_bool(
                 np.asarray(cats),
                 true_values=true_values,
@@ -728,24 +720,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def _from_converted_categories(cls, converted: Index, codes: np.ndarray) -> Self:
         """
-        Construct a Categorical from ``_maybe_convert_categories`` output.
-
-        Merges categories that converted to the same value and sorts the
-        categories, recoding ``codes`` accordingly.
-
-        Parameters
-        ----------
-        converted : Index
-            Converted categories; may contain duplicates.
-        codes : np.ndarray
-
-        Returns
-        -------
-        Categorical
+        Construct a Categorical from ``_maybe_convert_categories`` output,
+        merging categories that converted to the same value, sorting, and
+        recoding ``codes`` accordingly.
         """
         if not converted.is_unique:
-            # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True; merge the
-            #  duplicated categories and recode
+            # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True
             unique_cats = converted.unique()
             codes = recode_for_categories(codes, converted, unique_cats, copy=False)
             converted = unique_cats
@@ -811,9 +791,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
 
         if not known_categories:
-            # GH#56044 - When categories are not explicitly provided, mirror the
-            #  type inference performed on ordinary (non-categorical) columns so
-            #  that all engines agree: try numeric first, then boolean.
+            # GH#56044 mirror the type inference performed on ordinary
+            #  (non-categorical) columns so that all engines agree
             converted = cls._maybe_convert_categories(
                 cats,
                 true_values=true_values,

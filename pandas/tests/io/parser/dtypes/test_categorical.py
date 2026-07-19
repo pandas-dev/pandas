@@ -247,10 +247,9 @@ def test_categorical_dtype_quote_nonnumeric(all_parsers):
 
 
 def test_categorical_dtype_low_memory_mixed_numeric_chunks(all_parsers, monkeypatch):
-    # GH#56044 with the C parser in low-memory mode, chunks can disagree on
-    #  the inferred category dtype (int64 for all-int chunks, float64 once
-    #  "1.5" appears), which used to break union_categoricals; inference is
-    #  now applied after the chunks are concatenated
+    # GH#56044 in low-memory mode chunks can disagree on the inferred category
+    #  dtype (int64 until "1.5" appears, then float64), which used to break
+    #  union_categoricals; inference now happens after concatenation
     parser = all_parsers
     heuristic = 2**5
     ints = [str(i) for i in range(40)]

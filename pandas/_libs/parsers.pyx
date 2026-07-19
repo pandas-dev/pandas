@@ -1013,12 +1013,9 @@ cdef class TextReader:
         """
         Apply category-dtype inference deferred by read_low_memory.
 
-        Per-chunk inference could give chunks with differing category
-        dtypes (e.g. int64 vs float64 vs str), breaking union_categoricals,
-        so _convert_with_dtype defers it during low-memory reads. Called by
-        c_parser_wrapper on the concatenated chunks; modifies ``data``
-        (keyed by column position, like the read/read_low_memory results)
-        in place.
+        Per-chunk inference could give chunks with differing category dtypes,
+        breaking union_categoricals, so _convert_with_dtype defers it during
+        low-memory reads. Modifies the concatenated ``data`` in place.
         """
         true_values = [x.decode() for x in self.true_values]
         false_values = [x.decode() for x in self.false_values]
@@ -1034,8 +1031,8 @@ cdef class TextReader:
                 cat.categories, true_values=true_values,
                 false_values=false_values, convert_numeric=convert_numeric)
             if converted is None:
-                # No conversion applies; keep the union result as-is rather
-                #  than re-sorting its categories
+                # keep the union result as-is rather than re-sorting its
+                #  categories
                 continue
             data[i] = array_type._from_converted_categories(converted, cat._codes)
         self.deferred_cat_cols = {}
@@ -1361,10 +1358,8 @@ cdef class TextReader:
             array_type = dtype.construct_array_type()
             if self.low_memory_chunking:
                 # GH#56044 chunks could each infer a different category
-                #  dtype (e.g. int64 vs float64 vs str), which would break
-                #  union_categoricals when the chunks are concatenated.
-                #  Keep string categories here; inference is applied to the
-                #  concatenated result in _maybe_infer_categoricals.
+                #  dtype, breaking union_categoricals; defer inference to
+                #  _maybe_infer_categoricals on the concatenated result
                 convert_numeric = False
                 convert_bool = False
                 if dtype.categories is None:

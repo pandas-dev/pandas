@@ -190,10 +190,9 @@ def _post_convert_dtypes(
             raise ValueError(str(err)) from err
 
         # GH#56136 IntegerDtype was used above to avoid lossy float64
-        #  conversion in pyarrow, convert back to numpy now that the data
+        #  conversion in pyarrow; convert back to numpy now that the data
         #  is categorical
-        # runtime import to avoid circular import (dtypes.cast imports
-        #  this module)
+        # runtime import to avoid circular import
         from pandas.core.arrays.integer import IntegerDtype
 
         for i in range(len(df.columns)):
