@@ -25,7 +25,7 @@ PR_CLOSE_DAYS = 7
 # Update to the merge date when this lands: assignments and inactivity that
 # predate the automation are never judged by rules nobody was operating under —
 # every pre-existing assignment gets a full STALE_ASSIGNEE_DAYS from this date.
-ROLLOUT_CUTOFF = datetime(2026, 7, 15, tzinfo=timezone.utc)
+ROLLOUT_CUTOFF = datetime(2026, 7, 27, tzinfo=timezone.utc)
 
 EXEMPT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 REVIEW_BLOCKING_ASSOCIATIONS = {"OWNER", "MEMBER"}

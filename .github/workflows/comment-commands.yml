@@ -36,7 +36,7 @@ jobs:
         with:
           script: |
             if (context.payload.comment.body.trim() !== '/take') return;
-            const docsUrl = 'https://pandas.pydata.org/docs/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle';
+            const docsUrl = 'https://pandas.pydata.org/docs/dev/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle';
             // The payload's issue is a snapshot from comment-creation time; two
             // near-simultaneous /take commands would both see it unassigned.
             // Decide on a fresh read instead (runs are serialized by the

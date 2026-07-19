@@ -107,8 +107,8 @@ query($owner: String!, $name: String!, $cursor: String) {
 """
 
 # Login the LABELED_EVENT actor reports for GITHUB_TOKEN-driven workflow runs;
-# how the engine recognizes its own ``Stale`` marks (finding the warning time
-# that anchors the close countdown).
+# how the engine recognizes whether the *current* ``Stale`` label is its own
+# mark (finding the warning time that anchors the close countdown).
 _BOT_LOGIN = "github-actions"
 
 # Repository roles that correspond to the OWNER/MEMBER/COLLABORATOR author
@@ -204,13 +204,17 @@ class GitHubClient:
                     }
                     for r in node["reviewRequests"]["nodes"]
                 ]
-                stale_marks = [
-                    marked
+                # Only the *newest* Stale label event can back the label that
+                # is on the PR now; an older engine mark from a cleared cycle
+                # must not anchor a close when a human later re-applied the
+                # label, so a non-engine newest event yields no anchor at all.
+                stale_events = [
+                    (marked, (event.get("actor") or {}).get("login"))
                     for event in node["labelEvents"]["nodes"]
                     if event["label"]["name"] == STALE_LABEL
-                    and (event.get("actor") or {}).get("login") == _BOT_LOGIN
                     and (marked := parse_dt(event["createdAt"])) is not None
                 ]
+                newest_stale = max(stale_events, default=None)
                 reopened_events: list[Comment] = [
                     {
                         "author": (event.get("actor") or {}).get("login"),
@@ -244,7 +248,11 @@ class GitHubClient:
                     > len(comments),
                     "reopened_events": reopened_events,
                     "labels": [label["name"] for label in node["labels"]["nodes"]],
-                    "stale_marked_at": max(stale_marks) if stale_marks else None,
+                    "stale_marked_at": (
+                        newest_stale[0]
+                        if newest_stale is not None and newest_stale[1] == _BOT_LOGIN
+                        else None
+                    ),
                 }
             page = connection["pageInfo"]
             if not page["hasNextPage"]:
