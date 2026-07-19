@@ -6300,6 +6300,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Pin the group key to the 'name' attribute and flag it so that user
         access of the pinned name issues a deprecation warning (GH#41090).
+
+        Known hole: Series.__finalize__ propagates _name (via _metadata) but
+        deliberately not this flag, so objects derived from the group inside
+        the UDF (e.g. ``group.dropna()``) carry the key as their name without
+        warning. Propagating the flag would false-positive whenever
+        __finalize__ copies it but the result's name is not the key (e.g. a
+        binop with mismatched names).
         """
         if self.ndim == 1:
             # Goes through the Series.name property setter; for DataFrame

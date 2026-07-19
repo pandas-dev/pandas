@@ -680,9 +680,6 @@ class SeriesGroupBy(GroupBy[Series]):
         -----
         See :ref:`groupby.transform` in the User Guide for more details and examples.
 
-        Each group is endowed the attribute 'name' in case you need to know
-        which group you are working on.
-
         ``func`` is passed each group as a whole :class:`Series`. The current
         implementation imposes two requirements on ``func``:
 
@@ -2599,9 +2596,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Notes
         -----
         See :ref:`groupby.transform` in the User Guide for more details and examples.
-
-        Each group is endowed the attribute 'name' in case you need to know
-        which group you are working on.
 
         The current implementation imposes three requirements on ``func``:
 
