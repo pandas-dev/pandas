@@ -37,8 +37,8 @@ typedef struct {
   int (*parser_trim_buffers)(parser_t *);
   int (*tokenize_all_rows)(parser_t *, const char *);
   int (*tokenize_nrows)(parser_t *, uint64_t, const char *);
-  int64_t (*str_to_int64)(const char *, int *, char);
-  uint64_t (*str_to_uint64)(uint_state *, const char *, int *, char);
+  int64_t (*str_to_int64)(const char *, int64_t, int *, char);
+  uint64_t (*str_to_uint64)(uint_state *, const char *, int64_t, int *, char);
   double (*precise_xstrtod)(const char *, char **, char, char, char, int, int *,
                             int *);
   int (*to_boolean)(const char *, uint8_t *);
@@ -83,10 +83,11 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
     PandasParserAPI->tokenize_all_rows((self), (encoding_errors))
 #  define tokenize_nrows(self, nrows, encoding_errors)                         \
     PandasParserAPI->tokenize_nrows((self), (nrows), (encoding_errors))
-#  define str_to_int64(p_item, error, t_sep)                                   \
-    PandasParserAPI->str_to_int64((p_item), (error), (t_sep))
-#  define str_to_uint64(state, p_item, error, t_sep)                           \
-    PandasParserAPI->str_to_uint64((state), (p_item), (error), (t_sep))
+#  define str_to_int64(p_item, length, error, t_sep)                           \
+    PandasParserAPI->str_to_int64((p_item), (length), (error), (t_sep))
+#  define str_to_uint64(state, p_item, length, error, t_sep)                   \
+    PandasParserAPI->str_to_uint64((state), (p_item), (length), (error),       \
+                                   (t_sep))
 #  define precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error,      \
                           maybe_int)                                           \
     PandasParserAPI->precise_xstrtod((p), (q), (decimal), (sci), (tsep),       \

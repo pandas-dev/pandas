@@ -1,3 +1,4 @@
+from collections import deque
 from datetime import (
     date,
     timedelta,
@@ -251,7 +252,12 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|'mod' not supported"
+        msg = "|".join(
+            [
+                "not all arguments converted during string formatting",
+                "'mod' not supported",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             s2 % s1
@@ -942,7 +948,14 @@ class TestNamePreservation:
                     # GH#52264 logical ops with dtype-less sequences deprecated
                     op(left, right)
                 return
-            result = op(left, right)
+
+            warn = None
+            depr_msg = "In a future version these will be treated as scalar-like"
+            if box is tuple:
+                # GH#62423 dunder ops with a tuple are deprecated
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
@@ -1152,56 +1165,63 @@ def test_multiindex_single_entry_arith_preserves_all_levels():
     tm.assert_series_equal(result_div, Series([1.0], index=expected_index))
 
 
-def test_arraylike_comparison_preserve_na():
-    # GH#63328
-    x = [None, 0, 1, False, True, np.nan, pd.NaT, pd.NA]
-    y = [False] * (len(x) - 1) + [pd.NA]
-    right = 3
+# ----------------------------------------------------------------------
+# GH#62423 deprecate non-standard listlikes in arithmetic/comparison ops
 
-    left = Series(x)
-    expected = Series(y, dtype="object")
-    result = left == right
-    tm.assert_series_equal(result, expected)
+depr_msg = "In a future version these will be treated as scalar-like"
 
-    left = Index(x)
-    expected = np.array(y, dtype="object")
-    result = left == right
-    tm.assert_numpy_array_equal(result, expected)
-
-    left = pd.array(x)
-    expected = pd.array(y, dtype="object")
-    result = left == right
-    tm.assert_extension_array_equal(result, expected)
+# factories for non-standard listlikes holding [4, 5, 6]
+non_standard_listlikes = [
+    pytest.param(lambda: (4, 5, 6), id="tuple"),
+    pytest.param(lambda: range(4, 7), id="range"),
+    pytest.param(lambda: deque([4, 5, 6]), id="deque"),
+]
 
 
-@pytest.mark.parametrize(
-    "left",
-    [Series, Index, pd.array, np.array],
-)
-@pytest.mark.parametrize(
-    "right",
-    [Series, Index, pd.array, np.array],
-)
-def test_comparison_between_arraylike_preserve_na(left, right):
-    # GH#63328
-    data_1 = [0, 1, 2]
-    data_2 = [1, 1, pd.NA]
-    data_3 = [pd.NA, pd.NA, pd.NA]
-    expected_1 = np.array([False, True, pd.NA], dtype="object")
-    expected_2 = np.array([pd.NA, pd.NA, pd.NA], dtype="object")
+@pytest.mark.parametrize("box", non_standard_listlikes)
+@pytest.mark.parametrize("klass", [Series, Index])
+def test_arith_cmp_non_standard_listlike_deprecated(klass, box):
+    # GH#62423 numpy-dtype Series/Index dunder ops with a non-standard listlike
+    #  (tuple/range/deque) are deprecated in favor of scalar-like treatment
+    obj = klass([1, 2, 3])
 
-    if left is np.array and right is np.array:
-        pytest.skip(
-            "TypeError is raised when both sides are NumPy arrays and either "
-            "side contains pandas NA."
-        )
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        obj + box()
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        obj == box()
 
-    result_1 = np.asarray(left(data_1) == right(data_2))
-    tm.assert_numpy_array_equal(result_1, expected_1)
-    result_1 = np.asarray(left(data_2) == right(data_1))
-    tm.assert_numpy_array_equal(result_1, expected_1)
 
-    result_2 = np.asarray(left(data_2) == right(data_3))
-    tm.assert_numpy_array_equal(result_2, expected_2)
-    result_2 = np.asarray(left(data_3) == right(data_2))
-    tm.assert_numpy_array_equal(result_2, expected_2)
+def test_arith_ea_backed_range_deprecated():
+    # GH#62423 range is converted to an ndarray before it reaches the EA, so
+    #  the Series-level arith path is responsible for the warning
+    ser = Series([1, 2, 3], dtype="Int64")
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        ser + range(4, 7)
+
+
+@pytest.mark.parametrize("box", non_standard_listlikes)
+def test_cmp_object_dtype_non_standard_listlike_not_deprecated(box):
+    # GH#62423 object dtype already treats a non-standard listlike as scalar-like
+    #  on comparison, so it must not warn
+    for obj in [Series([1, 2, 3], dtype=object), Index([1, 2, 3], dtype=object)]:
+        with tm.assert_produces_warning(None):
+            obj == box()
+
+
+def test_cmp_multiindex_tuple_not_deprecated():
+    # GH#62423 MultiIndex already treats a tuple as a single (scalar) entry
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
+    with tm.assert_produces_warning(None):
+        mi == ("a", 1)
+
+
+def test_cmp_categorical_positional_listlike_deprecated():
+    # GH#62423 a non-standard non-hashable listlike (deque) reaches the
+    #  positional comparison branch and is deprecated; a hashable tuple/range is
+    #  already treated as scalar-like and must not warn
+    cat = Categorical([1, 2, 3])
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        cat == deque([1, 2, 3])
+    for other in [(1, 2, 3), range(3)]:
+        with tm.assert_produces_warning(None):
+            cat == other

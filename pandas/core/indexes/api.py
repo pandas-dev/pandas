@@ -65,7 +65,7 @@ def get_objs_combined_axis(
     intersect: bool = False,
     axis: Axis = 0,
     sort: bool | lib.NoDefault = True,
-) -> Index:
+) -> tuple[Index, bool]:
     """
     Extract combined index: return intersection or union (depending on the
     value of "intersect") of indexes on given axis, or None if all objects
@@ -87,9 +87,16 @@ def get_objs_combined_axis(
     Returns
     -------
     Index
+        The combined index.
+    bool
+        Whether all indexes are equal.
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
+    return _get_combined_index(
+        obs_idxes,
+        intersect=intersect,
+        sort=sort,
+    )
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -110,7 +117,7 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool | lib.NoDefault = False,
-) -> Index:
+) -> tuple[Index, bool]:
     """
     Return the union or intersection of indexes.
 
@@ -128,24 +135,34 @@ def _get_combined_index(
     Returns
     -------
     Index
+        The combined index.
+    bool
+        Whether all indexes are equal.
     """
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
         index: Index = default_index(0)
+        all_equal = True
     elif len(indexes) == 1:
         index = indexes[0]
+        all_equal = True
     elif intersect:
         index = indexes[0]
         for other in indexes[1:]:
             index = index.intersection(other)
+        all_equal = False
     else:
-        index = union_indexes(indexes, sort=sort if sort is lib.no_default else False)
+        index, all_equal = union_indexes(
+            indexes,
+            sort=sort if sort is lib.no_default else False,
+        )
         index = ensure_index(index)
 
     if sort and sort is not lib.no_default:
         index = safe_sort_index(index)
-    return index
+        all_equal = False
+    return index, all_equal
 
 
 def safe_sort_index(index: Index) -> Index:
@@ -182,7 +199,10 @@ def safe_sort_index(index: Index) -> Index:
     return index
 
 
-def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
+def union_indexes(
+    indexes,
+    sort: bool | lib.NoDefault = True,
+) -> tuple[Index, bool]:
     """
     Return the union of indexes.
 
@@ -198,7 +218,11 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
     Returns
     -------
     Index
+        The union index.
+    bool
+        Whether all indexes are equal.
     """
+
     if len(indexes) == 0:
         raise AssertionError("Must have at least 1 Index to union")
     if len(indexes) == 1:
@@ -208,7 +232,7 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
                 result = Index(result)
             else:
                 result = Index(sorted(result))
-        return result
+        return result, True
 
     indexes, kind = _sanitize_and_check(indexes)
 
@@ -246,10 +270,11 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
 
         for other in indexes[1:]:
             result = result.union(other, sort=None if sort else False)
-        return result
+        return result, False
 
     elif kind == "array":
-        if not all_indexes_same(indexes):
+        all_equal = all_indexes_same(indexes)
+        if not all_equal:
             dtype = find_common_type([idx.dtype for idx in indexes])
             inds = [ind.astype(dtype, copy=False) for ind in indexes]
             index = inds[0].unique()
@@ -265,7 +290,8 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
         name = get_unanimous_names(*indexes)[0]
         if name != index.name:
             index = index.rename(name)
-        return index
+        return index, all_equal
+
     elif kind == "list":
         dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
         if dtypes:
@@ -273,10 +299,11 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
         else:
             dtype = None
         all_lists = (idx.tolist() if isinstance(idx, Index) else idx for idx in indexes)
-        return Index(
+        result = Index(
             lib.fast_unique_multiple_list_gen(all_lists, sort=bool(sort)),
             dtype=dtype,
         )
+        return result, False
     else:
         raise ValueError(f"{kind=} must be 'special', 'array' or 'list'.")
 

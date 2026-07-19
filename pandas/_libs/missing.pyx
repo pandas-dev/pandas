@@ -201,14 +201,14 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     result : ndarray (dtype=np.bool_)
     """
     cdef:
-        Py_ssize_t i, n = arr.size
+        Py_ssize_t _, n = arr.size
         object val
         bint is_null
         ndarray result = np.empty((<object>arr).shape, dtype=np.uint8)
         flatiter it = cnp.PyArray_IterNew(arr)
         flatiter it2 = cnp.PyArray_IterNew(result)
 
-    for i in range(n):
+    for _ in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
@@ -240,13 +240,13 @@ def isna_string(ndarray[object] arr) -> np.ndarray:
     result : ndarray (dtype=np.bool_)
     """
     cdef:
-        Py_ssize_t i, n = arr.size
+        Py_ssize_t _, n = arr.size
         object val
         ndarray result = np.zeros((<object>arr).shape, dtype=np.uint8)
         flatiter it = cnp.PyArray_IterNew(arr)
         flatiter it2 = cnp.PyArray_IterNew(result)
 
-    for i in range(n):
+    for _ in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
