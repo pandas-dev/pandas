@@ -949,7 +949,13 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             output[asheetname] = parser.read(nrows=nrows)
 
-            if header_names:
+            # GH#66372: if every data column was consumed by index_col, the
+            # resulting columns Index is a plain (non-Multi) empty Index, so
+            # its nlevels no longer matches one name per header row; setting
+            # header_names on it would raise.
+            if header_names and (
+                output[asheetname].columns.nlevels == len(header_names)
+            ):
                 output[asheetname].columns = output[asheetname].columns.set_names(
                     header_names
                 )

@@ -1220,6 +1220,21 @@ class TestReaders:
         expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_read_excel_multiindex_header_index_col_consumes_all_columns(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#66372
+        # If `index_col` consumes every data column, the resulting `columns`
+        # is a plain (non-Multi) empty Index, so it no longer has one level
+        # per `header` row. Applying the popped-out header names to it used
+        # to raise `ValueError: Length of new names must be 1, got 2`.
+        DataFrame({"A": ["A1", "A2"]}).to_excel(tmp_excel, index=False, header=False)
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0, engine=engine)
+        expected = DataFrame(
+            index=Index([], dtype=object), columns=Index([], dtype=object)
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_excel_old_index_format(self, read_ext):
         # see gh-4679
         filename = "test_index_name_pre17" + read_ext
