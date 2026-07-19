@@ -1551,8 +1551,9 @@ class StringMethods(NoNewAttributesMixin):
         """
         if flags is not lib.no_default:
             # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
+            # before checking for a match. But don't override re.ASCII (GH#66348).
+            if not (flags & re.ASCII):
+                flags = flags | re.U
             if is_re(pat):
                 if pat.flags != flags:
                     raise ValueError(
