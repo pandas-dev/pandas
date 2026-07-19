@@ -200,6 +200,46 @@ class CParserWrapper(ParserBase):
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
 
+        # Mark parse_dates columns so the C parser can try to emit datetime64
+        # directly, skipping the Python-str ndarray round-trip. In low_memory
+        # mode the C parser keeps raw-byte receipts per chunk so a fallback in
+        # any chunk restores the whole column to the object-string path.
+        # With a list parse_dates, noconvert_columns is exactly the resolved
+        # parse_dates targets (integer colspecs usecols-relative, matching
+        # _do_date_conversions).
+        # Not with implicit-index files (leading_cols > 0): noconvert indices
+        # are not shifted by leading_cols, so the fastpath gate in
+        # _convert_tokens cannot line up with them.
+        if isinstance(self.parse_dates, list) and self._reader.leading_cols == 0:
+            for col_idx in noconvert_columns:
+                name = self.orig_names[col_idx]
+                require_consistent = self._parse_dates_fastpath_strictness(name)
+                if require_consistent is not None:
+                    self._reader.set_datetime_convert(col_idx, require_consistent)
+
+    def _parse_dates_fastpath_strictness(self, name: Hashable) -> bool | None:
+        """
+        Decide whether a parse_dates column is a candidate for the direct
+        char-buffer -> datetime64 fastpath, returning None if not, otherwise
+        whether the fastpath must require a single consistent format.
+
+        With date_format=None, to_datetime infers one format from the first
+        value and rejects rows that deviate, so the fastpath must do the same;
+        with date_format="ISO8601" mixed ISO8601 layouts are allowed.
+        """
+        if self.dayfirst:
+            return None
+        date_format = self.date_format
+        if isinstance(date_format, dict):
+            date_format = date_format.get(name)
+        if date_format is None:
+            return True
+        if date_format == "ISO8601":
+            return False
+        # If a specific format is supplied, let the existing path handle it.
+        # A future extension could detect ISO-shaped formats here.
+        return None
+
     def read(
         self,
         nrows: int | None = None,
