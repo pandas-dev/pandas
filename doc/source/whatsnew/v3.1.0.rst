@@ -259,6 +259,7 @@ Performance improvements
 - Performance improvement in plotting :class:`Series` and :class:`DataFrame` with a :class:`PeriodIndex` or with a :class:`DatetimeIndex` whose frequency upsamples to one (:issue:`10578`)
 - Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)
 - Performance improvement in reductions along ``axis=1`` and other operations on DataFrames produced by :meth:`DataFrame.copy` (:issue:`60469`)
+- Performance improvement in reductions with ``axis=1`` (e.g. :meth:`DataFrame.sum`, :meth:`DataFrame.mean`, :meth:`DataFrame.std`), especially on single-dtype DataFrames with many rows (:issue:`51474`)
 - Performance improvement in repr of :class:`Series` and :class:`DataFrame` containing third-party array-like objects (e.g. xarray ``DataArray``) in object dtype columns (:issue:`61809`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
   setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
