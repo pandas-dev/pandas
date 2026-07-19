@@ -758,10 +758,11 @@ class TimedeltaArray(dtl.TimelikeOps):
         pps = periods_per_second(self._creso)
         asi8 = self.asi8
         # Divide the integer-second part and the sub-second residual
-        # separately, mirroring the scalar's `int_seconds + sub_ns / 1e9`,
-        # so the result matches Timedelta.total_seconds bit-for-bit. A
-        # single asi8 / pps division rounds at the tick magnitude and
-        # loses precision relative to the scalar for values above 2**53.
+        # separately, mirroring the same divmod split in the scalar
+        # `_Timedelta.total_seconds`, so the result matches it bit-for-bit
+        # (on IEEE-strict platforms; 32-bit x87 excess precision can differ
+        # in the last ulp). A single asi8 / pps division rounds at the tick
+        # magnitude and loses precision for values above 2**53.
         floor_s, residual = np.divmod(asi8, pps)
         result = floor_s + residual / pps
         if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():

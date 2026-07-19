@@ -53,6 +53,7 @@ from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -1410,17 +1411,20 @@ cdef class _Timedelta(timedelta):
         60.0
         """
         # We need to override bc we overrode days/seconds/microseconds
-        self._ensure_components()
         cdef:
-            int64_t int_seconds = (
-                self._d * 86400 + self._h * 3600 + self._m * 60 + self._s
-            )
-            int64_t sub_ns = self._ms * 1_000_000 + self._us * 1_000 + self._ns
+            int64_t pps = periods_per_second(self._creso)
+            # Python floor semantics: residual is non-negative, so a nonzero
+            # residual puts the true value above int_seconds at any sign.
+            # Reconstructing int_seconds from self._d * 86400 + ... instead
+            # would overflow int64 in the intermediate products near the
+            # boundaries of the s-reso range.
+            int64_t int_seconds = self._value // pps
+            int64_t residual = self._value % pps
             double result
-        if sub_ns == 0:
+        if residual == 0:
             return <double>int_seconds
-        result = int_seconds + sub_ns / 1e9
-        # sub_ns puts the true value strictly inside (int_seconds, int_seconds + 1),
+        result = int_seconds + residual / <double>pps
+        # residual puts the true value strictly inside (int_seconds, int_seconds + 1),
         # so guard against float rounding collapsing onto the boundary; otherwise
         # bisect-style lookups treat us as exactly on a transition. Beyond 2**52
         # seconds float64s are spaced >= 1 second apart, so every representable

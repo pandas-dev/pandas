@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
@@ -104,11 +106,14 @@ class TestNonNano:
         # Vectorized result agrees with the scalar Timedelta path
         assert result[0] == Timedelta(value).total_seconds()
 
+    @pytest.mark.skipif(
+        not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
+    )
     def test_total_seconds_matches_scalar_at_large_ns(self):
         # The vectorized result must match Timedelta.total_seconds bit-for-bit,
         # not just at integer-second boundaries: large ns values lose precision
         # under a single asi8 / pps division, so we mirror the scalar's
-        # `int_seconds + sub_ns / 1e9` split (GH#46819).
+        # divmod split into whole seconds and sub-second residual (GH#46819).
         values = [
             256_790_988_018_092_305,
             2_530_160_323_573_146_516,
@@ -120,6 +125,9 @@ class TestNonNano:
         expected = [Timedelta(val).total_seconds() for val in values]
         assert list(result) == expected
 
+    @pytest.mark.skipif(
+        not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
+    )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_total_seconds_matches_scalar_non_nano(self, unit):
         # The split division and boundary guard apply at every unit: above
