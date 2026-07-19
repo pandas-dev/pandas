@@ -51,6 +51,7 @@ Other enhancements
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
+- pandas now registers its :class:`Period` and :class:`Interval` pyarrow extension types when it is imported, so pyarrow recognizes them when reading pandas data directly (e.g. via ``pyarrow.parquet.read_table``) without a prior pandas conversion in the same process (:issue:`41432`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:
