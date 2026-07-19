@@ -7354,7 +7354,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         other,
         level: Level | None = None,
-        fill_value: float | None = None,
+        fill_value: Hashable | None = None,
         axis: Axis = 0,
     ) -> Series:
         """
@@ -7372,7 +7372,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7436,7 +7436,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7501,7 +7501,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7568,7 +7568,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7636,7 +7636,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7704,7 +7704,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7769,7 +7769,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7833,7 +7833,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7897,7 +7897,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7963,7 +7963,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8015,7 +8015,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         other,
         level: Level | None = None,
-        fill_value: float | None = None,
+        fill_value: Hashable | None = None,
         axis: Axis = 0,
     ) -> Series:
         """
@@ -8031,7 +8031,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8104,7 +8104,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8167,7 +8167,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8235,7 +8235,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8302,7 +8302,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8367,7 +8367,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8429,7 +8429,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8494,7 +8494,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8559,7 +8559,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8624,7 +8624,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8689,7 +8689,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -8760,7 +8760,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : float, str, or None, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
