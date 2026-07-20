@@ -26,7 +26,7 @@ namespace {
 
 // Arrow256 allows up to 76 decimal digits.
 // We rounded up to the next power of 2.
-constexpr size_t PROCESSED_WORD_CAPACITY = 128;
+constexpr size_t processed_word_capacity = 128;
 
 // The ASCII whitespace accepted around numbers; matches both isspace_ascii
 // and fast_float::is_space (relied on by skip_white_space below).
@@ -64,23 +64,24 @@ without_tsep_result copy_number_without_tsep(std::span<char> output,
 
   if (str.empty() || !std::isdigit(static_cast<unsigned char>(str.front()))) {
     // No digits to copy; a leading tsep is not part of a number.
-    return {std::string_view(output.data(), sign_len), str.data(), std::errc()};
+    return {.token = std::string_view(output.data(), sign_len),
+            .ptr = str.data()};
   }
 
   auto it = str.begin();
   for (; it != str.end() &&
-         (*it == tsep || std::isdigit(static_cast<unsigned char>(*it)));
+         (std::isdigit(static_cast<unsigned char>(*it)) || *it == tsep);
        ++it) {
     if (*it == tsep) {
       continue;
     }
     if (out == output.end()) {
-      return {std::string_view(), str.data(), std::errc::value_too_large};
+      return {.ptr = str.data(), .ec = std::errc::value_too_large};
     }
     *out++ = *it;
   }
-  return {std::string_view(output.data(), out - output.begin()),
-          str.data() + (it - str.begin()), std::errc()};
+  return {.token = std::string_view(output.data(), out - output.begin()),
+          .ptr = str.data() + (it - str.begin())};
 }
 
 /* Shared body of str_to_int64/str_to_uint64. */
@@ -92,12 +93,12 @@ T parse_integer(std::string_view str, int *error, char tsep,
   }
   // `str` is consumed while parsing; boundary checks use the original end.
   const char *const str_end = str.data() + str.size();
-  std::array<char, PROCESSED_WORD_CAPACITY> buffer;
+  std::array<char, processed_word_capacity> buffer{};
   // Number end in the original input; the tsep path parses a copy, so
   // from_chars' own end pointer cannot flag trailing junk (GH#64631).
   const char *number_end = nullptr;
 
-  if (tsep != '\0' && std::ranges::find(str, tsep) != str.end()) {
+  if (tsep != '\0' && str.find(tsep) != std::string_view::npos) {
     // copy_number_without_tsep needs the token start, so strip leading
     // spaces here; the no-tsep path leaves that to skip_white_space.
     str.remove_prefix(

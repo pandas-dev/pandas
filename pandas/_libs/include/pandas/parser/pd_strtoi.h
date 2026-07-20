@@ -25,7 +25,7 @@ typedef struct uint_state {
  * target type; callers choose the uint64/float fallbacks based on this
  * distinction. str_to_uint64 additionally reports a leading '-' via
  * state->seen_sint (with *error = 0) and values above INT64_MAX via
- * state->seen_uint. Neither function allocates. */
+ * state->seen_uint. */
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
                        int *error, char tsep);
 int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
