@@ -142,6 +142,7 @@ Deprecations
 - Deprecated setting values with :meth:`DataFrame.at` and :meth:`Series.at` when the key does not exist in the index, which previously expanded the object. Use ``.loc`` instead (:issue:`48323`)
 - Deprecated the ``%n`` directive in :meth:`Period.strftime` for nanoseconds; use ``%N`` instead. ``%n`` is a newline directive in C ``strftime`` (and Python's ``time.strftime`` / ``datetime.strftime``) (:issue:`65432`)
 - Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.rule_code`` instead (:issue:`64207`)
+- Deprecated the ``convert_dates`` and ``keep_default_dates`` keywords in :func:`read_json`. Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`to_datetime` after reading (:issue:`59161`)
 - Deprecated the ``dropna`` keyword in :meth:`DataFrame.to_hdf`, :meth:`HDFStore.put`, :meth:`HDFStore.append`, and :meth:`HDFStore.append_to_multiple`, and the ``io.hdf.dropna_table`` option. Use :meth:`DataFrame.dropna` before writing instead (:issue:`32038`)
 - Deprecated the ``float_precision`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf`. All float precision modes now use the same converter (:issue:`64395`)
 - Deprecated the ``include`` and ``exclude`` arguments of :meth:`Series.describe`. They had no effect on a Series; filter dtypes upstream of the call instead (:issue:`54193`)
