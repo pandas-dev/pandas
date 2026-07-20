@@ -1566,13 +1566,9 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        if idxer == "var":
-            with pytest.raises(TypeError, match="Invalid value"):
-                result.loc[:, idxer] = expected
-        else:
-            # See https://github.com/pandas-dev/pandas/issues/56223
-            result.loc[:, idxer] = expected
-            tm.assert_frame_equal(result, expected)
+        # See https://github.com/pandas-dev/pandas/issues/56223
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
@@ -3864,3 +3860,18 @@ def test_loc_setitem_extension_array_into_object_series():
     ser.loc[:] = arr
     expected = Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+class TestLocSetitemDataFrameAlignment:
+    def test_loc_setitem_scalar_column_dataframe_alignment(self):
+        # GH 58482
+        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        item = DataFrame([100], columns=["A"], index=["v"])
+
+        # Setting a single block dataframe's column with a dataframe should align
+        df.loc[:, "A"] = item
+
+        expected = DataFrame(
+            [[np.nan, 2.0], [np.nan, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        tm.assert_frame_equal(df, expected)

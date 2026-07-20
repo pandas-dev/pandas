@@ -2847,6 +2847,23 @@ class _iLocIndexer(_LocationIndexer):
 
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
+
+        is_original_df = isinstance(value, ABCDataFrame)
+
+        if is_original_df and name != "iloc":
+            if (
+                isinstance(indexer, tuple)
+                and self.ndim == len(indexer) == 2
+                and is_integer(indexer[info_axis])
+            ):
+                col = item_labels[indexer[info_axis]]
+                if col in value.columns:
+                    value = self._align_series(indexer, value[col])
+                else:
+                    value = np.nan
+            else:
+                value = self._align_frame(indexer, value)._values
+
         if isinstance(indexer, tuple):
             # if we are setting on the info axis ONLY
             # set using those methods to avoid block-splitting
@@ -2868,7 +2885,7 @@ class _iLocIndexer(_LocationIndexer):
                 and len(indexer) == 2
                 and self.obj.shape[1] > 1
                 and not com.is_null_slice(indexer[1])
-                and not isinstance(value, ABCDataFrame)
+                and not is_original_df
                 and not can_hold_element(
                     self.obj._mgr.blocks[0].values,
                     extract_array(value, extract_numpy=True),
@@ -2878,10 +2895,6 @@ class _iLocIndexer(_LocationIndexer):
                 return
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
-
-        if isinstance(value, ABCDataFrame) and name != "iloc":
-            value = self._align_frame(indexer, value)._values
-
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
 
