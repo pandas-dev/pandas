@@ -686,16 +686,10 @@ def _read_csv_parallel(
     # Byte offset at which real data rows begin.
     data_start = _find_data_start_offset(filepath, header, skiprows)
 
-    # More chunks than workers, pulled from a shared queue: an equal split
-    # leaves fast cores idle while a slow one finishes its single oversized
-    # chunk.  Factors larger than 3x showed no further gain.
-    #
-    # But every chunk repeats a fixed per-column cost (dtype inference and an
-    # array allocation for each of the n_columns), so on a wide frame a fine
-    # split costs more than the parse it parallelises.  Estimate the row count
-    # from the median of a few line lengths sampled across the data section (a
-    # single probe would let one atypical line skew the estimate badly) and
-    # keep chunks at least _PARALLEL_MIN_CHUNK_ROWS rows deep.
+    # Oversubscribe the workers so one slow chunk cannot strand a core, but
+    # cap the count: every chunk repeats a per-column cost, which on a wide
+    # frame outweighs the parse it parallelises.  Take the median of sampled
+    # line lengths - a single probe lets one atypical line skew the estimate.
     data_size = os.path.getsize(filepath) - data_start
     line_lens = []
     with open(filepath, "rb") as fh:
@@ -710,9 +704,8 @@ def _read_csv_parallel(
     est_rows = data_size // bytes_per_row
     n_target = min(n_workers * 3, est_rows // _PARALLEL_MIN_CHUNK_ROWS)
     if n_target < 2:
-        # So few rows that even a 2-way split falls short of
-        # _PARALLEL_MIN_CHUNK_ROWS per chunk: worth it only when each half is
-        # big enough that the per-column fixed costs are amortised anyway.
+        # Too few rows to split, unless each half is big enough to amortise
+        # the per-column costs anyway.
         if data_size < 2 * _PARALLEL_READ_MIN_BYTES:
             return None
         n_target = 2

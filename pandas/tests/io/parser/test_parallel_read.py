@@ -601,21 +601,18 @@ class TestReadCsvParallel:
         # samples several lines across the data section, so one huge first
         # data line must not collapse the split (or worse, force a serial
         # read via the few-rows bailout) (GH#66275).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         lines = ["a,b\n", f"0,s{'x' * 50_000}\n"]
         lines += [f"{i},s{i}\n" for i in range(30_000)]
         path.write_text("".join(lines), encoding="utf-8")
 
         n_targets = []
-        orig = _readers._find_chunk_byte_offsets
 
         def spy(filepath, n_chunks, data_start):
             n_targets.append(n_chunks)
-            return orig(filepath, n_chunks, data_start)
+            return _find_chunk_byte_offsets(filepath, n_chunks, data_start)
 
-        monkeypatch.setattr(_readers, "_find_chunk_byte_offsets", spy)
+        monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
         kwds = self._base_kwds(path)
         result = _read_csv_parallel(str(path), kwds, 4)
         assert result is not None
@@ -1155,12 +1152,10 @@ def test_parallel_string_dtype_python_storage(tmp_path, monkeypatch):
     # Without the pyarrow string fast path, the gathered object column must
     # get the same string-dtype inference a serial read applies via the
     # DataFrame constructor (GH#66275).
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "data.csv"
     rows = "\n".join(f"{i},s{i % 7}" for i in range(5000))
     path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
-    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
 
     with option_context("mode.string_storage", "python"):
         with option_context("mode.max_threads", 1):
@@ -1174,14 +1169,12 @@ def test_parallel_blank_line_run(tmp_path, monkeypatch):
     # A run of blank lines spanning entire chunks parses those chunks to zero
     # rows; the reused worker parsers must not leak StopIteration out of
     # read_csv (GH#66275).
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "data.csv"
     rows = "\n".join(f"{i},{i * 2}" for i in range(100))
     path.write_text(
         "a,b\n" + rows + "\n" + "\n" * 20000 + rows + "\n", encoding="utf-8"
     )
-    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
 
     with option_context("mode.max_threads", 1):
         expected = read_csv(path)
@@ -1193,13 +1186,11 @@ def test_parallel_blank_line_run(tmp_path, monkeypatch):
 def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
     # Same for chunks whose lines are all skipped via on_bad_lines="skip"
     # (GH#66275).
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "data.csv"
     rows = "\n".join(f"{i},{i * 2}" for i in range(100))
     bad = "\n".join("x,y,z,w,v" for _ in range(5000))
     path.write_text("a,b\n" + rows + "\n" + bad + "\n" + rows + "\n", encoding="utf-8")
-    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
 
     with option_context("mode.max_threads", 1):
         expected = read_csv(path, on_bad_lines="skip")
