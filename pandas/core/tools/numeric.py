@@ -245,7 +245,12 @@ def to_numeric(
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
-        pass
+        if dtype_backend is not lib.no_default and not isinstance(
+            values_dtype, ArrowDtype
+        ):
+            from pandas.core.dtypes.missing import isna
+
+            new_mask = np.asarray(isna(values), dtype=np.bool_)
     elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
