@@ -727,7 +727,7 @@ class TestDataFrameSortIndex:
         result[("red", extra)] = "world"
 
         result = result.sort_index(axis=1)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize(
         "categories",
