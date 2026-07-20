@@ -43,6 +43,7 @@ from pandas.compat._optional import (
 from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -67,7 +68,10 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.datetimes import (
+    stringify_numeric_column,
+    to_datetime,
+)
 
 from pandas.io._util import arrow_table_to_pandas
 
@@ -109,6 +113,21 @@ def _process_parse_dates_argument(parse_dates):
     return parse_dates
 
 
+def _warn_and_stringify_numeric_column(col):
+    # GH#55663 read_sql historically cast integer/float columns to strings so a
+    # ``format`` could be applied to them. That is deprecated in favor of the
+    # user casting explicitly, which lets us drop this shim in a future version.
+    warnings.warn(
+        "Passing a format for integer or float columns to read_sql via "
+        "parse_dates is deprecated. Cast the column to string and apply "
+        "to_datetime after reading, e.g. "
+        "to_datetime(df[col].astype('string'), format=...).",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return stringify_numeric_column(col)
+
+
 def _handle_date_column(
     col, utc: bool = False, format: str | dict[str, Any] | None = None
 ):
@@ -117,6 +136,8 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
+        if format.get("format") is not None and col.dtype.kind in "iuf":
+            col = _warn_and_stringify_numeric_column(col)
         return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
@@ -133,6 +154,8 @@ def _handle_date_column(
             # GH11216
             return to_datetime(col, utc=True)
         else:
+            if format is not None and col.dtype.kind in "iuf":
+                col = _warn_and_stringify_numeric_column(col)
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
@@ -2757,6 +2780,17 @@ class SQLiteDatabase(PandasSQL):
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
                 raise ex from inner_exc
+
+            if re.fullmatch(r"[A-Za-z_]\w*", sql.strip()):
+                # GH#54233 a bare identifier is almost certainly an attempt to
+                #  read a table by name.
+                ex = DatabaseError(
+                    f"Execution failed on sql '{sql}': {exc}\n\n"
+                    "Reading a table by name is only supported when using a "
+                    "SQLAlchemy connection. With a DBAPI connection, pass a SQL "
+                    f"query instead, e.g. 'SELECT * FROM {sql.strip()}'."
+                )
+                raise ex from exc
 
             ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
             raise ex from exc

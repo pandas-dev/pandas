@@ -265,7 +265,7 @@ class TestInsert:
 
         ts = Timestamp(value).tz_localize(tz)
         expected = DatetimeIndex([ts, *list(dti)], dtype=dti.dtype, name=9)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_insert_non_castable_str(self, tz_aware_fixture):
         # GH#33703

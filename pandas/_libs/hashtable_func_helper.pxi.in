@@ -327,6 +327,148 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     return result.view(np.bool_)
 
 # ----------------------------------------------------------------------
+# Non-unique indexer
+# ----------------------------------------------------------------------
+
+{{if dtype not in ('object', 'complex128', 'complex64')}}
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef get_indexer_non_unique_{{dtype}}(
+    ndarray[{{c_type}}] values,
+    ndarray[{{c_type}}] targets,
+    bint use_searchsorted,
+):
+    """
+    Map each target to the positions of all matching values, without boxing.
+
+    Parameters
+    ----------
+    values : ndarray[{{dtype}}]
+    targets : ndarray[{{dtype}}]
+    use_searchsorted : bool
+        If True, `values` must be monotonic increasing; matches are then
+        found by binary search instead of a full scan of `values`.
+
+    Returns
+    -------
+    indexer : np.ndarray[np.intp]
+        Positions in `values` for each target, in target order, with -1
+        entries for targets not found.
+    missing : np.ndarray[np.intp]
+        Indexer into `targets` of the values not found.
+    """
+    cdef:
+        Py_ssize_t i, j, k, cnt, start, running
+        Py_ssize_t n = len(values), n_t = len(targets)
+        Py_ssize_t n_unique = 0, n_matched = 0, buf_len
+        Py_ssize_t total = 0, n_missing = 0, pos = 0, pos_missing = 0
+        kh_{{ttype}}_t *table
+        ndarray[{{c_type}}] uniques
+        ndarray[intp_t] target_ids, counts, match_keys, match_pos
+        ndarray[intp_t] slots, offsets, starts, ends, result, missing
+        khiter_t khi
+        int ret = 0
+
+    if n == 0 or n_t == 0:
+        return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
+
+    # map each unique target value to a dense id in [0, n_unique)
+    table = kh_init_{{ttype}}()
+    kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n_t), SIZE_HINT_LIMIT))
+    uniques = np.empty(n_t, dtype=targets.dtype)
+    target_ids = np.empty(n_t, dtype=np.intp)
+    for j in range(n_t):
+        khi = kh_put_{{ttype}}(table, targets[j], &ret)
+        if ret != 0:
+            table.vals[khi] = <size_t>n_unique
+            uniques[n_unique] = targets[j]
+            n_unique += 1
+        target_ids[j] = <Py_ssize_t>table.vals[khi]
+
+    counts = np.zeros(n_unique, dtype=np.intp)
+
+    # Acquire buffers up front so the C compiler can see they are always
+    # initialized; each is only *read* under the matching `use_searchsorted`
+    # branch below, but GCC's -Werror=maybe-uninitialized cannot prove that.
+    starts = offsets = slots = np.empty(0, dtype=np.intp)
+
+    if use_searchsorted:
+        starts = values.searchsorted(uniques[:n_unique], side="left")
+        ends = values.searchsorted(uniques[:n_unique], side="right")
+        for k in range(n_unique):
+            counts[k] = ends[k] - starts[k]
+    else:
+        # single pass over values collecting (unique-target id, position)
+        # for each match
+        buf_len = min(n, max(n_t, 256))
+        match_keys = np.empty(buf_len, dtype=np.intp)
+        match_pos = np.empty(buf_len, dtype=np.intp)
+        for i in range(n):
+            khi = kh_get_{{ttype}}(table, values[i])
+            if khi != table.n_buckets:
+                if n_matched >= buf_len:
+                    buf_len = min(buf_len * 2, n)
+                    match_keys = np.resize(match_keys, buf_len)
+                    match_pos = np.resize(match_pos, buf_len)
+                k = <Py_ssize_t>table.vals[khi]
+                match_keys[n_matched] = k
+                match_pos[n_matched] = i
+                counts[k] += 1
+                n_matched += 1
+
+        # counting sort of the matches by id, so that each id's positions
+        # sit at slots[offsets[k]:offsets[k] + counts[k]] in ascending order
+        offsets = np.empty(n_unique, dtype=np.intp)
+        running = 0
+        for k in range(n_unique):
+            offsets[k] = running
+            running += counts[k]
+        slots = np.empty(n_matched, dtype=np.intp)
+        for i in range(n_matched):
+            k = match_keys[i]
+            slots[offsets[k]] = match_pos[i]
+            offsets[k] += 1
+        for k in range(n_unique):
+            offsets[k] -= counts[k]
+
+    kh_destroy_{{ttype}}(table)
+
+    for j in range(n_t):
+        cnt = counts[target_ids[j]]
+        if cnt == 0:
+            total += 1
+            n_missing += 1
+        else:
+            total += cnt
+
+    result = np.empty(total, dtype=np.intp)
+    missing = np.empty(n_missing, dtype=np.intp)
+
+    for j in range(n_t):
+        k = target_ids[j]
+        cnt = counts[k]
+        if cnt == 0:
+            result[pos] = -1
+            pos += 1
+            missing[pos_missing] = j
+            pos_missing += 1
+        elif use_searchsorted:
+            start = starts[k]
+            for i in range(cnt):
+                result[pos + i] = start + i
+            pos += cnt
+        else:
+            start = offsets[k]
+            for i in range(cnt):
+                result[pos + i] = slots[start + i]
+            pos += cnt
+
+    return result, missing
+
+{{endif}}
+
+# ----------------------------------------------------------------------
 # Mode Computations
 # ----------------------------------------------------------------------
 
@@ -444,6 +586,49 @@ cpdef ismember(ndarray[htfunc_t] arr, ndarray[htfunc_t] values):
         return ismember_complex64(arr, values)
 
     else:
+        raise TypeError(values.dtype)
+
+
+def get_indexer_non_unique(
+    ndarray[htfunc_t] values,
+    ndarray[htfunc_t] targets,
+    bint use_searchsorted,
+):
+    """
+    Return (indexer, missing) mapping each target to the positions of all
+    matching values; see IndexEngine.get_indexer_non_unique.
+    """
+    if htfunc_t is object:
+        # ObjectEngine needs the NA-matching machinery in
+        # IndexEngine.get_indexer_non_unique
+        raise TypeError(values.dtype)
+
+    elif htfunc_t is int8_t:
+        return get_indexer_non_unique_int8(values, targets, use_searchsorted)
+    elif htfunc_t is int16_t:
+        return get_indexer_non_unique_int16(values, targets, use_searchsorted)
+    elif htfunc_t is int32_t:
+        return get_indexer_non_unique_int32(values, targets, use_searchsorted)
+    elif htfunc_t is int64_t:
+        return get_indexer_non_unique_int64(values, targets, use_searchsorted)
+
+    elif htfunc_t is uint8_t:
+        return get_indexer_non_unique_uint8(values, targets, use_searchsorted)
+    elif htfunc_t is uint16_t:
+        return get_indexer_non_unique_uint16(values, targets, use_searchsorted)
+    elif htfunc_t is uint32_t:
+        return get_indexer_non_unique_uint32(values, targets, use_searchsorted)
+    elif htfunc_t is uint64_t:
+        return get_indexer_non_unique_uint64(values, targets, use_searchsorted)
+
+    elif htfunc_t is float64_t:
+        return get_indexer_non_unique_float64(values, targets, use_searchsorted)
+    elif htfunc_t is float32_t:
+        return get_indexer_non_unique_float32(values, targets, use_searchsorted)
+
+    else:
+        # complex: khash matches complex NaNs component-wise, unlike the
+        # is_matching_na semantics of the object path
         raise TypeError(values.dtype)
 
 

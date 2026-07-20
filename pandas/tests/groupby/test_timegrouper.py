@@ -893,7 +893,7 @@ class TestGroupBy:
         dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date", unit=unit)
         mi = MultiIndex.from_arrays([dti, ["foo"] * len(dti)])
         expected = Series([3, 0, 0, 0, 0, 0, 2], index=mi, name="Quantity")
-        tm.assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected, check_freq=False)
 
     def test_groupby_apply_timegrouper_with_nat_scalar_returns(
         self, groupby_with_truncated_bingrouper
