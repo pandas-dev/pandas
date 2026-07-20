@@ -231,8 +231,8 @@ def _format_argument_list(allow_args: list[str]) -> str:
 
     Parameters
     ----------
-    allowed_args : list, tuple or int
-        The `allowed_args` argument for `deprecate_nonkeyword_arguments`,
+    allow_args : list, tuple or int
+        The `allow_args` argument for `deprecate_nonkeyword_arguments`,
         but None value is not allowed.
 
     Returns

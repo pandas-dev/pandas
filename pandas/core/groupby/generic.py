@@ -683,16 +683,14 @@ class SeriesGroupBy(GroupBy[Series]):
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
-        The current implementation imposes three requirements on f:
+        ``func`` is passed each group as a whole :class:`Series`. The current
+        implementation imposes two requirements on ``func``:
 
-        * f must return a value that either has the same shape as the input
-          subframe or can be broadcast to the shape of the input subframe.
-          For example, if `f` returns a scalar it will be broadcast to have the
-          same shape as the input subframe.
-        * if this is a DataFrame, f must support application column-by-column
-          in the subframe. If f also supports application to the entire subframe,
-          then a fast path is used starting from the second chunk.
-        * f must not mutate groups. Mutation is not supported and may
+        * ``func`` must return a value that either has the same shape as the input
+          group or can be broadcast to the shape of the input group.
+          For example, if ``func`` returns a scalar it will be broadcast to have
+          the same shape as the input group.
+        * ``func`` must not mutate groups. Mutation is not supported and may
           produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
@@ -752,6 +750,14 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot     30
         Name: Max Speed, dtype: int64
         """
+
+        if isinstance(func, list):
+            raise NotImplementedError(
+                "Passing a list to SeriesGroupBy.transform is not yet supported "
+                "and is intended to be implemented in a future release. "
+                "See https://github.com/pandas-dev/pandas/issues/58318."
+            )
+
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
@@ -2516,16 +2522,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
-    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+    def transform(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Call function producing a same-indexed DataFrame on each group.
 
         Returns a DataFrame having the same indexes as the original object
         filled with the transformed values.
 
+        When ``func`` is a user-defined function, by default it operates on each
+        column of each group separately (each column is passed as a
+        :class:`Series`); see the Notes section below.
+
         Parameters
         ----------
-        func : function, str
+        func : function, str, list, or dict
             Function to apply to each group.
             See the Notes section below for requirements.
 
@@ -2534,8 +2544,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             - String
             - Python function
             - Numba JIT function with ``engine='numba'`` specified.
+            - List of strings/functions: applied to every non-key column,
+              returning a MultiIndex-column DataFrame ``(column, func)``.
+            - Dict ``{column: func}`` or ``{name: NamedFunc(column, func)}``:
+              applied per-column as specified.
 
-            Only passing a single function is supported with this engine.
+            .. versionchanged:: 3.1.0
+                    Added support for list-like, dict, and :class:`NamedFunc` arguments.
+
+            Only passing a single function is supported with the numba engine.
             If the ``'numba'`` engine is chosen, the function must be
             a user defined function with ``values`` and ``index`` as the
             first and second arguments respectively in the function signature.
@@ -2544,6 +2561,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             If a string is chosen, then it needs to be the name
             of the groupby method you want to use.
+
         *args
             Positional arguments to pass to func.
         engine : str, default None
@@ -2554,7 +2572,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept  ``nogil``
+            * For ``'numba'`` engine, the engine can accept ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nogil': False, 'parallel': False}`` and will be
@@ -2562,6 +2580,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Keyword arguments to be passed into func.
+            When ``func=None``, ``**kwargs`` should be pairs of
+            ``output_name=NamedFunc(column, func)``.
 
         Returns
         -------
@@ -2584,16 +2604,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
-        The current implementation imposes three requirements on f:
+        The current implementation imposes three requirements on ``func``:
 
-        * f must return a value that either has the same shape as the input
+        * ``func`` must return a value that either has the same shape as the input
           subframe or can be broadcast to the shape of the input subframe.
-          For example, if `f` returns a scalar it will be broadcast to have the
-          same shape as the input subframe.
-        * if this is a DataFrame, f must support application column-by-column
-          in the subframe. If f also supports application to the entire subframe,
-          then a fast path is used starting from the second chunk.
-        * f must not mutate groups. Mutation is not supported and may
+          For example, if ``func`` returns a scalar it will be broadcast to have
+          the same shape as the input subframe.
+        * ``func`` is applied to each column of the group separately (each column
+          is passed as a :class:`Series`). If ``func`` also supports application to
+          the entire group :class:`DataFrame` and returns the same result, a faster
+          path operating on the whole group is used starting from the second group.
+        * ``func`` must not mutate groups. Mutation is not supported and may
           produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
@@ -2663,9 +2684,177 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  5  9
         4  5  8
         5  5  9
+
+        List-like arguments
+
+        >>> df2 = pd.DataFrame({"col": list("aab"), "val": range(3), "other": range(3)})
+        >>> df2.groupby("col").transform(["sum", "min"])
+           val       other
+           sum min   sum min
+        0    1   0     1   0
+        1    1   0     1   0
+        2    2   2     2   2
+
+        Dictionary arguments
+
+        >>> df2.groupby("col").transform({"val": "sum", "other": "min"})
+           val  other
+        0    1      0
+        1    1      0
+        2    2      2
+
+        Named aggregation
+
+        >>> df2.groupby("col").transform(
+        ...     val_sum=pd.NamedAgg(column="val", aggfunc="sum"),
+        ...     other_min=pd.NamedAgg(column="other", aggfunc="min"),
+        ... )
+           val_sum  other_min
+        0        1          0
+        1        1          0
+        2        2          2
         """
-        return self._transform(
-            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        # GH#58318 - extended to accept list, dict, and NamedAgg kwargs.
+
+        if func is None:
+            # Named-aggregation style:
+            #   .transform(val_sum=NamedAgg(column="val", aggfunc="sum"), ...)
+            return self._transform_multiple_funcs(
+                kwargs, *args, engine=engine, engine_kwargs=engine_kwargs
+            )
+        elif is_dict_like(func):
+            # e.g. .transform({"val": "sum"}) or {"name": NamedAgg(...)}
+            # Dict-of-lists is not yet supported.
+            for val in func.values():
+                if is_list_like(val):
+                    raise NotImplementedError(
+                        "Passing a dict of lists to DataFrameGroupBy.transform is "
+                        "not yet supported and is intended to be implemented in a "
+                        "future release. "
+                        "See https://github.com/pandas-dev/pandas/issues/58318"
+                    )
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        elif is_list_like(func):
+            # e.g. .transform(["sum", "min"])
+            func = maybe_mangle_lambdas(func)
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        else:
+            return self._transform(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+
+    def _transform_multiple_funcs(
+        self,
+        func: list | dict,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> DataFrame:
+        """
+        Handle list-like and dict dispatch for DataFrameGroupBy.transform.
+
+        Parameters
+        ----------
+        func : list or dict
+            - list of str/callable: applied to every non-key column, producing
+              a MultiIndex-column DataFrame (column, func_name).
+            - dict mapping output_name -> str/callable or NamedAgg.
+        """
+        from pandas.core.reshape.concat import concat
+
+        if is_dict_like(func):
+            # Also includes NamedAgg / NamedFunc
+            func = cast("dict", func)
+            results: list[Series] = []
+            for name, agg in func.items():
+                if isinstance(agg, NamedAgg):
+                    column_name = agg.column
+                    agg_func = agg.aggfunc
+                elif isinstance(agg, tuple) and len(agg) == 2:
+                    # plain tuple (column, func) — same semantics as NamedAgg
+                    column_name = agg[0]
+                    agg_func = agg[1]
+                else:
+                    # plain {"col": "sum"} — column IS the key
+                    column_name = name
+                    agg_func = agg
+                result = self._transform_single_column(
+                    column_name,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                result.name = name
+                results.append(result)
+            return concat(results, axis=1)
+
+        # list path
+        # Apply every func to every non-key column.
+        assert is_list_like(func)
+        results_list: list[Series] = []
+        col_order: list[tuple] = []
+        for column in self._obj_with_exclusions.columns:
+            for agg_func in func:
+                col_result = self._transform_single_column(
+                    column,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                col_result.name = (column, agg_func)
+                results_list.append(col_result)
+                col_order.append((column, agg_func))
+
+        # Use ignore_index=True then assign MultiIndex — avoids redundant work.
+        output = concat(results_list, ignore_index=True, axis=1)
+        arrays = [list(x) for x in zip(*col_order, strict=False)]
+        output.columns = MultiIndex.from_arrays(arrays)
+        return output
+
+    def _transform_single_column(
+        self,
+        column_name: Hashable,
+        agg_func: Callable | str,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> Series:
+        """
+        Apply a single transform function to one column via SeriesGroupBy.
+
+        Parameters
+        ----------
+        column_name : Hashable
+            Column label to select from the grouped DataFrame.
+        agg_func : callable or str
+            Transform function to apply to the selected column.
+        *args
+            Positional arguments to pass to ``agg_func``.
+        engine : str, default None
+            Passed through to ``SeriesGroupBy.transform``.
+        engine_kwargs : dict, default None
+            Passed through to ``SeriesGroupBy.transform``.
+        **kwargs
+            Keyword arguments to pass to ``agg_func``.
+
+        Returns
+        -------
+        Series
+            Transformed Series with the same index as the original DataFrame.
+        """
+        data = self._gotitem(column_name, ndim=1)
+        return data.transform(
+            agg_func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
 
     def _define_paths(self, func, *args, **kwargs):

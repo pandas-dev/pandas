@@ -28,6 +28,7 @@ from pandas.compat import (
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 import pandas.util._test_decorators as td
 
@@ -40,6 +41,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
@@ -122,7 +124,9 @@ class TestTimeConversionFormats:
         ser = Series([19801222, 19801222] + [19810105] * 5)
         expected = Series([Timestamp(x) for x in ser.apply(str)])
 
-        result = to_datetime(ser, format="%Y%m%d", cache=cache)
+        # GH#55663 - int with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
         result = to_datetime(ser.apply(str), format="%Y%m%d", cache=cache)
@@ -140,7 +144,9 @@ class TestTimeConversionFormats:
         expected[2] = np.nan
         ser[2] = np.nan
 
-        result = to_datetime(ser, format="%Y%m%d", cache=cache)
+        # GH#55663 - float with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
         # string with NaT
@@ -166,14 +172,18 @@ class TestTimeConversionFormats:
         )
         expected[2] = np.nan
         ser[2] = np.nan
-        result = to_datetime(ser, format="%Y%m", cache=cache)
+        # GH#55663 - float with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m", cache=cache)
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_YYYYMMDD_oob_for_ns(self, cache):
         # coercion
         # GH 7930, GH 14487
         ser = Series([20121231, 20141231, 99991231])
-        result = to_datetime(ser, format="%Y%m%d", errors="raise", cache=cache)
+        # GH#55663 - int with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", errors="raise", cache=cache)
         expected = Series(
             np.array(["2012-12-31", "2014-12-31", "9999-12-31"], dtype="M8[s]"),
             dtype="M8[us]",
@@ -184,7 +194,9 @@ class TestTimeConversionFormats:
         # coercion
         # GH 7930
         ser = Series([20121231, 20141231, 999999999999999999999999999991231])
-        result = to_datetime(ser, format="%Y%m%d", errors="coerce", cache=cache)
+        # GH#55663 - int with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", errors="coerce", cache=cache)
         expected = Series(["20121231", "20141231", "NaT"], dtype="M8[us]")
         tm.assert_series_equal(result, expected)
 
@@ -208,7 +220,13 @@ class TestTimeConversionFormats:
         # format='%Y%m%d'
         # with None
         expected = Series([Timestamp("19801222"), Timestamp("20010112"), NaT])
-        result = Series(to_datetime(input_s, format="%Y%m%d"))
+        # GH#55663 - int/float with format is deprecated (NaN doesn't count)
+        has_numeric = any(
+            isinstance(val, (int, float)) and val == val for val in input_s
+        )
+        warn = Pandas4Warning if has_numeric else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            result = Series(to_datetime(input_s, format="%Y%m%d"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -239,8 +257,14 @@ class TestTimeConversionFormats:
     def test_to_datetime_format_YYYYMMDD_overflow(self, input_s, expected):
         # GH 25512
         # format='%Y%m%d', errors='coerce'
+        # GH#55663 - int/float with format is deprecated (NaN doesn't count)
+        has_numeric = any(
+            isinstance(val, (int, float)) and val == val for val in input_s
+        )
         input_s = Series(input_s)
-        result = to_datetime(input_s, format="%Y%m%d", errors="coerce")
+        warn = Pandas4Warning if has_numeric else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            result = to_datetime(input_s, format="%Y%m%d", errors="coerce")
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
@@ -274,16 +298,19 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_format_integer(self, cache):
         # GH 10178
+        # GH#55663 - int with format is deprecated
         ser = Series([2000, 2001, 2002])
         expected = Series([Timestamp(x) for x in ser.apply(str)])
 
-        result = to_datetime(ser, format="%Y", cache=cache)
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y", cache=cache)
         tm.assert_series_equal(result, expected)
 
         ser = Series([200001, 200105, 200206])
         expected = Series([Timestamp(x[:4] + "-" + x[4:]) for x in ser.apply(str)])
 
-        result = to_datetime(ser, format="%Y%m", cache=cache)
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m", cache=cache)
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_microsecond(self, cache):
@@ -2049,6 +2076,22 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg3):
             Timestamp(should_fail2[1], unit="D")
 
+    def test_float_to_datetime_near_int64_boundary(self):
+        # GH#57366 within a few ULP of +/-2**63 ns the float bound check must be
+        # exact. A negative float whose ns value lands just past int64 min must
+        # raise instead of silently wrapping to a positive timestamp...
+        wrapped = np.array([-(2**63 + 200) / 1e9], dtype="float64")
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            to_datetime(wrapped, unit="s", errors="raise")
+        assert to_datetime(wrapped, unit="s", errors="coerce")[0] is NaT
+
+        # ...and an in-bounds float just shy of int64 max must not spuriously
+        # raise (it did for units D/W, diverging from the scalar path).
+        oneday_in_ns = 1e9 * 60 * 60 * 24
+        val = (2**63 - 1 - 100) / oneday_in_ns
+        arr = np.array([val], dtype="float64")
+        assert to_datetime(arr, unit="D")[0] == Timestamp(val, unit="D")
+
     def test_float_to_datetime_raise_oob_ns(self):
         value = np.float64(2**63)
         arr = np.array([value], dtype=np.float64)
@@ -2222,8 +2265,8 @@ class TestToDatetimeDataFrame:
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
 
         msg = (
-            r'^cannot assemble the datetimes: time data ".+" doesn\'t '
-            r'match format "%Y%m%d"\.'
+            "^cannot assemble the datetimes: "
+            'invalid or out-of-bounds date "2016-20-05"$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -2231,6 +2274,22 @@ class TestToDatetimeDataFrame:
         result = to_datetime(df2, errors="coerce", cache=cache)
         expected = Series([Timestamp("20150204 00:00:00"), NaT])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_dataframe_float_out_of_int64_range(self, errors, cache):
+        # GH#55663 a float year far out of datetime range (10**16 fits in
+        #  int64 but is not a valid year) is flagged out-of-bounds by the
+        #  vectorized field assembly, so it raises / coerces to NaT like any
+        #  invalid date; filterwarnings=error guards the no-warning path
+        df2 = DataFrame({"year": [10**16, np.nan], "month": [1, 1], "day": [1, 1]})
+        if errors == "raise":
+            msg = "cannot assemble the datetimes"
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(df2, errors=errors, cache=cache)
+        else:
+            result = to_datetime(df2, errors=errors, cache=cache)
+            expected = Series([NaT, NaT], dtype="datetime64[us]")
+            tm.assert_series_equal(result, expected)
 
     def test_dataframe_extra_keys_raises(self, df, cache):
         # extra columns
@@ -2300,8 +2359,8 @@ class TestToDatetimeDataFrame:
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         msg = (
-            r"^cannot assemble the datetimes: unconverted data remains when parsing "
-            r'with format ".*": "1".'
+            r"^cannot assemble the datetimes: column 'month' contains "
+            r"fractional values$"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
@@ -2313,6 +2372,245 @@ class TestToDatetimeDataFrame:
         expected = Series(
             np.array(["2015-02-04", "2016-03-05"], dtype="datetime64[us]")
         ).dt.tz_localize("UTC")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,expected_ts",
+        [
+            # Feb 29 in leap year (valid)
+            (
+                {"year": [2000], "month": [2], "day": [29]},
+                [Timestamp("2000-02-29")],
+            ),
+            # Feb 28 in non-leap year (valid)
+            (
+                {"year": [2001], "month": [2], "day": [28]},
+                [Timestamp("2001-02-28")],
+            ),
+        ],
+    )
+    def test_dataframe_leap_year_valid(self, data, expected_ts):
+        result = to_datetime(DataFrame(data))
+        expected = Series(expected_ts)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"year": [2001], "month": [2], "day": [29]},  # Feb 29 non-leap
+            {"year": [2020], "month": [4], "day": [31]},  # Apr 31
+            {"year": [2020], "month": [1], "day": [0]},  # day 0
+        ],
+    )
+    def test_dataframe_invalid_day_raises(self, data):
+        msg = r"cannot assemble the datetimes: invalid or out-of-bounds date"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(DataFrame(data))
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"year": [2001], "month": [2], "day": [29]},  # Feb 29 non-leap
+            {"year": [2020], "month": [4], "day": [31]},  # Apr 31
+        ],
+    )
+    def test_dataframe_invalid_day_coerce(self, data):
+        result = to_datetime(DataFrame(data), errors="coerce")
+        expected = Series([NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_fractional_float_coerce(self):
+        # Fractional float with errors="coerce" should produce NaT
+        df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
+        result = to_datetime(df, errors="coerce")
+        expected = Series([NaT, Timestamp("2001-01-01")])
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_empty(self):
+        # Empty DataFrame should produce empty Series
+        df = DataFrame({"year": [], "month": [], "day": []})
+        result = to_datetime(df)
+        expected = Series([], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_utc_with_time_fields(self):
+        df = DataFrame(
+            {
+                "year": [2020],
+                "month": [6],
+                "day": [15],
+                "hour": [12],
+                "minute": [30],
+                "second": [45],
+            }
+        )
+        result = to_datetime(df, utc=True)
+        expected = Series(
+            [Timestamp("2020-06-15 12:30:45")], dtype="datetime64[us, UTC]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "field,unit", [("hour", "h"), ("minute", "m"), ("second", "s")]
+    )
+    def test_dataframe_fractional_time_fields(self, field, unit):
+        # fractional hours/minutes/seconds are valid and interpreted as
+        #  timedeltas, e.g. hour=1.5 -> 01:30:00
+        df = DataFrame({"year": [2000, 2000], "month": [1, 1], "day": [1, 1]})
+        df[field] = [1.5, np.nan]
+        result = to_datetime(df)
+        expected = Series(
+            [Timestamp("2000-01-01") + Timedelta(1.5, unit=unit), NaT],
+            dtype="datetime64[ns]",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_year_outside_4_digits(self):
+        # years outside the range 1000-9999 previously raised because the
+        #  fields went through "%Y%m%d" string parsing
+        df = DataFrame({"year": [99, 12345], "month": [1, 6], "day": [2, 15]})
+        result = to_datetime(df)
+        expected = Series(
+            np.array(["0099-01-02", "12345-06-15"], dtype="datetime64[us]")
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_year_out_of_bounds_raises(self):
+        # year too large for datetime64[us]
+        df = DataFrame({"year": [2000, 3_000_000], "month": [1, 1], "day": [1, 1]})
+        msg = (
+            "cannot assemble the datetimes: "
+            'invalid or out-of-bounds date "3000000-01-01"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+    def test_dataframe_year_out_of_bounds_coerce(self):
+        df = DataFrame({"year": [2000, 3_000_000], "month": [1, 1], "day": [1, 1]})
+        result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_dataframe_hour_outside_int32(self, errors):
+        # hour values outside int32 range fall back to to_timedelta, whose
+        #  overflow raises under both error modes; they must not wrap
+        #  silently in the vectorized path
+        df = DataFrame(
+            {"year": [2000, 2000], "month": [1, 1], "day": [1, 1], "hour": [1, 2**32]}
+        )
+        msg = r"cannot assemble the datetimes \[hour\]"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df, errors=errors)
+
+    @pytest.mark.parametrize(
+        "year,field,value,exp_str",
+        [
+            # post-2038 epoch seconds exceed int32 but are valid datetimes
+            (1970, "second", 2**31 + 100, "2038-01-19T03:15:48"),
+            (2000, "hour", 2_200_000_000, "252974-10-22T16:00:00"),
+        ],
+    )
+    def test_dataframe_time_field_outside_int32_valid(
+        self, year, field, value, exp_str
+    ):
+        # values outside int32 range that still produce an in-bounds
+        #  datetime go through the to_timedelta fallback
+        df = DataFrame({"year": [year], "month": [1], "day": [1], field: [value]})
+        result = to_datetime(df)
+        expected = Series(np.array([exp_str], dtype="datetime64[us]"))
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_infinite_float(self):
+        # +/-inf cannot be cast to int64; previously produced garbage values
+        df = DataFrame({"year": [2000.0, np.inf], "month": [1, 1], "day": [1, 1]})
+        msg = "cannot assemble the datetimes: column 'year' contains out-of-bounds"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(None):
+                to_datetime(df)
+
+        with tm.assert_produces_warning(None):
+            result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_dataframe_infinite_float_time_field(self, errors):
+        # inf hour goes through to_timedelta, which raises under both modes
+        df = DataFrame(
+            {
+                "year": [2000.0, 2000.0],
+                "month": [1, 1],
+                "day": [1, 1],
+                "hour": [0.0, np.inf],
+            }
+        )
+        msg = r"cannot assemble the datetimes \[hour\]: cannot convert input inf"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(None):
+                to_datetime(df, errors=errors)
+
+    @pytest.mark.parametrize("dtype", ["bool", "boolean"])
+    def test_dataframe_bool_column(self, dtype):
+        # bool year/month/day columns raise instead of being read as 0/1
+        df = DataFrame({"year": [True, False], "month": [1, 1], "day": [1, 1]})
+        df["year"] = df["year"].astype(dtype)
+        msg = "cannot assemble the datetimes: column 'year' has dtype bool"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+        result = to_datetime(df, errors="coerce")
+        expected = Series([NaT, NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_dataframe_bool_time_field(self, errors):
+        # bool hour goes through to_timedelta, which raises for bool dtype
+        df = DataFrame({"year": [2000], "month": [1], "day": [1], "hour": [True]})
+        msg = r"cannot assemble the datetimes \[hour\]: dtype bool cannot be converted"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df, errors=errors)
+
+    def test_dataframe_nan_hour_does_not_mask_invalid_date(self):
+        # NaN in the hour column must not mask an invalid month in the
+        #  same row
+        df = DataFrame({"year": [2000], "month": [13], "day": [1], "hour": [np.nan]})
+        msg = (
+            'cannot assemble the datetimes: invalid or out-of-bounds date "2000-13-01"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+        result = to_datetime(df, errors="coerce")
+        expected = Series([NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_nan_year_does_not_mask_oob_hour(self):
+        # NaN in the year column must not mask an out-of-bounds hour in
+        #  the same row
+        df = DataFrame({"year": [np.nan], "month": [1], "day": [1], "hour": [2**62]})
+        msg = r"cannot assemble the datetimes \[hour\]"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+        result = to_datetime(df, errors="coerce")
+        expected = Series([NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_nan_in_time_field(self):
+        # NaN in a float hour column gives NaT for that row only
+        df = DataFrame(
+            {
+                "year": [2000, 2000],
+                "month": [1, 1],
+                "day": [1, 1],
+                "hour": [np.nan, 5.0],
+            }
+        )
+        result = to_datetime(df)
+        expected = Series(
+            [NaT, Timestamp("2000-01-01 05:00:00")], dtype="datetime64[us]"
+        )
         tm.assert_series_equal(result, expected)
 
 
@@ -2356,11 +2654,16 @@ class TestToDatetimeMisc:
     def test_to_datetime_iso8601_fails(self, input, format, exact):
         # https://github.com/pandas-dev/pandas/issues/12649
         # `format` is longer than the string, so this fails regardless of `exact`
-        with pytest.raises(
-            ValueError,
-            match=(rf"time data \"{input}\" doesn't match format " rf"\"{format}\""),
-        ):
-            to_datetime(input, format=format, exact=exact)
+        # GH#55663 - int with format is deprecated
+        warn = Pandas4Warning if isinstance(input, (int, float)) else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            with pytest.raises(
+                ValueError,
+                match=(
+                    rf"time data \"{input}\" doesn't match format " rf"\"{format}\""
+                ),
+            ):
+                to_datetime(input, format=format, exact=exact)
 
     @pytest.mark.parametrize(
         "input, format",
@@ -2382,11 +2685,14 @@ class TestToDatetimeMisc:
                 f'^time data ".*" doesn\'t match format ".*". {PARSING_ERR_MSG}$',
             ]
         )
-        with pytest.raises(
-            ValueError,
-            match=(msg),
-        ):
-            to_datetime(input, format=format)
+        # GH#55663 - int with format is deprecated
+        warn = Pandas4Warning if isinstance(input, (int, float)) else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            with pytest.raises(
+                ValueError,
+                match=(msg),
+            ):
+                to_datetime(input, format=format)
 
     @pytest.mark.parametrize(
         "input, format",
@@ -3327,7 +3633,7 @@ class TestOrigin:
             max(reso_order.index(origin_unit), reso_order.index(unit_reso))
         ]
         expected = Series(
-            [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
+            [Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
             dtype=f"M8[{exp_unit}]",
         )
 
@@ -3458,6 +3764,65 @@ class TestOrigin:
         expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
         tm.assert_index_equal(result, expected)
 
+    def test_origin_errors_coerce_overflow(self):
+        # GH#63419: errors="coerce" should turn out-of-bounds offsets into NaT
+        # rather than raising.  10**8 days is in bounds; 10**9 overflows the
+        # us-resolution result; 10**18 overflows to_timedelta itself
+        origin = Timestamp("2016-01-01")
+        vals = [1, 2, 10**8, 10**9, 10**18]
+        result = to_datetime(vals, unit="D", origin=origin, errors="coerce")
+        expected = DatetimeIndex(
+            [
+                origin + Timedelta(days=1),
+                origin + Timedelta(days=2),
+                origin + Timedelta(days=10**8),
+                NaT,
+                NaT,
+            ],
+            dtype="datetime64[us]",
+        )
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime(Series(vals), unit="D", origin=origin, errors="coerce")
+        tm.assert_series_equal(result, Series(expected))
+
+        assert to_datetime(10**9, unit="D", origin=origin, errors="coerce") is NaT
+
+        # errors="raise" still raises
+        msg = "Cannot cast .* without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_datetime([1, 2, 10**18], unit="D", origin=origin)
+
+        msg = "cannot add values to origin"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime([1, 2, 10**9], unit="D", origin=origin)
+
+    def test_origin_errors_coerce_overflow_boundary(self):
+        # GH#63419 exact boundary: with origin 16801 days past the epoch, the
+        # largest value representable in the us-resolution result is
+        # (2**63 - 1) // (86400 * 10**6) - 16801 days
+        origin = Timestamp("2016-01-01")
+        bound = (2**63 - 1) // (86400 * 10**6) - 16801
+        result = to_datetime(
+            [bound, bound + 1], unit="D", origin=origin, errors="coerce"
+        )
+        assert result[0] == origin + Timedelta(days=bound)
+        assert result[1] is NaT
+
+        # values just past the boundary raise OutOfBoundsDatetime (not a bare
+        # OverflowError) under errors="raise"
+        with pytest.raises(OutOfBoundsDatetime, match="cannot add values"):
+            to_datetime([bound + 1], unit="D", origin=origin)
+
+    def test_origin_oob_for_unit_coerce(self):
+        # GH#63419 origin not representable in the result resolution; under
+        # errors="coerce" all entries become NaT instead of raising
+        result = to_datetime(
+            list(range(5)), unit="ns", origin=datetime(1, 1, 1), errors="coerce"
+        )
+        expected = DatetimeIndex([NaT] * 5, dtype="datetime64[ns]")
+        tm.assert_index_equal(result, expected)
+
 
 class TestShouldCache:
     @pytest.mark.parametrize(
@@ -3518,13 +3883,6 @@ class TestShouldCacheEarlyBail:
                 date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
                 {},
             ),
-            # format is not None and format != "mixed"
-            (
-                date_range("2020-01-01", periods=100, freq="s")
-                .strftime("%Y-%m-%dT%H:%M:%S")
-                .to_numpy(),
-                {"format": "%Y-%m-%dT%H:%M:%S"},
-            ),
         ],
     )
     def test_should_cache_returns_false(self, arg, kwargs):
@@ -3544,10 +3902,12 @@ class TestShouldCacheEarlyBail:
         idx = Index(arr)
         assert tools.should_cache(idx) is False
 
-    def test_should_cache_format_mixed_not_skipped(self):
-        # format="mixed" should NOT trigger the early bail
-        arg = Index(["2020-01-01", "01/02/2020"] * 50)
-        assert tools.should_cache(arg, format="mixed") is True
+    def test_should_cache_explicit_format_not_skipped(self):
+        # GH#65380, asv-runner#137: an explicit ``format`` must NOT disable
+        # caching. Highly-duplicated strings still benefit from caching even
+        # with a (slow-parsing) strptime format, so should_cache returns True.
+        arg = Index(["19MAY11"] * 100)
+        assert tools.should_cache(arg) is True
 
 
 def test_nullable_integer_to_datetime():
@@ -3898,10 +4258,13 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
 
     elif has_numeric and vec.index(aware_val) < vec.index(naive_val):
         msg = "time data .* doesn't match format"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(vec)
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(vec, utc=True)
+        # GH#55663 - int/float with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec)
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec, utc=True)
 
     elif both_strs and vec.index(aware_val) < vec.index(naive_val):
         msg = r"time data \"2020-01-01 00:00\" doesn't match format"
@@ -3983,3 +4346,48 @@ def test_to_datetime_missing_component_no_runtime_warning():
         result = to_datetime(df)
 
     assert result.iloc[1] is NaT
+
+
+def test_to_datetime_format_N_directive():
+    # GH 65863
+    result = to_datetime("2024-05-01 12:00:00.123456789", format="%Y-%m-%d %H:%M:%S.%N")
+    expected = Timestamp("2024-05-01 12:00:00.123456789")
+    tm.assert_equal(result, expected)
+
+    # %N must be exactly 9 digits
+    msg = 'time data "2024-05-01 12:00:00.12345" doesn\'t match format'
+    with pytest.raises(ValueError, match=msg):
+        to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%N")
+
+    # While %f can be fewer:
+    result_f = to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%f")
+    expected_f = Timestamp("2024-05-01 12:00:00.123450")
+    tm.assert_equal(result_f, expected_f)
+
+
+def test_stringify_numeric_column_int64_boundary():
+    # GH#55663 float64(2**63) is just above int64.max and must take the
+    #  plain-str path, not an undefined float->int64 cast
+    ser = Series([float(2**63), float(2**63 - 2048), np.inf, np.nan, 20000101.0])
+    result = tools.stringify_numeric_column(ser)
+    expected = Series(
+        ["9.223372036854776e+18", "9223372036854773760", "inf", np.nan, "20000101"],
+        dtype=object,
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_dataframe_assemble_duplicate_index_with_nan(cache):
+    # GH#55663 duplicate index labels plus a NaN component must not trip
+    #  label alignment in the numeric-to-string cast
+    df = DataFrame(
+        {"year": [2000, 2001, np.nan], "month": [1, 1, 1], "day": [1, 1, 1]},
+        index=[0, 0, 1],
+    )
+    result = to_datetime(df, cache=cache)
+    expected = Series(
+        [Timestamp("2000-01-01"), Timestamp("2001-01-01"), NaT],
+        index=[0, 0, 1],
+        dtype="M8[us]",
+    )
+    tm.assert_series_equal(result, expected)

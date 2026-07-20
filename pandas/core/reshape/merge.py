@@ -689,12 +689,16 @@ def merge_asof(
         The data MUST be in ascending order. Furthermore this must be
         a numeric column, such as datetimelike, integer, or float. ``on``
         or ``left_on`` / ``right_on`` must be given.
-    left_on : label
-        Field name to join on in left DataFrame. If specified, sort the left
-        DataFrame by this column in ascending order before merging.
-    right_on : label
-        Field name to join on in right DataFrame. If specified, sort the right
-        DataFrame by this column in ascending order before merging.
+    left_on : label or array-like
+        Field name to join on in left DataFrame. Can also be an array of the
+        length of the left DataFrame, which is treated as if it were a column.
+        If specified, sort the left DataFrame by this key in ascending order
+        before merging.
+    right_on : label or array-like
+        Field name to join on in right DataFrame. Can also be an array of the
+        length of the right DataFrame, which is treated as if it were a column.
+        If specified, sort the right DataFrame by this key in ascending order
+        before merging.
     left_index : bool
         Use the index of the left DataFrame as the join key.
     right_index : bool
@@ -1264,7 +1268,7 @@ class _MergeOperation:
         right_indexer: npt.NDArray[np.intp] | None,
     ) -> None:
         # Inner joins never produce -1 (missing) in the indexers, so we can
-        # skip the potentially expensive (indexer == -1).any() scans.
+        # skip the potentially expensive lib.has_sentinel scans.
         if self.how == "inner":
             left_has_missing = False
             right_has_missing = False
@@ -1288,7 +1292,7 @@ class _MergeOperation:
                             left_has_missing = (
                                 False
                                 if left_indexer is None
-                                else (left_indexer == -1).any()
+                                else lib.has_sentinel(left_indexer, -1)
                             )
 
                         if left_has_missing:
@@ -1302,7 +1306,7 @@ class _MergeOperation:
                             right_has_missing = (
                                 False
                                 if right_indexer is None
-                                else (right_indexer == -1).any()
+                                else lib.has_sentinel(right_indexer, -1)
                             )
 
                         if right_has_missing:
@@ -1336,9 +1340,11 @@ class _MergeOperation:
                     rfill = na_value_for_dtype(taker.dtype)
                     rvals = algos.take_nd(taker, right_indexer, fill_value=rfill)
 
+                mask_left = None if left_indexer is None else left_indexer == -1
+
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
-                if left_indexer is not None and (left_indexer == -1).all():
+                if mask_left is not None and mask_left.all():
                     key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     result_dtype = rvals.dtype
                 elif right_indexer is not None and (right_indexer == -1).all():
@@ -1346,8 +1352,7 @@ class _MergeOperation:
                     result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
-                    if left_indexer is not None:
-                        mask_left = left_indexer == -1
+                    if mask_left is not None:
                         key_col = key_col.where(~mask_left, rvals)
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
                     if (
@@ -2971,10 +2976,8 @@ def _factorize_keys(
 
     klass, lk, rk = _convert_arrays_and_get_rizer_klass(lk, rk)
 
-    rizer = klass(
-        max(len(lk), len(rk)),
-        uses_mask=isinstance(rk, (BaseMaskedArray, ArrowExtensionArray)),
-    )
+    uses_mask = isinstance(rk, (BaseMaskedArray, ArrowExtensionArray))
+    rizer = klass(max(len(lk), len(rk)), uses_mask=uses_mask)
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
@@ -3025,7 +3028,22 @@ def _factorize_keys(
 
     if sort:
         uniques = rizer.uniques.to_array()
-        llab, rlab = _sort_labels(uniques, llab, rlab)
+        if uniques.dtype.kind in "iufb":
+            # Faster equivalent to _sort_labels: look up each sorted unique
+            #  in the factorizer's hashtable to recover its original code
+            #  (np.sort + lookup is cheaper than argsort), then invert that
+            #  permutation to map old codes to sorted-order codes.
+            # NAs never enter the table, so the lookup mask is all-False.
+            lookup_mask = np.zeros(len(uniques), dtype=np.uint8) if uses_mask else None
+            sorter = rizer.table.lookup(  # type: ignore[attr-defined]
+                np.sort(uniques), mask=lookup_mask
+            )
+            ranks = np.empty(len(sorter), dtype=np.intp)
+            ranks[sorter] = np.arange(len(sorter), dtype=np.intp)
+            llab = algos.take_nd(ranks, llab, fill_value=-1)
+            rlab = algos.take_nd(ranks, rlab, fill_value=-1)
+        else:
+            llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
     lmask = llab == -1
@@ -3084,7 +3102,11 @@ def _sort_labels(
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = algos.safe_sort(uniques, labels, use_na_sentinel=True)
+    # `uniques` come from a Factorizer, so are unique by construction and
+    #  all `labels` are in-bounds
+    _, new_labels = algos.safe_sort(
+        uniques, labels, use_na_sentinel=True, assume_unique=True, verify=False
+    )
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

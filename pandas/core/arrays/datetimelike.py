@@ -498,7 +498,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # error: Argument 1 to "Timestamp" has incompatible type "object";
+            # expected "integer[Any] | float | str | date | datetime |
+            # datetime64[date | int | None]"  [arg-type]
+            other = self._scalar_type(other)  # type: ignore[arg-type]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -1744,7 +1747,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
-        out = out.astype("i8").view(self._ndarray.dtype)
+        # All-NA groups come back as NaN; casting NaN to i8 is platform
+        # dependent (0 on some architectures), so map them to iNaT explicitly.
+        na_mask = np.isnan(out)
+        out[na_mask] = 0
+        out = out.astype("i8")
+        out[na_mask] = iNaT
+        out = out.view(self._ndarray.dtype)
         return self._from_backing_data(out)
 
 
@@ -2026,7 +2035,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
-    def round(
+    def round(  # type: ignore[override]
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",

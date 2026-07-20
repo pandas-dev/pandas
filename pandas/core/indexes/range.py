@@ -417,8 +417,12 @@ class RangeIndex(Index):
         Return the number of bytes in the underlying data.
         """
         rng = self._range
-        return getsizeof(rng) + sum(
-            getsizeof(getattr(rng, attr_name))
+        # passing a default to getsizeof avoids a TypeError on PyPy, where
+        # sys.getsizeof always raises TypeError unless a default is provided
+        # (GH#46176)
+        objsize = 24
+        return getsizeof(rng, objsize) + sum(
+            getsizeof(getattr(rng, attr_name), objsize)
             for attr_name in ["start", "stop", "step"]
         )
 
@@ -555,6 +559,22 @@ class RangeIndex(Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
+        if target_array.dtype.kind in "iu":
+            # GH#64148: ``target_array - start`` overflows int64 for extreme
+            # targets and for ranges spanning more than INT64_MAX. Establish
+            # membership with exact comparisons first; an in-window offset then
+            # fits in uint64, so the modular arithmetic below is exact.
+            valid = (target_array >= start) & (target_array < stop)
+            start_uint = np.uint64(start % 2**64)
+            step_uint = np.uint64(step)
+            locs_uint = target_array.astype(np.uint64, copy=False) - start_uint
+            valid &= locs_uint % step_uint == 0
+            locs = np.where(valid, (locs_uint // step_uint).astype(np.int64), -1)
+            if step != self.step:
+                # We reversed this range: transform to original locs
+                locs = np.where(valid, len(self) - 1 - locs, -1)
+            return ensure_platform_int(locs)
+
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
         locs[~valid] = -1

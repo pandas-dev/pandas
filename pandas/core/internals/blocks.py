@@ -1083,9 +1083,28 @@ class Block(PandasObject, libinternals.Block):
             New blocks of unstacked values.
         """
         new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
+        new_values = new_values.T
+
+        # get_new_values can return a view of self.values on the identity-indexer
+        #  fast path (see _Unstacker._make_sorted_values); every other path copies
+        #  via take_nd.  Gate on that, then the O(1) may_share_memory, so CoW
+        #  tracks the reference.  GH#65107.  For NDArrayBacked EAs (e.g. tz-aware
+        #  datetime, period) np.asarray boxes to object, so may_share_memory on
+        #  the EA objects is always False; compare the backing ._ndarray instead
+        #  as get_result does, else the shared view goes untracked.  GH#65748
+        if isinstance(self.values, np.ndarray):
+            source, unstacked = self.values, new_values
+        else:
+            values = cast("NDArrayBackedExtensionArray", self.values)
+            source, unstacked = values._ndarray, new_values._ndarray
+
+        if unstacker._indexer_is_identity and np.may_share_memory(unstacked, source):
+            refs = self.refs
+        else:
+            refs = None
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values.T, placement=bp)]
+        blocks = [new_block_2d(new_values, placement=bp, refs=refs)]
         return blocks
 
     # ---------------------------------------------------------------------
@@ -1140,12 +1159,15 @@ class Block(PandasObject, libinternals.Block):
                 casted = setitem_datetimelike_compat(values, num_set, casted)
 
                 if (
-                    isinstance(casted, list)
+                    self.ndim == 1
+                    and isinstance(casted, list)
                     and len(casted) > 0
                     and isinstance(casted[0], (tuple, list, np.ndarray))
                 ):
                     # Prevent numpy from unpacking nested containers
-                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    # (e.g. tuples) into a scalar cell during assignment. GH#37629
+                    # Only for 1D blocks: on a 2D block a list of lists/tuples is
+                    # a genuine 2D value whose rows must not be wrapped. GH#65264
                     casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
@@ -1395,6 +1417,21 @@ class Block(PandasObject, libinternals.Block):
         if noop:
             return [self.copy(deep=False)]
 
+        if not self._can_hold_element(value) and not is_valid_na_for_dtype(
+            value, self.dtype
+        ):
+            # GH#45153 fillna with incompatible value requiring any
+            #  dtype casting is deprecated.
+            warnings.warn(
+                f"'{type(value).__name__}' is not supported as a "
+                f"fill value for {self.dtype} dtype. In a future "
+                f"version, calling fillna with an incompatible "
+                f"value will raise. Explicitly cast to a common "
+                f"dtype before filling.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         if limit is not None:
             mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
@@ -1444,10 +1481,6 @@ class Block(PandasObject, libinternals.Block):
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # error: Non-overlapping equality check [...]
-        if method == "asfreq":  # type: ignore[comparison-overlap]
-            # clean_fill_method used to allow this
-            missing.clean_fill_method(method)
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -1581,11 +1614,7 @@ class Block(PandasObject, libinternals.Block):
                     stacklevel=find_stack_level(),
                 )
             return self.copy(deep=False)
-        # TODO: round only defined on BaseMaskedArray
-        # Series also does this, so would need to fix both places
-        # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
-        # has no attribute "round"
-        values = self.values.round(decimals)  # type: ignore[union-attr]
+        values = self.values.round(decimals)
 
         refs = None
         if values is self.values:
@@ -1602,6 +1631,8 @@ class Block(PandasObject, libinternals.Block):
         We split the block to avoid copying the underlying data. We create new
         blocks for every connected segment of the initial block that is not deleted.
         The new blocks point to the initial array.
+
+        Assumes `loc` is strictly increasing when list-like.
         """
         if not is_list_like(loc):
             loc = [loc]
@@ -1713,6 +1744,12 @@ class EABackedBlock(Block):
         value = self._maybe_squeeze_arg(value)
 
         values = self.values
+        if values._readonly:
+            # GH#38547 raise here instead of letting the ValueError from
+            #  EA.__setitem__ reach the except clause below, which would
+            #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
+            #  whose __setitem__ does not check the flag.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
@@ -1827,10 +1864,23 @@ class EABackedBlock(Block):
 
         self = self._maybe_copy(inplace=True)
         values = self.values
+        if values._readonly:
+            # GH#38547 as in EABackedBlock.setitem, raise instead of letting
+            #  the except clause below misinterpret the EA-level ValueError
+            #  as a cast failure.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
-            # GH#45419 Transpose the mask to storage layout instead of
-            #  transposing values, since EA.T may not be a view.
+            # GH#64620 Reorient the read-only inputs to the block's storage
+            #  layout and putmask into self.values in place. We must not
+            #  transpose self.values: EA.T is only zero-copy when
+            #  dtype._can_fast_transpose, so a transpose could yield a copy and
+            #  _putmask would silently mutate that throwaway instead of self.
+            #  mask/new are read-only, so transposing them is always correct
+            #  (mirrors value = value.T in EABackedBlock.setitem); failing to
+            #  transpose new fills masked cells from the wrong column.
             mask = mask.T
+            if isinstance(new, (np.ndarray, ExtensionArray)) and new.ndim == 2:
+                new = new.T
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -2427,11 +2477,30 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
+        warnings.warn(
+            f"Series.values returning an object-dtype ndarray for "
+            f"{type(values.dtype).__name__} dtype is deprecated. "
+            f"In a future version, this will return the underlying "
+            f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
+            f"NumPy array, or 'Series.array' to get the ExtensionArray.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
+        if isinstance(values.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "Series.values returning an ndarray that drops timezone "
+                "information for DatetimeTZDtype is deprecated. "
+                "In a future version, this will return the underlying "
+                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
+                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

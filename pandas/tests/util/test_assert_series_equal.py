@@ -324,6 +324,23 @@ def test_series_equal_series_type():
         tm.assert_series_equal(s3, s1, check_series_type=True)
 
 
+def test_series_equal_ndarray_subclass_values():
+    # GH#65770
+    class OtherArray(np.ndarray):
+        pass
+
+    left = Series(np.array([1, 2, 3]))
+    right = Series(np.array([1, 2, 3]).view(OtherArray), copy=False)
+
+    msg = """Series values are different
+
+Series values classes are different
+\\[left\\]:  ndarray
+\\[right\\]: OtherArray"""
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_series_type=False)
+
+
 def test_series_equal_exact_for_nonnumeric():
     # https://github.com/pandas-dev/pandas/issues/35446
     s1 = Series(["a", "b"])
@@ -415,6 +432,31 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, x, check_exact=True)
     tm.assert_series_equal(x, y)
     tm.assert_series_equal(x, y, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            Series([pd.array([1, 2, 3])], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+        (
+            Series([[1, 2, 3]], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_series_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = "Series are different"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(right, left, check_exact=True)
 
 
 @pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])

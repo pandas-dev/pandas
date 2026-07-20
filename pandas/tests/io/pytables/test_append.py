@@ -461,6 +461,28 @@ def test_append_min_itemsize_multiindex_columns(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
+def test_append_min_itemsize_index_multiindex_columns(temp_hdfstore):
+    # GH#12154 the row-index key ('index') is not a per-column request and must
+    # still reserve the index string width, even with MultiIndex columns.
+    columns = MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")])
+    df = DataFrame(
+        [["xx", "yy", "zz"], ["aa", "bb", "cc"]],
+        columns=columns,
+        index=["s1", "s2"],
+    )
+    temp_hdfstore.append("df", df, min_itemsize={"index": 50})
+
+    # appending a longer index label than the initial rows would overflow the
+    # index column had min_itemsize={'index': 50} not sized it.
+    df2 = DataFrame(
+        [["dd", "ee", "ff"]],
+        columns=columns,
+        index=["a_long_index_label_over_default_width"],
+    )
+    temp_hdfstore.append("df", df2)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), concat([df, df2]))
+
+
 def test_append_with_empty_string(temp_hdfstore):
     # with all empty strings (GH 12242)
     df = DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})
@@ -675,10 +697,12 @@ def test_append_misc_chunksize(temp_hdfstore, chunksize):
 
 
 def test_append_misc_empty_frame(temp_hdfstore):
-    # empty frame, GH4273
+    # empty frame, GH#4273, GH#13016
     # 0 len
     df_empty = DataFrame(columns=list("ABC"))
-    temp_hdfstore.append("df", df_empty)
+    msg = "Writing an empty DataFrame or Series with format='table'"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.append("df", df_empty)
     with pytest.raises(KeyError, match="'No object named df in the file'"):
         temp_hdfstore.select("df")
 
@@ -686,13 +710,20 @@ def test_append_misc_empty_frame(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
     temp_hdfstore.append("df", df)
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
-    temp_hdfstore.append("df", df_empty)
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.append("df", df_empty)
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-    # store
+    # store with fixed format stores the empty frame without warning
     df = DataFrame(columns=list("ABC"))
     temp_hdfstore.put("df2", df, track_times=False)
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
+
+    # put with format="table" is a no-op and warns, like append
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.put("df3", df_empty, format="table", track_times=False)
+    with pytest.raises(KeyError, match="'No object named df3 in the file'"):
+        temp_hdfstore.select("df3")
 
 
 def test_append_raise(temp_hdfstore):
@@ -859,6 +890,48 @@ def test_append_to_multiple(temp_hdfstore):
     )
     expected = df[(df.A > 0) & (df.B > 0)]
     tm.assert_frame_equal(result, expected)
+
+
+def test_append_to_multiple_duplicate_index(temp_hdfstore):
+    # GH#13547 a DataFrame with duplicate index values round-trips without
+    # exploding into extra rows
+    index = MultiIndex.from_arrays(
+        [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
+        names=["a", "c"],
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=["d", "e"],
+        index=index,
+    )
+
+    temp_hdfstore.append_to_multiple({"idx": ["d"], "data": None}, df, selector="idx")
+    result = temp_hdfstore.select_as_multiple(["idx", "data"])
+    tm.assert_frame_equal(result, df)
+
+
+def test_append_to_multiple_dropna_duplicate_index(temp_hdfstore):
+    # GH#13547 dropna=True with duplicate index values used to explode into
+    # extra rows on read-back; now all original rows are preserved
+    index = MultiIndex.from_arrays(
+        [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
+        names=["a", "c"],
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=["d", "e"],
+        index=index,
+    )
+
+    msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        temp_hdfstore.append_to_multiple(
+            {"idx": ["d"], "data": None}, df, selector="idx", dropna=True
+        )
+    result = temp_hdfstore.select_as_multiple(["idx", "data"])
+    # rows may be grouped by label rather than kept in input order, but no
+    # rows are duplicated or dropped
+    tm.assert_frame_equal(result.sort_index(), df.sort_index())
 
 
 def test_append_to_multiple_dropna(temp_hdfstore):

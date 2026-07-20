@@ -282,3 +282,47 @@ class TestSeriesCumulativeOps:
         msg = re.escape(f"operation 'cumprod' not supported for dtype '{ser.dtype}'")
         with pytest.raises(TypeError, match=msg):
             ser.cumprod(skipna=skipna)
+
+    @pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            ([-4.0, -3.0, -2.0], [-4.0, -3.0, -2.0]),
+            ([float("-inf"), -1.0], [float("-inf"), -1.0]),
+            ([-4.0, -3.0, 5.0, -2.0], [-4.0, -3.0, 5.0, 5.0]),
+        ],
+    )
+    def test_cummax_pyarrow_float_uses_negative_infinity_start(
+        self, dtype, values, expected
+    ):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(values, dtype=dtype)
+
+        result = ser.cummax()
+        expected = pd.Series(expected, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_cummin_pyarrow_float_uses_infinity_start(self):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        ser = pd.Series([float("inf"), float("inf"), 1.0], dtype="float64[pyarrow]")
+
+        result = ser.cummin()
+        expected = pd.Series(
+            [float("inf"), float("inf"), 1.0], dtype="float64[pyarrow]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_cummax_pyarrow_float_with_nulls(self, skipna):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        ser = pd.Series([-4.0, None, -2.0], dtype="float64[pyarrow]")
+
+        result = ser.cummax(skipna=skipna)
+        if skipna:
+            expected = pd.Series([-4.0, None, -2.0], dtype="float64[pyarrow]")
+        else:
+            expected = pd.Series([-4.0, None, None], dtype="float64[pyarrow]")
+        tm.assert_series_equal(result, expected)

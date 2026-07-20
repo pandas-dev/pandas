@@ -23,6 +23,7 @@ cdef class _TSObject:
         tzinfo tzinfo
         bint fold
         NPY_DATETIMEUNIT creso
+        bint parsed_by_dateutil
 
     cdef int64_t ensure_reso(
         self, NPY_DATETIMEUNIT creso, val=*, bint round_ok=*

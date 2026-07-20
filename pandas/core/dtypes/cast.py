@@ -695,7 +695,9 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        if val is NaT or val.tz is None:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -708,7 +710,9 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            if val is NaT:
+            # error: Non-overlapping identity check (left operand type: "Timedelta",
+            # right operand type: "NaTType")
+            if val is NaT:  # type: ignore[comparison-overlap]
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8
@@ -836,25 +840,6 @@ def _maybe_infer_dtype_type(element: object) -> DtypeObj | None:
         element = np.asarray(element)
         tipo = element.dtype
     return tipo
-
-
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
-    """
-    Change string like dtypes to object for
-    ``DataFrame.select_dtypes()``.
-    """
-    # error: Argument 1 to <set> has incompatible type "Type[generic]"; expected
-    # "Union[dtype[Any], ExtensionDtype, None]"
-    # error: Argument 2 to <set> has incompatible type "Type[generic]"; expected
-    # "Union[dtype[Any], ExtensionDtype, None]"
-    non_string_dtypes = dtype_set - {
-        np.dtype("S").type,  # type: ignore[arg-type]
-        np.dtype("<U").type,  # type: ignore[arg-type]
-    }
-    if non_string_dtypes != dtype_set:
-        raise TypeError(
-            "numpy string dtypes are not allowed, use 'str' or 'object' instead"
-        )
 
 
 def coerce_indexer_dtype(indexer: np.ndarray, categories: Index) -> np.ndarray:
@@ -1423,9 +1408,36 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> Any:
+    """
+    Maybe convert a NumPy scalar to its Python equivalent.
+
+    If future.python_scalars is disabled or ``value`` is not a NumPy scalar, ``value``
+    is returned unchanged. ``np.datetime64`` and ``np.timedelta64`` values are
+    converted to ``Timestamp`` and ``Timedelta`` respectively. Converting
+    ``np.longdouble`` to ``float`` and ``np.complex256`` to ``complex`` can
+    lose precision.
+
+    Parameters
+    ----------
+    value : Any
+        The value to unbox.
+    dtype : DtypeObj or None, default None
+        The dtype of the data ``value`` came from. Pass this whenever
+        ``value`` is an element of the data or is derived from its elements:
+        object dtype stores arbitrary user objects, so a NumPy scalar coming
+        from object-dtype data is a stored value rather than a boxing
+        artifact, and is returned unchanged. Omit for values whose
+        type does not follow the data's dtype, e.g. positions, counts, and
+        the results of any/all.
+
+    Returns
+    -------
+    Any
+        The equivalent Python scalar, or ``value`` unchanged.
+    """
     result = value
-    if using_python_scalars() and isinstance(value, np.generic):
+    if dtype != object and using_python_scalars() and isinstance(value, np.generic):
         if isinstance(result, np.longdouble):
             result = float(result)
         elif isinstance(result, np.complex256):
@@ -1723,7 +1735,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs
+                #  losslessly iff it has no NAs and the values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1731,6 +1743,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 )
                 if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
+                # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
+                #  to reject a negative value going into an unsigned dtype.
+                np_can_hold_element(dtype, np.asarray(arr))
                 return element
 
             return element
@@ -1764,6 +1779,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
+                #  and the values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1771,11 +1787,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 )
                 if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
+                # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
+                #  to reject a value that overflows the target float dtype.
+                np_can_hold_element(dtype, np.asarray(arr))
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
-                    casted = element.astype(dtype)
+                    with np.errstate(over="ignore"):
+                        # We check afterwards whether the cast was lossless, so
+                        #  no need to show the overflow warning.
+                        casted = element.astype(dtype)
                     if np.array_equal(casted, element, equal_nan=True):
                         return casted
                     raise LossySetitemError

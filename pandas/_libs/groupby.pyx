@@ -6,7 +6,6 @@ from cython cimport (
 from libc.math cimport (
     NAN,
     isfinite,
-    isnan,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -338,7 +337,12 @@ def group_cumprod(
                             result_mask[i, j] = True
 
                     else:
-                        accum[lab, j] *= val
+                        if int64float_t is int64_t:
+                            # Use uint64_t to avoid UB on signed integer overflow.
+                            accum[lab, j] = <int64_t>(<uint64_t>accum[lab, j] *
+                                                      <uint64_t>val)
+                        else:
+                            accum[lab, j] *= val
                         out[i, j] = accum[lab, j]
 
                 else:
@@ -1029,7 +1033,7 @@ def group_skew(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, uses_mask = mask is not None
         float64_t[:, ::1] mean, M2, M3
         float64_t val
 
@@ -1058,10 +1062,18 @@ def group_skew(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask and mask[i, j]:
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
 
-                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                if isna_entry:
+                    if not skipna:
+                        if result_mask is not None:
+                            result_mask[lab, j] = 1
+                        mean[lab, j] = NaN
+                        M2[lab, j] = NaN
+                        M3[lab, j] = NaN
                     continue
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
@@ -1070,7 +1082,7 @@ def group_skew(
         for i in range(ngroups):
             for j in range(K):
                 out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
-                if result_mask is not None and isnan(out[i, j]):
+                if result_mask is not None and nobs[i, j] < 3:
                     result_mask[i, j] = 1
 
 
@@ -1091,7 +1103,7 @@ def group_kurt(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, uses_mask = mask is not None
         float64_t[:, ::1] mean, M2, M3, M4
         float64_t val
 
@@ -1121,10 +1133,19 @@ def group_kurt(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask and mask[i, j]:
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
 
-                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                if isna_entry:
+                    if not skipna:
+                        if result_mask is not None:
+                            result_mask[lab, j] = 1
+                        mean[lab, j] = NaN
+                        M2[lab, j] = NaN
+                        M3[lab, j] = NaN
+                        M4[lab, j] = NaN
                     continue
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
@@ -1133,7 +1154,7 @@ def group_kurt(
         for i in range(ngroups):
             for j in range(K):
                 out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
-                if result_mask is not None and isnan(out[i, j]):
+                if result_mask is not None and nobs[i, j] < 4:
                     result_mask[i, j] = 1
 
 
@@ -1437,11 +1458,17 @@ def group_quantile(
             end = ends[i]
 
             # Count non-NA elements in this group using direct indexing
-            # (avoids memoryview slicing, which is not nogil-safe).
+            # (avoids memoryview slicing, which is not nogil-safe). A float
+            # NaN that is not flagged by ``mask`` (e.g. a non-null NaN in a
+            # pyarrow/masked float array, GH#64330) must be treated as NA too:
+            # it would corrupt kth_smallest_c's ordering comparisons below.
             grp_size = end - start
             non_na_sz = 0
             for j in range(grp_size):
                 if mask[start + j] == 0:
+                    if numeric_t is float32_t or numeric_t is float64_t:
+                        if values[start + j] != values[start + j]:
+                            continue
                     non_na_sz += 1
 
             if non_na_sz == 0:
@@ -1451,10 +1478,10 @@ def group_quantile(
                     else:
                         out[i, k] = NaN
             else:
-                # Copy non-NA values into a temporary mutable buffer.
-                # Pre-filtering NAs means kth_smallest_c's comparisons are
-                # always valid (no NaN/NaT values), so is_datetimelike needs
-                # no special handling here.
+                # Copy non-NA values into a temporary mutable buffer. NAs are
+                # pre-filtered (using the same condition as the count above) so
+                # that kth_smallest_c's comparisons are always valid (no NaN/NaT
+                # values), meaning is_datetimelike needs no special handling.
                 tmp = <numeric_t*>malloc(non_na_sz * sizeof(numeric_t))
                 if tmp is NULL:
                     raise MemoryError()
@@ -1462,6 +1489,9 @@ def group_quantile(
                 j = 0
                 for k in range(grp_size):
                     if mask[start + k] == 0:
+                        if numeric_t is float32_t or numeric_t is float64_t:
+                            if values[start + k] != values[start + k]:
+                                continue
                         tmp[j] = values[start + k]
                         j += 1
 
@@ -2111,8 +2141,11 @@ def group_idxmin_idxmax(
                 continue
 
             for j in range(K):
-                if not skipna and out[lab, j] == -1:
-                    # Once we've hit NA there is no going back
+                if not skipna and seen[lab, j] and out[lab, j] == -1:
+                    # Once we've hit an NA in this group there is no going back.
+                    # seen[lab, j] distinguishes this locked state from the
+                    # initial out[lab, j] == -1 sentinel that holds before any
+                    # row of the group has been visited (GH#56903).
                     continue
 
                 val = values[i, j]
@@ -2123,7 +2156,12 @@ def group_idxmin_idxmax(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if isna_entry:
-                    if not skipna or not seen[lab, j]:
+                    if not skipna:
+                        # Lock the group to the NA sentinel; the guard above
+                        # then keeps later non-NA values from overwriting it.
+                        out[lab, j] = -1
+                        seen[lab, j] = True
+                    elif not seen[lab, j]:
                         out[lab, j] = -1
                 else:
                     if not seen[lab, j]:

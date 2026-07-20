@@ -1483,6 +1483,44 @@ def test_transpose_ea_single_column():
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
+def test_unstack_multiblock():
+    # GH#65107 the zero-copy fast path for a sorted MultiIndex returns a view
+    #  of the source for non-consolidated (multi-block) frames; ensure CoW
+    #  still tracks the reference so mutating the result leaves the source
+    #  unchanged.
+    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": ["p", "q", "r", "s"]}, index=idx)
+    df_orig = df.copy()
+    result = df.unstack()
+
+    assert np.shares_memory(get_array(df, "x"), get_array(result, ("x", 1)))
+    result.iloc[0, 0] = 999.0
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "col",
+    [
+        date_range("2000", periods=4, tz="UTC"),
+        period_range("2000-01-01", periods=4, freq="D"),
+    ],
+)
+def test_unstack_multiblock_ndarray_backed_ea(col):
+    # GH#65748 the GH#65107 zero-copy fast path returned an untracked view for
+    #  NDArrayBacked EA columns (tz-aware datetime, period): np.asarray boxes
+    #  them to object, so the may_share_memory aliasing gate was always False
+    #  and mutating the result silently corrupted the source.
+    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = DataFrame({"f": [1.0, 2.0, 3.0, 4.0], "t": col}, index=idx)
+    df_orig = df.copy()
+    result = df.unstack()
+
+    # columns are [("f", 1), ("f", 2), ("t", 1), ("t", 2)]; iloc col 2 == ("t", 1)
+    assert np.shares_memory(get_array(df, "t"), get_array(result, ("t", 1)))
+    result.iloc[0, 2] = result.iloc[1, 2]
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_transform_frame():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
