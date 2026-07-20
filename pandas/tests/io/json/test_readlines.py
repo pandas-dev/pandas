@@ -710,7 +710,11 @@ def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
     # Passing the supported defaults explicitly must not raise (though the
     # deprecated date kwargs warn; GH#59161).
     depr_msg = "keyword in read_json is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+    # check_stacklevel=False: older pyarrow emits its own Pandas4Warning from
+    #  make_block during to_pandas, which the stacklevel check would trip on.
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
         result = read_json(
             pyarrow_jsonl,
             lines=True,
