@@ -620,8 +620,13 @@ def _find_chunk_byte_offsets(
             fd.seek(target)
             fd.readline()  # advance past the partial line at the split point
             pos = fd.tell()
-            if pos >= file_size or pos == offsets[-1]:
+            if pos >= file_size:
                 break
+            if pos == offsets[-1]:
+                # This target fell inside the line the previous boundary
+                # already ended; skip it rather than abandoning the boundaries
+                # after it, so one long line cannot collapse the whole split.
+                continue
             offsets.append(pos)
 
     offsets.append(file_size)

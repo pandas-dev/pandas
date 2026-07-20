@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -423,6 +424,21 @@ class TestFindChunkByteOffsets:
         offsets = _find_chunk_byte_offsets(str(path), 8, data_start=4)
         # Can't produce 8 distinct split points in 4 bytes.
         assert len(offsets) >= 2
+
+    def test_one_long_line_does_not_collapse_the_split(self, tmp_path):
+        # A line long enough to swallow several split targets must only cost
+        # those targets, not every boundary after it.
+        path = tmp_path / "data.csv"
+        lines = [b"a,b\n"] + [b"1,2\n"] * 20_000
+        lines.insert(10, b'1,"' + b"x" * 40_000 + b'"\n')
+        path.write_bytes(b"".join(lines))
+
+        offsets = _find_chunk_byte_offsets(str(path), 32, data_start=4)
+        # Skipping only the swallowed targets keeps most of the split; giving
+        # up at the first one degenerates to 2 chunks.  The long line covers
+        # roughly a third of the 32 targets.
+        assert len(offsets) - 1 >= 20
+        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
 
 
 # ---------------------------------------------------------------------------
@@ -882,6 +898,39 @@ def test_parallel_single_long_line(tmp_path, monkeypatch):
     result = _read_forced_parallel(path, monkeypatch)
     expected = read_csv(io.BytesIO(raw))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
+    # A line covering the middle of the file swallows the interior split
+    # targets.  The boundaries after it must survive: the results are correct
+    # either way, so a collapse is invisible except as lost parallelism, which
+    # is what this asserts (GH#66392).
+    path = tmp_path / "data.csv"
+    blob = "1," + "9" * 39_995 + "\n"  # 40 KB, covering 20-60% of the data
+    path.write_text(
+        "a,b\n" + "1,2\n" * 5_000 + blob + "1,2\n" * 10_000, encoding="utf-8"
+    )
+
+    chunk_counts = []
+
+    def spy(filepath, n_chunks, data_start):
+        offsets = _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+        chunk_counts.append(len(offsets) - 1)
+        return offsets
+
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    tm.assert_frame_equal(result, expected)
+    # Two of the interior targets land inside the long line; giving up at the
+    # first leaves 2 chunks no matter how many workers were asked for.
+    assert chunk_counts, "the parallel path did not run"
+    assert chunk_counts[0] >= 3
 
 
 def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
