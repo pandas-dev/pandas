@@ -85,7 +85,7 @@ def jit_user_function(func: Callable) -> Callable:
         # This will mess up register_jitable
         numba_func = func  # type: ignore[assignment]
     else:
-        numba_func = numba.extending.register_jitable(func)  # type: ignore[assignment]
+        numba_func = numba.extending.register_jitable(func)  # type: ignore[arg-type]
 
     return numba_func
 

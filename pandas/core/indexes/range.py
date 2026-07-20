@@ -1624,7 +1624,7 @@ class RangeIndex(Index):
             data = data / len(self)
         return Series(data, index=self.copy(), name=name)
 
-    @overload  # type: ignore[override]
+    @overload
     def searchsorted(  # pyright: ignore[reportOverlappingOverload]
         self,
         value: int | np.integer,
@@ -1641,7 +1641,7 @@ class RangeIndex(Index):
     ) -> npt.NDArray[np.intp]: ...
 
     def searchsorted(
-        self,  # type: ignore[overload-overlap]
+        self,
         value: int | np.integer | npt.ArrayLike,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
