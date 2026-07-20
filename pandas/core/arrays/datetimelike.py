@@ -1747,7 +1747,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
-        out = out.astype("i8").view(self._ndarray.dtype)
+        # All-NA groups come back as NaN; casting NaN to i8 is platform
+        # dependent (0 on some architectures), so map them to iNaT explicitly.
+        na_mask = np.isnan(out)
+        out[na_mask] = 0
+        out = out.astype("i8")
+        out[na_mask] = iNaT
+        out = out.view(self._ndarray.dtype)
         return self._from_backing_data(out)
 
 

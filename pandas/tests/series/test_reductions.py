@@ -128,6 +128,13 @@ def test_td64_summation_overflow():
     (s2 - s2.min()).sum()
 
 
+def test_td64_sum_all_nat_skipna_false():
+    # GH#43178: an all-NaT sum with skipna=False must return NaT rather than be
+    #  mistaken for an overflow (the NaT sentinels accumulate past int64 bounds)
+    ser = Series(np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]"))
+    assert ser.sum(skipna=False) is pd.NaT
+
+
 def test_prod_numpy16_bug():
     ser = Series([1.0, 1.0, 1.0], index=range(3))
     result = ser.prod()

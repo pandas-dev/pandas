@@ -2678,11 +2678,11 @@ class TestDataFramePlots:
             index=idx,
             columns=["A"],
         )
-        expected = idx._values
+        expected = idx.asi8
 
         ax = df.plot()
         result = ax.get_lines()[0].get_xdata()
-        assert all(str(result[i]) == str(expected[i]) for i in range(4))
+        assert all(result[i] == expected[i] for i in range(4))
 
     def test_plot_display_xlabel_and_xticks(self):
         # GH#44050

@@ -275,6 +275,10 @@ def read_excel(
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
         Use ``object`` to preserve data as stored in Excel and not interpret dtype,
         which will necessarily result in ``object`` dtype.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
         If you use ``None``, it will infer the dtype of each column based on the data.
