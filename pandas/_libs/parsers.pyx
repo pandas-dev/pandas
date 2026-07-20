@@ -395,6 +395,10 @@ cdef class TextReader:
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
         bint allow_leading_cols
+        # Trim the parser's buffers after a whole-file read.  The parallel
+        # reader turns this off on its workers, whose buffers are reused
+        # across chunks and freed at close.
+        public bint trim_after_read
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -564,6 +568,7 @@ cdef class TextReader:
         self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
+        self.trim_after_read = True
 
         if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
@@ -928,7 +933,7 @@ cdef class TextReader:
         rows=None --> read all rows
         """
         # Don't care about memory usage
-        columns = self._read_rows(rows, 1)
+        columns = self._read_rows(rows, self.trim_after_read)
 
         return columns
 
