@@ -85,6 +85,11 @@ class TestIndexing:
         assert isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    @pytest.mark.skipif(
+        not IS64,
+        reason="2**31 is too big for Py_ssize_t on 32-bit. "
+        "It doesn't matter though since you cannot create an array that long on 32-bit",
+    )
     def test_maybe_indices_to_slice_large_length(self):
         # GH#24248 a max_len exceeding the 32-bit int range must not overflow
         #  (e.g. Index.take on an index with more than 2**31 rows)
