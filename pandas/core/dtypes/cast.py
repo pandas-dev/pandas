@@ -273,7 +273,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
     return result
 
 
-def _floats_fit_integer_dtype(values: np.ndarray, dtype: np.dtype) -> bool:
+def floats_fit_integer_dtype(values: np.ndarray, dtype: np.dtype) -> bool:
     """
     Whether every entry of float-dtype `values` is finite and within the range
     that casts exactly to integer dtype `dtype`.
@@ -355,7 +355,7 @@ def maybe_downcast_numeric(
                 # platform-dependent (aarch64 saturates, x86 wraps), and the
                 # np.allclose check below cannot detect it, since e.g. 2**63
                 # and 2**63 - 1 are the same float64.
-                if not _floats_fit_integer_dtype(new_result, dtype):
+                if not floats_fit_integer_dtype(new_result, dtype):
                     return result
             try:
                 new_result = new_result.astype(dtype)

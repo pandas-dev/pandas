@@ -4,7 +4,6 @@ from datetime import (
     datetime,
 )
 from decimal import Decimal
-import warnings
 
 import numpy as np
 import pytest
@@ -2018,9 +2017,12 @@ def test_setitem_enlarge_out_of_int64_range(value):
     #  out-of-range cast saturated and 2**63 was silently stored as 2**63 - 1
     ser = Series([1, 2], dtype="int64")
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", RuntimeWarning)
+    # GH#62369 int64 cannot hold the value, so the widening is deprecated
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="incompatible dtype"
+    ) as record:
         ser.loc[2] = value
+    assert not any(issubclass(warning.category, RuntimeWarning) for warning in record)
 
     expected = Series([1.0, 2.0, value], dtype="float64")
     tm.assert_series_equal(ser, expected)

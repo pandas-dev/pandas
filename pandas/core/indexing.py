@@ -35,6 +35,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    floats_fit_integer_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -3661,6 +3662,19 @@ def _expansion_can_hold(orig: ExtensionArray, new_arr) -> bool:
     GH#62369 deprecation warning.
     """
     dtype = orig.dtype
+    np_dtype = dtype.numpy_dtype if isinstance(dtype, NumpyEADtype) else dtype
+    if (
+        isinstance(np_dtype, np.dtype)
+        and np_dtype.kind in "iu"
+        and isinstance(new_arr, np.ndarray)
+        and new_arr.dtype.kind == "f"
+        and not floats_fit_integer_dtype(new_arr, np_dtype)
+    ):
+        # GH#66394 can_hold_element's round-trip check cannot see an
+        #  out-of-range float->int cast, since e.g. 2**63 and 2**63 - 1 are
+        #  the same float64, so it would report the value as holdable.
+        return False
+
     if isinstance(dtype, NumpyEADtype):
         # can_hold_element treats NumpyExtensionArray as a generic
         #  ExtensionArray; unwrap so the underlying numpy dtype is checked.
