@@ -2539,11 +2539,13 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
         # GH#62523 expanding with a finer-resolution value that cannot be cast
         #  down to the original coarser unit should keep the finer unit rather
-        #  than raising ArrowInvalid
+        #  than raising ArrowInvalid.  The unit change warns since the second
+        #  resolution cannot hold the value (GH#62369).
         ser = Series(
             to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
         )
-        ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
         expected = Series(
             [
                 Timestamp("2020-01-01"),
