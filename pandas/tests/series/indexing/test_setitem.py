@@ -1955,3 +1955,54 @@ def test_setitem_expansion_float64_value_into_float32_warns():
         ser.loc[2] = 1e300
     expected = Series([1.0, 2.0, 1e300], dtype=np.float64)
     tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_setitem_expansion_incompatible_masked_dtype_warns(dtype):
+    # GH#62369 extension dtypes participate in the expansion deprecation
+    ser = Series([1, 0], dtype=dtype)
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = "foo"
+    assert ser.dtype == object
+
+
+def test_setitem_expansion_masked_lossy_float_warns():
+    # GH#62369 2.5 cannot be held losslessly by Int64
+    ser = Series([1, 2], dtype="Int64")
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = 2.5
+    assert ser.dtype == "Float64"
+
+
+def test_setitem_expansion_masked_compatible_no_warning():
+    # GH#62369 NA and lossless floats can be held by Int64; dtype is retained
+    ser = Series([1, 2], dtype="Int64")
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = NA
+        ser.loc[3] = 4.0
+    assert ser.dtype == "Int64"
+
+
+def test_setitem_expansion_categorical_novel_value_warns():
+    # GH#62369 a value outside the categories changes the dtype
+    ser = Series(Categorical(["a", "b"]))
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = "zzz"
+    assert ser.dtype != "category"
+
+
+def test_setitem_expansion_categorical_known_value_no_warning():
+    # GH#62369 a value among the categories is compatible
+    ser = Series(Categorical(["a", "b"]))
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = "a"
+    assert ser.dtype == "category"
+
+
+def test_setitem_expansion_arrow_incompatible_warns():
+    # GH#62369
+    pytest.importorskip("pyarrow")
+    ser = Series([1, 2], dtype="int64[pyarrow]")
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = "foo"
+    assert ser.dtype == object

@@ -51,14 +51,18 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     construct_1d_array_from_inferred_fill_value,
     is_valid_na_for_dtype,
     isna,
@@ -3591,6 +3595,44 @@ def check_dict_or_set_indexers(key) -> None:
         )
 
 
+def _expansion_can_hold(orig: ExtensionArray, new_arr) -> bool:
+    """
+    Can new_arr's values be set losslessly into an array of orig's dtype?
+
+    Decides whether a dtype change during setitem-with-expansion gets the
+    GH#62369 deprecation warning.
+    """
+    dtype = orig.dtype
+    if isinstance(dtype, NumpyEADtype):
+        # can_hold_element treats NumpyExtensionArray as a generic
+        #  ExtensionArray; unwrap so the underlying numpy dtype is checked.
+        return can_hold_element(np.asarray(orig), new_arr)
+    if isinstance(dtype, (PeriodDtype, IntervalDtype, DatetimeTZDtype, np.dtype)) or (
+        dtype == "string"
+    ):
+        # the dtypes for which can_hold_element does a real setitem-validation
+        #  check, as opposed to unconditionally returning True
+        return can_hold_element(orig, new_arr)
+
+    # Generic ExtensionArray (masked, Categorical, ArrowDtype, ...): check
+    #  whether the values round-trip losslessly at the original dtype.
+    try:
+        with warnings.catch_warnings():
+            # this is an internal probe whose result we compare below, so
+            #  constructor warnings (e.g. Categorical's on out-of-category
+            #  values) are spurious
+            warnings.simplefilter("ignore")
+            converted = pd_array(new_arr, dtype=dtype)
+    except Exception:
+        # EA constructors raise assorted exception types for un-holdable
+        #  values (e.g. pyarrow.lib.ArrowInvalid, decimal.InvalidOperation);
+        #  any failure means the original dtype cannot hold the new values.
+        return False
+    return array_equivalent(
+        np.asarray(converted, dtype=object), np.asarray(new_arr, dtype=object)
+    )
+
+
 def infer_and_maybe_downcast(
     orig: ExtensionArray,
     new_arr,
@@ -3641,19 +3683,14 @@ def infer_and_maybe_downcast(
             and is_np_dtype(new_arr.dtype, "f")
             and isna(new_arr).any()
         )
-        # can_hold_element treats generic ExtensionArrays as able to hold
-        #  anything; unwrap so the underlying numpy dtype is checked.
-        orig_for_check: ArrayLike = orig
-        if isinstance(orig.dtype, NumpyEADtype):
-            orig_for_check = np.asarray(orig)
-        if not pdep6_allowed and not can_hold_element(orig_for_check, new_arr):
+        if not pdep6_allowed and not _expansion_can_hold(orig, new_arr):
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
-                f"and will raise in a future version of pandas. "
-                f"The existing dtype is {dtype} and the new values have "
-                f"dtype {new_arr.dtype}. Cast the object to "
-                f"{new_arr.dtype} before this operation to retain the "
-                f"current behavior.",
+                f"and will raise an error in a future version of pandas. "
+                f"The existing dtype {dtype} cannot hold the value being "
+                f"set, so the result has dtype {new_arr.dtype}. Cast the "
+                f"object to {new_arr.dtype} before this operation to "
+                f"retain the current behavior.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )

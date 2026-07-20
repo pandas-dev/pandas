@@ -1958,7 +1958,9 @@ class TestLocWithMultiIndex:
     def test_additional_element_to_categorical_series_loc(self):
         # GH#47677
         result = Series(["a", "b", "c"], dtype="category")
-        result.loc[3] = 0
+        # 0 is not among the categories, so the dtype changes (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            result.loc[3] = 0
         expected = Series(["a", "b", "c", 0], dtype="object")
         tm.assert_series_equal(result, expected)
 
@@ -2084,7 +2086,10 @@ class TestLocSetitemWithExpansion:
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         df = DataFrame({"A": pd.array([1, 2, 3], dtype=dtype)})
-        df.loc[len(df)] = [2.5]
+        # the promotion warns since 2.5 cannot be held by the integer
+        #  dtype (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            df.loc[len(df)] = [2.5]
         assert df["A"].dtype.kind == "f"
         assert df.loc[len(df) - 1, "A"] == 2.5
 
@@ -3788,6 +3793,15 @@ def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
         df.loc[0] = "x"
     expected_dtype = "str" if using_infer_string else object
     assert df["a"].dtype == expected_dtype
+
+
+def test_loc_setitem_expansion_ea_column_warns():
+    # GH#62369 EA-dtyped columns participate in the expansion deprecation
+    df = DataFrame({"a": Series([1, 2], dtype="Int64"), "b": [1.5, 2.5]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
 
 
 def test_loc_setitem_expansion_placeholder_column_no_warning():
