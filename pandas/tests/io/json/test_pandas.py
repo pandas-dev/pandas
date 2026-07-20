@@ -6,6 +6,7 @@ from io import (
 )
 import json
 import os
+from pathlib import Path
 import sys
 import uuid
 
@@ -2572,3 +2573,11 @@ def test_large_number_string_column():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_to_json_unsupported_object_gh36211():
+    # GH#36211
+    df = DataFrame({"a": [Path("m1")]})
+    msg = "Unable to serialize object to JSON: encountered an unsupported object type"
+    with pytest.raises(ValueError, match=msg):
+        df.to_json()

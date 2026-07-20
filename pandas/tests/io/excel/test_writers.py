@@ -971,7 +971,7 @@ class TestExcelWriter:
         with ExcelFile(tmp_excel) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
 
-        tm.assert_frame_equal(tsframe, recons)
+        tm.assert_frame_equal(tsframe, recons, check_freq=False)
         assert recons.index.names == ("time", "foo")
 
     def test_to_excel_multiindex_no_write_index(self, tmp_excel):

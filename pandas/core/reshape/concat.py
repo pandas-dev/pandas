@@ -954,9 +954,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = list(names)
         else:
             # make sure that all of the passed indices have the same nlevels
-            if not len({idx.nlevels for idx in indexes}) == 1:
-                raise AssertionError(
-                    "Cannot concat indices that do not have the same number of levels"
+            nlevels_set = {idx.nlevels for idx in indexes}
+            if len(nlevels_set) != 1:
+                # GH#25413
+                raise ValueError(
+                    "Cannot concat indices that do not have the same number "
+                    f"of levels: got levels {sorted(nlevels_set)}. When passing "
+                    "keys=, all objects must have the same index nlevels."
                 )
 
             # also copies

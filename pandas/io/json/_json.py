@@ -289,16 +289,27 @@ class Writer(ABC):
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
-        return ujson_dumps(
-            self.obj_to_write,
-            orient=self.orient,
-            double_precision=self.double_precision,
-            ensure_ascii=self.ensure_ascii,
-            date_unit=self.date_unit,
-            iso_dates=iso_dates,
-            default_handler=self.default_handler,
-            indent=self.indent,
-        )
+        try:
+            return ujson_dumps(
+                self.obj_to_write,
+                orient=self.orient,
+                double_precision=self.double_precision,
+                ensure_ascii=self.ensure_ascii,
+                date_unit=self.date_unit,
+                iso_dates=iso_dates,
+                default_handler=self.default_handler,
+                indent=self.indent,
+            )
+        except OverflowError as err:
+            # GH#36211 the C encoder recurses without bound on object types it
+            #  does not understand.
+            if "Maximum recursion level reached" not in str(err):
+                raise
+            raise ValueError(
+                "Unable to serialize object to JSON: encountered an "
+                "unsupported object type; convert the column to a supported "
+                "type (e.g. str) before calling to_json."
+            ) from err
 
     @property
     @abstractmethod
