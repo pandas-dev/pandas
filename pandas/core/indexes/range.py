@@ -1640,8 +1640,8 @@ class RangeIndex(Index):
         sorter: NumpySorter | None = ...,
     ) -> npt.NDArray[np.intp]: ...
 
-    def searchsorted(
-        self,
+    def searchsorted(  # type: ignore[override]
+        self,  # type: ignore[overload-overlap]
         value: int | np.integer | npt.ArrayLike,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
