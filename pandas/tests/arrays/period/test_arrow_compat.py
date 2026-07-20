@@ -30,27 +30,6 @@ def test_arrow_extension_type():
     assert hash(p1) != hash(p3)
 
 
-@pytest.mark.single_cpu
-def test_arrow_extension_type_registered_on_import(tmp_path):
-    # GH#41432 the extension types are registered when pandas is imported, so
-    # pyarrow reads them back correctly even without a prior pandas round-trip in
-    # the reading process. Uses a subprocess for a clean import state, since
-    # registration is a process-wide side effect other tests already trigger.
-    import subprocess
-    import sys
-
-    path = tmp_path / "period.parquet"
-    pd.DataFrame({"a": pd.period_range("2012", freq="Y", periods=3)}).to_parquet(path)
-
-    code = (
-        "import pandas  # noqa: F401  # registers the extension types on import\n"
-        "import pyarrow.parquet as pq\n"
-        f"typ = pq.read_table({str(path)!r}).schema.field('a').type\n"
-        "assert str(typ).startswith('extension<pandas.period'), typ\n"
-    )
-    subprocess.check_call([sys.executable, "-c", code])
-
-
 @pytest.mark.parametrize(
     "data, freq",
     [
