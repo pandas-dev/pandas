@@ -9748,6 +9748,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             # GH#36702. Raise when attempting arithmetic with list of array-like.
+            #  Deliberately not is_array_like_deprecate_non_pandas (GH#52834):
+            #  this site raises rather than granting array-like treatment, so
+            #  the warning's "wrap to retain current behavior" advice would be
+            #  wrong; whether duck arrays keep raising is for the enforcement PR.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
                     f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
