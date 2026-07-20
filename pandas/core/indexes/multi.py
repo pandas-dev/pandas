@@ -50,6 +50,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_array_like_deprecate_non_pandas,
     is_hashable,
     is_integer,
     is_iterator,
@@ -68,7 +69,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -856,6 +856,13 @@ class MultiIndex(Index):
         it filters out all rows of the level C, MultiIndex.levels will still
         return A, B, C.
 
+        When a ``MultiIndex`` is built by the standard constructors (e.g.
+        :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_tuples`),
+        missing values (``NaN``) are not stored in ``levels``; they are
+        represented by a code of ``-1`` in :attr:`MultiIndex.codes`, so
+        ``levels`` does not contain ``NaN`` even when the corresponding
+        level of the ``MultiIndex`` does.
+
         See Also
         --------
         MultiIndex.codes : The codes of the levels in the MultiIndex.
@@ -1058,7 +1065,7 @@ class MultiIndex(Index):
 
         if isinstance(levels, Index):
             pass
-        elif is_array_like(levels):
+        elif is_array_like_deprecate_non_pandas(levels):
             levels = Index(levels)
         elif is_list_like(levels):
             levels = list(levels)
@@ -4200,32 +4207,51 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-
-                    # GH#55786 Vectorized path: use the level's hashtable to
-                    # map all labels to codes at once, then use algos.isin
-                    # instead of looping with per-element _get_level_indexer.
                     if any(not is_hashable(x) for x in k):
+                        # e.g. slice
                         raise err
-                    level_codes = self.codes[i]
-                    k_codes = self.levels[i].get_indexer(k)
-                    # NaN labels are stored as code -1 and are absent
-                    # from levels, so get_indexer returns -1 for them.
-                    # Separate true missing labels from NaN labels.
-                    k_isna = isna(k if not isinstance(k, tuple) else list(k))
-                    na_count = k_isna.sum()
-                    missing_mask = k_codes == -1
-                    if na_count:
-                        if missing_mask.sum() > na_count:
+
+                    if self.levels[i]._supports_partial_string_indexing:
+                        # GH#64807 A level that supports partial indexing (e.g.
+                        #  DatetimeIndex/PeriodIndex) can map a single label to a
+                        #  *range* of positions (partial-string/partial-date
+                        #  slicing). The exact-match vectorized path below cannot
+                        #  express that, so resolve each label individually.
+                        for x in k:
+                            # GH 42351: not-founds raise KeyError (enforced in 2.0)
+                            item_indexer = self._get_level_indexer(
+                                x, level=i, indexer=indexer
+                            )
+                            if lvl_indexer is None:
+                                lvl_indexer = _to_bool_indexer(item_indexer)
+                            elif isinstance(item_indexer, slice):
+                                lvl_indexer[item_indexer] = True  # type: ignore[index]
+                            else:
+                                lvl_indexer |= item_indexer
+                    else:
+                        # GH#55786 Vectorized path: use the level's hashtable to
+                        # map all labels to codes at once, then use algos.isin
+                        # instead of looping with per-element _get_level_indexer.
+                        level_codes = self.codes[i]
+                        k_codes = self.levels[i].get_indexer(k)
+                        # NaN labels are stored as code -1 and are absent
+                        # from levels, so get_indexer returns -1 for them.
+                        # Separate true missing labels from NaN labels.
+                        k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                        na_count = k_isna.sum()
+                        missing_mask = k_codes == -1
+                        if na_count:
+                            if missing_mask.sum() > na_count:
+                                raise KeyError(k) from None
+                            # NaN is in k but must also be present in the data
+                            if not lib.has_sentinel(level_codes, -1):
+                                raise KeyError(k) from None
+                        elif missing_mask.any():
                             raise KeyError(k) from None
-                        # NaN is in k but must also be present in the data
-                        if not lib.has_sentinel(level_codes, -1):
-                            raise KeyError(k) from None
-                    elif missing_mask.any():
-                        raise KeyError(k) from None
-                    k_codes = k_codes[~missing_mask]
-                    lvl_indexer = algos.isin(level_codes, k_codes)
-                    if na_count:
-                        lvl_indexer = lvl_indexer | (level_codes == -1)
+                        k_codes = k_codes[~missing_mask]
+                        lvl_indexer = algos.isin(level_codes, k_codes)
+                        if na_count:
+                            lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
                     # no matches we are done
@@ -4803,6 +4829,21 @@ class MultiIndex(Index):
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
+                # GH#20252, GH#26622 from_tuples silently gives wrong results
+                #  for elements that aren't tuple-likes of length nlevels.
+                for position, value in enumerate(values):
+                    if is_list_like(value) and len(value) == self.nlevels:
+                        continue
+                    if is_list_like(value):
+                        got = f"an element of length {len(value)}"
+                    else:
+                        got = f"a scalar ({value!r})"
+                    raise ValueError(
+                        "MultiIndex.isin expects an iterable of tuples of "
+                        f"length {self.nlevels} (the number of levels); got "
+                        f"{got} at position {position}. To match on a single "
+                        "level, pass the level= argument."
+                    )
                 values = MultiIndex.from_tuples(values)
             return values.unique().get_indexer_for(self) != -1
         else:
