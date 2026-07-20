@@ -1990,9 +1990,9 @@ _days_per_month_array[:] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 cdef inline bint _all_digits(const char *chars, int start,
                              int stop) noexcept nogil:
-    cdef int k
-    for k in range(start, stop):
-        if chars[k] < b"0" or chars[k] > b"9":
+    cdef int idx
+    for idx in range(start, stop):
+        if chars[idx] < b"0" or chars[idx] > b"9":
             return False
     return True
 
@@ -2009,6 +2009,10 @@ cdef inline int _parse_iso_fixed(const char *word, Py_ssize_t word_len,
     fixed-width layouts: `YYYY-MM-DD` and `YYYY-MM-DD[ T]HH:MM:SS` (always
     timezone-naive). Returns 0 on success, -1 to defer to the general
     parser, applying the same calendar/range validation it would.
+
+    This arguably belongs in tslibs alongside `string_to_dts`, but is kept
+    here so it stays inlined into the loop below; reached as a cross-module
+    cdef it measured ~5% slower on this fastpath.
     """
     cdef:
         int year, month, day, days_in_month
@@ -2064,14 +2068,23 @@ cdef inline int _parse_iso_fixed(const char *word, Py_ssize_t word_len,
     return 0
 
 
+cdef inline int _layout_code(const char *word,
+                             Py_ssize_t word_len) noexcept nogil:
+    """
+    Layout of a string already known to parse via `_parse_iso_fixed`:
+    1 (YYYY-MM-DD), 2 (space-separated) or 3 (T-separated). Two such strings
+    share a format shape exactly when their codes match, giving an O(1)
+    equivalent of `_same_format_shape` on the fastpath.
+    """
+    if word_len == 10:
+        return 1
+    return 2 if word[10] == b" " else 3
+
+
 cdef inline int _fixed_shape_code(const char *word,
                                   Py_ssize_t word_len) noexcept nogil:
     """
-    Classify a datetime string that parses via `_parse_iso_fixed`: 0 when it
-    is not one of the fixed layouts, else 1 (YYYY-MM-DD), 2 (space-separated
-    datetime) or 3 (T-separated datetime). Two fixed-layout strings share a
-    format shape exactly when their codes are equal, giving an O(1)
-    equivalent of `_same_format_shape` on the fastpath.
+    `_layout_code` for an unvalidated string, or 0 if it is not fixed-layout.
     """
     cdef:
         npy_datetimestruct dts
@@ -2079,9 +2092,7 @@ cdef inline int _fixed_shape_code(const char *word,
 
     if _parse_iso_fixed(word, word_len, &dts, &unit) != 0:
         return 0
-    if word_len == 10:
-        return 1
-    return 2 if word[10] == b" " else 3
+    return _layout_code(word, word_len)
 
 
 cdef inline bint _same_format_shape(const char *left, Py_ssize_t left_len,
@@ -2300,9 +2311,8 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     # nogil here helps only caller-managed threads; read_csv's own parallel
-    # path is disabled when parse_dates is set.  No early returns inside the
-    # block: bail-outs set `fallback` (or `bump_reso`) and break, and the
-    # except-block folds npy_datetimestruct_to_datetime's raise into one too.
+    # path is disabled when parse_dates is set.  Bail-outs must set `fallback`
+    # (or `bump_reso`) and break rather than return from inside the block.
     try:
         with nogil:
             for i in range(lines):
@@ -2314,8 +2324,7 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                     continue
 
                 # _token_len, not strlen: an embedded NUL must reach the ISO
-                # parser (and fail) so the column falls back like the object
-                # path.
+                # parser and fail, so the column falls back like the object path.
                 word_len = _token_len(parser, token_idx)
                 arena_size += word_len + 1
                 if word_len == 0:
@@ -2328,24 +2337,14 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
 
                 if require_consistent_format:
                     if template_word == NULL:
-                        # Word pointers stay valid for the duration of this
-                        # chunk's conversion, so we can hold on to the first.
+                        # Word pointers stay valid for this chunk's conversion.
                         template_word = word
                         template_len = word_len
-                        if fixed_ok:
-                            template_fixed = (
-                                1 if word_len == 10
-                                else (2 if word[10] == b" " else 3)
-                            )
-                        else:
-                            template_fixed = 0
+                        template_fixed = (
+                            _layout_code(word, word_len) if fixed_ok else 0
+                        )
                     elif fixed_ok:
-                        # Fixed-layout rows share a shape exactly when their
-                        # layout codes match; O(1) vs the per-byte scan.
-                        if template_fixed != (
-                            1 if word_len == 10
-                            else (2 if word[10] == b" " else 3)
-                        ):
+                        if template_fixed != _layout_code(word, word_len):
                             fallback = True
                             break
                     elif not _same_format_shape(template_word, template_len,
@@ -2362,15 +2361,13 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                         NULL, 0, INFER_FORMAT,
                     )
                     if ret:
-                        # Not ISO8601 — signal caller to fall back to the
-                        # object path.
                         fallback = True
                         break
 
                 if out_local:
-                    # Tracked here so we can uniformly shift to UTC after the
-                    # loop.  Mixed naive+aware or differing offsets defer to
-                    # the slow path, matching the existing error behavior.
+                    # Offsets are collected here and applied after the loop.
+                    # Mixed naive+aware or differing offsets defer to the slow
+                    # path, matching the existing error behavior.
                     if saw_naive:
                         fallback = True
                         break
@@ -2395,11 +2392,9 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                     creso = item_reso
                     creso_set = True
                 elif item_reso > creso:
-                    # Higher-resolution row encountered mid-column — the
-                    # whole column is reparsed at the new resolution below.
+                    # Higher-resolution row: reparse the column below.
                     bump_reso = item_reso
                     break
-                # else: item_reso <= creso; fine to write at the higher creso.
 
                 iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
     except OverflowError:
