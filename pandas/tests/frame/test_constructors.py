@@ -2624,6 +2624,18 @@ class TestDataFrameConstructors:
         )
         assert isinstance(multi.columns, MultiIndex)
 
+    def test_constructor_reindex_integer_multiindex_to_flat(self):
+        # GH#26460 constructing from a unique integer-MultiIndex DataFrame with a
+        #  flat integer index reindexes rather than raising a buffer-dtype error
+        df = DataFrame(
+            np.arange(9.0).reshape(3, 3),
+            columns=[[2, 2, 4], [6, 8, 10]],
+            index=[[4, 4, 8], [8, 10, 12]],
+        )
+        result = DataFrame(df.iloc[[0, 1]], index=[8, 10])
+        expected = DataFrame(np.nan, index=Index([8, 10]), columns=df.columns)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "input_vals",
         [
