@@ -401,6 +401,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       literal newline would be split mid-field.
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
+    * ``low_memory`` is not ``False`` - ``low_memory=False`` guarantees
+      whole-file type inference, which per-chunk parallel reading cannot honour
+      (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
@@ -499,6 +502,11 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # Datetime format inference is per-chunk and may disagree with the serial
     # whole-column inference.
     if kwds.get("parse_dates"):
+        return False
+
+    # low_memory=False guarantees whole-file type inference, which per-chunk
+    # parallel reading cannot honour (GH#64347).
+    if kwds.get("low_memory") is False:
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
@@ -612,8 +620,13 @@ def _find_chunk_byte_offsets(
             fd.seek(target)
             fd.readline()  # advance past the partial line at the split point
             pos = fd.tell()
-            if pos >= file_size or pos == offsets[-1]:
+            if pos >= file_size:
                 break
+            if pos == offsets[-1]:
+                # This target fell inside the line the previous boundary
+                # already ended; skip it rather than abandoning the boundaries
+                # after it, so one long line cannot collapse the whole split.
+                continue
             offsets.append(pos)
 
     offsets.append(file_size)
@@ -997,6 +1010,10 @@ def read_csv(
         E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype``
@@ -1589,6 +1606,10 @@ def read_table(
         E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which

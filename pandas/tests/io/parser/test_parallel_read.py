@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -248,6 +249,20 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(parse_dates=None))
         assert _can_parallelize_csv(path, self._kwds(parse_dates=False))
 
+    def test_rejects_low_memory_false(self, tmp_path, monkeypatch):
+        # low_memory=False guarantees whole-file type inference, which the
+        # per-chunk parallel path cannot honour; low_memory=True (and the unset
+        # default) document per-chunk divergence, so they stay eligible
+        # (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(low_memory=False))
+        assert _can_parallelize_csv(path, self._kwds(low_memory=True))
+        assert _can_parallelize_csv(path, self._kwds())
+
     def test_rejects_storage_options(self, tmp_path):
         # storage_options raises for local paths in the serial path; the
         # parallel path strips it and would mask that error (GH#64347).
@@ -409,6 +424,21 @@ class TestFindChunkByteOffsets:
         offsets = _find_chunk_byte_offsets(str(path), 8, data_start=4)
         # Can't produce 8 distinct split points in 4 bytes.
         assert len(offsets) >= 2
+
+    def test_one_long_line_does_not_collapse_the_split(self, tmp_path):
+        # A line long enough to swallow several split targets must only cost
+        # those targets, not every boundary after it.
+        path = tmp_path / "data.csv"
+        lines = [b"a,b\n"] + [b"1,2\n"] * 20_000
+        lines.insert(10, b'1,"' + b"x" * 40_000 + b'"\n')
+        path.write_bytes(b"".join(lines))
+
+        offsets = _find_chunk_byte_offsets(str(path), 32, data_start=4)
+        # Skipping only the swallowed targets keeps most of the split; giving
+        # up at the first one degenerates to 2 chunks.  The long line covers
+        # roughly a third of the 32 targets.
+        assert len(offsets) - 1 >= 20
+        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
 
 
 # ---------------------------------------------------------------------------
@@ -870,6 +900,39 @@ def test_parallel_single_long_line(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
+    # A line covering the middle of the file swallows the interior split
+    # targets.  The boundaries after it must survive: the results are correct
+    # either way, so a collapse is invisible except as lost parallelism, which
+    # is what this asserts (GH#66392).
+    path = tmp_path / "data.csv"
+    blob = "1," + "9" * 39_995 + "\n"  # 40 KB, covering 20-60% of the data
+    path.write_text(
+        "a,b\n" + "1,2\n" * 5_000 + blob + "1,2\n" * 10_000, encoding="utf-8"
+    )
+
+    chunk_counts = []
+
+    def spy(filepath, n_chunks, data_start):
+        offsets = _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+        chunk_counts.append(len(offsets) - 1)
+        return offsets
+
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    tm.assert_frame_equal(result, expected)
+    # Two of the interior targets land inside the long line; giving up at the
+    # first leaves 2 chunks no matter how many workers were asked for.
+    assert chunk_counts, "the parallel path did not run"
+    assert chunk_counts[0] >= 3
+
+
 def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     # A numeric column whose only non-numeric row sits in one chunk parses as
     # int64 in the clean chunks but object in the dirty one; serial gives
@@ -885,6 +948,25 @@ def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # serial semantics: the whole column stays as strings
     assert result.loc[0, "col1"] == "0"
+
+
+def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch):
+    # low_memory=False promises whole-file type inference.  A chunk holding only
+    # NA tokens and a uint64-range int hits the C parser's na_filter=0
+    # uint64-conflict path (gh-14983) and keeps "nan" as a literal string, while
+    # the serial whole-file pass masks it to NaN.  Both chunk results are object
+    # dtype, so the per-column dtype-consistency check cannot catch it - the
+    # parallel path must step aside for low_memory=False (GH#64347).
+    raw = b"col\n" + b"hello\n" * 500 + (b"nan\n" + b"9223372036854775808\n") * 3000
+    path = tmp_path / "uint64.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, low_memory=False)
+    expected = read_csv(io.BytesIO(raw), low_memory=False)
+    tm.assert_frame_equal(result, expected)
+    # serial semantics: every "nan" token is masked to NaN, none survive as text
+    assert (result["col"] == "nan").sum() == 0
+    assert result["col"].isna().sum() == 3000
 
 
 def test_parallel_quoted_newline_in_header_matches_serial(tmp_path, monkeypatch):

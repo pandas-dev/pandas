@@ -220,6 +220,18 @@ def test_ewm_sum_adjust_false_notimplemented():
         data.sum()
 
 
+def test_ewm_aggregate_callable_gh41700(frame_or_series):
+    # GH#41700
+    obj = frame_or_series(range(5)).ewm(alpha=0.1)
+    msg = "aggregate does not support arbitrary callables"
+    with pytest.raises(NotImplementedError, match=msg):
+        obj.agg(lambda x: x)
+    with pytest.raises(NotImplementedError, match=msg):
+        obj.agg(np.sum)
+    # supported string aggregations still work
+    tm.assert_equal(obj.agg("mean"), obj.mean())
+
+
 @pytest.mark.parametrize("method", ["sum", "std", "var", "cov", "corr"])
 def test_times_only_mean_implemented(frame_or_series, method):
     # GH 51695

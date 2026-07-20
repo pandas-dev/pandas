@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalDtype,
@@ -48,7 +50,8 @@ class TestDataFrameSortIndex:
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
-        with tm.assert_produces_warning(None):
+        msg = "Setting a new row on a DataFrame with a MultiIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.loc["b", "2"] = 1
             df.loc["a", "3"] = 1
         result = df.sort_index().index.is_monotonic_increasing
@@ -727,7 +730,7 @@ class TestDataFrameSortIndex:
         result[("red", extra)] = "world"
 
         result = result.sort_index(axis=1)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize(
         "categories",

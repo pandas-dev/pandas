@@ -959,20 +959,22 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         how = libperiod.validate_end_alias(how)
 
-        if self.freq.base == "ns" or freq == "ns":
-            unit = "ns"
-        else:
-            unit = "us"
-
         end = how == "E"
         if end:
+            if freq is not None:
+                # GH#63760 normalize so e.g. "1ns" is recognized as nanosecond
+                freq = Period._maybe_convert_freq(freq)
+            ns_target = freq is not None and freq.base == "ns"
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
+                stamp = self.to_timestamp(how="start")
+                unit = "ns" if ns_target else stamp.unit
                 adjust = Timedelta(1, unit="D") - Timedelta(1, unit=unit)
-                return self.to_timestamp(how="start") + adjust
+                return stamp + adjust
             else:
-                adjust = Timedelta(1, unit=unit)
-                return (self + self.freq).to_timestamp(how="start") - adjust
+                stamp = (self + self.freq).to_timestamp(how="start")
+                unit = "ns" if ns_target else stamp.unit
+                return stamp - Timedelta(1, unit=unit)
 
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()
@@ -986,8 +988,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
+        # GH#63760 periodarr_to_dt64arr gives nanoseconds only for the
+        #  nanosecond target base and microseconds otherwise, so new_data
+        #  already carries the correct resolution.
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
-        assert dta.unit == unit
         return dta
 
     def _to_timestamp_freq(

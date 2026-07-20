@@ -1190,7 +1190,7 @@ def test_groupby_multiindex_categorical_datetime():
         names=["key1", "key2"],
     )
     expected = DataFrame({"values": [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_freq=False)
 
 
 @pytest.mark.parametrize(

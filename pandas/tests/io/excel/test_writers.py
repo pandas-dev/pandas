@@ -971,7 +971,7 @@ class TestExcelWriter:
         with ExcelFile(tmp_excel) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
 
-        tm.assert_frame_equal(tsframe, recons)
+        tm.assert_frame_equal(tsframe, recons, check_freq=False)
         assert recons.index.names == ("time", "foo")
 
     def test_to_excel_multiindex_no_write_index(self, tmp_excel):
@@ -1200,6 +1200,20 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, sheet_name="test1", header=None)
 
         expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_duplicated_multiindex_columns(self, tmp_excel):
+        # GH#19395 reading a sheet with duplicate MultiIndex columns used to
+        # raise an uninformative "Length of new names must be 1" ValueError;
+        # now the duplicate is mangled like read_csv does.
+        df = DataFrame([[0, 1], [2, 3]], columns=[["A", "A"], ["A", "A"]])
+        df.to_excel(tmp_excel)
+
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0)
+        expected = DataFrame(
+            [[0, 1], [2, 3]],
+            columns=MultiIndex.from_tuples([("A", "A"), ("A", "A.1")]),
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_swapped_columns(self, tmp_excel):

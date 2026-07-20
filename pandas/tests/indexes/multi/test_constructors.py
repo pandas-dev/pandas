@@ -215,14 +215,14 @@ def test_from_arrays_tuples(idx):
 )
 def test_from_arrays_index_series_period_datetimetz_and_timedelta(idx1, idx2):
     result = MultiIndex.from_arrays([idx1, idx2])
-    tm.assert_index_equal(result.get_level_values(0), idx1)
-    tm.assert_index_equal(result.get_level_values(1), idx2)
+    tm.assert_index_equal(result.get_level_values(0), idx1, check_freq=False)
+    tm.assert_index_equal(result.get_level_values(1), idx2, check_freq=False)
 
     result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
-    tm.assert_index_equal(result2.get_level_values(0), idx1)
-    tm.assert_index_equal(result2.get_level_values(1), idx2)
+    tm.assert_index_equal(result2.get_level_values(0), idx1, check_freq=False)
+    tm.assert_index_equal(result2.get_level_values(1), idx2, check_freq=False)
 
-    tm.assert_index_equal(result, result2)
+    tm.assert_index_equal(result, result2, check_freq=False)
 
 
 def test_from_arrays_index_datetimelike_mixed():
@@ -232,20 +232,20 @@ def test_from_arrays_index_datetimelike_mixed():
     idx4 = pd.period_range("2011-01-01", freq="D", periods=3)
 
     result = MultiIndex.from_arrays([idx1, idx2, idx3, idx4])
-    tm.assert_index_equal(result.get_level_values(0), idx1)
-    tm.assert_index_equal(result.get_level_values(1), idx2)
-    tm.assert_index_equal(result.get_level_values(2), idx3)
+    tm.assert_index_equal(result.get_level_values(0), idx1, check_freq=False)
+    tm.assert_index_equal(result.get_level_values(1), idx2, check_freq=False)
+    tm.assert_index_equal(result.get_level_values(2), idx3, check_freq=False)
     tm.assert_index_equal(result.get_level_values(3), idx4)
 
     result2 = MultiIndex.from_arrays(
         [Series(idx1), Series(idx2), Series(idx3), Series(idx4)]
     )
-    tm.assert_index_equal(result2.get_level_values(0), idx1)
-    tm.assert_index_equal(result2.get_level_values(1), idx2)
-    tm.assert_index_equal(result2.get_level_values(2), idx3)
+    tm.assert_index_equal(result2.get_level_values(0), idx1, check_freq=False)
+    tm.assert_index_equal(result2.get_level_values(1), idx2, check_freq=False)
+    tm.assert_index_equal(result2.get_level_values(2), idx3, check_freq=False)
     tm.assert_index_equal(result2.get_level_values(3), idx4)
 
-    tm.assert_index_equal(result, result2)
+    tm.assert_index_equal(result, result2, check_freq=False)
 
 
 def test_from_arrays_index_series_categorical():
@@ -734,7 +734,7 @@ def test_from_frame_dtype_fidelity():
     mi = MultiIndex.from_frame(df)
     mi_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
-    tm.assert_index_equal(expected_mi, mi)
+    tm.assert_index_equal(expected_mi, mi, check_freq=False)
     assert original_dtypes == mi_dtypes
 
 

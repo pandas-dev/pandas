@@ -526,6 +526,16 @@ def test_map_categorical_na_action(na_action, expected):
     tm.assert_series_equal(result, expected)
 
 
+def test_map_categorical_to_tuples(na_action):
+    # GH#51488 mapping a categorical Series to tuples used to raise
+    # NotImplementedError because the mapped categories formed a MultiIndex.
+    s = Series(pd.Categorical(["a", "a", "b", "c"]))
+    mapper = {"a": ("x",), "b": ("y",), "c": ("z",)}
+    result = s.map(mapper, na_action=na_action)
+    expected = Series([("x",), ("x",), ("y",), ("z",)])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_datetimetz():
     values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")

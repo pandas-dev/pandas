@@ -15,7 +15,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2289,18 +2292,25 @@ class TestLocSetitemWithExpansion:
         exp_data = np.arange(N + 1).astype(np.int64)
         expected = DataFrame(exp_data, index=exp_index)
 
+        is_mi = isinstance(index, MultiIndex)
+        warn = Pandas4Warning if is_mi else None
+        mi_msg = "Setting a new row on a DataFrame with a MultiIndex"
+        ser_mi_msg = "Setting a new value on a Series with a MultiIndex"
+
         # Add new row, but no new columns
         df = orig.copy()
         if has_ref:
             view = df[:]
-        df.loc[key, 0] = N
+        with tm.assert_produces_warning(warn, match=mi_msg):
+            df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
         # add new row on a Series
         ser = orig.copy()[0]
         if has_ref:
             view = ser[:]
-        ser.loc[key] = N
+        with tm.assert_produces_warning(warn, match=ser_mi_msg):
+            ser.loc[key] = N
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
         tm.assert_series_equal(ser, expected)
@@ -2309,7 +2319,8 @@ class TestLocSetitemWithExpansion:
         df = orig.copy()
         if has_ref:
             view = df[:]  # noqa: F841
-        df.loc[key, 1] = N
+        with tm.assert_produces_warning(warn, match=mi_msg):
+            df.loc[key, 1] = N
         expected = DataFrame(
             {0: [*list(arr), np.nan], 1: [np.nan] * N + [float(N)]},
             index=exp_index,
@@ -2502,6 +2513,49 @@ class TestLocSetitemWithExpansion:
         ser[1] = item
 
         expected = Series([ts1, ts2], dtype="date32[pyarrow]")
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "values, item",
+        [
+            (
+                to_datetime(["2020-01-01", "2020-01-02"]).as_unit("us"),
+                Timestamp("2020-01-03"),
+            ),
+            (to_timedelta([1, 2], unit="D").as_unit("us"), Timedelta(days=3)),
+        ],
+    )
+    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(self, values, item):
+        # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
+        #  raise AttributeError instead of retaining dtype
+        ser = Series(values)
+        ser.loc[2] = item
+        expected = Series([*values, item], dtype=values.dtype)
+        tm.assert_series_equal(ser, expected)
+
+        # a missing (NaT) value should behave the same way
+        ser2 = Series(values)
+        ser2.loc[2] = pd.NaT
+        expected2 = Series([*values, pd.NaT], dtype=values.dtype)
+        tm.assert_series_equal(ser2, expected2)
+
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
+        # GH#62523 expanding with a finer-resolution value that cannot be cast
+        #  down to the original coarser unit should keep the finer unit rather
+        #  than raising ArrowInvalid
+        ser = Series(
+            to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
+        )
+        ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        expected = Series(
+            [
+                Timestamp("2020-01-01"),
+                Timestamp("2020-01-02"),
+                Timestamp("2020-01-03 00:00:00.123456"),
+            ],
+            dtype="timestamp[us][pyarrow]",
+        )
         tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_with_expansion_multiindex_retains_dtypes(self):

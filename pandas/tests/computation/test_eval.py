@@ -1895,6 +1895,15 @@ def test_empty_string_raises(engine, parser):
         pd.eval("", engine=engine, parser=parser)
 
 
+@pytest.mark.parametrize("box", [Series, DataFrame])
+def test_pandas_object_raises(box, engine, parser):
+    # GH#16289 passing a Series/DataFrame parsed its (possibly truncated) repr
+    obj = box(["1 == 1", "2 == 1"] * 1000)
+    msg = "expr must be a string to be evaluated"
+    with pytest.raises(ValueError, match=msg):
+        pd.eval(obj, engine=engine, parser=parser)
+
+
 def test_more_than_one_expression_raises(engine, parser):
     with pytest.raises(SyntaxError, match="only a single expression is allowed"):
         pd.eval("1 + 1; 2 + 2", engine=engine, parser=parser)
