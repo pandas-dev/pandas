@@ -1256,7 +1256,14 @@ def _normalize(
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
             index_margin = index_margin / index_margin.sum()
-            index_margin.loc[margins_name] = 1
+            margin_key: Hashable
+            if isinstance(index_margin.index, MultiIndex):
+                # GH#17024 expanding with a partial key is deprecated
+                nlevels = index_margin.index.nlevels
+                margin_key = (margins_name,) + ("",) * (nlevels - 1)
+            else:
+                margin_key = margins_name
+            index_margin.loc[margin_key] = 1
             table = concat([table, column_margin], axis=1)
             table = table._append_internal(index_margin, ignore_index=True)
 
