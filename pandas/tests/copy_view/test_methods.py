@@ -1614,3 +1614,18 @@ def test_diff():
     ser = Series([1, 2, 3])
     result = ser.diff()
     assert result.index is not ser.index
+
+
+def test_column_series_index_setattr_does_not_mutate_parent():
+    # GH#26119 replacing the index of a Series taken from a DataFrame column
+    # must not change the DataFrame -- the symptom was that *re-accessing* the
+    # column (df["a"]) returned the mutated index, even though df.index itself
+    # looked unchanged
+    idx = date_range("2019-03-30", periods=5, freq="h", tz="UTC")
+    df = DataFrame({"a": range(5), "b": range(10, 15)}, index=idx)
+    original = df.index.copy()
+    ser = df["a"]
+    ser.index = ser.index.tz_convert("Europe/Prague")
+    tm.assert_index_equal(df.index, original)
+    tm.assert_index_equal(df["a"].index, original)
+    tm.assert_index_equal(df["b"].index, original)

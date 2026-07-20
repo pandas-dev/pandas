@@ -85,6 +85,13 @@ class TestIndexing:
         assert isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    def test_maybe_indices_to_slice_large_length(self):
+        # GH#24248 a max_len exceeding the 32-bit int range must not overflow
+        #  (e.g. Index.take on an index with more than 2**31 rows)
+        indices = np.array([1, 2, 5, 6], dtype=np.intp)
+        result = lib.maybe_indices_to_slice(indices, 2**31)
+        tm.assert_numpy_array_equal(result, indices)
+
     @pytest.mark.parametrize("end", [1, 2, 5, 20, 99])
     @pytest.mark.parametrize("step", [1, 2, 4])
     def test_maybe_indices_to_slice_left_edge_not_slice_end_steps(self, end, step):

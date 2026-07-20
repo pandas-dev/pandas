@@ -741,3 +741,14 @@ def test_map_na_action_ignore_not_called_on_na(dtype, non_na):
     result = ser.map(lambda x: seen.append(x) or x, na_action="ignore")
     assert not any(x is pd.NA for x in seen)
     tm.assert_series_equal(result, ser)
+
+
+def test_map_datetime_series_passes_scalar_timestamps():
+    # GH#44392 Series.map/apply on a *tz-aware* datetime Series must pass scalar
+    # Timestamps to the callable, not the whole DatetimeIndex (the tz-naive case
+    # already worked, so tz-awareness is the trigger)
+    ser = Series(date_range("2021-01-01", periods=3, tz="UTC"))
+    for method in ("map", "apply"):
+        seen = []
+        getattr(ser, method)(lambda ts: seen.append(type(ts).__name__))
+        assert set(seen) == {"Timestamp"}
