@@ -1305,6 +1305,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
+        Each group passed to ``func`` has a ``name`` attribute set to the group
+        key (the value of the grouping for that group). This is useful for
+        identifying the current group, for example when grouping by an external
+        grouper rather than by a column of the object.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
@@ -3689,6 +3694,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
             the time-period. This is only valid for datetimelike indexes.
+            The offset must correspond to a fixed frequency (for example, ``'2D'``
+            or ``'1h'``); non-fixed frequencies such as ``'B'`` (business day) or
+            ``'ME'`` (month end) are not supported and raise ``ValueError``.
             To learn more about the offsets & frequency strings, please see
             :ref:`this link<timeseries.offset_aliases>`.
 

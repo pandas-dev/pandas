@@ -298,7 +298,9 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-        If ``data`` is DataFrame then is ignored.
+        If ``data`` is DataFrame then is ignored. Missing values in ``data``
+        are not cast: for example, with ``dtype=str`` a ``NaN`` entry stays
+        missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -6134,6 +6136,13 @@ class DataFrame(NDFrame, OpsMixin):
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+            Filling is based on the position of each new label relative to the
+            existing labels, and applies to both the index and the columns.
+            For example, with ``method='ffill'`` and a monotonically
+            increasing index, a new label is filled from the nearest existing
+            label that sorts before it, so a new column whose label falls
+            between two existing columns takes its values from the preceding
+            column.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
@@ -6156,7 +6165,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
+            passed MultiIndex level. The new labels are aligned against the
+            values of that single level while the other levels are left
+            unchanged; passing a flat index with ``level`` does not form the
+            Cartesian product of the remaining levels. See
+            :ref:`advanced.advanced_reindex` for the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -6319,6 +6332,12 @@ class DataFrame(NDFrame, OpsMixin):
         does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original DataFrame, use the ``fillna()`` method.
+
+        Because ``method="bfill"`` fills each new label from the next entry
+        present in the original index, the trailing entry at 2010-01-07 stays
+        ``NaN``: there is no original index entry after it. Conversely,
+        ``method="ffill"`` would leave the leading entries (before the first
+        original index entry) unfilled.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """
@@ -14496,7 +14515,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). However, by default (``by_row="compat"``), if ``func``
+        (``axis=1``); the ``name`` attribute of each passed Series is the label
+        of the column (``axis=0``) or row (``axis=1``) currently being
+        processed. However, by default (``by_row="compat"``), if ``func``
         is a list-like or dict-like of functions, each function is first
         applied to the individual values of the Series rather than the Series
         itself; if this fails, pandas retries by passing the entire Series.
@@ -14534,7 +14555,10 @@ class DataFrame(NDFrame, OpsMixin):
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             How to interpret list-like results from `func`:
 
-            * 'expand' : list-like results will be turned into columns.
+            * 'expand' : list-like results will be turned into columns. Whether
+              a result is list-like is inferred from the first computed result;
+              if that result is not list-like, ``'expand'`` has no effect and a
+              Series is returned.
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape

@@ -1005,6 +1005,10 @@ def read_csv(
         E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype``
@@ -1597,6 +1601,10 @@ def read_table(
         E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which
