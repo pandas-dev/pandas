@@ -199,7 +199,11 @@ cdef object tz_cache_key(tzinfo tz):
     the same tz file). Also, pytz objects are not always hashable so we use
     str(tz) instead.
     """
-    if pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
+    if type(tz) is timezone:
+        # datetime.timezone fixed offset; the offset fully determines
+        #  the transition info, so ignore any custom name
+        return "pytimezone", tz.utcoffset(None)
+    elif pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
         return tz.zone
     elif isinstance(tz, _dateutil_tzfile):
         if ".tar.gz" in tz._filename:
@@ -315,6 +319,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
         list trans_utc, deltas_seconds, future_trans
         int year, last_year, std_offset, dst_offset
+        bint valid
 
     tz_py = _ZoneInfo(tz.key)
 
@@ -370,9 +375,25 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
         future_trans.sort()
 
-        for t, d in future_trans:
-            trans_utc.append(t)
-            deltas_seconds.append(d)
+        # Verify the flattened future transitions against zoneinfo; if any
+        # disagree, drop them all and leave the per-value zoneinfo fallback to
+        # handle these dates. See test_zoneinfo_negative_dst_distant_dates for
+        # why. GH#65712, GH#65733
+        valid = True
+        try:
+            for future_ts, future_delta in future_trans:
+                probe = datetime.fromtimestamp(future_ts + 1, timezone.utc)
+                probe_offset = probe.astimezone(tz).utcoffset().total_seconds()
+                if int(probe_offset) != future_delta:
+                    valid = False
+                    break
+        except (OSError, OverflowError, ValueError):
+            valid = False
+
+        if valid:
+            for future_ts, future_delta in future_trans:
+                trans_utc.append(future_ts)
+                deltas_seconds.append(future_delta)
 
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])

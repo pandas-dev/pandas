@@ -289,16 +289,27 @@ class Writer(ABC):
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
-        return ujson_dumps(
-            self.obj_to_write,
-            orient=self.orient,
-            double_precision=self.double_precision,
-            ensure_ascii=self.ensure_ascii,
-            date_unit=self.date_unit,
-            iso_dates=iso_dates,
-            default_handler=self.default_handler,
-            indent=self.indent,
-        )
+        try:
+            return ujson_dumps(
+                self.obj_to_write,
+                orient=self.orient,
+                double_precision=self.double_precision,
+                ensure_ascii=self.ensure_ascii,
+                date_unit=self.date_unit,
+                iso_dates=iso_dates,
+                default_handler=self.default_handler,
+                indent=self.indent,
+            )
+        except OverflowError as err:
+            # GH#36211 the C encoder recurses without bound on object types it
+            #  does not understand.
+            if "Maximum recursion level reached" not in str(err):
+                raise
+            raise ValueError(
+                "Unable to serialize object to JSON: encountered an "
+                "unsupported object type; convert the column to a supported "
+                "type (e.g. str) before calling to_json."
+            ) from err
 
     @property
     @abstractmethod
@@ -433,6 +444,77 @@ class JSONTableWriter(FrameWriter):
     @property
     def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         return {"schema": self.schema, "data": self.obj}
+
+
+def _validate_pyarrow_engine_options(
+    *,
+    typ,
+    dtype,
+    convert_axes,
+    convert_dates,
+    keep_default_dates,
+    precise_float,
+    date_unit,
+    encoding,
+    encoding_errors,
+    compression,
+    storage_options,
+) -> None:
+    """
+    Reject ``read_json`` arguments the ``"pyarrow"`` engine cannot honor.
+
+    The pyarrow engine hands the input straight to ``pyarrow.json.read_json``,
+    so any argument that pandas would otherwise apply itself is silently
+    ignored, producing a wrong result rather than an error. Raise instead.
+
+    Called from ``read_json`` before ``convert_axes`` and ``dtype`` are
+    resolved from ``None`` to ``True``, so that an explicitly-passed value is
+    distinguishable from the default.
+    """
+
+    def raise_unsupported(argname: str) -> None:
+        raise ValueError(
+            f"The {argname!r} option is not supported with the 'pyarrow' engine"
+        )
+
+    if typ != "frame":
+        raise_unsupported("typ")
+    if convert_axes is not None:
+        raise_unsupported("convert_axes")
+    if convert_dates is not True:
+        raise_unsupported("convert_dates")
+    if keep_default_dates is not True:
+        raise_unsupported("keep_default_dates")
+    if precise_float is not False:
+        raise_unsupported("precise_float")
+    if date_unit is not None:
+        raise_unsupported("date_unit")
+    if storage_options is not None:
+        raise_unsupported("storage_options")
+    if compression != "infer":
+        # pyarrow infers compression from the file extension itself; pandas
+        # cannot honor an explicit method (or dict) or disable inference.
+        raise_unsupported("compression")
+    if encoding is not None and encoding.lower() not in ("utf-8", "utf8"):
+        # pyarrow assumes UTF-8 and ignores the encoding argument entirely.
+        raise_unsupported("encoding")
+    if encoding_errors is not None and encoding_errors != "strict":
+        raise_unsupported("encoding_errors")
+
+    if isinstance(dtype, dict):
+        # GH#59516 supports a mapping of ArrowDtype; any other dtype in the
+        # mapping is silently dropped, so reject it.
+        for field, field_dtype in dtype.items():
+            if not isinstance(pandas_dtype(field_dtype), ArrowDtype):
+                raise ValueError(
+                    "The 'pyarrow' engine only supports ArrowDtype values in "
+                    f"the 'dtype' mapping, got {field_dtype!r} for column "
+                    f"{field!r}"
+                )
+    elif dtype is not None:
+        # a scalar dtype (including True/False) applies to every column but is
+        # silently ignored by the pyarrow engine.
+        raise_unsupported("dtype")
 
 
 @overload
@@ -728,7 +810,10 @@ def read_json(
 
     engine : {"ujson", "pyarrow"}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
-        ``lines=True``.
+        ``lines=True``, and only supports ``typ="frame"`` with default parsing
+        options; passing an option it cannot apply (for example ``convert_dates``,
+        ``date_unit``, ``precise_float``, ``encoding``, or a non-``ArrowDtype``
+        ``dtype``) raises ``ValueError``.
 
         .. versionadded:: 2.0
 
@@ -820,6 +905,24 @@ def read_json(
 
     check_dtype_backend(dtype_backend)
 
+    if engine == "pyarrow":
+        # Validate before dtype/convert_axes are resolved from None to True
+        # below, so an explicitly-passed value can be told apart from the
+        # default.
+        _validate_pyarrow_engine_options(
+            typ=typ,
+            dtype=dtype,
+            convert_axes=convert_axes,
+            convert_dates=convert_dates,
+            keep_default_dates=keep_default_dates,
+            precise_float=precise_float,
+            date_unit=date_unit,
+            encoding=encoding,
+            encoding_errors=encoding_errors,
+            compression=compression,
+            storage_options=storage_options,
+        )
+
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
@@ -865,6 +968,96 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     If initialized with ``lines=True`` and ``chunksize``, can be iterated over
     ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the
     whole document.
+
+    A ``JsonReader`` is returned by :func:`~pandas.read_json` when
+    ``chunksize`` is passed; it is not usually instantiated directly.
+
+    Parameters
+    ----------
+    filepath_or_buffer : a str path, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. pandas accepts any
+        ``os.PathLike``, or file-like object with a ``read()`` method, such
+        as a file handle or ``StringIO``.
+    orient : str
+        Indication of expected JSON string format. Compatible JSON strings
+        can be produced by ``to_json()`` with a corresponding orient value.
+        See :func:`~pandas.read_json` for the set of possible orients.
+    typ : {"frame", "series"}
+        The type of object to recover.
+    dtype : bool or dict
+        If True, infer dtypes; if a dict of column to dtype, then use those;
+        if False, then don't infer dtypes at all, applies only to the data.
+    convert_axes : bool or None
+        Try to convert the axes to the proper dtypes.
+    convert_dates : bool or list of str
+        If True then default datelike columns may be converted (depending on
+        ``keep_default_dates``). If False, no dates will be converted. If a
+        list of column names, then those columns will be converted and
+        default datelike columns may also be converted (depending on
+        ``keep_default_dates``).
+    keep_default_dates : bool
+        If parsing dates (``convert_dates`` is not False), then try to parse
+        the default datelike columns. See :func:`~pandas.read_json` for the
+        criteria used to determine whether a column label is datelike.
+    precise_float : bool
+        Set to enable usage of higher precision (strtod) function when
+        decoding string to double values.
+    date_unit : str or None
+        The timestamp unit to detect if converting dates. The default
+        behaviour is to try and detect the correct precision, but if this
+        is not desired then pass one of 's', 'ms', 'us' or 'ns' to force
+        parsing only seconds, milliseconds, microseconds or nanoseconds
+        respectively.
+    encoding : str or None
+        The encoding to use to decode py3 bytes.
+    lines : bool
+        Read the file as a json object per line.
+    chunksize : int or None
+        Return a ``JsonReader`` for iteration, yielding ``chunksize`` lines
+        at a time. Can only be passed if ``lines=True``. If this is None,
+        the file will be read into memory all at once.
+    compression : str or dict
+        For on-the-fly decompression of on-disk data, see
+        :func:`~pandas.read_json` for the accepted values.
+    nrows : int or None
+        The number of lines from the line-delimited json file that has to
+        be read. Can only be passed if ``lines=True``. If this is None, all
+        the rows will be returned.
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc. See
+        :func:`~pandas.read_json` for more details.
+    encoding_errors : str, optional, default "strict"
+        How encoding errors are treated. `List of possible values
+        <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+    dtype_backend : {"numpy_nullable", "pyarrow"}
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). See :func:`~pandas.read_json` for more
+        details.
+    engine : {"ujson", "pyarrow"}, default "ujson"
+        Parser engine to use. See :func:`~pandas.read_json` for the
+        restrictions on the ``"pyarrow"`` engine.
+
+    See Also
+    --------
+    read_json : Convert a JSON string to pandas object.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> reader = pd.read_json(
+    ...     StringIO(df.to_json(orient="records", lines=True)),
+    ...     lines=True,
+    ...     chunksize=1,
+    ... )
+    >>> for chunk in reader:
+    ...     print(chunk)
+       a  b
+    0  1  3
+       a  b
+    1  2  4
     """
 
     def __init__(
@@ -988,6 +1181,34 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     def read(self) -> DataFrame | Series:
         """
         Read the whole JSON input into a pandas object.
+
+        Unlike iterating over the reader, this reads the entire underlying
+        JSON input in a single call, regardless of whether ``chunksize``
+        was specified when this reader was created.
+
+        Returns
+        -------
+        DataFrame or Series
+            The parsed pandas object, depending on the ``typ`` passed when
+            this reader was created.
+
+        See Also
+        --------
+        read_json : Convert a JSON string to pandas object.
+
+        Examples
+        --------
+        >>> from io import StringIO
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        >>> reader = pd.read_json(
+        ...     StringIO(df.to_json(orient="records", lines=True)),
+        ...     lines=True,
+        ...     chunksize=2,
+        ... )
+        >>> reader.read()
+           a  b
+        0  1  3
+        1  2  4
         """
         obj: DataFrame | Series
         with self:
@@ -1080,10 +1301,26 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
     def close(self) -> None:
         """
-        If we opened a stream earlier, in _get_data_from_filepath, we should
+        Close the underlying file handle, if one was opened by the reader.
+
+        If an open stream or file-like object was passed to the reader
+        rather than a path, it is left open and this method does not
         close it.
 
-        If an open stream or file was passed, we leave it open.
+        See Also
+        --------
+        read_json : Convert a JSON string to pandas object.
+
+        Examples
+        --------
+        >>> from io import StringIO
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        >>> reader = pd.read_json(
+        ...     StringIO(df.to_json(orient="records", lines=True)),
+        ...     lines=True,
+        ...     chunksize=1,
+        ... )
+        >>> reader.close()
         """
         if self.handles is not None:
             self.handles.close()

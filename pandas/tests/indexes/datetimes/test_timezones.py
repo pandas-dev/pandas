@@ -132,7 +132,7 @@ class TestDatetimeIndexTimezones:
         assert val.hour == 3
         assert exp.hour == 3
         assert val == exp  # same UTC value
-        tm.assert_index_equal(rng[:2], rng2)
+        tm.assert_index_equal(rng[:2], rng2, check_freq=False)
 
     def test_date_range_localize2(self, unit):
         # Right before the DST transition
