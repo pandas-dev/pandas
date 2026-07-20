@@ -2419,9 +2419,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)
     else:
-        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
-        # expected "EntryPoints"  [arg-type]
-        entry = eps.get(key, ())  # type: ignore[arg-type]
+        entry = eps.get(key, ())  # type: ignore[attr-defined]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:
