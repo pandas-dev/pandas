@@ -381,13 +381,63 @@ def test_union_categories_ordered_same_categories_different_order_drops_order():
     tm.assert_series_equal(result, expected)
 
 
-def test_union_categories_incompatible_category_dtypes_fall_back_to_object():
-    # Categoricals whose categories have different dtypes can't be unioned,
-    # so they fall back to object rather than raising
+def test_union_categories_incompatible_category_dtypes():
+    # Categories with different dtypes are cast to a common dtype instead of
+    # falling back to a non-categorical result
     s1 = Series(Categorical(["a", "b"]))
     s2 = Series(Categorical([1, 2]))
     result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
-    expected = Series(["a", "b", 1, 2], dtype=object)
+    expected = Series(
+        Categorical(
+            np.array(["a", "b", 1, 2], dtype=object),
+            categories=np.array(["a", "b", 1, 2], dtype=object),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_numeric_category_dtypes():
+    # int and float categories are unioned under the common float64 dtype
+    s1 = Series(Categorical([1, 2]))
+    s2 = Series(Categorical([2.5, 3.5]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical([1.0, 2.0, 2.5, 3.5], categories=[1.0, 2.0, 2.5, 3.5])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_lossy_category_cast():
+    # int64 categories that are not exactly representable as float64 collapse
+    # under the common dtype, matching what a non-categorical concat gives
+    s1 = Series(Categorical([2**53, 2**53 + 1]))
+    s2 = Series(Categorical([2.5]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical([float(2**53), float(2**53), 2.5], categories=[float(2**53), 2.5])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_empty_categorical():
+    # GH#14177 an empty Categorical has object-dtype categories, which must not
+    # drag the result off of categorical dtype
+    ser = Series(Categorical(["a", "b"]))
+    result = pd.concat(
+        [ser, Series(dtype="category")], ignore_index=True, union_categories=True
+    )
+    expected = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_all_nan_categorical():
+    # an all-NaN Categorical has no categories, so it contributes nothing but
+    # the NaN itself
+    ser = Series(Categorical(["a", "b"]))
+    result = pd.concat(
+        [ser, Series(Categorical([np.nan]))], ignore_index=True, union_categories=True
+    )
+    expected = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
     tm.assert_series_equal(result, expected)
 
 
@@ -453,14 +503,20 @@ def test_union_categories_ordered_column_missing_from_one_frame():
 
 
 def test_union_categories_incompatible_category_dtypes_column_missing():
-    # Categories with differing dtypes fall back to object also when a
-    # frame lacks the column
+    # Categories with differing dtypes are unioned also when a frame lacks
+    # the column
     df1 = DataFrame({"x": Categorical(["a"]), "y": [1]})
     df2 = DataFrame({"x": Categorical([2]), "y": [2]})
     df3 = DataFrame({"y": [3]})
     result = pd.concat([df1, df2, df3], ignore_index=True, union_categories=True)
     expected = DataFrame(
-        {"x": np.array(["a", 2, np.nan], dtype=object), "y": [1, 2, 3]}
+        {
+            "x": Categorical(
+                np.array(["a", 2, np.nan], dtype=object),
+                categories=np.array(["a", 2], dtype=object),
+            ),
+            "y": [1, 2, 3],
+        }
     )
     tm.assert_frame_equal(result, expected)
 

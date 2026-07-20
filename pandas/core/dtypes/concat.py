@@ -85,15 +85,7 @@ def concat_compat(
         and len(to_concat)
         and all(isinstance(x.dtype, CategoricalDtype) for x in to_concat)
     ):
-        cats = cast("Sequence[Categorical]", to_concat)
-        if lib.dtypes_all_equal([x.categories.dtype for x in cats]):
-            # GH#14177 When all inputs share a dtype, preserve dtypes[0].ordered.
-            #  Otherwise union the categories and drop any orderedness instead
-            #  of raising, matching union_categoricals(ignore_order=True).
-            ignore_order = not lib.dtypes_all_equal([x.dtype for x in cats])
-            return union_categoricals(cats, ignore_order=ignore_order)
-        # categories themselves have differing dtypes (e.g. str vs int): fall
-        #  through to the common-dtype (object) concat below rather than raising.
+        return union_categories_compat(cast("Sequence[Categorical]", to_concat))
 
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
@@ -154,6 +146,43 @@ def concat_compat(
             # GH#39817 cast to object instead of casting bools to numeric
             result = result.astype(object, copy=False)
     return result
+
+
+def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical:
+    """
+    union_categoricals for concat(union_categories=True).
+
+    Unlike union_categoricals, categories with differing dtypes are cast to a
+    common dtype instead of raising, so that an all-categorical concatenation
+    always returns a Categorical.  Orderedness is preserved only if every input
+    shares the same dtype.
+    """
+    from pandas import Categorical
+    from pandas.core.arrays.categorical import recode_for_categories
+
+    if not lib.dtypes_all_equal([x.categories.dtype for x in to_union]):
+        # GH#14177 e.g. int64 vs float64 categories.  Empty categories carry no
+        #  dtype information, so keep them out of the common dtype.
+        dtypes = [x.categories.dtype for x in to_union if len(x.categories)]
+        common = find_common_type(dtypes or [x.categories.dtype for x in to_union])
+
+        recast = []
+        for obj in to_union:
+            cats = obj.categories.astype(common)
+            codes = obj._codes
+            if not cats.is_unique:
+                # the cast collapsed distinct categories, e.g. int64 values
+                #  that are not exactly representable as float64
+                uniques = cats.unique()
+                codes = recode_for_categories(codes, cats, uniques)
+                cats = uniques
+            recast.append(
+                Categorical._simple_new(codes, CategoricalDtype(cats, obj.ordered))
+            )
+        to_union = recast
+
+    ignore_order = not lib.dtypes_all_equal([x.dtype for x in to_union])
+    return union_categoricals(to_union, ignore_order=ignore_order)
 
 
 def _get_result_dtype(

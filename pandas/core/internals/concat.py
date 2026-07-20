@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -21,7 +18,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
 from pandas.core.dtypes.concat import (
     concat_compat,
-    union_categoricals,
+    union_categories_compat,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -413,17 +410,13 @@ def _get_empty_dtype(
 
     dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
 
-    if union_categories and has_none_blocks:
+    if union_categories and has_none_blocks and dtypes:
         if all(isinstance(dt, CategoricalDtype) for dt in dtypes):
-            cat_dtypes = cast("list[CategoricalDtype]", dtypes)
-            if lib.dtypes_all_equal([dt.categories.dtype for dt in cat_dtypes]):
-                # GH#14177 give the all-NA filler for missing columns the
-                #  unioned categorical dtype so that concat_compat sees
-                #  all-categorical inputs and unions instead of falling back
-                #  to the common dtype.
-                empties = [Categorical([], dtype=dt) for dt in cat_dtypes]
-                ignore_order = not lib.dtypes_all_equal(dtypes)
-                return union_categoricals(empties, ignore_order=ignore_order).dtype
+            # GH#14177 give the all-NA filler for missing columns the unioned
+            #  categorical dtype so that concat_compat sees all-categorical
+            #  inputs and unions instead of falling back to the common dtype.
+            empties = [Categorical([], dtype=dt) for dt in dtypes]
+            return union_categories_compat(empties).dtype
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:

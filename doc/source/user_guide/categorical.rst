@@ -837,6 +837,7 @@ dtypes will likely have higher memory usage. Use ``union_categories=True``,
    pd.concat([int_cats, float_cats])
 
    pd.concat([s1, s3], union_categories=True)
+   pd.concat([int_cats, float_cats], union_categories=True)
    pd.concat([s1, s3]).astype("category")
    union_categoricals([s1.array, s3.array])
 
