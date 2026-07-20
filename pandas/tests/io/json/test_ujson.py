@@ -701,6 +701,23 @@ class TestUltraJSONTests:
         with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
             ujson.ujson_dumps(InvalidDecimal(1))
 
+    def test_encode_large_int_object(self):
+        cur_limit = sys.get_int_max_str_digits()
+        sys.set_int_max_str_digits(1000)
+        try:
+            with pytest.raises(ValueError, match="Exceeds the limit"):
+                ujson.ujson_dumps(1 << 1_000_000)
+        finally:
+            sys.set_int_max_str_digits(cur_limit)
+
+    def test_encode_invalid_int_subclass(self):
+        class InvalidInt(int):
+            def __str__(self):
+                return "\ud800"
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(InvalidInt(1 << 1_000_000))
+
     def test_ujson__name__(self):
         # GH 52898
         assert ujson.__name__ == "pandas._libs._ujson"
@@ -829,23 +846,6 @@ class TestNumpyJSONTests:
         )
         with pytest.raises(TypeError, match=msg):
             ujson.ujson_dumps(np.longdouble(1234.5))
-
-    def test_encode_large_int_object(self):
-        cur_limit = sys.get_int_max_str_digits()
-        sys.set_int_max_str_digits(1000)
-        try:
-            with pytest.raises(ValueError, match="Exceeds the limit"):
-                ujson.ujson_dumps(1 << 1_000_000)
-        finally:
-            sys.set_int_max_str_digits(cur_limit)
-
-    def test_encode_invalid_int_subclass(self):
-        class InvalidInt(int):
-            def __str__(self):
-                return "\ud800"
-
-        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
-            ujson.ujson_dumps(InvalidInt(1 << 1_000_000))
 
 
 class TestPandasJSONTests:
