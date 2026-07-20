@@ -4,6 +4,7 @@ from datetime import (
     datetime,
 )
 from decimal import Decimal
+import warnings
 
 import numpy as np
 import pytest
@@ -1867,3 +1868,26 @@ def test_setitem_bool_dtype_with_boolean_indexer():
     s1[condition] = s2[condition]
     expected = Series([True, False, True], dtype=bool)
     tm.assert_series_equal(s1, expected)
+
+
+@pytest.mark.parametrize("value", [2**63, np.inf, -np.inf])
+def test_setitem_enlarge_out_of_int64_range(value):
+    # GH#66394 the result must not be downcast back to int64; on aarch64 the
+    #  out-of-range cast saturated and 2**63 was silently stored as 2**63 - 1
+    ser = Series([1, 2], dtype="int64")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        ser.loc[2] = value
+
+    expected = Series([1.0, 2.0, value], dtype="float64")
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_enlarge_within_int64_range():
+    # GH#66394 in-range values still downcast back to int64
+    ser = Series([1, 2], dtype="int64")
+    ser.loc[2] = 2**62
+
+    expected = Series([1, 2, 2**62], dtype="int64")
+    tm.assert_series_equal(ser, expected)
