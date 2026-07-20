@@ -8064,6 +8064,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
+
+            In other words, if there is a gap with more than this number of
+            consecutive NaNs, it will only be partially filled.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
