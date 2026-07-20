@@ -38,7 +38,7 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_hashable,
     is_integer,
@@ -73,6 +73,7 @@ from pandas.core import algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -2227,7 +2228,7 @@ class _iLocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
             if isinstance(key, ABCSeries):
                 arr = key._values
-            elif is_array_like(key):
+            elif is_array_like_deprecate_non_pandas(key):
                 arr = key
             else:
                 arr = np.array(key)
@@ -2471,6 +2472,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         _setitem_with_indexer cases that can go through DataFrame.__setitem__.
         """
+        # GH#65418 a dict is a label->value mapping; treat it as a Series so it
+        #  is aligned by key like the non-expansion paths, rather than being
+        #  sanitized positionally into its keys.
+        if isinstance(value, dict):
+            from pandas import Series
+
+            value = Series(value)
+
         # add the new item, and set the value
         # must have all defined axes if we have a scalar
         # or a list-like on the non-info axes if we have a
@@ -2488,7 +2497,7 @@ class _iLocIndexer(_LocationIndexer):
             # We are setting an entire column
             self.obj[key] = value
             return
-        elif is_array_like(value):
+        elif is_array_like_deprecate_non_pandas(value):
             # GH#42099
             arr = extract_array(value, extract_numpy=True)
             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
@@ -2690,7 +2699,9 @@ class _iLocIndexer(_LocationIndexer):
         pi = indexer[0]
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        if not isinstance(value, list) and not is_array_like(value):
+        if not isinstance(value, list) and not is_array_like_deprecate_non_pandas(
+            value
+        ):
             value = np.asarray(value)
 
         if isinstance(value, list):
@@ -2785,7 +2796,9 @@ class _iLocIndexer(_LocationIndexer):
 
         is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        is_null_setter = com.is_empty_slice(pi) or (is_array_like(pi) and len(pi) == 0)
+        is_null_setter = com.is_empty_slice(pi) or (
+            is_array_like_deprecate_non_pandas(pi) and len(pi) == 0
+        )
 
         if is_null_setter:
             # no-op, don't cast dtype later
@@ -2863,6 +2876,20 @@ class _iLocIndexer(_LocationIndexer):
                     self._setitem_single_column(loc, value, indexer[0])
                     return
 
+            if (
+                self.ndim == 2
+                and len(indexer) == 2
+                and self.obj.shape[1] > 1
+                and not com.is_null_slice(indexer[1])
+                and not isinstance(value, ABCDataFrame)
+                and not can_hold_element(
+                    self.obj._mgr.blocks[0].values,
+                    extract_array(value, extract_numpy=True),
+                )
+            ):
+                self._setitem_with_indexer_split_path(indexer, value, name)
+                return
+
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
         if isinstance(value, ABCDataFrame) and name != "iloc":
@@ -2913,6 +2940,11 @@ class _iLocIndexer(_LocationIndexer):
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
+                # GH#62523 infer_and_maybe_downcast may return a raw M8/m8
+                #  ndarray for datetimelike; wrap it so concat_compat does not
+                #  mix a bare ndarray with the DatetimeArray/TimedeltaArray
+                #  _values
+                new_values = ensure_wrapped_if_datetimelike(new_values)
                 new_values = concat_compat([self.obj._values, new_values])
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
@@ -3410,7 +3442,13 @@ class _iAtIndexer(_ScalarAccessIndexer):
 def _is_2d_value(value) -> bool:
     """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
     if isinstance(value, list):
-        return len(value) > 0 and isinstance(value[0], (list, tuple))
+        if len(value) == 0:
+            return False
+        first = value[0]
+        if isinstance(first, np.ndarray):
+            # a 0-d element is a scalar and a 2-D element makes value 3D
+            return first.ndim == 1
+        return isinstance(first, (list, tuple))
     return np.ndim(value) == 2
 
 
@@ -3488,7 +3526,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     if is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
-    elif not is_array_like(result):
+    elif not is_array_like_deprecate_non_pandas(result):
         # GH 33924
         # key may contain nan elements, check_array_indexer needs bool array
         result = pd_array(result, dtype=bool)

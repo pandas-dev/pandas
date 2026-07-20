@@ -2661,7 +2661,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             date_format = "iso"
         elif date_format is None:
             date_format = "epoch"
-            dtypes = self.dtypes if self.ndim == 2 else [self.dtype]
+            # Datetime-like values are written as epoch integers not only from the
+            # column values but also from the index and (for a DataFrame) the
+            # columns, so check all of those axes for the deprecation warning
+            # (GH#65868).
+            if self.ndim == 2:
+                dtypes = [*self.dtypes, self.index.dtype, self.columns.dtype]
+            else:
+                dtypes = [self.dtype, self.index.dtype]
             if any(dtype.kind in "mM" for dtype in dtypes):
                 warnings.warn(
                     "The default 'epoch' date format is deprecated and will be removed "
@@ -2760,7 +2767,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-            Specifies the compression library to be used.
+            Specifies the compression library to be used. This has no effect
+            unless ``complevel`` is set to a value greater than 0; passing
+            ``complib`` alone emits a ``UserWarning`` and writes the data
+            uncompressed.
             These additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
             {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
@@ -2977,6 +2987,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Not all datastores support ``method="multi"``. Oracle, for example,
         does not support multi-value insert.
+
+        When using SQL Server with pyodbc and ``fast_executemany=True``, datetime
+        precision may be lost when writing to local temporary tables (names starting
+        with ``#``). To avoid this, add ``UseFMTONLY=Yes`` to the connection string.
+        See :ref:`io.sql_datetime_data` for details.
 
         References
         ----------
@@ -4361,6 +4376,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
+        elif isinstance(loc, slice):
+            # GH#38650: bypass iloc dispatch and pass new_index
+            # directly to avoid redundantly slicing the index
+            # in the manager path.
+            result = self._slice(loc, new_index=new_index)
         else:
             result = self.iloc[loc]
             result.index = new_index
@@ -4387,7 +4407,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             slobj = indexer
         return self._slice(slobj)
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Self:
+    def _slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> Self:
         """
         Construct a slice of this container.
 
@@ -4395,7 +4417,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
-        new_mgr = self._mgr.get_slice(slobj, axis=axis)
+        new_mgr = self._mgr.get_slice(slobj, axis=axis, new_index=new_index)
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         result = result.__finalize__(self)
         return result
@@ -6467,7 +6489,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cast entire pandas object to the same type. Alternatively, use a
             mapping, e.g. {col: dtype, ...}, where col is a column label and dtype is
             a numpy.dtype or Python type to cast one or more of the DataFrame's
-            columns to column-specific types.
+            columns to column-specific types. The mapping may be a ``dict`` or a
+            :class:`Series` indexed by column label; columns whose labels are
+            absent from the mapping are left unchanged. A Python type (e.g.
+            ``int``, ``float``, ``str``, ``bool``) is mapped to the corresponding
+            dtype; a type with no such mapping, such as ``datetime.datetime``,
+            raises ``TypeError``.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
@@ -7254,7 +7281,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif isinstance(value, ABCDataFrame) and self.ndim == 2:
             new_data = self.where(self.notna(), value)._mgr
         else:
-            raise ValueError(f"invalid fill value with a {type(value)}")
+            raise ValueError(
+                "Invalid fill value: expected scalar, dict, Series or DataFrame; "
+                f"got {type(value).__name__}"
+            )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
@@ -7806,6 +7836,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if not (
             is_scalar(to_replace)
+            or to_replace is Ellipsis  # GH#50373
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
@@ -8048,7 +8079,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'outside': Only fill NaNs outside valid values (extrapolate).
 
         **kwargs : optional
-            Keyword arguments to pass on to the interpolating function.
+            Keyword arguments to pass on to the interpolating function. Not
+            all methods use them: the ``'linear'``, ``'time'``, ``'index'``,
+            and ``'values'`` methods use NumPy and ignore any extra keyword
+            arguments (for example, ``left`` and ``right``).
 
         Returns
         -------
@@ -8753,8 +8787,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with numpy.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9229,8 +9262,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. note::
 
-                Only takes effect for Tick-frequencies (i.e. fixed frequencies like
-                hours and minutes, rather than days, months or quarters).
+                Only takes effect for Tick-frequencies (i.e. fixed frequencies
+                like hours and minutes) and, on a timezone-naive index, for day
+                frequencies; not for months or quarters.
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -10160,7 +10194,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            # GH#45153 suppress Pandas4Warning from fillna with
+            # incompatible value; if cond is not boolean, the dtype
+            # check below will raise TypeError anyway.
+            warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
+            cond = cond.fillna(fill_value)
         cond = cond.infer_objects()
 
         msg = "Boolean array expected for the condition, not {dtype}"
@@ -11895,6 +11934,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
             the time-period. This is only valid for datetimelike indexes.
+            The offset must correspond to a fixed frequency (for example, ``'2D'``
+            or ``'1h'``); non-fixed frequencies such as ``'B'`` (business day) or
+            ``'ME'`` (month end) are not supported and raise ``ValueError``.
             To learn more about the offsets & frequency strings, please see
             :ref:`this link<timeseries.offset_aliases>`.
 

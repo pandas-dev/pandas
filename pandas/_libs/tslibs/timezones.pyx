@@ -199,7 +199,11 @@ cdef object tz_cache_key(tzinfo tz):
     the same tz file). Also, pytz objects are not always hashable so we use
     str(tz) instead.
     """
-    if pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
+    if type(tz) is timezone:
+        # datetime.timezone fixed offset; the offset fully determines
+        #  the transition info, so ignore any custom name
+        return "pytimezone", tz.utcoffset(None)
+    elif pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
         return tz.zone
     elif isinstance(tz, _dateutil_tzfile):
         if ".tar.gz" in tz._filename:
@@ -307,11 +311,15 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     is_fixed : bint
         True if this is a fixed-offset timezone with no transitions.
+    has_tz_tule : bint
+        Bool indicating if the tz has a "rule" attached describing transitions
+        after the array of trans/deltas.
     """
     cdef:
         int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
         list trans_utc, deltas_seconds, future_trans
         int year, last_year, std_offset, dst_offset
+        bint valid
 
     tz_py = _ZoneInfo(tz.key)
 
@@ -319,7 +327,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
         deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
-        return trans, deltas, True
+        return trans, deltas, True, False
 
     trans_utc = list(tz_py._trans_utc)
     deltas_seconds = [int(info.utcoff.total_seconds()) for info in tz_py._ttinfos]
@@ -367,9 +375,25 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
         future_trans.sort()
 
-        for t, d in future_trans:
-            trans_utc.append(t)
-            deltas_seconds.append(d)
+        # Verify the flattened future transitions against zoneinfo; if any
+        # disagree, drop them all and leave the per-value zoneinfo fallback to
+        # handle these dates. See test_zoneinfo_negative_dst_distant_dates for
+        # why. GH#65712, GH#65733
+        valid = True
+        try:
+            for future_ts, future_delta in future_trans:
+                probe = datetime.fromtimestamp(future_ts + 1, timezone.utc)
+                probe_offset = probe.astimezone(tz).utcoffset().total_seconds()
+                if int(probe_offset) != future_delta:
+                    valid = False
+                    break
+        except (OSError, OverflowError, ValueError):
+            valid = False
+
+        if valid:
+            for future_ts, future_delta in future_trans:
+                trans_utc.append(future_ts)
+                deltas_seconds.append(future_delta)
 
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
@@ -378,7 +402,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     deltas = np.array(deltas_seconds, dtype="i8") * 1_000_000_000
     deltas = np.hstack([[first_offset_seconds * 1_000_000_000], deltas])
 
-    return trans, deltas, False
+    return trans, deltas, False, has_future_dst
 
 
 cdef object get_dst_info(tzinfo tz):
@@ -391,6 +415,9 @@ cdef object get_dst_info(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     str
         Describing the type of tzinfo object.
+    has_tz_rule
+        Bool indicating if the tz has a "rule" attached describing transitions
+        after the array of transitions/deltas (only used for ZoneInfo).
     """
     cache_key = tz_cache_key(tz)
     if cache_key is None:
@@ -401,8 +428,10 @@ cdef object get_dst_info(tzinfo tz):
         #  so the total_seconds() call will raise AttributeError.
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
-                "unknown")
+                "unknown",
+                False)
 
+    has_tz_rule = False
     if cache_key not in dst_cache:
         if treat_tz_as_pytz(tz):
             trans = np.array(tz._utc_transition_times, dtype="M8[ns]")
@@ -445,7 +474,7 @@ cdef object get_dst_info(tzinfo tz):
                                      "and has an empty `_trans_list`.", tz)
 
         elif is_zoneinfo(tz):
-            trans, deltas, is_fixed = _get_zoneinfo_trans_and_deltas(tz)
+            trans, deltas, is_fixed, has_tz_rule = _get_zoneinfo_trans_and_deltas(tz)
             typ = "fixed" if is_fixed else "zoneinfo"
 
         else:
@@ -456,7 +485,7 @@ cdef object get_dst_info(tzinfo tz):
             deltas = np.array([num], dtype=np.int64)
             typ = "static"
 
-        dst_cache[cache_key] = (trans, deltas, typ)
+        dst_cache[cache_key] = (trans, deltas, typ, has_tz_rule)
 
     return dst_cache[cache_key]
 

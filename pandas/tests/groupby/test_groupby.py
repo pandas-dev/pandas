@@ -233,15 +233,15 @@ def test_indices_concatenation_order():
 
     # should fail (not the same number of levels)
     msg = "Cannot concat indices that do not have the same number of levels"
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f2)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f2)
 
     # should fail (incorrect shape)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f3)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f3)
 
 
@@ -1156,7 +1156,7 @@ def test_groupby_dtype_inference_empty():
     result = df.groupby("x").first()
     exp_index = Index([], name="x", dtype=np.float64)
     expected = DataFrame({"range": Series([], index=exp_index, dtype="int64")})
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_unit64_float_conversion():

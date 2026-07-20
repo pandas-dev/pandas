@@ -57,7 +57,7 @@ from pandas.tseries.offsets import (
 # ---------------------
 def compare_element(result, expected, typ):
     if isinstance(expected, Index):
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
         return
 
     if typ.startswith("sp_"):

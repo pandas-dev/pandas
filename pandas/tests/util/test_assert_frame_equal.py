@@ -8,11 +8,6 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def by_blocks_fixture(request):
-    return request.param
-
-
 def _assert_frame_equal_both(a, b, **kwargs):
     """
     Check that two DataFrame equal.
@@ -155,7 +150,7 @@ def test_frame_equal_columns_mismatch(check_like, frame_or_series, using_infer_s
         )
 
 
-def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
+def test_frame_equal_block_mismatch(frame_or_series):
     obj = frame_or_series.__name__
     msg = f"""{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
@@ -168,7 +163,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 7]})
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(df1, df2, by_blocks=by_blocks_fixture, obj=obj)
+        tm.assert_frame_equal(df1, df2, obj=obj)
 
 
 @pytest.mark.parametrize(
@@ -196,7 +191,7 @@ def test_frame_equal_block_mismatch(by_blocks_fixture, frame_or_series):
         ),
     ],
 )
-def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, frame_or_series):
+def test_frame_equal_unicode(df1, df2, msg, frame_or_series):
     # see gh-20503
     #
     # Test ensures that `tm.assert_frame_equals` raises the right exception
@@ -205,9 +200,7 @@ def test_frame_equal_unicode(df1, df2, msg, by_blocks_fixture, frame_or_series):
     df2 = DataFrame(df2)
     msg = msg.format(obj=frame_or_series.__name__)
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(
-            df1, df2, by_blocks=by_blocks_fixture, obj=frame_or_series.__name__
-        )
+        tm.assert_frame_equal(df1, df2, obj=frame_or_series.__name__)
 
 
 def test_assert_frame_equal_extension_dtype_mismatch():
@@ -416,6 +409,17 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
 
 
+def test_by_blocks_deprecated():
+    # GH#65911
+    df = DataFrame({"a": [1]})
+
+    msg = "the 'by_blocks' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_frame_equal(df, df, by_blocks=True)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_frame_equal(df, df, by_blocks=False)
+
+
 def test_assert_frame_equal_int_near_bounds():
     # GH#40719 - integer comparisons near int64 bounds should be exact by default
     min_val = np.iinfo(np.int64).min
@@ -434,6 +438,25 @@ def test_assert_frame_equal_nested_df_na(na_value):
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
     tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_check_freq_columns():
+    # GH#51920 a freq mismatch on datetimelike columns is being introduced via
+    #  a deprecation: it warns by default, raises only with check_freq=True
+    cols = pd.date_range("2016-01-01", periods=2)
+    df1 = DataFrame([[1, 2]], columns=cols)
+    df2 = DataFrame([[1, 2]], columns=cols._with_freq(None))
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_frame_equal(df1, df2)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(df1, df2, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(df1, df2, check_freq=False)
 
 
 @pytest.mark.parametrize(
@@ -459,3 +482,12 @@ def test_assert_frame_equal_nested_arraylike_type_mismatch_check_exact(left, rig
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(right, left, check_exact=True)
+
+
+def test_assert_frame_equal_check_like_check_freq():
+    # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
+    #  the freq check is skipped with check_like=True
+    idx = pd.date_range("2020-01-01", periods=3, freq="D")
+    df = DataFrame({"a": [1, 2, 3]}, index=idx)
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(df.iloc[[2, 0, 1]], df, check_like=True)

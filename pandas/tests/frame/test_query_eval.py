@@ -1251,7 +1251,7 @@ class TestDataFrameEvalWithFrame:
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
     def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({"a": [1, 2], "b": ["c", "d"]})
-        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'|Cannot"
+        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
 
         with pytest.raises(TypeError, match=msg):
             df.eval(f"a {op} b", engine=engine, parser=parser)
@@ -1683,7 +1683,7 @@ class TestDataFrameQueryInWithColumnRefs:
     def test_in_column_refs_string_pyarrow(self, engine, parser):
         df = DataFrame(
             {"a": ["a", "a", "b"], "b": ["a", "b", "c"], "c": ["b", "b", "c"]},
-            dtype="string[pyarrow]"
+            dtype="string[pyarrow]",
         )
 
         warning = RuntimeWarning if engine == "numexpr" else None

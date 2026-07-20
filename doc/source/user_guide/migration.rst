@@ -149,6 +149,14 @@ A different alternative would be to not use ``inplace``:
     df["foo"] = df["foo"].replace(1, 5)
     df
 
+**Attributes set on a selected column do not persist**
+
+Selecting a column now returns a new :class:`Series` object each time rather
+than a cached one, so setting :attr:`Series.attrs` on a selected column
+(for example ``df["foo"].attrs[...] = ...``) is no longer visible on
+subsequent selections of that column. Store such metadata on the parent
+:class:`DataFrame`'s :attr:`~DataFrame.attrs` instead.
+
 **Constructors now copy NumPy arrays by default**
 
 The Series and DataFrame constructors now copies a NumPy array by default when not

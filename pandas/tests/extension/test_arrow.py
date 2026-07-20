@@ -28,6 +28,7 @@ import operator
 import pickle
 import re
 import sys
+import unicodedata
 
 import numpy as np
 import pytest
@@ -43,7 +44,11 @@ from pandas.compat import (
     pa_version_under21p0,
 )
 from pandas.compat.pyarrow import pa_version_under22p0
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -1102,15 +1107,14 @@ class TestArrowArray(base.ExtensionTests):
                     )
                 # timestamp with s unit and US/Pacific or US/Eastern tz
                 elif (
-                    "toordinal not yet supported on Timestamps which are "
-                    "outside the range of Python's standard library."
+                    "Localizing Timestamps which are outside the range of Python"
                 ) in str(err):
                     request.applymarker(
                         pytest.mark.xfail(
                             raises=NotImplementedError,
                             reason=(
-                                "toordinal not yet supported on Timestamps which are "
-                                "outside the range of Python's standard library."
+                                "Localizing Timestamps which are outside the range of "
+                                "Python's standard library datetime is not supported"
                             ),
                         )
                     )
@@ -2330,12 +2334,24 @@ def test_str_r_index(method, start, end):
         getattr(ser.str, method)("foo", start, end)
 
 
-@pytest.mark.parametrize("form", ["NFC", "NFKC"])
+@pytest.mark.parametrize("form", ["NFC", "NFD", "NFKC", "NFKD"])
 def test_str_normalize(form):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    # GH#64359 the composing forms (NFC/NFKC) must apply canonical composition,
+    #  not just decomposition: "e" + U+0301 must compose to U+00E9, and a
+    #  pre-composed character must round-trip unchanged. The compatibility
+    #  forms additionally fold e.g. the U+FB01 "fi" ligature.
+    data = ["abc", "e\u0301", "\u00e9", "\u212b", "\ufb01", None]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.string()))
     result = ser.str.normalize(form)
-    expected = ser.copy()
+    expected = pd.Series(
+        [unicodedata.normalize(form, val) if val is not None else None for val in data],
+        dtype=ArrowDtype(pa.string()),
+    )
     tm.assert_series_equal(result, expected)
+    if form in ("NFC", "NFKC"):
+        # decomposed and pre-composed inputs both yield the single U+00E9
+        assert result[1] == "\u00e9"
+        assert result[2] == "\u00e9"
 
 
 @pytest.mark.parametrize(
@@ -2751,6 +2767,23 @@ def test_dt_isocalendar():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_isocalendar_preserves_index():
+    # GH#65894
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+        index=["a", "b"],
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        index=["a", "b"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, exp", [["day_name", "Sunday"], ["month_name", "January"]]
 )
@@ -3033,6 +3066,59 @@ def test_as_unit_date_raises():
     # as_unit should raise for date types
     ser = pd.Series([1, 2], dtype=ArrowDtype(pa.date32()))
     with pytest.raises(NotImplementedError, match="as_unit not implemented"):
+        ser.dt.as_unit("ns")
+
+
+@pytest.mark.parametrize(
+    "from_unit, to_unit",
+    [("ns", "s"), ("ns", "ms"), ("ns", "us"), ("us", "s"), ("ms", "s")],
+)
+def test_as_unit_duration_negative_floors(from_unit, to_unit):
+    # GH#63573 downcasting a negative duration must floor toward -inf like
+    # numpy, not truncate toward zero
+    values = [93784567890123, -93784567890123, None]
+    ser_arrow = pd.Series(pd.to_timedelta(values, unit="ns").as_unit(from_unit)).astype(
+        f"duration[{from_unit}][pyarrow]"
+    )
+
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = pd.Series(
+        pd.to_timedelta(values, unit="ns").as_unit(from_unit).as_unit(to_unit)
+    ).astype(f"duration[{to_unit}][pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("to_unit", ["s", "ms", "us"])
+def test_as_unit_timestamp_pre_epoch_floors(to_unit):
+    # GH#63573 downcasting a pre-epoch timestamp must floor toward -inf like
+    # numpy, not truncate toward zero (which would cross the epoch)
+    ser_arrow = pd.Series(
+        [pd.Timestamp("1969-12-31 23:59:59.123456789"), None],
+        dtype="timestamp[ns][pyarrow]",
+    )
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = pd.Series(ser_arrow.astype("datetime64[ns]").dt.as_unit(to_unit)).astype(
+        f"timestamp[{to_unit}][pyarrow]"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_as_unit_timestamp_overflow_raises():
+    # GH#63573 upcasting out-of-bounds values must raise instead of silently
+    # wrapping via int64 overflow
+    ser = pd.Series(
+        [pd.Timestamp("2600-01-01").as_unit("s"), None],
+        dtype="timestamp[s][pyarrow]",
+    )
+    with pytest.raises(OutOfBoundsDatetime, match="overflow"):
+        ser.dt.as_unit("ns")
+
+
+def test_as_unit_duration_overflow_raises():
+    # GH#63573 upcasting out-of-bounds durations must raise instead of silently
+    # wrapping via int64 overflow
+    ser = pd.Series([19880899200, None], dtype="duration[s][pyarrow]")
+    with pytest.raises(OutOfBoundsTimedelta, match="overflow"):
         ser.dt.as_unit("ns")
 
 
@@ -3920,7 +4006,8 @@ def test_arrow_floordiv_integral_invalid(pa_type):
     # GH 56676
     min_value = np.iinfo(pa_type.to_pandas_dtype()).min
     a = pd.Series([min_value], dtype=ArrowDtype(pa_type))
-    with pytest.raises(pa.lib.ArrowInvalid, match="overflow|not in range"):
+    msg = "|".join(["overflow", "not in range"])
+    with pytest.raises(pa.lib.ArrowInvalid, match=msg):
         a // -1
     with pytest.raises(pa.lib.ArrowInvalid, match="divide by zero"):
         a // 0
@@ -4040,6 +4127,44 @@ def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42, 42, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, func, expected_dtype",
+    [
+        (
+            ArrowDtype(pa.timestamp("s")),
+            lambda x: x + timedelta(microseconds=123456),
+            ArrowDtype(pa.timestamp("us")),
+        ),
+        (
+            ArrowDtype(pa.time32("s")),
+            lambda x: x.replace(microsecond=123456),
+            ArrowDtype(pa.time64("us")),
+        ),
+        (
+            ArrowDtype(pa.decimal128(3, 1)),
+            lambda x: x + Decimal("0.01"),
+            ArrowDtype(pa.decimal128(3, 2)),
+        ),
+    ],
+)
+def test_map_finer_resolution_no_arrowinvalid(dtype, func, expected_dtype):
+    # GH#62523 mapping to a finer resolution/precision that cannot be cast
+    #  down to the original dtype should keep the finer dtype rather than
+    #  raising ArrowInvalid
+    if pa.types.is_timestamp(dtype.pyarrow_dtype):
+        data = [datetime(2020, 1, 1), datetime(2020, 1, 2)]
+    elif pa.types.is_time(dtype.pyarrow_dtype):
+        data = [time(1, 2, 3), time(4, 5, 6)]
+    else:
+        data = [Decimal("1.5"), Decimal("2.5")]
+
+    ser = pd.Series(data, dtype=dtype)
+    result = ser.map(func)
+    assert result.dtype == expected_dtype
+    expected = pd.Series([func(x) for x in data], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

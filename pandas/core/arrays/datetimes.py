@@ -802,7 +802,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and not offset._use_relativedelta
         ):
             res_values = self._ndarray + offset._pd_timedelta
-            result = type(self)._simple_new(res_values, dtype=self.dtype)
+            # GH#64806 offset._pd_timedelta may have finer resolution than
+            # self, promoting res_values to a finer unit; derive the dtype
+            # from the promoted values rather than assuming self.dtype's unit.
+            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
+            res_dtype = tz_to_dtype(self.tz, res_unit)
+            result = type(self)._simple_new(res_values, dtype=res_dtype)
             if offset.normalize:
                 result = result.normalize()
             return result
@@ -3194,6 +3199,16 @@ def _generate_range(
         end = end.as_unit(unit)
     else:
         end = None
+
+    # GH#64834/GH#65011 When deriving start from (end, periods), roll end onto
+    # the offset first so we don't lose a period. For B/bh this is handled by
+    # the vectorized path, but anchored offsets (W, ME, MS, QS, ...) reach here.
+    # Without this, periods=1 also leaves freq pinned to an off-grid end.
+    if end is not None and periods is not None and not offset.is_on_offset(end):
+        if offset.n >= 0:
+            end = offset.rollback(end)  # type: ignore[assignment]
+        else:
+            end = offset.rollforward(end)  # type: ignore[assignment]
 
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",

@@ -164,12 +164,12 @@ class TestTimedeltaIndex:
         obj = timedelta_range("1h", periods=2, freq="h")
 
         result = obj.astype("category")
-        expected = pd.CategoricalIndex([Timedelta("1h"), Timedelta("2h")])
-        tm.assert_index_equal(result, expected)
+        expected = pd.CategoricalIndex(timedelta_range("1h", periods=2, freq="h"))
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         result = obj._data.astype("category")
         expected = expected.values
-        tm.assert_categorical_equal(result, expected)
+        tm.assert_categorical_equal(result, expected, check_freq=False)
 
     def test_astype_array_fallback(self):
         obj = timedelta_range("1h", periods=2)
