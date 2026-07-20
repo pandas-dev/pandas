@@ -15,6 +15,7 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
     ReadCsvBuffer,
     UsecolsArgType,
     npt,
@@ -29,6 +30,8 @@ def sanitize_objects(
 ) -> int: ...
 
 class _PendingStringColumn:
+    @property
+    def dtype(self) -> DtypeObj: ...
     def __len__(self) -> int: ...
     def materialize(self) -> Any: ...  # -> pyarrow.Array
 

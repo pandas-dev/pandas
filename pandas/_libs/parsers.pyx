@@ -2061,6 +2061,16 @@ cdef class _PendingStringColumn:
     def __len__(self) -> int:
         return self.lines
 
+    @property
+    def dtype(self):
+        """
+        The dtype `materialize()` will produce.  Lets a caller reconcile
+        dtypes across chunks (see the parallel-read gather) while the
+        columns are still unmaterialized.
+        """
+        _, _, _, _, str_nan_dtype, arrow_str_dtype = _get_pa_string_helpers()
+        return str_nan_dtype if self.large else arrow_str_dtype
+
     def materialize(self):
         """
         Build a pyarrow Array from the buffers; ownership moves to pyarrow
