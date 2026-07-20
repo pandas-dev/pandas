@@ -9,6 +9,7 @@ See pd_strtoi.h for the error-code contract these functions preserve.
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cctype>
 #include <cstddef>
@@ -24,9 +25,9 @@ See pd_strtoi.h for the error-code contract these functions preserve.
 
 namespace {
 
-// Arrow256 allows up to 76 decimal digits.
-// We rounded up to the next power of 2.
-constexpr size_t processed_word_capacity = 128;
+// Arrow Decimal256 tokens carry at most 76 decimal digits, plus a sign.
+constexpr size_t max_decimal_digits = 76;
+constexpr size_t token_buffer_capacity = std::bit_ceil(max_decimal_digits + 1);
 
 // The ASCII whitespace accepted around numbers; matches both isspace_ascii
 // and fast_float::is_space (relied on by skip_white_space below).
@@ -97,7 +98,7 @@ T parse_integer(std::string_view str, int *error, char tsep,
   }
   // `str` is consumed while parsing; boundary checks use the original end.
   const char *const str_end = str.data() + str.size();
-  std::array<char, processed_word_capacity> buffer{};
+  std::array<char, token_buffer_capacity> buffer{};
   // Number end in the original input; the tsep path parses a copy, so
   // from_chars' own end pointer cannot flag trailing junk (GH#64631).
   const char *number_end = nullptr;

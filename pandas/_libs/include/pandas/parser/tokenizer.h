@@ -218,8 +218,6 @@ int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream
 
-// uint_state itself is defined in pd_strtoi.h (included above) alongside
-// str_to_uint64; these helpers remain implemented in tokenizer.c.
 void uint_state_init(uint_state *self);
 
 int uint64_conflict(uint_state *self);
