@@ -7650,6 +7650,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * When dict is used as the `to_replace` value, it is like
           key(s) in the dict are the to_replace part and
           value(s) in the dict are the value parameter.
+        * Unless `regex` is True, a key matches only if it equals the entire
+          value, not a substring of it: ``{"b": "z"}`` replaces the value ``"b"``
+          but leaves ``"a b c"`` unchanged.
+        * Dict entries are applied one after another, in insertion order. Which
+          entries apply to an element is decided up front by matching every key
+          against the original value, but each substitution is made into the
+          result of the previous ones. An entry can therefore end up a no-op if
+          an earlier one already rewrote the text it targeted: with
+          ``regex=True``, ``{"x": "1", "x y": "2"}`` turns ``"x y"`` into
+          ``"1 y"``, while ``{"x y": "2", "x": "1"}`` turns it into ``"2"``.
+          Conversely, a later entry can rewrite what an earlier one produced:
+          ``{"ab": "ba", "ba": "zz"}`` turns ``"ab ba"`` into ``"zz zz"``.
+          With overlapping keys, order the dict most-specific-first.
         * Replacement is based on equality, not identity. Since Python treats
           ``True == 1`` and ``False == 0``, replacing one will also affect
           the other when they share a dtype (e.g. ``object``).

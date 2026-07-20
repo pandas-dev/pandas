@@ -511,6 +511,11 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
+            Note: when the caller is an :class:`Index`, its *values* are used
+            as the index for alignment, so a ``Series`` or ``DataFrame`` in
+            `others` is aligned against those values rather than positionally.
+            An ``Index`` or ``np.ndarray`` in `others` has no index of its own
+            and is always used positionally.
 
         Returns
         -------
@@ -599,6 +604,19 @@ class StringMethods(NoNewAttributesMixin):
         4    -e
         2    -c
         dtype: str
+
+        When the caller is an :class:`Index`, alignment uses the values of that
+        ``Index``, so concatenating with a ``Series`` whose index is unrelated
+        gives missing values:
+
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]))
+        Index([nan, nan, nan], dtype='object')
+
+        Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
+
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]).to_numpy())
+        Index(['ax', 'by', 'cz'], dtype='str')
 
         For more examples, see :ref:`here <text.concatenate>`.
         """

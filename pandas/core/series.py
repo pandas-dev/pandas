@@ -2514,6 +2514,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.duplicated : Related method on Series, indicating duplicate
             Series values.
         Series.unique : Return unique values as an array.
+        Index.duplicated : Indicate duplicate index values.
 
         Examples
         --------
@@ -2559,6 +2560,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1       cow
         3    beetle
         5     hippo
+        Name: animal, dtype: str
+
+        Only the values are considered, not the index. To drop entries with a
+        duplicate index label, use :meth:`Index.duplicated` with boolean
+        indexing.
+
+        >>> s.index = ["a", "b", "b", "c", "c", "d"]
+        >>> s[~s.index.duplicated(keep="first")]
+        a     llama
+        b       cow
+        c    beetle
+        d     hippo
         Name: animal, dtype: str
         """
         inplace = validate_bool_kwarg(inplace, "inplace")

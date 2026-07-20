@@ -324,6 +324,24 @@ class IndexingMixin:
         0     1     3
         1   100   300
         2  1000  3000
+
+        **Selecting along an explicit axis**
+
+        ``.iloc`` can be called with an ``axis`` argument to apply a single
+        indexer to that axis.
+
+        >>> df.iloc(axis=0)[1]
+        a    100
+        b    200
+        c    300
+        d    400
+        Name: 1, dtype: int64
+
+        >>> df.iloc(axis=1)[1]
+        0       2
+        1     200
+        2    2000
+        Name: b, dtype: int64
         """
         return _iLocIndexer("iloc", self)
 
@@ -467,6 +485,22 @@ class IndexingMixin:
         >>> df.loc[lambda df: df["shield"] == 8]
                     max_speed  shield
         sidewinder          7       8
+
+        **Selecting along an explicit axis**
+
+        ``.loc`` can be called with an ``axis`` argument to apply a single
+        indexer to that axis.
+
+        >>> df.loc(axis=0)["viper"]
+        max_speed    4
+        shield       5
+        Name: viper, dtype: int64
+
+        >>> df.loc(axis=1)["shield"]
+        cobra         2
+        viper         5
+        sidewinder    8
+        Name: shield, dtype: int64
 
         **Setting values**
 
