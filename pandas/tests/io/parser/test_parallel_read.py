@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -899,6 +900,7 @@ def test_parallel_single_long_line(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
 def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
     # A line covering the middle of the file swallows the interior split
     # targets.  The boundaries after it must survive: the results are correct
@@ -927,6 +929,7 @@ def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # Two of the interior targets land inside the long line; giving up at the
     # first leaves 2 chunks no matter how many workers were asked for.
+    assert chunk_counts, "the parallel path did not run"
     assert chunk_counts[0] >= 3
 
 
