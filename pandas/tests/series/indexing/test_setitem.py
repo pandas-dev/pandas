@@ -4,13 +4,17 @@ from datetime import (
     datetime,
 )
 from decimal import Decimal
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -1788,9 +1792,12 @@ def test_setitem_int_not_positional():
     mi = MultiIndex.from_product([ser.index, ["A", "B"]])
     ser3 = Series(range(len(mi)), index=mi)
     expected3 = ser3.copy()
-    expected3.loc[4] = 99
+    msg = "Setting a new value on a Series with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected3.loc[4] = 99
     # pre-enforcement `ser3[4] = 99` interpreted 4 as positional
-    ser3[4] = 99
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser3[4] = 99
     tm.assert_series_equal(ser3, expected3)
 
 
@@ -1867,3 +1874,26 @@ def test_setitem_bool_dtype_with_boolean_indexer():
     s1[condition] = s2[condition]
     expected = Series([True, False, True], dtype=bool)
     tm.assert_series_equal(s1, expected)
+
+
+@pytest.mark.parametrize("value", [2**63, np.inf, -np.inf])
+def test_setitem_enlarge_out_of_int64_range(value):
+    # GH#66394 the result must not be downcast back to int64; on aarch64 the
+    #  out-of-range cast saturated and 2**63 was silently stored as 2**63 - 1
+    ser = Series([1, 2], dtype="int64")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        ser.loc[2] = value
+
+    expected = Series([1.0, 2.0, value], dtype="float64")
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_enlarge_within_int64_range():
+    # GH#66394 in-range values still downcast back to int64
+    ser = Series([1, 2], dtype="int64")
+    ser.loc[2] = 2**62
+
+    expected = Series([1, 2, 2**62], dtype="int64")
+    tm.assert_series_equal(ser, expected)

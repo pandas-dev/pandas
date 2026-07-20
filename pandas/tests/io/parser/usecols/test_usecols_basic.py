@@ -133,8 +133,6 @@ def test_usecols_relative_to_names2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# regex mismatch: "Length mismatch: Expected axis has 1 elements"
-@xfail_pyarrow
 def test_usecols_name_length_conflict(all_parsers):
     data = """\
 1,2,3
@@ -469,11 +467,13 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, reques
 
     if parser.engine == "pyarrow":
         if isinstance(usecols[0], int):
-            with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
-                parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
-            return
-        # "pyarrow.lib.ArrowKeyError: Column 'A' in include_columns does not exist"
-        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
+            msg = _msg_pyarrow_requires_names
+        else:
+            # GH#65862
+            msg = "'usecols' together with 'names' when 'header' is an integer"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
+        return
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})

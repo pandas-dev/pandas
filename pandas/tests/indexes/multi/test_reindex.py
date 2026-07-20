@@ -134,6 +134,17 @@ def test_reindex_not_all_tuples():
     tm.assert_numpy_array_equal(indexer, expected)
 
 
+def test_reindex_flat_integer_target_raises_gh26460():
+    # GH#26460
+    mi = MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]])
+    msg = (
+        "cannot reindex a MultiIndex with a flat 'int64' index; the reindex "
+        r"target must contain tuples of length 2 \(the number of levels\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        mi.reindex([8, 10])
+
+
 def test_reindex_limit_arg_with_multiindex():
     # GH21247
 

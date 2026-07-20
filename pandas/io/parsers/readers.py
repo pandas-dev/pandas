@@ -199,9 +199,10 @@ _python_unsupported = {"low_memory", "float_precision"}
 
 # Minimum file size (bytes) to attempt parallel CSV reading.
 # Below this threshold the overhead of splitting and threading outweighs the benefit.
-# Parallel reading breaks even around 1-2 MB (thread spawn plus chunk-split
-# overhead is sub-millisecond); 5 MB leaves margin for cold-cache reads.
+# Break-even is around 1-2 MB; 5 MB leaves margin for cold-cache reads.
 _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
+# Minimum rows per parallel chunk, bounding how finely a file is split.
+_PARALLEL_MIN_CHUNK_ROWS = 2000
 
 # Upper bound on the default parallel-read worker count.  Chosen as a ceiling
 # comfortably above any current client CPU's core count, so it never limits a
@@ -444,6 +445,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       literal newline would be split mid-field.
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
+    * ``low_memory`` is not ``False`` - ``low_memory=False`` guarantees
+      whole-file type inference, which per-chunk parallel reading cannot honour
+      (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
@@ -542,6 +546,11 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # Datetime format inference is per-chunk and may disagree with the serial
     # whole-column inference.
     if kwds.get("parse_dates"):
+        return False
+
+    # low_memory=False guarantees whole-file type inference, which per-chunk
+    # parallel reading cannot honour (GH#64347).
+    if kwds.get("low_memory") is False:
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
@@ -655,8 +664,13 @@ def _find_chunk_byte_offsets(
             fd.seek(target)
             fd.readline()  # advance past the partial line at the split point
             pos = fd.tell()
-            if pos >= file_size or pos == offsets[-1]:
+            if pos >= file_size:
                 break
+            if pos == offsets[-1]:
+                # This target fell inside the line the previous boundary
+                # already ended; skip it rather than abandoning the boundaries
+                # after it, so one long line cannot collapse the whole split.
+                continue
             offsets.append(pos)
 
     offsets.append(file_size)
@@ -700,17 +714,37 @@ def _read_csv_parallel(
     # Byte offset at which real data rows begin.
     data_start = _find_data_start_offset(filepath, header, skiprows)
 
-    # Split the data section into 3x n_workers chunks pulled from a shared
-    # queue: on heterogeneous CPUs (performance + efficiency cores) an equal
-    # split leaves the fast cores idle while the slow ones finish their single
-    # oversized chunk.  3x strikes the balance now that per-chunk overhead is
-    # low (readers and their buffers are reused across the chunks a worker
-    # pulls); larger factors showed no further gain.
-    offsets = _find_chunk_byte_offsets(filepath, n_workers * 3, data_start)
+    # Oversubscribe the workers so one slow chunk cannot strand a core, but
+    # cap the count: every chunk repeats a per-column cost, which on a wide
+    # frame outweighs the parse it parallelises.  Take the median of sampled
+    # line lengths - a single probe lets one atypical line skew the estimate.
+    data_size = os.path.getsize(filepath) - data_start
+    line_lens = []
+    with open(filepath, "rb") as fh:
+        for probe in range(9):
+            fh.seek(data_start + data_size * probe // 9)
+            fh.readline(1 << 20)  # advance past the partial line at the probe
+            line = fh.readline(1 << 20)
+            if line:
+                line_lens.append(len(line))
+    line_lens.sort()
+    bytes_per_row = line_lens[len(line_lens) // 2] if line_lens else data_size
+    est_rows = data_size // bytes_per_row
+    n_target = min(n_workers * 3, est_rows // _PARALLEL_MIN_CHUNK_ROWS)
+    if n_target < 2:
+        # Too few rows to split, unless each half is big enough to amortise
+        # the per-column costs anyway.
+        if data_size < 2 * _PARALLEL_READ_MIN_BYTES:
+            return None
+        n_target = 2
+
+    offsets = _find_chunk_byte_offsets(filepath, n_target, data_start)
     n_chunks = len(offsets) - 1
     if n_chunks < 2:
         # e.g. a data section with no interior newlines (one giant line)
         return None
+    # Spare threads would only spin up to find the queue empty.
+    n_workers = min(n_workers, n_chunks)
 
     # ------------------------------------------------------------------
     # Infer column names from the preamble + one data line (very fast).
@@ -788,10 +822,8 @@ def _read_csv_parallel(
         "header": None,
         "names": col_names,
         "skiprows": None,
-        # low_memory chunking exists to bound peak memory during type
-        # inference; a worker's byte slice is already bounded, and skipping
-        # it avoids a per-worker GIL-held np.concatenate over the internal
-        # chunks.
+        # A worker's byte slice already bounds peak memory, and skipping
+        # low_memory avoids a per-worker GIL-held concatenate.
         "low_memory": False,
     }
 
@@ -801,10 +833,8 @@ def _read_csv_parallel(
     with open(filepath, "rb") as fh:
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
 
-    # Work-stealing over more chunks than workers: each of n_workers threads
-    # reuses one parser to drain the queue, so a thread that draws cheap
-    # chunks (or a fast core) keeps going instead of stalling the gather on a
-    # straggler - without paying to construct a parser per chunk.
+    # Each thread reuses one parser to drain the queue, so no worker stalls
+    # the gather on a straggler and no chunk pays parser construction.
     chunk_queue: queue.SimpleQueue = queue.SimpleQueue()
     for chunk_idx in range(n_chunks):
         chunk_queue.put(chunk_idx)
@@ -814,9 +844,8 @@ def _read_csv_parallel(
     def _worker() -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
-        # Buffers are reused at high-water mark across the queued chunks and
-        # freed at close; trimming between chunks would only stall the other
-        # workers with shrink-reallocs.
+        # Buffers are reused across the queued chunks and freed at close;
+        # trimming between chunks would stall other workers on reallocs.
         reader._engine._reader.trim_after_read = False
         workers_readers.append(reader)
         while True:
@@ -826,35 +855,31 @@ def _read_csv_parallel(
                 return
             data = mv[offsets[chunk_idx] : offsets[chunk_idx + 1]]
             # The serial C parser strips a UTF-8 BOM at byte 0 of the file
-            # only; strip_bom mirrors that for the chunk that starts there
-            # (offset 0, i.e. a headerless file - with a header the first data
-            # chunk begins after it, so a leading BOM on a data line is kept).
+            # only; strip_bom mirrors that for the chunk starting there.
             reader._engine._reader.load_buffer(data, strip_bom=offsets[chunk_idx] == 0)
             # the reader holds its own reference for the parse duration
             del data
-            # Collect raw column arrays rather than a DataFrame: per-chunk
-            # DataFrame assembly happens under the GIL (serializing the pool)
-            # and a final concat would push every column back through the
-            # block machinery.  The columns are gathered once, below.
+            # On a reused parser a zero-row chunk would raise StopIteration
+            # and close the reader; reset so it returns empty meta instead.
+            reader._engine._first_chunk = True
+            # Raw column arrays, not DataFrames: per-chunk frame assembly
+            # holds the GIL and the concat would redo the block machinery.
             _, chunk_columns, col_dict = reader._engine.read()
             results[chunk_idx] = (chunk_columns, col_dict)
 
-    def _copy_piece(dst: np.ndarray, pos: int, piece: np.ndarray) -> None:
+    def _copy_pieces(jobs: list[tuple[np.ndarray, int, np.ndarray]]) -> None:
         # ndarray slice assignment releases the GIL for the memcpy, so the
         # gather parallelises across the pool.
-        dst[pos : pos + len(piece)] = piece
+        for dst, pos, piece in jobs:
+            dst[pos : pos + len(piece)] = piece
 
     def _piece_ndarray(piece) -> np.ndarray | None:
-        # The ndarray behind a parsed column piece, for pieces whose final
-        # block is ndarray-backed: plain ndarrays plus tz-naive
-        # datetime64/timedelta64 arrays (from parse_dates conversion).
+        # The ndarray behind pieces whose final block is ndarray-backed:
+        # plain ndarrays plus tz-naive datetime64/timedelta64.
         if isinstance(piece, np.ndarray):
             if piece.dtype == object:
-                # Object pieces take the leftover path below, where the
-                # gathered column runs through the same constructor
-                # inference as a serial read (e.g. object -> str dtype
-                # under ``future.infer_string`` when the pyarrow string
-                # fast path is unavailable).
+                # Object pieces take the leftover path below, which runs
+                # the same constructor inference as a serial read.
                 return None
             return piece
         if isinstance(piece, (DatetimeArray, TimedeltaArray)) and isinstance(
@@ -864,9 +889,8 @@ def _read_csv_parallel(
         return None
 
     dtype_arg = kwds.get("dtype")
-    # Mirror TextFileReader.read: a dict dtype or a str/object dtype request
-    # needs a Series-per-column wrap, so it takes the plain dict-based
-    # constructor below instead of direct block assembly.
+    # Mirror TextFileReader.read: a dict or str/object dtype needs a
+    # Series-per-column wrap, so it skips direct block assembly.
     needs_series_wrap = isinstance(dtype_arg, dict) or (
         dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
     )
@@ -885,12 +909,22 @@ def _read_csv_parallel(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
-            # Freeing each worker's parser buffers costs a few ms of madvise,
-            # so it runs on the pool, overlapped with the gather copies below.
+            # Freeing parser buffers costs a few ms of madvise; run it on the
+            # pool, overlapped with the gather copies below.
             close_futures = [pool.submit(reader.close) for reader in workers_readers]
             readers_closing = True
 
-            chunk_results = cast("list[tuple]", results)
+            # Zero-row chunks carry empty-meta object dtypes that would
+            # needlessly trip the dtype reconciliation below.
+            chunk_results = [
+                res
+                for res in cast("list[tuple]", results)
+                if res[1] and len(next(iter(res[1].values()))) > 0
+            ]
+            if not chunk_results:
+                # every chunk parsed to zero rows (e.g. all blank lines);
+                # let the serial path build the empty frame
+                return None
             columns = list(chunk_results[0][0])
             chunk_dicts = [col_dict for _, col_dict in chunk_results]
             col_list = list(chunk_dicts[0])
@@ -898,11 +932,9 @@ def _read_csv_parallel(
                 total = sum(len(chunk_dict[col_list[0]]) for chunk_dict in chunk_dicts)
 
             # Per-chunk dtype inference can disagree with whole-file inference
-            # (e.g. a numeric column whose only non-numeric row sits in one
-            # chunk parses int64 in clean chunks but object in the dirty one,
-            # whereas serial gives object for the whole column).  Mixed
-            # signed-int/float chunks gather to the same float64 result serial
-            # would produce; anything else must be re-read serially.
+            # (a lone non-numeric row makes only its own chunk object).  Mixed
+            # signed-int/float chunks gather to the float64 serial would give;
+            # anything else must be re-read serially.
             for name in col_list:
                 chunk_dtypes = {chunk_dict[name].dtype for chunk_dict in chunk_dicts}
                 if len(chunk_dtypes) > 1 and not all(
@@ -911,11 +943,9 @@ def _read_csv_parallel(
                     return None
 
             if not needs_series_wrap:
-                # Group gatherable (same-dtype ndarray) columns by dtype and
-                # gather each group straight into one preallocated consolidated
-                # block via GIL-free slice-assign copies on the pool.  Anything
-                # else (extension arrays, int/float mixes) is left to
-                # _concatenate_chunks below.
+                # Gather same-dtype ndarray columns straight into one
+                # preallocated consolidated block per dtype; anything else
+                # falls to _concatenate_chunks below.
                 groups: dict[np.dtype, list[int]] = {}
                 col_nd_pieces: dict[int, list[np.ndarray]] = {}
                 for pos, name in enumerate(col_list):
@@ -932,17 +962,25 @@ def _read_csv_parallel(
                     else:
                         leftover_pos.append(pos)
 
-                copy_futures = []
+                copy_jobs: list[tuple[np.ndarray, int, np.ndarray]] = []
                 for group_dtype, positions in groups.items():
                     values2d = np.empty((len(positions), total), dtype=group_dtype)
                     for row, pos in enumerate(positions):
                         offset = 0
                         for piece in col_nd_pieces[pos]:
-                            copy_futures.append(
-                                pool.submit(_copy_piece, values2d[row], offset, piece)
-                            )
+                            copy_jobs.append((values2d[row], offset, piece))
                             offset += len(piece)
                     block_specs.append((values2d, np.array(positions, dtype=np.intp)))
+
+                # Batch the copies instead of submitting one task per
+                # (column, chunk): on a wide frame that is n_columns * n_chunks
+                # tasks, each moving a sliver of one column, and the dispatch
+                # then costs many times the memcpy it schedules.
+                batch = -(-len(copy_jobs) // (n_workers * 4)) or 1
+                copy_futures = [
+                    pool.submit(_copy_pieces, copy_jobs[start : start + batch])
+                    for start in range(0, len(copy_jobs), batch)
+                ]
                 for fut in copy_futures:
                     fut.result()
             for fut in close_futures:
@@ -1208,6 +1246,10 @@ def read_csv(
         E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype``
@@ -1800,6 +1842,10 @@ def read_table(
         E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which

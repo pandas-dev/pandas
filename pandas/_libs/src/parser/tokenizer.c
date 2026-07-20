@@ -110,26 +110,35 @@ static void free_if_not_null(void **ptr) {
 static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
                          int64_t space, int64_t elsize, int *error) {
   uint64_t cap = *capacity;
-  void *newbuffer = buffer;
 
-  // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
-  while ((length + space >= cap) && (newbuffer != NULL)) {
-    cap = cap ? cap << 1 : 2;
-    buffer = newbuffer;
-    newbuffer = realloc(newbuffer, elsize * cap);
+  // Can we already fit length + space (tokens + null terminators)?
+  if (length + space < cap) {
+    *error = 0;
+    return buffer;
   }
 
+  // Compute the final power-of-two capacity first, then realloc *once*.
+  // Doubling with a realloc inside the loop reallocs (and copies) at every
+  // step; the up-front stream reservation in tokenize_bytes grows the buffer
+  // from its initial size to the whole chunk in a single call, so that would
+  // be ~log2(chunk / init) copying reallocs.  On allocators with a single
+  // process-wide heap lock (notably the Windows UCRT heap) those extra
+  // reallocs serialize the parallel read_csv workers against each other, so
+  // we size the buffer in one shot instead.
+  uint64_t newcap = cap ? cap : 2;
+  while (length + space >= newcap) {
+    newcap <<= 1;
+  }
+
+  void *newbuffer = realloc(buffer, elsize * newcap);
   if (newbuffer == NULL) {
     // realloc failed so don't change *capacity, set *error to errno
-    // and return the last good realloc'd buffer so it can be freed
+    // and return the still-valid old buffer so it can be freed
     *error = errno;
-    newbuffer = buffer;
-  } else {
-    // realloc worked, update *capacity and set *error to 0
-    // sigh, multiple return values
-    *capacity = cap;
-    *error = 0;
+    return buffer;
   }
+  *capacity = newcap;
+  *error = 0;
   return newbuffer;
 }
 
@@ -1621,14 +1630,14 @@ int to_boolean(const char *item, uint8_t *val) {
 //
 // -----------------------------------------------------------------------
 
-// Defined in fast_float_strtod.cpp — provides IEEE 754 correctly-rounded
+// Defined in fast_float_wrappers.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error,
-                       int *maybe_int) {
+double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
+                                char sci, char tsep, int skip_trailing,
+                                int *error, int *maybe_int, const char *end) {
   // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
   if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
@@ -1645,10 +1654,15 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL).
-    const char *end = p;
-    while (*end && !isspace_ascii(*end))
-      end++;
+    // Find end of token (next whitespace or NUL) unless the caller passed
+    // it; fast_float stops at the first non-numeric byte regardless, so a
+    // looser end bound is harmless.
+    if (end == NULL) {
+      const char *scan = p;
+      while (*scan && !isspace_ascii(*scan))
+        scan++;
+      end = scan;
+    }
 
     double value;
     const char *parsed_end;
@@ -1831,6 +1845,13 @@ fallback:
   if (endptr)
     *endptr = (char *)p;
   return number;
+}
+
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
+  return precise_xstrtod_with_end(str, endptr, decimal, sci, tsep,
+                                  skip_trailing, error, maybe_int, NULL);
 }
 
 // End of xstrtod code
