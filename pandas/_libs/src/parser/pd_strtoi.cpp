@@ -65,7 +65,8 @@ without_tsep_result copy_number_without_tsep(std::span<char> output,
   if (str.empty() || !std::isdigit(static_cast<unsigned char>(str.front()))) {
     // No digits to copy; a leading tsep is not part of a number.
     return {.token = std::string_view(output.data(), sign_len),
-            .ptr = str.data()};
+            .ptr = str.data(),
+            .ec = std::errc()};
   }
 
   auto it = str.begin();
@@ -76,12 +77,15 @@ without_tsep_result copy_number_without_tsep(std::span<char> output,
       continue;
     }
     if (out == output.end()) {
-      return {.ptr = str.data(), .ec = std::errc::value_too_large};
+      return {.token = std::string_view(),
+              .ptr = str.data(),
+              .ec = std::errc::value_too_large};
     }
     *out++ = *it;
   }
   return {.token = std::string_view(output.data(), out - output.begin()),
-          .ptr = str.data() + (it - str.begin())};
+          .ptr = str.data() + (it - str.begin()),
+          .ec = std::errc()};
 }
 
 /* Shared body of str_to_int64/str_to_uint64. */
