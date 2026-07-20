@@ -34,7 +34,12 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
     SparseDtype,
 )
-from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCNumpyExtensionArray,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import (
     is_array_like,
     is_bool,
@@ -80,6 +85,42 @@ ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 ensure_uint64 = algos.ensure_uint64
+
+
+def is_array_like_deprecate_non_pandas(obj: object) -> bool:
+    """
+    Transitional replacement for ``is_array_like`` at internal call sites (GH#52834).
+
+    Returns the same value as ``is_array_like(obj)``, but emits a
+    :class:`Pandas4Warning` when ``obj`` qualifies as array-like only by
+    duck-typing (i.e. it has a ``dtype`` attribute but is not one of
+    ``ndarray``, ``ExtensionArray``, ``Index``, or ``Series``). These call
+    sites will eventually use ``isinstance(obj, (np.ndarray, ExtensionArray,
+    Index, Series))`` directly, at which point such objects will no longer be
+    treated as array-like. That isinstance check will need a ``ndim != 0``
+    carve-out for ndarray: ``is_array_like`` is False for 0-dimensional
+    ndarrays (effective scalars), and among these classes only ndarray can
+    be 0-dimensional.
+    """
+    if not is_array_like(obj):
+        return False
+    # Note: ABCExtensionArray excludes NumpyExtensionArray (_typ="npy_extension"),
+    #  so ABCNumpyExtensionArray must be listed separately to cover all
+    #  ExtensionArray subclasses.
+    if not isinstance(
+        obj,
+        (np.ndarray, ABCExtensionArray, ABCNumpyExtensionArray, ABCIndex, ABCSeries),
+    ):
+        warnings.warn(
+            "Treating an array-like object that is not a numpy ndarray, "
+            "ExtensionArray, Index, or Series as array-like is deprecated. In a "
+            "future version these objects will no longer be treated as "
+            "array-like; wrap the input in np.asarray, pd.array, or pd.Index "
+            "to retain the current behavior.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    return True
 
 
 def ensure_str(value: bytes | Any) -> str:

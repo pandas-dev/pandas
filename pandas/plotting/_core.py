@@ -1576,6 +1576,14 @@ class PlotAccessor(PandasObject):
         DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
 
+        Notes
+        -----
+        A bar plot draws one tick label per bar, i.e. one per row of the data.
+        This differs from a line plot, where the axis uses an automatic locator
+        that shows only a subset of evenly spaced ticks. With many bars the
+        labels may therefore overlap; set the tick positions and labels manually
+        (e.g. via ``ax.set_xticks``) if a sparser axis is desired.
+
         Examples
         --------
         Basic plot.
@@ -2419,9 +2427,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)
     else:
-        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
-        # expected "EntryPoints"  [arg-type]
-        entry = eps.get(key, ())  # type: ignore[arg-type]
+        entry = eps.get(key, ())  # type: ignore[attr-defined]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

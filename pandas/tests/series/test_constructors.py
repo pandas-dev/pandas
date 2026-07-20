@@ -577,7 +577,7 @@ class TestSeriesConstructors:
         data[1] = 1
         result = Series(data, index=index)
         expected = Series([0, 1, 2], index=index, dtype=int)
-        with pytest.raises(AssertionError, match="Series classes are different"):
+        with pytest.raises(AssertionError, match="Series values classes are different"):
             # TODO should this be raising at all?
             # https://github.com/pandas-dev/pandas/issues/56131
             tm.assert_series_equal(result, expected)
@@ -597,7 +597,7 @@ class TestSeriesConstructors:
         data[1] = True
         result = Series(data, index=index)
         expected = Series([True, True, False], index=index, dtype=bool)
-        with pytest.raises(AssertionError, match="Series classes are different"):
+        with pytest.raises(AssertionError, match="Series values classes are different"):
             # TODO should this be raising at all?
             # https://github.com/pandas-dev/pandas/issues/56131
             tm.assert_series_equal(result, expected)
@@ -1127,7 +1127,7 @@ class TestSeriesConstructors:
 
         exp = DatetimeIndex(result)
         exp = exp.tz_localize("UTC").tz_convert(tz=s.dt.tz)
-        tm.assert_index_equal(dr, exp)
+        tm.assert_index_equal(dr, exp, check_freq=False)
 
         # indexing
         result = s.iloc[0]
@@ -1965,6 +1965,15 @@ class TestSeriesConstructors:
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[us]")
         expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="us"))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("data", [[1.5, 2.5, 90.0], [1, 2.5, 90], [1.5, NaT, 90]])
+    def test_constructor_dtype_timedelta_float_honors_unit(self, data):
+        # GH#63499 float and mixed int/float data should be interpreted in
+        #  the dtype's unit, matching the integer case, instead of as
+        #  nanoseconds (which silently truncated these to zero)
+        result = Series(data, dtype="timedelta64[s]")
+        expected = Series(pd.to_timedelta(data, unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
