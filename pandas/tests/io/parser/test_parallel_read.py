@@ -807,13 +807,14 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
 
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is the machine's core count."""
+    """The default worker count is capped at 4, regardless of core count."""
     import pandas.io.parsers.readers as _readers
 
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
+    # More cores than the cap: the default should clamp down to 4.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
 
     workers = []
@@ -825,7 +826,7 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     read_csv(path)
-    assert workers == [16]
+    assert workers == [4]
 
     # An explicit mode.max_threads still overrides the cap.
     workers.clear()

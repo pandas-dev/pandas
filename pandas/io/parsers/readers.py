@@ -355,10 +355,11 @@ def _read(
             # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
             _n_workers = 1
         else:
-            # Use every core: with parse, convert and gather all GIL-free,
-            # scaling holds through heterogeneous core sets.  Callers already
-            # inside a parallel workload can lower this via mode.max_threads.
-            _n_workers = os.cpu_count() or 1
+            # Cap the default at 4 threads: parallel CSV reading sees
+            # diminishing returns beyond a handful of workers, and a lower
+            # default avoids oversubscribing the machine.  Users who want more
+            # can opt in explicitly via mode.max_threads.
+            _n_workers = min(os.cpu_count() or 1, 4)
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             _filepath = stringify_path(filepath_or_buffer)
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
