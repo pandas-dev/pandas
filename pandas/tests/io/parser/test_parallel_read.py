@@ -424,6 +424,35 @@ class TestFindChunkByteOffsets:
         # Can't produce 8 distinct split points in 4 bytes.
         assert len(offsets) >= 2
 
+    def test_one_long_line_does_not_collapse_the_split(self, tmp_path):
+        # A line long enough to swallow several split targets must only cost
+        # those targets, not every boundary after it.
+        path = tmp_path / "data.csv"
+        lines = [b"a,b\n"] + [b"1,2\n"] * 20_000
+        lines.insert(10, b'1,"' + b"x" * 40_000 + b'"\n')
+        path.write_bytes(b"".join(lines))
+
+        offsets = _find_chunk_byte_offsets(str(path), 32, data_start=4)
+        # Skipping only the swallowed targets keeps most of the split; giving
+        # up at the first one degenerates to 2 chunks.  The long line covers
+        # roughly a third of the 32 targets.
+        assert len(offsets) - 1 >= 20
+        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
+
+    def test_long_line_keeps_later_boundaries_at_low_chunk_counts(self, tmp_path):
+        # The reader asks for a chunk per worker, so a single line covering
+        # the middle of the file can swallow every interior target but the
+        # last one.  That last one must still produce a boundary.
+        path = tmp_path / "data.csv"
+        blob = b'1,"' + b"x" * 39_995 + b'"\n'  # 40_000 bytes, spanning 20-60%
+        path.write_bytes(b"a,b\n" + b"1,2\n" * 5_000 + blob + b"1,2\n" * 10_000)
+
+        offsets = _find_chunk_byte_offsets(str(path), 4, data_start=4)
+        # The 25% and 50% targets land inside the long line; the 75% one does
+        # not, so the split keeps 3 chunks rather than collapsing to 2.
+        assert len(offsets) - 1 == 3
+        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
+
 
 # ---------------------------------------------------------------------------
 # _read_csv_parallel  (correctness: parallel == serial)
