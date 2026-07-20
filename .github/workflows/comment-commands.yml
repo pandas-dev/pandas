@@ -5,6 +5,27 @@ on:
 
 permissions: {}
 
+env:
+  DOCS_URL: https://pandas.pydata.org/docs/dev/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle
+  TAKE_BLOCKED: >-
+    Thanks for your interest, @{user}! This issue is still labeled
+    `{blocking}`, which means a maintainer needs to review it before work
+    starts — so it isn't open to claim just yet. Please hold off on a PR
+    until that label is removed. See the [contributing guide]({docs}) for
+    more.
+  TAKE_ALREADY_YOURS: >-
+    You already have this one, @{user} — it's assigned to you and you're all
+    set to work on it.
+  TAKE_ASSIGNED_OTHER: >-
+    Thanks @{user}! This issue is currently assigned to @{assignee}, who's
+    already on it — so to avoid two people doing the same work, please pick a
+    different available issue for now. If @{assignee} becomes inactive, the
+    issue is released automatically and you'll be able to `/take` it then.
+    See the [contributing guide]({docs}) for more.
+  UNTAKE_NOT_ASSIGNED: >-
+    @{user}, you're not currently assigned to this issue, so there's nothing
+    to release. If you'd like to work on it, comment `/take` to claim it.
+
 jobs:
   preview_docs:
     runs-on: ubuntu-24.04
@@ -36,11 +57,9 @@ jobs:
         with:
           script: |
             if (context.payload.comment.body.trim() !== '/take') return;
-            const docsUrl = 'https://pandas.pydata.org/docs/dev/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle';
-            // The payload's issue is a snapshot from comment-creation time; two
-            // near-simultaneous /take commands would both see it unassigned.
-            // Decide on a fresh read instead (runs are serialized by the
-            // concurrency group above).
+            const msg = (name, vars) => process.env[name].replace(
+              /{(\w+)}/g, (_, key) => ({ docs: process.env.DOCS_URL, ...vars })[key]);
+            // Avoid race condition between two different `/take` submissions
             const { data: issue } = await github.rest.issues.get({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number,
             });
@@ -52,15 +71,15 @@ jobs:
               owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body,
             });
             if (blocking) {
-              await comment(`Thanks for your interest, @${user}! This issue is still labeled \`${blocking}\`, which means a maintainer needs to review it before work starts — so it isn't open to claim just yet. Please hold off on a PR until that label is removed. See the [contributing guide](${docsUrl}) for more.`);
+              await comment(msg('TAKE_BLOCKED', { user, blocking }));
               return;
             }
             if (assignees.includes(user)) {
-              await comment(`You already have this one, @${user} — it's assigned to you and you're all set to work on it.`);
+              await comment(msg('TAKE_ALREADY_YOURS', { user }));
               return;
             }
             if (assignees.length > 0) {
-              await comment(`Thanks @${user}! This issue is currently assigned to @${assignees[0]}, who's already on it — so to avoid two people doing the same work, please pick a different available issue for now. If @${assignees[0]} becomes inactive, the issue is released automatically and you'll be able to \`/take\` it then. See the [contributing guide](${docsUrl}) for more.`);
+              await comment(msg('TAKE_ASSIGNED_OTHER', { user, assignee: assignees[0] }));
               return;
             }
             await github.rest.issues.addAssignees({
@@ -85,7 +104,9 @@ jobs:
         with:
           script: |
             if (context.payload.comment.body.trim() !== '/untake') return;
-            // Fresh read for the same reason as /take above.
+            const msg = (name, vars) => process.env[name].replace(
+              /{(\w+)}/g, (_, key) => ({ docs: process.env.DOCS_URL, ...vars })[key]);
+            // Avoid race condition between two different `/take` submissions
             const { data: issue } = await github.rest.issues.get({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number,
             });
@@ -94,7 +115,7 @@ jobs:
             if (!assignees.includes(user)) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number,
-                body: `@${user}, you're not currently assigned to this issue, so there's nothing to release. If you'd like to work on it, comment \`/take\` to claim it.`,
+                body: msg('UNTAKE_NOT_ASSIGNED', { user }),
               });
               return;
             }

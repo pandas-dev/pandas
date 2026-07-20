@@ -86,19 +86,14 @@ def _stale_clock_anchor(
     pr: core.OpenPRState,
     changes_requested_at: datetime | None,
 ) -> datetime | None:
-    """When the PR's stale clock started: the later of ``changes_requested_at``
-    (the ball entering the contributor's court), the author's last action
-    (commit, PR comment, review/inline reply, or linked-issue comment), and the
-    last reopen — by anyone, since only the author and maintainers can reopen
-    and either doing so is an explicit act of keeping the PR alive.
+    """When the PR's stale clock started.
 
-    Flooring at ``changes_requested_at`` is what keeps a long review wait from
-    eating into the stale window — the author gets a full ``PR_STALE_DAYS`` from
-    the review, never from whenever they last happened to act before it. The
-    reads escalate in cost and each is skipped once a cheaper one already shows
-    the author active inside ``PR_STALE_DAYS``: batched PR-side signals first,
-    then the exact comment fetch (only when the bounded window couldn't prove
-    absence), then per-linked-issue comments.
+    The latest of: the changes-requested review, the author's own activity
+    (commit, PR comment, review reply, or linked-issue comment), and any
+    reopen. The clock never starts before the changes-requested review, so
+    time spent waiting on review never counts against the author. The reads
+    escalate in cost, and each is skipped once a cheaper one already shows
+    the author active within ``PR_STALE_DAYS``.
     """
     author = pr["author"]
     authors = [author] if author else []

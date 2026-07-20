@@ -21,6 +21,5 @@ jobs:
       - run: python3 -m scripts.issue_assignment.gate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Warn-only until the gate has been observed in production; flip to
-          # 'true' to start closing flagged pull requests.
+          # Warn-only at first; change to 'true' to start closing flagged pull requests.
           CLOSE_ENABLED: 'false'

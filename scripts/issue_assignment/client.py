@@ -2,7 +2,7 @@
 
 This is the only module that performs I/O, so it is deliberately small; all
 judgement lives in :mod:`core`. ``gh`` reads ``GH_TOKEN`` / ``GITHUB_TOKEN``
-from the environment, so no explicit auth wiring is needed.
+from the environment.
 """
 
 from __future__ import annotations
@@ -106,13 +106,12 @@ query($owner: String!, $name: String!, $cursor: String) {
 }
 """
 
-# Login the LABELED_EVENT actor reports for GITHUB_TOKEN-driven workflow runs;
-# how the engine recognizes whether the *current* ``Stale`` label is its own
-# mark (finding the warning time that anchors the close countdown).
+# Used to determine whether it was the bot that marked a PR as stale, rather than
+# manually done.
 _BOT_LOGIN = "github-actions"
 
 # Repository roles that correspond to the OWNER/MEMBER/COLLABORATOR author
-# associations; ``read`` is what everyone has on a public repository.
+# associations.
 _EXEMPT_ROLES = {"admin", "maintain", "write", "triage"}
 
 
@@ -166,23 +165,18 @@ class GitHubClient:
                 "assignees": [a["login"] for a in node["assignees"]["nodes"]],
             }
             for node in nodes
-            # Closing keywords can reference issues in other repositories;
-            # their numbers mean nothing here.
+            # Ignore linked issues to other repositories.
             if node["repository"]["nameWithOwner"].lower() == self.repo.lower()
         ]
 
     def iter_open_pull_requests_review_state(self) -> Iterator[OpenPRState]:
-        """Yield lifecycle state for every open PR, paginating in batches of 50.
+        """Yield an ``OpenPRState`` for each open PR, paginating in batches.
 
-        Each item carries enough for the daily ``Awaiting Review`` reconcile and
-        the PR stale engine to decide without per-PR follow-up requests: author +
-        association, reviews (with reviewer and association), re-review requests,
-        the engine's own ``Stale`` label-event time, reopens, the latest commit
-        time, the author's PR comments, and current labels. The comment window
-        is bounded, so ``comments_truncated`` flags when an absence of author
-        comments must be re-checked exactly before acting on it; linked-issue
-        comments are fetched separately, only for PRs the PR-side activity can't
-        already rule active.
+        Each yielded state carries enough for the daily jobs to decide without
+        per-PR follow-up requests. The comment window is bounded, so
+        ``comments_truncated`` means the batch cannot prove an absence of
+        author comments — re-check with the more thorough ``latest_comment_at_since``
+        before acting on one.
         """
         cursor: str | None = None
         while True:
@@ -204,10 +198,8 @@ class GitHubClient:
                     }
                     for r in node["reviewRequests"]["nodes"]
                 ]
-                # Only the *newest* Stale label event can back the label that
-                # is on the PR now; an older engine mark from a cleared cycle
-                # must not anchor a close when a human later re-applied the
-                # label, so a non-engine newest event yields no anchor at all.
+                # Use only the newest Stale label application, and only if
+                # the bot applied it.
                 stale_events = [
                     (marked, (event.get("actor") or {}).get("login"))
                     for event in node["labelEvents"]["nodes"]
@@ -260,8 +252,7 @@ class GitHubClient:
             cursor = page["endCursor"]
 
     def list_open_assigned_issue_numbers(self) -> list[int]:
-        # The REST list endpoint rather than a search: search results are
-        # hard-capped at 1000, which pagination would eventually trip over.
+        # Purposely avoiding search: search results are hard-capped at 1000.
         out = self._gh(
             [
                 "api",
@@ -274,7 +265,7 @@ class GitHubClient:
             item["number"]
             for page in json.loads(out)
             for item in page
-            # This endpoint returns pull requests too; the sweep is issues-only.
+            # This endpoint returns PRs too.
             if "pull_request" not in item
         ]
 
@@ -313,13 +304,11 @@ class GitHubClient:
     def latest_comment_at_since(
         self, number: int, logins: set[str], since: datetime
     ) -> datetime | None:
-        """Exact newest comment by one of ``logins``, via paginated REST.
+        """Exact newest comment by one of ``logins``.
 
-        The fallback behind the bounded comment windows above: called before a
-        destructive decision when ``comments_truncated`` says the batched read
-        can't prove the absence of activity. ``since`` bounds the fetch to the
-        window that matters (a comment *created* after ``since`` is necessarily
-        also updated after it, so the filter can't miss one).
+        Used when a batched read sets ``comments_truncated``. The REST
+        ``since`` parameter filters on update time, so it may return comments
+        created before ``since`` but can never miss one created after it.
         """
         since_arg = since.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         out = self._gh(
@@ -341,10 +330,9 @@ class GitHubClient:
         return max(times) if times else None
 
     def open_pr_authors_exact(self, number: int) -> list[str]:
-        """Exact authors of open PRs cross-referencing an issue, via REST.
+        """Exact authors of open PRs cross-referencing an issue.
 
-        The fallback behind the bounded cross-reference window: an assignee's
-        open PR scrolling out of the batched read must not get them unassigned.
+        Used when a batched read sets ``crossrefs_truncated``.
         """
         out = self._gh(
             [
@@ -369,10 +357,9 @@ class GitHubClient:
     def is_exempt_collaborator(self, username: str) -> bool:
         """Whether ``username`` has triage-or-higher access to the repository.
 
-        The sweep-side equivalent of the OWNER/MEMBER/COLLABORATOR author
-        associations, for users where no association is available (issue
-        assignees). ``role_name`` rather than the legacy ``permission`` field,
-        which collapses to ``read`` for everyone on a public repository.
+        Used where no GitHub provided author association is available (issue
+        assignees). Reads ``role_name``; the legacy ``permission`` field
+        reports ``read`` for everyone on a public repository.
         """
         try:
             out = self._gh(

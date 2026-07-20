@@ -116,12 +116,17 @@ it yourself — nothing is lost).
 Review and staleness
 --------------------
 
+The purpose of this process is only to identify and clean up abandoned pull
+requests — it is never meant to pressure you while you wait: a pull request
+goes stale only through its author's own inactivity, never through time spent
+waiting on review.
+
 While your pull request is waiting on review it is labeled ``Awaiting Review``
 and will **not** be marked stale — you keep your assignment for as long as review
 takes.
 
-Once a maintainer requests changes, the ball is in your court and a **14-day**
-timer starts. Only *your* activity resets it: pushing a commit, replying to a
+Once a maintainer requests changes, a **14-day** timer starts. Only *your*
+activity resets it: pushing a commit, replying to a
 review comment, or commenting on the pull request **or its linked issue** (a
 comment from someone else does not).
 If there is no activity from you for 14 days, the pull request is marked

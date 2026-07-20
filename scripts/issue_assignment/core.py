@@ -1,9 +1,9 @@
-"""Pure decision logic for issue-assignment automation.
+"""Decision logic for issue-assignment automation.
 
-Every function here takes plain Python data and performs no I/O, so the rules
+Every function here takes Python data and performs no GitHub I/O, so the rules
 can be exercised directly in ``scripts/tests/test_issue_assignment.py``. The
-``TypedDict``\\ s below document the record shapes produced by :mod:`client` and
-consumed here.
+``TypedDict`` classes below document the record shapes produced by
+:mod:`client` and consumed here.
 """
 
 from __future__ import annotations
@@ -22,16 +22,14 @@ STALE_ASSIGNEE_DAYS = 7
 PR_STALE_DAYS = 14
 PR_CLOSE_DAYS = 7
 
-# Update to the merge date when this lands: assignments and inactivity that
-# predate the automation are never judged by rules nobody was operating under —
-# every pre-existing assignment gets a full STALE_ASSIGNEE_DAYS from this date.
+# Only apply going forward; not retroactively.
 ROLLOUT_CUTOFF = datetime(2026, 7, 27, tzinfo=timezone.utc)
 
 EXEMPT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 REVIEW_BLOCKING_ASSOCIATIONS = {"OWNER", "MEMBER"}
 # Review states that express a reviewer's standing verdict on the PR;
 # COMMENTED and PENDING reviews leave their previous verdict in place.
-STANCE_STATES = {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
+STANCE_REVIEW_STATES = {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
 BLOCKING_LABELS = ("Needs Triage", "Needs Discussion")
 
 GATE_LABEL = "Needs Issue Assignment"
@@ -94,7 +92,7 @@ class GateDecision(TypedDict, total=False):
 
 
 def is_exempt(author_association: str | None, author_is_bot: bool) -> bool:
-    """Maintainers, collaborators, and bots are never gated."""
+    # Maintainers, collaborators, and bots are never gated.
     return bool(author_is_bot) or (author_association or "") in EXEMPT_ASSOCIATIONS
 
 
@@ -106,14 +104,13 @@ def outstanding_changes_requested_at(reviews: list[Review]) -> datetime | None:
     A changes-request is outstanding only while it is that reviewer's *current
     stance*: their own later ``APPROVED`` (or a dismissal, which rewrites the
     review's state to ``DISMISSED``) supersedes it, while ``COMMENTED`` reviews
-    leave it standing — matching GitHub's own merge-box semantics. Another
-    reviewer's approval does not clear it.
+    leave it standing. Another reviewer's approval does not clear it.
     """
     stances: dict[str | None, tuple[datetime, str | None]] = {}
     for r in reviews:
         submitted = r["submitted_at"]
         if (
-            r.get("state") in STANCE_STATES
+            r.get("state") in STANCE_REVIEW_STATES
             and (r.get("author_association") or "") in REVIEW_BLOCKING_ASSOCIATIONS
             and submitted is not None
         ):
@@ -148,7 +145,7 @@ def latest_rereview_request_at(
     """Newest review (re-)request initiated by one of ``contributors``, or ``None``.
 
     Scoped to the contributor's own action: a maintainer wrangling reviewers
-    doesn't count as the contributor signalling "ready for another look."
+    doesn't count as the contributor signaling "ready for another look."
     """
     times = [
         requested

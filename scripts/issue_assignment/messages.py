@@ -13,9 +13,7 @@ from scripts.issue_assignment.core import (
     STALE_ASSIGNEE_DAYS,
 )
 
-# The dev docs, deliberately: the section this points to only reaches the
-# stable docs with the next release, and these links go out in bot comments
-# from day one.
+# Point to the dev docs so that changes are reflected immediately.
 DOCS_URL = (
     "https://pandas.pydata.org/docs/dev/development/contributing.html"
     "#issue-assignment-and-the-pull-request-lifecycle"
