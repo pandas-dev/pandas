@@ -2495,6 +2495,49 @@ class TestLocSetitemWithExpansion:
         expected = Series([ts1, ts2], dtype="date32[pyarrow]")
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize(
+        "values, item",
+        [
+            (
+                to_datetime(["2020-01-01", "2020-01-02"]).as_unit("us"),
+                Timestamp("2020-01-03"),
+            ),
+            (to_timedelta([1, 2], unit="D").as_unit("us"), Timedelta(days=3)),
+        ],
+    )
+    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(self, values, item):
+        # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
+        #  raise AttributeError instead of retaining dtype
+        ser = Series(values)
+        ser.loc[2] = item
+        expected = Series([*values, item], dtype=values.dtype)
+        tm.assert_series_equal(ser, expected)
+
+        # a missing (NaT) value should behave the same way
+        ser2 = Series(values)
+        ser2.loc[2] = pd.NaT
+        expected2 = Series([*values, pd.NaT], dtype=values.dtype)
+        tm.assert_series_equal(ser2, expected2)
+
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
+        # GH#62523 expanding with a finer-resolution value that cannot be cast
+        #  down to the original coarser unit should keep the finer unit rather
+        #  than raising ArrowInvalid
+        ser = Series(
+            to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
+        )
+        ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        expected = Series(
+            [
+                Timestamp("2020-01-01"),
+                Timestamp("2020-01-02"),
+                Timestamp("2020-01-03 00:00:00.123456"),
+            ],
+            dtype="timestamp[us][pyarrow]",
+        )
+        tm.assert_series_equal(ser, expected)
+
     def test_loc_setitem_with_expansion_multiindex_retains_dtypes(self):
         # GH#17026
         mi = MultiIndex.from_tuples([("a", "c"), ("b", "c"), ("c", "d")])

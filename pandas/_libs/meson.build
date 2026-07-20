@@ -63,7 +63,7 @@ subdir('simd')
 # search path of unrelated extensions.
 tokenizer_lib = static_library(
     'pandas_tokenizer',
-    'src/parser/fast_float_strtod.cpp',
+    'src/parser/fast_float_wrappers.cpp',
     'src/parser/pd_strtoi.cpp',
     'src/parser/tokenizer.c',
     include_directories: [inc_pd, simd_config_inc],

@@ -932,6 +932,8 @@ with cf.config_prefix("future"):
         "python_scalars",
         False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
         "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        "Values from object dtype data where the operation coerces them to NumPy "
+        "floats remain NumPy scalars. "
         "Currently experimental, setting to True is not recommended for end users.",
         validator=is_one_of_factory([True, False]),
     )
