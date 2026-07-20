@@ -439,20 +439,6 @@ class TestFindChunkByteOffsets:
         assert len(offsets) - 1 >= 20
         assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
 
-    def test_long_line_keeps_later_boundaries_at_low_chunk_counts(self, tmp_path):
-        # The reader asks for a chunk per worker, so a single line covering
-        # the middle of the file can swallow every interior target but the
-        # last one.  That last one must still produce a boundary.
-        path = tmp_path / "data.csv"
-        blob = b'1,"' + b"x" * 39_995 + b'"\n'  # 40_000 bytes, spanning 20-60%
-        path.write_bytes(b"a,b\n" + b"1,2\n" * 5_000 + blob + b"1,2\n" * 10_000)
-
-        offsets = _find_chunk_byte_offsets(str(path), 4, data_start=4)
-        # The 25% and 50% targets land inside the long line; the 75% one does
-        # not, so the split keeps 3 chunks rather than collapsing to 2.
-        assert len(offsets) - 1 == 3
-        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
-
 
 # ---------------------------------------------------------------------------
 # _read_csv_parallel  (correctness: parallel == serial)
@@ -911,6 +897,37 @@ def test_parallel_single_long_line(tmp_path, monkeypatch):
     result = _read_forced_parallel(path, monkeypatch)
     expected = read_csv(io.BytesIO(raw))
     tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
+    # A line covering the middle of the file swallows the interior split
+    # targets.  The boundaries after it must survive: the results are correct
+    # either way, so a collapse is invisible except as lost parallelism, which
+    # is what this asserts (GH#66392).
+    path = tmp_path / "data.csv"
+    blob = "1," + "9" * 39_995 + "\n"  # 40 KB, covering 20-60% of the data
+    path.write_text(
+        "a,b\n" + "1,2\n" * 5_000 + blob + "1,2\n" * 10_000, encoding="utf-8"
+    )
+
+    chunk_counts = []
+
+    def spy(filepath, n_chunks, data_start):
+        offsets = _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+        chunk_counts.append(len(offsets) - 1)
+        return offsets
+
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    tm.assert_frame_equal(result, expected)
+    # Two of the interior targets land inside the long line; giving up at the
+    # first leaves 2 chunks no matter how many workers were asked for.
+    assert chunk_counts[0] >= 3
 
 
 def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
