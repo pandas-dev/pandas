@@ -149,6 +149,7 @@ Deprecations
 - Deprecated passing a non-dict (e.g. a list of dicts) to :meth:`DataFrame.from_dict`. Use the :class:`DataFrame` constructor instead (:issue:`58862`)
 - Deprecated passing integer or float values to :func:`to_datetime` with a ``format`` argument. Cast numeric values to strings explicitly first to retain the current behavior (:issue:`55663`)
 - Deprecated passing unnecessary ``*args`` and ``**kwargs`` to :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.cummax`, :meth:`.SeriesGroupBy.skew`, :meth:`.DataFrameGroupBy.skew`, :meth:`.SeriesGroupBy.take`, and :meth:`.DataFrameGroupBy.take`. The ``skipna`` parameter for the cum* methods is now an explicit keyword argument (:issue:`50407`)
+- Deprecated relying on the default ``engine`` for ``.xlsx`` and ``.xlsm`` files in :func:`read_excel` and :class:`ExcelFile` when ``python-calamine`` is installed; the default will change from ``openpyxl`` to ``calamine`` in a future version. Pass ``engine`` explicitly, or set the ``io.excel.xlsx.reader`` option, to silence the warning (:issue:`56542`)
 - Deprecated setting values with :meth:`DataFrame.at` and :meth:`Series.at` when the key does not exist in the index, which previously expanded the object. Use ``.loc`` instead (:issue:`48323`)
 - Deprecated silent dtype changes during setitem-with-expansion (e.g. ``ser.loc[new_key] = incompatible_value``). This will raise an error in a future version; cast the object to the desired dtype before the operation to keep the current behavior. The exception is int/uint to float when the value introduces ``NaN``, which is still allowed per PDEP-6 (:issue:`62369`)
 - Deprecated the ``%n`` directive in :meth:`Period.strftime` for nanoseconds; use ``%N`` instead. ``%n`` is a newline directive in C ``strftime`` (and Python's ``time.strftime`` / ``datetime.strftime``) (:issue:`65432`)
@@ -396,6 +397,7 @@ Strings
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 - Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
+- Bug in :meth:`Series.unique`, :meth:`Index.unique` and :func:`factorize` on object dtype returning incorrect results when the values were not UTF-8 encodable, e.g. lone surrogates (:issue:`34550`)
 
 Interval
 ^^^^^^^^

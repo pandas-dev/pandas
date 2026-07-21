@@ -1179,6 +1179,7 @@ cdef class StringHashTable(HashTable):
             khiter_t k
             bint use_na_value
             bint non_null_na_value
+            list refs = []
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
@@ -1210,7 +1211,12 @@ cdef class StringHashTable(HashTable):
                 try:
                     v = PyUnicode_AsUTF8(<str>val)
                 except UnicodeEncodeError:
-                    v = PyUnicode_AsUTF8(<str>repr(val))
+                    # GH#34550 val is not utf-8 encodable (e.g. a lone
+                    #  surrogate). Retain the repr in `refs` so the buffer
+                    #  `v` points to outlives the nogil loop below.
+                    val = repr(val)
+                    refs.append(val)
+                    v = PyUnicode_AsUTF8(<str>val)
                 vecs[i] = v
 
         # compute

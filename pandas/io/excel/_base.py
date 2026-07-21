@@ -301,6 +301,12 @@ def read_excel(
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
 
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` option (xlsm
+            files are format-detected as xlsx), to keep the current behavior.
+
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
@@ -1557,6 +1563,12 @@ class ExcelFile:
             then ``openpyxl`` will be used.
         - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` option (xlsm
+            files are format-detected as xlsx), to keep the current behavior.
+
         .. warning::
 
            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
@@ -1650,6 +1662,28 @@ class ExcelFile:
                 engine = config["io"]["excel"][ext]["reader"]
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="reader")
+                    # GH#56542 - the calamine engine will become the default
+                    # for xlsx/xlsm. Warn while calamine is available so the
+                    # switch is actionable; an explicit engine or the
+                    # io.excel.xlsx.reader option silences this. xlsm files
+                    # are format-sniffed as xlsx, so ext is never "xlsm" here.
+                    if (
+                        ext == "xlsx"
+                        and engine == "openpyxl"
+                        and import_optional_dependency(
+                            "python_calamine", errors="ignore"
+                        )
+                        is not None
+                    ):
+                        warnings.warn(
+                            "The default engine for reading 'xlsx' files "
+                            "will change from 'openpyxl' to 'calamine' in a "
+                            "future version. Pass engine='openpyxl' (or set "
+                            "the 'io.excel.xlsx.reader' option) to keep the "
+                            "current engine and silence this warning.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
 
         assert engine is not None
         self.engine = engine
