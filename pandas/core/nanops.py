@@ -1684,14 +1684,6 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
 
     a = a - a.mean()
     b = b - b.mean()
-    a_scale = np.max(np.abs(a))
-    b_scale = np.max(np.abs(b))
-
-    if a_scale == 0 or b_scale == 0:
-        return np.nan
-
-    a = a / a_scale
-    b = b / b_scale
     fact = len(a) - 1
     divisor = np.sqrt(np.dot(a, a) / fact)
 
