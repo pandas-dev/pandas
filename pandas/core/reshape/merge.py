@@ -1609,9 +1609,7 @@ class _MergeOperation:
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
-                        if lk is not None and (
-                            is_matching_na(lk, rk) or lk == rk
-                        ):
+                        if lk is not None and (is_matching_na(lk, rk) or lk == rk):
                             # Use the actual label stored on ``right`` rather
                             # than ``rk``: the DataFrame constructor normalizes
                             # most NA-like column labels (``pd.NA``, ``None``)
