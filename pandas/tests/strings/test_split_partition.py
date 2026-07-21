@@ -41,6 +41,25 @@ def test_split_more_than_one_char(any_string_dtype, method):
     tm.assert_series_equal(result, exp)
 
 
+def test_split_whitespace_arrow_dtype():
+    # GH#66368
+    pa = pytest.importorskip("pyarrow")
+    list_dtype = pd.ArrowDtype(pa.list_(pa.string()))
+
+    ser = Series(["  hi  there ", "", "   ", "a b c"], dtype=pd.ArrowDtype(pa.string()))
+    exp = Series([["hi", "there"], [], [], ["a", "b", "c"]], dtype=list_dtype)
+    tm.assert_series_equal(ser.str.split(), exp)
+    tm.assert_series_equal(ser.str.rsplit(), exp)
+
+    ser = Series(["  a  b  c "], dtype=pd.ArrowDtype(pa.string()))
+    tm.assert_series_equal(
+        ser.str.split(n=1), Series([["a", "b  c "]], dtype=list_dtype)
+    )
+    tm.assert_series_equal(
+        ser.str.rsplit(n=1), Series([["  a  b", "c"]], dtype=list_dtype)
+    )
+
+
 def test_split_more_regex_split(any_string_dtype):
     # regex split
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
