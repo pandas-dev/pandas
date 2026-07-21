@@ -1005,9 +1005,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         n_groupings = len(self._grouper.groupings)
 
+        def full_key(name: Hashable) -> Hashable:
+            # GH#17024 expanding MultiIndex columns with a partial key is
+            #  deprecated; pad the key to full length ourselves
+            if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
+                return (name,) + ("",) * (result.columns.nlevels - 1)
+            return name
+
         if qs is not None:
             result.insert(
-                0, f"level_{n_groupings}", np.tile(qs, len(result) // len(qs))
+                0, full_key(f"level_{n_groupings}"), np.tile(qs, len(result) // len(qs))
             )
 
         # zip in reverse so we can always insert at loc 0
@@ -1031,9 +1038,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if name not in result.columns:
                 # if in_axis:
                 if qs is None:
-                    result.insert(0, name, lev)
+                    result.insert(0, full_key(name), lev)
                 else:
-                    result.insert(0, name, Index(np.repeat(lev, len(qs)), copy=False))
+                    result.insert(
+                        0, full_key(name), Index(np.repeat(lev, len(qs)), copy=False)
+                    )
 
         return result
 
@@ -1304,6 +1313,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
+
+        Each group passed to ``func`` has a ``name`` attribute set to the group
+        key (the value of the grouping for that group). This is useful for
+        identifying the current group, for example when grouping by an external
+        grouper rather than by a column of the object.
 
         Examples
         --------
@@ -3688,6 +3702,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
             the time-period. This is only valid for datetimelike indexes.
+            The offset must correspond to a fixed frequency (for example, ``'2D'``
+            or ``'1h'``); non-fixed frequencies such as ``'B'`` (business day) or
+            ``'ME'`` (month end) are not supported and raise ``ValueError``.
             To learn more about the offsets & frequency strings, please see
             :ref:`this link<timeseries.offset_aliases>`.
 

@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -705,20 +707,27 @@ def test_pyarrow_engine_compression(pyarrow_jsonl, compression):
 
 @pytest.mark.parametrize("encoding", [None, "utf-8", "utf8", "UTF-8"])
 def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
-    # Passing the supported defaults explicitly must not raise.
-    result = read_json(
-        pyarrow_jsonl,
-        lines=True,
-        engine="pyarrow",
-        typ="frame",
-        convert_dates=True,
-        keep_default_dates=True,
-        precise_float=False,
-        date_unit=None,
-        encoding=encoding,
-        encoding_errors="strict",
-        compression="infer",
-    )
+    # Passing the supported defaults explicitly must not raise (though the
+    # deprecated date kwargs warn; GH#59161).
+    depr_msg = "keyword in read_json is deprecated"
+    # check_stacklevel=False: older pyarrow emits its own Pandas4Warning from
+    #  make_block during to_pandas, which the stacklevel check would trip on.
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        result = read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            typ="frame",
+            convert_dates=True,
+            keep_default_dates=True,
+            precise_float=False,
+            date_unit=None,
+            encoding=encoding,
+            encoding_errors="strict",
+            compression="infer",
+        )
     expected = DataFrame({"a": [1, 2], "b": ["x", "y"]})
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -737,19 +746,22 @@ def test_pyarrow_engine_reads_gzip_with_default_compression(tmp_path):
 
 def test_ujson_engine_allows_pyarrow_rejected_options(temp_file):
     # The new validation is gated on engine="pyarrow"; the default ujson
-    # engine must keep accepting these options.
+    # engine must keep accepting these options (though the deprecated date
+    # kwargs warn; GH#59161).
     Path(temp_file).write_text('{"a": 1}\n{"a": 2}\n', encoding="utf-8")
-    result = read_json(
-        temp_file,
-        lines=True,
-        engine="ujson",
-        convert_dates=False,
-        keep_default_dates=False,
-        convert_axes=False,
-        precise_float=True,
-        date_unit="ms",
-        encoding="utf-8",
-        encoding_errors="strict",
-    )
+    depr_msg = "keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            temp_file,
+            lines=True,
+            engine="ujson",
+            convert_dates=False,
+            keep_default_dates=False,
+            convert_axes=False,
+            precise_float=True,
+            date_unit="ms",
+            encoding="utf-8",
+            encoding_errors="strict",
+        )
     expected = DataFrame({"a": [1, 2]})
     tm.assert_frame_equal(result, expected)

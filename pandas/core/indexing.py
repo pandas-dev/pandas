@@ -2551,6 +2551,12 @@ class _iLocIndexer(_LocationIndexer):
 
                     # reindex the axis
                     index = self.obj._get_axis(i)
+                    maybe_warn_multiindex_expansion(
+                        index,
+                        key,
+                        target="row on a DataFrame",
+                        hint="Use a full-length tuple key instead.",
+                    )
                     labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
@@ -2895,6 +2901,12 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
+            maybe_warn_multiindex_expansion(
+                index,
+                indexer,
+                target="value on a Series",
+                hint="Use a full-length tuple key instead.",
+            )
             new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
@@ -2936,6 +2948,14 @@ class _iLocIndexer(_LocationIndexer):
             )._mgr
 
         elif self.ndim == 2:
+            maybe_warn_multiindex_expansion(
+                self.obj.index,
+                indexer,
+                target="row on a DataFrame",
+                hint="Use a full-length tuple key and an explicit column "
+                "indexer instead, e.g. df.loc[key, :] = values.",
+            )
+
             if not len(self.obj.columns):
                 # GH#17895 no columns, just expand the index
                 new_index = self.obj.index.insert(len(self.obj.index), indexer)
@@ -3618,6 +3638,24 @@ def check_dict_or_set_indexers(key) -> None:
         )
 
 
+def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -> None:
+    """
+    GH#17024 warn when expanding a MultiIndex axis with a key that is not a
+    full-length tuple.  Depending on the path, such keys currently either
+    flatten the MultiIndex to an Index of tuples or get padded with "".
+    """
+    if isinstance(index, MultiIndex) and not (
+        isinstance(key, tuple) and len(key) == index.nlevels
+    ):
+        warnings.warn(
+            f"Setting a new {target} with a MultiIndex using a key that is "
+            "not a full-length tuple is deprecated and will raise in a "
+            f"future version. {hint}",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+
 def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
     new_arr = orig._cast_pointwise_result(new_arr)
 
@@ -3649,6 +3687,20 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
         else:
             # Only accept the conversion if no values were truncated
             if (converted.astype(new_arr.dtype) == new_arr).all():
+                new_arr = converted
+    elif dtype.kind in "mM" and new_arr.dtype != dtype:
+        # GH#66402 inference re-derives the unit from the scalars, which for a
+        #  freshly-constructed Timestamp/Timedelta is us.  Restore the original
+        #  resolution when every value still fits in it.
+        wrapped = ensure_wrapped_if_datetimelike(new_arr)
+        try:
+            converted = wrapped.as_unit(orig.unit, round_ok=False)  # type: ignore[attr-defined]
+        except (AttributeError, ValueError, TypeError):
+            pass
+        else:
+            # Guards against e.g. a tz-naive/tz-aware mismatch, where the units
+            #  line up but the dtypes are still not interchangeable.
+            if converted.dtype == dtype:
                 new_arr = converted
 
     if arr_type is not None:

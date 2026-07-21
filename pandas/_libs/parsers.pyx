@@ -69,6 +69,7 @@ from libc.stdlib cimport (
 )
 from libc.string cimport (
     memcpy,
+    memset,
     strcasecmp,
     strlen,
     strncpy,
@@ -394,6 +395,10 @@ cdef class TextReader:
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
         bint allow_leading_cols
+        # Trim the parser's buffers after a whole-file read.  The parallel
+        # reader turns this off on its workers, whose buffers are reused
+        # across chunks and freed at close.
+        public bint trim_after_read
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -563,6 +568,7 @@ cdef class TextReader:
         self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
+        self.trim_after_read = True
 
         if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
@@ -927,7 +933,7 @@ cdef class TextReader:
         rows=None --> read all rows
         """
         # Don't care about memory usage
-        columns = self._read_rows(rows, 1)
+        columns = self._read_rows(rows, self.trim_after_read)
 
         return columns
 
@@ -1983,8 +1989,120 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     return result, na_count
 
 
+cdef int _days_per_month_array[12]
+_days_per_month_array[:] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+
+cdef inline bint _all_digits(const char *chars, int start,
+                             int stop) noexcept nogil:
+    cdef int idx
+    for idx in range(start, stop):
+        if chars[idx] < b"0" or chars[idx] > b"9":
+            return False
+    return True
+
+
+cdef inline int _two_digits(const char *chars, int pos) noexcept nogil:
+    return (chars[pos] - ord("0")) * 10 + (chars[pos + 1] - ord("0"))
+
+
+cdef inline int _parse_iso_fixed(const char *word, Py_ssize_t word_len,
+                                 npy_datetimestruct *dts,
+                                 NPY_DATETIMEUNIT *out_bestunit) noexcept nogil:
+    """
+    Faster equivalent to `parse_iso_8601_datetime` for the two dominant
+    fixed-width layouts: `YYYY-MM-DD` and `YYYY-MM-DD[ T]HH:MM:SS` (always
+    timezone-naive). Returns 0 on success, -1 to defer to the general
+    parser, applying the same calendar/range validation it would.
+
+    This arguably belongs in tslibs alongside `string_to_dts`, but is kept
+    here so it stays inlined into the loop below; reached as a cross-module
+    cdef it measured ~5% slower on this fastpath.
+    """
+    cdef:
+        int year, month, day, days_in_month
+        char sep
+
+    if word_len != 19 and word_len != 10:
+        return -1
+    if word[4] != b"-" or word[7] != b"-":
+        return -1
+    if not _all_digits(word, 0, 4):
+        return -1
+    if not _all_digits(word, 5, 7) or not _all_digits(word, 8, 10):
+        return -1
+
+    year = (
+        (word[0] - ord("0")) * 1000 + (word[1] - ord("0")) * 100
+        + (word[2] - ord("0")) * 10 + (word[3] - ord("0"))
+    )
+    month = _two_digits(word, 5)
+    day = _two_digits(word, 8)
+    if month < 1 or month > 12:
+        return -1
+    days_in_month = _days_per_month_array[month - 1]
+    if month == 2 and year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
+        days_in_month = 29
+    if day < 1 or day > days_in_month:
+        return -1
+
+    memset(dts, 0, sizeof(npy_datetimestruct))
+    dts.year = year
+    dts.month = month
+    dts.day = day
+
+    if word_len == 10:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
+        return 0
+
+    sep = word[10]
+    if sep != b" " and sep != b"T":
+        return -1
+    if word[13] != b":" or word[16] != b":":
+        return -1
+    if not _all_digits(word, 11, 13):
+        return -1
+    if not _all_digits(word, 14, 16) or not _all_digits(word, 17, 19):
+        return -1
+    dts.hour = _two_digits(word, 11)
+    dts.min = _two_digits(word, 14)
+    dts.sec = _two_digits(word, 17)
+    if dts.hour > 23 or dts.min > 59 or dts.sec > 59:
+        return -1
+    out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_s
+    return 0
+
+
+cdef inline int _layout_code(const char *word,
+                             Py_ssize_t word_len) noexcept nogil:
+    """
+    Layout of a string already known to parse via `_parse_iso_fixed`:
+    1 (YYYY-MM-DD), 2 (space-separated) or 3 (T-separated). Two such strings
+    share a format shape exactly when their codes match, giving an O(1)
+    equivalent of `_same_format_shape` on the fastpath.
+    """
+    if word_len == 10:
+        return 1
+    return 2 if word[10] == b" " else 3
+
+
+cdef inline int _fixed_shape_code(const char *word,
+                                  Py_ssize_t word_len) noexcept nogil:
+    """
+    `_layout_code` for an unvalidated string, or 0 if it is not fixed-layout.
+    """
+    cdef:
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT unit
+
+    if _parse_iso_fixed(word, word_len, &dts, &unit) != 0:
+        return 0
+    return _layout_code(word, word_len)
+
+
 cdef inline bint _same_format_shape(const char *left, Py_ssize_t left_len,
-                                    const char *right, Py_ssize_t right_len) noexcept:
+                                    const char *right,
+                                    Py_ssize_t right_len) noexcept nogil:
     """
     Check whether two datetime strings share a layout: same length, digits and
     non-digits in the same positions, and identical non-digit characters.
@@ -2158,11 +2276,15 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit, item_reso
         NPY_DATETIMEUNIT creso = NPY_DATETIMEUNIT.NPY_FR_us
+        NPY_DATETIMEUNIT bump_reso = NPY_DATETIMEUNIT.NPY_FR_GENERIC
         int out_local = 0, out_tzoffset = 0
         int ret
         bint creso_set = False
         bint tz_set = False
         bint saw_tz = False, saw_naive = False
+        bint fallback = False
+        bint fixed_ok = False
+        int template_fixed = -1
         int first_tzoffset = 0
         int64_t offset_in_unit, tz_offset_mult
         const char *template_word = NULL
@@ -2183,6 +2305,7 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
         if state_template is not None:
             template_word = state_template
             template_len = len(state_template)
+            template_fixed = _fixed_shape_code(template_word, template_len)
 
     lines = line_end - line_start
     # Output buffer holds int64s at `creso` resolution; the final dtype is
@@ -2192,83 +2315,108 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
     iresult = result.view("i8")
     coliter_setup(&it, parser, col, line_start)
 
-    for i in range(lines):
-        word = coliter_next_with_idx(&it, &token_idx)
+    # nogil here helps only caller-managed threads; read_csv's own parallel
+    # path is disabled when parse_dates is set.  Bail-outs must set `fallback`
+    # (or `bump_reso`) and break rather than return from inside the block.
+    try:
+        with nogil:
+            for i in range(lines):
+                word = coliter_next_with_idx(&it, &token_idx)
 
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
-            na_count += 1
-            iresult[i] = NPY_NAT
-            continue
+                if na_filter and kh_get_str_starts_item(na_hashset, word):
+                    na_count += 1
+                    iresult[i] = NPY_NAT
+                    continue
 
-        # _token_len, not strlen: an embedded NUL must reach the ISO parser
-        # (and fail) so the column falls back like the object path.
-        word_len = _token_len(parser, token_idx)
-        arena_size += word_len + 1
-        if word_len == 0:
-            na_count += 1
-            iresult[i] = NPY_NAT
-            continue
+                # _token_len, not strlen: an embedded NUL must reach the ISO
+                # parser and fail, so the column falls back like the object path.
+                word_len = _token_len(parser, token_idx)
+                arena_size += word_len + 1
+                if word_len == 0:
+                    na_count += 1
+                    iresult[i] = NPY_NAT
+                    continue
 
-        if require_consistent_format:
-            if template_word == NULL:
-                # Word pointers stay valid for the duration of this chunk's
-                # conversion, so we can hold on to the first one.
-                template_word = word
-                template_len = word_len
-            elif not _same_format_shape(template_word, template_len,
-                                        word, word_len):
-                return None, 0
+                fixed_ok = _parse_iso_fixed(word, word_len,
+                                            &dts, &out_bestunit) == 0
 
-        ret = parse_iso_8601_datetime(
-            word, <int>word_len, 0,
-            &dts, &out_bestunit, &out_local, &out_tzoffset,
-            NULL, 0, INFER_FORMAT,
+                if require_consistent_format:
+                    if template_word == NULL:
+                        # Word pointers stay valid for this chunk's conversion.
+                        template_word = word
+                        template_len = word_len
+                        template_fixed = (
+                            _layout_code(word, word_len) if fixed_ok else 0
+                        )
+                    elif fixed_ok:
+                        if template_fixed != _layout_code(word, word_len):
+                            fallback = True
+                            break
+                    elif not _same_format_shape(template_word, template_len,
+                                                word, word_len):
+                        fallback = True
+                        break
+
+                if fixed_ok:
+                    out_local = 0
+                else:
+                    ret = parse_iso_8601_datetime(
+                        word, <int>word_len, 0,
+                        &dts, &out_bestunit, &out_local, &out_tzoffset,
+                        NULL, 0, INFER_FORMAT,
+                    )
+                    if ret:
+                        fallback = True
+                        break
+
+                if out_local:
+                    # Offsets are collected here and applied after the loop.
+                    # Mixed naive+aware or differing offsets defer to the slow
+                    # path, matching the existing error behavior.
+                    if saw_naive:
+                        fallback = True
+                        break
+                    if not tz_set:
+                        first_tzoffset = out_tzoffset
+                        tz_set = True
+                    elif out_tzoffset != first_tzoffset:
+                        fallback = True
+                        break
+                    saw_tz = True
+                else:
+                    if saw_tz:
+                        fallback = True
+                        break
+                    saw_naive = True
+
+                item_reso = get_supported_reso(out_bestunit)
+                if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+
+                if not creso_set:
+                    creso = item_reso
+                    creso_set = True
+                elif item_reso > creso:
+                    # Higher-resolution row: reparse the column below.
+                    bump_reso = item_reso
+                    break
+
+                iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+    except OverflowError:
+        return None, 0
+
+    if bump_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # Mirrors array_strptime's recursive reparse on `creso_ever_changed`
+        # and keeps output values consistent with one another.
+        return _datetime_box_utf8(
+            parser, col, line_start, line_end,
+            na_filter, na_hashset, require_consistent_format,
+            state, chunk_idx, use_dtype_backend,
+            force_creso=bump_reso,
         )
-        if ret:
-            # Not ISO8601 — signal caller to fall back to the object path.
-            return None, 0
 
-        if out_local:
-            # Tracked here so we can uniformly shift to UTC after the loop.
-            # Mixed naive+aware or differing offsets defer to the slow path,
-            # matching the existing error behavior.
-            if saw_naive:
-                return None, 0
-            if not tz_set:
-                first_tzoffset = out_tzoffset
-                tz_set = True
-            elif out_tzoffset != first_tzoffset:
-                return None, 0
-            saw_tz = True
-        else:
-            if saw_tz:
-                return None, 0
-            saw_naive = True
-
-        item_reso = get_supported_reso(out_bestunit)
-        if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
-            item_reso = NPY_DATETIMEUNIT.NPY_FR_us
-
-        if not creso_set:
-            creso = item_reso
-            creso_set = True
-        elif item_reso > creso:
-            # Higher-resolution row encountered mid-column — reparse the whole
-            # column at the new resolution. Mirrors array_strptime's recursive
-            # reparse on `creso_ever_changed` and keeps output values
-            # consistent with one another.
-            return _datetime_box_utf8(
-                parser, col, line_start, line_end,
-                na_filter, na_hashset, require_consistent_format,
-                state, chunk_idx, use_dtype_backend,
-                force_creso=item_reso,
-            )
-        # else: item_reso <= creso; fine to write at the higher creso.
-
-        try:
-            iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
-        except OverflowError:
-            return None, 0
+    if fallback:
+        return None, 0
 
     if not creso_set:
         if state is not None and state.creso_seen != -1:

@@ -1940,7 +1940,16 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if ``False``, then don't infer dtypes at all, default is True, apply only to the data.
 * ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is ``True``
 * ``convert_dates`` : a list of columns to parse for dates; If ``True``, then try to parse date-like columns, default is ``True``.
+
+  .. deprecated:: 3.1.0
+     Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
+
 * ``keep_default_dates`` : boolean, default ``True``. If parsing dates, then parse the default date-like columns.
+
+  .. deprecated:: 3.1.0
+     Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
+
+
 * ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -3486,7 +3495,7 @@ For example, to read in a ``MultiIndex`` index without names:
        index=pd.MultiIndex.from_product([["a", "b"], ["c", "d"]]),
    )
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 If the index has level names, they will be parsed as well, using the same
@@ -3496,7 +3505,7 @@ parameters.
 
    df.index = df.index.set_names(["lvl1", "lvl2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 
@@ -3507,7 +3516,7 @@ should be passed to ``index_col`` and ``header``:
 
    df.columns = pd.MultiIndex.from_product([["a"], ["b", "d"]], names=["c1", "c2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1], engine="openpyxl")
    df
 
 .. ipython:: python

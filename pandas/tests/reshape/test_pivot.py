@@ -183,6 +183,59 @@ class TestPivotTable:
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
+    def test_pivot_table_string_join_aggfunc_with_none_raises(self):
+        # GH#33849 a string-join aggfunc over a values column containing None
+        # must raise rather than silently produce nonsense output
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "bar", "bar"],
+                "B": ["one", "two", "one", None],
+                "C": ["small", "large", "small", "large"],
+            }
+        )
+        with pytest.raises(TypeError, match="expected str instance"):
+            df.pivot_table(
+                index="A", columns="C", values="B", aggfunc=lambda x: " ".join(x)
+            )
+
+    def test_pivot_table_string_join_aggfunc_without_none(self):
+        # GH#33849 with no None the join must produce the actual grouped values,
+        # not the aggregated column names (the original nonsense output)
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "bar", "bar"],
+                "B": ["one", "two", "one", "two"],
+                "C": ["small", "large", "small", "large"],
+            }
+        )
+        result = df.pivot_table(
+            index="A", columns="C", values="B", aggfunc=lambda x: " ".join(x)
+        )
+        assert result.loc["foo", "large"] == "two"
+        assert result.loc["foo", "small"] == "one"
+
+    def test_pivot_table_margins_dropna_false(self):
+        # GH#14072 with dropna=False the bottom-left grand-total "All" cell
+        #  must be consistent with the retained NaN column and rows
+        df = DataFrame(
+            [[1, "a", "A"], [1, "b", "B"], [1, "c", None]], columns=["x", "y", "z"]
+        )
+        result = df.pivot_table(
+            values="x",
+            index="y",
+            columns="z",
+            aggfunc="sum",
+            fill_value=0,
+            margins=True,
+            dropna=False,
+        )
+        expected = DataFrame(
+            [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 1, 3]],
+            index=Index(["a", "b", "c", "All"], name="y"),
+            columns=Index(["A", "B", np.nan, "All"], name="z"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_categorical(self):
         cat1 = Categorical(
             ["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalDtype,
@@ -48,7 +50,8 @@ class TestDataFrameSortIndex:
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
-        with tm.assert_produces_warning(None):
+        msg = "Setting a new row on a DataFrame with a MultiIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.loc["b", "2"] = 1
             df.loc["a", "3"] = 1
         result = df.sort_index().index.is_monotonic_increasing
@@ -1056,3 +1059,30 @@ def test_sort_index_stable_sort():
         columns=["dt", "value"],
     ).set_index(["dt"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_sort_index_multiindex_reordered_level_keeps_nan():
+    # GH#25818 sorting a MultiIndex whose level values were reordered must not
+    # fill a missing (NaN) label with an arbitrary category from that level
+    mi = MultiIndex.from_tuples(
+        [["A0", "B0"], ["A0", "B1"], ["A1", "B0"], ["A1", "B1"], ["A3", np.nan]],
+        names=["ia", "ib"],
+    )
+    df = DataFrame(np.arange(10).reshape(5, 2), index=mi, columns=["bar", "foo"])
+    df.index = df.index.set_levels(["B1", "B0"], level=1)
+    result = df.sort_index()
+    a3_ib = [tup[1] for tup in result.index if tup[0] == "A3"]
+    assert len(a3_ib) == 1 and pd.isna(a3_ib[0])
+
+
+def test_sort_index_axis1_multiindex_reordered_level_keeps_nan():
+    # GH#25818 the same NaN-preservation must hold when sorting a columns
+    # MultiIndex that carries NaN codes (axis=1); the NaN labels were filled
+    # with a real category (4.0) instead of being kept
+    idx = MultiIndex(
+        levels=[["a", "b", "c"], [16.0, 32.0, 4.0]],
+        codes=[[0, 1, 2, 2], [-1, -1, 1, 1]],
+    )
+    df = DataFrame(np.arange(16).reshape(4, 4), columns=idx)
+    result = df.sort_index(axis=1)
+    assert sum(pd.isna(tup[1]) for tup in result.columns) == 2
