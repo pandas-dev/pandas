@@ -3688,6 +3688,20 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
             # Only accept the conversion if no values were truncated
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
+    elif dtype.kind in "mM" and new_arr.dtype != dtype:
+        # GH#66402 inference re-derives the unit from the scalars, which for a
+        #  freshly-constructed Timestamp/Timedelta is us.  Restore the original
+        #  resolution when every value still fits in it.
+        wrapped = ensure_wrapped_if_datetimelike(new_arr)
+        try:
+            converted = wrapped.as_unit(orig.unit, round_ok=False)  # type: ignore[attr-defined]
+        except (AttributeError, ValueError, TypeError):
+            pass
+        else:
+            # Guards against e.g. a tz-naive/tz-aware mismatch, where the units
+            #  line up but the dtypes are still not interchangeable.
+            if converted.dtype == dtype:
+                new_arr = converted
 
     if arr_type is not None:
         new_arr = arr_type(new_arr)

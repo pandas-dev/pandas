@@ -2515,19 +2515,25 @@ class TestLocSetitemWithExpansion:
         expected = Series([ts1, ts2], dtype="date32[pyarrow]")
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     @pytest.mark.parametrize(
         "values, item",
         [
             (
-                to_datetime(["2020-01-01", "2020-01-02"]).as_unit("us"),
+                to_datetime(["2020-01-01", "2020-01-02"]),
                 Timestamp("2020-01-03"),
             ),
-            (to_timedelta([1, 2], unit="D").as_unit("us"), Timedelta(days=3)),
+            (to_timedelta([1, 2], unit="D"), Timedelta(days=3)),
         ],
     )
-    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(self, values, item):
+    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(
+        self, values, item, unit
+    ):
         # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
         #  raise AttributeError instead of retaining dtype
+        # GH#66402 a coarser-than-us unit used to be widened to us, since the
+        #  scalar is constructed at us and inference re-derives the unit from it
+        values = values.as_unit(unit)
         ser = Series(values)
         ser.loc[2] = item
         expected = Series([*values, item], dtype=values.dtype)
