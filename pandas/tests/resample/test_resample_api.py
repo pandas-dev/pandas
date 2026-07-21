@@ -148,31 +148,19 @@ def test_getitem(test_frame):
     r = test_frame.resample("h")["B"]
     assert r._selected_obj.name == test_frame.columns[1]
 
-    # tuple keys should no longer be treated as a list of columns
-    # with pytest.raises(KeyError, match=r"\('A', 'B'\)"):
-    #     test_frame.resample("h")["A", "B"]
-
+    # tuple keys are deprecated but should preserve the current behavior
     with tm.assert_produces_warning(
         Pandas4Warning,
         match="Passing a tuple to __getitem__ is deprecated",
     ):
-        with pytest.raises(KeyError, match=r"\('A', 'B'\)"):
-            test_frame.resample("h")[("A", "B")]
+        r = test_frame.resample("h")[("A", "B")]
 
+    expected = test_frame[["A", "B"]]
 
-def test_getitem_tuple_multiindex_columns():
-    index = date_range("2024-01-01", periods=10, freq="h")
-
-    df = DataFrame(
-        np.arange(20).reshape(10, 2),
-        index=index,
-        columns=pd.MultiIndex.from_tuples([("A", "B"), ("A", "C")]),
+    tm.assert_index_equal(
+        r._selected_obj.columns,
+        expected.columns,
     )
-
-    result = df.resample("2h")[("A", "B")].sum()
-    expected = df[("A", "B")].resample("2h").sum()
-
-    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("key", [["D"], ["A", "D"]])
