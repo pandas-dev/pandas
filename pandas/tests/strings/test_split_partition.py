@@ -778,7 +778,7 @@ def test_get_strings(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["split", "partition", "rpartition"])
+@pytest.mark.parametrize("method", ["split", "rsplit", "partition", "rpartition"])
 def test_split_category_returns_list_not_string(method):
     # GH 66341
     ser = Series(
@@ -789,8 +789,8 @@ def test_split_category_returns_list_not_string(method):
         ]
     ).astype("category")
 
-    if method == "split":
-        result = ser.str.split()
+    if method in ("split", "rsplit"):
+        result = getattr(ser.str, method)()
         expected = Series(
             [
                 ["this", "is", "a", "regular", "sentence"],
@@ -818,3 +818,15 @@ def test_split_category_returns_list_not_string(method):
         )
 
     tm.assert_series_equal(result, expected)
+    assert result.dtype == object
+
+
+def test_split_category_expand():
+    # GH 66341 - expand=True should return string columns, not stringify lists
+    ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype="category")
+    result = ser.str.split("_", expand=True)
+    expected = DataFrame(
+        [["a", "b", "c"], ["c", "d", "e"], [np.nan] * 3, ["f", "g", "h"]],
+        dtype=ser.dtype.categories.dtype,
+    )
+    tm.assert_frame_equal(result, expected)
