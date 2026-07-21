@@ -526,6 +526,16 @@ def test_map_categorical_na_action(na_action, expected):
     tm.assert_series_equal(result, expected)
 
 
+def test_map_categorical_to_tuples(na_action):
+    # GH#51488 mapping a categorical Series to tuples used to raise
+    # NotImplementedError because the mapped categories formed a MultiIndex.
+    s = Series(pd.Categorical(["a", "a", "b", "c"]))
+    mapper = {"a": ("x",), "b": ("y",), "c": ("z",)}
+    result = s.map(mapper, na_action=na_action)
+    expected = Series([("x",), ("x",), ("y",), ("z",)])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_datetimetz():
     values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")
@@ -741,3 +751,14 @@ def test_map_na_action_ignore_not_called_on_na(dtype, non_na):
     result = ser.map(lambda x: seen.append(x) or x, na_action="ignore")
     assert not any(x is pd.NA for x in seen)
     tm.assert_series_equal(result, ser)
+
+
+def test_map_datetime_series_passes_scalar_timestamps():
+    # GH#44392 Series.map/apply on a *tz-aware* datetime Series must pass scalar
+    # Timestamps to the callable, not the whole DatetimeIndex (the tz-naive case
+    # already worked, so tz-awareness is the trigger)
+    ser = Series(date_range("2021-01-01", periods=3, tz="UTC"))
+    for method in ("map", "apply"):
+        seen = []
+        getattr(ser, method)(lambda ts: seen.append(type(ts).__name__))
+        assert set(seen) == {"Timestamp"}

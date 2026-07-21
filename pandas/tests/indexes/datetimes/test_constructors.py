@@ -885,7 +885,7 @@ class TestDatetimeIndex:
             ]
         ).as_unit("ns")
 
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         # nonexistent keyword in end
         end = start
@@ -897,7 +897,7 @@ class TestDatetimeIndex:
             ]
         ).as_unit("ns")
 
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739

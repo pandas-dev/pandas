@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
@@ -77,6 +79,72 @@ class TestNonNano:
         expected = (end_time - start_time).values / np.timedelta64(1, "s")
         result = (end_time - start_time).dt.total_seconds().values
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "value, boundary, direction",
+        [
+            (1_552_211_999_999_999_999, 1_552_212_000, "below"),
+            (1_552_212_000_000_000_001, 1_552_212_000, "above"),
+            (-1_552_211_999_999_999_999, -1_552_212_000, "above"),
+            (-1_552_212_000_000_000_001, -1_552_212_000, "below"),
+        ],
+    )
+    def test_total_seconds_stays_strictly_inside_integer_seconds(
+        self, value, boundary, direction
+    ):
+        # Vectorized analogue of the scalar boundary fix: sub-second
+        # residuals must keep the result strictly off integer-second
+        # boundaries, otherwise bisect-style lookups (e.g. dateutil DST,
+        # GH#31043) misclassify the timestamp as on a transition.
+        tdi = pd.to_timedelta([value, pd.NaT], input_unit="ns")
+        result = tdi.total_seconds()
+        assert np.isnan(result[1])
+        if direction == "below":
+            assert result[0] < boundary
+        else:
+            assert result[0] > boundary
+        # Vectorized result agrees with the scalar Timedelta path
+        assert result[0] == Timedelta(value).total_seconds()
+
+    @pytest.mark.skipif(
+        not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
+    )
+    def test_total_seconds_matches_scalar_at_large_ns(self):
+        # The vectorized result must match Timedelta.total_seconds bit-for-bit,
+        # not just at integer-second boundaries: large ns values lose precision
+        # under a single asi8 / pps division, so we mirror the scalar's
+        # divmod split into whole seconds and sub-second residual (GH#46819).
+        values = [
+            256_790_988_018_092_305,
+            2_530_160_323_573_146_516,
+            4_847_449_854_178_473_008,
+            9_223_372_036_854_775_807,  # int64 ns max
+        ]
+        values = values + [-val for val in values]
+        result = pd.to_timedelta(values, input_unit="ns").total_seconds()
+        expected = [Timedelta(val).total_seconds() for val in values]
+        assert list(result) == expected
+
+    @pytest.mark.skipif(
+        not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
+    )
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_total_seconds_matches_scalar_non_nano(self, unit):
+        # The split division and boundary guard apply at every unit: above
+        # 2**53 ticks a single asi8 / pps division loses precision relative
+        # to the scalar, and a sub-second residual can collapse onto an
+        # integer-second boundary (GH#46819)
+        values = [
+            1,
+            2**53 + 1,
+            20_000_000_000_000_001,
+            9_223_372_036_854_775_807,  # int64 max
+        ]
+        values = values + [-val for val in values]
+        tdi = pd.TimedeltaIndex(np.array(values, dtype=f"m8[{unit}]"))
+        result = tdi.total_seconds()
+        expected = [Timedelta(val, input_unit=unit).total_seconds() for val in values]
+        assert list(result) == expected
 
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]

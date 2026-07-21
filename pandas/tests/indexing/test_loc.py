@@ -15,7 +15,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2291,18 +2294,25 @@ class TestLocSetitemWithExpansion:
         exp_data = np.arange(N + 1).astype(np.int64)
         expected = DataFrame(exp_data, index=exp_index)
 
+        is_mi = isinstance(index, MultiIndex)
+        warn = Pandas4Warning if is_mi else None
+        mi_msg = "Setting a new row on a DataFrame with a MultiIndex"
+        ser_mi_msg = "Setting a new value on a Series with a MultiIndex"
+
         # Add new row, but no new columns
         df = orig.copy()
         if has_ref:
             view = df[:]
-        df.loc[key, 0] = N
+        with tm.assert_produces_warning(warn, match=mi_msg):
+            df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
         # add new row on a Series
         ser = orig.copy()[0]
         if has_ref:
             view = ser[:]
-        ser.loc[key] = N
+        with tm.assert_produces_warning(warn, match=ser_mi_msg):
+            ser.loc[key] = N
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
         tm.assert_series_equal(ser, expected)
@@ -2311,7 +2321,8 @@ class TestLocSetitemWithExpansion:
         df = orig.copy()
         if has_ref:
             view = df[:]  # noqa: F841
-        df.loc[key, 1] = N
+        with tm.assert_produces_warning(warn, match=mi_msg):
+            df.loc[key, 1] = N
         expected = DataFrame(
             {0: [*list(arr), np.nan], 1: [np.nan] * N + [float(N)]},
             index=exp_index,
@@ -2373,6 +2384,15 @@ class TestLocSetitemWithExpansion:
         df = DataFrame(index=index)
         df.loc[:, "110735"] = 0
         expected = DataFrame({"110735": [0, 0]}, index=index)
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_datetimeindex_str_column_name_in_index(self):
+        # GH#15815 - string column name that parses to a date which *is*
+        # present in the DatetimeIndex must still be a new column, not a row key
+        index = date_range("2016-11-01", "2016-12-01", freq="h")
+        df = DataFrame(index=index, columns=Index([], name="Id"))
+        df.loc[:, "111916"] = Series(2.0, index=index)
+        expected = DataFrame(2.0, index=index, columns=Index(["111916"], name="Id"))
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_ea_not_full_column(self):
@@ -2497,19 +2517,25 @@ class TestLocSetitemWithExpansion:
         expected = Series([ts1, ts2], dtype="date32[pyarrow]")
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     @pytest.mark.parametrize(
         "values, item",
         [
             (
-                to_datetime(["2020-01-01", "2020-01-02"]).as_unit("us"),
+                to_datetime(["2020-01-01", "2020-01-02"]),
                 Timestamp("2020-01-03"),
             ),
-            (to_timedelta([1, 2], input_unit="D").as_unit("us"), Timedelta(days=3)),
+            (to_timedelta([1, 2], input_unit="D"), Timedelta(days=3)),
         ],
     )
-    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(self, values, item):
+    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(
+        self, values, item, unit
+    ):
         # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
         #  raise AttributeError instead of retaining dtype
+        # GH#66402 a coarser-than-us unit used to be widened to us, since the
+        #  scalar is constructed at us and inference re-derives the unit from it
+        values = values.as_unit(unit)
         ser = Series(values)
         ser.loc[2] = item
         expected = Series([*values, item], dtype=values.dtype)
@@ -3868,3 +3894,55 @@ def test_loc_setitem_extension_array_into_object_series():
     ser.loc[:] = arr
     expected = Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+def test_loc_getitem_list_integer_columns_preserves_order():
+    # GH#15824 selecting integer-labeled columns with a list must keep the
+    # requested order even when an extra (non-integer) column is present, so
+    # that the integer labels are not treated positionally
+    df = DataFrame([[3, 4], [2, 3]], index=["a", "c"], columns=[1, 0])
+    df["odds"] = df[1] / df[0]
+    result = df.loc[["a", "c"], [1, 0]]
+    expected = DataFrame(
+        [[3, 4], [2, 3]], index=["a", "c"], columns=Index([1, 0], dtype=object)
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # the maintainer's canonical MRE uses an integer row index too (integer
+    # labels on both axes -- the case most prone to positional confusion)
+    df_int = DataFrame(
+        np.arange(9).reshape(3, 3), columns=Index([1, 0, "str"], dtype=object)
+    )
+    tm.assert_index_equal(
+        df_int.loc[[0, 1], [1, 0]].columns, Index([1, 0], dtype=object)
+    )
+
+
+@pytest.mark.parametrize("indexer", ["loc", "at"])
+@pytest.mark.parametrize("cast_bar", [False, True])
+def test_setitem_list_into_cell_independent_of_other_column_dtype(indexer, cast_bar):
+    # GH#25806 assigning a list into a single cell stores the list itself, and
+    # the result must not depend on an unrelated column's dtype
+    df = DataFrame([{"foo": None, "bar": None}], index=["a"])
+    if cast_bar:
+        df["bar"] = df["bar"].astype(float)
+    getattr(df, indexer)["a", "foo"] = ["123"]
+    assert df.loc["a", "foo"] == ["123"]
+
+
+def test_at_setitem_list_into_cell_categorical_index():
+    # GH#25806 scenario 4: with .at the bug only surfaced once the index was
+    # categorical (with an object index .at already worked)
+    df = DataFrame([{"foo": None, "bar": None}], index=["a"])
+    df["bar"] = df["bar"].astype(float)
+    df.index = df.index.astype("category")
+    df.at["a", "foo"] = ["123"]
+    assert df.loc["a", "foo"] == ["123"]
+
+
+def test_loc_setitem_multi_element_list_into_cell():
+    # GH#25806 a multi-element list into a single cell used to raise
+    # ValueError ("Must have equal len keys and value"); it must store the list
+    df = DataFrame([{"foo": None, "bar": None}], index=["a"])
+    df.loc["a", "foo"] = ["123", "456"]
+    assert df.loc["a", "foo"] == ["123", "456"]

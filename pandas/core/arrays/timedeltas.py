@@ -265,7 +265,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 is_numeric = data.dtype.kind in "iuf"
             if is_numeric:
                 # numeric data is interpreted in the dtype's unit, matching
-                #  to_timedelta(data, unit=...); mixed Timedelta/numeric data
+                #  to_timedelta(data, input_unit=...); mixed Timedelta/numeric data
                 #  keeps the "ns" default, unlike to_timedelta
                 unit = np.datetime_data(dtype)[0]
 
@@ -890,7 +890,36 @@ class TimedeltaArray(dtl.TimelikeOps):
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
         """
         pps = periods_per_second(self._creso)
-        return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
+        asi8 = self.asi8
+        # Divide the integer-second part and the sub-second residual
+        # separately, mirroring the same divmod split in the scalar
+        # `_Timedelta.total_seconds`, so the result matches it bit-for-bit
+        # (on IEEE-strict platforms; 32-bit x87 excess precision can differ
+        # in the last ulp). A single asi8 / pps division rounds at the tick
+        # magnitude and loses precision for values above 2**53.
+        floor_s, residual = np.divmod(asi8, pps)
+        result = floor_s + residual / pps
+        if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():
+            # Only above 2**53 ticks can the float result round onto an
+            # integer-second boundary; the threshold is unit-independent
+            # because a collapse needs ulp(floor_s) > 2 / pps, i.e.
+            # |asi8| ~ floor_s * pps > 2**53. A sub-second residual puts the
+            # true value strictly inside (floor, floor + 1), so nudge off
+            # either boundary, otherwise bisect-style lookups (e.g. dateutil
+            # DST, GH#31043) misclassify the timestamp as on a transition.
+            # This mirrors the scalar guard in `_Timedelta.total_seconds`,
+            # including its bound: beyond 2**52 seconds float64s are spaced
+            # >= 1 second apart, so every representable value sits on a
+            # boundary and nudging would only add error.
+            fixable = (residual != 0) & (np.abs(floor_s) < 2**52)
+            floor_f = floor_s.astype(np.float64)
+            on_floor = fixable & (result == floor_f)
+            on_ceil = fixable & (result == floor_f + 1.0)
+            if on_floor.any():
+                result = np.where(on_floor, np.nextafter(result, result + 1.0), result)
+            if on_ceil.any():
+                result = np.where(on_ceil, np.nextafter(result, result - 1.0), result)
+        return self._maybe_mask_results(result, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """

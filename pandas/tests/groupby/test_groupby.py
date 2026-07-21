@@ -233,15 +233,15 @@ def test_indices_concatenation_order():
 
     # should fail (not the same number of levels)
     msg = "Cannot concat indices that do not have the same number of levels"
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f2)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f2)
 
     # should fail (incorrect shape)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f3)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f3)
 
 

@@ -1539,8 +1539,8 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
-    if mask is None and min_count == 0:
-        # nothing to check; short-circuit
+    if min_count <= 0:
+        # min_count <= 0 never nulls out; short-circuit
         return result
 
     if axis is not None and isinstance(result, np.ndarray):

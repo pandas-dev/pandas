@@ -2781,6 +2781,17 @@ class SQLiteDatabase(PandasSQL):
                 )
                 raise ex from inner_exc
 
+            if re.fullmatch(r"[A-Za-z_]\w*", sql.strip()):
+                # GH#54233 a bare identifier is almost certainly an attempt to
+                #  read a table by name.
+                ex = DatabaseError(
+                    f"Execution failed on sql '{sql}': {exc}\n\n"
+                    "Reading a table by name is only supported when using a "
+                    "SQLAlchemy connection. With a DBAPI connection, pass a SQL "
+                    f"query instead, e.g. 'SELECT * FROM {sql.strip()}'."
+                )
+                raise ex from exc
+
             ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
             raise ex from exc
 

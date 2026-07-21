@@ -1529,6 +1529,20 @@ SELECT * FROM groups;
     tm.assert_frame_equal(result, expected)
 
 
+def test_read_sql_bare_table_name_dbapi_message_gh54233(sqlite_buildin):
+    # GH#54233 a bare table name on a DBAPI connection cannot be reflected
+    DataFrame({"a": [1], "b": [2]}).to_sql("demo", sqlite_buildin, index=False)
+
+    msg = "Reading a table by name is only supported when using a SQLAlchemy"
+    with pytest.raises(sql.DatabaseError, match=msg):
+        pd.read_sql("demo", sqlite_buildin)
+
+    # a genuine SQL query still works
+    result = pd.read_sql("SELECT * FROM demo", sqlite_buildin)
+    expected = DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
 def flavor(conn_name):
     if "postgresql" in conn_name:
         return "postgresql"

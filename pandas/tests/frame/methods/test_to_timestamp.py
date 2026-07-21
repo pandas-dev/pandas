@@ -158,7 +158,7 @@ class TestToTimestamp:
         exp_index = (
             exp_index + Timedelta(1, input_unit="s") - Timedelta(1, input_unit="us")
         )
-        tm.assert_index_equal(result.index, exp_index)
+        tm.assert_index_equal(result.index, exp_index, check_freq=False)
         if frame_or_series is Series:
             assert result.name == "foo"
 

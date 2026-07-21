@@ -64,6 +64,11 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+
+cdef extern from "pandas/portable.h":
+    int checked_sub(int64_t a, int64_t b, int64_t *res)
+
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.nattype cimport (
@@ -736,7 +741,14 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                     obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
                     # equiv: tz_localize_to_utc_single(
                     #  ival, obj.tzinfo, creso=reso)
-                    obj.value = ival - out_tzoffset * 60 * periods_per_second(reso)
+                    # GH#65353 the shift to UTC must not wrap int64 silently
+                    if checked_sub(
+                        ival, out_tzoffset * 60 * periods_per_second(reso), &obj.value
+                    ):
+                        attrname = npy_unit_to_attrname[reso]
+                        raise OutOfBoundsDatetime(
+                            f"Out of bounds {attrname} timestamp: {ts}"
+                        )
                     if tz is None:
                         check_overflows(obj, reso)
                         return obj

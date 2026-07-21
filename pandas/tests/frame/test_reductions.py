@@ -2037,6 +2037,81 @@ class TestDataFrameReductions:
                 check_names=False,
             )
 
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "any",
+            "all",
+            "median",
+            "std",
+            "var",
+            "sem",
+            "skew",
+            "kurt",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "kwargs",
+        [{}, {"min_count": 2}, {"min_count": 5}],
+        ids=["default", "min_count", "min_count_high"],
+    )
+    def test_reduce_axis1_single_block_exhaustive(
+        self, reduction_block_1, method, skipna, kwargs
+    ):
+        # GH#51474: single-block fastpath must match the transpose path,
+        # result or raised exception alike.
+        if "min_count" in kwargs and method not in ("sum", "prod"):
+            pytest.skip("min_count only applies to sum/prod")
+        df = reduction_block_1
+        if len(df._mgr.blocks) != 1:
+            # 1D EA columns don't consolidate; covered by the multiblock test
+            pytest.skip("fixture frame is not single-block")
+        kw = {"skipna": skipna, **kwargs}
+
+        transpose_err = None
+        expected = None
+        try:
+            expected = getattr(df.T, method)(**kw)
+        except (TypeError, ValueError) as err:
+            transpose_err = err
+
+        if isinstance(df._mgr.blocks[0].values, np.ndarray):
+            # numpy block: identical computation, so match exactly incl. dtype
+            if transpose_err is not None:
+                with pytest.raises(
+                    type(transpose_err), match=re.escape(str(transpose_err))
+                ):
+                    getattr(df, method)(axis=1, **kw)
+            else:
+                result = getattr(df, method)(axis=1, **kw)
+                tm.assert_series_equal(result, expected, check_names=False)
+        else:
+            # 2D EA block: paths differ; mirror the multiblock test's lax compare
+            axis1_err = None
+            result = None
+            try:
+                result = getattr(df, method)(axis=1, **kw)
+            except (TypeError, ValueError) as err:
+                axis1_err = err
+            if transpose_err is not None or axis1_err is not None:
+                return
+            result_na = isna(result)
+            expected_na = isna(expected)
+            assert (result_na == expected_na).all()
+            both_valid = ~result_na & ~expected_na
+            if both_valid.any():
+                tm.assert_series_equal(
+                    result[both_valid].reset_index(drop=True),
+                    expected[both_valid].reset_index(drop=True),
+                    check_dtype=False,
+                    check_names=False,
+                )
+
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_reduce_axis1_dt64tz_with_nat(self, method):
         # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
@@ -2053,6 +2128,40 @@ class TestDataFrameReductions:
         # skipna=False propagates NaT.
         result = getattr(df, method)(axis=1, skipna=False)
         expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_single_block_dt64tz_with_nat(self, method):
+        # GH#51474, GH#65500: 2D EA block fastpath must skip NaT (skipna=True)
+        # and propagate it (skipna=False) without raising or changing dtype.
+        df = _make_2d_ea_df(
+            [
+                to_datetime(["2020-01-01", "2020-01-02"])
+                .as_unit("us")
+                .tz_localize("UTC")
+                ._data,
+                to_datetime(["2020-01-02", pd.NaT])
+                .as_unit("us")
+                .tz_localize("UTC")
+                ._data,
+            ],
+            ["dz1", "dz2"],
+        )
+        # the fastpath only applies to a single 2D EA block
+        assert len(df._mgr.blocks) == 1
+        assert df._mgr.blocks[0].values.ndim == 2
+
+        first = Timestamp("2020-01-01", tz="UTC")
+        second = Timestamp("2020-01-02", tz="UTC")
+        # row 0 is [first, second]; row 1 is [second, NaT]
+        winner = first if method == "min" else second
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, second], dtype=df["dz1"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, pd.NaT], dtype=df["dz1"].dtype)
         tm.assert_series_equal(result, expected)
 
     def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
