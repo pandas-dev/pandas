@@ -7098,13 +7098,11 @@ class Index(IndexOpsMixin, PandasObject):
             isinstance(self.dtype, StringDtype)
             and self.dtype.na_value is np.nan
             and using_string_dtype()
+            and target_index.dtype == object
             and not isinstance(target_index, ABCMultiIndex)
         ):
-            # Fill missing values to ensure consistent missing value representation
-            # across list, ndarray, and Index targets; otherwise ``pd.NA`` in an
-            # object-dtype target would not match ``np.nan`` in ``self`` while the
-            # list path would (GH#65419).  MultiIndex is excluded because it does
-            # not implement ``fillna``.
+            # Normalize pd.NA -> np.nan so object-dtype targets match self (GH#65419).
+            # MultiIndex is excluded (no fillna).
             target_index = target_index.fillna(np.nan)
         return target_index
 

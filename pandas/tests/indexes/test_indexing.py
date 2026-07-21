@@ -18,7 +18,7 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+from pandas._config import option_context
 
 from pandas.compat import PY314
 from pandas.errors import InvalidIndexError
@@ -396,29 +396,26 @@ def test_get_indexer_non_unique_empty_index(dtype, target_values):
     tm.assert_numpy_array_equal(result_missing, np.array([0, 1], dtype=np.intp))
 
 
-@pytest.mark.skipif(
-    not using_string_dtype(),
-    reason="NA->NaN normalization in _maybe_cast_listlike_indexer only applies "
-    "under the infer_string future; under infer_string=0 the index is object "
-    "dtype and pd.NA does not match np.nan on any path (GH#65419)",
-)
 def test_get_indexer_na_matches_nan_consistently_for_list_and_ndarray():
     # GH#65419: ``Index.get_indexer`` matched ``pd.NA`` against ``np.nan`` for
     # list targets but not for ndarray / Index targets, because the
     # ``pd.NA -> np.nan`` normalization in ``_maybe_cast_listlike_indexer``
     # only applied to list-like inputs.  ``get_loc`` and ``Index.drop`` were
     # similarly inconsistent.
-    idx = Index([np.nan, "b"])
+    with option_context("future.infer_string", True):
+        idx = Index([np.nan, "b"], dtype="str")
 
-    expected = np.array([0], dtype=np.intp)
+        expected = np.array([0], dtype=np.intp)
 
-    # list path already matched pd.NA against NaN before the fix
-    tm.assert_numpy_array_equal(idx.get_indexer([NA]), expected)
-    # ndarray and Index paths now match as well
-    tm.assert_numpy_array_equal(idx.get_indexer(np.array([NA], dtype=object)), expected)
-    tm.assert_numpy_array_equal(idx.get_indexer(Index([NA])), expected)
+        # list path already matched pd.NA against NaN before the fix
+        tm.assert_numpy_array_equal(idx.get_indexer([NA]), expected)
+        # ndarray and Index paths now match as well
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(np.array([NA], dtype=object)), expected
+        )
+        tm.assert_numpy_array_equal(idx.get_indexer(Index([NA])), expected)
 
-    # ``Index.drop`` routes through ``get_indexer_for`` with an ndarray, so it
-    # should also drop the NaN entry given ``pd.NA``.
-    tm.assert_index_equal(idx.drop([NA]), Index(["b"], dtype=idx.dtype))
-    tm.assert_index_equal(idx.drop([np.nan]), Index(["b"], dtype=idx.dtype))
+        # ``Index.drop`` routes through ``get_indexer_for`` with an ndarray, so it
+        # should also drop the NaN entry given ``pd.NA``.
+        tm.assert_index_equal(idx.drop([NA]), Index(["b"], dtype=idx.dtype))
+        tm.assert_index_equal(idx.drop([np.nan]), Index(["b"], dtype=idx.dtype))
