@@ -394,6 +394,15 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
    (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")
 
+.. note::
+
+   You may also see :meth:`Timestamp.timestamp` used for this conversion.
+   The explicit subtraction above is recommended because it is unambiguous
+   about treating a timezone-naive value as UTC: :meth:`Timestamp.timestamp`
+   treats a naive ``Timestamp`` as UTC, which does *not* match the standard
+   library ``datetime.datetime.timestamp``, where a naive value is
+   interpreted as local time.
+
 Another common way to perform this conversion is to convert directly to an integer dtype. Note that the exact integers this produces will depend on the specific unit
 or resolution of the datetime64 dtype:
 
