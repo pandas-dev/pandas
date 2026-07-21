@@ -2522,7 +2522,7 @@ class TestLocSetitemWithExpansion:
     ):
         # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
         #  raise AttributeError instead of retaining dtype
-        # GH#XXXXX a coarser-than-us unit used to be widened to us, since the
+        # GH#66402 a coarser-than-us unit used to be widened to us, since the
         #  scalar is constructed at us and inference re-derives the unit from it
         values = values.as_unit(unit)
         ser = Series(values)

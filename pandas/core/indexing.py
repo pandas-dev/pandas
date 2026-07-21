@@ -3689,7 +3689,7 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
     elif dtype.kind in "mM" and new_arr.dtype != dtype:
-        # GH#XXXXX inference re-derives the unit from the scalars, which for a
+        # GH#66402 inference re-derives the unit from the scalars, which for a
         #  freshly-constructed Timestamp/Timedelta is us.  Restore the original
         #  resolution when every value still fits in it.
         wrapped = ensure_wrapped_if_datetimelike(new_arr)
