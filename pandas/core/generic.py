@@ -167,6 +167,7 @@ if TYPE_CHECKING:
         FormattersType,
         Frequency,
         IgnoreRaise,
+        IgnoreRaiseCoerce,
         IndexKeyFunc,
         IndexLabel,
         InterpolateOptions,
@@ -6472,7 +6473,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         dtype,
         copy: bool | lib.NoDefault = lib.no_default,
-        errors: IgnoreRaise = "raise",
+        errors: IgnoreRaiseCoerce = "raise",
     ) -> Self:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -6513,6 +6514,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
+            - ``coerce`` : coerce unconvertible values to the dtype's NA sentinel
+                   (NaN for numpy float dtypes, NaT for datetime/timedelta,
+                   pd.NA for nullable extension dtypes).
+                   For integer dtypes that cannot hold NA values (e.g.
+                   ``int64``), the result is upcast to ``float64``.
+                   Use a nullable integer dtype (e.g. ``Int64``) to
+                   preserve integer semantics.
 
         Returns
         -------
@@ -6597,6 +6605,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   2020-01-02
         2   2020-01-03
         dtype: datetime64[us]
+
+        Use `errors='coerce'` to convert invalid values to NA/NaN:
+
+        >>> df = pd.DataFrame({"a": [1, 2, "ERR"], "b": [3.0, "bad", 5.0]})
+        >>> df.astype(float, errors="coerce")
+            a    b
+        0  1.0  3.0
+        1  2.0  NaN
+        2  NaN  5.0
+
+        >>> df.astype("Float64", errors="coerce")
+            a     b
+        0   1.0   3.0
+        1   2.0  <NA>
+        2  <NA>   5.0
         """
         self._check_copy_deprecation(copy)
         if is_dict_like(dtype):
