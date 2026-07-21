@@ -969,3 +969,31 @@ def test_to_csv_null_byte_no_escapechar():
     df = DataFrame({"A": ["\x00"]})
     result = df.to_csv(index=False, lineterminator="\n")
     assert result == "A\n\x00\n"
+
+
+def test_to_csv_escapechar_roundtrip_trailing_backslash():
+    # GH#33735 a value ending in the escapechar must remain readable: to_csv
+    # has to escape the escapechar itself so read_csv can parse it back
+    df = DataFrame({0: ['"key":"value"'], 1: ["mno,"], 2: ["abc\\"], 3: ["ijk"]})
+    csv = df.to_csv(header=False, index=False, escapechar="\\")
+    result = pd.read_csv(io.StringIO(csv), header=None, escapechar="\\")
+    assert result.iloc[0].tolist() == df.iloc[0].tolist()
+
+
+def test_to_csv_categorical_tz_timestamp_with_na_rep():
+    # GH#55945 to_csv with na_rep on a categorical tz-aware timestamp column
+    # must not raise
+    ser = pd.Series(pd.to_datetime(["2023-11-10 12:00:00+00:00"] * 3)).astype(
+        "category"
+    )
+    df = DataFrame({"ct": ser})
+    result = df.to_csv(na_rep=r"\N")
+    assert "2023-11-10 12:00:00+00:00" in result
+
+    # with an actual NaT the na_rep placeholder must be emitted (the crash
+    # fired even with no missing values, so also exercise the substitution path)
+    ser_na = pd.Series(pd.to_datetime(["2023-11-10 12:00:00+00:00", None])).astype(
+        "category"
+    )
+    result_na = DataFrame({"ct": ser_na}).to_csv(na_rep=r"\N")
+    assert r"\N" in result_na
