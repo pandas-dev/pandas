@@ -1612,7 +1612,16 @@ class _MergeOperation:
                         if lk is not None and (
                             is_matching_na(lk, rk) or lk == rk
                         ):
-                            right_drop.append(rk)
+                            # Use the actual label stored on ``right`` rather
+                            # than ``rk``: the DataFrame constructor normalizes
+                            # most NA-like column labels (``pd.NA``, ``None``)
+                            # to ``np.nan``, so dropping via ``rk`` would raise
+                            # ``KeyError``. ``get_indexer_for`` accepts any
+                            # NA-like value and returns the matching position.
+                            loc = right.columns.get_indexer_for([rk])
+                            right_drop.append(
+                                right.columns[loc[0]] if loc[0] != -1 else rk
+                            )
                     else:
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
