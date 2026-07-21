@@ -476,6 +476,7 @@ I/O
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where a ``defaultdict`` passed as ``dtype`` did not apply its default to columns not explicitly listed (:issue:`41574`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where an empty ``usecols`` (e.g. ``usecols=[]``) was ignored and returned all columns instead of an empty frame, unlike the other engines (:issue:`66056`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing tuples in ``names`` produced flat columns instead of :class:`MultiIndex` columns as with the other engines (:issue:`65862`)
+- Fixed bug in :func:`read_csv` with the ``c`` engine where a quoted field containing an embedded NUL byte was silently truncated at the NUL under the default string dtype or ``dtype_backend="pyarrow"`` (:issue:`66277`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug in :func:`read_excel` with the ``openpyxl`` engine where reading a sheet set its ``max_row`` and ``max_column`` to ``None`` on the workbook exposed through ``ExcelFile.book`` (:issue:`63010`)
