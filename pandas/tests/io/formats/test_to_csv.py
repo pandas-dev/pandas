@@ -1,4 +1,8 @@
 import csv
+from datetime import (
+    datetime,
+    timezone,
+)
 import io
 import os
 import sys
@@ -997,3 +1001,40 @@ def test_to_csv_categorical_tz_timestamp_with_na_rep():
     )
     result_na = DataFrame({"ct": ser_na}).to_csv(na_rep=r"\N")
     assert r"\N" in result_na
+
+
+def test_to_csv_datetime_tz_consistent_format():
+    # GH#62111
+    df = DataFrame(
+        {
+            "timestamp": [
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+                datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+            ]
+        }
+    )
+    result = df.to_csv(index=False)
+    expected_rows = [
+        "timestamp",
+        "2025-08-14 12:34:56.000000+00:00",
+        "2025-08-14 12:34:56.000001+00:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
+
+    df = DataFrame(
+        {
+            "timestamp": [
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+                datetime(2025, 8, 14, 12, 34, 57, 0, tzinfo=timezone.utc),
+            ]
+        }
+    )
+    result = df.to_csv(index=False)
+    expected_rows = [
+        "timestamp",
+        "2025-08-14 12:34:56+00:00",
+        "2025-08-14 12:34:57+00:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
