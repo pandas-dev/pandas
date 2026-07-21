@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
+    EmptyDataError,
     Pandas4Warning,
     ParserWarning,
 )
@@ -31,12 +32,19 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(
-    all_parsers, dtype, check_orig, using_infer_string, temp_file
+    all_parsers, dtype, check_orig, using_infer_string, temp_file, request
 ):
     # see gh-3795, gh-6607
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and dtype is object and not check_orig:
+        # GH#58260 the pyarrow engine cannot disable type inference, so a scalar
+        # object dtype yields the inferred (e.g. float) values rather than the
+        # raw strings the other engines preserve
+        request.applymarker(
+            pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
+        )
 
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)).round(4),
@@ -238,9 +246,22 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
+    if all_parsers.engine == "pyarrow":
+        # pyarrow cannot parse this single-line input with these options
+        msg = "No columns to parse from file"
+        with pytest.raises(EmptyDataError, match=msg):
+            all_parsers.read_csv(
+                StringIO('"dump","-9,1","-9,1",20101010'),
+                engine="python",
+                names=["col", "col1", "col2", "col3"],
+                usecols=["col1", "col2", "col3"],
+                parse_dates=["col3"],
+                decimal=",",
+            )
+        return
+
     result = all_parsers.read_csv(
         StringIO('"dump","-9,1","-9,1",20101010'),
         engine="python",
@@ -350,7 +371,6 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
@@ -365,7 +385,6 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
     parser = all_parsers
@@ -434,6 +453,81 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@xfail_pyarrow  # pyarrow engine reads uint64-max via float64 and cannot cast it
+def test_nullable_int_dtype_boundary_values(all_parsers):
+    # A nullable-integer dtype whose boundary value coincides with the C
+    # parser's internal NA sentinel (int64 min / uint64 max) must be kept,
+    # not silently turned into NA.
+    parser = all_parsers
+    data = "a,b\n-9223372036854775808,18446744073709551615\n0,0\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64", "b": "UInt64"})
+    expected = DataFrame(
+        {
+            "a": pd.array([-9223372036854775808, 0], dtype="Int64"),
+            "b": pd.array([18446744073709551615, 0], dtype="UInt64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # pyarrow engine handles explicit ArrowDtype differently
+def test_explicit_arrow_numeric_dtype(all_parsers):
+    # Explicitly requesting a pyarrow-backed numeric dtype parses identically to
+    # dtype_backend="pyarrow" (e.g. it does not adopt pyarrow's more lenient
+    # string casting).
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a,b\n1,2.5\n,\n-3,4\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"a": "int64[pyarrow]", "b": "double[pyarrow]"}
+    )
+    expected = DataFrame(
+        {
+            "a": pd.array([1, pd.NA, -3], dtype="int64[pyarrow]"),
+            "b": pd.array([2.5, pd.NA, 4.0], dtype="double[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # hex is rejected, matching dtype="int64" (not silently parsed as 31)
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
+
+
+def test_explicit_arrow_temporal_dtype(all_parsers):
+    # Non-numeric pyarrow-backed dtypes round-trip through read_csv.
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a,b\n2020-01-01,1\n,2\n2021-06-15,3\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": "timestamp[ns][pyarrow]"})
+    expected = DataFrame(
+        {
+            "a": pd.array(
+                ["2020-01-01", None, "2021-06-15"], dtype="timestamp[ns][pyarrow]"
+            ),
+            "b": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # true_values/false_values not supported by the pyarrow engine
+def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
+    # User-supplied true_values/false_values augment the default token set.
+    parser = all_parsers
+    data = "a,b\nyes,1\nno,2\nTrue,3\n"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": "boolean"},
+        true_values=["yes"],
+        false_values=["no"],
+    )
+    expected = DataFrame(
+        {"a": pd.array([True, False, True], dtype="boolean"), "b": [1, 2, 3]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -447,7 +541,19 @@ def test_dtypes_defaultdict(all_parsers, default):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
+def test_dtypes_defaultdict_names_with_integer_header(all_parsers):
+    # GH#65862 the default must be materialized over the user's names,
+    #  not pyarrow's autogenerated column names
+    data = """a,b
+1,2
+"""
+    dtype = defaultdict(lambda: "float64", x="int64")
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), header=0, names=["x", "y"], dtype=dtype)
+    expected = DataFrame({"x": [1], "y": 2.0})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     # GH#41574
     data = """a,b,a,b,b.1

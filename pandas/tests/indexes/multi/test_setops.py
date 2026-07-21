@@ -1,5 +1,9 @@
+from datetime import date
+
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -261,6 +265,30 @@ def test_union(idx, sort):
         tm.assert_index_equal(result.sort_values(), idx.sort_values())
     else:
         assert result.equals(idx)
+
+
+def test_union_mixed_date_timestamp():
+    # GH 61807
+    left = MultiIndex.from_arrays(
+        [Index([date(2001, 1, 1)], dtype=object), Index(["foo"], dtype=object)]
+    )
+    right = MultiIndex.from_arrays(
+        [Index([pd.Timestamp("2001-01-01")]), Index(["bar"], dtype=object)]
+    )
+
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="Inferring datetime64 from data containing datetime.date objects",
+    ):
+        result = left.union(right, sort=False)
+
+    expected = MultiIndex.from_arrays(
+        [
+            Index([date(2001, 1, 1), pd.Timestamp("2001-01-01")], dtype=object),
+            Index(["foo", "bar"], dtype=object),
+        ]
+    )
+    tm.assert_index_equal(result, expected)
 
 
 def test_union_with_regular_index(idx, using_infer_string):
@@ -798,3 +826,17 @@ def test_setops_pyarrow_timestamp_level(method):
     # intersection keeps the matched row, (symmetric_)difference drops it
     expected = mi[:1] if method == "intersection" else mi[1:]
     tm.assert_index_equal(result, expected)
+
+
+def test_multiindex_difference_preserves_categorical_levels():
+    # GH#40080 set operations on a MultiIndex must preserve categorical level
+    # dtypes instead of downcasting them to their underlying type
+    cat = pd.CategoricalDtype(categories=[1, 2, 3, 4])
+    df = DataFrame({"a": [1, 2, 3, 4, 3, 2, 1], "b": [4, 3, 2, 3, 1, 2, 3]}, dtype=cat)
+    mi = df.set_index(["a", "b"]).index
+    # difference, union and intersection are all named in the issue and were
+    # all downcasting the categorical levels
+    for method in ("difference", "union", "intersection"):
+        result = getattr(mi, method)(mi[:3])
+        assert isinstance(result.get_level_values(0).dtype, pd.CategoricalDtype)
+        assert isinstance(result.get_level_values(1).dtype, pd.CategoricalDtype)

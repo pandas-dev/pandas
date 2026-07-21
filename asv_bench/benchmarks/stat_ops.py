@@ -153,6 +153,34 @@ class Correlation:
         self.df.corrwith(self.df2, axis=1, method=method)
 
 
+class PearsonCorrelation:
+    params = [
+        ["clean", "constant", "sorted_nans", "unsorted_nans"],
+        [1_000, 1_000_000],
+    ]
+    param_names = ["scenario", "size"]
+
+    def setup(self, scenario, size):
+        rng = np.random.default_rng(2)
+        left = rng.standard_normal(size)
+        right = rng.standard_normal(size)
+
+        if scenario == "constant":
+            left[:] = 1.0
+        elif scenario == "sorted_nans":
+            left[: size // 10] = np.nan
+            right[-size // 10 :] = np.nan
+        elif scenario == "unsorted_nans":
+            left[size // 2] = np.nan
+            right[size // 3] = np.nan
+
+        self.s = pd.Series(left)
+        self.s2 = pd.Series(right)
+
+    def time_corr_series(self, scenario, size):
+        self.s.corr(self.s2, method="pearson")
+
+
 class Covariance:
     params = []
     param_names = []

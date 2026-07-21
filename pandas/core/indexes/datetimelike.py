@@ -41,7 +41,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
-    FY5253Mixin,
     RelativeDeltaOffset,
     Week,
 )
@@ -69,7 +68,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas.core import roperator
+from pandas.core import (
+    algorithms,
+    roperator,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -794,29 +796,33 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if freq != inferred:
                 # GH#61086 freq may be equivalent but not equal (e.g.
                 # QS-FEB vs QS-MAY), so validate against the actual data.
-                if len(self) == 0:
-                    pass
-                elif len(self) == 1:
+                # GH#65012 checking a single step is not enough: a fixed-step
+                # (Tick/Day) or business/custom offset can match the first gap
+                # by coincidence yet diverge on a later step, so every step
+                # must conform.
+                if len(self) == 1:
                     if not freq.is_on_offset(self[0]):
                         raise ValueError(
                             f"Inferred frequency {inferred} from passed "
                             "values does not conform to passed frequency "
                             f"{freq.freqstr}"
                         )
-                elif self[0] + freq == self[1]:
-                    # For standard offsets, the step is a deterministic
-                    # function of the date, so agreement on one step proves
-                    # equivalence. For Custom/FY5253 offsets, external
-                    # state (holidays, 52/53-week patterns) could cause
-                    # later steps to diverge, so we validate fully.
-                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
-                        type(arr)._validate_frequency(self, freq, **validate_kwds)
-                else:
-                    raise ValueError(
-                        f"Inferred frequency {inferred} from passed "
-                        "values does not conform to passed frequency "
-                        f"{freq.freqstr}"
-                    )
+                elif isinstance(freq, Tick) and len(self) > 1:
+                    # A Tick is a fixed step in i8 space regardless of tz, so
+                    # conformance is just uniform spacing. This avoids the
+                    # pricier _validate_frequency (which infers the freq and
+                    # allocates a range). Not valid for Day (DST-dependent) or
+                    # calendar offsets, which stay on the path below.
+                    delta = Timedelta(freq)
+                    step = delta.as_unit(self.unit)
+                    if step != delta or not (np.diff(self.asi8) == step._value).all():
+                        raise ValueError(
+                            f"Inferred frequency {inferred} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
+                elif len(self) > 1:
+                    type(arr)._validate_frequency(self, freq, **validate_kwds)
             self._freq = freq
 
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
@@ -890,6 +896,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             else:
                 codes = np.arange(len(self), dtype=np.intp)
                 uniques = self.copy()
+            uniques._name = None
+            return codes, uniques
+        if len(self) > 1 and (
+            self.is_monotonic_increasing or self.is_monotonic_decreasing
+        ):
+            # Monotonic implies no NaT, so NA handling is not needed
+            codes, uniques_indexer = algorithms.factorize_monotonic_codes(
+                self._data._ndarray, self.is_monotonic_increasing, sort
+            )
+            uniques = self[uniques_indexer]
             uniques._name = None
             return codes, uniques
         return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
@@ -1321,24 +1337,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self, other: Self, sort=None) -> Self:
+    def _fast_union(self, other: Self) -> Self:
         # Caller is responsible for ensuring self and other are non-empty
+        #  and that the result is monotonic, so that it retains self.freq.
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
-        elif sort is False:
-            # TDIs are not in the "correct" order and we don't want
-            #  to sort but want to remove overlaps
-            left, right = self, other
-            left_start = left[0]
-            loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
-            dates = concat_compat((left._values, right_chunk))
-            result = type(self)._simple_new(dates, name=self.name)
-            # The sort=False result is non-monotonic (self's values followed
-            #  by earlier values from other), so it cannot carry a freq.
-            return result
         else:
             left, right = other, self
 
@@ -1367,10 +1372,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         if self._can_range_setop(other):
             return self._range_union(other, sort=sort)
 
-        if self._can_fast_union(other):
-            # in the case with sort=None, the _can_fast_union check ensures
-            #  that result.freq == self.freq
-            return self._fast_union(other, sort=sort)
+        if self._can_fast_union(other) and (sort is not False or self[0] <= other[0]):
+            # the _can_fast_union check ensures that result.freq == self.freq.
+            #  With sort=False and self starting after other, the result would
+            #  instead be non-monotonic and carry no freq, so we leave that case
+            #  to the generic path below.  GH#66322
+            return self._fast_union(other)
         else:
             # super()._union can return an ArrayLike; wrap into an Index first
             result = self._wrap_setop_result(other, super()._union(other, sort))
