@@ -785,23 +785,25 @@ static inline block_mask_t block_movemask(uint8x16_t m) {
   return vget_lane_u64(
       vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(m), 4)), 0);
 }
-static inline int block_mask_pos(block_mask_t mask) {
+static inline unsigned block_mask_pos(block_mask_t mask) {
   return pandas_ctzll(mask) >> 2;
 }
-static inline block_mask_t block_mask_clear(block_mask_t mask, int pos) {
+static inline block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
   return mask & ~(0xFULL << (pos * 4));
 }
-static inline bool block_mask_test(block_mask_t mask, int pos) {
+static inline bool block_mask_test(block_mask_t mask, unsigned pos) {
   return ((mask >> (pos * 4)) & 0xFULL) != 0;
 }
 #elif defined(PANDAS_HAVE_SSE2)
 typedef uint32_t block_mask_t;
-static inline int block_mask_pos(block_mask_t mask) { return pandas_ctz(mask); }
-static inline block_mask_t block_mask_clear(block_mask_t mask, int pos) {
-  return mask & ~(1u << pos);
+static inline unsigned block_mask_pos(block_mask_t mask) {
+  return pandas_ctz(mask);
 }
-static inline bool block_mask_test(block_mask_t mask, int pos) {
-  return ((mask >> pos) & 1u) != 0;
+static inline block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
+  return mask & ~(1U << pos);
+}
+static inline bool block_mask_test(block_mask_t mask, unsigned pos) {
+  return ((mask >> pos) & 1U) != 0;
 }
 #endif
 
@@ -840,12 +842,12 @@ typedef struct {
   block_mask_t crs;
 } block_scan_masks;
 
-// Scan the 16 bytes at buf into *masks; false means the block holds a
-// quote, escape or comment byte and the state machine must take over
-// before consuming any of it.
+// Try to scan the 16 bytes at buf into *masks. Returns false (and leaves
+// *masks untouched) when the block holds a quote, escape or comment byte,
+// meaning the state machine must take over before consuming any of it.
 #  ifdef PANDAS_HAVE_NEON
-static inline bool block_scan(const block_lane_config *config, const char *buf,
-                              block_scan_masks *masks) {
+static inline bool try_scan_block(const block_lane_config *config,
+                                  const char *buf, block_scan_masks *masks) {
   const uint8x16_t chunk = vld1q_u8((const uint8_t *)buf);
   const uint8x16_t eq_delim = vceqq_u8(chunk, config->vdelim);
   const uint8x16_t eq_term = vceqq_u8(chunk, config->vterm);
@@ -865,8 +867,8 @@ static inline bool block_scan(const block_lane_config *config, const char *buf,
   return true;
 }
 #  elif defined(PANDAS_HAVE_SSE2)
-static inline bool block_scan(const block_lane_config *config, const char *buf,
-                              block_scan_masks *masks) {
+static inline bool try_scan_block(const block_lane_config *config,
+                                  const char *buf, block_scan_masks *masks) {
   const __m128i chunk = _mm_loadu_si128((const __m128i *)buf);
   const __m128i eq_delim = _mm_cmpeq_epi8(chunk, config->vdelim);
   const __m128i eq_term = _mm_cmpeq_epi8(chunk, config->vterm);
@@ -931,7 +933,7 @@ typedef enum {
 // whitespace-line deferral.
 static block_emit_status
 block_after_line(parser_t *self, const block_lane_config *config,
-                 const char *buf, int64_t i, int pos, int term_extra,
+                 const char *buf, int64_t i, unsigned pos, int term_extra,
                  uint64_t line_limit, uint64_t start_lines,
                  uint64_t *block_base, bool *at_line_edge, int64_t *exit_i) {
   if (line_limit > 0 && self->lines == start_lines + line_limit) {
@@ -944,7 +946,7 @@ block_after_line(parser_t *self, const block_lane_config *config,
     *exit_i = i + pos + term_extra;
     return BLOCK_EMIT_LINELIMIT;
   }
-  if (term_extra || self->stream_len != *block_base + (uint64_t)(pos + 1)) {
+  if (term_extra || self->stream_len != *block_base + (pos + 1)) {
     // The write position no longer tracks the input position: the
     // terminator consumed an extra input byte (\r\n), or end_line moved
     // stream_len (synthetic trailing fields for a short row, or a skipped
@@ -960,7 +962,7 @@ block_after_line(parser_t *self, const block_lane_config *config,
     }
     memcpy(self->stream + self->stream_len, buf + pos + 1 + term_extra,
            (size_t)(15 - pos - term_extra));
-    *block_base = self->stream_len - (uint64_t)(pos + 1 + term_extra);
+    *block_base = self->stream_len - (pos + 1 + term_extra);
   }
   if (pos + 1 + term_extra < 16) {
     const char nxt = buf[pos + 1 + term_extra];
@@ -991,7 +993,7 @@ block_emit_boundaries(parser_t *self, const block_lane_config *config,
   // Boundaries not yet emitted, consumed lowest-bit-first.
   block_mask_t remaining = masks->specials;
   while (remaining) {
-    const int pos = block_mask_pos(remaining);
+    const unsigned pos = block_mask_pos(remaining);
     bool is_term = block_mask_test(masks->terms, pos);
     // Extra input bytes the terminator consumes (1 for the \n of a \r\n
     // pair; the field's NUL replaces the \r).
@@ -1000,7 +1002,7 @@ block_emit_boundaries(parser_t *self, const block_lane_config *config,
       if (pos >= 15 || buf[pos + 1] != config->lineterminator) {
         // \r\n split across blocks, or a lone \r: defer to the state
         // machine's EAT_CRNL handling.
-        self->stream_len = block_base + (uint64_t)pos;
+        self->stream_len = block_base + pos;
         *exit_i = i + pos;
         return BLOCK_EMIT_DEFER;
       }
@@ -1008,14 +1010,14 @@ block_emit_boundaries(parser_t *self, const block_lane_config *config,
       term_extra = 1;
     }
     if (is_term && self->line_fields[self->lines] == 0 &&
-        block_base + (uint64_t)pos == (uint64_t)self->word_start) {
+        block_base + pos == (uint64_t)self->word_start) {
       // Line terminator with no line content: defer to the state
       // machine, which knows about skip_empty_lines.
-      self->stream_len = block_base + (uint64_t)pos;
+      self->stream_len = block_base + pos;
       *exit_i = i + pos;
       return BLOCK_EMIT_DEFER;
     }
-    self->stream_len = block_base + (uint64_t)pos;
+    self->stream_len = block_base + pos;
     if (end_field(self) < 0) {
       *exit_i = i + pos;
       return BLOCK_EMIT_PARSINGERROR;
@@ -1081,7 +1083,7 @@ static block_lane_status block_fast_lane(parser_t *self,
     }
     at_line_edge = false;
     block_scan_masks masks;
-    if (!block_scan(config, buf, &masks))
+    if (!try_scan_block(config, buf, &masks))
       break;
     memcpy(self->stream + self->stream_len, buf, 16);
     if (!masks.specials) {
@@ -1095,7 +1097,10 @@ static block_lane_status block_fast_lane(parser_t *self,
         block_emit_boundaries(self, config, &masks, buf, i, line_limit,
                               start_lines, &at_line_edge, &exit_i);
     if (emit_status == BLOCK_EMIT_DEFER) {
-      return block_lane_finish(self, lane_start_i, exit_i, ip);
+      // Resume the state machine mid-block; the loop-exit block_lane_finish
+      // below publishes exit_i and sets the resume state.
+      i = exit_i;
+      break;
     }
     if (emit_status == BLOCK_EMIT_PARSINGERROR) {
       *ip = exit_i;
