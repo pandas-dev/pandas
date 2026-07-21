@@ -618,6 +618,7 @@ Other
 - Bug in :meth:`DataFrame.from_dict` where passing a dict of only scalar values raised a :class:`ValueError` telling users to pass an ``index``, even though :meth:`DataFrame.from_dict` has no ``index`` parameter; the message now points to ``orient='index'`` or the :class:`DataFrame` constructor (:issue:`25515`)
 - Bug in :meth:`DataFrame.select_dtypes` with an :class:`~pandas.api.extensions.ExtensionDtype` subclass such as :class:`ArrowDtype` or :class:`DatetimeTZDtype` raising ``TypeError``, emitting a spurious ``UserWarning``, or selecting the wrong columns; passing such a class now selects every column whose dtype is an instance of that class (:issue:`65366`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+- Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
 
 .. ***DO NOT USE THIS SECTION***
 
