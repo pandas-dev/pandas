@@ -1263,3 +1263,37 @@ def test_merge_multi_bool_int_keys():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multiindex_with_tuple_valued_level():
+    # GH#39100 merging on a MultiIndex whose innermost level holds tuples must
+    # align rows correctly instead of mismatching them
+    a_idx = MultiIndex.from_tuples(
+        [
+            (0, "TV", ("train", "val")),
+            (1, "TV", ("train", "val")),
+            (2, "Test", ("test",)),
+        ],
+        names=["epoch", "stage", "sl"],
+    )
+    a_df = DataFrame({"a": [0.1, 0.2, 0.3]}, index=a_idx)
+    b_idx = MultiIndex.from_tuples(
+        [(0, "Reval", ("reval",)), (2, "Test", ("test",))],
+        names=["epoch", "stage", "sl"],
+    )
+    b_df = DataFrame({"b": [0.03, 0.9]}, index=b_idx)
+    result = a_df.merge(b_df, how="outer", left_index=True, right_index=True)
+    expected_idx = MultiIndex.from_tuples(
+        [
+            (0, "Reval", ("reval",)),
+            (0, "TV", ("train", "val")),
+            (1, "TV", ("train", "val")),
+            (2, "Test", ("test",)),
+        ],
+        names=["epoch", "stage", "sl"],
+    )
+    expected = DataFrame(
+        {"a": [np.nan, 0.1, 0.2, 0.3], "b": [0.03, np.nan, np.nan, 0.9]},
+        index=expected_idx,
+    )
+    tm.assert_frame_equal(result, expected)

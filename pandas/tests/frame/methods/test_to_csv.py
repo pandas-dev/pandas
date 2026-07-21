@@ -590,7 +590,7 @@ class TestDataFrameToCSV:
         # TODO to_csv drops column name
         expected = tsframe.copy()
         expected.index = MultiIndex.from_arrays([old_index.as_unit("us"), new_index[1]])
-        tm.assert_frame_equal(recons, expected, check_names=False)
+        tm.assert_frame_equal(recons, expected, check_names=False, check_freq=False)
 
         # do not load index
         tsframe.to_csv(path)

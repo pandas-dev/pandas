@@ -40,6 +40,11 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    iNaT,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas.errors import Pandas4Warning
@@ -1692,12 +1697,17 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    even_days = values._is_dates_only
-
-    if even_days:
+    if values._is_dates_only:
         format = None
     else:
-        format = "long"
+        i8 = values.asi8
+        vals = i8[i8 != iNaT]
+        if vals.size == 0 or not (vals % periods_per_second(values._creso)).any():
+            format = "long"
+        elif NpyDatetimeUnit.NPY_FR_ns.value == values._creso and (vals % 1_000).any():
+            format = "all"  # nanosecond precision → 9 digits
+        else:
+            format = "us"  # microsecond precision → 6 digits
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
