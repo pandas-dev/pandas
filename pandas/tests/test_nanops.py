@@ -182,6 +182,29 @@ def arr_nan_float1_1d(arr_nan_float1):
     return arr_nan_float1[:, 0]
 
 
+@pytest.fixture(
+    params=[
+        "nanany",
+        "nanall",
+        "nansum",
+        "nanmean",
+        "nanmedian",
+        "nanstd",
+        "nanvar",
+        "nansem",
+        "nanargmax",
+        "nanargmin",
+        "nanmax",
+        "nanmin",
+        "nanskew",
+        "nankurt",
+        "nanprod",
+    ]
+)
+def nanops_univariate_methods(request):
+    return request.param
+
+
 class TestnanopsDataFrame:
     def setup_method(self):
         nanops._USE_BOTTLENECK = False
@@ -1301,28 +1324,9 @@ def test_numpy_ops(numpy_op, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "operation",
-    [
-        nanops.nanany,
-        nanops.nanall,
-        nanops.nansum,
-        nanops.nanmean,
-        nanops.nanmedian,
-        nanops.nanstd,
-        nanops.nanvar,
-        nanops.nansem,
-        nanops.nanargmax,
-        nanops.nanargmin,
-        nanops.nanmax,
-        nanops.nanmin,
-        nanops.nanskew,
-        nanops.nankurt,
-        nanops.nanprod,
-    ],
-)
-def test_nanops_independent_of_mask_param(operation):
+def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     # GH22764
+    operation = getattr(nanops, nanops_univariate_methods)
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
@@ -1538,3 +1542,43 @@ def test_idxminmax_float_inf_tie():
     assert df.idxmin().tolist() == [1, 0]
     assert df["a"].idxmax() == 1
     assert df["a"].idxmin() == 1
+
+
+@pytest.mark.parametrize("axis", [0, 1, None])
+def test_nanops_fortran_layout_mask_mismatch(
+    disable_bottleneck, nanops_univariate_methods, axis
+):
+    func = getattr(nanops, nanops_univariate_methods)
+    arr_f = np.array(
+        [[1.0, np.nan, 2.0, 5.0], [3.0, 4.0, 5.0, 6.0]],
+        dtype=np.float32,
+        order="F",
+    )
+    mask_f = np.isnan(arr_f)
+
+    arr_c = arr_f.copy(order="C")
+    mask_c = mask_f.copy(order="C")
+
+    res_f = func(arr_f, axis=axis, mask=mask_f)
+    res_c = func(arr_c, axis=axis, mask=mask_c)
+
+    tm.assert_almost_equal(res_f, res_c)
+
+
+@pytest.mark.parametrize("axis", [0, 1, None])
+def test_nanops_mismatched_mask_layout(
+    disable_bottleneck, nanops_univariate_methods, axis
+):
+    func = getattr(nanops, nanops_univariate_methods)
+    arr_f = np.array(
+        [[1.0, np.nan, 2.0, 5.0], [3.0, 4.0, 5.0, 6.0]],
+        dtype=np.float64,
+        order="F",
+    )
+    mask_c = np.isnan(arr_f).copy(order="C")
+    mask_f = np.isnan(arr_f).copy(order="F")
+
+    res_mismatched = func(arr_f, axis=axis, mask=mask_c)
+    res_matched = func(arr_f, axis=axis, mask=mask_f)
+
+    tm.assert_almost_equal(res_mismatched, res_matched)
