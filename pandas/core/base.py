@@ -219,25 +219,15 @@ class SelectionMixin(Generic[NDFrameT]):
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, tuple):
-            # Correct MultiIndex semantics
-            if isinstance(self.obj.columns, ABCMultiIndex):
-                try:
-                    subset = self.obj[key]
-                except (KeyError, TypeError):
-                    pass
-                else:
-                    return self._gotitem(key, ndim=subset.ndim, subset=subset)
-
-            # Legacy tuple-as-list path (to be deprecated)
             warnings.warn(
                 "Passing a tuple to __getitem__ is deprecated and "
                 "will raise a KeyError in a future version. Use a list instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-            raise KeyError(key)
+            key = list(key)
 
-        elif isinstance(key, (list, ABCSeries, ABCIndex, np.ndarray)):
+        if isinstance(key, (list, ABCSeries, ABCIndex, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
