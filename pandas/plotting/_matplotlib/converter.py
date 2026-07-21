@@ -169,6 +169,18 @@ def bday_to_datetime(ordinal: int) -> datetime:
     return dt64.astype("datetime64[us]").item()
 
 
+def bday_count_array(dates: np.ndarray) -> np.ndarray:
+    """Vectorized bday_count: datetime64 values to business-day ordinals."""
+    return np.busday_count(
+        np.datetime64("1970-01-01", "D"), dates.astype("datetime64[D]")
+    )
+
+
+def bday_offset_array(ordinals: np.ndarray) -> np.ndarray:
+    """Vectorized bday_to_datetime: business-day ordinals to datetime64[D]."""
+    return np.busday_offset(np.datetime64("1970-01-01", "D"), ordinals)
+
+
 class TimeConverter(munits.ConversionInterface):
     @staticmethod
     def convert(value, unit, axis):
@@ -643,9 +655,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         #  (deprecated) Period[B].
         ordinals = np.arange(vmin, vmax + 1, step=freq.n, dtype=np.int64)
         dates_ = DatetimeIndex(
-            np.busday_offset(np.datetime64("1970-01-01", "D"), ordinals).astype(
-                "datetime64[ns]"
-            ),
+            bday_offset_array(ordinals).astype("datetime64[ns]"),
             freq=freq,
         )
     else:

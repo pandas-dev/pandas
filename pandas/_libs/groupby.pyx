@@ -1458,11 +1458,17 @@ def group_quantile(
             end = ends[i]
 
             # Count non-NA elements in this group using direct indexing
-            # (avoids memoryview slicing, which is not nogil-safe).
+            # (avoids memoryview slicing, which is not nogil-safe). A float
+            # NaN that is not flagged by ``mask`` (e.g. a non-null NaN in a
+            # pyarrow/masked float array, GH#64330) must be treated as NA too:
+            # it would corrupt kth_smallest_c's ordering comparisons below.
             grp_size = end - start
             non_na_sz = 0
             for j in range(grp_size):
                 if mask[start + j] == 0:
+                    if numeric_t is float32_t or numeric_t is float64_t:
+                        if values[start + j] != values[start + j]:
+                            continue
                     non_na_sz += 1
 
             if non_na_sz == 0:
@@ -1472,10 +1478,10 @@ def group_quantile(
                     else:
                         out[i, k] = NaN
             else:
-                # Copy non-NA values into a temporary mutable buffer.
-                # Pre-filtering NAs means kth_smallest_c's comparisons are
-                # always valid (no NaN/NaT values), so is_datetimelike needs
-                # no special handling here.
+                # Copy non-NA values into a temporary mutable buffer. NAs are
+                # pre-filtered (using the same condition as the count above) so
+                # that kth_smallest_c's comparisons are always valid (no NaN/NaT
+                # values), meaning is_datetimelike needs no special handling.
                 tmp = <numeric_t*>malloc(non_na_sz * sizeof(numeric_t))
                 if tmp is NULL:
                     raise MemoryError()
@@ -1483,6 +1489,9 @@ def group_quantile(
                 j = 0
                 for k in range(grp_size):
                     if mask[start + k] == 0:
+                        if numeric_t is float32_t or numeric_t is float64_t:
+                            if values[start + k] != values[start + k]:
+                                continue
                         tmp[j] = values[start + k]
                         j += 1
 

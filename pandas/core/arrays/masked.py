@@ -254,8 +254,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if copy:
                 npvalues = npvalues.copy()
                 new_mask = new_mask.copy()
-            elif limit_area is not None:
-                mask = mask.copy()
+            else:
+                if self._readonly:
+                    raise ValueError("Cannot modify read-only array")
+                if limit_area is not None:
+                    mask = mask.copy()
             func(npvalues, limit=limit, mask=new_mask)
 
             if limit_area is not None and not mask.all():
