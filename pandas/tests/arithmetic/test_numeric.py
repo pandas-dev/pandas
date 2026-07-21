@@ -1117,7 +1117,7 @@ class TestAdditionSubtraction:
             tm.assert_almost_equal(np.asarray(result), expected)
 
             assert result.name == series.name
-            tm.assert_index_equal(result.index, series.index._with_freq(None))
+            tm.assert_index_equal(result.index, series.index)
 
     def test_series_divmod_zero(self):
         # Check that divmod uses pandas convention for division by zero,

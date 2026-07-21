@@ -330,6 +330,13 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
       df.loc[(slice("A1", "A3"), ...)]  # noqa: E999
 
+   The same ambiguity arises with integer labels. ``df.loc[0, 0]`` is
+   first tried as ``df.loc[(0, 0)]`` -- a single key into the row
+   ``MultiIndex`` -- and is only interpreted as row label ``0`` of column
+   label ``0`` when that lookup fails. Use :class:`pandas.IndexSlice`, e.g.
+   ``df.loc[pd.IndexSlice[0, :], 0]``, or pass a length-1 tuple for the rows,
+   e.g. ``df.loc[(0,), 0]``, to disambiguate.
+
 .. ipython:: python
 
    def mklbl(prefix, n):

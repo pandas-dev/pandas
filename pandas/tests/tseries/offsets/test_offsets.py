@@ -807,6 +807,22 @@ class TestDateOffset:
 
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "offset_kwargs", [{"milliseconds": 5}, {"months": 1, "milliseconds": 5}]
+    )
+    def test_dateoffset_milliseconds_reso_matches_vectorized(self, offset_kwargs, unit):
+        # GH#64806 scalar Timestamp + DateOffset with a milliseconds component
+        # must preserve the offset's declared resolution (matching the
+        # vectorized DatetimeIndex path) instead of flooring to microseconds.
+        offset = DateOffset(**offset_kwargs)
+        ts = Timestamp("2022-01-01").as_unit(unit)
+
+        result = ts + offset
+        expected = (DatetimeIndex([ts]) + offset)[0]
+
+        assert result == expected
+        assert result.unit == expected.unit
+
     def test_offset_invalid_arguments(self):
         msg = "^Invalid argument/s or bad combination of arguments"
         with pytest.raises(ValueError, match=msg):
