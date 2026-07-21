@@ -1961,7 +1961,21 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = localize_pydatetime(other, tzinfo)
 
-            return Timestamp(other)
+            result = Timestamp(other)
+            # GH#64806 The computation above uses Python timedelta /
+            # relativedelta, which floor sub-second components to microseconds
+            # and lose the offset's declared resolution (e.g. milliseconds).
+            # Coerce to that resolution when lossless so the scalar result
+            # matches the vectorized DatetimeIndex/Series path; apply_wraps
+            # then narrows back to ``other``'s unit where that is also lossless.
+            try:
+                offset_unit = self._pd_timedelta.unit
+            except NotImplementedError:
+                return result
+            result2 = result.as_unit(offset_unit)
+            if result == result2:
+                result = result2
+            return result
         else:
             return other + timedelta(self._n)
 
@@ -2223,6 +2237,16 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
         to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
+
+    Notes
+    -----
+    When added to a :class:`DatetimeIndex` or datetime :class:`Series`, a
+    ``DateOffset`` is applied to each entry independently. Calendar components
+    such as ``months`` and ``years`` do not represent a fixed duration, so
+    evenly spaced input dates are not guaranteed to remain evenly spaced: dates
+    that would fall on a nonexistent day are clamped to the end of the month.
+    For example, adding ``DateOffset(months=1)`` to both ``2018-01-30`` and
+    ``2018-01-31`` yields ``2018-02-28`` in each case.
 
     Examples
     --------
@@ -7273,6 +7297,8 @@ cdef _validate_to_offset_alias(str alias, bint is_period):
         str alias_upper, renamed, period_alias
 
     if not is_period:
+        if alias in deprec_to_valid_alias:
+            raise_invalid_freq(freq=alias)
         alias_upper = alias.upper()
         renamed = c_OFFSET_RENAMED_FREQSTR.get(alias_upper)
         if renamed is not None:
@@ -7430,6 +7456,8 @@ cpdef to_offset(freq, bint is_period=False):
                     stride = 1
 
                 tick_info = _tick_klass_factor.get(name)
+                if tick_info is None:
+                    offset = _get_offset(name)
                 if tick_info is not None and isinstance(stride, str) and \
                         "." in stride:
                     # For these prefixes, fractional strides like "2.5min"
@@ -7452,7 +7480,7 @@ cpdef to_offset(freq, bint is_period=False):
                         klass, factor = tick_info
                         offset = klass(int_stride * factor)
                     else:
-                        offset = _get_offset(name) * int_stride
+                        offset *= int_stride
 
                 if result is None:
                     result = offset

@@ -5239,6 +5239,12 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, np.ndarray):
             data = data.view()
             data.flags.writeable = False
+        else:
+            # GH#38547 don't allow mutating the Index through its .values;
+            #  an Index is immutable, and in-place mutation here would
+            #  silently corrupt it (e.g. leave a stale lookup engine).
+            data = data.view()
+            data._readonly = True
         return data
 
     @cache_readonly
@@ -5250,6 +5256,10 @@ class Index(IndexOpsMixin, PandasObject):
         an Index without requiring conversion to a NumPy array. It
         returns an ExtensionArray, which is the native storage format for
         pandas extension dtypes.
+
+        .. versionchanged:: 3.1.0
+
+           The returned array is read-only, since an Index is immutable.
 
         Returns
         -------
@@ -5314,9 +5324,11 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
-        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
-        # array = array.view()
-        # array._readonly = True
+        # GH#38547 an Index is immutable; return a read-only view so the
+        #  Index cannot be silently corrupted by mutating the returned array
+        #  (which would also leave a stale lookup engine behind).
+        array = array.view()
+        array._readonly = True
         return array
 
     @property
@@ -6621,10 +6633,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
-                result = type(other)(self), other
+                result = type(other)(self)
             except OutOfBoundsDatetime:
                 return self, other
             else:
+                if self.is_unique and not result.is_unique:
+                    return self, other
                 warnings.warn(
                     # GH#62158 deprecate special-case treatment of date objects
                     "Indexing a DatetimeIndex with a sequence of datetime.date "
@@ -6632,7 +6646,7 @@ class Index(IndexOpsMixin, PandasObject):
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
-                return result
+                return result, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
@@ -8201,13 +8215,30 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
         np_sequence = np.asarray(sequence, dtype=np.int64)
     except OverflowError:
         return sequence
-    diff = np_sequence[1] - np_sequence[0]
-    if diff == 0:
+    if (
+        isinstance(sequence, np.ndarray)
+        and sequence.dtype.kind == "u"
+        and (np_sequence < 0).any()
+    ):
+        # GH#64148: uint64 values above INT64_MAX wrapped negative in the cast
         return sequence
-    elif len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff):
-        return range(np_sequence[0], np_sequence[-1] + diff, diff)
-    else:
+    # GH#64148: use python ints so widely-separated values (e.g. INT64_MIN and
+    # INT64_MAX) don't overflow the int64 domain RangeIndex relies on.
+    first = int(np_sequence[0])
+    diff = int(np_sequence[1]) - first
+    if diff == 0 or not -(2**63) <= diff < 2**63:
         return sequence
+    if len(sequence) != 2 and not lib.is_sequence_range(np_sequence, diff):
+        return sequence
+    stop = int(np_sequence[-1]) + diff
+    if not -(2**63) <= stop < 2**63:
+        return sequence
+    # is_sequence_range matches modularly, so a sequence that wraps past
+    # INT64_MAX can slip through; such a match has the wrong length.
+    candidate = range(first, stop, diff)
+    if len(candidate) == len(sequence):
+        return candidate
+    return sequence
 
 
 def ensure_index_from_sequences(

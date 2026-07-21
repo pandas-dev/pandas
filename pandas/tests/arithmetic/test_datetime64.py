@@ -1640,6 +1640,38 @@ class TestDatetime64DateOffsetArithmetic:
         pointwise2 = DatetimeIndex([x + offset2 for x in dti2])
         tm.assert_index_equal(result2, pointwise2)
 
+    def test_dt64arr_add_dateoffset_finer_reso(self):
+        # GH#64806 - a pure-timedelta DateOffset with finer resolution than a
+        # tz-aware DatetimeIndex must promote the result unit like the tz-naive
+        # path instead of raising AssertionError, and must match the scalar
+        # Timestamp + DateOffset result (value and unit).
+        dti = DatetimeIndex(["2020-01-01 00:00:00"], tz="US/Eastern").as_unit("s")
+        offset = DateOffset(milliseconds=5)
+
+        result = dti + offset
+        expected = DatetimeIndex(
+            ["2020-01-01 00:00:00.005000-05:00"],
+            dtype="datetime64[ms, US/Eastern]",
+        )
+        tm.assert_index_equal(result, expected)
+        # the tz-aware fast path matches the tz-naive path's unit promotion
+        naive = dti.tz_localize(None) + offset
+        tm.assert_index_equal(result.tz_localize(None), naive)
+        # and it matches the scalar Timestamp + DateOffset path
+        pointwise = DatetimeIndex([ts + offset for ts in dti])
+        tm.assert_index_equal(result, pointwise)
+
+        # promotion still holds when the addition crosses a DST transition
+        dti2 = DatetimeIndex(["2018-03-11 01:59:59"], tz="US/Eastern").as_unit("s")
+        result2 = dti2 + DateOffset(milliseconds=1500)
+        expected2 = DatetimeIndex(
+            ["2018-03-11 03:00:00.500000-04:00"],
+            dtype="datetime64[ms, US/Eastern]",
+        )
+        tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([ts + DateOffset(milliseconds=1500) for ts in dti2])
+        tm.assert_index_equal(result2, pointwise2)
+
 
 class TestDatetime64OverflowHandling:
     # TODO: box + de-duplicate

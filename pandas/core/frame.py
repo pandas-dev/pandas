@@ -161,6 +161,7 @@ from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
     infer_and_maybe_downcast,
+    maybe_warn_multiindex_expansion,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -298,7 +299,9 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-        If ``data`` is DataFrame then is ignored.
+        If ``data`` is DataFrame then is ignored. Missing values in ``data``
+        are not cast: for example, with ``dtype=str`` a ``NaN`` entry stays
+        missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -4726,7 +4729,21 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._where(-key, value, inplace=True)
+        try:
+            self._where(-key, value, inplace=True)
+        except ValueError as err:
+            # GH#45593 restate putmask_without_repeat's message with the
+            #  mismatched lengths.
+            if "mismatch length to masked array" not in str(err):
+                raise
+            num_true = int(key.to_numpy(dtype=bool, na_value=False).sum())
+            num_values = len(value) if is_list_like(value) else 1
+            raise ValueError(
+                f"Cannot set with a boolean DataFrame mask: the number of "
+                f"values ({num_values}) does not match the number of True "
+                f"entries in the mask ({num_true}). Provide a scalar or a "
+                f"value matching the mask."
+            ) from err
 
     def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
@@ -4831,6 +4848,20 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
+        if (
+            isinstance(self.columns, MultiIndex)
+            # tuple keys of the wrong length raise in
+            #  MultiIndex._validate_fill_value instead of getting padded
+            and not isinstance(key, tuple)
+            and key not in self.columns
+        ):
+            maybe_warn_multiindex_expansion(
+                self.columns,
+                key,
+                target="column on a DataFrame",
+                hint="Use a full-length tuple key instead.",
+            )
+
         value, refs = self._sanitize_column(value)
 
         if (
@@ -5860,6 +5891,16 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
 
+        if not isinstance(column, tuple):
+            # tuple keys of the wrong length raise in
+            #  MultiIndex._validate_fill_value instead of getting padded
+            maybe_warn_multiindex_expansion(
+                self.columns,
+                column,
+                target="column on a DataFrame",
+                hint="Use a full-length tuple key instead.",
+            )
+
         value, refs = self._sanitize_column(value)
         self._mgr.insert(loc, column, value, refs=refs)
 
@@ -6120,6 +6161,13 @@ class DataFrame(NDFrame, OpsMixin):
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+            Filling is based on the position of each new label relative to the
+            existing labels, and applies to both the index and the columns.
+            For example, with ``method='ffill'`` and a monotonically
+            increasing index, a new label is filled from the nearest existing
+            label that sorts before it, so a new column whose label falls
+            between two existing columns takes its values from the preceding
+            column.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
@@ -6142,7 +6190,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
+            passed MultiIndex level. The new labels are aligned against the
+            values of that single level while the other levels are left
+            unchanged; passing a flat index with ``level`` does not form the
+            Cartesian product of the remaining levels. See
+            :ref:`advanced.advanced_reindex` for the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -6305,6 +6357,12 @@ class DataFrame(NDFrame, OpsMixin):
         does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original DataFrame, use the ``fillna()`` method.
+
+        Because ``method="bfill"`` fills each new label from the next entry
+        present in the original index, the trailing entry at 2010-01-07 stays
+        ``NaN``: there is no original index entry after it. Conversely,
+        ``method="ffill"`` would leave the leading entries (before the first
+        original index entry) unfilled.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """
@@ -9734,6 +9792,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             # GH#36702. Raise when attempting arithmetic with list of array-like.
+            #  Deliberately not is_array_like_deprecate_non_pandas (GH#52834):
+            #  this site raises rather than granting array-like treatment, so
+            #  the warning's "wrap to retain current behavior" advice would be
+            #  wrong; whether duck arrays keep raising is for the enforcement PR.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
                     f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
@@ -14478,7 +14540,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). However, by default (``by_row="compat"``), if ``func``
+        (``axis=1``); the ``name`` attribute of each passed Series is the label
+        of the column (``axis=0``) or row (``axis=1``) currently being
+        processed. However, by default (``by_row="compat"``), if ``func``
         is a list-like or dict-like of functions, each function is first
         applied to the individual values of the Series rather than the Series
         itself; if this fails, pandas retries by passing the entire Series.
@@ -14516,7 +14580,10 @@ class DataFrame(NDFrame, OpsMixin):
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             How to interpret list-like results from `func`:
 
-            * 'expand' : list-like results will be turned into columns.
+            * 'expand' : list-like results will be turned into columns. Whether
+              a result is list-like is inferred from the first computed result;
+              if that result is not list-like, ``'expand'`` has no effect and a
+              Series is returned.
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
@@ -16256,16 +16323,37 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
+                blocks = df._mgr.blocks
+                if len(blocks) == 1 and name not in ("argmax", "argmin"):
+                    # GH#51474: reduce a single homogeneous block along axis=0
+                    # directly, matching the transpose path below with less
+                    # overhead. argmax/argmin depend on column order, so skip.
+                    bvalues = blocks[0].values
+                    result = None
+                    if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
+                        # block is (ncols, nrows); few rows barely vectorizes,
+                        # so leave narrow sum/prod/mean to the transpose path.
+                        if not (
+                            name in ("sum", "prod", "mean") and bvalues.shape[1] < 6
+                        ):
+                            result = op(bvalues, axis=0, skipna=skipna, **kwds)
+                    elif isinstance(bvalues, ExtensionArray) and bvalues.ndim == 2:
+                        result = bvalues._reduce(name, axis=0, skipna=skipna, **kwds)
+                    if result is not None:
+                        out = df._constructor_sliced(result, index=df.index, copy=False)
+                        if out_dtype is not None and out.dtype != "boolean":
+                            out = out.astype(out_dtype)
+                        return out
                 # GH#51474: block-wise axis=1 reduction avoiding an expensive
                 # transpose for numpy-backed blocks.  EA blocks are excluded
                 # (GH#65500) and handled below by the EA fastpath or transpose.
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all", "mean")
-                    and len(df._mgr.blocks) > 1
+                    and len(blocks) > 1
                     and all(
                         isinstance(block.values, np.ndarray)
                         and block.values.dtype.kind != "O"
-                        for block in df._mgr.blocks
+                        for block in blocks
                     )
                 ):
                     return df._reduce_axis1(
@@ -16338,7 +16426,9 @@ class DataFrame(NDFrame, OpsMixin):
         out.name = None
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
+        elif name not in ["any", "all"] and any(
+            blk.dtype == object for blk in df._mgr.blocks
+        ):
             out = out.astype(object)
 
         return out

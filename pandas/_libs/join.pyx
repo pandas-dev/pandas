@@ -28,7 +28,7 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
         intp_t[::1] left_sorter, right_sorter
         intp_t[::1] left_count, right_count
         intp_t[::1] left_indexer, right_indexer
-        intp_t lc, rc
+        intp_t lc, rc, left_val
         Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
         intp_t[::1] group_of, right_start
@@ -62,16 +62,13 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
                 if rc > 0 and lc > 0:
                     for j in range(lc):
                         offset = position + j * rc
+                        left_val = left_sorter[left_pos + j]
                         for k in range(rc):
-                            left_indexer[offset + k] = left_pos + j
-                            right_indexer[offset + k] = right_pos + k
+                            left_indexer[offset + k] = left_val
+                            right_indexer[offset + k] = right_sorter[right_pos + k]
                     position += lc * rc
                 left_pos += lc
                 right_pos += rc
-
-            # Will overwrite left/right indexer with the result
-            _get_result_indexer(left_sorter, left_indexer)
-            _get_result_indexer(right_sorter, right_indexer)
     else:
         # For sort=False, generate output directly in original left order
         # to avoid expensive post-hoc reordering of the (potentially huge)
@@ -119,7 +116,7 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
         intp_t[::1] left_count, right_count
         intp_t[::1] left_sorter, right_sorter
         intp_t[::1] left_indexer, right_indexer
-        intp_t lc, rc
+        intp_t lc, rc, left_val
         Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
         intp_t[::1] group_of, right_start
@@ -154,22 +151,19 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
 
                 if rc == 0:
                     for j in range(lc):
-                        left_indexer[position + j] = left_pos + j
+                        left_indexer[position + j] = left_sorter[left_pos + j]
                         right_indexer[position + j] = -1
                     position += lc
                 else:
                     for j in range(lc):
                         offset = position + j * rc
+                        left_val = left_sorter[left_pos + j]
                         for k in range(rc):
-                            left_indexer[offset + k] = left_pos + j
-                            right_indexer[offset + k] = right_pos + k
+                            left_indexer[offset + k] = left_val
+                            right_indexer[offset + k] = right_sorter[right_pos + k]
                     position += lc * rc
                 left_pos += lc
                 right_pos += rc
-
-            # Will overwrite left/right indexer with the result
-            _get_result_indexer(left_sorter, left_indexer)
-            _get_result_indexer(right_sorter, right_indexer)
     else:
         # For sort=False, generate output directly in original left order
         # to avoid expensive post-hoc reordering of the (potentially huge)
@@ -221,7 +215,7 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
         intp_t[::1] left_sorter, right_sorter
         intp_t[::1] left_count, right_count
         intp_t[::1] left_indexer, right_indexer
-        intp_t lc, rc
+        intp_t lc, rc, left_val
         intp_t left_pos = 0, right_pos = 0
         Py_ssize_t offset, position = 0
 
@@ -252,54 +246,26 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
 
             if rc == 0:
                 for j in range(lc):
-                    left_indexer[position + j] = left_pos + j
+                    left_indexer[position + j] = left_sorter[left_pos + j]
                     right_indexer[position + j] = -1
                 position += lc
             elif lc == 0:
                 for j in range(rc):
                     left_indexer[position + j] = -1
-                    right_indexer[position + j] = right_pos + j
+                    right_indexer[position + j] = right_sorter[right_pos + j]
                 position += rc
             else:
                 for j in range(lc):
                     offset = position + j * rc
+                    left_val = left_sorter[left_pos + j]
                     for k in range(rc):
-                        left_indexer[offset + k] = left_pos + j
-                        right_indexer[offset + k] = right_pos + k
+                        left_indexer[offset + k] = left_val
+                        right_indexer[offset + k] = right_sorter[right_pos + k]
                 position += lc * rc
             left_pos += lc
             right_pos += rc
 
-        # Will overwrite left/right indexer with the result
-        _get_result_indexer(left_sorter, left_indexer)
-        _get_result_indexer(right_sorter, right_indexer)
-
     return np.asarray(left_indexer), np.asarray(right_indexer)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef void _get_result_indexer(
-    const intp_t[::1] sorter,
-    intp_t[::1] indexer,
-) noexcept nogil:
-    """NOTE: overwrites indexer with the result to avoid allocating another array"""
-    cdef:
-        Py_ssize_t i, n, idx
-
-    if len(sorter) > 0:
-        # cython-only equivalent to
-        #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
-        n = indexer.shape[0]
-        for i in range(n):
-            idx = indexer[i]
-            if idx == -1:
-                indexer[i] = -1
-            else:
-                indexer[i] = sorter[idx]
-    else:
-        # length-0 case
-        indexer[:] = -1
 
 
 @cython.wraparound(False)

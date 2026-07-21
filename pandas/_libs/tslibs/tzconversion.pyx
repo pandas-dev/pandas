@@ -2,6 +2,8 @@
 timezone conversion
 """
 cimport cython
+from datetime import timezone
+
 from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
@@ -103,16 +105,22 @@ cdef class Localizer:
                 #  of seconds.
                 # TODO: avoid these np.array calls
                 if creso == NPY_DATETIMEUNIT.NPY_FR_us:
-                    trans = np.array(trans) // 1_000
-                    deltas = np.array(deltas) // 1_000
+                    divisor = 1_000
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
-                    trans = np.array(trans) // 1_000_000
-                    deltas = np.array(deltas) // 1_000_000
+                    divisor = 1_000_000
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_s:
-                    trans = np.array(trans) // 1_000_000_000
-                    deltas = np.array(deltas) // 1_000_000_000
+                    divisor = 1_000_000_000
                 else:
                     raise NotImplementedError(creso)
+
+                trans = np.array(trans)
+                # trans[0] is the NPY_NAT+1 "beginning of time" sentinel; a
+                #  plain floordiv would scale it up to a real (~1677) value,
+                #  mislocalizing earlier timestamps, so preserve it exactly.
+                trans_sentinel = trans == NPY_NAT + 1
+                trans = trans // divisor
+                trans[trans_sentinel] = NPY_NAT + 1
+                deltas = np.array(deltas) // divisor
 
             self.trans = trans
             self.ntrans = self.trans.shape[0]
@@ -189,7 +197,14 @@ cdef int64_t tz_localize_to_utc_single(
         return val
 
     elif is_tzlocal(tz):
-        return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
+        delta = _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
+        return _shift_to_utc(val, delta, creso)
+
+    elif type(tz) is timezone:
+        # i.e. a datetime.timezone fixed offset; get the offset directly
+        #  instead of going through get_dst_info
+        delta = int(tz.utcoffset(None).total_seconds()) * periods_per_second(creso)
+        return _shift_to_utc(val, delta, creso)
 
     elif is_fixed_offset(tz):
         _, deltas, _, _ = get_dst_info(tz)
@@ -203,7 +218,7 @@ cdef int64_t tz_localize_to_utc_single(
             elif creso == NPY_DATETIMEUNIT.NPY_FR_s:
                 delta = delta // 1_000_000_000
 
-        return val - delta
+        return _shift_to_utc(val, delta, creso)
 
     else:
         return tz_localize_to_utc(
@@ -525,6 +540,18 @@ cdef void raise_out_of_bounds(
         raise OutOfBoundsDatetime(
             f"Converting {fmt} underflows past {limit_ts}"
         )
+
+
+cdef int64_t _shift_to_utc(
+    int64_t val, int64_t delta, NPY_DATETIMEUNIT creso
+) except? -1:
+    # GH#65353 the fixed-offset shift to UTC (val - delta) must not wrap int64
+    # silently; raise OutOfBoundsDatetime, matching to_datetime, when the UTC
+    # value would leave the representable datetime64 range.
+    cdef int64_t result
+    if checked_sub(val, delta, &result):
+        raise_out_of_bounds(val, BS_UNDERFLOW if delta > 0 else BS_OVERFLOW, creso)
+    return result
 
 
 @cython.wraparound(False)

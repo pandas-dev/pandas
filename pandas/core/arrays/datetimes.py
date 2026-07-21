@@ -802,7 +802,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and not offset._use_relativedelta
         ):
             res_values = self._ndarray + offset._pd_timedelta
-            result = type(self)._simple_new(res_values, dtype=self.dtype)
+            # GH#64806 offset._pd_timedelta may have finer resolution than
+            # self, promoting res_values to a finer unit; derive the dtype
+            # from the promoted values rather than assuming self.dtype's unit.
+            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
+            res_dtype = tz_to_dtype(self.tz, res_unit)
+            result = type(self)._simple_new(res_values, dtype=res_dtype)
             if offset.normalize:
                 result = result.normalize()
             return result
