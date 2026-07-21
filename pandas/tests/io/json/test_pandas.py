@@ -2302,11 +2302,60 @@ class TestPandasContainer:
         assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
 
     def test_series_with_dtype_values_to_json(self):
-        ser = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).dtypes
-
+        # GH#61170
+        ser = DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [1.5, 2.5, 3.5],
+                "C": [True, False, True],
+            }
+        ).dtypes
         result = ser.to_json()
 
-        expected = '{"A":"int64","B":"int64"}'
+        expected = """{"A":"int64","B":"float64","C":"bool"}"""
+        assert result == expected
+
+    def test_series_with_dtype_values_to_json_split(self):
+        # GH#61170
+        ser = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).dtypes
+        result = ser.to_json(orient="split", index=False)
+
+        expected = """{"name":null,"data":["int64","int64"]}"""
+        assert result == expected
+
+    def test_series_with_dtype_values_to_json_table(self):
+        # GH#61170
+        ser = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).dtypes
+        result = json.loads(ser.to_json(orient="table"))
+
+        expected = [
+            {"index": "A", "values": "int64"},
+            {"index": "B", "values": "int64"},
+        ]
+        assert result["data"] == expected
+
+    def test_frame_with_dtype_values_to_json(self):
+        # GH#61170
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).dtypes.to_frame()
+        result = df.to_json()
+
+        expected = """{"0":{"A":"int64","B":"int64"}}"""
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "dtype,expected",
+        [
+            (np.dtype("int64"), '"int64"'),
+            (np.dtype("float64"), '"float64"'),
+            (np.dtype("bool"), '"bool"'),
+            (np.dtype("datetime64[ns]"), '"datetime64[ns]"'),
+            (np.dtype("timedelta64[ns]"), '"timedelta64[ns]"'),
+        ],
+    )
+    def test_numpy_dtype_to_json(self, dtype, expected):
+        # GH#61170
+        result = ujson_dumps(dtype)
+
         assert result == expected
 
     @pytest.mark.parametrize(
