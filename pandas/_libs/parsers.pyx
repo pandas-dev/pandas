@@ -3211,14 +3211,20 @@ cdef _try_uint64(parser_t *parser, int64_t col,
 
 
 cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nogil:
-    # Token length from adjacent word_starts offsets (avoids strlen);
+    # Token length from adjacent entries of parser.words -- the array the
+    # column iterator has just loaded -- rather than a second strided walk of
+    # parser.word_starts.  Same-column tokens sit n_columns apart, so reading
+    # word_starts costs a cache line per token, while words[token_idx + 1] is
+    # normally on the line words[token_idx] already pulled in.  The tokenizer
+    # maintains words[i] == stream + word_starts[i], so the two agree exactly.
     # token_idx == -1 marks a missing field; the last token uses stream_len.
     if token_idx < 0:
         return 0
     elif <uint64_t>(token_idx + 1) < parser.words_len:
-        return (parser.word_starts[token_idx + 1]
-                - parser.word_starts[token_idx] - 1)
-    return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
+        return <int64_t>(parser.words[token_idx + 1]
+                         - parser.words[token_idx]) - 1
+    return <int64_t>(parser.stream + parser.stream_len
+                     - parser.words[token_idx]) - 1
 
 
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
