@@ -24,6 +24,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.missing import is_matching_na
 from pandas.errors import MergeError
 from pandas.util._decorators import (
     cache_readonly,
@@ -1252,7 +1253,7 @@ class _MergeOperation:
                 and self.orig_right._is_level_reference(
                     right_key  # type: ignore[arg-type]
                 )
-                and left_key == right_key
+                and (is_matching_na(left_key, right_key) or left_key == right_key)
                 and name not in result.index.names
             ):
                 names_to_restore.append(name)
@@ -1608,7 +1609,9 @@ class _MergeOperation:
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
-                        if lk is not None and lk == rk:  # FIXME: what about other NAs?
+                        if lk is not None and (
+                            is_matching_na(lk, rk) or lk == rk
+                        ):
                             right_drop.append(rk)
                     else:
                         rk = cast("ArrayLike", rk)
