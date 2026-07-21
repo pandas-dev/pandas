@@ -229,6 +229,10 @@ Deprecations
   a future version of pandas (:issue:`53098`)
 - Deprecated ``inplace`` keyword for :meth:`DataFrame.rename` and :meth:`DataFrame.drop`. This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
 - Deprecated the ``infer_objects``, ``convert_string``, ``convert_integer``, ``convert_boolean``, and ``convert_floating`` keywords in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` (:issue:`62022`)
+- Deprecated passing tuple keys to :meth:`Resampler.__getitem__` and other
+  ``SelectionMixin``-based objects (e.g. ``Rolling.__getitem__``) for
+  selecting multiple columns; use a list instead. In a future version,
+  tuple keys will raise ``KeyError`` (:issue:`66266`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:
