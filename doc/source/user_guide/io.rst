@@ -5948,10 +5948,13 @@ Example of a callable using PostgreSQL `COPY clause
           s_buf.seek(0)
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
+          # Quote the schema and table identifiers so PostgreSQL preserves
+          # the original casing (unquoted identifiers are folded to lower
+          # case, which breaks COPY against capitalized names).
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)
