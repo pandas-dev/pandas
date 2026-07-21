@@ -250,7 +250,7 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-Integer slices acts similar to NumPy/Python:
+Integer slices act similar to NumPy/Python:
 
 .. ipython:: python
 
@@ -641,7 +641,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
    ts_utc = ts.tz_localize("UTC")
    ts_utc
 
-:meth:`Series.tz_convert` converts a timezones aware time series to another time zone:
+:meth:`Series.tz_convert` converts a timezone aware time series to another time zone:
 
 .. ipython:: python
 
