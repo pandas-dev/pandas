@@ -11,8 +11,12 @@ from typing import (
     Any,
     final,
 )
+import warnings
 
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import is_list_like
@@ -218,7 +222,9 @@ class _BaseXMLFormatter:
             df = df.reset_index()
 
         if self.na_rep is not None:
-            df = df.fillna(self.na_rep)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
+                df = df.fillna(self.na_rep)
 
         return df.to_dict(orient="index")
 

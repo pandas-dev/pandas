@@ -56,6 +56,24 @@ class TestDatetimeIndexFactorize:
         tm.assert_index_equal(idx, exp_idx)
         assert idx.freq == exp_idx.freq
 
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_factorize_monotonic_decreasing_no_freq(self, tz):
+        # GH#66046 fastpath for a monotonic decreasing index without a freq
+        idx = DatetimeIndex(["2014-03", "2014-03", "2014-02", "2014-01"], tz=tz)
+        assert idx.freq is None
+
+        exp_arr = np.array([0, 0, 1, 2], dtype=np.intp)
+        exp_idx = DatetimeIndex(["2014-03", "2014-02", "2014-01"], tz=tz)
+        arr, result_idx = idx.factorize()
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(result_idx, exp_idx)
+
+        exp_arr = np.array([2, 2, 1, 0], dtype=np.intp)
+        exp_idx = DatetimeIndex(["2014-01", "2014-02", "2014-03"], tz=tz)
+        arr, result_idx = idx.factorize(sort=True)
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(result_idx, exp_idx)
+
     def test_factorize_preserves_freq(self):
         # GH#38120 freq should be preserved
         idx3 = date_range("2000-01", periods=4, freq="ME", tz="Asia/Tokyo")
@@ -94,7 +112,7 @@ class TestDatetimeIndexFactorize:
 
         arr, res = obj.factorize()
         tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, check_freq=False)
         if index_or_series is Index:
             assert res.freq == idx.freq
 
@@ -103,7 +121,7 @@ class TestDatetimeIndexFactorize:
 
         arr, res = obj.factorize()
         tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, check_freq=False)
         if index_or_series is Index:
             assert res.freq == idx.freq
 

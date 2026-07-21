@@ -69,13 +69,94 @@ def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwar
     )
     temp_hdfstore.append("df", df, data_columns=True)
 
-    msg = "is not supported with 'iterator' or 'chunksize'"
+    msg = "is a column projection, not a row filter"
     with pytest.raises(NotImplementedError, match=msg):
         temp_hdfstore.select("df", where=where, **iter_kwargs)
 
     # a plain row filter must keep working
     result = concat(list(temp_hdfstore.select("df", where="A>0", **iter_kwargs)))
     tm.assert_frame_equal(result, temp_hdfstore.select("df", where="A>0"))
+
+
+def test_select_as_coordinates_columns_in_where_raises(temp_hdfstore):
+    # GH#12953 a column selection in the `where` argument is a projection, not a
+    # row filter, so it cannot be expressed as row coordinates. Every
+    # coordinate-based read -- select_as_coordinates and select_as_multiple --
+    # raises the same clear error as the iterator path, rather than the cryptic
+    # KeyError that read_coordinates used to produce.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df1", df, data_columns=True)
+    temp_hdfstore.append("df2", df.rename(columns="{}_2".format), data_columns=True)
+
+    msg = "is a column projection, not a row filter"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select_as_coordinates("df1", where="columns=['A']")
+
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select_as_multiple(
+            ["df1", "df2"], where="columns=['A']", selector="df1"
+        )
+
+    # a plain row filter must keep returning coordinates
+    coords = temp_hdfstore.select_as_coordinates("df1", where="A>0")
+    assert len(coords) == (df["A"] > 0).sum()
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 50}, {"iterator": True}])
+def test_select_iterator_condition_and_big_selector(temp_hdfstore, iter_kwargs):
+    # GH#12953 a `where` that combines a numexpr row condition with a big-list
+    # (>31 selectors) data-column filter is realized as a numexpr condition plus
+    # a post-read filter. The chunked/iterator path reads by row coordinates, so
+    # the filter must be applied when computing those coordinates -- otherwise it
+    # is silently dropped and extra rows leak through.
+    df = DataFrame(
+        {
+            "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
+            "users": ["a"] * 50
+            + ["b"] * 50
+            + ["c"] * 100
+            + [f"a{i:03d}" for i in range(100)],
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=["ts", "users"])
+
+    selector = ["a", "b", "c"] + [f"a{i:03d}" for i in range(60)]
+    where = "ts>=Timestamp('2012-02-01') and users=selector"
+
+    expected = df[(df["ts"] >= Timestamp("2012-02-01")) & df["users"].isin(selector)]
+    result = concat(list(temp_hdfstore.select("df", where=where, **iter_kwargs)))
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", where=where))
+
+
+@pytest.mark.parametrize("op", ["==", "!="])
+def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
+    # GH#12953 a big-list (>31 selectors) ==/!= filter on a datetimetz data
+    # column is realized as a post-read filter (process_axes). The filter was
+    # applied to the column's tz-naive .values, which never matched the
+    # tz-aware selector, so a plain read silently returned the wrong rows
+    # (nothing for ==, everything for !=) while the coordinate/iterator path
+    # returned the right rows.
+    ts = date_range("2020-01-01", periods=300, freq="h", tz="US/Eastern", unit="ns")
+    df = DataFrame({"ts": ts, "other": np.arange(300)})
+    temp_hdfstore.append("df", df, data_columns=["ts", "other"])
+
+    selector = list(ts[:60])
+    where = f"ts {op} selector"
+
+    isin = df["ts"].isin(selector)
+    expected = df[isin if op == "==" else ~isin]
+
+    result = temp_hdfstore.select("df", where=where)
+    tm.assert_frame_equal(result, expected)
+
+    # a plain read must match the iterator/coordinate path
+    iter_result = concat(list(temp_hdfstore.select("df", where=where, chunksize=50)))
+    tm.assert_frame_equal(result, iter_result)
 
 
 def test_select_with_dups(temp_hdfstore):
@@ -89,11 +170,11 @@ def test_select_with_dups(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=df.columns)
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=["A"])
     expected = df.loc[:, ["A"]]
@@ -120,19 +201,19 @@ def test_select_with_dups_across_dtypes(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=df.columns)
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     expected = df.loc[:, ["A"]]
     result = temp_hdfstore.select("df", columns=["A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     expected = df.loc[:, ["B", "A"]]
     result = temp_hdfstore.select("df", columns=["B", "A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_select_with_dups_across_index_and_columns(temp_hdfstore):
@@ -156,7 +237,7 @@ def test_select_with_dups_across_index_and_columns(temp_hdfstore):
     expected = df.loc[:, ["B", "A"]]
     expected = concat([expected, expected])
     result = temp_hdfstore.select("df", columns=["B", "A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_select(temp_hdfstore):

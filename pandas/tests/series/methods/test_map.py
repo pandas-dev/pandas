@@ -526,6 +526,16 @@ def test_map_categorical_na_action(na_action, expected):
     tm.assert_series_equal(result, expected)
 
 
+def test_map_categorical_to_tuples(na_action):
+    # GH#51488 mapping a categorical Series to tuples used to raise
+    # NotImplementedError because the mapped categories formed a MultiIndex.
+    s = Series(pd.Categorical(["a", "a", "b", "c"]))
+    mapper = {"a": ("x",), "b": ("y",), "c": ("z",)}
+    result = s.map(mapper, na_action=na_action)
+    expected = Series([("x",), ("x",), ("y",), ("z",)])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_datetimetz():
     values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")
@@ -702,3 +712,53 @@ def test_map_retains_dtype_with_na(dtype):
     ser = Series([1, 2, 3, pd.NA, 10], dtype=dtype)
     result = ser.map(lambda x: x)
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize(
+    "dtype, non_na",
+    [
+        ("Int64", 1),
+        ("Float64", 1.5),
+        ("boolean", True),
+        pytest.param("int64[pyarrow]", 1, marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", 1.5, marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", "a", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_na_identity(dtype, non_na):
+    # GH#57390 - pd.NA is passed to the mapper as pd.NA, not coerced to NaN,
+    # so an identity check (x is pd.NA) inside the mapper works
+    ser = Series([pd.NA, non_na], dtype=dtype)
+    result = ser.map(lambda x: x is pd.NA)
+    assert result.tolist() == [True, False]
+
+
+@pytest.mark.parametrize(
+    "dtype, non_na",
+    [
+        ("Int64", 1),
+        ("Float64", 1.5),
+        ("boolean", True),
+        pytest.param("int64[pyarrow]", 1, marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", 1.5, marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", "a", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_na_action_ignore_not_called_on_na(dtype, non_na):
+    # GH#57390 - na_action="ignore" propagates NA without passing it to the mapper
+    ser = Series([pd.NA, non_na], dtype=dtype)
+    seen = []
+    result = ser.map(lambda x: seen.append(x) or x, na_action="ignore")
+    assert not any(x is pd.NA for x in seen)
+    tm.assert_series_equal(result, ser)
+
+
+def test_map_datetime_series_passes_scalar_timestamps():
+    # GH#44392 Series.map/apply on a *tz-aware* datetime Series must pass scalar
+    # Timestamps to the callable, not the whole DatetimeIndex (the tz-naive case
+    # already worked, so tz-awareness is the trigger)
+    ser = Series(date_range("2021-01-01", periods=3, tz="UTC"))
+    for method in ("map", "apply"):
+        seen = []
+        getattr(ser, method)(lambda ts: seen.append(type(ts).__name__))
+        assert set(seen) == {"Timestamp"}

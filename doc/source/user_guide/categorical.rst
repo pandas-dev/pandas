@@ -1038,18 +1038,18 @@ Memory usage
 
 .. _categorical.memory:
 
-The memory usage of a ``Categorical`` is proportional to the number of categories plus the length of the data. In contrast,
-an ``object`` dtype is a constant times the length of the data.
+The memory usage of a ``Categorical`` is proportional to the number *and size* of categories plus the length of the data. In contrast,
+an ``object`` dtype is proportional to the size of the objects times the length of the data.
 
 .. ipython:: python
 
-   s = pd.Series(["foo", "bar"] * 1000)
+   s = pd.Series(["foo", "bar"] * 1000, dtype="object")
 
    # object dtype
-   s.nbytes
+   s.memory_usage(deep=True)
 
    # category dtype
-   s.astype("category").nbytes
+   s.astype("category").memory_usage(deep=True)
 
 .. note::
 
@@ -1058,13 +1058,13 @@ an ``object`` dtype is a constant times the length of the data.
 
    .. ipython:: python
 
-      s = pd.Series(["foo%04d" % i for i in range(2000)])
+      s = pd.Series(["foo%04d" % i for i in range(2000)], dtype="object")
 
       # object dtype
-      s.nbytes
+      s.memory_usage(deep=True)
 
       # category dtype
-      s.astype("category").nbytes
+      s.astype("category").memory_usage(deep=True)
 
 
 ``Categorical`` is not a ``numpy`` array

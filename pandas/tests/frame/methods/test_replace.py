@@ -31,6 +31,91 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 
 class TestDataFrameReplace:
+    def test_replace_nan_and_infs_with_none_single_call(self):
+        # GH#31414 replacing NaN and +/-inf with None in a single dict call
+        # must replace all of them and produce object dtype
+        df = DataFrame(
+            {"foo": [np.nan, np.inf, 1.1, 2.2], "bar": [1.0, -np.inf, 2.1, 3.2]}
+        )
+        result = df.replace({np.nan: None, np.inf: None, -np.inf: None})
+        expected = DataFrame(
+            {
+                "foo": [None, None, 1.1, 2.2],
+                "bar": [1.0, None, 2.1, 3.2],
+            },
+            dtype=object,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_nan_to_none_alongside_value_replacement(self):
+        # GH#31414 a dict mixing a NaN->None entry with a real value
+        # replacement must not undo the None (replace used to revert None->NaN)
+        df = DataFrame(
+            {"foo": [np.nan, np.inf, 1.1, 2.2], "bar": [1.0, -np.inf, 2.1, 3.2]}
+        )
+        result = df.replace({np.nan: None, 1: 2})
+        assert result["foo"].iloc[0] is None
+        assert result["bar"].iloc[0] == 2
+        assert result["foo"].dtype == object
+
+    def test_replace_nan_with_none_mixed_dtypes(self):
+        # GH#44485 replacing NaN with None must be idempotent: applying it an
+        # *even* number of times used to revert and re-introduce NaN (the second
+        # replace should be a no-op)
+        df = DataFrame(
+            {
+                "age": [5, 6, np.nan],
+                "born": [
+                    pd.NaT,
+                    Timestamp("1939-05-27"),
+                    Timestamp("1940-04-25"),
+                ],
+                "name": ["Alfred", "Batman", ""],
+                "toy": [None, "Batmobile", "Joker"],
+            }
+        )
+        once = df.replace({np.nan: None})
+        twice = once.replace({np.nan: None})
+        remaining = [
+            value
+            for record in twice.to_dict(orient="records")
+            for value in record.values()
+            if isinstance(value, float) and np.isnan(value)
+        ]
+        assert remaining == []
+        tm.assert_frame_equal(once, twice)
+        assert twice["age"].dtype == object
+
+    @pytest.mark.parametrize("null", [None, pd.NA])
+    def test_replace_regex_list_with_all_null_object_column(self, null):
+        # GH#54399 replace with a list of regexes must not raise when a column
+        # is object dtype containing only null values (None and pd.NA both
+        # regressed; the single-regex form was fine)
+        df = DataFrame(
+            {"a": Series([1], dtype="int64"), "b": Series([null], dtype="object")}
+        )
+        result = df.replace(regex=[r"^a$", r"\d{4}"], value="dude")
+        tm.assert_frame_equal(result, df)
+
+    def test_replace_regex_list_all_null_frame_and_match(self):
+        # GH#54399 an all-null object frame (no non-null column at all) must not
+        # raise, and a genuine match alongside an all-null column still replaces
+        all_null = DataFrame(
+            {"a": Series([None], dtype="object"), "b": Series([None], dtype="object")}
+        )
+        tm.assert_frame_equal(
+            all_null.replace(regex=[r"^a$", r"\d{4}"], value="dude"), all_null
+        )
+
+        df = DataFrame(
+            {"a": Series(["1234"], dtype="object"), "b": Series([None], dtype="object")}
+        )
+        result = df.replace(regex=[r"^a$", r"\d{4}"], value="dude")
+        expected = DataFrame(
+            {"a": Series(["dude"], dtype="object"), "b": Series([None], dtype="object")}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_inplace(self, datetime_frame, float_string_frame):
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
         datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
@@ -1214,6 +1299,16 @@ class TestDataFrameReplace:
         )
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
+
+    def test_replace_ellipsis(self):
+        # GH#50373 Ellipsis should be accepted as a scalar to_replace
+        df = DataFrame({"a": [1, 2, 3], "b": [..., ..., ...]})
+        result = df.replace(..., 1)
+        expected = DataFrame({"a": [1, 2, 3], "b": Series([1, 1, 1], dtype=object)})
+        tm.assert_frame_equal(result, expected)
+
+        # Ellipsis is equivalent to the spelled-out singleton
+        tm.assert_frame_equal(df.replace(Ellipsis, 1), expected)
 
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])

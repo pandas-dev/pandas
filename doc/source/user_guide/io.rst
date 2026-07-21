@@ -1522,6 +1522,39 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 
 Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
+.. _io.csv.parallel:
+
+Reading large files in parallel
+'''''''''''''''''''''''''''''''
+
+.. versionadded:: 3.1.0
+
+When reading a large file with the C engine, :func:`read_csv` splits the file
+into chunks and parses them in multiple threads, which can speed up reading
+considerably. This happens automatically when all of the following hold:
+
+* ``filepath_or_buffer`` is a local, uncompressed file path
+* the C engine is used (the default)
+* the file is at least 50 MB
+* no options are passed that require parsing the file as a whole, such as
+  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
+  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
+  non-UTF-8 encodings
+
+Calls that are not eligible fall back to the serial path, and the result is
+always identical to a serial read.
+
+The number of threads is controlled with the ``mode.max_threads`` option,
+which defaults to the number of CPU cores, capped at ``4``. On Windows the
+default is ``1`` (serial), as parallel reading currently does not improve
+performance there. Set the option to ``1`` to disable parallel reading, e.g.
+when pandas runs inside an application that already parallelizes work:
+
+.. code-block:: python
+
+   with pd.option_context("mode.max_threads", 1):
+       df = pd.read_csv("large.csv")
+
 .. _io.remote:
 
 Reading/writing remote files
@@ -1907,7 +1940,16 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if ``False``, then don't infer dtypes at all, default is True, apply only to the data.
 * ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is ``True``
 * ``convert_dates`` : a list of columns to parse for dates; If ``True``, then try to parse date-like columns, default is ``True``.
+
+  .. deprecated:: 3.1.0
+     Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
+
 * ``keep_default_dates`` : boolean, default ``True``. If parsing dates, then parse the default date-like columns.
+
+  .. deprecated:: 3.1.0
+     Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
+
+
 * ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -3453,7 +3495,7 @@ For example, to read in a ``MultiIndex`` index without names:
        index=pd.MultiIndex.from_product([["a", "b"], ["c", "d"]]),
    )
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 If the index has level names, they will be parsed as well, using the same
@@ -3463,7 +3505,7 @@ parameters.
 
    df.index = df.index.set_names(["lvl1", "lvl2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 
@@ -3474,7 +3516,7 @@ should be passed to ``index_col`` and ``header``:
 
    df.columns = pd.MultiIndex.from_product([["a"], ["b", "d"]], names=["c1", "c2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1], engine="openpyxl")
    df
 
 .. ipython:: python
@@ -4868,7 +4910,10 @@ control compression: ``complevel`` and ``complib``.
   ``0<complevel<10`` enables compression.
 
 * ``complib`` specifies which compression library to use.
-  If nothing is  specified the default library ``zlib`` is used. A
+  If nothing is  specified the default library ``zlib`` is used. Note that
+  ``complib`` only takes effect when ``complevel`` is set greater than ``0``;
+  passing ``complib`` on its own writes the data uncompressed and emits a
+  ``UserWarning``. A
   compression library usually optimizes for either good compression rates
   or speed and the results will depend on the type of data. Which type of
   compression to choose depends on your specific needs and data. The list
@@ -5222,6 +5267,9 @@ Several caveats.
 * The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
   type (this can also work for external extension types, requiring the extension type to implement the needed protocols,
   see the :ref:`extension types documentation <extending.extension.arrow>`).
+* With the ``pyarrow`` engine, ``uint32`` data written with parquet format ``version="1.0"``
+  is stored as ``int64``, so it does not survive a round trip. The default format version
+  (``"2.4"`` or higher) preserves ``uint32`` (:issue:`37327`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
@@ -5824,6 +5872,34 @@ with respect to the timezone.
 timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
 will convert the data to UTC.
 
+.. note::
+
+   When using :func:`~pandas.DataFrame.to_sql` with Microsoft SQL Server and pyodbc
+   with ``fast_executemany=True``, datetime precision may be lost when writing to
+   local temporary tables (tables with names starting with ``#``). This is because
+   that code path binds parameters as arrays and relies on the ODBC driver inferring
+   the temporary table's column types, which it cannot do for temporary tables. The
+   default (per-row) insert path is unaffected.
+
+   To preserve datetime precision with SQL Server temporary tables, add
+   ``UseFMTONLY=Yes`` to your connection string:
+
+   .. code-block:: python
+
+      from sqlalchemy import create_engine
+
+      connection_string = (
+          "mssql+pyodbc://user:password@server/database"
+          "?driver=ODBC+Driver+17+for+SQL+Server"
+          "&UseFMTONLY=Yes"
+      )
+      engine = create_engine(connection_string)
+
+   Alternatively, use global temporary tables (``##table_name``) instead of
+   local temporary tables (``#table_name``). See the `pyodbc documentation
+   <https://github.com/mkleehammer/pyodbc/wiki/Tips-and-Tricks-by-Database-Platform#using-fast_executemany-with-a-temporary-table>`__
+   for more details.
+
 .. _io.sql.method:
 
 Insertion method
@@ -6424,7 +6500,9 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
+       df.to_hdf(
+           "test_fixed_compress.hdf", key="test", mode="w", complib="blosc", complevel=9
+       )
 
 
    def test_hdf_fixed_read_compress():
@@ -6441,7 +6519,12 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf",
+           key="test",
+           mode="w",
+           complib="blosc",
+           complevel=9,
+           format="table",
        )
 
 

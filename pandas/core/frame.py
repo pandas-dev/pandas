@@ -40,6 +40,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
@@ -76,12 +77,10 @@ from pandas.core.dtypes.cast import (
     construct_2d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
-    invalidate_string_dtypes,
     maybe_downcast_to_dtype,
     maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
-    infer_dtype_from_object,
     is_1d_only_ea_dtype,
     is_array_like,
     is_bool_dtype,
@@ -104,7 +103,10 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -159,6 +161,7 @@ from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
     infer_and_maybe_downcast,
+    maybe_warn_multiindex_expansion,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -296,7 +299,9 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-        If ``data`` is DataFrame then is ignored.
+        If ``data`` is DataFrame then is ignored. Missing values in ``data``
+        are not cast: for example, with ``dtype=str`` a ``NaN`` entry stays
+        missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -578,7 +583,9 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     data = list(data)
             if len(data) > 0:
-                if is_dataclass(data[0]):
+                if is_dataclass(data[0]) and not is_list_like(data[0]):
+                    # GH#41682 a list-like dataclass (e.g. a UserList subclass)
+                    # is treated as list-like, not converted to a dict of fields
                     data = dataclasses_to_dicts(data)
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
@@ -1762,6 +1769,7 @@ class DataFrame(NDFrame, OpsMixin):
             if len(data) > 0:
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
+                    index = Index(data.keys())
                     data = _from_nested_dict(data)
                 else:
                     index = list(data.keys())
@@ -1771,6 +1779,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
+            if (
+                orient == "columns"
+                and isinstance(data, dict)
+                and len(data) > 0
+                and all(is_scalar(value) for value in data.values())
+            ):
+                # GH#25515
+                raise ValueError(
+                    "If using all scalar values, pass orient='index' to use "
+                    "the keys as the index, or use the DataFrame constructor."
+                )
         else:  # pragma: no cover
             raise ValueError(
                 f"Expected 'index', 'columns' or 'tight' for orient parameter. "
@@ -3988,6 +4007,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         *args : tuple, optional
             Accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
@@ -4676,7 +4696,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             ilocs = self.columns.get_indexer_non_unique(key)[0]
-            if (ilocs < 0).any():
+            if lib.has_sentinel(ilocs, -1):
                 # key entries not in self.columns
                 raise NotImplementedError
 
@@ -4709,7 +4729,21 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._where(-key, value, inplace=True)
+        try:
+            self._where(-key, value, inplace=True)
+        except ValueError as err:
+            # GH#45593 restate putmask_without_repeat's message with the
+            #  mismatched lengths.
+            if "mismatch length to masked array" not in str(err):
+                raise
+            num_true = int(key.to_numpy(dtype=bool, na_value=False).sum())
+            num_values = len(value) if is_list_like(value) else 1
+            raise ValueError(
+                f"Cannot set with a boolean DataFrame mask: the number of "
+                f"values ({num_values}) does not match the number of True "
+                f"entries in the mask ({num_true}). Provide a scalar or a "
+                f"value matching the mask."
+            ) from err
 
     def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
@@ -4728,17 +4762,19 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, (slice, Series, np.ndarray, Index)
             ):
                 cols_droplevel = maybe_droplevels(cols, key)
-                if (
-                    not isinstance(cols_droplevel, MultiIndex)
-                    and is_string_dtype(cols_droplevel.dtype)
-                    and not cols_droplevel.any()
-                ):
-                    # if cols_droplevel contains only empty strings,
-                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
-                    # see GH#62518 and GH#61841
-                    return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
-                    value = value.reindex(cols_droplevel, axis=1)
+                    if (
+                        not isinstance(cols_droplevel, MultiIndex)
+                        and is_string_dtype(cols_droplevel.dtype)
+                        and (cols_droplevel == "").all()
+                    ):
+                        # if cols_droplevel contains only empty strings,
+                        # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                        # see GH#62518 and GH#61841
+                        value = value.copy(deep=False)
+                        value.columns = cols_droplevel
+                    else:
+                        value = value.reindex(cols_droplevel, axis=1)
 
                 if not cols_droplevel.equals(cols):
                     # Levels were actually dropped, so we can safely use
@@ -4812,6 +4848,20 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
+        if (
+            isinstance(self.columns, MultiIndex)
+            # tuple keys of the wrong length raise in
+            #  MultiIndex._validate_fill_value instead of getting padded
+            and not isinstance(key, tuple)
+            and key not in self.columns
+        ):
+            maybe_warn_multiindex_expansion(
+                self.columns,
+                key,
+                target="column on a DataFrame",
+                hint="Use a full-length tuple key instead.",
+            )
+
         value, refs = self._sanitize_column(value)
 
         if (
@@ -4865,10 +4915,11 @@ class DataFrame(NDFrame, OpsMixin):
                 self.loc[index, col] = value
 
         except InvalidIndexError as ii_err:
-            # GH48729: Seems like you are trying to assign a value to a
-            # row when only scalar options are permitted
+            # GH#48729, GH#51866: get_loc raises InvalidIndexError when a
+            #  row/column label is not a scalar (e.g. a boolean mask, array,
+            #  list, or slice). .at only supports scalar label access.
             raise InvalidIndexError(
-                f"You can only assign a scalar value not a {type(value)}"
+                ".at-based indexing can only have scalar indexers; use .loc instead"
             ) from ii_err
 
     def _ensure_valid_index(self, value) -> None:
@@ -5344,13 +5395,28 @@ class DataFrame(NDFrame, OpsMixin):
           work to select all string columns.
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
+        * A dtype instance (e.g. ``np.dtype("int32")`` or
+          ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
+          exactly that dtype, whereas a class or string selects a family
+          of dtypes. Under-specified instances like a unitless
+          ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
+          ``pd.IntervalDtype("int64")`` without a ``closed`` select their
+          whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
           ``'timedelta64'``
+        * To select datetimes or timedeltas of a specific resolution, pass a
+          unit-qualified dtype such as ``'datetime64[us]'`` or
+          ``'timedelta64[ms]'``; this matches only columns with exactly that
+          resolution, whereas an unqualified spec matches every resolution
         * To select Pandas categorical dtypes, use ``'category'``
         * To select Pandas datetimetz dtypes, use ``'datetimetz'``
           or ``'datetime64[ns, tz]'``
+        * An :class:`~pandas.api.extensions.ExtensionDtype` subclass matches
+          every instance of that subclass regardless of parametrization, e.g.
+          ``pd.ArrowDtype`` selects all pyarrow-backed columns and
+          ``pd.CategoricalDtype`` selects all categorical columns
 
         Examples
         --------
@@ -5403,67 +5469,320 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        # convert the myriad valid dtypes object to a single representation
-        def check_int_infer_dtype(dtypes):
-            converted_dtypes: list[type] = []
+        def to_callable(
+            dtypes,
+        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
+            # We convert the user-provided dtypes (which may be dtype instances,
+            # dtype classes, dtype.types, or strings) into our dtype predicate,
+            # along with the set of objects they resolve to -- dtype instances,
+            # dtype.type-style objects, or ExtensionDtype classes/instances for
+            # EA-name strings (used for validation below).
+
+            def matches_object(dtype_obj: DtypeObj) -> bool:
+                # backwards compat for the default `str` dtype being
+                # selected by object
+                return dtype_obj == np.dtype(np.object_) or (
+                    isinstance(dtype_obj, StringDtype) and dtype_obj.na_value is np.nan
+                )
+
+            def matches_number(dtype_obj: DtypeObj) -> bool:
+                # All numeric dtypes, excluding bool dtypes
+                # GH#46870: BooleanDtype._is_numeric == True but should
+                # be excluded
+                return not is_bool_dtype(dtype_obj) and (
+                    (
+                        isinstance(dtype_obj, np.dtype)
+                        and issubclass(dtype_obj.type, np.number)
+                    )
+                    or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
+                )
+
+            def matches_type(
+                dtype_type: type | tuple[type, ...],
+            ) -> Callable[[DtypeObj], bool]:
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return issubclass(dtype_obj.type, dtype_type)
+
+                return func
+
+            def matches_ea_class(
+                dtype_class: type[ExtensionDtype],
+            ) -> Callable[[DtypeObj], bool]:
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return isinstance(dtype_obj, dtype_class)
+
+                return func
+
+            def matches_ea_instance(
+                target: ExtensionDtype,
+            ) -> Callable[[DtypeObj], bool]:
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return dtype_obj == target
+
+                return func
+
+            def matches_interval_subtype(
+                target: IntervalDtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # GH#66119, GH#66120: an interval spec with a subtype but no
+                # ``closed`` (e.g. the string "interval[int64]" or the instance
+                # IntervalDtype("int64")) has closed=None, which ``==`` never
+                # matches since no column has closed=None. Treat it as naming
+                # the subtype family, matching that subtype for any closed.
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return (
+                        isinstance(dtype_obj, IntervalDtype)
+                        and dtype_obj.subtype == target.subtype
+                    )
+
+                return func
+
+            def matches_np_dtype(
+                np_dtype: np.dtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # A datetime64/timedelta64 dtype with a specific unit matches
+                # only columns with exactly that resolution (GH#40234)
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return isinstance(dtype_obj, np.dtype) and dtype_obj == np_dtype
+
+                return func
+
+            # Matchers for string specs that name a specific ExtensionDtype are
+            # collected separately: they are checked against the column dtype
+            # as-is, before the ArrowDtype -> numpy_dtype normalization that the
+            # remaining (numpy-oriented) matchers rely on.
+            funcs: list[Callable[[DtypeObj], bool]] = []
+            instances: list[DtypeObj] = []
+            ea_funcs: list[Callable[[DtypeObj], bool]] = []
+            klasses: list[type[ExtensionDtype]] = []
+            resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
-                # Numpy maps int to different types (int32, in64) on Windows and Linux
-                # see https://github.com/numpy/numpy/issues/9464
-                if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
-                    converted_dtypes.append(np.int32)
-                    converted_dtypes.append(np.int64)
+                if isinstance(dtype, (np.dtype, ExtensionDtype)):
+                    # GH#40234: a dtype instance matches only columns with
+                    # exactly that dtype, whereas a class or string matches
+                    # a family of dtypes
+                    if isinstance(dtype, np.dtype) and issubclass(
+                        dtype.type, (np.str_, np.bytes_)
+                    ):
+                        raise TypeError(
+                            "numpy string dtypes are not allowed, "
+                            "use 'str' or 'object' instead"
+                        )
+                    if lib.is_np_dtype(dtype, "mM"):
+                        unit = np.datetime_data(dtype)[0]
+                        if unit == "generic":
+                            # unitless np.dtype("datetime64") is not a specific
+                            # dtype, so match the family, as with np.datetime64
+                            resolved.add(dtype.type)
+                            funcs.append(matches_type(dtype.type))
+                            continue
+                        if unit not in ("s", "ms", "us", "ns"):
+                            # no column can ever have this dtype
+                            raise ValueError(
+                                f"{dtype.name!r} is too specific of a "
+                                f"frequency, try passing "
+                                f"{dtype.type.__name__!r}"
+                            )
+                    elif isinstance(dtype, CategoricalDtype) and (
+                        dtype.categories is None
+                    ):
+                        # a bare CategoricalDtype() is not a specific dtype,
+                        # so match all categorical columns, as with the
+                        # "category" string
+                        resolved.add(dtype.type)
+                        funcs.append(matches_type(dtype.type))
+                        continue
+                    elif (
+                        isinstance(dtype, IntervalDtype)
+                        and dtype.subtype is not None
+                        and dtype.closed is None
+                    ):
+                        # GH#66119: a partially-specified IntervalDtype instance
+                        # (subtype but no closed, e.g. IntervalDtype("int64"))
+                        # names the subtype family, matching any closed value
+                        resolved.add(dtype)
+                        ea_funcs.append(matches_interval_subtype(dtype))
+                        continue
+                    resolved.add(dtype)
+                    instances.append(dtype)
+
+                elif dtype is np.number or (
+                    isinstance(dtype, str) and dtype == "number"
+                ):
+                    resolved.add(np.number)
+                    funcs.append(matches_number)
+
+                elif (isinstance(dtype, str) and dtype == "int") or (dtype is int):
+                    # Numpy maps int to different types (int32, int64)
+                    # on Windows and Linux
+                    # see https://github.com/numpy/numpy/issues/9464
+                    resolved.update((np.int32, np.int64))
+                    funcs.append(matches_type((np.int32, np.int64)))
+
                 elif dtype == "float" or dtype is float:
-                    # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
-                    converted_dtypes.extend([np.float64, np.float32])
+                    # GH#42452: np.dtype("float") coerces to np.float64
+                    # from Numpy 1.20
+                    resolved.update((np.float64, np.float32))
+                    funcs.append(matches_type((np.float64, np.float32)))
+
+                elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+                    # An ExtensionDtype subclass matches every instance of
+                    # that subclass, e.g. ArrowDtype matches all pyarrow-backed
+                    # dtypes and CategoricalDtype matches all categoricals
+                    resolved.add(dtype)
+                    klasses.append(dtype)
+
                 else:
-                    converted_dtypes.append(infer_dtype_from_object(dtype))
-            return frozenset(converted_dtypes)
+                    # Resolve dtype to a dtype.type-style object. Comparing the
+                    # raw user input against np.dtype(object) would trigger
+                    # numpy's abstract-type conversion DeprecationWarning for
+                    # entries like np.floating, so normalize first and dispatch
+                    # on the resolved type below.
+                    dtype_type: type
+                    if isinstance(dtype, type) and issubclass(dtype, np.generic):
+                        # e.g. np.floating, np.int64: use as-is instead of
+                        # routing through np.dtype(...), which resolves abstract
+                        # types such as np.signedinteger to a concrete dtype
+                        # (GH#51523)
+                        dtype_type = dtype
+                    else:
+                        try:
+                            pdtype = pandas_dtype(dtype)
+                        except TypeError:
+                            if not isinstance(dtype, str):
+                                raise
+                            # strings accepted here but not by pandas_dtype
+                            # TODO(jreback) should deprecate these
+                            if dtype in ("datetimetz", "datetime64tz"):
+                                dtype_type = DatetimeTZDtype.type
+                            elif dtype == "period":
+                                raise NotImplementedError from None
+                            elif dtype == "datetime":
+                                dtype_type = np.datetime64
+                            elif dtype == "timedelta":
+                                dtype_type = np.timedelta64
+                            else:
+                                maybe_dtype = getattr(np, dtype, None)
+                                if isinstance(maybe_dtype, type) and issubclass(
+                                    maybe_dtype, np.generic
+                                ):
+                                    # e.g. "floating", "integer"
+                                    dtype_type = maybe_dtype
+                                else:
+                                    raise
+                        else:
+                            if isinstance(dtype, str) and isinstance(
+                                pdtype, ExtensionDtype
+                            ):
+                                # GH#40234, GH#59888: a string naming a specific
+                                # ExtensionDtype selects that exact dtype rather
+                                # than anything sharing its ``dtype.type``. A
+                                # bracketed string (e.g. "int64[pyarrow]") names
+                                # one parametrization and matches that instance;
+                                # a bare name (e.g. "Int64", "category") names
+                                # the dtype's class and matches any instance.
+                                if "[" in dtype:
+                                    if (
+                                        isinstance(pdtype, IntervalDtype)
+                                        and pdtype.closed is None
+                                    ):
+                                        # GH#66120: "interval[int64]" resolves to
+                                        # closed=None; match the subtype family
+                                        resolved.add(pdtype)
+                                        ea_funcs.append(
+                                            matches_interval_subtype(pdtype)
+                                        )
+                                    else:
+                                        resolved.add(pdtype)
+                                        ea_funcs.append(matches_ea_instance(pdtype))
+                                else:
+                                    resolved.add(type(pdtype))
+                                    ea_funcs.append(matches_ea_class(type(pdtype)))
+                                continue
+                            if lib.is_np_dtype(pdtype, "mM"):
+                                unit = np.datetime_data(pdtype)[0]
+                                if unit == "generic":
+                                    # a unitless datetime64/timedelta64 matches
+                                    # every resolution
+                                    dtype_type = pdtype.type
+                                elif is_supported_dtype(pdtype):
+                                    # a specific unit (s, ms, us, ns) matches
+                                    # only that exact resolution (GH#40234)
+                                    resolved.add(pdtype)
+                                    funcs.append(matches_np_dtype(pdtype))
+                                    continue
+                                else:
+                                    raise ValueError(
+                                        f"{pdtype.name!r} is not a supported "
+                                        "datetime64/timedelta64 resolution; pass "
+                                        "'s', 'ms', 'us', 'ns', or "
+                                        f"{pdtype.type.__name__!r}"
+                                    )
+                            # Instances are handled at the top of the loop, so
+                            # only strings/numpy types reach here.
+                            dtype_type = pdtype.type
 
-        include = check_int_infer_dtype(include)
-        exclude = check_int_infer_dtype(exclude)
+                    resolved.add(dtype_type)
+                    if dtype_type is np.object_:
+                        funcs.append(matches_object)
+                    else:
+                        funcs.append(matches_type(dtype_type))
 
-        for dtypes in (include, exclude):
-            invalidate_string_dtypes(dtypes)
+            klass_tuple = tuple(klasses)
 
-        # can't both include AND exclude!
-        if not include.isdisjoint(exclude):
-            raise ValueError(f"include and exclude overlap on {(include & exclude)}")
+            def matches_any(dtype_obj: DtypeObj) -> bool:
+                # instance specs (GH#40234), EA-name string specs (GH#59888),
+                # and EA-subclass specs (GH#65366) are all checked against the
+                # raw dtype before the ArrowDtype -> numpy_dtype normalization
+                # below.
+                if any(dtype_obj == instance for instance in instances):
+                    return True
+                if any(func(dtype_obj) for func in ea_funcs):
+                    return True
+                if isinstance(dtype_obj, klass_tuple):
+                    return True
+                if isinstance(dtype_obj, ArrowDtype):
+                    # class- and string-based matching treats ArrowDtype
+                    # columns like their numpy counterparts
+                    dtype_obj = dtype_obj.numpy_dtype
+                return any(func(dtype_obj) for func in funcs)
 
-        def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
-            # GH 46870: BooleanDtype._is_numeric == True but should be excluded
-            dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return (
-                issubclass(dtype.type, tuple(dtypes_set))
-                or (
-                    np.number in dtypes_set
-                    and getattr(dtype, "_is_numeric", False)
-                    and not is_bool_dtype(dtype)
+            return matches_any, frozenset(resolved)
+
+        include_func, include_set = to_callable(include)
+        exclude_func, exclude_set = to_callable(exclude)
+
+        for dtype_set in (include_set, exclude_set):
+            if dtype_set & {np.bytes_, np.str_}:
+                raise TypeError(
+                    "numpy string dtypes are not allowed, use 'str' or 'object' instead"
                 )
-                # backwards compat for the default `str` dtype being selected by object
-                or (
-                    isinstance(dtype, StringDtype)
-                    and dtype.na_value is np.nan
-                    and np.object_ in dtypes_set
-                )
+        if not include_set.isdisjoint(exclude_set):
+            # can't both include AND exclude!
+            raise ValueError(
+                f"include and exclude overlap on {(include_set & exclude_set)}"
             )
 
         def predicate(arr: ArrayLike) -> bool:
             dtype = arr.dtype
             if include:
-                if not dtype_predicate(dtype, include):
+                if not include_func(dtype):
                     return False
 
             if exclude:
-                if dtype_predicate(dtype, exclude):
+                if exclude_func(dtype):
                     return False
 
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        # ``str`` (the type) and ``StringDtype`` (from a "str"/"string" spec)
+        # both count as the user explicitly handling string columns.
+        string_specs = {str, StringDtype}
         if (
-            np.object_ in include
-            and str not in include
-            and str not in exclude
+            np.object_ in include_set
+            and string_specs.isdisjoint(include_set)
+            and string_specs.isdisjoint(exclude_set)
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes
@@ -5571,6 +5890,16 @@ class DataFrame(NDFrame, OpsMixin):
             )
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
+
+        if not isinstance(column, tuple):
+            # tuple keys of the wrong length raise in
+            #  MultiIndex._validate_fill_value instead of getting padded
+            maybe_warn_multiindex_expansion(
+                self.columns,
+                column,
+                target="column on a DataFrame",
+                hint="Use a full-length tuple key instead.",
+            )
 
         value, refs = self._sanitize_column(value)
         self._mgr.insert(loc, column, value, refs=refs)
@@ -5832,6 +6161,13 @@ class DataFrame(NDFrame, OpsMixin):
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+            Filling is based on the position of each new label relative to the
+            existing labels, and applies to both the index and the columns.
+            For example, with ``method='ffill'`` and a monotonically
+            increasing index, a new label is filled from the nearest existing
+            label that sorts before it, so a new column whose label falls
+            between two existing columns takes its values from the preceding
+            column.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
@@ -5854,7 +6190,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
+            passed MultiIndex level. The new labels are aligned against the
+            values of that single level while the other levels are left
+            unchanged; passing a flat index with ``level`` does not form the
+            Cartesian product of the remaining levels. See
+            :ref:`advanced.advanced_reindex` for the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -6017,6 +6357,12 @@ class DataFrame(NDFrame, OpsMixin):
         does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original DataFrame, use the ``fillna()`` method.
+
+        Because ``method="bfill"`` fills each new label from the next entry
+        present in the original index, the trailing entry at 2010-01-07 stays
+        ``NaN``: there is no original index entry after it. Conversely,
+        ``method="ffill"`` would leave the leading entries (before the first
+        original index entry) unfilled.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """
@@ -7957,7 +8303,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting duplicate rows.
 
-        Considering certain columns is optional.
+        Rows are considered duplicated when the same values appear more than
+        once across the requested columns. Considering certain columns is
+        optional.
 
         Parameters
         ----------
@@ -7974,7 +8322,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Boolean series for each duplicated rows.
+            Boolean Series indicating whether each row is a duplicated row
+            according to ``keep``.
 
         See Also
         --------
@@ -8151,9 +8500,10 @@ class DataFrame(NDFrame, OpsMixin):
              If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
-             information. `mergesort` and `stable` are the only stable algorithms. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+             information. The sort order is deterministic for a given input.
+             `mergesort` and `stable` are the only stable algorithms, which preserve
+             the relative order of equal keys. For DataFrames, this option is only
+             applied when sorting on a single column or label.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
@@ -9442,6 +9792,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             # GH#36702. Raise when attempting arithmetic with list of array-like.
+            #  Deliberately not is_array_like_deprecate_non_pandas (GH#52834):
+            #  this site raises rather than granting array-like treatment, so
+            #  the warning's "wrap to retain current behavior" advice would be
+            #  wrong; whether duck arrays keep raising is for the enforcement PR.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
                     f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
@@ -13770,10 +14124,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-        The result is calculated according to current dtype in DataFrame,
-        however dtype of the result is always float64.
+        Equivalent to ``self - self.shift(periods)``, except that boolean
+        dtypes use :meth:`operator.xor` rather than :meth:`operator.sub`; the
+        result dtype follows from that operation.
+
+        In particular, because the leading ``periods`` positions are filled
+        with a missing value, NumPy integer dtypes are cast to floating and
+        NumPy ``bool`` to ``object``.
 
         Examples
         --------
@@ -14183,7 +14540,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). However, by default (``by_row="compat"``), if ``func``
+        (``axis=1``); the ``name`` attribute of each passed Series is the label
+        of the column (``axis=0``) or row (``axis=1``) currently being
+        processed. However, by default (``by_row="compat"``), if ``func``
         is a list-like or dict-like of functions, each function is first
         applied to the individual values of the Series rather than the Series
         itself; if this fails, pandas retries by passing the entire Series.
@@ -14221,7 +14580,10 @@ class DataFrame(NDFrame, OpsMixin):
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             How to interpret list-like results from `func`:
 
-            * 'expand' : list-like results will be turned into columns.
+            * 'expand' : list-like results will be turned into columns. Whether
+              a result is list-like is inferred from the first computed result;
+              if that result is not list-like, ``'expand'`` has no effect and a
+              Series is returned.
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
@@ -15151,11 +15513,13 @@ class DataFrame(NDFrame, OpsMixin):
             of `decimals` which are not columns of the input will be
             ignored.
         *args
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
         **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -15369,11 +15733,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         All columns regardless of dtype.
 
-        >>> df.describe(include="all")  # doctest: +SKIP
+        >>> df.describe(include="all")
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      a
+        top              d      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -15394,11 +15758,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Exclude a specific dtype.
 
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])
                categorical object
         count            3      3
         unique           3      3
-        top              f      a
+        top              d      a
         freq             1      1
         """
         return super().describe(
@@ -15433,8 +15797,7 @@ class DataFrame(NDFrame, OpsMixin):
                 regardless of the callable's behavior.
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -15491,7 +15854,9 @@ class DataFrame(NDFrame, OpsMixin):
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall" or callable(method):
+        elif method == "kendall":
+            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
+        elif callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
@@ -15936,7 +16301,10 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            return maybe_unbox_numpy_scalar(func(df.values))
+            return maybe_unbox_numpy_scalar(
+                func(df.values),
+                dtype=None if name in ["any", "all"] else dtype,
+            )
         elif axis == 1:
             if len(df.index) == 0:
                 # Taking a transpose would result in no columns, losing the dtype.
@@ -15955,20 +16323,37 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
-                # GH#51474: block-wise axis=1 reduction avoiding expensive
-                # transpose for numpy-backed and 2D EA blocks.
+                blocks = df._mgr.blocks
+                if len(blocks) == 1 and name not in ("argmax", "argmin"):
+                    # GH#51474: reduce a single homogeneous block along axis=0
+                    # directly, matching the transpose path below with less
+                    # overhead. argmax/argmin depend on column order, so skip.
+                    bvalues = blocks[0].values
+                    result = None
+                    if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
+                        # block is (ncols, nrows); few rows barely vectorizes,
+                        # so leave narrow sum/prod/mean to the transpose path.
+                        if not (
+                            name in ("sum", "prod", "mean") and bvalues.shape[1] < 6
+                        ):
+                            result = op(bvalues, axis=0, skipna=skipna, **kwds)
+                    elif isinstance(bvalues, ExtensionArray) and bvalues.ndim == 2:
+                        result = bvalues._reduce(name, axis=0, skipna=skipna, **kwds)
+                    if result is not None:
+                        out = df._constructor_sliced(result, index=df.index, copy=False)
+                        if out_dtype is not None and out.dtype != "boolean":
+                            out = out.astype(out_dtype)
+                        return out
+                # GH#51474: block-wise axis=1 reduction avoiding an expensive
+                # transpose for numpy-backed blocks.  EA blocks are excluded
+                # (GH#65500) and handled below by the EA fastpath or transpose.
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all", "mean")
-                    and len(df._mgr.blocks) > 1
+                    and len(blocks) > 1
                     and all(
-                        (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
-                        or (
-                            isinstance(bv, ExtensionArray)
-                            and bv.ndim == 2
-                            and name in ("min", "max")
-                            and skipna
-                        )
-                        for bv in (block.values for block in df._mgr.blocks)
+                        isinstance(block.values, np.ndarray)
+                        and block.values.dtype.kind != "O"
+                        for block in blocks
                     )
                 ):
                     return df._reduce_axis1(
@@ -15981,27 +16366,56 @@ class DataFrame(NDFrame, OpsMixin):
                     [block.values.dtype for block in df._mgr.blocks]
                 )
                 if isinstance(dtype, ExtensionDtype):
-                    # GH 54341: fastpath for EA-backed axis=1 reductions
-                    # This flattens the frame into a single 1D array while keeping
-                    # track of the row and column indices of the original frame. Once
-                    # flattened, grouping by the row indices and aggregating should
-                    # be equivalent to transposing the original frame and aggregating
-                    # with axis=0.
+                    # GH#54341: fastpath for EA-backed axis=1 reductions.
+                    # Flatten the frame into a 1D EA and call _groupby_op
+                    # directly with row indices as pre-computed group codes,
+                    # which is equivalent to transposing and reducing with
+                    # axis=0 but avoids the expensive factorize step that
+                    # ser.groupby(row_index) would otherwise perform on the
+                    # already-known codes (GH#56903).
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype)
                     arr = concat_compat(list(df._iter_column_arrays()))
+                    assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
-                    row_index = np.tile(np.arange(nrows), ncols)
-                    col_index = np.repeat(np.arange(ncols), nrows)
-                    ser = Series(arr, index=col_index, copy=False)
-                    if name == "all":
-                        # Behavior here appears incorrect; preserving
-                        # for backwards compatibility for now.
-                        # See https://github.com/pandas-dev/pandas/issues/57171
-                        skipna = True
-                    result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
-                    result.index = df.index
-                    return result
+                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
+                    if name in ("idxmin", "idxmax"):
+                        if not skipna and arr.isna().any():
+                            # Match the error raised by GroupBy._idxmax_idxmin
+                            raise ValueError(
+                                f"{name} with skipna=False encountered an NA value."
+                            )
+                    op_kwargs = dict(kwds)
+                    min_count = op_kwargs.pop("min_count", -1)
+                    try:
+                        res_values = arr._groupby_op(
+                            how=name,
+                            has_dropped_na=False,
+                            min_count=min_count,
+                            ngroups=nrows,
+                            ids=row_index,
+                            skipna=skipna,
+                            **op_kwargs,
+                        )
+                    except NotImplementedError:
+                        # e.g. min/max on object-backed str dtype, or a
+                        # third-party EA without _groupby_op; groupby falls
+                        # back to pure-python aggregation for these.
+                        col_index = np.repeat(np.arange(ncols), nrows)
+                        ser = Series(arr, index=col_index, copy=False)
+                        result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
+                        result.index = df.index
+                        return result
+                    if name in ("idxmin", "idxmax"):
+                        # res_values are positions in the flattened arr.
+                        # Position k = row + col * nrows, so col = k // nrows;
+                        # preserve -1 (all-NA) sentinel from the cython op.
+                        assert isinstance(res_values, np.ndarray)
+                        result_values = np.where(
+                            res_values >= 0, res_values // nrows, -1
+                        ).astype(np.intp, copy=False)
+                        return Series(result_values, index=df.index)
+                    return Series(res_values, index=df.index)
 
             df = df.T
 
@@ -16012,7 +16426,9 @@ class DataFrame(NDFrame, OpsMixin):
         out.name = None
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
+        elif name not in ["any", "all"] and any(
+            blk.dtype == object for blk in df._mgr.blocks
+        ):
             out = out.astype(object)
 
         return out
@@ -16166,7 +16582,7 @@ class DataFrame(NDFrame, OpsMixin):
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16325,7 +16741,7 @@ class DataFrame(NDFrame, OpsMixin):
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16451,7 +16867,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16558,7 +16975,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16639,7 +17057,8 @@ class DataFrame(NDFrame, OpsMixin):
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16744,7 +17163,8 @@ class DataFrame(NDFrame, OpsMixin):
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16858,7 +17278,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16982,7 +17403,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17352,7 +17774,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
         **kwargs : dict
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17471,7 +17894,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17592,7 +18016,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17685,7 +18110,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17794,7 +18219,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17903,7 +18328,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -18012,7 +18437,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

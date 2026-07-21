@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -114,15 +116,23 @@ def test_td64_summation_overflow():
     assert np.allclose(result._value / 1000, expected._value / 1000)
 
     # sum
+    # GH#43178: OutOfBoundsTimedelta (a ValueError subclass) is raised
     msg = "overflow in timedelta operation"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (ser - ser.min()).sum()
 
     s1 = ser[0:10000]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (s1 - s1.min()).sum()
     s2 = ser[0:1000]
     (s2 - s2.min()).sum()
+
+
+def test_td64_sum_all_nat_skipna_false():
+    # GH#43178: an all-NaT sum with skipna=False must return NaT rather than be
+    #  mistaken for an overflow (the NaT sentinels accumulate past int64 bounds)
+    ser = Series(np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]"))
+    assert ser.sum(skipna=False) is pd.NaT
 
 
 def test_prod_numpy16_bug():
@@ -183,48 +193,91 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-def test_mean_with_convertible_string_raises():
+def test_mean_with_convertible_string_raises(using_infer_string):
     # GH#44008
     ser = Series(["1", "2"])
     assert ser.sum() == "12"
 
-    msg = "Could not convert string '12' to numeric|does not support|Cannot perform"
+    # str dtype vs object dtype (infer_string=False) raise differently; drop the
+    # object-dtype branch once infer_string=False is no longer supported.
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else "Could not convert string '12' to numeric"
+    )
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
     df = ser.to_frame()
-    msg = r"Could not convert \['12'\] to numeric|does not support|Cannot perform"
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else r"Could not convert \['12'\] to numeric"
+    )
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
 
-def test_mean_dont_convert_j_to_complex():
+def test_mean_dont_convert_j_to_complex(using_infer_string):
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    msg = r"Could not convert \['J'\] to numeric|does not support|Cannot perform"
+    # str dtype vs object dtype (infer_string=False) raise differently; drop the
+    # object-dtype branches once infer_string=False is no longer supported.
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else r"Could not convert \['J'\] to numeric"
+    )
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "Could not convert string 'J' to numeric|does not support|Cannot perform"
+    # pyarrow-backed str raises the string-dtype reduction error; object dtype
+    # converts. Without pyarrow the inferred str dtype can fall back either way
+    # (depends on construction), so allow both there.
+    if using_infer_string and HAS_PYARROW:
+        msg = "Cannot perform reduction 'mean' with string dtype"
+    else:
+        msg = "|".join(
+            [
+                "Could not convert string 'J' to numeric",
+                "Cannot perform reduction 'mean' with string dtype",
+            ]
+        )
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "Could not convert string 'J' to numeric|ufunc 'divide'|Cannot perform"
+
+    # .astype("string") forces str dtype regardless of the infer_string setting,
+    # but the storage (hence the message) still follows pyarrow availability: the
+    # python-backed array converts instead of raising the string-dtype error
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if HAS_PYARROW
+        else "Could not convert string 'J' to numeric"
+    )
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
 
-def test_median_with_convertible_string_raises():
+def test_median_with_convertible_string_raises(using_infer_string):
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
-    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support|Cannot perform"
+    # str dtype vs object dtype (infer_string=False) raise differently; drop the
+    # object-dtype branch once infer_string=False is no longer supported.
+    msg = (
+        "Cannot perform reduction 'median' with string dtype"
+        if using_infer_string
+        else r"Cannot convert \['1' '2' '3'\] to numeric"
+    )
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
     msg = (
-        r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support|Cannot perform"
+        "Cannot perform reduction 'median' with string dtype"
+        if using_infer_string
+        else r"Cannot convert \[\['1' '2' '3'\]\] to numeric"
     )
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):

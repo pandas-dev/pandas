@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas._libs.index as libindex
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -223,7 +224,9 @@ class TestMultiIndexBasic:
                 ["location", "location"],
                 ["x", "y"],
             ],
-        ).assign(bools=Series([True, False], dtype="boolean"))
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+            df = df.assign(bools=Series([True, False], dtype="boolean"))
         assert isinstance(df["bools"].dtype, BooleanDtype)
 
     def test_multiindex_from_tuples_with_nan(self):
@@ -261,17 +264,25 @@ class TestMultiIndexBasic:
         s2 = s1.copy()
         s3 = s1.copy()
 
-        df2["C"] = s2
+        msg = "Setting a new column"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df2["C"] = s2
         df3[("C", "")] = s3
         tm.assert_frame_equal(df2, df3)
 
-        df1["C"] = s1
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df1["C"] = s1
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
 
-        df1["C"] = s1
+        # setting again, now an existing column, does not warn
+        with tm.assert_produces_warning(None):
+            df1["C"] = s1
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
+
+        df1["C"] = s1 * 2
+        tm.assert_series_equal(df1["C"], df2["C"] * 2)
 
     def test_multiindex_assign_alignment_with_non_string_dtype(self):
         # GH 62518
@@ -293,3 +304,23 @@ class TestMultiIndexBasic:
         )
 
         tm.assert_frame_equal(meta, result)
+
+    def test_multiindex_assign_alignment_with_object_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/65118
+        # second level of the multiindex is object dtype, and the value of
+        # that level is 0 for the single column we are setting
+
+        columns = MultiIndex.from_tuples(
+            [("A", "M"), ("A", 0), ("B", 1), ("B", 2), ("C", 0)]
+        )
+        df = DataFrame(np.arange(20, dtype=float).reshape(4, 5), columns=columns)
+
+        df["A"] = df["A"] / 100
+        df["B"] = df["B"] / 100
+        # this case specifically was the buggy one
+        df["C"] = df["C"] / 100
+
+        expected = DataFrame(
+            np.arange(20, dtype=float).reshape(4, 5) / 100, columns=columns
+        )
+        tm.assert_frame_equal(df, expected)

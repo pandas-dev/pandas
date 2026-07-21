@@ -5,10 +5,13 @@ requires = [
     "meson-python>=0.19.0,<1",
     "meson>=1.2.3,<2",
     "wheel",
-    "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
-    # Force numpy higher than 2.0, so that built wheels are compatible
-    # with both numpy 1 and 2
-    "numpy>=2.0.0",
+    # "<4", not "<4.0.0a0": a pre-release in the bound makes pip eligible to
+    # install Cython pre-releases (that pulled the 3.3.0a1 alpha into 3.0.4).
+    "Cython>3.1.0,<4",  # Note: sync with environment.yml and asv.conf.json
+    # numpy >= 2.0 keeps wheels compatible with numpy 1 and 2. Exclude 2.5.0:
+    # wheels built against it segfault on older numpy (GH#66086; numpy GH#31804,
+    # fixed in 2.5.1).
+    "numpy>=2.0.0,!=2.5.0",
     "versioneer[toml]"
 ]
 
@@ -37,7 +40,9 @@ license-files = [
   "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
   "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
+  "LICENSES/STATSBASE_JL_LICENSE", # MIT
   "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
+  "LICENSES/XSIMD_LICENSE", # BSD-3-Clause
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
   "subprojects/fast_float-*/LICENSE-BOOST", # BSL
   "subprojects/fast_float-*/LICENSE-MIT", # MIT
@@ -157,6 +162,7 @@ dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
+enable = ["pyodide-eol"]
 build-verbosity = 1
 build-frontend = "pip"
 config-settings = { compile-args = ["-v"] }
@@ -171,14 +177,12 @@ test-command = """
 [tool.cibuildwheel.windows]
 config-settings = { setup-args = ["--vsenv"] }
 environment = {}
-before-build = "python -m pip install delvewheel"
 # powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
@@ -197,9 +201,10 @@ build-verbosity = 1
 build-frontend = "build"
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
+# nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p no:cacheprovider"]);' \
   """
 
 [tool.ruff]
@@ -487,7 +492,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.11"
+python_version = "3.13"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO

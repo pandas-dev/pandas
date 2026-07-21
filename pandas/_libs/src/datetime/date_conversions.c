@@ -40,14 +40,18 @@ int scaleNanosecToUnit(int64_t *value, NPY_DATETIMEUNIT unit) {
   return 0;
 }
 
-/* Converts the int64_t representation of a datetime to ISO; mutates len */
+/* Converts the int64_t representation of a datetime to ISO; mutates len.
+ * ``utc`` controls whether the trailing "Z" is appended: pass 1 for values
+ * that are UTC-localized (e.g. the underlying ndarray of a dt64tz array),
+ * 0 for tz-naive datetime64. */
 char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
-                 NPY_DATETIMEUNIT base, size_t *len) {
+                 NPY_DATETIMEUNIT base, int utc, size_t *len) {
   npy_datetimestruct dts;
   int ret_code;
 
   pandas_datetime_to_datetimestruct(value, valueUnit, &dts);
 
+  // NB get_datetime_iso_8601_strlen(0, ...) already reserves room for "Z"
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
   char *result = PyObject_Malloc(*len);
 
@@ -55,12 +59,12 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
     PyErr_NoMemory();
     return NULL;
   }
-  // datetime64 is always naive
-  ret_code = make_iso_8601_datetime(&dts, result, *len, 0, base);
+  ret_code = make_iso_8601_datetime(&dts, result, *len, utc, base);
   if (ret_code != 0) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert datetime value to string");
     PyObject_Free(result);
+    return NULL;
   }
 
   // Note that get_datetime_iso_8601_strlen just gives a generic size

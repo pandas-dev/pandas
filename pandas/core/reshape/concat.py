@@ -505,7 +505,7 @@ def concat(
             ]
         else:
             non_concat_axis = [obj.index for obj in objs]
-        no_sort_result_index = union_indexes(non_concat_axis, sort=False)
+        no_sort_result_index, _ = union_indexes(non_concat_axis, sort=False)
         orig = result.index if orig_axis == 1 else result.columns
         if not no_sort_result_index.equals(orig):
             msg = (
@@ -628,7 +628,7 @@ def _get_result(
             # GH28330 Preserves subclassed objects through concat
             cons = sample._constructor_expanddim
 
-            index = get_objs_combined_axis(
+            index, _ = get_objs_combined_axis(
                 objs,
                 axis=objs[0]._get_block_manager_axis(0),
                 intersect=intersect,
@@ -648,7 +648,7 @@ def _get_result(
         sample = cast("DataFrame", objs[0])
 
         mgrs_indexers = []
-        result_axes = new_axes(
+        result_axes, all_equal = new_axes(
             objs,
             bm_axis,
             intersect,
@@ -670,7 +670,7 @@ def _get_result(
 
                 # 1-ax to convert BlockManager axis to DataFrame axis
                 obj_labels = obj.axes[1 - ax]
-                if not new_labels.equals(obj_labels):
+                if not all_equal[ax] and not new_labels.equals(obj_labels):
                     indexers[ax] = obj_labels.get_indexer(new_labels)
 
             mgrs_indexers.append((obj._mgr, indexers))
@@ -700,27 +700,35 @@ def new_axes(
     levels,
     verify_integrity: bool,
     ignore_index: bool,
-) -> list[Index]:
+) -> tuple[list[Index], list[bool]]:
     """Return the new [index, column] result for concat."""
-    return [
-        _get_concat_axis_dataframe(
-            objs,
-            axis,
-            ignore_index,
-            keys,
-            names,
-            levels,
-            verify_integrity,
-        )
-        if i == bm_axis
-        else get_objs_combined_axis(
-            objs,
-            axis=objs[0]._get_block_manager_axis(i),
-            intersect=intersect,
-            sort=sort,
-        )
-        for i in range(2)
-    ]
+    result_axes: list[Index] = []
+    all_equal: list[bool] = []
+
+    for i in range(2):
+        if i == bm_axis:
+            result_axis = _get_concat_axis_dataframe(
+                objs,
+                axis,
+                ignore_index,
+                keys,
+                names,
+                levels,
+                verify_integrity,
+            )
+            is_all_equal = False
+        else:
+            result_axis, is_all_equal = get_objs_combined_axis(
+                objs,
+                axis=objs[0]._get_block_manager_axis(i),
+                intersect=intersect,
+                sort=sort,
+            )
+
+        result_axes.append(result_axis)
+        all_equal.append(is_all_equal)
+
+    return result_axes, all_equal
 
 
 def _get_concat_axis_series(
@@ -970,9 +978,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = list(names)
         else:
             # make sure that all of the passed indices have the same nlevels
-            if not len({idx.nlevels for idx in indexes}) == 1:
-                raise AssertionError(
-                    "Cannot concat indices that do not have the same number of levels"
+            nlevels_set = {idx.nlevels for idx in indexes}
+            if len(nlevels_set) != 1:
+                # GH#25413
+                raise ValueError(
+                    "Cannot concat indices that do not have the same number "
+                    f"of levels: got levels {sorted(nlevels_set)}. When passing "
+                    "keys=, all objects must have the same index nlevels."
                 )
 
             # also copies
@@ -997,7 +1009,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel_index)
+        # GH#64825 get_indexer_for (not get_indexer) so that an overlapping
+        #  IntervalIndex level, which is not unique-as-index, still resolves.
+        mapped = level.get_indexer_for(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
@@ -1011,8 +1025,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
-        new_levels.append(new_index.unique())
-        single_codes = new_index.unique().get_indexer(new_index)
+        unique_index = new_index.unique()
+        new_levels.append(unique_index)
+        # GH#64825 get_indexer_for so an overlapping IntervalIndex resolves
+        single_codes = unique_index.get_indexer_for(new_index)
         new_codes.append(np.tile(single_codes, kpieces))
 
     if len(new_names) < len(new_levels):
