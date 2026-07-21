@@ -126,6 +126,36 @@ def test_assert_not_almost_equal_numbers_atol(a, b):
 @pytest.mark.parametrize(
     "a,b",
     [
+        # GH#66400: values beyond 2**53 lose precision when cast to float64,
+        # so ``math.isclose`` previously reported them as far apart even when
+        # the difference was within ``atol``.
+        (1450804465901089690, 1450804465901089614),
+        (-1450804465901089690, -1450804465901089614),
+        (np.int64(1450804465901089690), np.int64(1450804465901089614)),
+        (np.uint64(2**64 - 100), np.uint64(2**64 - 1)),
+    ],
+)
+def test_assert_almost_equal_large_int_atol(a, b):
+    # GH#66400
+    _assert_almost_equal_both(a, b, atol=100, rtol=0)
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        # GH#66400: integers far enough apart that ``atol`` is exceeded.
+        (1450804465901089690, 1450804465901089614),
+        (np.int64(1450804465901089690), np.int64(1450804465901089614)),
+    ],
+)
+def test_assert_not_almost_equal_large_int_atol(a, b):
+    # GH#66400
+    _assert_not_almost_equal_both(a, b, atol=10, rtol=0)
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
         (1.1, 1.1),
         (1.1, 1.100001),
         (1.1, 1.1001),
@@ -373,7 +403,10 @@ def test_assert_almost_equal_object():
 
 
 def test_assert_almost_equal_value_mismatch():
-    msg = "expected 2\\.00000 but got 1\\.00000, with rtol=1e-05, atol=1e-08"
+    # GH#66400: integer comparisons no longer go through ``math.isclose`` and
+    # so the assertion message reports the integer values verbatim instead
+    # of formatting them as floats.
+    msg = "expected 2 but got 1, with rtol=1e-05, atol=1e-08"
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(1, 2)
