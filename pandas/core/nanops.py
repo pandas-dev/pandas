@@ -1043,11 +1043,12 @@ def nanvar(
     values = ensure_float64(values)
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
+        order = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_var(
-            values.ravel("K"),
+            values.ravel(order),
             skipna,
             ddof,
-            mask.ravel("K") if mask is not None else None,
+            mask.ravel(order) if mask is not None else None,
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
