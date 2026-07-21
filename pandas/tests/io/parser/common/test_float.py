@@ -140,6 +140,15 @@ def test_precise_xstrtod_large_mantissa(c_parser_only, value):
     assert result == float(value)
 
 
+def test_precise_xstrtod_leading_zeros(c_parser_only):
+    # GH#64184
+    parser = c_parser_only
+    data = "val\n000000000010084566.0\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = DataFrame({"val": [10084566.0]})
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "value", ["81e31d04049863b72", "d81e31d04049863b72", "81e3104049863b72"]
 )
