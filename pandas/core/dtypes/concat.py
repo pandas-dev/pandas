@@ -155,7 +155,7 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical:
     Unlike union_categoricals, categories with differing dtypes are cast to a
     common dtype instead of raising, so that an all-categorical concatenation
     always returns a Categorical.  Orderedness is preserved only if every input
-    shares the same dtype.
+    shares the same dtype after this cast.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
