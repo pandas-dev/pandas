@@ -34,7 +34,6 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
-    pa_version_under14p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -1927,10 +1926,6 @@ class ArrowExtensionArray(
             # contract.
             return super().round(decimals, *args, **kwargs)
         result = pc.round(self._pa_array, ndigits=decimals)
-        if pa_version_under14p0:
-            # pyarrow < 14 upcasts integer inputs to double; cast back so the
-            # output dtype matches the input.
-            result = result.cast(self._pa_array.type)
         return self._from_pyarrow_array(result)
 
     def searchsorted(

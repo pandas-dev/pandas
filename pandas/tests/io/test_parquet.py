@@ -11,10 +11,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under15p0,
-    pa_version_under16p0,
     pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
@@ -844,33 +841,7 @@ class TestParquetPyArrow(Base):
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        if pa_version_under15p0:
-            self.check_external_error_on_write(
-                df, pa, pyarrow.ArrowException, temp_file
-            )
-        else:
-            check_round_trip(df, temp_file, pa)
-
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason=(
-            "PyArrow does not cleanup of partial files dumps when unsupported "
-            "dtypes are passed to_parquet function in windows"
-        ),
-    )
-    @pytest.mark.skipif(not pa_version_under15p0, reason="float16 works on 15")
-    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
-    def test_unsupported_float16_cleanup(self, pa, path_type, temp_file):
-        # #44847, #44914
-        # Not able to write float 16 column using pyarrow.
-        # Tests cleanup by pyarrow in case of an error
-        data = np.arange(2, 10, dtype=np.float16)
-        df = pd.DataFrame(data=data, columns=["fp16"])
-
-        path = path_type(temp_file)
-        with tm.external_error_raised(pyarrow.ArrowException):
-            df.to_parquet(path=path, engine=pa)
-        assert not os.path.isfile(path)
+        check_round_trip(df, temp_file, pa)
 
     def test_categorical(self, pa, temp_file):
         # supported in >= 0.7.0
@@ -1174,11 +1145,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
 
-    @pytest.mark.xfail(
-        pa_version_under16p0,
-        reason="GH#40173 fixed in pyarrow 16.0.0",
-        raises=AttributeError,
-    )
     def test_empty_column_multiindex(self, pa, temp_file):
         # GH#40173 reading back an empty frame with a column MultiIndex used to
         # raise inside pyarrow's metadata reconstruction
@@ -1244,7 +1210,7 @@ class TestParquetPyArrow(Base):
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
-        pa = pytest.importorskip("pyarrow", "13.0.0")
+        pa = pytest.importorskip("pyarrow", "16.0.0")
         pq = pytest.importorskip("pyarrow.parquet")
 
         arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
@@ -1267,7 +1233,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, temp_file, pa)
 
     def test_maps_as_pydicts(self, pa, temp_file):
-        pyarrow = pytest.importorskip("pyarrow", "13.0.0")
+        pyarrow = pytest.importorskip("pyarrow", "16.0.0")
 
         schema = pyarrow.schema(
             [("foo", pyarrow.map_(pyarrow.string(), pyarrow.int64()))]
