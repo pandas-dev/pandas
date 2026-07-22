@@ -5,6 +5,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 import warnings
@@ -1043,7 +1044,7 @@ def nanvar(
     values = ensure_float64(values)
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
-        order = "F" if values.flags.f_contiguous else "C"
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_var(
             values.ravel(order),
             skipna,
