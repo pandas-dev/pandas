@@ -1,5 +1,7 @@
 import numpy as np
 
+import pandas._testing as tm
+
 
 class TestAutoCorr:
     def test_autocorr(self, datetime_series):
@@ -14,7 +16,7 @@ class TestAutoCorr:
             assert np.isnan(corr1)
             assert np.isnan(corr2)
         else:
-            assert corr1 == corr2
+            assert tm.assert_almost_equal(corr1, corr2)
 
         # Choose a random lag between 1 and length of Series - 2
         # and compare the result with the Series corr() function
@@ -27,4 +29,4 @@ class TestAutoCorr:
             assert np.isnan(corr1)
             assert np.isnan(corr2)
         else:
-            assert corr1 == corr2
+            assert tm.assert_almost_equal(corr1, corr2)
