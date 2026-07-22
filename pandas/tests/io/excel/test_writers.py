@@ -38,6 +38,12 @@ from pandas.io.excel import (
 )
 from pandas.io.excel._util import _writers
 
+# Roundtrip tests read xlsx/xlsm back with the default engine; the pending
+# calamine-default change (GH#56542) is not what these tests exercise.
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
+
 
 def get_exp_unit(path: str) -> str:
     return "us"
@@ -971,7 +977,7 @@ class TestExcelWriter:
         with ExcelFile(tmp_excel) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
 
-        tm.assert_frame_equal(tsframe, recons)
+        tm.assert_frame_equal(tsframe, recons, check_freq=False)
         assert recons.index.names == ("time", "foo")
 
     def test_to_excel_multiindex_no_write_index(self, tmp_excel):

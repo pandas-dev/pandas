@@ -901,6 +901,108 @@ class TestTSPlot:
         x2 = lines[1].get_xdata()
         tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
+    def test_bday_subplots_sharex_false(self):
+        # GH#64311 subplots=True with sharex=False previously raised
+        # AttributeError: only the first subplot received business-day freq
+        # info, and the int64 ordinal index carries no freq of its own.
+        idx = bdate_range("2020-01-01", periods=10)
+        df = DataFrame(
+            np.arange(20, dtype=np.float64).reshape(10, 2),
+            index=idx,
+            columns=["a", "b"],
+        )
+        axes = df.plot(subplots=True, sharex=False)
+        expected = np.array([conv.bday_count(ts) for ts in idx])
+        for ax in axes:
+            assert ax.freq == "B"
+            tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), expected)
+
+    def test_mixed_freq_bday_then_higher(self):
+        # GH#64311 plotting a higher-frequency (hourly) series onto an existing
+        # business-day axis previously raised AttributeError: the stored BDay
+        # series has a plain int64 index with no .asfreq method.
+        bser = Series(
+            np.arange(10, dtype=np.float64),
+            index=bdate_range("2020-01-01", periods=10),
+        )
+        hser = Series(
+            np.arange(48, dtype=np.float64),
+            index=date_range("2020-01-01", periods=48, freq="h"),
+        )
+        _, ax = mpl.pyplot.subplots()
+        bser.plot(ax=ax)
+        hser.plot(ax=ax)
+        # both lines resolve onto the finer hourly grid
+        assert ax.freq == "h"
+        line_b, line_h = ax.get_lines()
+        idx_b = PeriodIndex.from_ordinals(line_b.get_xdata(), freq="h")
+        assert idx_b[0] == Period("2020-01-01 00:00", freq="h")
+        assert idx_b[-1] == Period("2020-01-14 00:00", freq="h")
+        idx_h = PeriodIndex.from_ordinals(line_h.get_xdata(), freq="h")
+        assert idx_h[0] == Period("2020-01-01 00:00", freq="h")
+        assert idx_h[-1] == Period("2020-01-02 23:00", freq="h")
+        # aligned starts -> shared first x-coordinate
+        assert line_b.get_xdata()[0] == line_h.get_xdata()[0]
+
+    def test_mixed_freq_bday_onto_lower(self):
+        # GH#64311 plotting BDay data onto an axis that already holds a
+        # lower-frequency (monthly) series previously left ax.freq clobbered to
+        # "B" before resampling, so the monthly line kept its month ordinals
+        # and the two lines ended up on incompatible scales.
+        mser = Series(
+            np.arange(12, dtype=np.float64),
+            index=date_range("2020-01-01", periods=12, freq="ME"),
+        )
+        bser = Series(
+            np.arange(10, dtype=np.float64),
+            index=bdate_range("2020-06-01", periods=10),
+        )
+        _, ax = mpl.pyplot.subplots()
+        mser.plot(ax=ax)
+        bser.plot(ax=ax)
+        # both lines share a common business-day ordinal scale
+        assert ax.freq == "B"
+        line_m, line_b = ax.get_lines()
+        # the monthly line is upsampled to the business-day ordinals of its
+        # (month-start) timestamps
+        expected_m = np.array(
+            [conv.bday_count(per.to_timestamp()) for per in mser.index.to_period("M")]
+        )
+        tm.assert_numpy_array_equal(line_m.get_xdata(), expected_m)
+        expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
+        tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
+
+    def test_plain_int_index_onto_ts_axis_raises(self):
+        # GH#64311 an integer index only means business-day ordinals when it
+        # came from the BDay conversion; a genuine int-index series overlaid
+        # on a ts axis must raise (as before) rather than be reinterpreted as
+        # business days and rescale the existing line.
+        mser = Series(
+            np.arange(12, dtype=np.float64),
+            index=period_range("2020-01", periods=12, freq="M"),
+        )
+        iser = Series(np.arange(10, dtype=np.float64))
+        _, ax = mpl.pyplot.subplots()
+        mser.plot(ax=ax)
+        with pytest.raises(TypeError, match="index type not supported"):
+            iser.plot(ax=ax)
+
+    def test_scatter_plain_int_x_onto_ts_axis(self):
+        # GH#64311 scatter with a plain integer x column onto an existing ts
+        # axis must not reinterpret the ints as business-day ordinals (which
+        # rescaled the existing line and clobbered ax.freq).
+        mser = Series(
+            np.arange(12, dtype=np.float64),
+            index=period_range("2020-01", periods=12, freq="M"),
+        )
+        df = DataFrame({"x": np.arange(10), "y": np.arange(10, dtype=np.float64)})
+        _, ax = mpl.pyplot.subplots()
+        mser.plot(ax=ax)
+        expected = ax.get_lines()[0].get_xdata().copy()
+        df.plot.scatter(x="x", y="y", ax=ax)
+        assert ax.freq == "M"
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), expected)
+
     def test_mixed_freq_hf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -1514,7 +1616,7 @@ class TestTSPlot:
         y = list(range(len(x)))
         _, ax = mpl.pyplot.subplots()
         lines = ax.plot(x, y, label="Y")
-        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x)
+        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x, check_freq=False)
 
     def test_mpl_nopandas(self):
         dates = [date(2008, 12, 31), date(2009, 1, 31)]

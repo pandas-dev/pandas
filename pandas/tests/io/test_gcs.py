@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under17p0
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -53,6 +54,9 @@ def gcs_buffer():
 
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
 def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
     """
@@ -81,7 +85,9 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
         df1.to_json(path, date_format="iso")
-        df2 = read_json(path, convert_dates=["dt"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
         pytest.importorskip("pyarrow")
         pa_fs = pytest.importorskip("pyarrow.fs")

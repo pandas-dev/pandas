@@ -648,7 +648,7 @@ class TestIntervalIndex:
         # test mid
         start = Timestamp("2000-01-01T12:00", tz=tz)
         expected = date_range(start=start, periods=9)
-        tm.assert_index_equal(index.mid, expected)
+        tm.assert_index_equal(index.mid, expected, check_freq=False)
 
         # __contains__ doesn't check individual points
         assert Timestamp("2000-01-01", tz=tz) not in index

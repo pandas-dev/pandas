@@ -2259,7 +2259,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
-        merge_cells : bool or 'columns', default False
+        merge_cells : bool or 'columns', default True
             If True, write MultiIndex index and columns as merged cells.
             If 'columns', merge MultiIndex column cells only.
         inf_rep : str, default 'inf'
@@ -6489,7 +6489,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cast entire pandas object to the same type. Alternatively, use a
             mapping, e.g. {col: dtype, ...}, where col is a column label and dtype is
             a numpy.dtype or Python type to cast one or more of the DataFrame's
-            columns to column-specific types.
+            columns to column-specific types. The mapping may be a ``dict`` or a
+            :class:`Series` indexed by column label; columns whose labels are
+            absent from the mapping are left unchanged. A Python type (e.g.
+            ``int``, ``float``, ``str``, ``bool``) is mapped to the corresponding
+            dtype; a type with no such mapping, such as ``datetime.datetime``,
+            raises ``TypeError``.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
@@ -8074,7 +8079,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'outside': Only fill NaNs outside valid values (extrapolate).
 
         **kwargs : optional
-            Keyword arguments to pass on to the interpolating function.
+            Keyword arguments to pass on to the interpolating function. Not
+            all methods use them: the ``'linear'``, ``'time'``, ``'index'``,
+            and ``'values'`` methods use NumPy and ignore any extra keyword
+            arguments (for example, ``left`` and ``right``).
 
         Returns
         -------
@@ -9254,8 +9262,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. note::
 
-                Only takes effect for Tick-frequencies (i.e. fixed frequencies like
-                hours and minutes, rather than days, months or quarters).
+                Only takes effect for Tick-frequencies (i.e. fixed frequencies
+                like hours and minutes) and, on a timezone-naive index, for day
+                frequencies; not for months or quarters.
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -11311,7 +11320,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
         >>> s.tz_localize("Europe/Warsaw", nonexistent="shift_backward")
         2015-03-29 01:59:59.999999999+01:00    0
-        2015-03-29 03:30:00+02:00              1
+        2015-03-29 03:30:00.000000000+02:00    1
         dtype: int64
         >>> s.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta("1h"))
         2015-03-29 03:30:00+02:00    0
@@ -11925,6 +11934,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
             the time-period. This is only valid for datetimelike indexes.
+            The offset must correspond to a fixed frequency (for example, ``'2D'``
+            or ``'1h'``); non-fixed frequencies such as ``'B'`` (business day) or
+            ``'ME'`` (month end) are not supported and raise ``ValueError``.
             To learn more about the offsets & frequency strings, please see
             :ref:`this link<timeseries.offset_aliases>`.
 

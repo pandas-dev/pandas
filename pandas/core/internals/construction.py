@@ -637,9 +637,9 @@ def _extract_index(data) -> Index:
         raise ValueError("If using all scalar values, you must pass an index")
 
     if have_series:
-        index = union_indexes(indexes)
+        index, _ = union_indexes(indexes)
     elif have_dicts:
-        index = union_indexes(indexes, sort=False)
+        index, _ = union_indexes(indexes, sort=False)
 
     if have_raw_arrays:
         if len(raw_lengths) > 1:
@@ -870,7 +870,7 @@ def _list_of_series_to_arrays(
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
-        columns = get_objs_combined_axis(pass_data, sort=False)
+        columns, _ = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache: dict[int, np.ndarray] = {}
 
