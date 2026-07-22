@@ -27,10 +27,10 @@ the ``categories`` array.
 The categorical data type is useful in the following cases:
 
 * A string variable consisting of only a few different values. Converting such a string
-  variable to a categorical variable will save some memory, see :ref:`here <categorical.memory>`.
+  variable to a categorical variable will save some memory, see section :ref:`categorical.memory`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
-  min/max will use the logical order instead of the lexical order, see :ref:`here <categorical.sort>`.
+  min/max will use the logical order instead of the lexical order, see section :ref:`categorical.sort`.
 * As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
@@ -429,10 +429,10 @@ use :meth:`~pandas.Categorical.set_categories`.
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
     NumPy S1 dtype and Python strings). This can result in surprising behaviour!
 
+.. _categorical.sort:
+
 Sorting and order
 -----------------
-
-.. _categorical.sort:
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
 meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a ``TypeError``.
@@ -983,8 +983,7 @@ Missing data
 ------------
 
 pandas primarily uses the value ``np.nan`` to represent missing data. It is by
-default not included in computations. See the :ref:`Missing Data section
-<missing_data>`.
+default not included in computations. See :ref:`missing_data`.
 
 Missing values should **not** be included in the Categorical's ``categories``,
 only in the ``values``.
@@ -1010,6 +1009,8 @@ Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series
     pd.isna(s)
     s.fillna("a")
 
+.. _categorical.rfactor:
+
 Differences to R's ``factor``
 -----------------------------
 
@@ -1029,12 +1030,10 @@ The following differences to R's factor functions can be observed:
 Gotchas
 -------
 
-.. _categorical.rfactor:
+.. _categorical.memory:
 
 Memory usage
 ~~~~~~~~~~~~
-
-.. _categorical.memory:
 
 The memory usage of a ``Categorical`` is proportional to the number *and size* of categories plus the length of the data. In contrast,
 an ``object`` dtype is proportional to the size of the objects times the length of the data.
