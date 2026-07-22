@@ -3548,7 +3548,17 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         if pat is None:
-            split_func = pc.utf8_split_whitespace
+            # GH#66368: pc.utf8_split_whitespace keeps empty strings from
+            # leading/trailing/consecutive whitespace. Use Python split for
+            # correct behavior, then convert back to PyArrow.
+            result = pc.utf8_split_whitespace(self._pa_array, max_splits=n)
+            result_list = [
+                [t for t in (tokens.as_py() or []) if t]
+                for tokens in result
+            ]
+            return self._from_pyarrow_array(
+                pa.chunked_array([pa.array(result_list, type=pa.list_(pa.string()))])
+            )
         elif regex is True:
             split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         elif regex is False:
@@ -3567,8 +3577,13 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         if pat is None:
+            result = pc.utf8_split_whitespace(self._pa_array, max_splits=n, reverse=True)
+            result_list = [
+                [t for t in (tokens.as_py() or []) if t]
+                for tokens in result
+            ]
             return self._from_pyarrow_array(
-                pc.utf8_split_whitespace(self._pa_array, max_splits=n, reverse=True)
+                pa.chunked_array([pa.array(result_list, type=pa.list_(pa.string()))])
             )
         return self._from_pyarrow_array(
             pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
