@@ -2723,9 +2723,9 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                     offsets32_ptr[i + 1] = <int32_t>total_bytes
                 continue
 
-            # _token_len, not strlen: an embedded NUL is a data byte here, so
-            # strlen would truncate the field at it (GH#66277).
-            wlen = _token_len(parser, token_idx)
+            # _token_len_checked, not strlen: an embedded NUL is a data byte
+            # here, so strlen alone would truncate the field at it (GH#66277).
+            wlen = _token_len_checked(parser, token_idx, word)
 
             if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
                 overflow = True
@@ -3227,6 +3227,42 @@ cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nog
                          - parser.words[token_idx]) - 1
     return <int64_t>(parser.stream + parser.stream_len
                      - parser.words[token_idx]) - 1
+
+
+cdef enum:
+    # Cap on the _token_len_checked scan: covers typical short string fields
+    # while keeping the worst-case scan to half a cache line.
+    _TOKEN_SCAN_CAP = 32
+
+
+cdef inline int64_t _token_len_checked(parser_t *parser, int64_t token_idx,
+                                       const char *word) noexcept nogil:
+    # Length for hot loops that already hold the token pointer.  Benchmarks
+    # (bandwidth-bound parallel string reads) show strlen beating the O(1)
+    # boundary arithmetic for short tokens: the scan's byte reads warm
+    # exactly the lines the copy pass touches next, and the boundary load's
+    # cache miss otherwise lands on the length's dependency chain.  For long
+    # tokens the scan itself becomes the bottleneck, so those keep the
+    # boundary arithmetic (the branch is uniform within a column, hence
+    # well-predicted).  The next token starts right after this one's NUL
+    # terminator, so `end == word + wlen + 1` proves no embedded NUL and the
+    # strlen result is exact; on mismatch (embedded NUL, GH#66277) the
+    # boundary arithmetic gives the true length.
+    cdef:
+        int64_t wlen
+        const char *end
+    if token_idx < 0:
+        # missing field; word is a static "" outside the stream
+        return 0
+    if <uint64_t>(token_idx + 1) < parser.words_len:
+        end = parser.words[token_idx + 1]
+    else:
+        end = parser.stream + parser.stream_len
+    if <int64_t>(end - word) <= _TOKEN_SCAN_CAP:
+        wlen = <int64_t>strlen(word)
+        if end == word + wlen + 1:
+            return wlen
+    return <int64_t>(end - word) - 1
 
 
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
