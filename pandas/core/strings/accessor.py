@@ -762,11 +762,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Use of `regex =False` with a `pat` as a compiled regex will raise an error.
 
@@ -941,11 +946,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Examples
         --------

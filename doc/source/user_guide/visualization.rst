@@ -1310,6 +1310,8 @@ plots, including those made by matplotlib, set the option
 ``pd.options.plotting.matplotlib.register_converters = True`` or use
 :meth:`pandas.plotting.register_matplotlib_converters`.
 
+.. _plotting.x_compat:
+
 Suppressing tick resolution adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

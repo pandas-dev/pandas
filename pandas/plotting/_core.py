@@ -811,8 +811,14 @@ class PlotAccessor(PandasObject):
         - 'pie' : pie plot
         - 'scatter' : scatter plot (DataFrame only)
         - 'hexbin' : hexbin plot (DataFrame only)
+    by : str or sequence of str, optional
+        Column label(s) in the DataFrame to group by. Only used if
+        ``kind="hist"`` or ``kind="box"``; ignored for other kinds.
+        See :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box`.
     ax : matplotlib axes object, default None
-        An axes of the current figure.
+        The axes to plot on. If None, ``Series.plot`` draws on the
+        current axes (``matplotlib.pyplot.gca()``) when a figure already
+        exists, while ``DataFrame.plot`` always creates a new figure.
     subplots : bool or sequence of iterables, default False
         Whether to group columns into subplots:
 
@@ -1144,8 +1150,14 @@ class PlotAccessor(PandasObject):
             - 'pie' : pie plot
             - 'scatter' : scatter plot (DataFrame only)
             - 'hexbin' : hexbin plot (DataFrame only)
+        by : str or sequence of str, optional
+            Column label(s) in the DataFrame to group by. Only used if
+            ``kind="hist"`` or ``kind="box"``; ignored for other kinds.
+            See :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box`.
         ax : matplotlib axes object, default None
-            An axes of the current figure.
+            The axes to plot on. If None, ``Series.plot`` draws on the
+            current axes (``matplotlib.pyplot.gca()``) when a figure already
+            exists, while ``DataFrame.plot`` always creates a new figure.
         subplots : bool or sequence of iterables, default False
             Whether to group columns into subplots:
 
@@ -1448,6 +1460,13 @@ class PlotAccessor(PandasObject):
               colored accordingly. For example, if your columns are called `a` and
               `b`, then passing {'a': 'green', 'b': 'red'} will color lines for
               column `a` in green and lines for column `b` in red.
+
+        x_compat : bool, default False
+            If True, suppress pandas' automatic tick resolution adjustment
+            for regular frequency time-series data and use the default
+            matplotlib tick locators and formatters instead. See
+            :ref:`Suppressing tick resolution adjustment
+            <plotting.x_compat>` for more.
 
         **kwargs
             Additional keyword arguments are documented in
@@ -2326,6 +2345,10 @@ class PlotAccessor(PandasObject):
             Alternatively, gridsize can be a tuple with two elements
             specifying the number of hexagons in the x-direction and the
             y-direction.
+            The hexagons tile only the extent of the data, so for a fixed
+            gridsize their apparent size varies with the range of the data
+            and the axis limits. To control the area covered by the
+            hexagons, pass matplotlib's ``extent`` keyword via ``**kwargs``.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
