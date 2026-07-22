@@ -76,6 +76,7 @@ Top-level evaluation
 
    col
    eval
+   api.typing.Expression
 
 Datetime formats
 ~~~~~~~~~~~~~~~~
