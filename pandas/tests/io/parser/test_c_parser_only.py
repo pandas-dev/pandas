@@ -809,11 +809,14 @@ def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
     tm.assert_frame_equal(result, expected)
 
 
-def test_embedded_nul_byte_roundtrip(c_parser_only):
-    # GH#66277: the pyarrow string fast path used strlen for token lengths,
-    # so a quoted field containing an embedded NUL byte was truncated at the
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
+    # GH#66277: the pyarrow string fast path computed token lengths with
+    # strlen, so a quoted field with an embedded NUL byte was truncated at the
     # NUL instead of matching the object path
+    pytest.importorskip("pyarrow")
     parser = c_parser_only
-    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'))
-    expected = DataFrame({"a": ["x\x00y"]})
-    tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), **kwargs)
+    expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
+    assert result["a"][0] == "x\x00y"
+    assert expected["a"][0] == "x\x00y"

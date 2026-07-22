@@ -2723,6 +2723,8 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                     offsets32_ptr[i + 1] = <int32_t>total_bytes
                 continue
 
+            # _token_len, not strlen: an embedded NUL is a data byte here, so
+            # strlen would truncate the field at it (GH#66277).
             wlen = _token_len(parser, token_idx)
 
             if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
