@@ -1461,16 +1461,14 @@ class PlotAccessor(PandasObject):
               `b`, then passing {'a': 'green', 'b': 'red'} will color lines for
               column `a` in green and lines for column `b` in red.
 
-        x_compat : bool, default False
-            If True, suppress pandas' automatic tick resolution adjustment
-            for regular frequency time-series data and use the default
-            matplotlib tick locators and formatters instead. See
-            :ref:`Suppressing tick resolution adjustment
-            <plotting.x_compat>` for more.
-
         **kwargs
             Additional keyword arguments are documented in
-            :meth:`DataFrame.plot`.
+            :meth:`DataFrame.plot`. In addition, passing ``x_compat=True``
+            suppresses pandas' automatic tick resolution adjustment for
+            regular frequency time-series data in favor of the default
+            matplotlib tick locators and formatters. See
+            :ref:`Suppressing tick resolution adjustment
+            <plotting.x_compat>` for more.
 
         Returns
         -------
