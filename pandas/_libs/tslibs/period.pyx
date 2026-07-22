@@ -2274,18 +2274,22 @@ cdef class _Period(PeriodMixin):
         """
         how = validate_end_alias(how)
 
-        if self._dtype._dtype_code == PeriodDtypeCode.N or freq == "ns":
-            unit = "ns"
-        else:
-            unit = "us"
-
         end = how == "E"
         if end:
+            if freq is not None:
+                # GH#63760 normalize so e.g. "1ns" is recognized as nanosecond
+                freq = self._maybe_convert_freq(freq)
+            ns_target = (
+                freq is not None and freq._period_dtype_code == PeriodDtypeCode.N
+            )
             if freq == "B" or self._freq == "B":
                 # roll forward to ensure we land on B date
+                stamp = self.to_timestamp(how="start")
+                unit = "ns" if ns_target else stamp.unit
                 adjust = np.timedelta64(1, "D") - np.timedelta64(1, unit)
-                return self.to_timestamp(how="start") + adjust
+                return stamp + adjust
             endpoint = (self + self._freq).to_timestamp(how="start")
+            unit = "ns" if ns_target else endpoint.unit
             return endpoint - np.timedelta64(1, unit)
 
         if freq is None:
@@ -2296,6 +2300,14 @@ cdef class _Period(PeriodMixin):
         else:
             freq = self._maybe_convert_freq(freq)
             base = freq._period_dtype_code
+
+        # GH#63760 period_ordinal_to_dt64 gives nanoseconds only for the
+        #  nanosecond target base and microseconds otherwise, so the result
+        #  unit is determined by the normalized target base.
+        if base == PeriodDtypeCode.N:
+            unit = "ns"
+        else:
+            unit = "us"
 
         val = self.asfreq(freq, how)
 

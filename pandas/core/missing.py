@@ -26,7 +26,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -70,7 +70,7 @@ def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
             "ExtensionArray.fillna does not support filling with a dict. "
             "Use Series.fillna instead."
         )
-    if is_array_like(value):
+    if is_array_like_deprecate_non_pandas(value):
         if len(value) != length:
             raise ValueError(
                 f"Length of 'value' does not match. Got ({len(value)}) "

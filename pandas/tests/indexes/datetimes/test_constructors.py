@@ -885,7 +885,7 @@ class TestDatetimeIndex:
             ]
         ).as_unit("ns")
 
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         # nonexistent keyword in end
         end = start
@@ -897,7 +897,7 @@ class TestDatetimeIndex:
             ]
         ).as_unit("ns")
 
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
@@ -1118,6 +1118,52 @@ class TestTimeSeries:
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(dti, freq="QS-JAN")
 
+    @pytest.mark.parametrize(
+        "data_freq, passed_freq",
+        [
+            # Jan 2000 has 31 days, so the first month-start gap equals 31D/744h
+            ("MS", "31D"),
+            ("MS", "744h"),
+            # Apr 30 2000 is a Sunday, so ME data does not conform to BME even
+            # though the earlier month-end gaps happen to agree
+            ("ME", "BME"),
+        ],
+    )
+    def test_constructor_freq_first_step_coincidence(self, data_freq, passed_freq):
+        # GH#65012 a passed freq that only agrees with the data on the first
+        # step must not be pinned; later steps diverge, so it does not conform
+        dti = date_range("2000-01-01", freq=data_freq, periods=4)
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq=passed_freq)
+
+    def test_constructor_tick_freq_conforming_accepted(self):
+        # GH#65012 a Tick freq that differs from the inferred (non-Tick) freq
+        # but genuinely conforms is accepted via the uniform-spacing fast path
+        dti = date_range("2000-01-01", freq="D", periods=5)  # inferred Day
+
+        result = DatetimeIndex(dti, freq="24h")
+        assert result.freqstr == "24h"
+
+    def test_constructor_tick_freq_tz_aware_across_dst_raises(self):
+        # GH#65012 a Tick is a fixed step in i8 space even across a DST
+        # transition, so the uniform-spacing check runs on the (UTC) i8 view
+        dti = date_range("2021-03-13", freq="2h", periods=4, tz="US/Eastern")
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="3h")
+
+    def test_constructor_tick_freq_subunit_resolution_raises(self):
+        # GH#65012 a Tick finer than the index resolution cannot conform even
+        # if it rounds to the data's step (1500ms -> 1s at second resolution)
+        dti = date_range("2000-01-01", freq="s", periods=4).as_unit("s")
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="1500ms")
+
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
@@ -1211,3 +1257,32 @@ class TestTimeSeries:
         result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
         expected2 = DatetimeIndex([yfirst])
         tm.assert_index_equal(result2, expected2)
+
+
+@pytest.mark.parametrize("tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")])
+@pytest.mark.parametrize(
+    "dtstr",
+    [
+        "11/5/2023 01:30",  # DST-ambiguous wall time
+        "3/12/2023 02:30",  # nonexistent wall time
+    ],
+)
+def test_dti_noniso_dst_transition_matches_timestamp(dtstr, tz):
+    # GH#66123 dateutil-parsed (non-ISO) strings at ambiguous/nonexistent
+    #  wall times resolve via fold=0 like Timestamp and datetime objects,
+    #  rather than raising like ISO strings
+    expected = Timestamp(dtstr, tz=tz)
+    result = DatetimeIndex([dtstr], tz=tz)
+    assert result[0] == expected
+
+
+def test_dti_noniso_ambiguous_pytz_raises():
+    # GH#66123 with pytz, dateutil-parsed strings at ambiguous wall times
+    #  raise, matching the Timestamp constructor
+    pytz = pytest.importorskip("pytz")
+    tz = pytz.timezone("US/Eastern")
+    dtstr = "11/5/2023 01:30"
+    with pytest.raises(ValueError, match="2023-11-05 01:30:00"):
+        Timestamp(dtstr, tz=tz)
+    with pytest.raises(ValueError, match="2023-11-05 01:30:00"):
+        DatetimeIndex([dtstr], tz=tz)

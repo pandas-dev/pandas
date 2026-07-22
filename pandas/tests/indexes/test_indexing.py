@@ -370,6 +370,19 @@ def test_get_indexer_non_unique_nans_in_object_dtype_target(nulls_fixture):
     tm.assert_numpy_array_equal(result_missing, np.array([1], dtype=np.intp))
 
 
+def test_get_indexer_non_unique_longdouble():
+    # GH#66125 longdouble has no typed fastpath and must use the fallback
+    # (on platforms where longdouble is a distinct 16-byte dtype, the index
+    # is backed by ObjectEngine holding the raw longdouble ndarray)
+    index = Index(np.array([1.0, 2.0, 2.0], dtype=np.longdouble))
+    target = Index(np.array([2.0, 3.0], dtype=np.longdouble))
+
+    result_idx, result_missing = index.get_indexer_non_unique(target)
+
+    tm.assert_numpy_array_equal(result_idx, np.array([1, 2, -1], dtype=np.intp))
+    tm.assert_numpy_array_equal(result_missing, np.array([1], dtype=np.intp))
+
+
 @pytest.mark.parametrize(
     "dtype, target_values",
     [
