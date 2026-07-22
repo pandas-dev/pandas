@@ -8064,6 +8064,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
+
+            In other words, if there is a gap with more than this number of
+            consecutive NaNs, it will only be partially filled.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
@@ -12314,7 +12317,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         halflife : float, str, timedelta, optional
             Specify decay in terms of half-life
 
-            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\\right)`,
             for :math:`halflife > 0`.
 
             If ``times`` is specified, a timedelta convertible unit over which an

@@ -149,7 +149,7 @@ class ExponentialMovingWindow(BaseWindow):
     halflife : float, str, timedelta, optional
         Specify decay in terms of half-life
 
-        :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
+        :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\\right)`, for
         :math:`halflife > 0`.
 
         If ``times`` is specified, a timedelta convertible unit over which an

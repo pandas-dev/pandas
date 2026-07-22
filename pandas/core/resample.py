@@ -898,6 +898,9 @@ class Resampler(BaseGroupBy, PandasObject):
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
+
+            In other words, if there is a gap with more than this number of
+            consecutive NaNs, it will only be partially filled.
         limit_direction : {'forward', 'backward', 'both'}, Optional
             Consecutive NaNs will be filled in this direction.
 
