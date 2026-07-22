@@ -267,34 +267,101 @@ class TestPeriodIndex:
         expected = Series(expected_vals, index=expected_index)
         tm.assert_series_equal(result, expected)
 
-    def test_resample_same_freq(self, resample_method):
-        # GH#12770, GH#18553
+    @pytest.mark.parametrize("method", ["min", "max", "first", "last", "sum", "prod"])
+    def test_resample_same_freq(self, method):
+        # GH#12770
         series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
-
-        # Same-freq resampling should not raise IncompatibleFrequency.
-        # With GH#18553 fix, this now goes through _groupby_and_aggregate
-        # (consistent with daily/sub-daily frequencies).
-        result = getattr(series.resample("M"), resample_method)()
-        assert isinstance(result, (Series, DataFrame))
-
-    @pytest.mark.parametrize("freq", ["M", "Q", "Y"])
-    def test_resample_same_freq_aggregation(self, freq):
-        # GH#18553 - same-freq resampling for monthly/quarterly/annual
-        # frequencies should aggregate correctly, not pass through raw values.
-        series = Series(
-            [10, 20, 30], index=period_range(start="2000", periods=3, freq=freq)
-        )
-        expected_index = period_range(start="2000", periods=3, freq=freq)
-
-        result = series.resample(freq).count()
-        expected = Series([1, 1, 1], index=expected_index)
+        expected = series
+        result = getattr(series.resample("M"), method)()
         tm.assert_series_equal(result, expected)
 
-        result = series.resample(freq).sum()
-        tm.assert_series_equal(result, series)
+    @pytest.mark.parametrize("method", ["mean", "median", "quantile"])
+    def test_resample_same_freq_float_result(self, method):
+        # Same frequency, methods that return float dtype
+        series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
+        expected = series.astype(float)
+        result = getattr(series.resample("M"), method)()
+        tm.assert_series_equal(result, expected)
 
-        result = series.resample(freq).mean()
-        expected = Series([10.0, 20.0, 30.0], index=expected_index)
+    @pytest.mark.parametrize("method", ["count", "size", "nunique"])
+    def test_resample_same_freq_counting(self, method):
+        # Same frequency, counting methods should return 1 per period
+        series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
+        expected = Series(
+            [1, 1, 1], index=period_range(start="2000", periods=3, freq="M")
+        )
+        result = getattr(series.resample("M"), method)()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["std", "var", "sem"])
+    def test_resample_same_freq_dispersion(self, method):
+        # Same frequency, dispersion of a single observation is NaN
+        series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
+        expected = Series(
+            [np.nan, np.nan, np.nan],
+            index=period_range(start="2000", periods=3, freq="M"),
+        )
+        result = getattr(series.resample("M"), method)()
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_same_freq_ohlc(self):
+        # Same frequency, ohlc returns a DataFrame
+        series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
+        result = series.resample("M").ohlc()
+        expected_idx = period_range(start="2000", periods=3, freq="M")
+        expected = DataFrame(
+            {
+                "open": [0, 1, 2],
+                "high": [0, 1, 2],
+                "low": [0, 1, 2],
+                "close": [0, 1, 2],
+            },
+            index=expected_idx,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_resample_superperiod_count(self):
+        # GH#42763 upsampling should aggregate, not pass values through
+        ser = Series([5, 6], index=period_range("2000", periods=2, freq="Y"))
+        result = ser.resample("Q").count()
+        expected = Series(
+            [1, 0, 0, 0, 1, 0, 0, 0],
+            index=period_range("2000Q1", periods=8, freq="Q-DEC"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_superperiod_sum(self):
+        # GH#42763 empty bins get the aggregation's identity value (0 for
+        # sum) and the dtype is preserved, consistent with DatetimeIndex
+        ser = Series([5, 6], index=period_range("2000", periods=2, freq="Y"))
+        result = ser.resample("Q").sum()
+        expected = Series(
+            [5, 0, 0, 0, 6, 0, 0, 0],
+            index=period_range("2000Q1", periods=8, freq="Q-DEC"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_superperiod_convention_end(self):
+        # GH#42763 upsampling with convention="end" returned all-NaN
+        ser = Series([2, 3], index=period_range("1/10/2000", periods=2, freq="D"))
+        result = ser.resample("12h", convention="end").count()
+        expected = Series(
+            [1, 0, 1],
+            index=period_range("2000-01-10 12:00", periods=3, freq="12h"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("freq", ["D", "M", "Q"])
+    def test_resample_empty_dtype_incompatible_op(self, freq):
+        # Resampling an empty Series should not attempt the aggregation,
+        # so dtype-incompatible methods do not raise
+        ser = Series(
+            [], index=PeriodIndex([], freq="M", name="a"), dtype="datetime64[ns]"
+        )
+        result = ser.resample(freq).sum()
+        expected = Series(
+            [], index=PeriodIndex([], freq=freq, name="a"), dtype="datetime64[ns]"
+        )
         tm.assert_series_equal(result, expected)
 
     def test_resample_incompat_freq(self):
@@ -675,17 +742,19 @@ class TestPeriodIndex:
         assert res1.index[0] == Timestamp("20000103")
         assert res1.index[0] == res2.index[0]
 
-    @pytest.mark.xfail(reason="Commented out for more than 3 years. Should this work?")
     def test_monthly_convention_span(self):
-        rng = period_range("2000-01", periods=3, freq="ME")
-        ts = Series(np.arange(3), index=rng)
-
-        # hacky way to get same thing
-        exp_index = period_range("2000-01-01", "2000-03-31", freq="D")
-        expected = ts.asfreq("D", how="end").reindex(exp_index)
-        expected = expected.fillna(method="bfill")
+        rng = period_range("2000-01", periods=3, freq="M")
+        ts = Series(np.arange(3, dtype=float), index=rng)
 
         result = ts.resample("D").mean()
+
+        # Each monthly value is placed in the first day of that month;
+        # all other days are NaN (no data in those bins).
+        exp_index = period_range("2000-01-01", "2000-03-31", freq="D")
+        expected = Series(np.nan, index=exp_index)
+        expected.iloc[0] = 0.0  # 2000-01-01
+        expected.iloc[31] = 1.0  # 2000-02-01
+        expected.iloc[60] = 2.0  # 2000-03-01
 
         tm.assert_series_equal(result, expected)
 

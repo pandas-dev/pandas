@@ -91,7 +91,7 @@ class TestDatetimeIndexSetOps:
             if sort is None:
                 tm.assert_index_equal(result_union, exp)
             else:
-                tm.assert_index_equal(result_union, exp_notsorted)
+                tm.assert_index_equal(result_union, exp_notsorted, check_freq=False)
 
     def test_union_coverage(self, sort):
         idx = DatetimeIndex(["2000-01-03", "2000-01-01", "2000-01-02"])
@@ -190,6 +190,27 @@ class TestDatetimeIndexSetOps:
         assert not result.is_monotonic_increasing
         assert result.freq is None
 
+    def test_union_sort_false_other_extends_past_self(self):
+        # GH#66322 with sort=False and self starting after other, the result
+        #  is non-monotonic, so the fast path does not apply; previously it
+        #  appended only other[:self[0]] and silently dropped the tail.
+        dti = date_range("2016-01-01", periods=6, freq="MS")
+        left = dti[2:4]
+
+        result = left.union(dti, sort=False)
+        expected = DatetimeIndex(
+            [
+                "2016-03-01",
+                "2016-04-01",
+                "2016-01-01",
+                "2016-02-01",
+                "2016-05-01",
+                "2016-06-01",
+            ]
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
+
     def test_union_dataframe_index(self):
         rng1 = date_range("1/1/1999", "1/1/2012", freq="MS")
         s1 = Series(np.random.default_rng(2).standard_normal(len(rng1)), rng1)
@@ -245,6 +266,7 @@ class TestDatetimeIndexSetOps:
         expected = DatetimeIndex(
             ["2000-01-01", "2000-01-02", "2000-01-03", "2000-01-04", "2000-01-05"],
             tz=tz,
+            freq="D",
         ).as_unit("us")
         tm.assert_index_equal(result, expected)
 
@@ -386,17 +408,11 @@ class TestDatetimeIndexSetOps:
         # no overlap GH#33604
         check_freq = freq != "min"  # We don't preserve freq on non-anchored offsets
         result = rng[:3].intersection(rng[-3:])
-        tm.assert_index_equal(result, rng[:0])
-        if check_freq:
-            # We don't preserve freq on non-anchored offsets
-            assert result.freq == rng.freq
+        tm.assert_index_equal(result, rng[:0], check_freq=check_freq)
 
         # swapped left and right
         result = rng[-3:].intersection(rng[:3])
-        tm.assert_index_equal(result, rng[:0])
-        if check_freq:
-            # We don't preserve freq on non-anchored offsets
-            assert result.freq == rng.freq
+        tm.assert_index_equal(result, rng[:0], check_freq=check_freq)
 
     def test_intersection_bug_1708(self):
         index_1 = date_range("1/1/2012", periods=4, freq="12h")
@@ -505,7 +521,7 @@ class TestDatetimeIndexSetOps:
         )
         result = dti[::2].intersection(dti[1::2])
         expected = dti[:0]
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_dti_intersection(self):
         rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
@@ -587,7 +603,9 @@ class TestBusinessDatetimeIndex:
             tm.assert_index_equal(right.union(left, sort=sort), the_union)
         else:
             expected = DatetimeIndex(list(right) + list(left))
-            tm.assert_index_equal(right.union(left, sort=sort), expected)
+            tm.assert_index_equal(
+                right.union(left, sort=sort), expected, check_freq=False
+            )
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
@@ -627,7 +645,7 @@ class TestBusinessDatetimeIndex:
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = DatetimeIndex([]).as_unit("ns")
+        expected = DatetimeIndex([], freq=Minute()).as_unit("ns")
         tm.assert_index_equal(the_int, expected)
 
     def test_intersection_bug(self):
