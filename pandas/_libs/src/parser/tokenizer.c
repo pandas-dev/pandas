@@ -781,28 +781,26 @@ static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
 // block_mask_* helpers hide that difference.
 #ifdef PANDAS_HAVE_NEON
 typedef uint64_t block_mask_t;
-static inline block_mask_t block_movemask(uint8x16_t m) {
+static block_mask_t block_movemask(uint8x16_t m) {
   return vget_lane_u64(
       vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(m), 4)), 0);
 }
-static inline unsigned block_mask_pos(block_mask_t mask) {
+static unsigned block_mask_pos(block_mask_t mask) {
   return pandas_ctzll(mask) >> 2;
 }
-static inline block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
+static block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
   return mask & ~(0xFULL << (pos * 4));
 }
-static inline bool block_mask_test(block_mask_t mask, unsigned pos) {
+static bool block_mask_test(block_mask_t mask, unsigned pos) {
   return ((mask >> (pos * 4)) & 0xFULL) != 0;
 }
 #elif defined(PANDAS_HAVE_SSE2)
 typedef uint32_t block_mask_t;
-static inline unsigned block_mask_pos(block_mask_t mask) {
-  return pandas_ctz(mask);
-}
-static inline block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
+static unsigned block_mask_pos(block_mask_t mask) { return pandas_ctz(mask); }
+static block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
   return mask & ~(1U << pos);
 }
-static inline bool block_mask_test(block_mask_t mask, unsigned pos) {
+static bool block_mask_test(block_mask_t mask, unsigned pos) {
   return ((mask >> pos) & 1U) != 0;
 }
 #endif
@@ -846,8 +844,8 @@ typedef struct {
 // *masks untouched) when the block holds a quote, escape or comment byte,
 // meaning the state machine must take over before consuming any of it.
 #  ifdef PANDAS_HAVE_NEON
-static inline bool try_scan_block(const block_lane_config *config,
-                                  const char *buf, block_scan_masks *masks) {
+static bool try_scan_block(const block_lane_config *config, const char *buf,
+                           block_scan_masks *masks) {
   const uint8x16_t chunk = vld1q_u8((const uint8_t *)buf);
   const uint8x16_t eq_delim = vceqq_u8(chunk, config->vdelim);
   const uint8x16_t eq_term = vceqq_u8(chunk, config->vterm);
@@ -867,8 +865,8 @@ static inline bool try_scan_block(const block_lane_config *config,
   return true;
 }
 #  elif defined(PANDAS_HAVE_SSE2)
-static inline bool try_scan_block(const block_lane_config *config,
-                                  const char *buf, block_scan_masks *masks) {
+static bool try_scan_block(const block_lane_config *config, const char *buf,
+                           block_scan_masks *masks) {
   const __m128i chunk = _mm_loadu_si128((const __m128i *)buf);
   const __m128i eq_delim = _mm_cmpeq_epi8(chunk, config->vdelim);
   const __m128i eq_term = _mm_cmpeq_epi8(chunk, config->vterm);
@@ -1129,9 +1127,10 @@ typedef enum {
   BLOCK_LANE_LINELIMIT,
 } block_lane_status;
 
-static inline block_lane_status
-block_fast_lane(parser_t *self, const block_lane_config *config,
-                uint64_t line_limit, uint64_t start_lines, int64_t *ip) {
+static block_lane_status block_fast_lane(parser_t *self,
+                                         const block_lane_config *config,
+                                         uint64_t line_limit,
+                                         uint64_t start_lines, int64_t *ip) {
   (void)self;
   (void)config;
   (void)line_limit;
