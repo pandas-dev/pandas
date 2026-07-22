@@ -12,7 +12,6 @@ from io import (
     TextIOWrapper,
 )
 import mmap
-import os
 import tarfile
 
 import numpy as np
@@ -549,14 +548,14 @@ def test_buffer_rd_bytes_bad_unicode(c_parser_only):
 
 
 @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
-def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
+def test_read_tarfile(c_parser_only, datapath, tar_suffix):
     # see gh-16530
     #
     # Unfortunately, Python's CSV library can't handle
     # tarfile objects (expects string, not bytes when
     # iterating through a file-like).
     parser = c_parser_only
-    tar_path = os.path.join(csv_dir_path, "tar_csv" + tar_suffix)
+    tar_path = datapath("io", "parser", "data", "tar_csv" + tar_suffix)
 
     with tarfile.open(tar_path, "r") as tar:
         data_file = tar.extractfile("tar_data.csv")
