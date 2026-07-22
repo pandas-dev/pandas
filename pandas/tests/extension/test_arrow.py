@@ -4600,3 +4600,12 @@ def test_reduction_axis_out_of_bounds(method, axis):
     msg = "`axis` must be fewer than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
+
+
+def test_fillna_null_dtype():
+    # GH#65483 - fillna on pa.null() columns caused a C++ core dump
+    dtype = ArrowDtype(pa.null())
+    df = pd.DataFrame({"x": pd.array([pd.NA], dtype=dtype)})
+    result = df.fillna(df)
+    expected = pd.DataFrame({"x": pd.array([pd.NA], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)

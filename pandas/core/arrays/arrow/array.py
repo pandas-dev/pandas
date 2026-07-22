@@ -3263,6 +3263,12 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
+        if pa.types.is_null(values.type):  # GH#65483
+            # null arrays can only contain nulls; replacing nulls with
+            # nulls is a no-op. Short-circuit to avoid an Arrow C++
+            # assertion failure in pc.replace_with_mask on null-type
+            # arrays.
+            return values
         if isinstance(replacements, pa.ChunkedArray):
             # replacements must be array or scalar, not ChunkedArray
             replacements = replacements.combine_chunks()
