@@ -1552,7 +1552,8 @@ class StringMethods(NoNewAttributesMixin):
         if flags is not lib.no_default:
             # pat.flags will have re.U regardless, so we need to add it here
             # before checking for a match
-            flags = flags | re.U
+            if not (flags & re.A):
+                flags = flags | re.U
             if is_re(pat):
                 if pat.flags != flags:
                     raise ValueError(
