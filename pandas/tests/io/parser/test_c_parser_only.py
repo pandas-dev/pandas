@@ -775,3 +775,16 @@ def test_string_storage_python_consistent(c_parser_only):
         assert isinstance(arr.dtype, StringDtype)
         assert arr.dtype.storage == "python"
         assert type(arr) is arr.dtype.construct_array_type()
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
+    # GH#66277: the pyarrow string fast path computed token lengths with
+    # strlen, so a quoted field with an embedded NUL byte was truncated at the
+    # NUL instead of matching the object path
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), **kwargs)
+    expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
+    assert result["a"][0] == "x\x00y"
+    assert expected["a"][0] == "x\x00y"

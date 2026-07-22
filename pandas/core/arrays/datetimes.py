@@ -1087,7 +1087,7 @@ default 'raise'
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
