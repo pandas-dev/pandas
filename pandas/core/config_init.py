@@ -749,7 +749,10 @@ styler_thousands = """
 
 styler_na_rep = """
 : str, optional
-    The string representation for values identified as missing.
+    The string representation for values identified as missing, used as the
+    default in :meth:`.Styler.format`. This option does not affect the
+    string representation of missing values when a Series or DataFrame is
+    printed.
 """
 
 styler_escape = """
