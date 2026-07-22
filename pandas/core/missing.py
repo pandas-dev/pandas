@@ -438,6 +438,10 @@ def _is_arrow_temporal(dtype: DtypeObj | None) -> bool:
     These are not covered by ``needs_i8_conversion`` but need the same i8 view
     to be usable as interpolation x-values.
 
+    ``dtype.kind`` is not specific enough here: ``date32``/``date64`` also
+    report kind "M" but are not backed by a DatetimeArray, so they are
+    excluded.
+
     Parameters
     ----------
     dtype : np.dtype, ExtensionDtype, or None
@@ -447,7 +451,11 @@ def _is_arrow_temporal(dtype: DtypeObj | None) -> bool:
     boolean
         Whether or not the dtype is an ArrowDtype timestamp or duration.
     """
-    return isinstance(dtype, ArrowDtype) and dtype.kind in "mM"
+    if not isinstance(dtype, ArrowDtype):
+        return False
+    pa = import_optional_dependency("pyarrow")
+    pa_type = dtype.pyarrow_dtype
+    return pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type)
 
 
 def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:

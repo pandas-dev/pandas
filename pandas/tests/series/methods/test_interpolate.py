@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pytest
 
@@ -828,6 +830,24 @@ class TestSeriesInterpolateData:
         result = Series(values, index=arrow_index).interpolate(method="index")
         expected = Series(values, index=tdi).interpolate(method="index")
         tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+    @pytest.mark.parametrize("pa_type", ["date32", "date64"])
+    def test_interpolate_arrow_date_index_not_treated_as_datetime(self, pa_type):
+        # GH#66338 date32/date64 report dtype.kind == "M" but are not backed by
+        #  a DatetimeArray, so they must not take the i8 path
+        pa = pytest.importorskip("pyarrow")
+
+        dates = [
+            datetime.date(2020, 1, 1),
+            datetime.date(2020, 1, 3),
+            datetime.date(2020, 1, 4),
+        ]
+        arrow_index = Index(dates, dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+        ser = Series([1.0, np.nan, 3.0], index=arrow_index)
+
+        msg = "Cannot cast array data from dtype"
+        with pytest.raises(TypeError, match=msg):
+            ser.interpolate(method="index")
 
     def test_interpolate_time_non_temporal_arrow_index_raises(self):
         # GH#66338
