@@ -475,7 +475,8 @@ def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     np.ndarray
         int64 view of the underlying values, with ``iNaT`` for missing values.
     """
-    if arr.dtype.kind == "M":
+    pa = import_optional_dependency("pyarrow")
+    if pa.types.is_timestamp(arr.dtype.pyarrow_dtype):  # type: ignore[union-attr]
         return arr._to_datetimearray().asi8  # type: ignore[union-attr]
     return arr._to_timedeltaarray().asi8  # type: ignore[union-attr]
 
