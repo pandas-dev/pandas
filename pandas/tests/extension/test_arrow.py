@@ -4006,6 +4006,47 @@ class TestGroupbyAggPyArrowNative:
         assert result.iloc[0] is pd.NA
         assert result.iloc[1] is not pd.NA
 
+    @pytest.mark.parametrize("agg_func", ["sum", "prod"])
+    @pytest.mark.parametrize(
+        "pa_type", [pa.decimal128(10, 2), pa.decimal256(40, 2)], ids=str
+    )
+    def test_groupby_sum_prod_widen_decimal_precision(self, pa_type, agg_func):
+        # GH#63416 sum and prod widen to the maximum precision, matching
+        # Series.sum and Series.prod, so a group result that needs more digits
+        # than the input precision does not overflow
+        ser = pd.Series(
+            [Decimal("1"), Decimal("2"), Decimal("3")], dtype=ArrowDtype(pa_type)
+        )
+        result = getattr(ser.groupby([1, 1, 2]), agg_func)()
+        max_precision = 38 if pa.types.is_decimal128(pa_type) else 76
+        assert result.dtype.pyarrow_dtype.precision == max_precision
+        assert result.dtype.pyarrow_dtype.scale == pa_type.scale
+        # other reductions keep the input type
+        assert ser.groupby([1, 1, 2]).min().dtype == ser.dtype
+
+    @pytest.mark.parametrize(
+        "agg_func, expected", [("sum", Decimal("1998")), ("prod", Decimal("998001"))]
+    )
+    def test_groupby_sum_prod_no_precision_overflow(self, agg_func, expected):
+        # GH#63416 the group result no longer has to fit the input precision
+        ser = pd.Series(
+            [Decimal("999"), Decimal("999")], dtype=ArrowDtype(pa.decimal128(3, 0))
+        )
+        result = getattr(ser.groupby([1, 1]), agg_func)()
+        assert result.iloc[0] == expected
+        assert result.iloc[0] == getattr(ser, agg_func)()
+
+    @pytest.mark.parametrize("how", ["std", "sem"])
+    def test_groupby_std_sem_supported(self, how):
+        # GH#63416 these used to raise NotImplementedError on decimal
+        ser = pd.Series(
+            [Decimal("1"), Decimal("2"), Decimal("3"), Decimal("5")],
+            dtype=ArrowDtype(pa.decimal128(10, 2)),
+        )
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)()
+        expected = getattr(pd.Series([1.0, 2.0, 3.0, 5.0]).groupby([1, 1, 2, 2]), how)()
+        tm.assert_series_equal(result.astype("float64"), expected)
+
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])

@@ -160,7 +160,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :class:`.DataFrameGroupBy` aggregations (``sum``, ``mean``, ``min``, ``max``, ``prod``) when the grouping keys are already sorted (:issue:`65103`)
-- Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` reductions for :class:`ArrowDtype` decimal columns (``sum``, ``prod``, ``min``, ``max``, ``mean``, ``std``, ``var``, ``sem``) and for PyArrow-backed string columns, both :class:`ArrowDtype` and :class:`StringDtype` (``min``, ``max``), by dispatching to PyArrow's native ``group_by`` instead of a slower fallback (:issue:`63416`)
+- Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` reductions for :class:`ArrowDtype` decimal columns (``sum``, ``prod``, ``min``, ``max``, ``mean``, ``var``) and for PyArrow-backed string columns, both :class:`ArrowDtype` and :class:`StringDtype` (``min``, ``max``), by dispatching to PyArrow's native ``group_by`` instead of a slower fallback (:issue:`63416`)
 - Performance improvement in casting integer and boolean dtypes to ``string[pyarrow]`` by using PyArrow's native cast instead of element-wise conversion (:issue:`56505`)
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
@@ -494,6 +494,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, and :meth:`.DataFrameGroupBy.cummax` (and Series variants) returning ``Float64`` instead of preserving the nullable integer dtype (e.g. ``Int64``) when the group key contains ``NA`` (:issue:`65550`)
 - Bug in :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.idxmin` (and :class:`Series` variants) with ``skipna=False`` returning incorrect results when the input contained no ``NA`` values (:issue:`56903`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` returning ``NaN`` with ``float64`` dtype for unobserved categorical groups on NumPy ``bool`` data instead of the boolean identity value with ``bool`` dtype (:issue:`65100`)
+- Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` raising ``NotImplementedError`` on :class:`ArrowDtype` decimal columns (:issue:`63416`)
+- Bug in :meth:`.GroupBy.sum` and :meth:`.GroupBy.prod` raising ``ArrowInvalid`` on :class:`ArrowDtype` decimal columns whose group result needed more digits than the input precision; the result dtype is now widened to the maximum decimal precision, matching :meth:`Series.sum` and :meth:`Series.prod` (:issue:`63416`)
 - Bug in :meth:`.GroupBy.sum`, :meth:`.GroupBy.prod`, :meth:`.GroupBy.min`, and :meth:`.GroupBy.max` with ``skipna=False`` on :class:`ArrowDtype` decimal columns ignoring ``NA`` values instead of returning ``NA`` for groups containing them (:issue:`63416`)
 - Bug in :meth:`.Resampler.agg` raising ``ValueError`` with a dict of aggregations when applied to a :meth:`DataFrame.groupby` with ``as_index=False`` (:issue:`52397`)
 - Bug in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` computing incorrect results on degenerate windows (:issue:`24019`)

@@ -3351,16 +3351,29 @@ class ArrowExtensionArray(
         aggs: list[tuple[str, str] | tuple[str, str, pc.FunctionOptions]] = [
             ("value", pa_agg_func, agg_option)
         ]
-        # Counts non-null values only; used for min_count and sem.
-        aggs.append(("value", "count"))
+        # Counts non-null values only; needed to scale sem and to apply min_count.
+        needs_count = how == "sem" or min_count > 0
+        if needs_count:
+            aggs.append(("value", "count"))
 
         result_table = table.group_by("group_id").aggregate(aggs)
         result_group_ids = result_table.column("group_id")
         result_values = result_table.column(f"value_{pa_agg_func}")
-        result_counts = result_table.column("value_count")
 
         if how == "sem":
-            result_values = pc.divide(result_values, pc.sqrt(result_counts))
+            result_values = pc.divide(
+                result_values, pc.sqrt(result_table.column("value_count"))
+            )
+        elif how == "prod" and pa.types.is_decimal(result_values.type):
+            # PyArrow's hash_product keeps the input precision even though a
+            # product needs more digits, so it can return a value too large for
+            # its own declared type. Widen to the maximum precision, which is
+            # what hash_sum does and what Series.prod returns.
+            prod_type = result_values.type
+            if pa.types.is_decimal256(prod_type):
+                result_values = result_values.cast(pa.decimal256(76, prod_type.scale))
+            else:
+                result_values = result_values.cast(pa.decimal128(38, prod_type.scale))
 
         output_type = result_values.type
         default_value = pa.scalar(self._PYARROW_AGG_DEFAULTS.get(how), type=output_type)
@@ -3379,7 +3392,9 @@ class ArrowExtensionArray(
 
         # Null out groups below min_count
         if min_count > 0:
-            below_min_count = pc.less(result_counts, pa.scalar(min_count))
+            below_min_count = pc.less(
+                result_table.column("value_count"), pa.scalar(min_count)
+            )
             result_values = pc.if_else(below_min_count, None, result_values)
 
         # Scatter results into output array ordered by group id.
