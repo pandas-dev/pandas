@@ -20,11 +20,10 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.algos import ensure_int64
-
 from cpython.ref cimport Py_DECREF
 from cpython.weakref cimport PyWeakref_GetRef
 
+from pandas._libs.algos cimport ensure_int64
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,

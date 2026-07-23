@@ -9,7 +9,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # ----------------------------------------------------------------------
 
 
-def ensure_platform_int(object arr):
+cpdef ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
     if util.is_array(arr):
@@ -22,7 +22,7 @@ def ensure_platform_int(object arr):
         return np.array(arr, dtype=np.intp)
 
 
-def ensure_object(object arr):
+cpdef ensure_object(object arr):
     if util.is_array(arr):
         if (<ndarray>arr).descr.type_num == NPY_OBJECT:
             return arr
@@ -60,7 +60,7 @@ def get_dispatch(dtypes):
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
 
-def ensure_{{name}}(object arr):
+cpdef ensure_{{name}}(object arr):
     if util.is_array(arr):
         if (<ndarray>arr).descr.type_num == NPY_{{c_type}}:
             return arr

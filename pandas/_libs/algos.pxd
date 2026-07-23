@@ -7,6 +7,8 @@ from libc.math cimport (
 from numpy cimport (
     float64_t,
     int64_t,
+    intp_t,
+    ndarray,
     uint8_t,
 )
 
@@ -121,3 +123,32 @@ cdef numeric_object_t get_rank_nan_fill_val(
     numeric_object_t val,
     bint is_datetimelike=*,
 )
+
+
+cpdef groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups)
+
+
+cpdef take_2d_axis1_bool_bool(
+    const uint8_t[:, :] values,
+    ndarray[intp_t, ndim=1] indexer,
+    uint8_t[:, :] out,
+    fill_value=*,
+    bint allow_fill=*,
+)
+
+cpdef take_2d_axis1_float64_float64(
+    const float64_t[:, :] values,
+    ndarray[intp_t, ndim=1] indexer,
+    float64_t[:, :] out,
+    fill_value=*,
+    bint allow_fill=*,
+)
+
+cpdef ensure_platform_int(object arr)
+cpdef ensure_object(object arr)
+cpdef ensure_float64(object arr)
+cpdef ensure_int8(object arr)
+cpdef ensure_int16(object arr)
+cpdef ensure_int32(object arr)
+cpdef ensure_int64(object arr)
+cpdef ensure_uint64(object arr)
