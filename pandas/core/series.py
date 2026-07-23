@@ -5700,12 +5700,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 for more details.
 
         level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level. The new labels are aligned against the
-            values of that single level while the other levels are left
-            unchanged; passing a flat index with ``level`` does not form the
-            Cartesian product of the remaining levels. See
-            :ref:`advanced.advanced_reindex` for the intended use.
+            Match index values on the specified level of a MultiIndex.
+            The MultiIndex may be on either the calling object or the
+            target index; using ``level`` when both are MultiIndexes is
+            ambiguous and raises a ``TypeError``. The new labels are
+            aligned against the values of that single level while the
+            other levels are left unchanged; passing a flat index with
+            ``level`` does not form the Cartesian product of the
+            remaining levels. See :ref:`advanced.advanced_reindex` for
+            the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
