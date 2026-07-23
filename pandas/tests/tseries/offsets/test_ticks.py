@@ -267,6 +267,11 @@ def test_tick_division(cls):
         assert not isinstance(result, cls)
         assert result._as_pd_timedelta == off._as_pd_timedelta / 0.001
 
+        # GH#57264
+        result = offsets.Second() / 10
+        expected = offsets.Milli(100)
+        assert result == expected
+
 
 def test_tick_mul_float():
     off = Micro(2)

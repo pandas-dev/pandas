@@ -544,14 +544,6 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(res, Timedelta)
         assert res == td
 
-    def test_td_div_smaller_resolution(self):
-        # GH#57264
-        td = Timedelta("1s")
-
-        res = td / 10
-        print(res)
-        assert res == Timedelta("100ms")
-
     # ---------------------------------------------------------------
     # Timedelta.__rdiv__
 
