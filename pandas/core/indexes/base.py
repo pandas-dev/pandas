@@ -7107,12 +7107,14 @@ class Index(IndexOpsMixin, PandasObject):
             # is object dtype (coercing to string dtype will alter the missing values)
             target_index = Index(target, dtype=self.dtype)
         elif (
-            not hasattr(target, "dtype")
-            and isinstance(self.dtype, StringDtype)
+            isinstance(self.dtype, StringDtype)
             and self.dtype.na_value is np.nan
             and using_string_dtype()
+            and target_index.dtype == object
+            and not isinstance(target_index, ABCMultiIndex)
         ):
-            # Fill missing values to ensure consistent missing value representation
+            # Normalize pd.NA -> np.nan so object-dtype targets match self (GH#65419).
+            # MultiIndex is excluded (no fillna).
             target_index = target_index.fillna(np.nan)
         return target_index
 
