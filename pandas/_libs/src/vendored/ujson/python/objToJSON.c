@@ -472,6 +472,28 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
   return outValue;
 }
 
+static const char *PyArrayDescrToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
+                                              size_t *len) {
+  PyObject *obj = (PyObject *)_obj;
+  PyObject *str = PyObject_Str(obj);
+
+  if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
+
+  GET_TC(tc)->newObj = str;
+
+  Py_ssize_t str_len;
+  const char *outValue = PyUnicode_AsUTF8AndSize(str, &str_len);
+  if (outValue == NULL) {
+    return NULL;
+  }
+
+  *len = str_len;
+  return outValue;
+}
+
 //=============================================================================
 // Numpy array iteration functions
 //=============================================================================
@@ -1590,6 +1612,10 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     return;
   } else if (PyUnicode_Check(obj)) {
     pc->PyTypeToUTF8 = PyUnicodeToUTF8;
+    tc->type = JT_UTF8;
+    return;
+  } else if (PyArray_DescrCheck(obj)) {
+    pc->PyTypeToUTF8 = PyArrayDescrToUTF8Callback;
     tc->type = JT_UTF8;
     return;
   } else if (object_is_decimal_type(obj)) {
