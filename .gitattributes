@@ -61,10 +61,13 @@
 
 # Ignoring stuff from the top level
 .github export-ignore
+.pre-commit-config.yaml export-ignore
+AGENTS.md export-ignore
 asv_bench export-ignore
 ci export-ignore
 doc export-ignore
 MANIFEST.in export-ignore
+pixi.lock export-ignore
 scripts/** export-ignore
 typings export-ignore
 web export-ignore
