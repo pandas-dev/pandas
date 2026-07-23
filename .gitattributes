@@ -68,6 +68,7 @@ ci export-ignore
 doc export-ignore
 MANIFEST.in export-ignore
 pixi.lock export-ignore
+pixi.toml export-ignore
 scripts/** export-ignore
 typings export-ignore
 web export-ignore
