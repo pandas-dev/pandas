@@ -33,6 +33,7 @@ from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
 )
+from cpython.unicode cimport PyUnicode_Check
 from cython cimport (
     Py_ssize_t,
     floating,
@@ -2693,6 +2694,12 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
+                if PyUnicode_Check(val):
+                    if val == "nan" or val == "NaN" or val == "NAN":
+                        seen.null_ = True
+                        seen.float_ = True
+                        floats[i] = complexes[i] = NaN
+                        continue
                 floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
