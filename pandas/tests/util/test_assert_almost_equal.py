@@ -156,6 +156,29 @@ def test_assert_not_almost_equal_large_int_atol(a, b):
 @pytest.mark.parametrize(
     "a,b",
     [
+        # GH#66405: ``np.int64`` boundary values. ``ib - ia`` and ``-ia``
+        # for ``INT64_MIN`` both wrap in two's complement, which previously
+        # made the integer path report these as almost equal. ``int(a)``
+        # promotes to Python int so the arithmetic never overflows.
+        (np.int64(np.iinfo(np.int64).min), np.int64(np.iinfo(np.int64).max)),
+        (np.int64(np.iinfo(np.int64).max), np.int64(np.iinfo(np.int64).min)),
+        # ``ia - ib`` overflows when ``ia`` is near ``INT64_MAX`` and
+        # ``ib`` is a small negative number.
+        (np.int64(np.iinfo(np.int64).max), np.int64(-1)),
+        (np.int64(-1), np.int64(np.iinfo(np.int64).max)),
+        # Python ints already never overflow; pin the same boundary so
+        # the integer path stays correct if the promotion ever regresses.
+        (np.iinfo(np.int64).min, np.iinfo(np.int64).max),
+    ],
+)
+def test_assert_not_almost_equal_int64_boundary(a, b):
+    # GH#66405
+    _assert_not_almost_equal_both(a, b)
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
         (1.1, 1.1),
         (1.1, 1.100001),
         (1.1, 1.1001),

@@ -201,7 +201,14 @@ cpdef assert_almost_equal(a, b,
             # GH#66400: math.isclose() casts its arguments to C double,
             # which loses precision for int64 values beyond 2**53. Compare
             # using integer arithmetic instead so the atol/rtol are honored.
-            ia, ib = a, b
+            #
+            # GH#66405: promote to Python int first. ``np.int64`` scalars
+            # wrap on subtraction (``ia - ib``) and on unary negation
+            # (``-ia`` for ``INT64_MIN``), so the raw values would silently
+            # underflow and report ``INT64_MIN`` vs ``INT64_MAX`` as almost
+            # equal. Python ``int`` has arbitrary precision and never
+            # overflows.
+            ia, ib = int(a), int(b)
             int_diff = ia - ib if ia >= ib else ib - ia
             abs_ia = ia if ia >= 0 else -ia
             abs_ib = ib if ib >= 0 else -ib
