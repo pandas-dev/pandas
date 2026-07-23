@@ -107,6 +107,7 @@ class BaseReduceTests:
                     "can't multiply sequence by non-int",
                     "setting an array element with a sequence",
                     "Cannot convert .* to numeric",
+                    "Could not convert array to numeric",
                 ]
             )
 
