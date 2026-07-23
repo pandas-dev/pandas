@@ -47,6 +47,11 @@ global-exclude .DS_Store
 global-exclude .git*
 global-exclude \#*
 
+global-exclude .pre-commit-config.yaml
+global-exclude AGENTS.md
+global-exclude pixi.lock
+global-exclude pixi.toml
+
 global-exclude *.c
 global-exclude *.cpp
 global-exclude *.h
