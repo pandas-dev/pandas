@@ -2567,6 +2567,11 @@ def _quote_identifier(name: object) -> str:
     return '"' + uname.replace('"', '""') + '"'
 
 
+# Guard to avoid overwriting user-registered SQLite adapters/converters
+# on every to_sql() call.  See GH#64337.
+_SQLITE_ADAPTERS_REGISTERED: bool = False
+
+
 class SQLiteTable(SQLTable):
     """
     Patch the SQLTable for fallback support.
@@ -2579,9 +2584,15 @@ class SQLiteTable(SQLTable):
         self._register_date_adapters()
 
     def _register_date_adapters(self) -> None:
-        # GH 8341
-        # register an adapter callable for datetime.time object
+        # GH 8341 — register adapter callable for datetime.time object
+        # GH 61092 — register adapters for date/datetime (Python 3.12+)
+        # GH 64337 — only register once per process to avoid overwriting
+        # user-registered adapters on subsequent to_sql() calls.
         import sqlite3
+
+        global _SQLITE_ADAPTERS_REGISTERED
+        if _SQLITE_ADAPTERS_REGISTERED:
+            return
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
@@ -2606,6 +2617,8 @@ class SQLiteTable(SQLTable):
 
         sqlite3.register_converter("date", convert_date)
         sqlite3.register_converter("timestamp", convert_timestamp)
+
+        _SQLITE_ADAPTERS_REGISTERED = True
 
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
