@@ -545,6 +545,7 @@ class TestTimedeltaMultiplicationDivision:
         assert res == td
 
     def test_td_div_smaller_resolution(self):
+        # GH#57264
         td = Timedelta("1s")
 
         res = td / 10
