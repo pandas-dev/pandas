@@ -922,10 +922,9 @@ class DataFrameRenderer:
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
         border : int or bool
-            When an integer value is provided, it sets the border attribute in
-            the opening tag, specifying the thickness of the border.
-            If ``False`` or ``0`` is passed, the border attribute will not
-            be present in the ``<table>`` tag.
+            When an integer value is provided, it sets the thickness (in pixels)
+            of the CSS border applied to the ``<table>`` and its cells via an
+            inline ``style``. If ``False`` or ``0`` is passed, no border is added.
             The default value for this parameter is governed by
             ``pd.options.display.html.border``.
         table_id : str, optional

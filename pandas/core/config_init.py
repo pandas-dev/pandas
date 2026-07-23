@@ -220,8 +220,8 @@ pc_table_schema_doc = """
 
 pc_html_border_doc = """
 : int
-    A ``border=value`` attribute is inserted in the ``<table>`` tag
-    for the DataFrame HTML repr.
+    The thickness (in pixels) of the CSS border applied to the ``<table>``
+    and its cells via an inline ``style`` for the DataFrame HTML repr.
 """
 
 pc_html_use_mathjax_doc = """\
