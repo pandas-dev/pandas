@@ -819,6 +819,11 @@ def _read_csv_parallel(
         # Buffers are reused across the queued chunks and freed at close;
         # trimming between chunks would stall other workers on reallocs.
         reader._engine._reader.trim_after_read = False
+        # Hand back string columns as raw pending handles: the gather below
+        # combines each column's chunks into one ExtensionArray, so the
+        # GIL-held pyarrow wrap happens once per column rather than once per
+        # chunk in every worker.
+        reader._engine.wrap_deferred = False
         workers_readers.append(reader)
         while True:
             try:

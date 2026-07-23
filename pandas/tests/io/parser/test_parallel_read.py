@@ -988,6 +988,41 @@ def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     assert result.loc[0, "col1"] == "0"
 
 
+def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
+    # dtype_backend="pyarrow" builds pa.string() (int32 offset) pending columns
+    # rather than the large_string ones the default string dtype uses; the
+    # gather must reconcile them to ArrowDtype and match a serial read
+    # (GH#66277).
+    pytest.importorskip("pyarrow")
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"s{i % 13},{i}" for i in range(5000))
+    path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path, dtype_backend="pyarrow")
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path, dtype_backend="pyarrow")
+    tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_deferred_strings_mixed_chunk_dtypes(tmp_path, monkeypatch):
+    # One chunk of a column parses as strings while the rest parse as int64,
+    # so the gather sees pending string columns alongside numeric ones and must
+    # fall back to a serial re-read rather than mixing the two (GH#66277).
+    chunk = "".join(f"{i},{i}\n" for i in range(2000))
+    raw = "col1,col2\n" + chunk + "text,7\n" + chunk
+    path = tmp_path / "mixed_str.csv"
+    path.write_text(raw, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+
+
 def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch):
     # low_memory=False promises whole-file type inference.  A chunk holding only
     # NA tokens and a uint64-range int hits the C parser's na_filter=0

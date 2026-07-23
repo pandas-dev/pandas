@@ -18,6 +18,7 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.compat import WASM
 from pandas.errors import (
     Pandas4Warning,
@@ -775,6 +776,37 @@ def test_string_storage_python_consistent(c_parser_only):
         assert isinstance(arr.dtype, StringDtype)
         assert arr.dtype.storage == "python"
         assert type(arr) is arr.dtype.construct_array_type()
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_mutable(c_parser_only, kwargs):
+    # GH#66277: the eager wrap that bypasses the ExtensionArray constructor
+    # for non-ASCII columns did not set _cache, so mutating the result raised
+    # AttributeError (reachable with low_memory=False, where the array
+    # reaches the frame without an intermediate concat)
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    result = parser.read_csv(StringIO("a\ncafé\nnaïve\n"), **kwargs)
+    arr = result["a"].array
+    arr[0] = "x"
+    arr.sort()
+    assert list(arr) == ["naïve", "x"]
+
+
+@pytest.mark.parametrize("tail", ["", "café\nnaïve\n" * 4])
+def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
+    # GH#66277: with low_memory=True, deferred string chunks combine into a
+    # single column at the end of the read; all-ASCII chunks take the
+    # zero-copy path while non-ASCII chunks are wrapped eagerly, and either
+    # mix must match a single-chunk read
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    data = "a\n" + "foo\nbar\nNA\nbaz\n" * 8 + tail
+    expected = parser.read_csv(StringIO(data))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv(StringIO(data))
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
