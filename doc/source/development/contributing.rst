@@ -52,16 +52,22 @@ to find issues that interest you and are available to work on. Issues available 
 
 * Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
   from a maintainer before proceeding.
-* Issues that have not been started by another contributor. Please check that another contributor has not commented their intent
-  to work on the issue or already submitted an open pull request to address the issue before proceeding.
+* Issues that are not already assigned to another contributor.
 
-Once you've found an interesting, available issue, leave a comment with your intention
-to start working on it. If somebody else has
-already commented on the issue but they have shown a lack of activity in the issue
-or a pull request in the past 2-3 weeks, you may take it over.
+Once you've found an interesting, available issue, claim it by commenting ``/take``
+on the issue and it will be assigned to you. See
+:ref:`contributing.issue_assignment` for the full set of rules around claiming
+and releasing issues, and how pull requests progress once opened.
 
-If for whatever reason you are not able to continue working with the issue, please
-leave a comment on an issue, so other people know it's available again.
+For advice on choosing an issue that is a good fit for you, see Marco Gorelli's
+`Don't start with good first issues
+<https://labs.quansight.org/blog/dont-start-with-good-first-issues>`_.
+
+Contributions are also welcome at `pandas-stubs
+<https://github.com/pandas-dev/pandas-stubs/issues>`_, the officially supported
+type stubs for pandas. It is maintained as a separate project, so the issue
+assignment and pull request rules described in this guide do not apply there —
+check its contributing guidelines before starting.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -70,6 +76,86 @@ All pandas contributors are welcome to these spaces, where they can connect with
 maintainers who have been with us for a long time felt just like you when they started out, and
 are happy to welcome you and support you as you get to know how we work, and where things are.
 Take a look at the next sections to learn more.
+
+.. _contributing.issue_assignment:
+
+Issue assignment and the pull request lifecycle
+===============================================
+
+To keep contributing fair and avoid duplicated effort, pandas automates how
+issues are claimed and how pull requests progress. This section explains the
+rules and what the automation does.
+
+Claiming an issue
+-----------------
+
+Before opening a pull request, claim the issue by commenting ``/take`` on it.
+The bot will assign the issue to you.
+
+An issue is available to claim if it is:
+
+* **not** labeled ``Needs Triage`` or ``Needs Discussion`` — these still need a
+  maintainer's review before work begins, and ``/take`` will be declined; and
+* **not** already assigned to someone else.
+
+If you change your mind, comment ``/untake`` to release the issue so others can
+pick it up.
+
+Opening a pull request
+----------------------
+
+Link your pull request to the issue it resolves using a closing keyword in the
+description, for example ``closes #1234``.
+
+Your pull request must be linked to an issue that is **assigned to you**. If you
+open one linked to an issue you haven't claimed, the bot adds the
+``Needs Issue Assignment`` label and comments with what to do next: comment
+``/take`` on the issue to claim it, then reopen your pull request (you can reopen
+it yourself — nothing is lost).
+
+Review and staleness
+--------------------
+
+The purpose of this process is only to identify and clean up abandoned pull
+requests — it is never meant to pressure you while you wait: a pull request
+goes stale only through its author's own inactivity, never through time spent
+waiting on review.
+
+While your pull request is waiting on review it is labeled ``Awaiting Review``
+and will **not** be marked stale — you keep your assignment for as long as review
+takes.
+
+Once a maintainer requests changes, a **14-day** timer starts. Only *your*
+activity resets it: pushing a commit, replying to a
+review comment, or commenting on the pull request **or its linked issue** (a
+comment from someone else does not).
+If there is no activity from you for 14 days, the pull request is marked
+``Stale``; your next push or comment clears the label and resets the timer. If it
+stays stale for another **7 days**, it is automatically closed — you can reopen
+it yourself at any time to continue, and nothing is lost. When a stale pull
+request is closed, its linked issue is automatically unassigned and becomes
+available again.
+
+When you've addressed the feedback and want another look, **re-request a review**
+(the ↻ button next to the reviewer). That moves the pull request back to
+``Awaiting Review`` and stops the staleness timer; pushing commits alone does not
+return it to the review queue. The timer also stops when the maintainer who
+requested changes approves your pull request.
+
+.. note::
+
+   Label changes and unassignment run on a once-a-day job, so they may take up
+   to a day to appear. Your activity counts from when you make it.
+
+These rules cover external contributions — pull requests from pandas maintainers
+are exempt from the staleness lifecycle.
+
+Inactive assignments
+--------------------
+
+If you claim an issue but do not open a linked pull request or stay active on it
+for **7 days**, the issue is automatically unassigned and made available again.
+You're welcome to ``/take`` it again whenever you're ready.
 
 .. _contributing.github:
 
