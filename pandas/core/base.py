@@ -14,6 +14,7 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -28,8 +29,12 @@ from pandas._typing import (
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -213,15 +218,26 @@ class SelectionMixin(Generic[NDFrameT]):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
+        if isinstance(key, tuple):
+            warnings.warn(
+                "Passing a tuple to __getitem__ is deprecated and "
+                "will raise a KeyError in a future version. Use a list instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            key = list(key)
+
+        if isinstance(key, (list, ABCSeries, ABCIndex, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
+
             return self._gotitem(list(key), ndim=2)
 
         else:
             if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
+
             ndim = self.obj[key].ndim
             return self._gotitem(key, ndim=ndim)
 
