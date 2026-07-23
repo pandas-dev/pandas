@@ -1544,41 +1544,32 @@ def test_idxminmax_float_inf_tie():
     assert df["a"].idxmin() == 1
 
 
-@pytest.mark.parametrize("axis", [0, 1, None])
-def test_nanops_fortran_layout_mask_mismatch(
-    disable_bottleneck, nanops_univariate_methods, axis
-):
-    func = getattr(nanops, nanops_univariate_methods)
-    arr_f = np.array(
-        [[1.0, np.nan, 2.0, 5.0], [3.0, 4.0, 5.0, 6.0]],
-        dtype=np.float32,
-        order="F",
-    )
-    mask_f = np.isnan(arr_f)
+def _copy_array_with_layout(arr, layout):
+    if layout == "strided":
+        base = np.zeros((arr.shape[0], arr.shape[1] * 2), dtype=arr.dtype)
+        base[:, ::2] = arr
+        return base[:, ::2]
 
-    arr_c = arr_f.copy(order="C")
-    mask_c = mask_f.copy(order="C")
-
-    res_f = func(arr_f, axis=axis, mask=mask_f)
-    res_c = func(arr_c, axis=axis, mask=mask_c)
-
-    tm.assert_almost_equal(res_f, res_c)
+    return arr.copy(order=layout)
 
 
 @pytest.mark.parametrize("axis", [0, 1, None])
-def test_nanops_mismatched_mask_layout(
-    disable_bottleneck, nanops_univariate_methods, axis
+@pytest.mark.parametrize("arr_layout", ["C", "F", "strided"])
+@pytest.mark.parametrize("mask_layout", ["C", "F", "strided"])
+def test_mask_memory_layout_mismatch(
+    disable_bottleneck, nanops_univariate_methods, axis, arr_layout, mask_layout
 ):
     func = getattr(nanops, nanops_univariate_methods)
-    arr_f = np.array(
-        [[1.0, np.nan, 2.0, 5.0], [3.0, 4.0, 5.0, 6.0]],
-        dtype=np.float64,
-        order="F",
-    )
-    mask_c = np.isnan(arr_f).copy(order="C")
-    mask_f = np.isnan(arr_f).copy(order="F")
 
-    res_mismatched = func(arr_f, axis=axis, mask=mask_c)
-    res_matched = func(arr_f, axis=axis, mask=mask_f)
+    rng = np.random.default_rng(2)
+    base_arr = rng.random((6, 5))
+    base_arr[0, 1] = np.nan
+    base_mask = np.isnan(base_arr)
 
-    tm.assert_almost_equal(res_mismatched, res_matched)
+    arr = _copy_array_with_layout(base_arr, arr_layout)
+    mask = _copy_array_with_layout(base_mask, mask_layout)
+
+    expected = func(base_arr, axis=axis, mask=base_mask)
+    result = func(arr, axis=axis, mask=mask)
+
+    tm.assert_almost_equal(result, expected)
