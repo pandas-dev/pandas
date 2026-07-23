@@ -1072,9 +1072,9 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
-        with pytest.raises(TypeError, match="could not convert"):
+        with pytest.raises(TypeError, match="Could not convert"):
             float_string_frame.std(axis=1)
-        with pytest.raises(TypeError, match="could not convert"):
+        with pytest.raises(TypeError, match="Could not convert"):
             float_string_frame.var(axis=1)
         with pytest.raises(TypeError, match="unsupported operand type"):
             float_string_frame.mean(axis=1)

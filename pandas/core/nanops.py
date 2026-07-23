@@ -1104,8 +1104,7 @@ def nansem(
     """
     mask = _maybe_get_mask(values, skipna, mask)
     # Convert to bottleneck return a float
-    if values.dtype.kind not in "fc":
-        values = values.astype("f8")
+    values = _ensure_numeric_array(values, try_complex_conversion=True)
 
     dtype_count = np.dtype(np.float64)
     if values.dtype.kind == "f":
