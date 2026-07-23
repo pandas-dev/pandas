@@ -762,6 +762,7 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    s["a"] = pd.Timestamp("2016-01-01")
    s["b"] = 3.0
