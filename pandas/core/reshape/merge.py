@@ -2583,20 +2583,20 @@ class _AsOfMerge(_OrderedMerge):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
-                    raise MergeError("tolerance must be positive")
+                    raise MergeError("tolerance must be non-negative")
 
             elif is_integer_dtype(lt.dtype):
                 if not is_integer(self.tolerance):
                     raise MergeError(msg)
                 if self.tolerance < 0:
-                    raise MergeError("tolerance must be positive")
+                    raise MergeError("tolerance must be non-negative")
 
             elif is_float_dtype(lt.dtype):
                 if not is_number(self.tolerance):
                     raise MergeError(msg)
                 # error: Unsupported operand types for > ("int" and "Number")
                 if self.tolerance < 0:  # type: ignore[operator]
-                    raise MergeError("tolerance must be positive")
+                    raise MergeError("tolerance must be non-negative")
 
             else:
                 raise MergeError("key must be integer, timestamp or float")
