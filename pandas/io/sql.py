@@ -2574,13 +2574,29 @@ class SQLiteTable(SQLTable):
     """
 
     def __init__(self, *args, **kwargs) -> None:
+        import sqlite3
+
+        # Save user-registered adapters/converters before pandas
+        # registers its own, so they can be restored after the
+        # insert operation completes.  See GH#64337.
+        self._saved_adapters: dict = {}
+        for typ in (time, date, datetime):
+            key = (typ, sqlite3.PrepareProtocol)
+            if key in sqlite3.adapters:
+                self._saved_adapters[key] = sqlite3.adapters[key]
+
+        self._saved_converters: dict = {}
+        for name in ("date", "timestamp"):
+            if name in sqlite3.converters:
+                self._saved_converters[name] = sqlite3.converters[name]
+
         super().__init__(*args, **kwargs)
 
         self._register_date_adapters()
 
     def _register_date_adapters(self) -> None:
-        # GH 8341
-        # register an adapter callable for datetime.time object
+        # GH 8341 — register adapter callable for datetime.time object
+        # GH 61092 — register adapters for date/datetime (Python 3.12+)
         import sqlite3
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
@@ -2606,6 +2622,19 @@ class SQLiteTable(SQLTable):
 
         sqlite3.register_converter("date", convert_date)
         sqlite3.register_converter("timestamp", convert_timestamp)
+
+    def _restore_date_adapters(self) -> None:
+        """Restore user-registered adapters and converters that were
+        temporarily overridden by pandas during the insert operation.
+
+        See GH#64337.
+        """
+        import sqlite3
+
+        for (typ, _protocol), adapter in self._saved_adapters.items():
+            sqlite3.register_adapter(typ, adapter)
+        for name, converter in self._saved_converters.items():
+            sqlite3.register_converter(name, converter)
 
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
@@ -2642,12 +2671,21 @@ class SQLiteTable(SQLTable):
             conn.executemany(self.insert_statement(num_rows=1), data_list)
         except Error as exc:
             raise DatabaseError("Execution failed") from exc
+        finally:
+            # Restore user adapters/converters that were overridden
+            # in __init__.  See GH#64337.
+            self._restore_date_adapters()
         return conn.rowcount
 
     def _execute_insert_multi(self, conn, keys, data_iter) -> int:
         data_list = list(data_iter)
-        flattened_data = [x for row in data_list for x in row]
-        conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
+        try:
+            flattened_data = [x for row in data_list for x in row]
+            conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
+        finally:
+            # Restore user adapters/converters that were overridden
+            # in __init__.  See GH#64337.
+            self._restore_date_adapters()
         return conn.rowcount
 
     def _create_table_setup(self):

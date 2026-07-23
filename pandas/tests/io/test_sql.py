@@ -4470,3 +4470,59 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+def test_to_sql_restores_user_sqlite_adapters(sqlite_buildin):
+    """
+    GH#64337 — DataFrame.to_sql() should restore user-registered
+    SQLite adapters after the insert operation completes.
+
+    User registers a custom adapter BEFORE any to_sql() call.
+    After to_sql() returns, the user's adapter must still be in place.
+    """
+    import sqlite3
+
+    # User has a custom adapter before pandas is ever called
+    def custom_time_adapter(t):
+        return f"CUSTOM:{t.hour:02d}:{t.minute:02d}:{t.second:02d}"
+
+    sqlite3.register_adapter(time, custom_time_adapter)
+
+    # to_sql should temporarily use pandas' adapter, then restore user's
+    df = DataFrame({"t": [time(12, 30)]})
+    df.to_sql("test_restore", sqlite_buildin, if_exists="replace", index=False)
+
+    # Verify user's adapter was restored
+    registered = sqlite3.adapters.get((time, sqlite3.PrepareProtocol))
+    assert registered is custom_time_adapter
+
+
+def test_to_sql_restores_user_sqlite_converters(sqlite_buildin):
+    """
+    GH#64337 — DataFrame.to_sql() should restore user-registered
+    SQLite converters after the insert operation completes.
+    """
+    import sqlite3
+
+    def custom_date_converter(val):
+        return date.fromisoformat(f"2000-{val.decode()}")
+
+    sqlite3.register_converter("date", custom_date_converter)
+
+    df = DataFrame({"d": [date(2024, 1, 15)]})
+    df.to_sql("test_conv", sqlite_buildin, if_exists="replace", index=False)
+
+    registered = sqlite3.converters.get("date")
+    assert registered is custom_date_converter
+
+
+def test_to_sql_sqlite_adapters_no_crash_without_prior_registration(sqlite_buildin):
+    """
+    GH#64337 — restore should not crash when no user adapters were
+    registered before to_sql().
+    """
+    # No prior user registration — pandas registers its own,
+    # restore is a no-op with empty saved dicts.
+    df = DataFrame({"t": [time(12, 30)]})
+    df.to_sql("test_no_prior", sqlite_buildin, if_exists="replace", index=False)
+    # Should not raise — restore with empty saved dicts is a no-op
