@@ -80,3 +80,17 @@ def test_constructor_from_dict():
     # https://github.com/pandas-dev/pandas/issues/52445
     result = SubclassedSeries({"a": 1, "b": 2, "c": 3})
     assert isinstance(result, SubclassedSeries)
+
+
+class MySeq(pd.Series):
+    _metadata = ["property"]
+    @property
+    def _constructor(self):
+        return MySeq
+
+def test_metadata_subclass_name_preserved():
+    # GH 61491
+    seq = MySeq([*"abc"], name="data")
+    assert seq[0:1].name == "data"
+    assert seq[[0, 1]].name == "data"
+    assert seq.drop_duplicates().name == "data"
