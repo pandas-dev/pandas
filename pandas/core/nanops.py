@@ -1028,6 +1028,7 @@ def nanvar(
     >>> nanops.nanvar(s.values)
     1.0
     """
+    values = _ensure_numeric_array(values, try_complex_conversion=True)
     dtype = values.dtype
     if dtype.kind == "c":
         if mask is None:
@@ -1753,6 +1754,30 @@ def _ensure_numeric(x):
             except ValueError as err:
                 # e.g. "foo"
                 raise TypeError(f"Could not convert {x} to numeric") from err
+    return x
+
+
+def _ensure_numeric_array(x: np.ndarray, try_complex_conversion: bool) -> np.ndarray:
+    # This is a copy of `_ensure_numeric` specific to arrays.
+    # It doesn't print the full array on error.
+    # The main purpose of this function is
+    # to avoid the conversion performed by numpy on numeric strings.
+    if x.dtype.kind in "biu":
+        return x.astype(np.float64)
+
+    if x.dtype == object:
+        inferred = lib.infer_dtype(x)
+        if inferred in {"string", "mixed"}:
+            raise TypeError("Could not convert array to numeric")
+
+        if try_complex_conversion:
+            x = x.astype(np.complex128)
+            if not np.any(np.imag(x)):
+                return x.real
+            return x
+
+        return x.astype(np.float64)
+
     return x
 
 

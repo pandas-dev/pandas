@@ -269,7 +269,12 @@ class TestDataFrameAnalytics:
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
-                msg = "could not convert string to float: 'bar'"
+                msg = "|".join(
+                    [
+                        "could not convert string to float: 'bar'",
+                        "Could not convert array to numeric",
+                    ]
+                )
             elif opname == "product":
                 if axis == 1:
                     msg = "can't multiply sequence by non-int of type 'float'"
@@ -589,19 +594,9 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(expected, result)
 
         # df1 has all numbers, df2 has a letter inside
-
-        # The 100 string in df1 will be converted to its float representation
-        # instead of doing a preemptive search to raise an error.
-        result = getattr(df1, meth)(axis=1, numeric_only=False)
-        df1_float = df1.astype("f8")
-        expected = getattr(df1_float, meth)(axis=1, numeric_only=False)
-
-        # The output of `meth` may be an object
-        # because the first columns is an object.
-        # The conversion happens in DataFrame._reduce
-        tm.assert_series_equal(expected, result, check_dtype=False)
-
-        msg = "could not convert string to float: 'a'"
+        msg = "Could not convert array to numeric"
+        with pytest.raises(TypeError, match=msg):
+            getattr(df1, meth)(axis=1, numeric_only=False)
         with pytest.raises(TypeError, match=msg):
             getattr(df2, meth)(axis=1, numeric_only=False)
 
@@ -2565,6 +2560,7 @@ def test_fails_on_non_numeric(kernel):
             "not supported between instances of",
             "unsupported operand type",
             "argument must be a string or a real number",
+            "Could not convert array to numeric",
         ]
     )
     if kernel == "median":
