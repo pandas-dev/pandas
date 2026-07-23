@@ -1,9 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport (
-    fabs,
-    signbit,
-)
+from libc.math cimport fabs
+from libcpp.cmath cimport signbit
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map

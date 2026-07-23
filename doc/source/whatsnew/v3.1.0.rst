@@ -50,6 +50,7 @@ Other enhancements
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
+- Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
 
 .. ---------------------------------------------------------------------------
@@ -151,6 +152,7 @@ Deprecations
 - Deprecated passing unnecessary ``*args`` and ``**kwargs`` to :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.cummax`, :meth:`.SeriesGroupBy.skew`, :meth:`.DataFrameGroupBy.skew`, :meth:`.SeriesGroupBy.take`, and :meth:`.DataFrameGroupBy.take`. The ``skipna`` parameter for the cum* methods is now an explicit keyword argument (:issue:`50407`)
 - Deprecated relying on the default ``engine`` for ``.xlsx`` and ``.xlsm`` files in :func:`read_excel` and :class:`ExcelFile` when ``python-calamine`` is installed; the default will change from ``openpyxl`` to ``calamine`` in a future version. Pass ``engine`` explicitly, or set the ``io.excel.xlsx.reader`` option, to silence the warning (:issue:`56542`)
 - Deprecated setting values with :meth:`DataFrame.at` and :meth:`Series.at` when the key does not exist in the index, which previously expanded the object. Use ``.loc`` instead (:issue:`48323`)
+- Deprecated silent dtype changes during setitem-with-expansion (e.g. ``ser.loc[new_key] = incompatible_value``). This will raise an error in a future version; cast the object to the desired dtype before the operation to keep the current behavior. The exception is int/uint to float when the value introduces ``NaN``, which is still allowed per PDEP-6 (:issue:`62369`)
 - Deprecated the ``%n`` directive in :meth:`Period.strftime` for nanoseconds; use ``%N`` instead. ``%n`` is a newline directive in C ``strftime`` (and Python's ``time.strftime`` / ``datetime.strftime``) (:issue:`65432`)
 - Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.rule_code`` instead (:issue:`64207`)
 - Deprecated the ``convert_dates`` and ``keep_default_dates`` keywords in :func:`read_json`. Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`to_datetime` after reading (:issue:`59161`)

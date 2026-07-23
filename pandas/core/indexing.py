@@ -35,6 +35,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    floats_fit_integer_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -51,16 +52,21 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     construct_1d_array_from_inferred_fill_value,
     is_valid_na_for_dtype,
+    isna,
     na_value_for_dtype,
 )
 
@@ -324,6 +330,24 @@ class IndexingMixin:
         0     1     3
         1   100   300
         2  1000  3000
+
+        **Selecting along an explicit axis**
+
+        ``.iloc`` can be called with an ``axis`` argument to apply a single
+        indexer to that axis.
+
+        >>> df.iloc(axis=0)[1]
+        a    100
+        b    200
+        c    300
+        d    400
+        Name: 1, dtype: int64
+
+        >>> df.iloc(axis=1)[1]
+        0       2
+        1     200
+        2    2000
+        Name: b, dtype: int64
         """
         return _iLocIndexer("iloc", self)
 
@@ -467,6 +491,22 @@ class IndexingMixin:
         >>> df.loc[lambda df: df["shield"] == 8]
                     max_speed  shield
         sidewinder          7       8
+
+        **Selecting along an explicit axis**
+
+        ``.loc`` can be called with an ``axis`` argument to apply a single
+        indexer to that axis.
+
+        >>> df.loc(axis=0)["viper"]
+        max_speed    4
+        shield       5
+        Name: viper, dtype: int64
+
+        >>> df.loc(axis=1)["shield"]
+        cobra         2
+        viper         5
+        sidewinder    8
+        Name: shield, dtype: int64
 
         **Setting values**
 
@@ -971,8 +1011,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         orig_dtype_info: DtypeObj | npt.NDArray[np.object_],
         orig_columns: Index | None,
     ) -> None:
-        # setitem-with-expansion added new rows.  Try to retain
-        #  original dtypes
+        # setitem-with-expansion added new rows.  Where a column's dtype
+        #  changed, warn if the original dtype could not hold the new values
+        #  (a future version will disallow the silent change).
         if self.obj.ndim == 1:
             assert not isinstance(orig_dtype_info, np.ndarray)
             if orig_dtype_info != self.obj.dtype:
@@ -991,6 +1032,10 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # We added rows but not columns
                 changed_dtypes = new_dtypes != orig_dtypes
                 for idx in np.flatnonzero(changed_dtypes):
+                    if orig_dtypes[idx].kind == "V":
+                        # np.void NA-proxy placeholder from new-column
+                        #  creation; not a meaningful dtype to retain
+                        continue
                     orig_arr = pd_array([], dtype=orig_dtypes[idx])
                     new_arr = infer_and_maybe_downcast(
                         orig_arr, self.obj.iloc[:, idx]._values
@@ -1003,6 +1048,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 for col, orig_dtype in zip(orig_columns, orig_dtypes, strict=True):
                     new_dtype = self.obj[col].dtype
                     if new_dtype != orig_dtype:
+                        if orig_dtype.kind == "V":
+                            # np.void NA-proxy placeholder, as above
+                            continue
                         orig_arr = pd_array([], dtype=orig_dtype)
                         new_arr = infer_and_maybe_downcast(
                             orig_arr, self.obj[col]._values
@@ -2932,7 +2980,9 @@ class _iLocIndexer(_LocationIndexer):
                     # Every NA value is suitable for object, no conversion needed
                     value = na_value_for_dtype(self.obj.dtype, compat=False)
 
-            new_values = infer_and_maybe_downcast(self.obj.array, [value])
+            new_values = infer_and_maybe_downcast(
+                self.obj.array, [value], warn_if_cast=False
+            )
 
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
@@ -3638,6 +3688,57 @@ def check_dict_or_set_indexers(key) -> None:
         )
 
 
+def _expansion_can_hold(orig: ExtensionArray, new_arr) -> bool:
+    """
+    Can new_arr's values be set losslessly into an array of orig's dtype?
+
+    Decides whether a dtype change during setitem-with-expansion gets the
+    GH#62369 deprecation warning.
+    """
+    dtype = orig.dtype
+    np_dtype = dtype.numpy_dtype if isinstance(dtype, NumpyEADtype) else dtype
+    if (
+        isinstance(np_dtype, np.dtype)
+        and np_dtype.kind in "iu"
+        and isinstance(new_arr, np.ndarray)
+        and new_arr.dtype.kind == "f"
+        and not floats_fit_integer_dtype(new_arr, np_dtype)
+    ):
+        # GH#66394 can_hold_element's round-trip check cannot see an
+        #  out-of-range float->int cast, since e.g. 2**63 and 2**63 - 1 are
+        #  the same float64, so it would report the value as holdable.
+        return False
+
+    if isinstance(dtype, NumpyEADtype):
+        # can_hold_element treats NumpyExtensionArray as a generic
+        #  ExtensionArray; unwrap so the underlying numpy dtype is checked.
+        return can_hold_element(np.asarray(orig), new_arr)
+    if isinstance(dtype, (PeriodDtype, IntervalDtype, DatetimeTZDtype, np.dtype)) or (
+        dtype == "string"
+    ):
+        # the dtypes for which can_hold_element does a real setitem-validation
+        #  check, as opposed to unconditionally returning True
+        return can_hold_element(orig, new_arr)
+
+    # Generic ExtensionArray (masked, Categorical, ArrowDtype, ...): check
+    #  whether the values round-trip losslessly at the original dtype.
+    try:
+        with warnings.catch_warnings():
+            # this is an internal probe whose result we compare below, so
+            #  constructor warnings (e.g. Categorical's on out-of-category
+            #  values) are spurious
+            warnings.simplefilter("ignore")
+            converted = pd_array(new_arr, dtype=dtype)
+    except Exception:
+        # EA constructors raise assorted exception types for un-holdable
+        #  values (e.g. pyarrow.lib.ArrowInvalid, decimal.InvalidOperation);
+        #  any failure means the original dtype cannot hold the new values.
+        return False
+    return array_equivalent(
+        np.asarray(converted, dtype=object), np.asarray(new_arr, dtype=object)
+    )
+
+
 def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -> None:
     """
     GH#17024 warn when expanding a MultiIndex axis with a key that is not a
@@ -3656,7 +3757,12 @@ def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -
         )
 
 
-def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
+def infer_and_maybe_downcast(
+    orig: ExtensionArray,
+    new_arr,
+    *,
+    warn_if_cast: bool = True,
+) -> ArrayLike:
     new_arr = orig._cast_pointwise_result(new_arr)
 
     dtype = orig.dtype
@@ -3702,6 +3808,30 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
             #  line up but the dtypes are still not interchangeable.
             if converted.dtype == dtype:
                 new_arr = converted
+
+    # The inferred result is returned unchanged, matching the historical
+    #  behavior.  We only warn when setitem-with-expansion lands on a dtype the
+    #  original cannot hold, which a future version will disallow.  warn_if_cast
+    #  is False for the intermediate inference inside _setitem_with_indexer_missing
+    #  and the frame.py concat path; those warn later from the post-expansion pass.
+    if new_arr.dtype != dtype and warn_if_cast:
+        # PDEP6 exception: int/uint -> float when result contains NaN
+        pdep6_allowed = (
+            is_np_dtype(dtype, "iu")
+            and is_np_dtype(new_arr.dtype, "f")
+            and isna(new_arr).any()
+        )
+        if not pdep6_allowed and not _expansion_can_hold(orig, new_arr):
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                f"and will raise an error in a future version of pandas. "
+                f"The existing dtype {dtype} cannot hold the value being "
+                f"set, so the result has dtype {new_arr.dtype}. Cast the "
+                f"object to {new_arr.dtype} before this operation to "
+                f"retain the current behavior.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
     if arr_type is not None:
         new_arr = arr_type(new_arr)
