@@ -4883,9 +4883,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Map values of Series according to an input mapping or function.
 
-        Used for substituting each value in a Series with another value,
-        that may be derived from a function, a ``dict`` or
-        a :class:`Series`.
+        This is the preferred method for elementwise operations on a Series.
+        It can also substitute each value with another value derived from a
+        function, a ``dict`` or a :class:`Series`.
 
         Parameters
         ----------
@@ -5006,6 +5006,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    None
         4    None
         dtype: object
+
+        For example, use ``map`` with a lambda function to increment each value:
+
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser.map(lambda x: x + 1)
+        0    2
+        1    3
+        2    4
+        dtype: int64
         """
         if func is None:
             if "arg" in kwargs:
