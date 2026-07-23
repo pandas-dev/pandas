@@ -301,6 +301,9 @@ def test_not_present_exception():
         read_csv("memory://test/test.csv")
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
+)
 def test_feather_options(fsspectest):
     pytest.importorskip("pyarrow")
     df = DataFrame({"a": [0]})

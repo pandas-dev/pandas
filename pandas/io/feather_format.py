@@ -10,7 +10,9 @@ import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
@@ -42,6 +44,10 @@ def to_feather(
     """
     Write a DataFrame to the binary Feather format.
 
+    .. deprecated:: 3.1.0
+
+       Use :meth:`DataFrame.to_parquet` instead.
+
     Parameters
     ----------
     df : DataFrame
@@ -59,6 +65,12 @@ def to_feather(
         Additional keywords passed to `pyarrow.feather.write_feather`.
 
     """
+    warnings.warn(
+        "to_feather is deprecated and will be removed in a future version. "
+        "Use DataFrame.to_parquet instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
@@ -89,6 +101,10 @@ def read_feather(
 ) -> DataFrame:
     """
     Load a feather-format object from the file path.
+
+    .. deprecated:: 3.1.0
+
+       Use :func:`read_parquet` instead.
 
     This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
     library.
@@ -155,6 +171,12 @@ def read_feather(
     --------
     >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
     """
+    warnings.warn(
+        "read_feather is deprecated and will be removed in a future version. "
+        "Use read_parquet instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 

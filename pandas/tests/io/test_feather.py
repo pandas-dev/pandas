@@ -10,15 +10,21 @@ import pytest
 from pandas.compat.pyarrow import (
     pa_version_under18p0,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
+    ),
+]
 
 
 pa = pytest.importorskip("pyarrow")
@@ -53,6 +59,18 @@ class TestFeather:
         result = read_feather(temp_file, **read_kwargs)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_feather_deprecated(self, temp_file):
+        # GH#66177
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="to_feather is deprecated"
+        ):
+            df.to_feather(temp_file)
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="read_feather is deprecated"
+        ):
+            read_feather(temp_file)
 
     def test_error(self, temp_file):
         msg = "feather only support IO with DataFrames"

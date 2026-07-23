@@ -185,6 +185,9 @@ Look,a snake,🐍"""
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
+    )
     def test_read_non_existent(self, reader, module, error_class, fn_ext):
         pytest.importorskip(module)
 
@@ -223,6 +226,9 @@ Look,a snake,🐍"""
         ],
     )
     # NOTE: Missing parent directory for pd.DataFrame.to_hdf is handled by PyTables
+    @pytest.mark.filterwarnings(
+        "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
+    )
     def test_write_missing_parent_directory(self, method, module, error_class, fn_ext):
         pytest.importorskip(module)
 
@@ -251,6 +257,9 @@ Look,a snake,🐍"""
             (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
     )
     def test_read_expands_user_home_dir(
         self, reader, module, error_class, fn_ext, monkeypatch
@@ -312,6 +321,9 @@ Look,a snake,🐍"""
         ],
     )
     @pytest.mark.filterwarnings(
+        "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.filterwarnings(
         "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
@@ -340,6 +352,9 @@ Look,a snake,🐍"""
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:.*_feather is deprecated:pandas.errors.Pandas4Warning"
     )
     def test_write_fspath_all(self, writer_name, writer_kwargs, module, tmp_path):
         if writer_name in ["to_latex"]:  # uses Styler implementation
