@@ -226,7 +226,10 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
     def to_pydatetime(self) -> Series:
         # GH#20306
-        return cast("ArrowExtensionArray", self._parent.array)._dt_to_pydatetime()
+        result = cast("ArrowExtensionArray", self._parent.array)._dt_to_pydatetime()
+        result.index = self._parent.index
+        result.name = self._parent.name
+        return result
 
     def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
@@ -325,8 +328,8 @@ class DatetimeProperties(Properties):
 
         Returns
         -------
-        numpy.ndarray
-            Object dtype array containing native Python datetime objects.
+        Series
+            Series containing native Python datetime objects.
 
         See Also
         --------
@@ -361,7 +364,12 @@ class DatetimeProperties(Properties):
         # GH#20306
         from pandas import Series
 
-        return Series(self._get_values().to_pydatetime(), dtype=object)
+        return Series(
+            self._get_values().to_pydatetime(),
+            index=self._parent.index,
+            name=self._parent.name,
+            dtype=object,
+        )
 
     @property
     def freq(self):
