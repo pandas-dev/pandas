@@ -496,6 +496,7 @@ I/O
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
 - Fixed segfault when instantiating the internal ``pandas._libs.parsers.TextReader`` with no arguments; it now raises ``TypeError`` (:issue:`53131`)
+- Fixed several segfaults in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing python objects that are very abnormal, including massive :class:`int` values, and strings that cannot be encoded as utf-8 (:issue:`66356`)
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
