@@ -41,6 +41,7 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -122,9 +123,7 @@ def month_classes(request):
 
 @pytest.fixture(
     params=[
-        getattr(offsets, o)
-        for o in offsets.__all__
-        if o not in ("Tick", "BaseOffset", "Offset")
+        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
     ]
 )
 def offset_types(request):
@@ -790,43 +789,67 @@ class TestDateOffset:
             DateOffset(picoseconds=1)
 
 
-class TestOffsetMetaDeprecation:
-    def test_isinstance_dateoffset_warns_for_non_dateoffset(self):
-        # GH#48262
-        bday = BDay()
-        msg = "isinstance.*DateOffset.*is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = isinstance(bday, DateOffset)
-        assert result is True
+def test_isinstance_dateoffset_warns_for_non_dateoffset():
+    # GH#48262
+    bday = BDay()
+    msg = "isinstance.*DateOffset.*is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = isinstance(bday, DateOffset)
+    assert result is True
 
-    def test_isinstance_dateoffset_no_warning_for_dateoffset(self):
-        # GH#48262
-        offset = DateOffset(days=1)
+
+def test_issubclass_dateoffset_warns_for_non_dateoffset():
+    # GH#48262
+    msg = "issubclass.*DateOffset.*is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = issubclass(BDay, DateOffset)
+    assert result is True
+
+
+def test_isinstance_dateoffset_no_warning_for_dateoffset():
+    # GH#48262
+    class MySubclass(DateOffset):
+        pass
+
+    for obj in [DateOffset(days=1), MySubclass(days=1)]:
         with tm.assert_produces_warning(None):
-            result = isinstance(offset, DateOffset)
+            result = isinstance(obj, DateOffset)
         assert result is True
 
-    def test_isinstance_offset_no_warning(self):
-        # GH#48262 - pd.offsets.Offset is the non-deprecated alternative
-        from pandas.tseries.offsets import Offset
 
-        bday = BDay()
+def test_issubclass_dateoffset_no_warning_for_dateoffset():
+    # GH#48262
+    class MySubclass(DateOffset):
+        pass
+
+    for klass in [DateOffset, MySubclass]:
         with tm.assert_produces_warning(None):
-            result = isinstance(bday, Offset)
+            result = issubclass(klass, DateOffset)
         assert result is True
 
-    def test_issubclass_dateoffset_warns_for_non_dateoffset(self):
-        # GH#48262
-        msg = "issubclass.*DateOffset.*is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = issubclass(BDay, DateOffset)
-        assert result is True
 
-    def test_issubclass_dateoffset_no_warning_for_dateoffset(self):
-        # GH#48262
-        with tm.assert_produces_warning(None):
-            result = issubclass(DateOffset, DateOffset)
-        assert result is True
+@pytest.mark.parametrize("obj", [1, None, "B", object()])
+def test_isinstance_dateoffset_no_warning_for_non_offset(obj):
+    # GH#48262 objects that are not offsets at all are unaffected
+    with tm.assert_produces_warning(None):
+        result = isinstance(obj, DateOffset)
+    assert result is False
+
+
+@pytest.mark.parametrize("klass", [int, str, object])
+def test_issubclass_dateoffset_no_warning_for_non_offset(klass):
+    # GH#48262
+    with tm.assert_produces_warning(None):
+        result = issubclass(klass, DateOffset)
+    assert result is False
+
+
+def test_baseoffset_check_no_warning():
+    # GH#48262 BaseOffset is the non-deprecated alternative
+    bday = BDay()
+    with tm.assert_produces_warning(None):
+        assert isinstance(bday, BaseOffset)
+        assert issubclass(BDay, BaseOffset)
 
 
 class TestOffsetNames:

@@ -2090,31 +2090,34 @@ class OffsetMeta(type):
 
     @classmethod
     def __instancecheck__(cls, obj) -> bool:
-        if isinstance(obj, BaseOffset) and not isinstance(obj, RelativeDeltaOffset):
+        result = isinstance(obj, BaseOffset)
+        if result and not isinstance(obj, RelativeDeltaOffset):
             from pandas.errors import Pandas4Warning
 
             warnings.warn(
-                "isinstance(obj, DateOffset) is deprecated when obj is not a "
-                "DateOffset instance. Use isinstance(obj, pd.offsets.Offset) "
-                "instead.",
+                "isinstance(obj, DateOffset) is deprecated for offsets that are "
+                "not DateOffset instances and will return False in a future "
+                "version. Use isinstance(obj, pd.offsets.BaseOffset) instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        return isinstance(obj, BaseOffset)
+        return result
 
     @classmethod
     def __subclasscheck__(cls, obj) -> bool:
-        if issubclass(obj, BaseOffset) and not issubclass(obj, RelativeDeltaOffset):
+        result = issubclass(obj, BaseOffset)
+        if result and not issubclass(obj, RelativeDeltaOffset):
             from pandas.errors import Pandas4Warning
 
             warnings.warn(
-                "issubclass(obj, DateOffset) is deprecated when obj is not a "
-                "subclass of DateOffset. Use issubclass(obj, pd.offsets.Offset) "
+                "issubclass(cls, DateOffset) is deprecated for offset classes "
+                "that are not DateOffset subclasses and will return False in a "
+                "future version. Use issubclass(cls, pd.offsets.BaseOffset) "
                 "instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        return issubclass(obj, BaseOffset)
+        return result
 
 
 # TODO: figure out a way to use a metaclass with a cdef class
@@ -2248,9 +2251,6 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
-
-
-Offset = BaseOffset
 
 # --------------------------------------------------------------------
 
