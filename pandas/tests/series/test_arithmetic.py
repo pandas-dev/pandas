@@ -1225,3 +1225,58 @@ def test_cmp_categorical_positional_listlike_deprecated():
     for other in [(1, 2, 3), range(3)]:
         with tm.assert_produces_warning(None):
             cat == other
+
+
+def test_arraylike_comparison_preserve_na():
+    # GH#63328
+    x = [None, 0, 1, False, True, np.nan, pd.NaT, pd.NA]
+    y = [False] * (len(x) - 1) + [pd.NA]
+    right = 3
+
+    left = Series(x)
+    expected = Series(y, dtype="object")
+    result = left == right
+    tm.assert_series_equal(result, expected)
+
+    left = Index(x)
+    expected = np.array(y, dtype="object")
+    result = left == right
+    tm.assert_numpy_array_equal(result, expected)
+
+    left = pd.array(x)
+    expected = pd.array(y, dtype="object")
+    result = left == right
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left",
+    [Series, Index, pd.array, np.array],
+)
+@pytest.mark.parametrize(
+    "right",
+    [Series, Index, pd.array, np.array],
+)
+def test_comparison_between_arraylike_preserve_na(left, right):
+    # GH#63328
+    data_1 = [0, 1, 2]
+    data_2 = [1, 1, pd.NA]
+    data_3 = [pd.NA, pd.NA, pd.NA]
+    expected_1 = np.array([False, True, pd.NA], dtype="object")
+    expected_2 = np.array([pd.NA, pd.NA, pd.NA], dtype="object")
+
+    if left is np.array and right is np.array:
+        pytest.skip(
+            "TypeError is raised when both sides are NumPy arrays and either "
+            "side contains pandas NA."
+        )
+
+    result_1 = np.asarray(left(data_1) == right(data_2))
+    tm.assert_numpy_array_equal(result_1, expected_1)
+    result_1 = np.asarray(left(data_2) == right(data_1))
+    tm.assert_numpy_array_equal(result_1, expected_1)
+
+    result_2 = np.asarray(left(data_2) == right(data_3))
+    tm.assert_numpy_array_equal(result_2, expected_2)
+    result_2 = np.asarray(left(data_3) == right(data_2))
+    tm.assert_numpy_array_equal(result_2, expected_2)

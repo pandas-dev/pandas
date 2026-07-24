@@ -22,6 +22,10 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
+from pandas._libs.missing import (
+    NA,
+    is_pdna,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     get_supported_dtype,
@@ -113,6 +117,9 @@ def fill_binop(left, right, fill_value):
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
+    if not is_object_dtype(x.dtype):
+        x = x.astype(np.object_)
+
     if isinstance(y, list):
         # e.g. test_tuple_categories
         y = construct_1d_object_array_from_listlike(y)
@@ -127,8 +134,13 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         if x.shape != y.shape:
             raise ValueError("Shapes must match", x.shape, y.shape)
         result = libops.vec_compare(x.ravel(), y.ravel(), op)
+        is_pdna_mask = is_pdna(x.ravel()) | is_pdna(y.ravel())
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
+        is_pdna_mask = is_pdna(x.ravel())
+    if is_pdna_mask.any():
+        arr_pdna = np.array([NA])
+        result = np.where(is_pdna_mask, arr_pdna, result)
     return result.reshape(x.shape)
 
 
@@ -352,7 +364,14 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif lvalues.dtype == object or isinstance(rvalues, str):
+    elif (
+        lvalues.dtype == object
+        or isinstance(rvalues, str)
+        or (
+            isinstance(rvalues, np.ndarray)
+            and getattr(rvalues, "dtype", None) == object
+        )
+    ):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
