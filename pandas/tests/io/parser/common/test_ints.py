@@ -195,7 +195,14 @@ def test_int64_uint64_range(all_parsers, val):
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
-    "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
+    "val",
+    [
+        np.iinfo(np.uint64).max + 1,
+        np.iinfo(np.int64).min - 1,
+        # GH#66238: 5 * 2**64 - 10 wraps mod 2**64 to a plausible-looking
+        # uint64, defeating wraparound-based overflow checks
+        92233720368547758070,
+    ],
 )
 def test_outside_int64_uint64_range(all_parsers, val, request):
     # These numbers fall just outside the int64-uint64
