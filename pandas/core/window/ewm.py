@@ -139,17 +139,17 @@ class ExponentialMovingWindow(BaseWindow):
     com : float, optional
         Specify decay in terms of center of mass
 
-        :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
+        :math:`\\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
 
     span : float, optional
         Specify decay in terms of span
 
-        :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
+        :math:`\\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
 
     halflife : float, str, timedelta, optional
         Specify decay in terms of half-life
 
-        :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
+        :math:`\\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\\right)`, for
         :math:`halflife > 0`.
 
         If ``times`` is specified, a timedelta convertible unit over which an
@@ -157,9 +157,9 @@ class ExponentialMovingWindow(BaseWindow):
         and halflife value will not apply to the other functions.
 
     alpha : float, optional
-        Specify smoothing factor :math:`\alpha` directly
+        Specify smoothing factor :math:`\\alpha` directly
 
-        :math:`0 < \alpha \leq 1`.
+        :math:`0 < \\alpha \\leq 1`.
 
     min_periods : int, default 0
         Minimum number of observations in window required to have a value;
@@ -170,12 +170,12 @@ class ExponentialMovingWindow(BaseWindow):
         for imbalance in relative weightings (viewing EWMA as a moving average).
 
         - When ``adjust=True`` (default), the EW function is calculated using weights
-          :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series
+          :math:`w_i = (1 - \\alpha)^i`. For example, the EW moving average of the series
           [:math:`x_0, x_1, ..., x_t`] would be:
 
         .. math::
-            y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... + (1 -
-            \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
+            y_t = \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ... + (1 -
+            \\alpha)^t x_0}{1 + (1 - \\alpha) + (1 - \\alpha)^2 + ... + (1 - \\alpha)^t}
 
         - When ``adjust=False``, the exponentially weighted function is calculated
           recursively:
@@ -183,7 +183,7 @@ class ExponentialMovingWindow(BaseWindow):
         .. math::
             \begin{split}
                 y_0 &= x_0\\
-                y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+                y_t &= (1 - \\alpha) y_{t-1} + \\alpha x_t,
             \end{split}
     ignore_na : bool, default False
         Ignore missing values when calculating weights.
@@ -191,14 +191,14 @@ class ExponentialMovingWindow(BaseWindow):
         - When ``ignore_na=False`` (default), weights are based on absolute positions.
           For example, the weights of :math:`x_0` and :math:`x_2` used in calculating
           the final weighted average of [:math:`x_0`, None, :math:`x_2`] are
-          :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
-          :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
+          :math:`(1-\\alpha)^2` and :math:`1` if ``adjust=True``, and
+          :math:`(1-\\alpha)^2` and :math:`\\alpha` if ``adjust=False``.
 
         - When ``ignore_na=True``, weights are based
           on relative positions. For example, the weights of :math:`x_0` and :math:`x_2`
           used in calculating the final weighted average of
-          [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
-          ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
+          [:math:`x_0`, None, :math:`x_2`] are :math:`1-\\alpha` and :math:`1` if
+          ``adjust=True``, and :math:`1-\\alpha` and :math:`\\alpha` if ``adjust=False``.
 
     times : np.ndarray, Series, default None
 
