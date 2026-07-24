@@ -1,0 +1,16 @@
+cachetools-6.2.6.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+cachetools-6.2.6.dist-info/METADATA,sha256=suFT8zjqm4pYnzekJ7DXD3uPwv7OZpCLLqxUrfijsts,5634
+cachetools-6.2.6.dist-info/RECORD,,
+cachetools-6.2.6.dist-info/WHEEL,sha256=wUyA8OaulRlbfwMtmQsvNngGrxQHAvkKcvRmdizlJi0,92
+cachetools-6.2.6.dist-info/licenses/LICENSE,sha256=KMAAtSsO4nE4po73eCJ-QFcEboa2X2LxysuZsMxJ4NI,1085
+cachetools-6.2.6.dist-info/top_level.txt,sha256=ai2FH78TGwoBcCgVfoqbzk5IQCtnDukdSs4zKuVPvDs,11
+cachetools/__init__.py,sha256=ABfneJwkDDR_mVwAAa6KgeCdU-ydt0wXjY9p815oapw,21403
+cachetools/__pycache__/__init__.cpython-312.pyc,,
+cachetools/__pycache__/_cached.cpython-312.pyc,,
+cachetools/__pycache__/_cachedmethod.cpython-312.pyc,,
+cachetools/__pycache__/func.cpython-312.pyc,,
+cachetools/__pycache__/keys.cpython-312.pyc,,
+cachetools/_cached.py,sha256=0DksMSxPYCW-3bwv_YAvok6mHpBtBpmf3oxg1TxEj2M,6485
+cachetools/_cachedmethod.py,sha256=Rk2M14yCNUNkZhOivvYXGQeniOu93xT8f37ZOzKlx9k,3413
+cachetools/func.py,sha256=aSSRbltUE2TnmI8IvoOomsE7acReuC4Ip8VQzY2hPtY,3286
+cachetools/keys.py,sha256=aMBUpdM2XCHeyOTKUzNhIojKDUf5NcdPGCRkS5jbAI8,1920

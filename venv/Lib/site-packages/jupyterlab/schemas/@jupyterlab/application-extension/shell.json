@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "JupyterLab Shell",
+  "description": "JupyterLab Shell layout settings.",
+  "jupyter.lab.menus": {
+    "context": [
+      {
+        "command": "sidebar:switch",
+        "selector": ".jp-SideBar .lm-TabBar-tab",
+        "rank": 500
+      }
+    ]
+  },
+  "properties": {
+    "hiddenMode": {
+      "type": "string",
+      "title": "Hidden mode of main panel widgets",
+      "description": "The method for hiding widgets in the main dock panel. Using `scale` will increase performance on Firefox but don't use it with Chrome, Chromium or Edge. Similar performance gains are seen with `contentVisibility` which is only available in Chromium-based browsers.",
+      "oneOf": [
+        { "const": "display", "title": "Display" },
+        { "const": "scale", "title": "Scale" },
+        { "const": "contentVisibility", "title": "Content visibility" }
+      ],
+      "default": "display"
+    },
+    "startMode": {
+      "type": "string",
+      "oneOf": [
+        { "const": "", "title": "Default" },
+        { "const": "single", "title": "Single" },
+        { "const": "multiple", "title": "Multiple" }
+      ],
+      "title": "Start mode: ``, `single` or `multiple`",
+      "description": "The mode under which JupyterLab should start. If empty, the mode will be imposed by the URL",
+      "default": ""
+    },
+    "layout": {
+      "type": "object",
+      "title": "Customize shell widget positioning",
+      "description": "Overrides default widget position in the application layout\ne.g. to position terminals in the right sidebar in multiple documents mode and in the down are in single document mode, {\n  \"single\": { \"Terminal\": { \"area\": \"down\" } },\n  \"multiple\": { \"Terminal\": { \"area\": \"right\" } }\n}.",
+      "properties": {
+        "single": {
+          "$ref": "#/definitions/layout",
+          "default": {
+            "Linked Console": { "area": "down" },
+            "Inspector": { "area": "down" },
+            "Cloned Output": { "area": "down" }
+          }
+        },
+        "multiple": { "$ref": "#/definitions/layout", "default": {} }
+      },
+      "default": {
+        "single": {
+          "Linked Console": { "area": "down" },
+          "Inspector": { "area": "down" },
+          "Cloned Output": { "area": "down" }
+        },
+        "multiple": {}
+      },
+      "additionalProperties": false
+    },
+    "dockPanelPadding": {
+      "type": "boolean",
+      "title": "Dock panel padding",
+      "description": "Whether to show padding around the main dock panel area. Disable for a more compact layout.",
+      "default": true
+    },
+    "activityBarPosition": {
+      "type": "string",
+      "title": "Activity bar position",
+      "description": "Position of the side activity bars. `side` keeps each activity bar on the natural side of its area. `top` or `bottom` moves both activity bars to the top or bottom of their respective area, displaying the tabs horizontally.",
+      "oneOf": [
+        { "const": "side", "title": "Side" },
+        { "const": "top", "title": "Top" },
+        { "const": "bottom", "title": "Bottom" }
+      ],
+      "default": "side"
+    },
+    "optimizeResize": {
+      "type": "boolean",
+      "title": "Optimize panel resize",
+      "description": "Freeze panel dimensions during handle drag to improve resize performance when panels contain heavy DOM content.",
+      "default": true
+    },
+    "zoomOnWheel": {
+      "type": "boolean",
+      "title": "Enable Ctrl+ Scroll Zoom",
+      "description": "Zoom the widget under the mouse when using Ctrl+ mouse wheel.",
+      "default": false
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "layout": {
+      "type": "object",
+      "properties": {
+        "[\\w-]+": {
+          "type": "object",
+          "properties": {
+            "area": {
+              "type": "string",
+              "oneOf": [
+                { "const": "main", "title": "Main" },
+                { "const": "left", "title": "Left" },
+                { "const": "right", "title": "Right" },
+                { "const": "down", "title": "Down" }
+              ]
+            },
+            "options": {
+              "$ref": "#/definitions/options"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "oneOf": [
+            { "const": "split-top", "title": "Split top" },
+            { "const": "split-left", "title": "Split left" },
+            { "const": "split-right", "title": "Split right" },
+            { "const": "split-bottom", "title": "Split bottom" },
+            { "const": "tab-before", "title": "Tab before" },
+            { "const": "tab-after", "title": "Tab after" }
+          ]
+        },
+        "rank": { "type": "number", "minimum": 0 },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

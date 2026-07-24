@@ -1,0 +1,22 @@
+{
+  "pagination": {
+    "ListAttachPoints": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "attachPoints"
+    },
+    "ListConnections": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "connections"
+    },
+    "ListEnvironments": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "environments"
+    }
+  }
+}

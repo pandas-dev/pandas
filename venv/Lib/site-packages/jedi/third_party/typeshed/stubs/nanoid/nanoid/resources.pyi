@@ -1,0 +1,2 @@
+alphabet: str
+size: int

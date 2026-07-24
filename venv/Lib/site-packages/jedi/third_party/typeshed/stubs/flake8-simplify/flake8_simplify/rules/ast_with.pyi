@@ -1,0 +1,3 @@
+import ast
+
+def get_sim117(node: ast.With) -> list[tuple[int, int, str]]: ...

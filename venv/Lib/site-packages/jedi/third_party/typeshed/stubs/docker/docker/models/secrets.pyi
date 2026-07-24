@@ -1,0 +1,13 @@
+from .resource import Collection, Model
+
+class Secret(Model):
+    id_attribute: str
+    @property
+    def name(self): ...
+    def remove(self): ...
+
+class SecretCollection(Collection[Secret]):
+    model: type[Secret]
+    def create(self, **kwargs): ...  # type: ignore[override]
+    def get(self, secret_id): ...
+    def list(self, **kwargs): ...

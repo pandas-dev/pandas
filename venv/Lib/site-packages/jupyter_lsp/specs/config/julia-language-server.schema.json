@@ -1,0 +1,88 @@
+{
+  "title": "Julia Language Server Configuration",
+  "description": "Extracted from https://github.com/julia-vscode/julia-vscode/blob/master/package.json; markdownDescription → description; removed Code-specific options, retained the overlap with https://github.com/julia-vscode/LanguageServer.jl/blob/36d8da744c1cb517cca3ba19180ddd276c1c6bf5/src/requests/workspace.jl#L88-L103; distributed under MIT License Copyright (c) 2012-2019 David Anthoff, Zac Nugent and other contributors (https://github.com/JuliaLang/Julia.tmbundle/contributors, https://github.com/julia-vscode/julia-vscode/contributors)",
+  "type": "object",
+  "properties": {
+    "julia.lint.run": {
+      "type": "boolean",
+      "default": true,
+      "description": "Run the linter on active files."
+    },
+    "julia.lint.missingrefs": {
+      "type": "string",
+      "default": "none",
+      "enum": ["none", "symbols", "all"],
+      "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
+    },
+    "julia.lint.disabledDirs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["docs", "test"],
+      "description": "Specifies sub-directories in [a package directory](https://docs.julialang.org/en/v1/manual/code-loading/#Package-directories-1) where only basic linting is. This drastically lowers the chance for false positives."
+    },
+    "julia.lint.call": {
+      "type": "boolean",
+      "default": true,
+      "description": "This compares  call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
+    },
+    "julia.lint.iter": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check iterator syntax of loops. Will identify, for example, attempts to iterate over single values."
+    },
+    "julia.lint.nothingcomp": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check for use of `==` rather than `===` when comparing against `nothing`. "
+    },
+    "julia.lint.constif": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check for constant conditionals in if statements that result in branches never being reached.."
+    },
+    "julia.lint.lazy": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check for deterministic lazy boolean operators."
+    },
+    "julia.lint.datadecl": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check variables used in type declarations are datatypes."
+    },
+    "julia.lint.typeparam": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check parameters declared in `where` statements or datatype declarations are used."
+    },
+    "julia.lint.modname": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check submodule names do not shadow their parent's name."
+    },
+    "julia.lint.pirates": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check for type piracy - the overloading of external functions with methods specified for external datatypes. 'External' here refers to imported code."
+    },
+    "julia.lint.useoffuncargs": {
+      "type": "boolean",
+      "default": true,
+      "description": "Check that all declared arguments are used within the function body."
+    },
+    "julia.completionmode": {
+      "type": "string",
+      "default": "qualify",
+      "description": "Sets the mode for completions.",
+      "enum": ["exportedonly", "import", "qualify"],
+      "enumDescriptions": [
+        "Show completions for the current namespace.",
+        "Show completions for the current namespace and unexported variables of `using`ed modules. Selection of an unexported variable will result in the automatic insertion of an explicit `using` statement.",
+        "Show completions for the current namespace and unexported variables of `using`ed modules. Selection of an unexported variable will complete to a qualified variable name."
+      ],
+      "scope": "window"
+    }
+  }
+}

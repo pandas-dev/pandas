@@ -1,0 +1,37 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "ConnectionAvailable" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetConnection",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "connection.state",
+        "state" : "success",
+        "expected" : "available"
+      }, {
+        "matcher" : "path",
+        "argument" : "connection.state",
+        "state" : "failure",
+        "expected" : "deleted"
+      }, {
+        "matcher" : "path",
+        "argument" : "connection.state",
+        "state" : "failure",
+        "expected" : "down"
+      } ]
+    },
+    "ConnectionDeleted" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetConnection",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "connection.state",
+        "state" : "success",
+        "expected" : "deleted"
+      } ]
+    }
+  }
+}

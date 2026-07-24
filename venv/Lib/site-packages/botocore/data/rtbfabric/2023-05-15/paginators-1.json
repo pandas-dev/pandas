@@ -1,0 +1,34 @@
+{
+  "pagination": {
+    "ListLinks": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "links"
+    },
+    "ListRequesterGateways": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "gatewayIds"
+    },
+    "ListResponderGateways": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "gatewayIds"
+    },
+    "ListCertificateAssociations": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "certificateAssociations"
+    },
+    "ListLinkRoutingRules": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "rules"
+    }
+  }
+}

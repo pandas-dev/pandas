@@ -1,0 +1,13 @@
+import asyncio
+import io
+from _typeshed import ReadableBuffer
+
+class AsyncUnreader:
+    reader: asyncio.StreamReader
+    buf: io.BytesIO
+    max_chunk: int
+
+    def __init__(self, reader: asyncio.StreamReader, max_chunk: int = 8192) -> None: ...
+    async def read(self, size: int | None = None) -> bytes: ...
+    def unread(self, data: ReadableBuffer) -> None: ...
+    def has_buffered_data(self) -> bool: ...

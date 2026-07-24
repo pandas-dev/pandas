@@ -1,0 +1,13 @@
+from typing import Any, TypedDict, type_check_only
+
+import click
+
+@type_check_only
+class _FormData(TypedDict):
+    command: click.Command
+    fields: list[dict[str, Any]]  # each item is result of resources.input_fields.get_input_field() function
+
+def get_form_for(command_path: str) -> str: ...
+def _get_commands_by_path(command_path: str) -> list[tuple[click.Context, click.Command]]: ...
+def _generate_form_data(ctx_and_commands: list[tuple[click.Context, click.Command]]) -> list[_FormData]: ...
+def _process_help(help_text: bool) -> str: ...

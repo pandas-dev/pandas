@@ -1,0 +1,87 @@
+{
+  "title": "LaTeX configuration",
+  "type": "object",
+  "properties": {
+    "rootDirectory": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Path to the root directory."
+    },
+    "build.executable": {
+      "type": "string",
+      "default": "latexmk",
+      "description": "Path to a LaTeX build tool."
+    },
+    "build.args": {
+      "type": "array",
+      "default": ["-pdf", "-interaction=nonstopmode", "-synctex=1", "%f"],
+      "description": "Additional arguments that are passed to the build tool.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "build.onSave": {
+      "type": "boolean",
+      "default": false,
+      "description": "Build after saving a file"
+    },
+    "build.outputDirectory": {
+      "type": "string",
+      "default": ".",
+      "description": "Directory containing the build artifacts."
+    },
+    "build.forwardSearchAfter": {
+      "type": "boolean",
+      "default": false,
+      "description": "Execute forward search after building"
+    },
+    "forwardSearch.executable": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Path to a PDF previewer that supports SyncTeX."
+    },
+    "forwardSearch.args": {
+      "type": "array",
+      "default": [],
+      "description": "Additional arguments that are passed to the previewer.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "chktex.onOpenAndSave": {
+      "type": "boolean",
+      "default": false,
+      "description": "Lint with chktex after opening and saving a file"
+    },
+    "chktex.onEdit": {
+      "type": "boolean",
+      "default": false,
+      "description": "Lint with chktex afte editing a file"
+    },
+    "diagnosticsDelay": {
+      "type": "integer",
+      "default": 300,
+      "description": "Delay in milliseconds before reporting diagnostics."
+    },
+    "formatterLineLength": {
+      "type": "integer",
+      "default": 80,
+      "description": "Defines the maximum amount of characters per line (0 = disable) when formatting BibTeX files."
+    },
+    "latexFormatter": {
+      "type": "string",
+      "default": "latexindent",
+      "description": "Defines the formatter to use for LaTeX formatting. Possible values are either texlab or latexindent. Note that texlab is not implemented yet."
+    },
+    "latexindent.local": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Defines the path of a file containing the latexindent configuration. This corresponds to the --local=file.yaml flag of latexindent. By default the configuration inside the project root directory is used."
+    },
+    "latexindent.modifyLineBreaks": {
+      "type": "boolean",
+      "default": false,
+      "description": "Modifies linebreaks before, during, and at the end of code blocks when formatting with latexindent. This corresponds to the --modifylinebreaks flag of latexindent."
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "jupyter.lab.setting-icon-class": "jp-TextEditorIcon",
+  "jupyter.lab.setting-icon-label": "CodeMirror",
+  "title": "CodeMirror",
+  "description": "Text editor settings for all CodeMirror editors.",
+  "properties": {
+    "keyMap": { "type": "string", "title": "Key Map", "default": "default" },
+    "theme": { "type": "string", "title": "Theme", "default": "default" }
+  },
+  "type": "object"
+}

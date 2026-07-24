@@ -1,0 +1,3 @@
+from datetime import datetime
+
+def parse_datetime(timestamp: str) -> datetime: ...

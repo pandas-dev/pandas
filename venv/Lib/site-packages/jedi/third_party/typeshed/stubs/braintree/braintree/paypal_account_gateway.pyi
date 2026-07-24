@@ -1,0 +1,13 @@
+from _typeshed import Incomplete
+
+from braintree.error_result import ErrorResult
+from braintree.paypal_account import PayPalAccount
+from braintree.successful_result import SuccessfulResult
+
+class PayPalAccountGateway:
+    gateway: Incomplete
+    config: Incomplete
+    def __init__(self, gateway) -> None: ...
+    def find(self, paypal_account_token: str) -> PayPalAccount | None: ...
+    def delete(self, paypal_account_token: str) -> SuccessfulResult: ...
+    def update(self, paypal_account_token: str, params=None) -> SuccessfulResult | ErrorResult | None: ...

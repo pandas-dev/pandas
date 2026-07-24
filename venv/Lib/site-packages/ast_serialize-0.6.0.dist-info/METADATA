@@ -1,0 +1,32 @@
+Metadata-Version: 2.4
+Name: ast_serialize
+Version: 0.6.0
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Rust
+Classifier: Topic :: Software Development
+Classifier: Typing :: Typed
+License-File: LICENSE
+Summary: Python bindings for mypy AST serialization
+Author-email: Jukka Lehtosalo <jukka.lehtosalo@iki.fi>
+License-Expression: MIT
+Requires-Python: >=3.7
+Description-Content-Type: text/x-rst
+Project-URL: Homepage, https://github.com/mypyc/ast_serialize
+Project-URL: Issues, https://github.com/mypyc/ast_serialize/issues
+
+ast_serialize - Python Parser and AST Serializer
+================================================
+
+This is a fast Python extension for parsing Python files and serializing the AST using
+the native binary format used by mypy. This will eventually replace the current mypy parser,
+which uses the Python stdlib ``ast`` module for parsing.
+

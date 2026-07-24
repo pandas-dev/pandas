@@ -1,0 +1,2 @@
+Version: 1.12.0
+Arguments: ['C:\\Users\\ContainerAdministrator\\AppData\\Local\\Python\\pythoncore-3.12-64\\Lib\\site-packages\\delvewheel\\__main__.py', 'repair', '-vv', '--ignore-existing', '--with-mangle', '-w', 'repaired_wheels', 'C:\\arrow\\python\\dist\\pyarrow-23.0.1-cp312-cp312-win_amd64.whl']

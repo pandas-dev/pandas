@@ -1,0 +1,15 @@
+zstandard-0.25.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+zstandard-0.25.0.dist-info/METADATA,sha256=u_jLYxcSdIVMcndzcjdtMde1JEc1mlOMHCtHquScKzw,3339
+zstandard-0.25.0.dist-info/RECORD,,
+zstandard-0.25.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+zstandard-0.25.0.dist-info/WHEEL,sha256=8UP9x9puWI0P1V_d7K2oMTBqfeLNm21CTzZ_Ptr0NXU,101
+zstandard-0.25.0.dist-info/licenses/LICENSE,sha256=wVso-IZlAL09YHxznodxCqXEdieqMKBXOUhBRWT_HaI,1511
+zstandard-0.25.0.dist-info/top_level.txt,sha256=J-wj94pPadY4ipFaanrYBlrMblOSegEYS8o_LdogrpU,10
+zstandard/__init__.py,sha256=XCKdk3s_hCAjTzuqwI2KvAreNKF7v7usmPzU-TSUktY,7452
+zstandard/__init__.pyi,sha256=_HpiKlmu2PnKSI-hONoKqdz1Cd7zUST7YM0fVpsI0MA,14454
+zstandard/__pycache__/__init__.cpython-312.pyc,,
+zstandard/__pycache__/backend_cffi.cpython-312.pyc,,
+zstandard/_cffi.cp312-win_amd64.pyd,sha256=ZRtiw1O-tWskcdTs5v_eDO-UA6Z8yWN8Ju3CgniYCSE,667136
+zstandard/backend_c.cp312-win_amd64.pyd,sha256=LOeSBB8r99io9RTw-1rfx3eOVumISR5qx_NDjC6Ms9M,525312
+zstandard/backend_cffi.py,sha256=CACC_Nz6fjab_zIoEpEW7xBJP1Nrryln0_9gFjmJPpQ,157105
+zstandard/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0

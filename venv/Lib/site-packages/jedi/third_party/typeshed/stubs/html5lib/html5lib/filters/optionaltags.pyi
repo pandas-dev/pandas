@@ -1,0 +1,9 @@
+from _typeshed import Incomplete
+from collections.abc import Generator
+
+from . import base
+
+class Filter(base.Filter[dict[str, Incomplete]]):
+    def slider(self) -> Generator[tuple[Incomplete, Incomplete, Incomplete]]: ...
+    def is_optional_start(self, tagname: str, previous, next) -> bool: ...
+    def is_optional_end(self, tagname: str, next) -> bool: ...

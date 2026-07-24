@@ -1,0 +1,2 @@
+version = "6.0.*"
+upstream-repository = "https://github.com/yaml/pyyaml"

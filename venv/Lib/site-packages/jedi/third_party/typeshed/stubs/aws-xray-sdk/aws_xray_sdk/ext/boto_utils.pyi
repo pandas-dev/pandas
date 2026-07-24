@@ -1,0 +1,6 @@
+from _typeshed import Incomplete
+
+whitelist: Incomplete
+
+def inject_header(wrapped, instance, args, kwargs): ...
+def aws_meta_processor(wrapped, instance, args, kwargs, return_value, exception, subsegment, stack) -> None: ...

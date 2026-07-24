@@ -1,0 +1,28 @@
+{
+  "pagination": {
+    "ListAccessPoints": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "accessPoints"
+    },
+    "ListFileSystems": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "fileSystems"
+    },
+    "ListMountTargets": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "mountTargets"
+    },
+    "ListTagsForResource": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "tags"
+    }
+  }
+}

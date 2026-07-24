@@ -1,0 +1,19 @@
+from _typeshed import SupportsRichComparison
+from collections.abc import Callable
+from typing import Any, Generic, Literal, TypeVar, overload
+from typing_extensions import Self
+
+__tracebackhide__: bool
+
+_V = TypeVar("_V", default=Any)
+
+class CollectionMixin(Generic[_V]):
+    def is_iterable(self) -> Self: ...
+    def is_not_iterable(self) -> Self: ...
+    def is_subset_of(self, *supersets: _V) -> Self: ...
+    @overload
+    def is_sorted(self, key: Callable[[_V], SupportsRichComparison] = ..., reverse: Literal[False] = False) -> Self: ...
+    @overload
+    def is_sorted(self, *, reverse: Literal[True]) -> Self: ...
+    @overload
+    def is_sorted(self, key: Callable[[_V], SupportsRichComparison], reverse: Literal[True]) -> Self: ...

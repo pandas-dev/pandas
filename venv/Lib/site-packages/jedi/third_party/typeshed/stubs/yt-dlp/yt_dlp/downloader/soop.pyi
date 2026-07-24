@@ -1,0 +1,3 @@
+from .common import FileDownloader
+
+class SoopVodFD(FileDownloader): ...

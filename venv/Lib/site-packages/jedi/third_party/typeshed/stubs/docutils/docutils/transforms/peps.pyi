@@ -1,0 +1,43 @@
+import re
+from typing import ClassVar, Final
+
+from docutils import nodes
+from docutils.transforms import Transform
+
+__docformat__: Final = "reStructuredText"
+
+class Headers(Transform):
+    default_priority: ClassVar[int]
+    pep_url: ClassVar[str]
+    pep_cvs_url: ClassVar[str]
+    rcs_keyword_substitutions: ClassVar[tuple[tuple[re.Pattern[str], str], ...]]
+    def apply(self) -> None: ...
+
+class Contents(Transform):
+    default_priority: ClassVar[int]
+    def apply(self) -> None: ...
+
+class TargetNotes(Transform):
+    default_priority: ClassVar[int]
+    def apply(self) -> None: ...
+    def cleanup_callback(self, pending: nodes.pending) -> None: ...
+
+class PEPZero(Transform):
+    default_priority: ClassVar[int]
+    def apply(self) -> None: ...
+
+class PEPZeroSpecial(nodes.SparseNodeVisitor):
+    pep_url: ClassVar[str]
+    def unknown_visit(self, node: nodes.Node) -> None: ...
+    def visit_reference(self, node: nodes.reference) -> None: ...
+    def visit_field_list(self, node: nodes.field_list) -> None: ...
+    pep_table: bool
+    entry: int
+    def visit_tgroup(self, node: nodes.tgroup) -> None: ...
+    def visit_colspec(self, node: nodes.colspec) -> None: ...
+    def visit_row(self, node: nodes.row) -> None: ...
+    def visit_entry(self, node: nodes.entry) -> None: ...
+
+non_masked_addresses: tuple[str, ...]
+
+def mask_email(ref: nodes.reference, pepno: int | None = None) -> nodes.Node: ...

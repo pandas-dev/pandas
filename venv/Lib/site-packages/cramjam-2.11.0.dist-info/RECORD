@@ -1,0 +1,8 @@
+cramjam-2.11.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+cramjam-2.11.0.dist-info/METADATA,sha256=UzVzMJhclSTKhAUh98ZZzhveW8AATfIeoWy9OotO4Vg,681
+cramjam-2.11.0.dist-info/RECORD,,
+cramjam-2.11.0.dist-info/WHEEL,sha256=UoHC5NvzY0geoE2r8Mxbl5fR5fYT9OeSzrhPCIC4-kQ,96
+cramjam-2.11.0.dist-info/licenses/LICENSE,sha256=zCXOSBOs-0xyeQ1JcQ3BB1Lp9RGl3Scav4inSK6Yxuo,1091
+cramjam/__init__.py,sha256=VjCBHPElEPhUkzw5PBYIbA1ZmQIbYLoCrhyBx8LIaHs,111
+cramjam/__pycache__/__init__.cpython-312.pyc,,
+cramjam/cramjam.cp312-win_amd64.pyd,sha256=UnBhSh_aVXrrNrJcDiOwlVhQ3vpA5pKbEVF1K3bsjYc,4213248

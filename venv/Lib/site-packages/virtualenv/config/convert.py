@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import logging
+import os
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from argparse import Action
+    from typing import Any
+
+LOGGER = logging.getLogger(__name__)
+
+
+class TypeData:
+    def __init__(self, default_type: type, as_type: type) -> None:
+        self.default_type = default_type
+        self.as_type = as_type
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(base={self.default_type}, as={self.as_type})"
+
+    def convert(self, value: str) -> Any:  # ruff:ignore[any-type]
+        return self.default_type(value)
+
+
+class BoolType(TypeData):
+    BOOLEAN_STATES: ClassVar[dict[str, bool]] = {
+        "1": True,
+        "yes": True,
+        "true": True,
+        "on": True,
+        "0": False,
+        "no": False,
+        "false": False,
+        "off": False,
+    }
+
+    def convert(self, value: str) -> bool:
+        if value.lower() not in self.BOOLEAN_STATES:
+            msg = f"Not a boolean: {value}"
+            raise ValueError(msg)
+        return self.BOOLEAN_STATES[value.lower()]
+
+
+class NoneType(TypeData):
+    def convert(self, value: str) -> str | None:
+        if not value:
+            return None
+        return str(value)
+
+
+class ListType(TypeData):
+    def _validate(self) -> None:
+        """no op."""
+
+    def convert(self, value: str | list[str], flatten: bool = True) -> list[Any]:  # ruff:ignore[unused-method-argument, boolean-default-value-positional-argument]
+        values = self.split_values(value)
+        result = []
+        for a_value in values:
+            sub_values = a_value.split(os.pathsep)
+            result.extend(sub_values)
+        return [self.as_type(i) for i in result]
+
+    def split_values(self, value: str | bytes | list[str]) -> list[str]:
+        """Split the provided value into a list.
+
+        First this is done by newlines. If there were no newlines in the text, then we next try to split by comma.
+
+        """
+        if isinstance(value, (str, bytes)):
+            # Use `splitlines` rather than a custom check for whether there is
+            # more than one line. This ensures that the full `splitlines()`
+            # logic is supported here.
+            values = value.splitlines()
+            if len(values) <= 1:
+                values = value.split(",")  # ty: ignore[invalid-argument-type]
+            values = filter(None, [x.strip() for x in values])
+        else:
+            values = list(value)
+
+        return values  # ty: ignore[invalid-return-type]
+
+
+def convert(value: str, as_type: TypeData, source: str) -> Any:  # ruff:ignore[any-type]
+    """Convert the value as a given type where the value comes from the given source."""
+    try:
+        return as_type.convert(value)
+    except Exception as exception:
+        LOGGER.warning("%s failed to convert %r as %r because %r", source, value, as_type, exception)
+        raise
+
+
+_CONVERT = {bool: BoolType, type(None): NoneType, list: ListType}
+
+
+def get_type(action: Action) -> TypeData:
+    default_type = type(action.default)
+    as_type = default_type if action.type is None else action.type
+    return _CONVERT.get(default_type, TypeData)(default_type, as_type)  # ty: ignore[invalid-argument-type]
+
+
+__all__ = [
+    "convert",
+    "get_type",
+]

@@ -1,0 +1,136 @@
+{
+  "pagination": {
+    "ListAgentSpaces": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "agentSpaceSummaries"
+    },
+    "ListApplications": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "applicationSummaries"
+    },
+    "ListArtifacts": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "artifactSummaries"
+    },
+    "ListDiscoveredEndpoints": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "discoveredEndpoints"
+    },
+    "ListFindings": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "findingsSummaries"
+    },
+    "ListIntegratedResources": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "integratedResourceSummaries"
+    },
+    "ListIntegrations": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "integrationSummaries"
+    },
+    "ListMemberships": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "membershipSummaries"
+    },
+    "ListPentestJobTasks": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "taskSummaries"
+    },
+    "ListPentestJobsForPentest": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "pentestJobSummaries"
+    },
+    "ListPentests": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "pentestSummaries"
+    },
+    "ListTargetDomains": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "targetDomainSummaries"
+    },
+    "ListCodeReviewJobTasks": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "codeReviewJobTaskSummaries"
+    },
+    "ListCodeReviewJobsForCodeReview": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "codeReviewJobSummaries"
+    },
+    "ListCodeReviews": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "codeReviewSummaries"
+    },
+    "ListPrivateConnections": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "privateConnections"
+    },
+    "ListSecurityRequirementPacks": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "securityRequirementPackSummaries"
+    },
+    "ListSecurityRequirements": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "securityRequirementSummaries"
+    },
+    "ListThreatModelJobTasks": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "threatModelJobTaskSummaries"
+    },
+    "ListThreatModelJobs": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "threatModelJobSummaries"
+    },
+    "ListThreatModels": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "threatModelSummaries"
+    },
+    "ListThreats": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "threats"
+    }
+  }
+}

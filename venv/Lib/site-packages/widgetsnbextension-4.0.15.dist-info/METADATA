@@ -1,0 +1,37 @@
+Metadata-Version: 2.4
+Name: widgetsnbextension
+Version: 4.0.15
+Summary: Jupyter interactive widgets for Jupyter Notebook
+Home-page: http://jupyter.org
+Author: Jupyter Development Team
+Author-email: jupyter@googlegroups.com
+License: BSD 3-Clause License
+Keywords: Interactive,Interpreter,Shell,Web,notebook,widgets,Jupyter
+Platform: Linux
+Platform: Mac OS X
+Platform: Windows
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Framework :: Jupyter
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+# Jupyter Widgets for Jupyter Notebook
+
+[![Version](https://img.shields.io/pypi/v/ipywidgets.svg?logo=pypi)](https://pypi.python.org/pypi/ipywidgets)
+
+This package makes Jupyter widgets available in the classic Jupyter Notebook. This package provides the necessary JavaScript controls in the Jupyter Notebook that communicate with the widget objects in the kernel.
+
+Install the corresponding Jupyter widgets package into your kernel, i.e., IPython users would install `ipywidgets` into their kernel.

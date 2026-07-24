@@ -1,0 +1,16 @@
+from types import TracebackType
+from typing import final
+
+@final
+class Lock:
+    def acquire(self, blocking: bool = True) -> bool: ...
+    def release(self) -> None: ...
+    def locked(self) -> bool: ...
+    def __enter__(self) -> bool: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+        /,
+    ) -> None: ...

@@ -1,0 +1,19 @@
+from _hashlib import HASH
+from collections.abc import Callable
+from logging import Logger
+
+from oauthlib.common import Request
+
+log: Logger
+
+class GrantTypeBase:
+    def __getattr__(self, attr: str): ...
+    def __setattr__(self, attr: str, value) -> None: ...
+    def validate_authorization_request(self, request: Request): ...
+    def id_token_hash(
+        self, value: str, hashfunc: Callable[..., HASH] = ...  # Arguments: ReadableBuffer (string) and bool (usedforsecurity)
+    ) -> str: ...
+    def add_id_token(self, token, token_handler, request: Request, nonce=None): ...
+    def openid_authorization_validator(self, request: Request): ...
+
+OpenIDConnectBase = GrantTypeBase

@@ -1,0 +1,13 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "GetScheduledQueryHistory": {
+        "non_aggregate_keys": [
+          "name",
+          "scheduledQueryArn"
+        ]
+      }
+    }
+  }
+}

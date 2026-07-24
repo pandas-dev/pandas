@@ -1,0 +1,9 @@
+from _typeshed import Incomplete
+
+from braintree.attribute_getter import AttributeGetter
+
+class ExchangeRateQuoteInput(AttributeGetter):
+    parent: Incomplete
+    def __init__(self, parent, attributes) -> None: ...
+    def done(self): ...
+    def to_graphql_variables(self) -> dict[str, Incomplete]: ...

@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunk_JUPYTERLAB_CORE_OUTPUT=self.rspackChunk_JUPYTERLAB_CORE_OUTPUT||[]).push([[1612],{74887(e,s,c){c.d(s,{createPacketServices:()=>r.$});var r=c(32477);c(43711)}}]);

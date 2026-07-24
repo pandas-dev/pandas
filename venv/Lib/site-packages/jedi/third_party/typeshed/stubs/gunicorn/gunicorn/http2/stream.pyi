@@ -1,0 +1,59 @@
+from _typeshed import Incomplete, ReadableBuffer
+from collections.abc import Iterable
+from enum import Enum
+from io import BytesIO
+
+from gunicorn.http2.connection import HTTP2ServerConnection
+
+class StreamState(Enum):
+    IDLE = 1
+    RESERVED_LOCAL = 2
+    RESERVED_REMOTE = 3
+    OPEN = 4
+    HALF_CLOSED_LOCAL = 5
+    HALF_CLOSED_REMOTE = 6
+    CLOSED = 7
+
+class HTTP2Stream:
+    stream_id: int
+    connection: HTTP2ServerConnection
+    state: StreamState
+    request_headers: list[tuple[str, Incomplete]]
+    request_body: BytesIO
+    request_complete: bool
+    response_started: bool
+    response_headers_sent: bool
+    response_complete: bool
+    window_size: int
+    trailers: list[tuple[str, Incomplete]] | None
+    response_trailers: list[tuple[str, Incomplete]] | None
+    priority_weight: int
+    priority_depends_on: int
+    priority_exclusive: bool
+
+    def __init__(self, stream_id: int, connection: HTTP2ServerConnection) -> None: ...
+    @property
+    def is_client_stream(self) -> bool: ...
+    @property
+    def is_server_stream(self) -> bool: ...
+    @property
+    def can_receive(self) -> bool: ...
+    @property
+    def can_send(self) -> bool: ...
+    def receive_headers(self, headers: Iterable[tuple[str, Incomplete]], end_stream: bool | None = False) -> None: ...
+    def receive_data(self, data: ReadableBuffer, end_stream: bool | None = False) -> None: ...
+    def receive_trailers(self, trailers: list[tuple[str, Incomplete]]) -> None: ...
+    def send_headers(self, headers: Iterable[tuple[str, Incomplete]], end_stream: bool | None = False) -> None: ...
+    def send_data(self, data: ReadableBuffer, end_stream: bool | None = False) -> None: ...
+    def send_trailers(self, trailers: list[tuple[str, Incomplete]]) -> None: ...
+    def reset(self, error_code: int = 0x8) -> None: ...
+    def close(self) -> None: ...
+    def update_priority(
+        self, weight: int | None = None, depends_on: int | None = None, exclusive: bool | None = None
+    ) -> None: ...
+    def get_request_body(self) -> bytes: ...
+    async def read_body_chunk(self) -> bytes | None: ...
+    def get_pseudo_headers(self) -> dict[str, Incomplete]: ...
+    def get_regular_headers(self) -> list[tuple[str, Incomplete]]: ...
+
+__all__ = ["HTTP2Stream", "StreamState"]

@@ -1,0 +1,10 @@
+#ifndef LIBRT_BASE64_H
+#define LIBRT_BASE64_H
+
+#include <Python.h>
+
+#define LIBRT_BASE64_ABI_VERSION 1
+#define LIBRT_BASE64_API_VERSION 2
+#define LIBRT_BASE64_API_LEN 4
+
+#endif  // LIBRT_BASE64_H

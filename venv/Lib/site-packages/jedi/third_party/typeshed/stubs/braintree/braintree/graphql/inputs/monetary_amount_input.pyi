@@ -1,0 +1,6 @@
+from _typeshed import Incomplete
+from decimal import Decimal
+
+class MonetaryAmountInput:
+    def __init__(self, value: Decimal | None = None, currency_code: str | None = None) -> None: ...
+    def to_graphql_variables(self) -> dict[str, Incomplete]: ...

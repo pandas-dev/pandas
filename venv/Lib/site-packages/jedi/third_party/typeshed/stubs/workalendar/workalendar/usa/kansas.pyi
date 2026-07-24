@@ -1,0 +1,3 @@
+from .core import UnitedStates
+
+class Kansas(UnitedStates): ...

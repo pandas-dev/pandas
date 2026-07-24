@@ -1,0 +1,3 @@
+fb303
+hive_metastore
+pyiceberg

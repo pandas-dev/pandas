@@ -1,0 +1,8 @@
+# This patch should go on top of the "classic" style and exists solely to avoid
+# changing baseline images.
+
+ytick.alignment: center_baseline
+
+hatch.color: edge
+
+text.hinting: default

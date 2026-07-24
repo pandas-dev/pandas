@@ -1,0 +1,8 @@
+{
+  "scipy.optimize.cython_optimize._zeros": {
+    "bisect": "double (__pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_callback_type, double, double, void *, double, double, int, __pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_zeros_full_output *)",
+    "brenth": "double (__pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_callback_type, double, double, void *, double, double, int, __pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_zeros_full_output *)",
+    "brentq": "double (__pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_callback_type, double, double, void *, double, double, int, __pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_zeros_full_output *)",
+    "ridder": "double (__pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_callback_type, double, double, void *, double, double, int, __pyx_t_5scipy_8optimize_15cython_optimize_6_zeros_zeros_full_output *)"
+  }
+}

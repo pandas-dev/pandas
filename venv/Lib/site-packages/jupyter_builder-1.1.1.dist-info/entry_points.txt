@@ -1,0 +1,3 @@
+[console_scripts]
+jlpm = jupyter_builder.jlpm:main
+jupyter-builder = jupyter_builder.main:main

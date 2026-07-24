@@ -1,0 +1,33 @@
+Metadata-Version: 2.4
+Name: librt
+Version: 0.13.0
+Summary: Mypyc runtime library
+Author-email: Jukka Lehtosalo <jukka.lehtosalo@iki.fi>, Ivan Levkivskyi <levkivskyi@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/mypyc/librt
+Project-URL: Issues, https://github.com/mypyc/mypyc/issues
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Topic :: Software Development
+Classifier: Typing :: Typed
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Dynamic: license-file
+
+Mypyc runtime library
+=====================
+
+This library contains efficient C implementations of various Python standard
+library classes and functions. Mypyc can use these fast implementations when
+compiling Python code to native extension modules.
+
+Mypyc compiler is a part of `mypy distribution <https://pypi.org/project/mypy>`__.

@@ -1,0 +1,71 @@
+cff-version: 1.2.0
+title: rfc3987-syntax
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Will
+    family-names: Riley
+    email: wanderingwill@gmail.com
+    orcid: "https://orcid.org/0000-0003-1822-6756"
+  - given-names: Jan
+    family-names: Kowalleck
+repository-code: >-
+  https://github.com/willynilly/rfc3987-syntax
+abstract: >-
+  Helper functions to syntactically validate strings according to RFC 3987
+keywords:
+  - RFC 3987
+  - RFC3987
+  - validator 
+  - syntax
+  - parser
+license: MIT
+version: "1.1.0"
+date-released: "2025-07-18"
+references:
+  - title: "abnf-to-regexp"
+    type: software
+    version: "1.1.3"
+    license: MIT
+    authors:
+      - given-names: Marko
+        family-names: Ristin
+        email: marko@ristin.ch
+        orcid: ""
+      - given-names: Oliver Steensen-Bech
+        family-names: Haagh
+        email: oliver@dmc.international
+        orcid: ""
+      - given-names: Sebastian
+        family-names: Heppner
+        email: s.heppner@iat.rwth-aachen.de
+        orcid: ""
+    repository-code: https://github.com/aas-core-works/abnf-to-regexp
+  - title: "lark"
+    type: software
+    version: 1.2.2
+    license: MIT
+    authors:
+      - family-names: Shinan
+        given-names: Erez
+        email: erezshin@gmail.com
+    repository-code: https://github.com/lark-parser/lark
+  - title: "Internationalized Resource Identifiers (IRIs)"
+    authors:
+      - family-names: Dürst
+        given-names: Martin
+      - family-names: Suignard
+        given-names: Michel
+    date-released: 2005-01-01
+    doi: "10.17487/RFC3987"
+    url: "https://www.rfc-editor.org/info/rfc3987"
+    type: standard
+  - title: "ChatGPT"
+    authors:
+      - name: OpenAI
+    type: software
+    version: "GPT-4o"
+    url: "https://chat.openai.com/chat"
+    

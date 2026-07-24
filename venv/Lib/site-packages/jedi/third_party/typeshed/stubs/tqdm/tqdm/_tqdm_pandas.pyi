@@ -1,0 +1,3 @@
+__all__ = ["tqdm_pandas"]
+
+def tqdm_pandas(tclass, **tqdm_kwargs) -> None: ...

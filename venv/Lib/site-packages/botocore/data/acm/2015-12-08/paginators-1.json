@@ -1,0 +1,40 @@
+{
+  "pagination": {
+    "ListCertificates": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxItems",
+      "result_key": "CertificateSummaryList"
+    },
+    "SearchCertificates": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "Results"
+    },
+    "ListAcmeAccounts": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "AcmeAccounts"
+    },
+    "ListAcmeDomainValidations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "AcmeDomainValidations"
+    },
+    "ListAcmeEndpoints": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "AcmeEndpoints"
+    },
+    "ListAcmeExternalAccountBindings": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ExternalAccountBindings"
+    }
+  }
+}

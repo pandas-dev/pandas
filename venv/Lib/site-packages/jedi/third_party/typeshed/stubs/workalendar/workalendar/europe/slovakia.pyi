@@ -1,0 +1,3 @@
+from ..core import WesternCalendar
+
+class Slovakia(WesternCalendar): ...

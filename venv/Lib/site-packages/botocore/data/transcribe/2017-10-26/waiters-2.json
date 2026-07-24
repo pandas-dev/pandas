@@ -1,0 +1,138 @@
+{
+  "version": 2,
+  "waiters": {
+    "CallAnalyticsJobCompleted": {
+      "operation": "GetCallAnalyticsJob",
+      "delay": 10,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "CallAnalyticsJob.CallAnalyticsJobStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "CallAnalyticsJob.CallAnalyticsJobStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "LanguageModelCompleted": {
+      "operation": "DescribeLanguageModel",
+      "delay": 120,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "LanguageModel.ModelStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "LanguageModel.ModelStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "MedicalScribeJobCompleted": {
+      "operation": "GetMedicalScribeJob",
+      "delay": 10,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "MedicalScribeJob.MedicalScribeJobStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "MedicalScribeJob.MedicalScribeJobStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "MedicalTranscriptionJobCompleted": {
+      "operation": "GetMedicalTranscriptionJob",
+      "delay": 10,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "MedicalTranscriptionJob.TranscriptionJobStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "MedicalTranscriptionJob.TranscriptionJobStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "MedicalVocabularyReady": {
+      "operation": "GetMedicalVocabulary",
+      "delay": 10,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "VocabularyState",
+          "expected": "READY"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "VocabularyState",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "TranscriptionJobCompleted": {
+      "operation": "GetTranscriptionJob",
+      "delay": 10,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "TranscriptionJob.TranscriptionJobStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "TranscriptionJob.TranscriptionJobStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "VocabularyReady": {
+      "operation": "GetVocabulary",
+      "delay": 10,
+      "maxAttempts": 180,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "VocabularyState",
+          "expected": "READY"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "VocabularyState",
+          "expected": "FAILED"
+        }
+      ]
+    }
+  }
+}

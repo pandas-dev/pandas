@@ -1,0 +1,4 @@
+module Qt.labs.location
+plugin locationlabsplugin
+classname QtLocationLabsDeclarativeModule
+typeinfo plugins.qmltypes

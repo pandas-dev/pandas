@@ -1,0 +1,33 @@
+import _csv
+from _typeshed import FileDescriptorOrPath, StrOrBytesPath
+from collections.abc import Iterable
+from typing import Any, BinaryIO, TextIO
+from typing_extensions import TypeAlias
+
+from netaddr.core import Publisher, Subscriber
+
+_INDEX: TypeAlias = dict[int, list[tuple[int, int]]]
+OUI_INDEX: _INDEX
+IAB_INDEX: _INDEX
+
+class FileIndexer(Subscriber):
+    writer: _csv._writer
+    def __init__(self, index_file: TextIO | FileDescriptorOrPath) -> None: ...
+    def update(self, data: Iterable[Any]) -> None: ...
+
+class OUIIndexParser(Publisher):
+    fh: BinaryIO
+    def __init__(self, ieee_file: BinaryIO | FileDescriptorOrPath) -> None: ...
+    def parse(self) -> None: ...
+
+class IABIndexParser(Publisher):
+    fh: BinaryIO
+    def __init__(self, ieee_file: BinaryIO | FileDescriptorOrPath) -> None: ...
+    def parse(self) -> None: ...
+
+def create_index_from_registry(
+    registry_fh: BinaryIO | FileDescriptorOrPath, index_path: StrOrBytesPath, parser: type[OUIIndexParser | IABIndexParser]
+) -> None: ...
+def create_indices() -> None: ...
+def load_index(index: _INDEX, fp: Iterable[bytes]) -> None: ...
+def load_indices() -> None: ...

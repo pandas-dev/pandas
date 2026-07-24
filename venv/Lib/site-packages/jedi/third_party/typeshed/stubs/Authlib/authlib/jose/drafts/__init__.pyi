@@ -1,0 +1,3 @@
+__all__ = ["register_jwe_draft"]
+
+def register_jwe_draft(cls) -> None: ...

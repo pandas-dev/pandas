@@ -1,0 +1,3 @@
+from _typeshed import Incomplete
+
+def get_batch(batch_cls, options: Incomplete | None = ...): ...

@@ -1,0 +1,13 @@
+{
+    "version": 1.0,
+    "merge": {
+      "pagination": {
+        "GetCreditAllocationHistory": {
+          "non_aggregate_keys": [
+            "partialResults",
+            "failedMonths"
+          ]
+        }
+      }
+    }
+  }

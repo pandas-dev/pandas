@@ -1,0 +1,13 @@
+from _typeshed import Incomplete
+
+from braintree.validation_error import ValidationError
+from braintree.validation_error_collection import ValidationErrorCollection
+
+class Errors:
+    errors: ValidationErrorCollection
+    size = errors.deep_size
+    def __init__(self, data: dict[str, Incomplete]) -> None: ...
+    @property
+    def deep_errors(self) -> list[ValidationError]: ...
+    def for_object(self, key: str) -> ValidationErrorCollection: ...
+    def __len__(self) -> int: ...

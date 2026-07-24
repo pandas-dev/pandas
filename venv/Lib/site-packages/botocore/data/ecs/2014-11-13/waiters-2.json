@@ -1,0 +1,174 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "DaemonActive" : {
+      "delay" : 15,
+      "maxAttempts" : 8,
+      "operation" : "DescribeDaemon",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "daemon.status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "daemon.status",
+        "state" : "failure",
+        "expected" : "DELETE_IN_PROGRESS"
+      } ]
+    },
+    "DaemonDeploymentStopped" : {
+      "delay" : 15,
+      "maxAttempts" : 8,
+      "operation" : "DescribeDaemonDeployments",
+      "acceptors" : [ {
+        "matcher" : "pathAll",
+        "argument" : "daemonDeployments[].status",
+        "state" : "success",
+        "expected" : "STOPPED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "failures[].reason",
+        "state" : "failure",
+        "expected" : "MISSING"
+      } ]
+    },
+    "DaemonDeploymentSuccessful" : {
+      "delay" : 15,
+      "maxAttempts" : 8,
+      "operation" : "DescribeDaemonDeployments",
+      "acceptors" : [ {
+        "matcher" : "pathAll",
+        "argument" : "daemonDeployments[].status",
+        "state" : "success",
+        "expected" : "SUCCESSFUL"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "daemonDeployments[].status",
+        "state" : "failure",
+        "expected" : "STOPPED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "daemonDeployments[].status",
+        "state" : "failure",
+        "expected" : "ROLLBACK_FAILED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "daemonDeployments[].status",
+        "state" : "failure",
+        "expected" : "ROLLBACK_SUCCESSFUL"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "failures[].reason",
+        "state" : "failure",
+        "expected" : "MISSING"
+      } ]
+    },
+    "DaemonTaskDefinitionActive" : {
+      "delay" : 15,
+      "maxAttempts" : 8,
+      "operation" : "DescribeDaemonTaskDefinition",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "daemonTaskDefinition.status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "daemonTaskDefinition.status",
+        "state" : "failure",
+        "expected" : "DELETE_IN_PROGRESS"
+      }, {
+        "matcher" : "path",
+        "argument" : "daemonTaskDefinition.status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      } ]
+    },
+    "DaemonTaskDefinitionDeleted" : {
+      "delay" : 15,
+      "maxAttempts" : 8,
+      "operation" : "DescribeDaemonTaskDefinition",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "daemonTaskDefinition.status",
+        "state" : "success",
+        "expected" : "DELETED"
+      } ]
+    },
+    "ServicesInactive" : {
+      "delay" : 15,
+      "maxAttempts" : 40,
+      "operation" : "DescribeServices",
+      "acceptors" : [ {
+        "matcher" : "pathAny",
+        "argument" : "failures[].reason",
+        "state" : "failure",
+        "expected" : "MISSING"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "services[].status",
+        "state" : "success",
+        "expected" : "INACTIVE"
+      } ]
+    },
+    "ServicesStable" : {
+      "delay" : 15,
+      "maxAttempts" : 40,
+      "operation" : "DescribeServices",
+      "acceptors" : [ {
+        "matcher" : "pathAny",
+        "argument" : "failures[].reason",
+        "state" : "failure",
+        "expected" : "MISSING"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "services[].status",
+        "state" : "failure",
+        "expected" : "DRAINING"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "services[].status",
+        "state" : "failure",
+        "expected" : "INACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "length(services[?!(length(deployments) == `1` && runningCount == desiredCount)]) == `0`",
+        "state" : "success",
+        "expected" : true
+      } ]
+    },
+    "TasksRunning" : {
+      "delay" : 6,
+      "maxAttempts" : 100,
+      "operation" : "DescribeTasks",
+      "acceptors" : [ {
+        "matcher" : "pathAny",
+        "argument" : "tasks[].lastStatus",
+        "state" : "failure",
+        "expected" : "STOPPED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "failures[].reason",
+        "state" : "failure",
+        "expected" : "MISSING"
+      }, {
+        "matcher" : "pathAll",
+        "argument" : "tasks[].lastStatus",
+        "state" : "success",
+        "expected" : "RUNNING"
+      } ]
+    },
+    "TasksStopped" : {
+      "delay" : 6,
+      "maxAttempts" : 100,
+      "operation" : "DescribeTasks",
+      "acceptors" : [ {
+        "matcher" : "pathAll",
+        "argument" : "tasks[].lastStatus",
+        "state" : "success",
+        "expected" : "STOPPED"
+      } ]
+    }
+  }
+}

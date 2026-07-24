@@ -1,0 +1,3 @@
+import traceback
+
+def get_stacktrace(limit: int | None = None) -> list[traceback.FrameSummary]: ...

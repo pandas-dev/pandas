@@ -1,0 +1,16 @@
+from braintree.error_result import ErrorResult
+from braintree.resource import Resource
+from braintree.subscription import Subscription
+from braintree.successful_result import SuccessfulResult
+
+class PayPalAccount(Resource):
+    @staticmethod
+    def find(paypal_account_token: str) -> PayPalAccount | None: ...
+    @staticmethod
+    def delete(paypal_account_token: str) -> SuccessfulResult: ...
+    @staticmethod
+    def update(paypal_account_token: str, params=None) -> SuccessfulResult | ErrorResult | None: ...
+    @staticmethod
+    def signature() -> list[str | dict[str, list[str]]]: ...
+    subscriptions: list[Subscription]
+    def __init__(self, gateway, attributes) -> None: ...

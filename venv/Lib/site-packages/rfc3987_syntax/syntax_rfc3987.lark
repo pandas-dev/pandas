@@ -1,0 +1,111 @@
+
+iri: scheme ":" ihier_part ("?" iquery)? ("#" ifragment)?
+
+iri_reference: iri | irelative_ref
+
+absolute_iri: scheme ":" ihier_part ("?" iquery)?
+
+scheme: alpha (alpha | digit | "+" | "-" | ".")*
+
+ihier_part: "//" iauthority ipath_abempty
+          | ipath_absolute
+          | ipath_rootless
+          | ipath_empty
+
+irelative_ref: irelative_part ("?" iquery)? ("#" ifragment)?
+
+irelative_part: "//" iauthority ipath_abempty
+              | ipath_absolute
+              | ipath_noscheme
+              | ipath_empty
+
+iauthority: (iuserinfo "@")? ihost (":" port)?
+
+iuserinfo: (iunreserved | pct_encoded | sub_delims | ":")*
+
+ihost: ip_literal | ipv4address | ireg_name
+
+ireg_name: (iunreserved | pct_encoded | sub_delims)*
+
+ipath: ipath_abempty
+     | ipath_absolute
+     | ipath_noscheme
+     | ipath_rootless
+     | ipath_empty
+
+ipath_abempty: ("/" isegment)*
+
+ipath_absolute: "/" (isegment_nz ("/" isegment)*)?
+
+ipath_noscheme: isegment_nz_nc ("/" isegment)*
+
+ipath_rootless: isegment_nz ("/" isegment)*
+
+ipath_empty: -> empty
+
+isegment: ipchar*
+
+isegment_nz: ipchar+
+
+isegment_nz_nc: (iunreserved | pct_encoded | sub_delims | "@")+
+
+ipchar: iunreserved | pct_encoded | sub_delims | ":" | "@"
+
+iquery: (ipchar | iprivate | "/" | "?")*
+
+ifragment: (ipchar | "/" | "?")*
+
+iunreserved: alpha | digit | "-" | "." | "_" | "~" | ucschar
+
+ucschar: /[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]/
+iprivate: /[\uE000-\uF8FF]/
+
+sub_delims: "!" | "$" | "&" | "'" | "(" | ")"
+          | "*" | "+" | "," | ";" | "="
+
+ip_literal: "[" (ipv6address | ipvfuture) "]"
+
+ipvfuture: "v" hexdig+ "." (unreserved | sub_delims | ":")+
+
+ipv6address: h16 ":" h16 ":" h16 ":" h16 ":" h16 ":" h16 ":" ls32
+           | "::" h16 ":" h16 ":" h16 ":" h16 ":" h16 ":" ls32
+           | h16 "::" h16 ":" h16 ":" h16 ":" h16 ":" ls32
+           | h16 ":" h16 "::" h16 ":" h16 ":" h16 ":" ls32
+           | h16 ":" h16 ":" h16 "::" h16 ":" h16 ":" ls32
+           | h16 ":" h16 ":" h16 ":" h16 "::" h16 ":" ls32
+           | h16 ":" h16 ":" h16 ":" h16 ":" h16 "::" ls32
+           | h16 ":" h16 ":" h16 ":" h16 ":" h16 ":" h16 "::" h16
+           | h16 ":" h16 ":" h16 ":" h16 ":" h16 ":" h16 ":" h16 "::"
+
+h16: hexdig
+   | hexdig hexdig
+   | hexdig hexdig hexdig
+   | hexdig hexdig hexdig hexdig
+
+ls32: h16 ":" h16 | ipv4address
+
+ipv4address: dec_octet "." dec_octet "." dec_octet "." dec_octet
+
+dec_octet: digit
+         | non_zero digit
+         | "1" digit digit
+         | "2" ("0".."4") digit
+         | "25" ("0".."5")
+
+digit: T_DIGIT
+T_DIGIT: /[0-9]/
+
+non_zero: T_NON_ZERO
+T_NON_ZERO: /[1-9]/
+
+unreserved: alpha | digit | "-" | "." | "_" | "~"
+
+alpha: T_ALPHA
+T_ALPHA: /[A-Za-z]/
+
+hexdig: T_HEXDIG
+T_HEXDIG: /[0-9A-Fa-f]/
+
+port: digit*
+
+pct_encoded: "%" hexdig hexdig

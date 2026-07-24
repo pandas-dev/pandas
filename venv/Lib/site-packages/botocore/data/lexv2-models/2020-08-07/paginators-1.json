@@ -1,0 +1,28 @@
+{
+  "pagination": {
+    "DescribeBotAnalyzerRecommendation": {
+      "input_token": "nextToken",
+      "limit_key": "maxResults",
+      "non_aggregate_keys": [
+        "creationDateTime",
+        "localeId",
+        "botId",
+        "botVersion",
+        "botAnalyzerStatus"
+      ],
+      "output_token": "nextToken",
+      "result_key": "botAnalyzerRecommendationList"
+    },
+    "ListBotAnalyzerHistory": {
+      "input_token": "nextToken",
+      "limit_key": "maxResults",
+      "non_aggregate_keys": [
+        "localeId",
+        "botId",
+        "botVersion"
+      ],
+      "output_token": "nextToken",
+      "result_key": "botAnalyzerHistoryList"
+    }
+  }
+}

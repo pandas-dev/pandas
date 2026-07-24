@@ -1,0 +1,2 @@
+Version: 1.12.0
+Arguments: ['C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cibw-run-_1x2a2md\\cp312-win_amd64\\build\\venv\\Scripts\\delvewheel', 'repair', '-w', 'C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cibw-run-_1x2a2md\\cp312-win_amd64\\repaired_wheel', '--no-mangle', 'libiconv-2.dll;libwinpthread-1.dll', 'C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cibw-run-_1x2a2md\\cp312-win_amd64\\built_wheel\\psycopg2_binary-2.9.12-cp312-cp312-win_amd64.whl']

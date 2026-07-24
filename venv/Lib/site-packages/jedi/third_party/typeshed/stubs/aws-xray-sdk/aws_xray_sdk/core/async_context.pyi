@@ -1,0 +1,23 @@
+from asyncio.events import AbstractEventLoop
+from asyncio.tasks import Task, _TaskCompatibleCoro
+from typing import Any, TypeVar
+
+from .context import Context as _Context
+
+_T_co = TypeVar("_T_co", covariant=True)
+
+class AsyncContext(_Context):
+    def __init__(
+        self, context_missing: str = "LOG_ERROR", loop: AbstractEventLoop | None = None, use_task_factory: bool = True
+    ) -> None: ...
+    def clear_trace_entities(self) -> None: ...
+
+class TaskLocalStorage:
+    def __init__(self, loop: AbstractEventLoop | None = None) -> None: ...
+    # Sets unknown items on the current task's context attribute
+    def __setattr__(self, name: str, value: Any) -> None: ...
+    # Returns unknown items from the current tasks context attribute
+    def __getattribute__(self, item: str) -> Any | None: ...
+    def clear(self) -> None: ...
+
+def task_factory(loop: AbstractEventLoop | None, coro: _TaskCompatibleCoro[_T_co]) -> Task[_T_co]: ...
