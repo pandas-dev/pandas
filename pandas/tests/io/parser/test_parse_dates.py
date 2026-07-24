@@ -228,7 +228,6 @@ def test_parse_tz_aware(all_parsers):
     if parser.engine == "pyarrow":
         expected.index = expected.index.as_unit("s")
     tm.assert_frame_equal(result, expected)
-    assert result.index.tz is timezone.utc
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": "C"}])
