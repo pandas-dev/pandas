@@ -39,6 +39,10 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
+from pandas.compat._cpu import (
+    available_cpu_count,
+    physical_core_count,
+)
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -199,6 +203,13 @@ _python_unsupported = {"low_memory", "float_precision"}
 _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
 # Minimum rows per parallel chunk, bounding how finely a file is split.
 _PARALLEL_MIN_CHUNK_ROWS = 2000
+
+# Upper bound on the default parallel-read worker count.  Chosen as a ceiling
+# comfortably above any current client CPU's core count, so it never limits a
+# normal machine but stops a default read from oversubscribing a large shared
+# server that has no cgroup/affinity limit set.  Users who genuinely want more
+# can raise it via mode.max_threads.
+_MAX_DEFAULT_WORKERS = 16
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -340,26 +351,7 @@ def _read(
     # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
     # and type-conversion code in parsers.pyx runs truly in parallel.
     if not iterator and chunksize is None and nrows is None:
-        _max = get_option("mode.max_threads")
-        if sys.platform == "emscripten":
-            # WASM cannot spawn threads, regardless of mode.max_threads.
-            _n_workers = 1
-        elif _max is not None:
-            _n_workers = _max
-        elif sys.platform == "win32":
-            # Parallel CSV reading does not currently speed up on Windows: even
-            # with the file warm in the OS cache, using more than one thread is
-            # no faster (and slower at two threads).  Default to serial there;
-            # users can still opt in explicitly via mode.max_threads.  See the
-            # benchmark numbers in the GH#64347 discussion:
-            # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
-            _n_workers = 1
-        else:
-            # Cap the default at 4 threads: parallel CSV reading sees
-            # diminishing returns beyond a handful of workers, and a lower
-            # default avoids oversubscribing the machine.  Users who want more
-            # can opt in explicitly via mode.max_threads.
-            _n_workers = min(os.cpu_count() or 1, 4)
+        _n_workers = _default_n_workers()
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             _filepath = stringify_path(filepath_or_buffer)
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
@@ -382,6 +374,42 @@ def _read(
 
     with parser:
         return parser.read(nrows)
+
+
+def _default_n_workers() -> int:
+    """
+    Default worker count for a parallel ``read_csv``.
+
+    ``mode.max_threads`` wins whenever it is set (except on WASM, which cannot
+    spawn threads at all).  Otherwise parallel reading is off by default on
+    Windows, and elsewhere defaults to the number of physical cores
+    (:func:`~pandas.compat._cpu.physical_core_count`), efficiency cores
+    included: the work-queued parallel path keeps every core productive (a
+    slow core simply pulls fewer chunks).  SMT siblings are excluded because
+    a hyperthread adds no memory bandwidth to the bandwidth-bound parse its
+    sibling is running.  That count is then clamped to the CPUs actually
+    available to the process (CPU affinity / cgroup limits) and to
+    ``_MAX_DEFAULT_WORKERS``.
+    """
+    max_threads = get_option("mode.max_threads")
+    if sys.platform == "emscripten":
+        # WASM cannot spawn threads, regardless of mode.max_threads.
+        return 1
+    if max_threads is not None:
+        return max_threads
+    if sys.platform == "win32":
+        # Parallel CSV reading does not currently speed up on Windows: even
+        # with the file warm in the OS cache, using more than one thread is
+        # no faster (and slower at two threads).  Default to serial there;
+        # users can still opt in explicitly via mode.max_threads.  See the
+        # benchmark numbers in the GH#64347 discussion:
+        # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
+        return 1
+    n_workers = physical_core_count()
+    available = available_cpu_count()
+    if available is not None:
+        n_workers = min(n_workers, available)
+    return min(n_workers, _MAX_DEFAULT_WORKERS)
 
 
 def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:

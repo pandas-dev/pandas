@@ -13,6 +13,7 @@ We test correctness (parallel == serial) rather than performance.
 from __future__ import annotations
 
 import csv
+import ctypes
 import io
 import os
 from typing import TYPE_CHECKING
@@ -21,6 +22,14 @@ import numpy as np
 import pytest
 
 from pandas.compat import WASM
+from pandas.compat._cpu import (
+    _count_distinct_cores,
+    _count_processor_core_records,
+    _parse_cgroup_v2_quota,
+    _parse_cpu_list,
+    available_cpu_count,
+    physical_core_count,
+)
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -39,6 +48,7 @@ import pandas._testing as tm
 from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import (
     _can_parallelize_csv,
+    _default_n_workers,
     _find_chunk_byte_offsets,
     _find_data_start_offset,
     _read_csv_parallel,
@@ -805,16 +815,19 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     assert len(calls) == 1  # parallel by default elsewhere
 
 
-def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is capped at 4, regardless of core count."""
+def test_parallel_default_uses_physical_cores(tmp_path, monkeypatch):
+    """The default worker count follows the detected physical core count."""
     import pandas.io.parsers.readers as _readers
 
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # More cores than the cap: the default should clamp down to 4.
+    # 6 physical cores out of 16 logical CPUs (SMT): the default follows the
+    # physical core count, not the logical one.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     workers = []
 
@@ -825,9 +838,9 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     read_csv(path)
-    assert workers == [4]
+    assert workers == [6]
 
-    # An explicit mode.max_threads still overrides the cap.
+    # An explicit mode.max_threads still overrides the physical-core default.
     workers.clear()
     with option_context("mode.max_threads", 8):
         read_csv(path)
@@ -1232,3 +1245,332 @@ def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
     with option_context("mode.max_threads", 4):
         result = read_csv(path, on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
+
+
+# ---------------------------------------------------------------------------
+# Performance-core detection and the default worker count
+# ---------------------------------------------------------------------------
+
+
+def test_physical_core_count_within_bounds():
+    # Whatever the host topology, the detector returns a positive int no larger
+    # than the logical CPU count, and never raises.
+    physical_core_count.cache_clear()
+    try:
+        n_perf = physical_core_count()
+    finally:
+        physical_core_count.cache_clear()
+    assert isinstance(n_perf, int)
+    assert 1 <= n_perf <= (os.cpu_count() or 1)
+
+
+@pytest.mark.parametrize(
+    "platform_name, probe_name",
+    [
+        ("darwin", "_physical_cores_darwin"),
+        ("linux", "_physical_cores_linux"),
+        ("win32", "_physical_cores_windows"),
+    ],
+)
+@pytest.mark.parametrize("failure", ["returns_none", "raises"])
+def test_physical_core_count_falls_back(
+    monkeypatch, platform_name, probe_name, failure
+):
+    # A probe that returns None or raises must fall back to os.cpu_count().
+    from pandas.compat import _cpu
+
+    def probe():
+        if failure == "raises":
+            raise OSError("probe failed")
+
+    monkeypatch.setattr(_cpu.sys, "platform", platform_name)
+    monkeypatch.setattr(_cpu, probe_name, probe)
+    _cpu.physical_core_count.cache_clear()
+    try:
+        assert _cpu.physical_core_count() == (os.cpu_count() or 1)
+    finally:
+        _cpu.physical_core_count.cache_clear()
+
+
+@pytest.mark.parametrize(
+    "probe_result, expected",
+    [
+        (1, 1),  # a valid subset is used as-is
+        (0, "total"),  # nonsensical count -> fall back
+        (10**6, "total"),  # more cores than exist -> fall back
+    ],
+)
+def test_physical_core_count_validates_probe(monkeypatch, probe_result, expected):
+    from pandas.compat import _cpu
+
+    total = os.cpu_count() or 1
+    monkeypatch.setattr(_cpu.sys, "platform", "darwin")
+    monkeypatch.setattr(_cpu, "_physical_cores_darwin", lambda: probe_result)
+    _cpu.physical_core_count.cache_clear()
+    try:
+        result = _cpu.physical_core_count()
+    finally:
+        _cpu.physical_core_count.cache_clear()
+    assert result == (total if expected == "total" else expected)
+
+
+@pytest.mark.parametrize(
+    "n_perf, available, expected",
+    [
+        (6, None, 6),  # unconstrained, below the cap -> detected count
+        (1, None, 1),
+        (24, None, 16),  # e.g. an M-series Ultra -> capped
+        (32, None, 16),  # cap binds
+        (8, 4, 4),  # cgroup/affinity tighter than the perf-core count
+        (8, 12, 8),  # allocation looser than the perf-core count
+        (32, 8, 8),  # allocation tighter than both cap and perf cores
+    ],
+)
+def test_default_n_workers_combines_detection_allocation_cap(
+    monkeypatch, n_perf, available, expected
+):
+    # Default = min(physical performance cores, available CPUs, _MAX_DEFAULT_WORKERS).
+    import pandas.io.parsers.readers as _readers
+
+    assert _readers._MAX_DEFAULT_WORKERS == 16
+    monkeypatch.setattr(_readers.sys, "platform", "linux")
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: n_perf)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
+    with option_context("mode.max_threads", None):
+        assert _default_n_workers() == expected
+
+
+def test_default_n_workers_windows_is_serial(monkeypatch):
+    import pandas.io.parsers.readers as _readers
+
+    monkeypatch.setattr(_readers.sys, "platform", "win32")
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 12)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
+    with option_context("mode.max_threads", None):
+        assert _default_n_workers() == 1
+
+
+def test_default_n_workers_wasm_is_serial(monkeypatch):
+    import pandas.io.parsers.readers as _readers
+
+    monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+    # WASM stays serial even if a worker count is requested explicitly.
+    with option_context("mode.max_threads", 8):
+        assert _default_n_workers() == 1
+
+
+@pytest.mark.parametrize("platform_name", ["linux", "win32"])
+def test_default_n_workers_max_threads_wins(monkeypatch, platform_name):
+    import pandas.io.parsers.readers as _readers
+
+    monkeypatch.setattr(_readers.sys, "platform", platform_name)
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 12)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
+    with option_context("mode.max_threads", 3):
+        assert _default_n_workers() == 3
+
+
+@pytest.mark.parametrize(
+    "spec, expected",
+    [
+        ("0-5", [0, 1, 2, 3, 4, 5]),
+        ("0-3,8", [0, 1, 2, 3, 8]),
+        ("0,2,4", [0, 2, 4]),
+        ("3", [3]),
+        ("", []),
+    ],
+)
+def test_parse_cpu_list(spec, expected):
+    assert _parse_cpu_list(spec) == expected
+
+
+@pytest.mark.parametrize(
+    "topology, expected",
+    [
+        # 4 SMT threads -> 2 physical cores (siblings collapse by (pkg, core)).
+        ([(0, 0), (0, 0), (0, 1), (0, 1)], 2),
+        # two packages, one core each
+        ([(0, 0), (1, 0)], 2),
+        # unreadable entries are ignored
+        ([(0, 0), None, (0, 0)], 1),
+        ([None, None], None),
+        ([], None),
+    ],
+)
+def test_count_distinct_cores(topology, expected):
+    assert _count_distinct_cores(topology) == expected
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("max 100000", None),  # unlimited
+        ("max", None),
+        ("400000 100000", 4.0),
+        ("150000 100000", 1.5),
+        ("100000", 1.0),  # period defaults to 100000us
+        ("0 100000", None),  # zero quota -> ignored
+        ("garbage", None),
+        ("", None),
+    ],
+)
+def test_parse_cgroup_v2_quota(text, expected):
+    assert _parse_cgroup_v2_quota(text) == expected
+
+
+@pytest.mark.parametrize(
+    "affinity, quota, expected",
+    [
+        ({0, 1, 2, 3, 4, 5, 6, 7}, None, 8),  # affinity only
+        ({0, 1, 2, 3, 4, 5, 6, 7}, 4.0, 4),  # cgroup quota tighter
+        ({0, 1, 2, 3}, 8.0, 4),  # affinity tighter
+        ({0, 1}, 1.5, 1),  # fractional quota floors, min 1
+    ],
+)
+def test_available_cpu_count(monkeypatch, affinity, quota, expected):
+    from pandas.compat import _cpu
+
+    monkeypatch.setattr(
+        os, "sched_getaffinity", lambda pid: set(affinity), raising=False
+    )
+    monkeypatch.setattr(_cpu, "_cgroup_cpu_quota", lambda: quota)
+    available_cpu_count.cache_clear()
+    try:
+        assert available_cpu_count() == expected
+    finally:
+        available_cpu_count.cache_clear()
+
+
+def test_available_cpu_count_unconstrained(monkeypatch):
+    # No affinity limit and no cgroup quota -> None (do not clamp).
+    from pandas.compat import _cpu
+
+    def raise_oserror(pid):
+        raise OSError
+
+    monkeypatch.setattr(os, "sched_getaffinity", raise_oserror, raising=False)
+    monkeypatch.setattr(_cpu, "_cgroup_cpu_quota", lambda: None)
+    available_cpu_count.cache_clear()
+    try:
+        assert available_cpu_count() is None
+    finally:
+        available_cpu_count.cache_clear()
+
+
+def _fake_cpu_topology_reader(cores_per_cpu):
+    """Build a fake ``_read_sysfs_int`` returning core/package ids from a map."""
+    import re
+
+    def read_int(path):
+        match = re.search(r"/cpu(\d+)/topology/(\w+)", path)
+        if match is None:
+            return None
+        cpu, field = int(match.group(1)), match.group(2)
+        if field == "physical_package_id":
+            return 0
+        if field == "core_id":
+            return cores_per_cpu.get(cpu)
+        return None
+
+    return read_int
+
+
+def test_physical_cores_linux_hybrid_collapses_smt(monkeypatch):
+    # Hybrid part: logical CPUs 0-7 are 4 physical P-cores with 2 SMT threads
+    # each, and CPUs 8-11 are 4 efficiency cores.  SMT siblings collapse;
+    # efficiency cores count.
+    from pandas.compat import _cpu
+
+    strs = {"/sys/devices/system/cpu/present": "0-11"}
+    cores = {cpu: cpu // 2 for cpu in range(8)}
+    cores.update({cpu: cpu - 4 for cpu in range(8, 12)})
+    monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: strs.get(path))
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", _fake_cpu_topology_reader(cores))
+    assert _cpu._physical_cores_linux() == 8
+
+
+def test_physical_cores_linux_homogeneous_uses_present(monkeypatch):
+    # All present CPUs, SMT collapsed (0-3 = 2 physical cores).
+    from pandas.compat import _cpu
+
+    strs = {"/sys/devices/system/cpu/present": "0-3"}
+    cores = {cpu: cpu // 2 for cpu in range(4)}
+    monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: strs.get(path))
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", _fake_cpu_topology_reader(cores))
+    assert _cpu._physical_cores_linux() == 2
+
+
+def test_cgroup_cpu_quota_v2(monkeypatch):
+    from pandas.compat import _cpu
+
+    monkeypatch.setattr(
+        _cpu,
+        "_read_sysfs_str",
+        lambda path: "400000 100000" if path == "/sys/fs/cgroup/cpu.max" else None,
+    )
+    assert _cpu._cgroup_cpu_quota() == 4.0
+
+
+def test_cgroup_cpu_quota_v1_fallback(monkeypatch):
+    from pandas.compat import _cpu
+
+    ints = {
+        "/sys/fs/cgroup/cpu/cpu.cfs_quota_us": 300000,
+        "/sys/fs/cgroup/cpu/cpu.cfs_period_us": 100000,
+    }
+    monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: None)  # no cgroup v2
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: ints.get(path))
+    assert _cpu._cgroup_cpu_quota() == 3.0
+
+
+def test_cgroup_cpu_quota_unlimited(monkeypatch):
+    from pandas.compat import _cpu
+
+    monkeypatch.setattr(
+        _cpu,
+        "_read_sysfs_str",
+        lambda path: "max 100000" if path == "/sys/fs/cgroup/cpu.max" else None,
+    )
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: None)
+    assert _cpu._cgroup_cpu_quota() is None
+
+
+def _make_win_processor_buffer(records):
+    """Build a synthetic ``GetLogicalProcessorInformationEx`` buffer.
+
+    ``records`` is a list of ``(size, efficiency_class)`` pairs, one per
+    physical-core relationship record.  ``Size`` sits at byte offset ``+4`` and
+    ``EfficiencyClass`` at ``+9`` within each record.
+    """
+    total = sum(size for size, _ in records)
+    buf = (ctypes.c_byte * total)()
+    addr = ctypes.addressof(buf)
+    offset = 0
+    for size, eff in records:
+        ctypes.c_uint32.from_address(addr + offset + 4).value = size
+        ctypes.c_uint8.from_address(addr + offset + 9).value = eff
+        offset += size
+    return buf, total
+
+
+def test_count_processor_core_records_hybrid():
+    # 4 performance cores (class 1) + 4 efficiency cores (class 0): every
+    # physical core counts, efficiency class does not matter.
+    buf, length = _make_win_processor_buffer([(32, 1)] * 4 + [(32, 0)] * 4)
+    assert _count_processor_core_records(buf, length) == 8
+
+
+def test_count_processor_core_records_homogeneous():
+    buf, length = _make_win_processor_buffer([(32, 0)] * 8)
+    assert _count_processor_core_records(buf, length) == 8
+
+
+def test_count_processor_core_records_variable_record_size():
+    # Records advance by their own Size field, not a fixed stride.
+    buf, length = _make_win_processor_buffer([(40, 1), (24, 1), (32, 0)])
+    assert _count_processor_core_records(buf, length) == 3
+
+
+def test_count_processor_core_records_empty():
+    buf = (ctypes.c_byte * 0)()
+    assert _count_processor_core_records(buf, 0) is None
