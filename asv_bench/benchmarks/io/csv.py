@@ -411,6 +411,32 @@ class ReadCSVFloatPrecision(StringIORewind):
         )
 
 
+class ReadCSVFloats(StringIORewind):
+    # Float columns at default settings, over significant-digit counts that
+    # bracket the C parser's fast path: up to 19 significant digits are read
+    # straight from the digits, longer mantissas need a second pass.
+    params = [5, 10, 19, 25]
+    param_names = ["num_digits"]
+
+    def setup(self, num_digits):
+        int_digits = num_digits // 2
+        floats = [
+            random.choice(string.digits[1:])
+            + "".join(random.choice(string.digits) for _ in range(int_digits - 1))
+            + "."
+            + "".join(
+                random.choice(string.digits) for _ in range(num_digits - int_digits)
+            )
+            for _ in range(15)
+        ]
+        rows = ",".join(["{}"] * 3) + "\n"
+        data = (rows * 5).format(*floats) * 2000  # 10000 x 3 floats csv
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv(self, num_digits):
+        read_csv(self.data(self.StringIO_input), header=None, names=list("abc"))
+
+
 class ReadCSVEngine(StringIORewind):
     params = ["c", "python", "pyarrow"]
     param_names = ["engine"]
