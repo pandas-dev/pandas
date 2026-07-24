@@ -228,14 +228,14 @@ cdef extern from "pandas/parser/tokenizer.h":
         uint64_t stream_len
         uint64_t stream_cap
 
-        # Store words in (potentially ragged) matrix for now, hmm
-        char **words
-        int64_t *word_starts  # where we are in the stream
+        # Words NUL-terminated and packed in the stream; word_ends[i] is the
+        # stream offset of word i's trailing NUL (word i starts at
+        # word_ends[i-1] + 1, or 0 for word 0).
+        int64_t *word_ends
         uint64_t words_len
         uint64_t words_cap
         uint64_t max_words_cap   # maximum word cap encountered
 
-        char *pword_start        # pointer to stream start of current field
         int64_t word_start       # position start of current field
 
         int64_t *line_start      # position in words for start of line
@@ -292,7 +292,8 @@ cdef extern from "pandas/parser/tokenizer.h":
         int preloaded
 
     ctypedef struct coliter_t:
-        char **words
+        const char *stream
+        const int64_t *word_ends
         int64_t *line_start
         int64_t col
 
@@ -762,7 +763,7 @@ cdef class TextReader:
 
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count, level
-            char *word
+            const char *word
             str name
             uint64_t hr, data_line = 0
             list header = []
@@ -802,7 +803,7 @@ cdef class TextReader:
                 unnamed_col_indices = []
 
                 for i in range(field_count):
-                    word = self.parser.words[start + i]
+                    word = _parser_word(self.parser, start + i)
 
                     name = PyUnicode_DecodeUTF8(word, strlen(word),
                                                 self.encoding_errors)
@@ -3045,15 +3046,23 @@ cdef _try_uint64(parser_t *parser, int64_t col,
     return result
 
 
+cdef inline const char* _parser_word(parser_t *parser,
+                                     int64_t idx) noexcept nogil:
+    # Pointer to word ``idx`` in the stream (NUL-terminated).
+    if idx == 0:
+        return parser.stream
+    return parser.stream + parser.word_ends[idx - 1] + 1
+
+
 cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nogil:
-    # Token length from adjacent word_starts offsets (avoids strlen);
-    # token_idx == -1 marks a missing field; the last token uses stream_len.
+    # Length of the token at ``token_idx`` (excluding its trailing NUL),
+    # derived from adjacent word_ends entries so we avoid a strlen scan.
+    # token_idx == -1 signals a missing field (word == "").
     if token_idx < 0:
         return 0
-    elif <uint64_t>(token_idx + 1) < parser.words_len:
-        return (parser.word_starts[token_idx + 1]
-                - parser.word_starts[token_idx] - 1)
-    return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
+    elif token_idx == 0:
+        return parser.word_ends[0]
+    return parser.word_ends[token_idx] - parser.word_ends[token_idx - 1] - 1
 
 
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,

@@ -89,7 +89,8 @@ static inline int pandas_ctz(unsigned int mask) {
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
   // column i, starting at 0
-  self->words = parser->words;
+  self->stream = parser->stream;
+  self->word_ends = parser->word_ends;
   self->col = i;
   self->line_start = parser->line_start + start;
 }
@@ -177,10 +178,9 @@ void parser_set_default_options(parser_t *self) {
 
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
-static void parser_clear_data_buffers(parser_t *self) {
+void parser_clear_data_buffers(parser_t *self) {
   free_if_not_null((void *)&self->stream);
-  free_if_not_null((void *)&self->words);
-  free_if_not_null((void *)&self->word_starts);
+  free_if_not_null((void *)&self->word_ends);
   free_if_not_null((void *)&self->line_start);
   free_if_not_null((void *)&self->line_fields);
 }
@@ -214,8 +214,7 @@ int parser_init(parser_t *self) {
   */
 
   self->stream = NULL;
-  self->words = NULL;
-  self->word_starts = NULL;
+  self->word_ends = NULL;
   self->line_start = NULL;
   self->line_fields = NULL;
   self->error_msg = NULL;
@@ -230,12 +229,11 @@ int parser_init(parser_t *self) {
   self->stream_cap = STREAM_INIT_SIZE;
   self->stream_len = 0;
 
-  // word pointers and metadata
+  // word metadata
   _Static_assert(STREAM_INIT_SIZE / 10 > 0,
                  "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
-  self->words = malloc(sz * sizeof(char *));
-  self->word_starts = malloc(sz * sizeof(int64_t));
+  self->word_ends = malloc(sz * sizeof(int64_t));
   self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
@@ -249,9 +247,8 @@ int parser_init(parser_t *self) {
   self->lines = 0;
   self->file_lines = 0;
 
-  if (self->stream == NULL || self->words == NULL ||
-      self->word_starts == NULL || self->line_start == NULL ||
-      self->line_fields == NULL) {
+  if (self->stream == NULL || self->word_ends == NULL ||
+      self->line_start == NULL || self->line_fields == NULL) {
     parser_cleanup(self);
 
     return PARSER_OUT_OF_MEMORY;
@@ -264,7 +261,6 @@ int parser_init(parser_t *self) {
   self->line_start[0] = 0;
   self->line_fields[0] = 0;
 
-  self->pword_start = self->stream;
   self->word_start = 0;
 
   self->state = START_RECORD;
@@ -292,7 +288,6 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
   */
 
   int status;
-  char *orig_ptr = (void *)self->stream;
   self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
                                      &self->stream_cap, nbytes * 2, 1, &status);
 
@@ -300,20 +295,12 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     return PARSER_OUT_OF_MEMORY;
   }
 
-  // realloc sets errno when moving buffer?
-  if (self->stream != orig_ptr) {
-    self->pword_start = self->stream + self->word_start;
-
-    for (uint64_t i = 0; i < self->words_len; ++i) {
-      self->words[i] = self->stream + self->word_starts[i];
-    }
-  }
+  // Words are tracked as stream offsets (word_ends), so nothing needs
+  // rebasing when the stream buffer moves.
 
   /*
     WORD VECTORS
   */
-
-  const uint64_t words_cap = self->words_cap;
 
   /**
    * If we are reading in chunks, we need to be aware of the maximum number
@@ -327,23 +314,12 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
                               ? self->max_words_cap - nbytes - 1
                               : self->words_len;
 
-  self->words =
-      (char **)grow_buffer((void *)self->words, length, &self->words_cap,
-                           nbytes, sizeof(char *), &status);
+  self->word_ends =
+      (int64_t *)grow_buffer((void *)self->word_ends, length, &self->words_cap,
+                             nbytes, sizeof(int64_t), &status);
 
   if (status != 0) {
     return PARSER_OUT_OF_MEMORY;
-  }
-
-  // realloc took place
-  if (words_cap != self->words_cap) {
-    int64_t *newptr = (int64_t *)realloc(self->word_starts,
-                                         sizeof(int64_t) * self->words_cap);
-    if (newptr == NULL) {
-      return PARSER_OUT_OF_MEMORY;
-    } else {
-      self->word_starts = newptr;
-    }
   }
 
   /*
@@ -396,16 +372,15 @@ static inline int end_field(parser_t *self) {
   // null terminate token
   push_char(self, '\0');
 
-  // set pointer and metadata
-  self->words[self->words_len] = self->pword_start;
-  self->word_starts[self->words_len] = self->word_start;
+  // record the NUL's offset; the word's start is the previous word's
+  // end + 1 (or 0 for the first word)
+  self->word_ends[self->words_len] = (int64_t)self->stream_len - 1;
   self->words_len++;
 
   // increment line field count
   self->line_fields[self->lines]++;
 
-  // New field begin in stream
-  self->pword_start = self->stream + self->stream_len;
+  // New field begins in stream
   self->word_start = self->stream_len;
 
   return 0;
@@ -1376,7 +1351,7 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   } else if ((uint64_t)word_deletions < self->words_len) {
     /* start of the first surviving word, which equals the end (past the
      * trailing '\0') of the last deleted word */
-    char_count = (uint64_t)self->word_starts[word_deletions];
+    char_count = (uint64_t)(self->word_ends[word_deletions - 1] + 1);
   } else {
     /* every word is being deleted */
     char_count = self->stream_len;
@@ -1397,13 +1372,11 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   for (uint64_t i = 0; i < self->words_len - word_deletions; ++i) {
     offset = i + word_deletions;
 
-    self->words[i] = self->words[offset] - char_count;
-    self->word_starts[i] = self->word_starts[offset] - char_count;
+    self->word_ends[i] = self->word_ends[offset] - char_count;
   }
   self->words_len -= word_deletions;
 
-  /* move current word pointer to stream */
-  self->pword_start -= char_count;
+  /* move current word start position */
   self->word_start -= char_count;
 
   /* move line metadata */
@@ -1444,40 +1417,23 @@ int parser_trim_buffers(parser_t *self) {
     self->max_words_cap = self->words_cap;
   }
 
-  /* trim words, word_starts */
+  /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
-    self->words = realloc(self->words, new_cap * sizeof(char *));
-    if (self->words == NULL) {
-      return PARSER_OUT_OF_MEMORY;
-    }
-    self->word_starts = realloc(self->word_starts, new_cap * sizeof(int64_t));
-    if (self->word_starts == NULL) {
+    self->word_ends = realloc(self->word_ends, new_cap * sizeof(int64_t));
+    if (self->word_ends == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
     self->words_cap = new_cap;
   }
 
-  /* trim stream */
+  /* trim stream; words are stream offsets, so nothing needs rebasing */
   new_cap = _next_pow2(self->stream_len) + 1;
   if (new_cap < self->stream_cap) {
     void *newptr = realloc(self->stream, new_cap);
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      // Update the pointers in the self->words array (char **) if
-      // `realloc`
-      //  moved the `self->stream` buffer. This block mirrors a similar
-      //  block in
-      //  `make_stream_space`.
-      if (self->stream != newptr) {
-        self->pword_start = (char *)newptr + self->word_start;
-
-        for (uint64_t i = 0; i < self->words_len; ++i) {
-          self->words[i] = (char *)newptr + self->word_starts[i];
-        }
-      }
-
       self->stream = newptr;
       self->stream_cap = new_cap;
     }
