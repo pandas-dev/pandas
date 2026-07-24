@@ -167,3 +167,23 @@ def test_unstack_mixed_level_names():
         index=MultiIndex.from_tuples([(1, "red"), (2, "blue")], names=[0, "y"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_cartesian_identity_path():
+    # GH - PERF: _Unstacker.sorted_labels should skip take() when the
+    # indexer is the identity permutation (codes already in sorted order).
+    # Verify correctness of the fast path for a fully-sorted Cartesian index.
+    n_outer, n_inner = 10, 8
+    x0 = np.tile(np.arange(n_inner, dtype=float), n_outer)
+    x1 = np.repeat(np.arange(n_outer, dtype=float), n_inner)
+    idx = MultiIndex.from_arrays([x0, x1], names=["x0", "x1"])
+    ser = Series(np.arange(float(len(idx))), index=idx)
+
+    result = ser.unstack("x0")
+
+    expected = DataFrame(
+        np.arange(float(n_outer * n_inner)).reshape(n_outer, n_inner),
+        index=Index(np.arange(n_outer, dtype=float), name="x1"),
+        columns=Index(np.arange(n_inner, dtype=float), name="x0"),
+    )
+    tm.assert_frame_equal(result, expected)
