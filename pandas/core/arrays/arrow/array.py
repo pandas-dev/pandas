@@ -35,7 +35,6 @@ from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
     pa_version_under14p0,
-    pa_version_under21p0,
     pa_version_under25p0,
 )
 from pandas.compat.numpy import function as nv
@@ -3549,10 +3548,15 @@ class ArrowExtensionArray(
             n = None
         if pat is None:
             split_func = pc.utf8_split_whitespace
-        elif regex:
+        elif regex is True:
             split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
-        else:
+        elif regex is False:
             split_func = functools.partial(pc.split_pattern, pattern=pat)
+        # GH#58321: regex is None — infer: single-char literal, multi-char regex
+        elif len(pat) == 1:
+            split_func = functools.partial(pc.split_pattern, pattern=pat)
+        else:
+            split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         return self._from_pyarrow_array(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1) -> Self:
@@ -3580,13 +3584,6 @@ class ArrowExtensionArray(
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
         return self._from_pyarrow_array(pa.chunked_array(result))
-
-    def _str_zfill(self, width: int) -> Self:
-        if pa_version_under21p0:
-            predicate = lambda val: val.zfill(width)
-            result = self._apply_elementwise(predicate)
-            return type(self)(pa.chunked_array(result))
-        return type(self)(pc.utf8_zfill(self._pa_array, width))
 
     def _dt_zero_or_null_int32(self) -> Self:
         """

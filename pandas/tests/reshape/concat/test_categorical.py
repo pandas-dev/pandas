@@ -275,3 +275,11 @@ class TestCategoricalConcat:
         result = pd.concat((df1, df2))
         expected = DataFrame({"A": [1, 2, 3, 4]}, index=c3)
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_keys_categorical_index_preserves_dtype(self):
+        # GH#14016 keys given as a CategoricalIndex should stay categorical
+        #  in the resulting MultiIndex level, not be cast to object
+        cidx = pd.CategoricalIndex(["y", "x"], categories=list("xyz"), ordered=True)
+        df = DataFrame([[10, 11, 12]])
+        result = pd.concat([df, df], keys=cidx).index.levels[0]
+        tm.assert_index_equal(result, cidx)

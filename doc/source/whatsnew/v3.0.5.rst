@@ -1,0 +1,25 @@
+.. _whatsnew_305:
+
+What's new in 3.0.5 (July 22, 2026)
+-----------------------------------
+
+These are the changes in pandas 3.0.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_305.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed a regression where the pandas 3.0.4 wheels could crash with a segmentation fault on Python 3.14 (and other datetime code paths), because they were built against an incompatible numpy version (:issue:`66086`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_305.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.0.4..v3.0.5|HEAD

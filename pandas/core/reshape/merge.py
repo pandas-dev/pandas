@@ -730,7 +730,9 @@ def merge_asof(
     -------
     DataFrame
         A DataFrame of the two merged objects, containing all rows from the
-        left DataFrame and the nearest matches from the right DataFrame.
+        left DataFrame and the nearest matches from the right DataFrame. The
+        key column holds the left DataFrame's values; the right DataFrame's
+        key column is retained only if it has a different name.
 
     See Also
     --------
