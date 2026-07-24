@@ -895,6 +895,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         DatetimeIndex.tz : A timezone that has a variable offset from UTC.
         DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        Series.dt.tz : A timezone that has a variable offset from UTC.
+        Series.dt.tz_localize : Localize tz-naive Series datetimes to a given
+            time zone, or remove timezone from tz-aware Series datetimes.
 
         Examples
         --------
