@@ -29,3 +29,12 @@ import_mods = {m.split(".")[0] for m in sys.modules} | set(sys.modules)
 mods = blocklist & import_mods
 if mods:
     raise Exception(f"pandas should not import {', '.join(mods)}")
+
+# GH#41432 importing this module registers the pyarrow extension types for
+# Period and Interval, so pyarrow recognizes them when reading pandas data
+# directly rather than only after a parquet or feather round-trip.
+if (
+    "pyarrow" in sys.modules
+    and "pandas.core.arrays.arrow.extension_types" not in sys.modules
+):
+    raise Exception("pandas should register its pyarrow extension types on import")
