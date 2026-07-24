@@ -430,6 +430,7 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
   Py_ssize_t s_len;
   char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
   if (outValue == NULL) {
+    *len = 0;
     ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
     return NULL;
   }
