@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -1524,6 +1525,26 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
+    @overload
+    @forbid_nonstring_types(["bytes"])
+    def match(
+        self,
+        pat: str,
+        case: bool | lib.NoDefault = lib.no_default,
+        flags: int | lib.NoDefault = lib.no_default,
+        na=lib.no_default,
+    ): ...
+
+    @overload
+    @forbid_nonstring_types(["bytes"])
+    def match(
+        self,
+        pat: re.Pattern,
+        case: lib.NoDefault = lib.no_default,
+        flags: lib.NoDefault = lib.no_default,
+        na=lib.no_default,
+    ): ...
+
     @forbid_nonstring_types(["bytes"])
     def match(
         self,
@@ -1577,38 +1598,12 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        if flags is not lib.no_default:
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-            if is_re(pat):
-                if pat.flags != flags:
-                    raise ValueError(
-                        "Cannot both specify 'flags' and pass a compiled regexp "
-                        "object with conflicting flags"
-                    )
-            else:
-                pat = re.compile(pat, flags=flags)
-            # set flags=0 to ensure that when we call
-            #  re.compile(pat, flags=flags) the constructor does not raise.
-            flags = 0
-        else:
-            flags = 0
-
-        if case is lib.no_default:
-            if is_re(pat):
-                case = not bool(pat.flags & re.IGNORECASE)
-            else:
-                # Case-sensitive default
-                case = True
-        elif is_re(pat):
-            implicit_case = not bool(pat.flags & re.IGNORECASE)
-            if implicit_case != case:
-                # GH#62240
-                raise ValueError(
-                    "Cannot both specify 'case' and pass a compiled regexp "
-                    "object with conflicting case-sensitivity"
-                )
+        if is_re(pat) and (flags is not lib.no_default or case is not lib.no_default):
+            warnings.warn(
+                "Using a compiled regex with case or flags is not supported",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)

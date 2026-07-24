@@ -478,12 +478,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_match(
         self,
         pat: str | re.Pattern,
-        case: bool = True,
-        flags: int = 0,
+        case: bool | lib.NoDefault = lib.no_default,
+        flags: int | lib.NoDefault = lib.no_default,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if (
-            flags
+            (flags is not lib.no_default and flags)
             or self._is_re_pattern_with_flags(pat)
             or self._has_unsupported_regex(pat)
         ):

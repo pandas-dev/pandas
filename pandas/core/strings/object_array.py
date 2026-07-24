@@ -17,7 +17,10 @@ import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas.util._validators import validate_na_arg
 
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import (
+    is_re,
+    pandas_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
@@ -232,24 +235,28 @@ class ObjectStringArrayMixin:
     def _str_match(
         self,
         pat: str | re.Pattern,
-        case: bool = True,
-        flags: int = 0,
+        case: bool | lib.NoDefault = lib.no_default,
+        flags: int | lib.NoDefault = lib.no_default,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not case:
-            flags |= re.IGNORECASE
+        if is_re(pat):
+            if case is not lib.no_default or flags is not lib.no_default:
+                raise ValueError(
+                    "Passing a compiled regex and case or flags is not supported"
+                )
 
-        if isinstance(pat, re.Pattern):
-            # We need to check that flags matches pat.flags.
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-
-            if flags != pat.flags:
-                raise ValueError("Cannot pass flags that do not match pat.flags")
             regex = pat
         else:
-            regex = re.compile(pat, flags=flags)
+            # gather the relevant flags
+            if flags is not lib.no_default:
+                _flags: int = flags
+            else:
+                _flags: int = re.NOFLAG
+
+            if case is not lib.no_default and not case:
+                _flags |= re.IGNORECASE
+
+            regex = re.compile(pat, flags=_flags)
 
         f = lambda x: regex.match(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
