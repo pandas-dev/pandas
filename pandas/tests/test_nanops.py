@@ -182,6 +182,29 @@ def arr_nan_float1_1d(arr_nan_float1):
     return arr_nan_float1[:, 0]
 
 
+@pytest.fixture(
+    params=[
+        "nanany",
+        "nanall",
+        "nansum",
+        "nanmean",
+        "nanmedian",
+        "nanstd",
+        "nanvar",
+        "nansem",
+        "nanargmax",
+        "nanargmin",
+        "nanmax",
+        "nanmin",
+        "nanskew",
+        "nankurt",
+        "nanprod",
+    ]
+)
+def nanops_univariate_methods(request):
+    return request.param
+
+
 class TestnanopsDataFrame:
     def setup_method(self):
         nanops._USE_BOTTLENECK = False
@@ -1301,28 +1324,9 @@ def test_numpy_ops(numpy_op, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "operation",
-    [
-        nanops.nanany,
-        nanops.nanall,
-        nanops.nansum,
-        nanops.nanmean,
-        nanops.nanmedian,
-        nanops.nanstd,
-        nanops.nanvar,
-        nanops.nansem,
-        nanops.nanargmax,
-        nanops.nanargmin,
-        nanops.nanmax,
-        nanops.nanmin,
-        nanops.nanskew,
-        nanops.nankurt,
-        nanops.nanprod,
-    ],
-)
-def test_nanops_independent_of_mask_param(operation):
+def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     # GH22764
+    operation = getattr(nanops, nanops_univariate_methods)
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
@@ -1538,3 +1542,34 @@ def test_idxminmax_float_inf_tie():
     assert df.idxmin().tolist() == [1, 0]
     assert df["a"].idxmax() == 1
     assert df["a"].idxmin() == 1
+
+
+def _copy_array_with_layout(arr, layout):
+    if layout == "strided":
+        base = np.zeros((arr.shape[0], arr.shape[1] * 2), dtype=arr.dtype)
+        base[:, ::2] = arr
+        return base[:, ::2]
+
+    return arr.copy(order=layout)
+
+
+@pytest.mark.parametrize("axis", [0, 1, None])
+@pytest.mark.parametrize("arr_layout", ["C", "F", "strided"])
+@pytest.mark.parametrize("mask_layout", ["C", "F", "strided"])
+def test_mask_memory_layout_mismatch(
+    disable_bottleneck, nanops_univariate_methods, axis, arr_layout, mask_layout
+):
+    func = getattr(nanops, nanops_univariate_methods)
+
+    rng = np.random.default_rng(2)
+    base_arr = rng.random((6, 5))
+    base_arr[0, 1] = np.nan
+    base_mask = np.isnan(base_arr)
+
+    arr = _copy_array_with_layout(base_arr, arr_layout)
+    mask = _copy_array_with_layout(base_mask, mask_layout)
+
+    expected = func(base_arr, axis=axis, mask=base_mask)
+    result = func(arr, axis=axis, mask=mask)
+
+    tm.assert_almost_equal(result, expected)
