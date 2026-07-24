@@ -6294,6 +6294,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
+            # Unconditionally propagate _name for Series, since subclasses
+            # often overwrite _metadata and lose _name. (GH61491)
+            if getattr(self, "ndim", 0) == 1 and hasattr(other, "_name"):
+                object.__setattr__(self, "_name", getattr(other, "_name", None))
+
+
         elif hasattr(other, "input_objs"):
             objs = other.input_objs
             # propagate attrs only if all inputs have the same attrs
