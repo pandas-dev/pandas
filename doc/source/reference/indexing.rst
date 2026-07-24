@@ -481,6 +481,7 @@ Properties
     PeriodIndex.qyear
     PeriodIndex.second
     PeriodIndex.start_time
+    PeriodIndex.unit
     PeriodIndex.week
     PeriodIndex.weekday
     PeriodIndex.weekofyear

@@ -41,6 +41,7 @@ Other enhancements
 - :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
 - :meth:`Series.round` now works on third-party numeric :class:`ExtensionArray` types via a default :meth:`ExtensionArray.round` (:issue:`49387`)
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
+- Added :attr:`PeriodDtype.unit`, :attr:`Period.unit`, :attr:`PeriodArray.unit`, :attr:`PeriodIndex.unit` string describing the object's resolution, analogous to :attr:`Timestamp.unit` and :attr:`DatetimeIndex.unit` (:issue:`64155`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)

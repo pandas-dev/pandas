@@ -1723,7 +1723,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
 
             if item._dtype != dtype:
                 msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
-                                            own_freq=dtype._freqstr,
+                                            own_freq=dtype.unit,
                                             other_freq=item.freqstr)
                 raise IncompatibleFrequency(msg)
 
@@ -1889,10 +1889,10 @@ cdef class PeriodMixin:
             condition = self.freqstr != other_unit
 
         if condition:
-            freqstr = self.freqstr
+            unit = self.unit
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
-                own_freq=freqstr,
+                own_freq=unit,
                 other_freq=other_unit,
             )
             raise IncompatibleFrequency(msg)
@@ -1933,7 +1933,7 @@ cdef class _Period(PeriodMixin):
 
     @cache_readonly
     def _freq(self) -> BaseOffset:
-        return to_offset(self._dtype._freqstr, is_period=True)
+        return to_offset(self._dtype.unit, is_period=True)
 
     @property
     def freq(self):
@@ -1955,6 +1955,26 @@ cdef class _Period(PeriodMixin):
         <MonthEnd>
         """
         return self._freq
+
+    @property
+    def unit(self) -> str:
+        """
+        Return the unit string for this Period.
+
+        The unit string represents the span of time that this Period covers,
+        e.g. "D", "M", "h", "m", "s".
+
+        See Also
+        --------
+        Timestamp.unit : Return the Timestamp's analogous unit.
+
+        Examples
+        --------
+        >>> period = pd.Period('2020-01', freq='M')
+        >>> period.unit
+        'M'
+        """
+        return self._dtype.unit
 
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
@@ -2040,7 +2060,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_unit(other._dtype._freqstr)
+                self._require_matching_unit(other._dtype.unit)
             return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -2134,7 +2154,7 @@ cdef class _Period(PeriodMixin):
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_unit(other._dtype._freqstr)
+            self._require_matching_unit(other._dtype.unit)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:
@@ -2295,7 +2315,7 @@ cdef class _Period(PeriodMixin):
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()
             dtype = PeriodDtypeBase(freq_code, 1)
-            freq = dtype._freqstr
+            freq = dtype.unit
             base = freq_code
         else:
             freq = self._maybe_convert_freq(freq)
@@ -2964,7 +2984,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        return self._dtype._freqstr
+        return self.unit
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code

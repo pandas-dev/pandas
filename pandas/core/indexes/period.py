@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
+    cache_readonly,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -134,6 +135,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     qyear
     second
     start_time
+    unit
     week
     weekday
     weekofyear
@@ -180,6 +182,19 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
+
+    @cache_readonly
+    def _resolution_obj(self) -> Resolution:
+        # for compat with DatetimeIndex
+        return self.dtype._resolution_obj
+
+    @property
+    def unit(self) -> str:
+        """
+        Return the unit string describing the resolution of each Period in
+        the index.
+        """
+        return self._data.unit
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
