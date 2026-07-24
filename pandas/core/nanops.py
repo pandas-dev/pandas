@@ -1696,7 +1696,21 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     if divisor == 0:
         return np.nan
 
-    return np.clip(result / divisor, -1.0, 1.0)
+var_a = np.dot(a, a)
+if var_a == 0:
+    return np.nan
+    
+var_b = np.dot(b, b)
+if var_b == 0:
+    return np.nan
+
+cov_ab = np.dot(a, b)
+
+coef_det = (cov_ab / var_a) * (cov_ab / var_b)
+r_abs = np.sqrt(coef_det)
+result = -r_abs if cov_ab < 0 else r_abs
+
+return np.clip(result, -1.0, 1.0)
 
 
 @disallow("M8", "m8")
