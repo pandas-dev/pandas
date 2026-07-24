@@ -1388,6 +1388,20 @@ def test_unstack_sort_false(frame_or_series, dtype):
     tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_default_sort_matches_sort_true(frame_or_series):
+    from pandas.core.reshape.reshape import unstack
+
+    index = MultiIndex.from_tuples(
+        [("two", "z"), ("two", "y"), ("one", "z"), ("one", "y")]
+    )
+    obj = frame_or_series(np.arange(1.0, 5.0), index=index)
+
+    result = unstack(obj, level=0)
+    expected = obj.unstack(level=0, sort=True)
+
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "levels2, expected_columns",
     [
