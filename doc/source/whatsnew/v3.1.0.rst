@@ -548,6 +548,7 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :meth:`DataFrame.plot.bar` and :meth:`Series.plot.bar` where passing ``xticks`` (or ``yticks`` for :meth:`DataFrame.plot.barh`) used the values as raw axis positions instead of mapping them to the corresponding bar positions (:issue:`55508`)
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
 -
 
