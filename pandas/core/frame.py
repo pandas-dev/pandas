@@ -10902,7 +10902,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11019,7 +11019,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11135,7 +11135,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11253,7 +11253,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11371,7 +11371,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11491,7 +11491,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11591,7 +11591,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11708,7 +11708,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11803,7 +11803,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11896,7 +11896,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -11988,7 +11988,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -12082,7 +12082,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -12175,7 +12175,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
@@ -12268,7 +12268,7 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
+        fill_value : float, str, or None, default None
             Fill existing missing (NaN) values, and any new element needed for
             successful DataFrame alignment, with this value before computation.
             If data in both corresponding DataFrame locations is missing
