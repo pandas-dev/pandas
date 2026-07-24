@@ -332,17 +332,17 @@ by supplying the ``var_name`` and ``value_name`` parameters.
 
 .. ipython:: python
 
-   cheese = pd.DataFrame(
+   trial = pd.DataFrame(
        {
            "first": ["John", "Mary"],
            "last": ["Doe", "Bo"],
-           "height": [5.5, 6.0],
-           "weight": [130, 150],
+           "Treatment A": [16, 3],
+           "Treatment B": [11, 1],
        }
    )
-   cheese
-   cheese.melt(id_vars=["first", "last"])
-   cheese.melt(id_vars=["first", "last"], var_name="quantity")
+   trial
+   trial.melt(id_vars=["first", "last"])
+   trial.melt(id_vars=["first", "last"], var_name="treatment")
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored.
 The original index values can be kept by setting the ``ignore_index`` parameter to ``False`` (default is ``True``).
@@ -351,18 +351,18 @@ The original index values can be kept by setting the ``ignore_index`` parameter 
 .. ipython:: python
 
    index = pd.MultiIndex.from_tuples([("person", "A"), ("person", "B")])
-   cheese = pd.DataFrame(
+   trial = pd.DataFrame(
        {
            "first": ["John", "Mary"],
            "last": ["Doe", "Bo"],
-           "height": [5.5, 6.0],
-           "weight": [130, 150],
+           "Treatment A": [16, 3],
+           "Treatment B": [11, 1],
        },
        index=index,
    )
-   cheese
-   cheese.melt(id_vars=["first", "last"])
-   cheese.melt(id_vars=["first", "last"], ignore_index=False)
+   trial
+   trial.melt(id_vars=["first", "last"])
+   trial.melt(id_vars=["first", "last"], ignore_index=False)
 
 :func:`~pandas.wide_to_long` is similar to :func:`~pandas.melt` with more customization for
 column matching.
