@@ -307,6 +307,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
+- Fix bug in :meth:`DataFrame.to_string` where the ``min_rows`` parameter was ignored during vertical truncation, causing more rows than expected to be displayed (:issue:`64824`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_series_equal` showing a misleading class mismatch message when Series values were backed by different :class:`numpy.ndarray` subclasses (:issue:`65770`)
