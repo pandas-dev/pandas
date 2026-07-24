@@ -15039,8 +15039,9 @@ class DataFrame(NDFrame, OpsMixin):
             Index should be similar to one of the columns in the caller. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
-        on : str, list of str, or array-like, optional
-            Column or index level name(s) in the caller to join on the index
+        on : label, list/tuple of labels, or array-like, optional
+            A single label or a list or tuple of labels will be treated as
+            column or index level name(s) in the caller to join on the index
             in `other`, otherwise joins index-on-index. If multiple
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
@@ -15324,18 +15325,21 @@ class DataFrame(NDFrame, OpsMixin):
               similar to SQL right anti join; preserve key order.
 
               .. versionadded:: 3.0
-        on : Hashable or a sequence of the previous
-            Column or index level names to join on. These must be found in both
+        on : label, list/tuple of labels, or array-like, optional
+            A single label or a list or tuple of labels will be treated as column
+            or index level names to join on. These must be found in both
             DataFrames. If `on` is None and not merging on indexes then this defaults
             to the intersection of the columns in both DataFrames.
-        left_on : Hashable or a sequence of the previous, or array-like
-            Column or index level names to join on in the left DataFrame. Can also
-            be an array or list of arrays of the length of the left DataFrame.
-            These arrays are treated as if they are columns.
-        right_on : Hashable or a sequence of the previous, or array-like
-            Column or index level names to join on in the right DataFrame. Can also
-            be an array or list of arrays of the length of the right DataFrame.
-            These arrays are treated as if they are columns.
+        left_on : label, list/tuple of labels, or array-like
+            A single label or a list or tuple of labels will be treated as column
+            or index level name(s) to join on in the left DataFrame. Any other
+            array-like or list of array-likes of the length of the left DataFrame
+            are treated as if they are columns.
+        right_on : label, list/tuple of labels, or array-like
+            A single label or a list or tuple of labels will be treated as column
+            or index level name(s) to join on in the right DataFrame. Any other
+            array-like or list of array-likes of the length of the right DataFrame
+            are treated as if they are columns.
         left_index : bool, default False
             Use the index from the left DataFrame as the join key(s). If it is a
             MultiIndex, the number of keys in the other DataFrame (either the index
