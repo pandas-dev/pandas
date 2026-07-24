@@ -234,6 +234,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset([])
     _metadata: list[str] = []
+    # GH#41090 set to the group key on groups passed to UDFs in groupby ops;
+    #  user access of the pinned ``name`` then issues a deprecation warning
+    _groupby_pinned_name: Hashable | lib.NoDefault = lib.no_default
     _mgr: Manager
     _attrs: dict[Hashable, Any]
     _typ: str
@@ -6310,13 +6313,60 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self
 
     @final
-    def __getattr__(self, name: str):
+    def _pin_deprecated_group_name(self, key) -> None:
+        """
+        Pin the group key to the 'name' attribute and flag it so that user
+        access of the pinned name issues a deprecation warning (GH#41090).
+
+        Known hole: Series.__finalize__ propagates _name (via _metadata) but
+        deliberately not this flag, so objects derived from the group inside
+        the UDF (e.g. ``group.dropna()``) carry the key as their name without
+        warning. Propagating the flag would false-positive whenever
+        __finalize__ copies it but the result's name is not the key (e.g. a
+        binop with mismatched names).
+        """
+        if self.ndim == 1:
+            # Goes through the Series.name property setter; for DataFrame
+            #  the key is instead served by __getattr__ so that access can
+            #  be intercepted.
+            object.__setattr__(self, "name", key)
+        object.__setattr__(self, "_groupby_pinned_name", key)
+
+    @final
+    def _maybe_warn_pinned_group_name(self) -> None:
+        # GH#41090 - the stack here is always [find_stack_level,
+        #  _maybe_warn_pinned_group_name, name getter / __getattr__,
+        #  accessor], so level > 3 means the accessing frame is
+        #  pandas-internal (e.g. result-name propagation in ops) and the
+        #  deprecation does not apply.
+        level = find_stack_level()
+        if level > 3:
+            return
+        warnings.warn(
+            "Pinning the group key to the 'name' attribute of "
+            "the group passed to a user-defined function in "
+            "groupby operations (e.g., .apply(), .transform(), "
+            ".filter()) is deprecated and will not be done in a "
+            "future version of pandas. When you need the key "
+            "inside the function, iterate over the groupby object "
+            "directly and combine the results, e.g. "
+            "'pd.concat({key: func(group, key) for key, group in gb})'.",
+            Pandas4Warning,
+            stacklevel=level,
+        )
+
+    @final
+    def __getattr__(self, name: str) -> Any:
         """
         After regular attribute access, try looking up the name
         This allows simpler access to columns for interactive use.
         """
         # Note: obj.x will always call obj.__getattribute__('x') prior to
         # calling obj.__getattr__('x').
+        if name == "name" and self._groupby_pinned_name is not lib.no_default:
+            # GH#41090 - deprecated group-key pinning in groupby UDFs
+            self._maybe_warn_pinned_group_name()
+            return self._groupby_pinned_name
         if (
             name not in self._internal_names_set
             and name not in self._metadata
