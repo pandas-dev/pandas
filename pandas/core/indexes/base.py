@@ -581,6 +581,10 @@ class Index(IndexOpsMixin, PandasObject):
             raise
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
+        # GH#57645: numpy fixed-width bytes are not a supported Index dtype
+        if isinstance(arr, np.ndarray) and arr.dtype.kind == "S":
+            arr = np.asarray(arr, dtype=object)
+
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
