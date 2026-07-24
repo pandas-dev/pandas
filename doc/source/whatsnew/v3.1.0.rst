@@ -455,6 +455,7 @@ Missing
 - Bug in :meth:`DataFrame.fillna` with a dict value raising ``RecursionError`` when columns are a :class:`MultiIndex` with duplicate entries (:issue:`53498`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method`` in ``"index"``, ``"values"`` or ``"time"`` raising when the index had an :class:`ArrowDtype` timestamp or duration dtype; these now match the equivalent :class:`DatetimeIndex` or :class:`TimedeltaIndex` (:issue:`66338`)
 - Bug in :meth:`Series.combine_first` crashing when Series names are :class:`Timestamp` objects (:issue:`65333`)
+- Bug in :meth:`Series.interpolate` with ``method="linear"`` and a pyarrow-backed dtype leaving consecutive and trailing missing values unfilled, and truncating interpolated values for integer dtypes; the result now matches the equivalent masked (e.g. ``Int64``) dtype, including the upcast to ``float64[pyarrow]`` (:issue:`65345`)
 
 MultiIndex
 ^^^^^^^^^^

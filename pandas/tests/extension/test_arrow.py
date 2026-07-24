@@ -4082,9 +4082,28 @@ def test_interpolate_not_numeric(data):
 
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
+    # GH#65345 results should match the masked (e.g. Int64) dtypes:
+    # upcast to float, and fill the trailing NA going forward
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
     result = ser.interpolate()
-    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    expected = pd.Series([None, 1.0, 2.0, 3.0, 4.0, 4.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_consecutive_na():
+    # GH#65345 consecutive interior NAs were left unfilled
+    ser = pd.Series([1, 2, 3, None, None, 6, 7], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear", limit_direction="forward")
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_int_fractional():
+    # GH#65345 integer dtypes used integer division, truncating the
+    # interpolated value (1 instead of 1.5)
+    ser = pd.Series([1, None, 2], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear")
+    expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
