@@ -121,3 +121,13 @@ def test_no_circular_reference(klass, registrar):
         assert obj.access.obj is obj
         del obj
         assert ref() is None
+
+
+def test_cached_accessor_deprecation():
+    # GH#66215
+    with tm.assert_produces_warning(
+        FutureWarning, match="CachedAccessor is deprecated"
+    ):
+        from pandas.core.accessor import CachedAccessor
+
+        _ = CachedAccessor

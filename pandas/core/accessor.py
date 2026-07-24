@@ -231,8 +231,21 @@ class Accessor:
 
 
 # Alias kept for downstream libraries
-# TODO: Deprecate as name is now misleading
-CachedAccessor = Accessor
+def __getattr__(name: str):
+    if name == "CachedAccessor":
+        import warnings
+
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            f"{name} is deprecated and will be removed in a future version. "
+            "Use pandas.core.accessor.Accessor instead.",
+            FutureWarning,  # pdlint: ignore[warning_class]
+            stacklevel=find_stack_level(),
+        )
+        return Accessor
+
+    raise AttributeError(f"module 'pandas.core.accessor' has no attribute '{name}'")
 
 
 def _register_accessor(
