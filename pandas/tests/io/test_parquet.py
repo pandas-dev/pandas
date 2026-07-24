@@ -5,6 +5,7 @@ from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
+import uuid
 
 import numpy as np
 import pytest
@@ -21,6 +22,7 @@ from pandas.compat.pyarrow import (
     pa_version_under20p0,
 )
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -1624,3 +1626,21 @@ class TestParquetFastParquet(Base):
         df.to_parquet(temp_file)
         with pytest.raises(ValueError, match=msg):
             read_parquet(temp_file, dtype_backend="numpy")
+
+
+@pytest.mark.xfail(
+    reason="Upstream PyArrow fails to cast FIXED_LEN_BYTE_ARRAY to UUID - GH 61602"
+)
+@td.skip_if_no("pyarrow", min_version="24.0.0")
+def test_to_parquet_uuid_supported(temp_file):
+    # GH 61602
+    expected = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
+
+    # Write to parquet
+    expected.to_parquet(temp_file, engine="pyarrow")
+
+    # Verify it can be read back
+    result = read_parquet(temp_file, engine="pyarrow")
+
+    # Strictly assert the frames are equal
+    tm.assert_frame_equal(result, expected)
