@@ -2767,8 +2767,16 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            result = self._value / other
+            if is_float_object(result) and not result.is_integer():
+                # GH#57264
+                return type(self)(
+                    result,
+                    unit=npy_unit_to_abbrev(self._creso),
+                )
+
             return Timedelta._from_value_and_reso(
-                <int64_t>(self._value/ other), self._creso
+                <int64_t>result, self._creso
             )
 
         elif is_array(other):
