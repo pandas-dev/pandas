@@ -914,7 +914,10 @@ class StringMethods(NoNewAttributesMixin):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            if expand:
+                dtype = self._data.dtype.categories.dtype
+            else:
+                dtype = object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1140,7 +1143,10 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_partition(sep, expand)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            if expand:
+                dtype = self._data.dtype.categories.dtype
+            else:
+                dtype = object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1232,7 +1238,10 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_rpartition(sep, expand)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            if expand:
+                dtype = self._data.dtype.categories.dtype
+            else:
+                dtype = object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
