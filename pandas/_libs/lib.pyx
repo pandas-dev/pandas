@@ -1,5 +1,8 @@
 from collections import abc
-from decimal import Decimal
+from decimal import (
+    Decimal,
+    InvalidOperation,
+)
 from enum import Enum
 from sys import getsizeof
 from types import GenericAlias
@@ -1451,6 +1454,70 @@ def is_complex(obj: object) -> bool:
 
 cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
+
+
+def maybe_convert_lossy_decimal_ints(ndarray[object] arr) -> tuple:
+    """
+    Convert large integral Decimal values to Python int to avoid precision loss.
+
+    When coerce_float=True, Decimal values would be cast to float64, losing
+    precision for integers beyond 2**53. This function converts such values to
+    Python int before that coercion happens.
+
+    Parameters
+    ----------
+    arr : ndarray[object]
+        Array of objects, potentially containing decimal.Decimal values.
+
+    Returns
+    -------
+    tuple[ndarray[object], bool]
+        The (possibly modified) array and a boolean that is True only when
+        every non-null value was converted to a large Python int and at least
+        one null is present, indicating the caller must keep the column as
+        object dtype to preserve exact integer values.
+    """
+    # GH#61667
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        object val
+        ndarray[object] out = None
+        object check_val = 2**53
+        bint seen_non_null = False
+        bint is_dec
+        bint has_null = False
+        bint some_not_converted = False
+
+    for i in range(n):
+        val = arr[i]
+        if val is None:
+            has_null = True
+            continue
+
+        is_dec = is_decimal(val)
+
+        if not seen_non_null:
+            seen_non_null = True
+            if not is_dec:
+                return arr, False
+
+        if not is_dec:
+            some_not_converted = True
+            continue
+
+        try:
+            if val == val.to_integral_value() and abs(val) > check_val:
+                if out is None:
+                    out = arr.copy()
+                out[i] = int(val)
+            else:
+                some_not_converted = True
+        except (InvalidOperation, OverflowError):
+            some_not_converted = True
+
+    if out is None:
+        return arr, False
+    return out, has_null and not some_not_converted
 
 
 @set_module("pandas.api.types")
