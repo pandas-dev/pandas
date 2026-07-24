@@ -66,6 +66,38 @@ class TestTSPlot:
         assert (first.hour, first.minute) == (0, 0)
         assert (last.hour, last.minute) == (1, 0)
 
+    def test_ts_plot_normalized_tz_aware_preserves_tz(self):
+        # GH#65915: Normalized tz-aware DatetimeIndex should preserve
+        # timezone info when plotting, not convert to Period (which drops tz).
+        idx_est = DatetimeIndex(
+            ["2000-01-01 00:00:00-06:00", "2000-01-02 00:00:00-06:00"]
+        )
+        idx_utc = DatetimeIndex(
+            ["2000-01-01 00:00:00+00:00", "2000-01-02 00:00:00+00:00"]
+        )
+        sr_est = Series(range(len(idx_est)), index=idx_est, name="EST")
+        sr_utc = Series(range(len(idx_utc)), index=idx_utc, name="UTC")
+
+        ax = sr_est.plot()
+        sr_utc.plot(ax=ax)
+
+        line_est_xdata = ax.lines[0].get_xdata()
+        line_utc_xdata = ax.lines[1].get_xdata()
+
+        # Before fix, both lines would have Period objects (no tz).
+        # After fix, both lines should have tz-aware Timestamps.
+        assert hasattr(line_est_xdata[0], "tz"), "EST line data lost timezone"
+        assert hasattr(line_utc_xdata[0], "tz"), "UTC line data lost timezone"
+
+        # The two series are 6 hours apart; verify they don't overlap.
+        # EST midnight = UTC 06:00, so EST points should be 6h ahead of UTC.
+        import matplotlib.dates as mdates
+
+        est_ordinal = mdates.date2num(line_est_xdata[0])
+        utc_ordinal = mdates.date2num(line_utc_xdata[0])
+        six_hours_in_days = 6 / 24
+        assert abs(est_ordinal - utc_ordinal - six_hours_in_days) < 1e-10
+
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = DataFrame(
