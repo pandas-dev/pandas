@@ -1088,15 +1088,12 @@ class ArrowExtensionArray(
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
-                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
-                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
-                    ):
-                    # GH#62157 match non-pyarrow behavior to completely stop cross-type comparison
-                    other_type = getattr(other, "dtype", type(other).__name__)
-                    raise TypeError(
-                        f"Invalid comparison between dtype={self.dtype} and {other_type}"
-                    )
-                elif isinstance(other, range):
+                if (
+                    (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype))
+                    or (pa.types.is_timestamp(rtype) and pa.types.is_date(ltype))
+                    or isinstance(other, range)
+                ):
+                    # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
                 else:
