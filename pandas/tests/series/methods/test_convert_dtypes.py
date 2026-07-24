@@ -33,7 +33,7 @@ class TestSeriesConvertDtypes:
             (
                 ["x", "y", "z"],
                 np.dtype("O"),
-                pd.StringDtype(),
+                pd.StringDtype(storage="python"),
                 {("convert_string", False): np.dtype("O")},
             ),
             (
@@ -45,7 +45,7 @@ class TestSeriesConvertDtypes:
             (
                 ["h", "i", np.nan],
                 np.dtype("O"),
-                pd.StringDtype(),
+                pd.StringDtype(storage="python"),
                 {("convert_string", False): np.dtype("O")},
             ),
             (  # GH32117
