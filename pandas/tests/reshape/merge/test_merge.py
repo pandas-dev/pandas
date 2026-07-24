@@ -1513,6 +1513,47 @@ class TestMerge:
         with pytest.raises(ValueError, match=re.escape(msg)):
             data1.merge(data2, how="full")
 
+    @pytest.mark.parametrize(
+        "na_value",
+        [np.nan, pd.NA, pd.NaT],
+    )
+    def test_merge_on_na_label(self, na_value):
+        # GH#65899: merging on a NaN/NA-labeled join key produced duplicate
+        # columns (e.g. ``nan_x`` / ``nan_y``) because ``lk == rk`` returned
+        # False for NaN, and raised ``TypeError`` for ``pd.NA`` (whose
+        # ``__eq__`` returns ``pd.NA``, ambiguous in a boolean context).
+        left = DataFrame({na_value: [1, 2, 3], "a": [10, 20, 30]})
+        right = DataFrame({na_value: [1, 2, 3], "b": [40, 50, 60]})
+        result = merge(left, right, left_on=na_value, right_on=na_value)
+
+        # ``pd.NA`` and ``pd.NaT`` get normalized to ``np.nan`` / ``NaT`` when
+        # used as DataFrame column labels; compare on the normalized value.
+        expected_key = left.columns[0]
+        expected = DataFrame(
+            {expected_key: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_on_na_label_restores_index_level(self):
+        # GH#65899: when the NA-labeled key is an index level in both frames,
+        # ``_maybe_restore_index_levels`` must still recognize the matching NA
+        # labels and restore the index (previously ``left_key == right_key``
+        # returned False for NaN, so the level was dropped instead of restored).
+        left = DataFrame(
+            {"a": [10, 20, 30]},
+            index=Index([1, 2, 3], name=np.nan),
+        )
+        right = DataFrame(
+            {"b": [40, 50, 60]},
+            index=Index([1, 2, 3], name=np.nan),
+        )
+        result = merge(left, right, left_on=np.nan, right_on=np.nan)
+        expected = DataFrame(
+            {"a": [10, 20, 30], "b": [40, 50, 60]},
+            index=Index([1, 2, 3], name=np.nan),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def _check_merge(x, y):
     for how in ["inner", "left", "outer"]:

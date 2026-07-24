@@ -24,6 +24,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.missing import is_matching_na
 from pandas.errors import MergeError
 from pandas.util._decorators import (
     cache_readonly,
@@ -1254,7 +1255,7 @@ class _MergeOperation:
                 and self.orig_right._is_level_reference(
                     right_key  # type: ignore[arg-type]
                 )
-                and left_key == right_key
+                and (is_matching_na(left_key, right_key) or left_key == right_key)
                 and name not in result.index.names
             ):
                 names_to_restore.append(name)
@@ -1610,8 +1611,17 @@ class _MergeOperation:
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
-                        if lk is not None and lk == rk:  # FIXME: what about other NAs?
-                            right_drop.append(rk)
+                        if lk is not None and (is_matching_na(lk, rk) or lk == rk):
+                            # Use the actual label stored on ``right`` rather
+                            # than ``rk``: the DataFrame constructor normalizes
+                            # most NA-like column labels (``pd.NA``, ``None``)
+                            # to ``np.nan``, so dropping via ``rk`` would raise
+                            # ``KeyError``. ``get_indexer_for`` accepts any
+                            # NA-like value and returns the matching position.
+                            loc = right.columns.get_indexer_for([rk])
+                            right_drop.append(
+                                right.columns[loc[0]] if loc[0] != -1 else rk
+                            )
                     else:
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
