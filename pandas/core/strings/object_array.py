@@ -240,13 +240,12 @@ class ObjectStringArrayMixin:
             flags |= re.IGNORECASE
 
         if isinstance(pat, re.Pattern):
-            # We need to check that flags matches pat.flags.
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-
-            if flags != pat.flags:
-                raise ValueError("Cannot pass flags that do not match pat.flags")
+            if flags != 0:
+                # Check if user-provided flags conflict with the compiled pattern.
+                # A conflict means user specified a flag the pattern doesn't have.
+                # Extra flags in pat beyond what user specified are fine.
+                if flags & ~pat.flags:
+                    raise ValueError("Cannot pass flags that do not match pat.flags")
             regex = pat
         else:
             regex = re.compile(pat, flags=flags)

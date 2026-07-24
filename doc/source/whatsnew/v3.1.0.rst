@@ -407,6 +407,7 @@ Interval
 ^^^^^^^^
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
+- Bug in :meth:`Series.str.match` and :meth:`Series.str.fullmatch` incorrectly raising ``ValueError`` when passed a compiled regex with standard flags (e.g. ``re.MULTILINE``) without conflicting method-level flags (:issue:`66138`)
 
 Indexing
 ^^^^^^^^
