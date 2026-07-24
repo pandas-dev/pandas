@@ -169,6 +169,13 @@ class ArrowStringArrayMixin:
             pa_pad(self._pa_array, width=width, padding=fillchar)
         )
 
+    def _str_zfill(self, width: int) -> Self:
+        if pa_version_under21p0:
+            predicate = lambda val: val.zfill(width)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
+
     def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
         if i >= 0:

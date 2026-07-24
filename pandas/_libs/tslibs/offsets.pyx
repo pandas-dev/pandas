@@ -2150,15 +2150,23 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     DateOffsets can be created to move dates forward a given number of
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
-    valid date, first it is moved to a valid date.  Thus pseudo code
-    is::
+    valid date, it is first rolled forward to the next valid date, and
+    that roll counts as the first of the n increments.  For example,
+    2014-08-31 is a Sunday, so ``Timestamp("2014-08-31") + BDay(1)``
+    only rolls forward to Monday 2014-09-01, and adding ``BDay(2)``
+    gives Tuesday 2014-09-02.  Equivalently, the date is first rolled
+    back to the previous valid date, then moved n valid dates forward.
+    Thus pseudo code is::
 
         def __add__(date):
           date = rollback(date) # does nothing if date is valid
           return date + <n number of periods>
 
     When a date offset is created for a negative number of periods,
-    the date is first rolled forward.  The pseudo code is::
+    the roll is symmetric: rolling back to the previous valid date
+    counts as the first decrement; equivalently, the date is first
+    rolled forward, then moved ``abs(n)`` valid dates backward.  The
+    pseudo code is::
 
         def __add__(date):
           date = rollforward(date) # does nothing if date is valid
@@ -2169,7 +2177,10 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
 
     date + BDay(0) == BDay.rollforward(date)
 
-    Since 0 is a bit weird, we suggest avoiding its use.
+    Since 0 is a bit weird, we suggest avoiding its use.  Because the
+    roll counts as an increment, ``date + BDay(0)`` and
+    ``date + BDay(1)`` give the same result when date is not a
+    business day.
 
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
@@ -2237,6 +2248,16 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
         to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
+
+    Notes
+    -----
+    When added to a :class:`DatetimeIndex` or datetime :class:`Series`, a
+    ``DateOffset`` is applied to each entry independently. Calendar components
+    such as ``months`` and ``years`` do not represent a fixed duration, so
+    evenly spaced input dates are not guaranteed to remain evenly spaced: dates
+    that would fall on a nonexistent day are clamped to the end of the month.
+    For example, adding ``DateOffset(months=1)`` to both ``2018-01-30`` and
+    ``2018-01-31`` yields ``2018-02-28`` in each case.
 
     Examples
     --------

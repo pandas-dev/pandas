@@ -321,6 +321,9 @@ def test_styler_custom_converter(tmp_excel):
 
 @pytest.mark.single_cpu
 @td.skip_if_not_us_locale
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 def test_styler_to_s3(s3_bucket_public, s3so):
     # GH#46381
     mock_bucket_name = s3_bucket_public.name
