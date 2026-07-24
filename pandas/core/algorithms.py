@@ -507,6 +507,21 @@ _MINIMUM_COMP_ARR_LEN = 1_000_000
 _FLOAT64_INT_EXACT_MAX = 2**53
 
 
+def _may_lose_int_precision_as_float64(arr: np.ndarray) -> bool:
+    """
+    Return True if casting ``arr`` to float64 could change an integer's identity.
+
+    Used by :func:`isin` to decide when a common float/complex dtype is unsafe
+    (e.g. uint64 vs int64 promoting to float64 for magnitudes > 2**53).
+    """
+    if arr.dtype.kind not in "iu" or arr.dtype.itemsize < 8 or arr.size == 0:
+        return False
+    return (
+        int(arr.min()) < -_FLOAT64_INT_EXACT_MAX
+        or int(arr.max()) > _FLOAT64_INT_EXACT_MAX
+    )
+
+
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
@@ -683,6 +698,14 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
+        if common.kind in "fc" and (
+            _may_lose_int_precision_as_float64(values)
+            or _may_lose_int_precision_as_float64(comps_array)
+        ):
+            # GH#59609 / GH#46485: mismatched signed/unsigned 64-bit integers
+            # (and similar) promote to float64, which is not exact above 2**53.
+            # Compare as Python ints via object dtype instead.
+            common = np.dtype(object)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
