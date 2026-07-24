@@ -618,6 +618,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.eval` where a string literal on the left side of the ``in`` or ``not in`` operator (e.g. ``"foo" in value``) incorrectly returned a :class:`Series` of all ``False`` instead of a scalar boolean (:issue:`64391`)
 
 - Bug in :class:`DataFrame` constructor where passing the same :class:`Index` object as both ``index`` and ``columns`` shared a single object between the two axes, so mutating metadata such as ``names`` on one would also change the other (:issue:`42934`)
 - Bug in :func:`eval` and :meth:`DataFrame.eval` where passing a :class:`Series` or :class:`DataFrame` as ``expr`` silently parsed its (possibly truncated) repr instead of raising, producing a confusing error (:issue:`16289`)
