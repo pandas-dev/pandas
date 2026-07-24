@@ -701,7 +701,16 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 # asof_join_by
 # ----------------------------------------------------------------------
 
-from pandas._libs.hashtable cimport Int64HashTable
+from pandas._libs.khash cimport (
+    kh_destroy_int64,
+    kh_get_int64,
+    kh_init_int64,
+    kh_int64_t,
+    kh_needed_n_buckets,
+    kh_put_int64,
+    kh_resize_int64,
+    khiter_t,
+)
 
 
 @cython.wraparound(False)
@@ -720,7 +729,9 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
-        Int64HashTable hash_table
+        kh_int64_t *hash_table = NULL
+        khiter_t loc
+        int ret = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -734,7 +745,8 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
     right_indexer = np.empty(left_size, dtype=np.intp)
 
     if use_hashtable:
-        hash_table = Int64HashTable(right_size)
+        hash_table = kh_init_int64()
+        kh_resize_int64(hash_table, kh_needed_n_buckets(min(right_size, 1 << 20)))
 
     right_pos = 0
     for left_pos in range(left_size):
@@ -747,21 +759,29 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
             while (right_pos < right_size and
                    right_values[right_pos] <= left_values[left_pos]):
                 if use_hashtable:
-                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    loc = kh_put_int64(
+                        hash_table, right_by_values[right_pos], &ret
+                    )
+                    hash_table.vals[loc] = right_pos
                 right_pos += 1
         else:
             while (right_pos < right_size and
                    right_values[right_pos] < left_values[left_pos]):
                 if use_hashtable:
-                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    loc = kh_put_int64(
+                        hash_table, right_by_values[right_pos], &ret
+                    )
+                    hash_table.vals[loc] = right_pos
                 right_pos += 1
         right_pos -= 1
 
         # save positions as the desired index
         if use_hashtable:
-            by_value = left_by_values[left_pos]
-            found_right_pos = (hash_table.get_item(by_value)
-                               if by_value in hash_table else -1)
+            loc = kh_get_int64(hash_table, left_by_values[left_pos])
+            if loc == hash_table.n_buckets:
+                found_right_pos = -1
+            else:
+                found_right_pos = <Py_ssize_t>hash_table.vals[loc]
         else:
             found_right_pos = right_pos
 
@@ -773,6 +793,9 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
             diff = left_values[left_pos] - right_values[found_right_pos]
             if diff > tolerance_:
                 right_indexer[left_pos] = -1
+
+    if use_hashtable:
+        kh_destroy_int64(hash_table)
 
     return left_indexer, right_indexer
 
@@ -793,7 +816,9 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
-        Int64HashTable hash_table
+        kh_int64_t *hash_table = NULL
+        khiter_t loc
+        int ret = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -807,7 +832,8 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
     right_indexer = np.empty(left_size, dtype=np.intp)
 
     if use_hashtable:
-        hash_table = Int64HashTable(right_size)
+        hash_table = kh_init_int64()
+        kh_resize_int64(hash_table, kh_needed_n_buckets(min(right_size, 1 << 20)))
 
     right_pos = right_size - 1
     for left_pos in range(left_size - 1, -1, -1):
@@ -820,21 +846,29 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
             while (right_pos >= 0 and
                    right_values[right_pos] >= left_values[left_pos]):
                 if use_hashtable:
-                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    loc = kh_put_int64(
+                        hash_table, right_by_values[right_pos], &ret
+                    )
+                    hash_table.vals[loc] = right_pos
                 right_pos -= 1
         else:
             while (right_pos >= 0 and
                    right_values[right_pos] > left_values[left_pos]):
                 if use_hashtable:
-                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    loc = kh_put_int64(
+                        hash_table, right_by_values[right_pos], &ret
+                    )
+                    hash_table.vals[loc] = right_pos
                 right_pos -= 1
         right_pos += 1
 
         # save positions as the desired index
         if use_hashtable:
-            by_value = left_by_values[left_pos]
-            found_right_pos = (hash_table.get_item(by_value)
-                               if by_value in hash_table else -1)
+            loc = kh_get_int64(hash_table, left_by_values[left_pos])
+            if loc == hash_table.n_buckets:
+                found_right_pos = -1
+            else:
+                found_right_pos = <Py_ssize_t>hash_table.vals[loc]
         else:
             found_right_pos = (right_pos
                                if right_pos != right_size else -1)
@@ -847,6 +881,9 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
             diff = right_values[found_right_pos] - left_values[left_pos]
             if diff > tolerance_:
                 right_indexer[left_pos] = -1
+
+    if use_hashtable:
+        kh_destroy_int64(hash_table)
 
     return left_indexer, right_indexer
 
