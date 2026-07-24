@@ -2171,7 +2171,9 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
-        if box_with_array is DataFrame and isinstance(three_days, pd.DateOffset):
+        if box_with_array is DataFrame and isinstance(
+            three_days, pd.tseries.offsets.BaseOffset
+        ):
             # TODO: making expected be object here a result of DataFrame.__divmod__
             #  being defined in a naive way that does not dispatch to the underlying
             #  array's __divmod__

@@ -326,6 +326,8 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
 class OffsetMeta(type): ...
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta): ...
 
+Offset = BaseOffset
+
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
 BMonthBegin = BusinessMonthBegin

@@ -176,6 +176,7 @@ Deprecations
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
 - Deprecated ``inplace`` keyword for :meth:`DataFrame.rename` and :meth:`DataFrame.drop`. This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
+- Deprecated using ``isinstance(obj, DateOffset)`` and ``issubclass(cls, DateOffset)`` to check for non-``DateOffset`` offset types. Use ``isinstance(obj, pd.offsets.Offset)`` instead (:issue:`48262`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:

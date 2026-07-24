@@ -25,6 +25,7 @@ def test_namespace():
 
     api = [
         "BaseOffset",
+        "Offset",
         "NaT",
         "NaTType",
         "iNaT",
