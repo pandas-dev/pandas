@@ -180,6 +180,12 @@ class TestCategorical(base.ExtensionTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    @pytest.mark.xfail(raises=TypeError, reason="no numeric data to plot")
+    def test_plot_on_y_axis(self, data):
+        # GH 64535
+        # Plotting categorical is supported by matplotlib, but not pandas at the moment
+        super().test_plot_on_y_axis(data)
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     def test_repr_2d(self, data):

@@ -477,6 +477,8 @@ filterwarnings = [
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  # Raised by pyparsing in minimum-version for pyparsing>=3.3.0 and matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
+  "ignore:'enablePackrat' deprecated - use 'enable_packrat':pyparsing.warnings.PyparsingDeprecationWarning"
 ]
 junit_family = "xunit2"
 
