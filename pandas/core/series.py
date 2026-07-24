@@ -9476,21 +9476,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ) -> Any:
         """
-        Return the mean of the values over the requested axis.
+        Return the mean of the values.
 
         This method computes the arithmetic mean of the Series values,
         optionally skipping missing values.
 
         Parameters
         ----------
-        axis : {index (0)}
-            Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to 0.
-
-            For DataFrames, specifying ``axis=None`` will apply the aggregation
-            across both axes.
-
-            .. versionadded:: 2.0.0
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
