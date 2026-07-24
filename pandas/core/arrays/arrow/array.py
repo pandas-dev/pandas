@@ -16,7 +16,6 @@ from typing import (
     cast,
     overload,
 )
-import unicodedata
 import warnings
 
 import numpy as np
@@ -3521,16 +3520,6 @@ class ArrowExtensionArray(
         predicate = lambda val: val.rindex(sub, start, end)
         result = self._apply_elementwise(predicate)
         return self._from_pyarrow_array(pa.chunked_array(result))
-
-    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
-        if form in ("NFC", "NFKC"):
-            # GH#64359 pc.utf8_normalize only decomposes; it skips the canonical
-            #  composition step, so for the composing forms it returns decomposed
-            #  output. Fall back to unicodedata for these.
-            predicate = lambda val: unicodedata.normalize(form, val)
-            result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
-        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)
