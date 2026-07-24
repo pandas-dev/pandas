@@ -3509,6 +3509,23 @@ def test_from_sequence_of_strings_boolean():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
+def test_arrow_array_constructor_with_nan():
+    # GH#64578
+    import pyarrow as pa
+
+    result = pd.array(["a", np.nan], dtype=ArrowDtype(pa.string()))
+    expected = pd.array(["a", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result2 = pd.array(["a", np.nan], dtype=ArrowDtype(pa.large_string()))
+    expected2 = pd.array(["a", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_extension_array_equal(result2, expected2)
+
+    result3 = pd.array([1, np.nan, 3], dtype=ArrowDtype(pa.float64()))
+    expected3 = pd.array([1, None, 3], dtype=ArrowDtype(pa.float64()))
+    tm.assert_extension_array_equal(result3, expected3)
+
+
 def test_concat_empty_arrow_backed_series(dtype):
     # GH#51734
     ser = pd.Series([], dtype=dtype)
