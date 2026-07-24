@@ -1,0 +1,5 @@
+[console_scripts]
+cffi-gen-src = cffi._cffi_gen_src:run
+
+[distutils.setup_keywords]
+cffi_modules = cffi.setuptools_ext:cffi_modules

@@ -1,0 +1,3 @@
+module QtQml.RemoteObjects
+plugin qtqmlremoteobjects
+classname QtQmlRemoteObjectsPlugin

@@ -1,0 +1,13 @@
+mmh3-5.2.1.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+mmh3-5.2.1.dist-info/METADATA,sha256=eHfMkqwCXXW_-TtuzDANgMTna-j09EfcpbkabV9bZmc,15037
+mmh3-5.2.1.dist-info/RECORD,,
+mmh3-5.2.1.dist-info/WHEEL,sha256=-GHpayM8oxmVQ6lwBZOCUBihymZgdGGr6p98RT74444,101
+mmh3-5.2.1.dist-info/licenses/LICENSE,sha256=O7apBaVLfh-8ryH2DDXL7F0ZNV4K1Chmbo4kAXwuUs0,1094
+mmh3-5.2.1.dist-info/top_level.txt,sha256=3Wxu1FBsOTbiKh0WIPJ8WVI1_uJJvsFAdmlxe6Rn-B8,5
+mmh3.cp312-win_amd64.pyd,sha256=HtMhMAl_bY2iROwWdayRbDNqKeVPEL729DVMEBsId9A,51200
+mmh3/__init__.pyi,sha256=Lt3AQgsI8mfvBuu_IGC0tpw6zKwScQf3I4rYEDhKk6w,2433
+mmh3/hashlib.h,sha256=2-Zy2P_-wqBExNGBhGHq5dQleGvhNu3mHlRISX8S-AQ,4813
+mmh3/mmh3module.c,sha256=4gMk3TYHi8xk1twNJqOws5CXblPXE6F3r3r0YBk1OF0,80229
+mmh3/murmurhash3.c,sha256=rRzZyP2KWag-I5GI8A9IClJD4UlmA1Jmrxj7AaNdg2I,8738
+mmh3/murmurhash3.h,sha256=VZkouI0DhOykQ44eOWRIiZI_j9uoXn5VdOc6iJliy4I,7934
+mmh3/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0

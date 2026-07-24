@@ -1,0 +1,19 @@
+from collections.abc import Generator
+from re import Pattern
+from typing import Final
+
+RE_DATA_URI: Final[Pattern[str]]  # undocumented
+
+class DataURIError(ValueError): ...
+
+class ParsedDataURI:
+    media_type: str | None
+    data: bytes
+    uri: str
+
+    def __init__(self, media_type: str | None, data: bytes, uri: str) -> None: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+def parse(uri: str) -> ParsedDataURI: ...
+def discover(s: str) -> Generator[ParsedDataURI]: ...

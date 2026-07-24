@@ -1,0 +1,91 @@
+#jupyter_server {
+  padding-left: 0px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+#jupyter_server img {
+  height: 28px;
+}
+
+#jupyter-main-app {
+  padding-top: 50px;
+  text-align: center;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.42857143;
+  color: #000;
+}
+
+body > #header {
+  display: block;
+  background-color: #fff;
+  position: relative;
+  z-index: 100;
+}
+
+body > #header #header-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 5px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-bottom: 5px;
+  padding-top: 5px;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+}
+
+body > #header .header-bar {
+  width: 100%;
+  height: 1px;
+  background: #e7e7e7;
+  margin-bottom: -1px;
+}
+
+.navbar-brand {
+  float: left;
+  height: 30px;
+  padding: 6px 0px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 0px;
+  font-size: 17px;
+  line-height: 18px;
+}
+
+.navbar-brand,
+.navbar-nav > li > a {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.nav {
+  padding-left: 0;
+  margin-bottom: 0;
+  list-style: none;
+}
+
+.center-nav {
+  display: inline-block;
+  margin-bottom: -4px;
+}
+
+div.error {
+  margin: 2em;
+  text-align: center;
+}
+
+div.error > h1 {
+  font-size: 500%;
+  line-height: normal;
+}
+
+div.error > p {
+  font-size: 200%;
+  line-height: normal;
+}

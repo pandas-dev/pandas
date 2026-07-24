@@ -1,0 +1,13 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mock-package"
+version = "0.0.1"
+
+[tool.hatch.build.targets.wheel]
+include = ["mock_package.py"]

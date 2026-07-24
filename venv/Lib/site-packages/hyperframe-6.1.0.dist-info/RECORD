@@ -1,0 +1,15 @@
+hyperframe-6.1.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+hyperframe-6.1.0.dist-info/LICENSE,sha256=djqTQqBN9iBGydx0ilKHk06wpTMcaGOzygruIOGMtO0,1080
+hyperframe-6.1.0.dist-info/METADATA,sha256=op9XkrlFm0dliASYhSAAkVbvjC3qZgIsKWmhRQZbrWk,4339
+hyperframe-6.1.0.dist-info/RECORD,,
+hyperframe-6.1.0.dist-info/WHEEL,sha256=In9FTNxeP60KnTkGw7wk6mJPYd_dQSjEZmXdBdMCI-8,91
+hyperframe-6.1.0.dist-info/top_level.txt,sha256=aIXWNxzKF_jwE8lyWG5Paqn5RP7PDBYeguraia-oHJE,11
+hyperframe/__init__.py,sha256=Q_MBdkIECWTLvksOXg5nYHUX8jA8hhoQsuj6OUQ24lI,111
+hyperframe/__pycache__/__init__.cpython-312.pyc,,
+hyperframe/__pycache__/exceptions.cpython-312.pyc,,
+hyperframe/__pycache__/flags.cpython-312.pyc,,
+hyperframe/__pycache__/frame.cpython-312.pyc,,
+hyperframe/exceptions.py,sha256=DZLrZw5y7MLBMRkxCxrqf5Ehz8BoE2n7MpVap4D5vcI,1516
+hyperframe/flags.py,sha256=9lvpaeKXrfYeuxj8Xeq21ED40ODTipo3ZXeDUiX5WZI,1294
+hyperframe/frame.py,sha256=asYhkhkOr1vRB3fuZYE1HIhTIFD0JNOWWwZ8vedzWxU,31659
+hyperframe/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0

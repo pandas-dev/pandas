@@ -1,0 +1,6 @@
+{
+  "base_template": "base",
+  "mimetypes": {
+    "text/plain": true
+  }
+}

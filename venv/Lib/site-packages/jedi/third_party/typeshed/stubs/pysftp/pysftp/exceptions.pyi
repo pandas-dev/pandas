@@ -1,0 +1,9 @@
+class ConnectionException(Exception):
+    message: str
+    def __init__(self, host: str, port: int) -> None: ...
+
+class CredentialException(Exception):
+    message: str
+    def __init__(self, message: str) -> None: ...
+
+class HostKeysException(Exception): ...

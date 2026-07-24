@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunk_jupyterlab_application_top=self.rspackChunk_jupyterlab_application_top||[]).push([[8160],{73763(p){p.exports=JSON.parse('{"version":"11.15.0"}')}}]);

@@ -1,0 +1,98 @@
+Metadata-Version: 2.2
+Name: hyperframe
+Version: 6.1.0
+Summary: Pure-Python HTTP/2 framing
+Author-email: Cory Benfield <cory@lukasa.co.uk>
+Maintainer-email: Thomas Kriechbaumer <thomas@kriechbaumer.name>
+License: The MIT License (MIT)
+        
+        Copyright (c) 2014 Cory Benfield
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in
+        all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+        THE SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/python-hyper/hyperframe/
+Project-URL: Bug Reports, https://github.com/python-hyper/hyperframe/issues
+Project-URL: Source, https://github.com/python-hyper/hyperframe/
+Project-URL: Documentation, https://python-hyper.org/
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+
+======================================
+hyperframe: Pure-Python HTTP/2 framing
+======================================
+
+.. image:: https://github.com/python-hyper/hyperframe/workflows/CI/badge.svg
+    :target: https://github.com/python-hyper/hyperframe/actions
+    :alt: Build Status
+.. image:: https://codecov.io/gh/python-hyper/hyperframe/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/python-hyper/hyperframe
+    :alt: Code Coverage
+.. image:: https://readthedocs.org/projects/hyperframe/badge/?version=latest
+    :target: https://hyperframe.readthedocs.io/en/latest/
+    :alt: Documentation Status
+.. image:: https://img.shields.io/badge/chat-join_now-brightgreen.svg
+    :target: https://gitter.im/python-hyper/community
+    :alt: Chat community
+
+This library contains the HTTP/2 framing code used in the `hyper`_ project. It
+provides a pure-Python codebase that is capable of decoding a binary stream
+into HTTP/2 frames.
+
+This library is used directly by `hyper`_ and a number of other projects to
+provide HTTP/2 frame decoding logic.
+
+Contributing
+============
+
+hyperframe welcomes contributions from anyone! Unlike many other projects we
+are happy to accept cosmetic contributions and small contributions, in addition
+to large feature requests and changes.
+
+Before you contribute (either by opening an issue or filing a pull request),
+please `read the contribution guidelines`_.
+
+.. _read the contribution guidelines: http://hyper.readthedocs.org/en/development/contributing.html
+
+License
+=======
+
+hyperframe is made available under the MIT License. For more details, see the
+``LICENSE`` file in the repository.
+
+Authors
+=======
+
+hyperframe is maintained by Cory Benfield, with contributions from others. For
+more details about the contributors, please see ``CONTRIBUTORS.rst``.
+
+.. _hyper: http://python-hyper.org/

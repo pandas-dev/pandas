@@ -1,0 +1,2 @@
+# Marker file for PEP 561.  The mypy package uses inline types.
+# file must be here according to https://peps.python.org/pep-0561/#packaging-type-information

@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "waiters": {
+    "ContributorInsightsEnabled": {
+      "operation": "DescribeContributorInsights",
+      "delay": 20,
+      "maxAttempts": 30,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "ContributorInsightsStatus",
+          "expected": "ENABLED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "ContributorInsightsStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "ExportCompleted": {
+      "operation": "DescribeExport",
+      "delay": 20,
+      "maxAttempts": 60,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "ExportDescription.ExportStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "ExportDescription.ExportStatus",
+          "expected": "FAILED"
+        }
+      ]
+    },
+    "ImportCompleted": {
+      "operation": "DescribeImport",
+      "delay": 20,
+      "maxAttempts": 60,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "path",
+          "argument": "ImportTableDescription.ImportStatus",
+          "expected": "COMPLETED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "ImportTableDescription.ImportStatus",
+          "expected": "FAILED"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "ImportTableDescription.ImportStatus",
+          "expected": "CANCELLED"
+        }
+      ]
+    },
+    "KinesisStreamingDestinationActive": {
+      "operation": "DescribeKinesisStreamingDestination",
+      "delay": 20,
+      "maxAttempts": 30,
+      "acceptors": [
+        {
+          "state": "success",
+          "matcher": "pathAny",
+          "argument": "KinesisDataStreamDestinations[].DestinationStatus",
+          "expected": "ACTIVE"
+        },
+        {
+          "state": "failure",
+          "matcher": "path",
+          "argument": "length(KinesisDataStreamDestinations) > `0`  && length(KinesisDataStreamDestinations[?DestinationStatus == 'DISABLED' || DestinationStatus == 'ENABLE_FAILED']) ==  length(KinesisDataStreamDestinations)",
+          "expected": true
+        }
+      ]
+    },
+    "TableExists": {
+      "delay": 20,
+      "operation": "DescribeTable",
+      "maxAttempts": 25,
+      "acceptors": [
+        {
+          "expected": "ACTIVE",
+          "matcher": "path",
+          "state": "success",
+          "argument": "Table.TableStatus"
+        },
+        {
+          "expected": "ResourceNotFoundException",
+          "matcher": "error",
+          "state": "retry"
+        }
+      ]
+    },
+    "TableNotExists": {
+      "delay": 20,
+      "operation": "DescribeTable",
+      "maxAttempts": 25,
+      "acceptors": [
+        {
+          "expected": "ResourceNotFoundException",
+          "matcher": "error",
+          "state": "success"
+        }
+      ]
+    }
+  }
+}

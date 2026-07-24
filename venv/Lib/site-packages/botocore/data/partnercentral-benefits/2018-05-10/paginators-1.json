@@ -1,0 +1,22 @@
+{
+  "pagination": {
+    "ListBenefitAllocations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "BenefitAllocationSummaries"
+    },
+    "ListBenefitApplications": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "BenefitApplicationSummaries"
+    },
+    "ListBenefits": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "BenefitSummaries"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+/*
+ * This script contains the language-specific data used by searchtools.js,
+ * namely the set of stopwords, stemmer, scorer and splitter.
+ */
+
+const stopwords = new Set({{ search_language_stop_words }});
+window.stopwords = stopwords;  // Export to global scope
+
+{% if search_language_stemming_code %}
+/* Non-minified versions are copied as separate JavaScript files, if available */
+{{ search_language_stemming_code|safe }}
+{% endif -%}
+
+{% if search_scorer_tool %}
+{{ search_scorer_tool|safe }}
+{% endif -%}
+
+{% if search_word_splitter_code %}
+{{ search_word_splitter_code }}
+{% endif -%}

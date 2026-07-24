@@ -1,0 +1,33 @@
+import codecs
+from collections.abc import Iterable, Iterator
+from typing import Final
+
+VERSION: Final[str]
+PYTHON_NAMES: Final[dict[str, str]]
+CACHE: dict[str, Encoding]
+
+def ascii_lower(string: str) -> str: ...
+def lookup(label: str) -> Encoding | None: ...
+
+class Encoding:
+    name: str
+    codec_info: codecs.CodecInfo
+    def __init__(self, name: str, codec_info: codecs.CodecInfo) -> None: ...
+
+UTF8: Final[Encoding]
+
+def decode(input: bytes | bytearray, fallback_encoding: str | Encoding, errors: str = "replace") -> tuple[str, Encoding]: ...
+def encode(input: str, encoding: str | Encoding = ..., errors: str = "strict") -> bytes: ...
+def iter_decode(
+    input: Iterable[bytes | bytearray], fallback_encoding: str | Encoding, errors: str = "replace"
+) -> tuple[Iterator[Encoding | str], Encoding]: ...
+def iter_encode(input: Iterable[str], encoding: str | Encoding = ..., errors: str = "strict") -> Iterator[bytes]: ...
+
+class IncrementalDecoder:
+    encoding: Encoding | None
+    def __init__(self, fallback_encoding: str | Encoding, errors: str = "replace") -> None: ...
+    def decode(self, input: bytes | bytearray, final: bool = False) -> str: ...
+
+class IncrementalEncoder:
+    encode: bytes
+    def __init__(self, encoding: str | Encoding = ..., errors: str = "strict") -> None: ...

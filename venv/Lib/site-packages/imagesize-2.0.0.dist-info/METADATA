@@ -1,0 +1,51 @@
+Metadata-Version: 2.4
+Name: imagesize
+Version: 2.0.0
+Summary: Get image size from headers (BMP/PNG/JPEG/JPEG2000/GIF/TIFF/SVG/Netpbm/WebP/AVIF/HEIC/HEIF)
+Home-page: https://github.com/shibukawa/imagesize_py
+Author: Yoshiki Shibukawa
+Author-email: yoshiki@shibu.jp
+License: MIT
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Multimedia :: Graphics
+Requires-Python: >=3.10,<3.15
+License-File: LICENSE.rst
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: requires-python
+Dynamic: summary
+
+
+It parses image files' header and return image size.
+
+* BMP
+* PNG
+* JPEG
+* JPEG2000
+* GIF
+* TIFF
+* SVG
+* Netpbm
+* WebP
+* AVIF
+* HEIC/HEIF
+
+This is a pure Python library.

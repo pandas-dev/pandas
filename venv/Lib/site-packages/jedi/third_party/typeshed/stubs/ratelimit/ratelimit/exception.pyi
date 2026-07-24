@@ -1,0 +1,3 @@
+class RateLimitException(Exception):
+    period_remaining: float
+    def __init__(self, message: str, period_remaining: float) -> None: ...

@@ -1,0 +1,56 @@
+#include <Python.h>
+
+PyMODINIT_FUNC
+PyInit_{modname}(void)
+{{
+    PyObject *tmp;
+    // Use ImportModuleLevel with a non-empty fromlist so Python returns the
+    // leaf submodule via sys.modules lookup, avoiding the top-down getattr
+    // walk done by PyImport_ImportModule. That walk fails when the shim runs
+    // during a parent package's __init__.py, because the parent's submodule
+    // attribute isn't set until after __init__ returns.
+    static PyObject *fromlist = NULL;
+    if (!fromlist) {{
+        fromlist = Py_BuildValue("(s)", "*");
+        if (!fromlist) return NULL;
+    }}
+    tmp = PyImport_ImportModuleLevel("{libname}", NULL, NULL, fromlist, 0);
+    if (!tmp) return NULL;
+    // Populate cross-group export tables lazily, just before we instantiate
+    // the per-module real init. Deferring this out of the shared lib's own
+    // PyInit keeps separate-mode compiled modules from recursively triggering
+    // sibling-package __init__.py mid-bootstrap.
+    // PyObject_GetOptionalAttrString would be cleaner, but it's 3.13+ and the
+    // shim deliberately #includes only <Python.h>, so we can't pull in the
+    // pythoncapi_compat.h shim from lib-rt here. AttributeError + PyErr_Clear
+    // is the portable form.
+    PyObject *deps_capsule = PyObject_GetAttrString(tmp, "ensure_deps");
+    if (deps_capsule != NULL) {{
+        int (*deps_func)(void) = (int (*)(void))PyCapsule_GetPointer(
+            deps_capsule, "{libname}.ensure_deps");
+        Py_DECREF(deps_capsule);
+        if (deps_func == NULL) {{
+            Py_DECREF(tmp);
+            return NULL;
+        }}
+        if (deps_func() < 0) {{
+            Py_DECREF(tmp);
+            return NULL;
+        }}
+    }} else {{
+        PyErr_Clear();
+    }}
+    PyObject *capsule = PyObject_GetAttrString(tmp, "init_{full_modname}");
+    Py_DECREF(tmp);
+    if (capsule == NULL) return NULL;
+    void *init_func = PyCapsule_GetPointer(capsule, "{libname}.init_{full_modname}");
+    Py_DECREF(capsule);
+    if (!init_func) {{
+        return NULL;
+    }}
+    return ((PyObject *(*)(void))init_func)();
+}}
+
+// distutils sometimes spuriously tells cl to export CPyInit___init__,
+// so provide that so it chills out
+PyMODINIT_FUNC PyInit___init__(void) {{ return PyInit_{modname}(); }}

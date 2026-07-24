@@ -1,0 +1,412 @@
+{
+  "version": 2,
+  "waiters": {
+    "DBClusterAvailable": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBClusters",
+      "acceptors": [
+        {
+          "matcher": "pathAll",
+          "argument": "DBClusters[].Status",
+          "state": "success",
+          "expected": "available"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "deleted"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "deleting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "failed"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "incompatible-restore"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "incompatible-parameters"
+        }
+      ]
+    },
+    "DBClusterDeleted": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBClusters",
+      "acceptors": [
+        {
+          "matcher": "path",
+          "argument": "length(DBClusters) == `0`",
+          "state": "success",
+          "expected": true
+        },
+        {
+          "matcher": "error",
+          "state": "success",
+          "expected": "DBClusterNotFoundFault"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "creating"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "modifying"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "rebooting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusters[].Status",
+          "state": "failure",
+          "expected": "resetting-master-credentials"
+        }
+      ]
+    },
+    "DBClusterSnapshotAvailable": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBClusterSnapshots",
+      "acceptors": [
+        {
+          "matcher": "pathAll",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "success",
+          "expected": "available"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "deleted"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "deleting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "failed"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "incompatible-restore"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "incompatible-parameters"
+        }
+      ]
+    },
+    "DBClusterSnapshotDeleted": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBClusterSnapshots",
+      "acceptors": [
+        {
+          "matcher": "path",
+          "argument": "length(DBClusterSnapshots) == `0`",
+          "state": "success",
+          "expected": true
+        },
+        {
+          "matcher": "error",
+          "state": "success",
+          "expected": "DBClusterSnapshotNotFoundFault"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "creating"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "modifying"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "rebooting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBClusterSnapshots[].Status",
+          "state": "failure",
+          "expected": "resetting-master-credentials"
+        }
+      ]
+    },
+    "DBInstanceAvailable": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBInstances",
+      "acceptors": [
+        {
+          "matcher": "pathAll",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "success",
+          "expected": "available"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "deleted"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "deleting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "failed"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "incompatible-restore"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "incompatible-parameters"
+        }
+      ]
+    },
+    "DBInstanceDeleted": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBInstances",
+      "acceptors": [
+        {
+          "matcher": "path",
+          "argument": "length(DBInstances) == `0`",
+          "state": "success",
+          "expected": true
+        },
+        {
+          "matcher": "error",
+          "state": "success",
+          "expected": "DBInstanceNotFound"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "creating"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "modifying"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "rebooting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBInstances[].DBInstanceStatus",
+          "state": "failure",
+          "expected": "resetting-master-credentials"
+        }
+      ]
+    },
+    "DBSnapshotAvailable": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBSnapshots",
+      "acceptors": [
+        {
+          "matcher": "pathAll",
+          "argument": "DBSnapshots[].Status",
+          "state": "success",
+          "expected": "available"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "deleted"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "deleting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "failed"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "incompatible-restore"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "incompatible-parameters"
+        }
+      ]
+    },
+    "DBSnapshotDeleted": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeDBSnapshots",
+      "acceptors": [
+        {
+          "matcher": "path",
+          "argument": "length(DBSnapshots) == `0`",
+          "state": "success",
+          "expected": true
+        },
+        {
+          "matcher": "error",
+          "state": "success",
+          "expected": "DBSnapshotNotFound"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "creating"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "modifying"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "rebooting"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "DBSnapshots[].Status",
+          "state": "failure",
+          "expected": "resetting-master-credentials"
+        }
+      ]
+    },
+    "TenantDatabaseAvailable": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeTenantDatabases",
+      "acceptors": [
+        {
+          "matcher": "pathAll",
+          "argument": "TenantDatabases[].Status",
+          "state": "success",
+          "expected": "available"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "TenantDatabases[].Status",
+          "state": "failure",
+          "expected": "deleted"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "TenantDatabases[].Status",
+          "state": "failure",
+          "expected": "incompatible-parameters"
+        },
+        {
+          "matcher": "pathAny",
+          "argument": "TenantDatabases[].Status",
+          "state": "failure",
+          "expected": "incompatible-restore"
+        }
+      ]
+    },
+    "TenantDatabaseDeleted": {
+      "delay": 30,
+      "maxAttempts": 60,
+      "operation": "DescribeTenantDatabases",
+      "acceptors": [
+        {
+          "matcher": "path",
+          "argument": "length(TenantDatabases) == `0`",
+          "state": "success",
+          "expected": true
+        },
+        {
+          "matcher": "error",
+          "state": "success",
+          "expected": "DBInstanceNotFoundFault"
+        }
+      ]
+    },
+    "DBSnapshotCompleted": {
+      "delay": 15,
+      "operation": "DescribeDBSnapshots",
+      "maxAttempts": 40,
+      "acceptors": [
+        {
+          "expected": "DBSnapshotNotFound",
+          "matcher": "error",
+          "state": "success"
+        },
+        {
+          "expected": "available",
+          "matcher": "pathAll",
+          "state": "success",
+          "argument": "DBSnapshots[].Status"
+        }
+      ]
+    }
+  }
+}

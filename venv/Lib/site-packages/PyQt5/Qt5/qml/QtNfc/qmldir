@@ -1,0 +1,4 @@
+module QtNfc
+plugin declarative_nfc
+classname QNfcQmlPlugin
+typeinfo plugins.qmltypes

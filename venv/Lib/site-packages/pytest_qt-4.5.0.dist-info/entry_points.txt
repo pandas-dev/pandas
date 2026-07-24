@@ -1,0 +1,2 @@
+[pytest11]
+pytest-qt = pytestqt.plugin

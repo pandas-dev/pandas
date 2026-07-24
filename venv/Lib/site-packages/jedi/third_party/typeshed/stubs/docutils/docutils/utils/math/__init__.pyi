@@ -1,0 +1,13 @@
+from typing import Final, Literal
+
+from docutils.nodes import Node
+
+__docformat__: Final = "reStructuredText"
+
+class MathError(ValueError):
+    details: list[Node]
+    def __init__(self, msg: object, details: list[Node] = []) -> None: ...
+
+def toplevel_code(code: str) -> str: ...
+def pick_math_environment(code: str, numbered: bool = False) -> Literal["align*", "equation*", "align", "equation"]: ...
+def wrap_math_code(code: str, as_block: bool | None) -> str: ...

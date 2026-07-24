@@ -1,0 +1,721 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:e11ef76f-c1f5-4768-929c-1cc6d6bab343",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-01T09:47:40Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "generate-sbom.py",
+          "group": "pillow"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "pkg:pypi/pillow@12.3.0",
+      "type": "library",
+      "name": "Pillow",
+      "version": "12.3.0",
+      "description": "Python Imaging Library (fork)",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://python-pillow.github.io"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/python-pillow/Pillow"
+        },
+        {
+          "type": "documentation",
+          "url": "https://pillow.readthedocs.io"
+        },
+        {
+          "type": "security-contact",
+          "url": "https://github.com/python-pillow/Pillow/security/policy"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._avif",
+      "type": "library",
+      "name": "PIL._avif",
+      "version": "12.3.0",
+      "description": "AVIF image format extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._avif"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imaging",
+      "type": "library",
+      "name": "PIL._imaging",
+      "version": "12.3.0",
+      "description": "Core image processing extension (decode, encode, map, display, outline, path, libImaging)",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imaging"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingcms",
+      "type": "library",
+      "name": "PIL._imagingcms",
+      "version": "12.3.0",
+      "description": "LittleCMS2 colour management extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingcms"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingft",
+      "type": "library",
+      "name": "PIL._imagingft",
+      "version": "12.3.0",
+      "description": "FreeType font rendering extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingft"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingmath",
+      "type": "library",
+      "name": "PIL._imagingmath",
+      "version": "12.3.0",
+      "description": "Image math operations extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingmath"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingmorph",
+      "type": "library",
+      "name": "PIL._imagingmorph",
+      "version": "12.3.0",
+      "description": "Image morphology extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingmorph"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingtk",
+      "type": "library",
+      "name": "PIL._imagingtk",
+      "version": "12.3.0",
+      "description": "Tk/Tcl display extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingtk"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._webp",
+      "type": "library",
+      "name": "PIL._webp",
+      "version": "12.3.0",
+      "description": "WebP image format extension",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pillow@12.3.0#c-ext/PIL._webp"
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#thirdparty/fribidi-shim",
+      "type": "library",
+      "name": "fribidi-shim",
+      "version": "1.x",
+      "description": "FriBiDi runtime-loading shim (vendored in src/thirdparty/fribidi-shim/); loads libfribidi dynamically",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7e8cfa78dcd21cebeb0ad91c0cd23e0dba6496c0fbd66e1ec3d25c5b1b365d11"
+        }
+      ],
+      "pedigree": {
+        "notes": "Pillow-authored shim; not taken from an upstream project."
+      },
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/fribidi/fribidi"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:github/python/pythoncapi-compat",
+      "type": "library",
+      "name": "pythoncapi_compat",
+      "description": "Backport header for new CPython C-API functions (vendored in src/thirdparty/pythoncapi_compat.h)",
+      "licenses": [
+        {
+          "license": {
+            "id": "0BSD"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "97b0e62657965bd01a783b93422a6f7138d64c48546657feacc218ec8319ee0b"
+        }
+      ],
+      "pedigree": {
+        "notes": "Vendored unmodified from upstream python/pythoncapi-compat."
+      },
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/python/pythoncapi-compat"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pillow@12.3.0#thirdparty/raqm",
+      "type": "library",
+      "name": "raqm",
+      "version": "0.10.5",
+      "description": "Complex text layout library (vendored in src/thirdparty/raqm/)",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5549e7458674077ca4794033ade277910ba0ad6989651787eba1a8b5513a9f9d"
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "bom-ref": "pkg:github/HOST-Oman/libraqm@0.10.5#upstream",
+            "type": "library",
+            "name": "raqm",
+            "version": "0.10.5",
+            "purl": "pkg:github/HOST-Oman/libraqm@0.10.5",
+            "externalReferences": [
+              {
+                "type": "distribution",
+                "url": "https://github.com/HOST-Oman/libraqm/releases/tag/v0.10.5"
+              }
+            ]
+          }
+        ],
+        "patches": [
+          {
+            "type": "unofficial",
+            "diff": {
+              "text": {
+                "content": "LS0tIGEvc3JjL3JhcW0tdmVyc2lvbi5oLmluCisrKyBiL3NyYy9yYXFtLXZlcnNpb24uaApAQCAtMzEsMTQgKzMxLDE0IEBACiAjaWZuZGVmIF9SQVFNX1ZFUlNJT05fSF8KICNkZWZpbmUgX1JBUU1fVkVSU0lPTl9IXwogCi0jZGVmaW5lIFJBUU1fVkVSU0lPTl9NQUpPUiBAUkFRTV9WRVJTSU9OX01BSk9SQAotI2RlZmluZSBSQVFNX1ZFUlNJT05fTUlOT1IgQFJBUU1fVkVSU0lPTl9NSU5PUkAKLSNkZWZpbmUgUkFRTV9WRVJTSU9OX01JQ1JPIEBSQVFNX1ZFUlNJT05fTUlDUk9ACisjZGVmaW5lIFJBUU1fVkVSU0lPTl9NQUpPUiAwCisjZGVmaW5lIFJBUU1fVkVSU0lPTl9NSU5PUiAxMAorI2RlZmluZSBSQVFNX1ZFUlNJT05fTUlDUk8gNQogCi0jZGVmaW5lIFJBUU1fVkVSU0lPTl9TVFJJTkcgIkBSQVFNX1ZFUlNJT05AIgorI2RlZmluZSBSQVFNX1ZFUlNJT05fU1RSSU5HICIwLjEwLjUiCiAKICNkZWZpbmUgUkFRTV9WRVJTSU9OX0FUTEVBU1QobWFqb3IsbWlub3IsbWljcm8pIFwKLQkoKG1ham9yKSoxMDAwMCsobWlub3IpKjEwMCsobWljcm8pIDw9IFwKLQkgUkFRTV9WRVJTSU9OX01BSk9SKjEwMDAwK1JBUU1fVkVSU0lPTl9NSU5PUioxMDArUkFRTV9WRVJTSU9OX01JQ1JPKQorICAgICgobWFqb3IpKjEwMDAwKyhtaW5vcikqMTAwKyhtaWNybykgPD0gXAorICAgICBSQVFNX1ZFUlNJT05fTUFKT1IqMTAwMDArUkFRTV9WRVJTSU9OX01JTk9SKjEwMCtSQVFNX1ZFUlNJT05fTUlDUk8pCiAKICNlbmRpZiAvKiBfUkFRTV9WRVJTSU9OX0hfICovCg==",
+                "encoding": "base64"
+              }
+            }
+          },
+          {
+            "type": "unofficial",
+            "diff": {
+              "text": {
+                "content": "LS0tIGEvc3JjL3JhcW0uYworKysgYi9zcmMvcmFxbS5jCkBAIC0zNiw3ICszNiwxMSBAQAogI2luY2x1ZGUgPFNoZWVuQmlkaS5oPgogI2VuZGlmCiAjZWxzZQorI2lmZGVmIEhBVkVfRlJJQklESV9TWVNURU0KICNpbmNsdWRlIDxmcmliaWRpLmg+CisjZWxzZQorI2luY2x1ZGUgIi4uL2ZyaWJpZGktc2hpbS9mcmliaWRpLmgiCisjZW5kaWYKICNlbmRpZgogCiAjaW5jbHVkZSA8aGIuaD4K",
+                "encoding": "base64"
+              }
+            }
+          }
+        ],
+        "notes": "Vendored from upstream HOST-Oman/libraqm v0.10.5 with two Pillow-specific modifications: (1) raqm-version.h.in was pre-processed into raqm-version.h with version placeholders replaced by literal values; (2) raqm.c wraps the <fribidi.h> include in an #ifdef HAVE_FRIBIDI_SYSTEM guard so Pillow's bundled fribidi-shim is used when a system FriBiDi is absent."
+      },
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/python-pillow/Pillow/tree/main/src/thirdparty/raqm"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/freetype2",
+      "type": "library",
+      "name": "FreeType",
+      "version": "2.14.3",
+      "scope": "optional",
+      "description": "Font rendering (optional, used by PIL._imagingft). Required for text/font support.",
+      "licenses": [
+        {
+          "license": {
+            "id": "FTL"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://freetype.org"
+        },
+        {
+          "type": "distribution",
+          "url": "https://download.savannah.gnu.org/releases/freetype/"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/fribidi",
+      "type": "library",
+      "name": "FriBiDi",
+      "version": "1.0.16",
+      "scope": "optional",
+      "description": "Unicode bidi algorithm library (optional, loaded at runtime by fribidi-shim).",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/fribidi/fribidi"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/fribidi/fribidi/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/harfbuzz",
+      "type": "library",
+      "name": "HarfBuzz",
+      "version": "14.2.1",
+      "scope": "optional",
+      "description": "Text shaping (optional, required by libraqm for complex text layout).",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://harfbuzz.github.io"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/harfbuzz/harfbuzz/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/libavif",
+      "type": "library",
+      "name": "libavif",
+      "version": "1.4.2",
+      "scope": "optional",
+      "description": "AVIF codec (optional, used by PIL._avif).",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/AOMediaCodec/libavif"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/AOMediaCodec/libavif/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/libimagequant",
+      "type": "library",
+      "name": "libimagequant",
+      "version": "4.4.1",
+      "scope": "optional",
+      "description": "Improved colour quantization (optional).",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-or-later"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pngquant.org/lib/"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/ImageOptim/libimagequant/tags"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/libjpeg",
+      "type": "library",
+      "name": "libjpeg / libjpeg-turbo",
+      "version": "3.1.4.1",
+      "description": "JPEG codec (required by default; disable with -C jpeg=disable).",
+      "licenses": [
+        {
+          "license": {
+            "id": "IJG"
+          }
+        },
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://ijg.org"
+        },
+        {
+          "type": "website",
+          "url": "https://libjpeg-turbo.org"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/libjpeg-turbo/libjpeg-turbo/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/libtiff",
+      "type": "library",
+      "name": "libtiff",
+      "version": "4.7.1",
+      "scope": "optional",
+      "description": "TIFF codec (optional).",
+      "licenses": [
+        {
+          "license": {
+            "id": "libtiff"
+          }
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "bom-ref": "pkg:generic/libtiff@4.7.1#upstream",
+            "type": "library",
+            "name": "libtiff",
+            "version": "4.7.1",
+            "purl": "pkg:generic/libtiff@4.7.1",
+            "externalReferences": [
+              {
+                "type": "distribution",
+                "url": "https://gitlab.com/libtiff/libtiff/-/tags/v4.7.1"
+              }
+            ]
+          }
+        ],
+        "patches": [
+          {
+            "type": "cherry-pick",
+            "diff": {
+              "text": {
+                "content": "Y29tbWl0IDc4MmExMWQ2YjViNjFjNmRjMjFlNzE0OTUwYTRhZjViZjg5ZjAyM2MKQXV0aG9yOiBFdmVuIFJvdWF1bHQgPGV2ZW4ucm91YXVsdEBzcGF0aWFseXMuY29tPgpEYXRlOiAgIFN1biBGZWIgMjIgMjM6MzI6NDcgMjAyNiArMDEwMAoKICAgIFRJRkZSZWFkUkdCQUltYWdlKCk6IHByZXZlbnQgaW50ZWdlciBvdmVyZmxvdyBhbmQgbGF0ZXIgaGVhcCBvdmVyZmxvdyBvbiBpbWFnZXMgd2l0aCBodWdlIHdpZHRoIGluIFlDYkNyIHRpbGUgZGVjb2RpbmcgZnVuY3Rpb25zCgogICAgRml4ZXMgaHR0cHM6Ly9naXRsYWIuY29tL2xpYnRpZmYvbGlidGlmZi8tL2lzc3Vlcy83ODcKCmRpZmYgLS1naXQgYS9saWJ0aWZmL3RpZl9nZXRpbWFnZS5jIGIvbGlidGlmZi90aWZfZ2V0aW1hZ2UuYwppbmRleCA0NTQzZGRkYS4uZmE4MmQwOTEgMTAwNjQ0Ci0tLSBsaWJ0aWZmL3RpZl9nZXRpbWFnZS5jCisrKyBsaWJ0aWZmL3RpZl9nZXRpbWFnZS5jCkBAIC0yMjI0LDcgKzIyMjQsNyBAQCBERUNMQVJFQ29udGlnUHV0RnVuYyhwdXRjb250aWc4Yml0WUNiQ3I0NHRpbGUpCiAgICAgdWludDMyX3QgKmNwMSA9IGNwICsgdyArIHRvc2tldzsKICAgICB1aW50MzJfdCAqY3AyID0gY3AxICsgdyArIHRvc2tldzsKICAgICB1aW50MzJfdCAqY3AzID0gY3AyICsgdyArIHRvc2tldzsKLSAgICBpbnQzMl90IGluY3IgPSAzICogdyArIDQgKiB0b3NrZXc7CisgICAgY29uc3QgdG1zaXplX3QgaW5jciA9IDMgKiAodG1zaXplX3QpdyArIDQgKiAodG1zaXplX3QpdG9za2V3OwoKICAgICAodm9pZCl5OwogICAgIC8qIGFkanVzdCBmcm9tc2tldyAqLwpAQCAtMjM2NCw3ICsyMzY0LDcgQEAgREVDTEFSRUNvbnRpZ1B1dEZ1bmMocHV0Y29udGlnOGJpdFlDYkNyNDR0aWxlKQogREVDTEFSRUNvbnRpZ1B1dEZ1bmMocHV0Y29udGlnOGJpdFlDYkNyNDJ0aWxlKQogewogICAgIHVpbnQzMl90ICpjcDEgPSBjcCArIHcgKyB0b3NrZXc7Ci0gICAgaW50MzJfdCBpbmNyID0gMiAqIHRvc2tldyArIHc7CisgICAgY29uc3QgdG1zaXplX3QgaW5jciA9IDIgKiAodG1zaXplX3QpdG9za2V3ICsgdzsKCiAgICAgKHZvaWQpeTsKICAgICBmcm9tc2tldyA9IChmcm9tc2tldyAvIDQpICogKDQgKiAyICsgMik7CkBAIC0yNTIyLDcgKzI1MjIsNyBAQCBERUNMQVJFQ29udGlnUHV0RnVuYyhwdXRjb250aWc4Yml0WUNiQ3I0MXRpbGUpCiBERUNMQVJFQ29udGlnUHV0RnVuYyhwdXRjb250aWc4Yml0WUNiQ3IyMnRpbGUpCiB7CiAgICAgdWludDMyX3QgKmNwMjsKLSAgICBpbnQzMl90IGluY3IgPSAyICogdG9za2V3ICsgdzsKKyAgICBjb25zdCB0bXNpemVfdCBpbmNyID0gMiAqICh0bXNpemVfdCl0b3NrZXcgKyB3OwogICAgICh2b2lkKXk7CiAgICAgZnJvbXNrZXcgPSAoZnJvbXNrZXcgLyAyKSAqICgyICogMiArIDIpOwogICAgIGNwMiA9IGNwICsgdyArIHRvc2tldzsKQEAgLTI2MjUsNyArMjYyNSw3IEBAIERFQ0xBUkVDb250aWdQdXRGdW5jKHB1dGNvbnRpZzhiaXRZQ2JDcjIxdGlsZSkKIERFQ0xBUkVDb250aWdQdXRGdW5jKHB1dGNvbnRpZzhiaXRZQ2JDcjEydGlsZSkKIHsKICAgICB1aW50MzJfdCAqY3AyOwotICAgIGludDMyX3QgaW5jciA9IDIgKiB0b3NrZXcgKyB3OworICAgIGNvbnN0IHRtc2l6ZV90IGluY3IgPSAyICogKHRtc2l6ZV90KXRvc2tldyArIHc7CiAgICAgKHZvaWQpeTsKICAgICBmcm9tc2tldyA9IChmcm9tc2tldyAvIDEpICogKDEgKiAyICsgMik7CiAgICAgY3AyID0gY3AgKyB3ICsgdG9za2V3Owo=",
+                "encoding": "base64"
+              }
+            }
+          }
+        ],
+        "notes": "Vendored from upstream libtiff v4.7.1 with a commit from master cherry-picked to fix CVE-2026-4775."
+      },
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://libtiff.gitlab.io/libtiff/"
+        },
+        {
+          "type": "distribution",
+          "url": "https://download.osgeo.org/libtiff/"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/libwebp",
+      "type": "library",
+      "name": "libwebp",
+      "version": "1.6.0",
+      "scope": "optional",
+      "description": "WebP codec (optional, used by PIL._webp).",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://chromium.googlesource.com/webm/libwebp"
+        },
+        {
+          "type": "distribution",
+          "url": "https://chromium.googlesource.com/webm/libwebp"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/libxcb",
+      "type": "library",
+      "name": "libxcb",
+      "version": "1.17.0",
+      "scope": "optional",
+      "description": "X11 screen-grab support (optional, used by PIL._imaging on macOS and Linux).",
+      "licenses": [
+        {
+          "license": {
+            "id": "X11"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://xcb.freedesktop.org"
+        },
+        {
+          "type": "distribution",
+          "url": "https://xcb.freedesktop.org/dist/"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/littlecms2",
+      "type": "library",
+      "name": "Little CMS 2",
+      "version": "2.19.1",
+      "scope": "optional",
+      "description": "Colour management (optional, used by PIL._imagingcms).",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.littlecms.com"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/mm2/Little-CMS/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/openjpeg",
+      "type": "library",
+      "name": "OpenJPEG",
+      "version": "2.5.4",
+      "scope": "optional",
+      "description": "JPEG 2000 codec (optional).",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.openjpeg.org"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/uclouvain/openjpeg/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pybind11",
+      "type": "library",
+      "name": "pybind11",
+      "scope": "excluded",
+      "description": "Parallel C compilation library (build-time dependency).",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pybind11.readthedocs.io"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/pybind/pybind11/releases"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/zlib",
+      "type": "library",
+      "name": "zlib",
+      "version": "2.3.3",
+      "description": "Deflate/PNG compression (required by default; disable with -C zlib=disable).",
+      "licenses": [
+        {
+          "license": {
+            "id": "Zlib"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://zlib.net"
+        },
+        {
+          "type": "distribution",
+          "url": "https://zlib.net"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/pillow@12.3.0",
+      "dependsOn": [
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._avif",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._imaging",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingcms",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingft",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingmath",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingmorph",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingtk",
+        "pkg:pypi/pillow@12.3.0#c-ext/PIL._webp"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._avif",
+      "dependsOn": [
+        "pkg:generic/libavif"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imaging",
+      "dependsOn": [
+        "pkg:generic/libimagequant",
+        "pkg:generic/libjpeg",
+        "pkg:generic/libtiff",
+        "pkg:generic/libxcb",
+        "pkg:generic/openjpeg",
+        "pkg:generic/zlib"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingcms",
+      "dependsOn": [
+        "pkg:generic/littlecms2"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._imagingft",
+      "dependsOn": [
+        "pkg:generic/freetype2",
+        "pkg:generic/fribidi",
+        "pkg:generic/harfbuzz",
+        "pkg:pypi/pillow@12.3.0#thirdparty/fribidi-shim",
+        "pkg:pypi/pillow@12.3.0#thirdparty/raqm"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/pillow@12.3.0#c-ext/PIL._webp",
+      "dependsOn": [
+        "pkg:generic/libwebp"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/pillow@12.3.0#thirdparty/raqm",
+      "dependsOn": [
+        "pkg:generic/harfbuzz",
+        "pkg:pypi/pillow@12.3.0#thirdparty/fribidi-shim"
+      ]
+    }
+  ]
+}

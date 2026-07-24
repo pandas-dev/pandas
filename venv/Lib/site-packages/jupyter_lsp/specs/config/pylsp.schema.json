@@ -1,0 +1,567 @@
+{
+  "title": "Python Language Server Configuration",
+  "description": "Note, a value of `null` means that we do not set a value and thus use the plugin's default value.",
+  "type": "object",
+  "properties": {
+    "pylsp.configurationSources": {
+      "type": "array",
+      "default": ["pycodestyle"],
+      "description": "List of configuration sources to use.",
+      "items": {
+        "type": "string",
+        "enum": ["pycodestyle", "flake8"]
+      },
+      "uniqueItems": true
+    },
+    "pylsp.plugins.autopep8.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin (disabling required to use `yapf`)."
+    },
+    "pylsp.plugins.flake8.config": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Path to the config file that will be the authoritative config source."
+    },
+    "pylsp.plugins.flake8.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.flake8.exclude": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of files or directories to exclude."
+    },
+    "pylsp.plugins.flake8.extendIgnore": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of errors and warnings to append to ignore list."
+    },
+    "pylsp.plugins.flake8.extendSelect": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of errors and warnings to append to select list."
+    },
+    "pylsp.plugins.flake8.executable": {
+      "type": "string",
+      "default": "flake8",
+      "description": "Path to the flake8 executable."
+    },
+    "pylsp.plugins.flake8.filename": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Only check for filenames matching the patterns in this list."
+    },
+    "pylsp.plugins.flake8.hangClosing": {
+      "type": ["boolean", "null"],
+      "default": null,
+      "description": "Hang closing bracket instead of matching indentation of opening bracket's line."
+    },
+    "pylsp.plugins.flake8.ignore": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of errors and warnings to ignore (or skip)."
+    },
+    "pylsp.plugins.flake8.maxComplexity": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Maximum allowed complexity threshold."
+    },
+    "pylsp.plugins.flake8.maxLineLength": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Maximum allowed line length for the entirety of this run."
+    },
+    "pylsp.plugins.flake8.indentSize": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Set indentation spaces."
+    },
+    "pylsp.plugins.flake8.perFileIgnores": {
+      "type": ["array"],
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "A pairing of filenames and violation codes that defines which violations to ignore in a particular file, for example: `[\"file_path.py:W305,W304\"]`)."
+    },
+    "pylsp.plugins.flake8.select": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "List of errors and warnings to enable."
+    },
+    "pylsp.plugins.jedi.auto_import_modules": {
+      "type": "array",
+      "default": ["numpy"],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of module names for jedi.settings.auto_import_modules."
+    },
+    "pylsp.plugins.jedi.extra_paths": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Define extra paths for jedi.Script."
+    },
+    "pylsp.plugins.jedi.prioritize_extra_paths": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to place extra_paths at the beginning (true) or end (false) of `sys.path`"
+    },
+    "pylsp.plugins.jedi.env_vars": {
+      "type": ["object", "null"],
+      "default": null,
+      "description": "Define environment variables for jedi.Script and Jedi.names."
+    },
+    "pylsp.plugins.jedi.environment": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Define environment for jedi.Script and Jedi.names."
+    },
+    "pylsp.plugins.jedi_completion.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.jedi_completion.include_params": {
+      "type": "boolean",
+      "default": true,
+      "description": "Auto-completes methods and classes with tabstops for each parameter."
+    },
+    "pylsp.plugins.jedi_completion.include_class_objects": {
+      "type": "boolean",
+      "default": false,
+      "description": "Adds class objects as a separate completion item."
+    },
+    "pylsp.plugins.jedi_completion.include_function_objects": {
+      "type": "boolean",
+      "default": false,
+      "description": "Adds function objects as a separate completion item."
+    },
+    "pylsp.plugins.jedi_completion.fuzzy": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable fuzzy when requesting autocomplete."
+    },
+    "pylsp.plugins.jedi_completion.eager": {
+      "type": "boolean",
+      "default": false,
+      "description": "Resolve documentation and detail eagerly."
+    },
+    "pylsp.plugins.jedi_completion.resolve_at_most": {
+      "type": "integer",
+      "default": 25,
+      "description": "How many labels and snippets (at most) should be resolved?"
+    },
+    "pylsp.plugins.jedi_completion.cache_for": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["pandas", "numpy", "tensorflow", "matplotlib"],
+      "description": "Modules for which labels and snippets should be cached."
+    },
+    "pylsp.plugins.jedi_definition.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.jedi_definition.follow_imports": {
+      "type": "boolean",
+      "default": true,
+      "description": "The goto call will follow imports."
+    },
+    "pylsp.plugins.jedi_definition.follow_builtin_imports": {
+      "type": "boolean",
+      "default": true,
+      "description": "If follow_imports is True will decide if it follow builtin imports."
+    },
+    "pylsp.plugins.jedi_definition.follow_builtin_definitions": {
+      "type": "boolean",
+      "default": true,
+      "description": "Follow builtin and extension definitions to stubs."
+    },
+    "pylsp.plugins.jedi_hover.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.jedi_references.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.jedi_signature_help.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.jedi_symbols.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.jedi_symbols.all_scopes": {
+      "type": "boolean",
+      "default": true,
+      "description": "If True lists the names of all scopes instead of only the module namespace."
+    },
+    "pylsp.plugins.jedi_symbols.include_import_symbols": {
+      "type": "boolean",
+      "default": true,
+      "description": "If True includes symbols imported from other libraries."
+    },
+    "pylsp.plugins.jedi_type_definition.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.mccabe.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.mccabe.threshold": {
+      "type": "integer",
+      "default": 15,
+      "description": "The minimum threshold that triggers warnings about cyclomatic complexity."
+    },
+    "pylsp.plugins.preload.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.preload.modules": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "List of modules to import on startup"
+    },
+    "pylsp.plugins.pycodestyle.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.pycodestyle.exclude": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Exclude files or directories which match these patterns."
+    },
+    "pylsp.plugins.pycodestyle.filename": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "When parsing directories, only check filenames matching these patterns."
+    },
+    "pylsp.plugins.pycodestyle.select": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings"
+    },
+    "pylsp.plugins.pycodestyle.ignore": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings"
+    },
+    "pylsp.plugins.pycodestyle.hangClosing": {
+      "type": ["boolean", "null"],
+      "default": null,
+      "description": "Hang closing bracket instead of matching indentation of opening bracket's line."
+    },
+    "pylsp.plugins.pycodestyle.maxLineLength": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Set maximum allowed line length."
+    },
+    "pylsp.plugins.pycodestyle.indentSize": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Set indentation spaces."
+    },
+    "pylsp.plugins.pydocstyle.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.pydocstyle.convention": {
+      "type": ["string", "null"],
+      "default": null,
+      "enum": ["pep257", "numpy", "google", null],
+      "description": "Choose the basic list of checked errors by specifying an existing convention."
+    },
+    "pylsp.plugins.pydocstyle.addIgnore": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings in addition to the specified convention."
+    },
+    "pylsp.plugins.pydocstyle.addSelect": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings in addition to the specified convention."
+    },
+    "pylsp.plugins.pydocstyle.ignore": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings"
+    },
+    "pylsp.plugins.pydocstyle.select": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings"
+    },
+    "pylsp.plugins.pydocstyle.match": {
+      "type": "string",
+      "default": "(?!test_).*\\.py",
+      "description": "Check only files that exactly match the given regular expression; default is to match files that don't start with 'test_' but end with '.py'."
+    },
+    "pylsp.plugins.pydocstyle.matchDir": {
+      "type": "string",
+      "default": "[^\\.].*",
+      "description": "Search only dirs that exactly match the given regular expression; default is to match dirs which do not begin with a dot."
+    },
+    "pylsp.plugins.pyflakes.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.pylint.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.pylint.args": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": false,
+      "description": "Arguments to pass to pylint."
+    },
+    "pylsp.plugins.pylint.executable": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Executable to run pylint with. Enabling this will run pylint on unsaved files via stdin. Can slow down workflow. Only works with python3."
+    },
+    "pylsp.plugins.ruff.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin (python-lsp-ruff)."
+    },
+    "pylsp.plugins.ruff.executable": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Custom path to the ruff executable."
+    },
+    "pylsp.plugins.ruff.config": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Path to a ruff configuration file."
+    },
+    "pylsp.plugins.ruff.exclude": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of file patterns to exclude."
+    },
+    "pylsp.plugins.ruff.extendIgnore": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of additional rule codes to ignore."
+    },
+    "pylsp.plugins.ruff.extendSelect": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of additional rule codes to enable."
+    },
+    "pylsp.plugins.ruff.format": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of rule codes to apply when formatting."
+    },
+    "pylsp.plugins.ruff.formatEnabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable ruff formatting."
+    },
+    "pylsp.plugins.ruff.ignore": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of rule codes to ignore."
+    },
+    "pylsp.plugins.ruff.lineLength": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Set the line-length for length-associated rules and formatting."
+    },
+    "pylsp.plugins.ruff.perFileIgnores": {
+      "type": ["object", "null"],
+      "default": null,
+      "description": "Map of file pattern to rule codes to ignore."
+    },
+    "pylsp.plugins.ruff.preview": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable ruff preview mode."
+    },
+    "pylsp.plugins.ruff.select": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of rule codes to enable."
+    },
+    "pylsp.plugins.ruff.severities": {
+      "type": ["object", "null"],
+      "default": null,
+      "description": "Map of rule codes to LSP diagnostic severities."
+    },
+    "pylsp.plugins.ruff.targetVersion": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "The minimum Python version to target (e.g. 'py310')."
+    },
+    "pylsp.plugins.ruff.unfixable": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "description": "List of rule codes to consider unfixable."
+    },
+    "pylsp.plugins.ruff.unsafeFixes": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow ruff to apply unsafe fixes."
+    },
+    "pylsp.plugins.rope_autoimport.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable autoimport. If false, neither completions nor code actions are enabled. If true, the respective features can be enabled or disabled individually."
+    },
+    "pylsp.plugins.rope_autoimport.completions.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable autoimport completions."
+    },
+    "pylsp.plugins.rope_autoimport.code_actions.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable autoimport code actions (e.g. for quick fixes)."
+    },
+    "pylsp.plugins.rope_autoimport.memory": {
+      "type": "boolean",
+      "default": false,
+      "description": "Make the autoimport database memory only. Drastically increases startup time."
+    },
+    "pylsp.plugins.rope_completion.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.plugins.rope_completion.eager": {
+      "type": "boolean",
+      "default": false,
+      "description": "Resolve documentation and detail eagerly."
+    },
+    "pylsp.plugins.yapf.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pylsp.rope.extensionModules": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Builtin and c-extension modules that are allowed to be imported and inspected by rope."
+    },
+    "pylsp.rope.ropeFolder": {
+      "type": ["array", "null"],
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "The name of the folder in which rope stores project configurations and data.  Pass `null` for not using such a folder at all."
+    },
+    "pylsp.signature.formatter": {
+      "type": ["string", "null"],
+      "enum": ["black", "ruff", null],
+      "default": "black",
+      "description": "Formatter to use for reformatting signatures in docstrings."
+    },
+    "pylsp.signature.line_length": {
+      "type": "integer",
+      "default": 88,
+      "description": "Maximum line length in signatures."
+    }
+  }
+}

@@ -1,0 +1,3 @@
+from ..geometry import Point, Polygon
+
+def polylabel(polygon: Polygon, tolerance: float = 1.0) -> Point: ...

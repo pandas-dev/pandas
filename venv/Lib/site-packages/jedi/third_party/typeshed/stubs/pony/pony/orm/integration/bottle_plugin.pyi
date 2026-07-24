@@ -1,0 +1,6 @@
+def is_allowed_exception(e: BaseException | None) -> bool: ...
+
+class PonyPlugin:
+    name: str
+    api: int
+    def apply(self, callback, route): ...

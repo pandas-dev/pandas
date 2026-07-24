@@ -1,0 +1,3 @@
+from tensorflow.python.trackable.base import Trackable
+
+class AutoTrackable(Trackable): ...

@@ -1,0 +1,34 @@
+{
+  "pagination": {
+    "ListBlueprints": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "blueprints"
+    },
+    "ListDataAutomationProjects": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "projects"
+    },
+    "ListDataAutomationLibraries": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "libraries"
+    },
+    "ListDataAutomationLibraryEntities": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "entities"
+    },
+    "ListDataAutomationLibraryIngestionJobs": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "jobs"
+    }
+  }
+}

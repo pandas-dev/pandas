@@ -1,0 +1,12 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "SearchCases": {
+        "non_aggregate_keys": [
+          "totalCount"
+        ]
+      }
+    }
+  }
+}

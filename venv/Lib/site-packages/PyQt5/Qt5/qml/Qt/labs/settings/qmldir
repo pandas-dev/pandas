@@ -1,0 +1,4 @@
+module Qt.labs.settings
+plugin qmlsettingsplugin
+classname QmlSettingsPlugin
+typeinfo plugins.qmltypes

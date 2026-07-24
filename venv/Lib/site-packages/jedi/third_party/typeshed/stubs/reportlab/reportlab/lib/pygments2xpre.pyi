@@ -1,0 +1,3 @@
+__all__ = ("pygments2xpre",)
+
+def pygments2xpre(s, language: str = "python"): ...

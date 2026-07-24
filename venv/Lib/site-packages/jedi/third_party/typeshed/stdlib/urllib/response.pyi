@@ -1,0 +1,45 @@
+import tempfile
+from _typeshed import ReadableBuffer
+from collections.abc import Callable, Iterable
+from email.message import Message
+from types import TracebackType
+from typing import IO, Any
+from typing_extensions import deprecated
+
+__all__ = ["addbase", "addclosehook", "addinfo", "addinfourl"]
+
+class addbase(tempfile._TemporaryFileWrapper[bytes]):
+    fp: IO[bytes]
+    def __init__(self, fp: IO[bytes]) -> None: ...
+    def __exit__(
+        self, type: type[BaseException] | None, value: BaseException | None, traceback: TracebackType | None
+    ) -> None: ...
+    # These methods don't actually exist, but the class inherits at runtime from
+    # tempfile._TemporaryFileWrapper, which uses __getattr__ to delegate to the
+    # underlying file object. To satisfy the BinaryIO interface, we pretend that this
+    # class has these additional methods.
+    def write(self, s: ReadableBuffer) -> int: ...
+    def writelines(self, lines: Iterable[ReadableBuffer]) -> None: ...
+
+class addclosehook(addbase):
+    closehook: Callable[..., object]
+    hookargs: tuple[Any, ...]
+    def __init__(self, fp: IO[bytes], closehook: Callable[..., object], *hookargs: Any) -> None: ...
+
+class addinfo(addbase):
+    headers: Message
+    def __init__(self, fp: IO[bytes], headers: Message) -> None: ...
+    def info(self) -> Message: ...
+
+class addinfourl(addinfo):
+    url: str
+    code: int | None  # Deprecated since Python 3.9. Use `addinfourl.status` attribute instead.
+    @property
+    def status(self) -> int | None: ...
+    def __init__(self, fp: IO[bytes], headers: Message, url: str, code: int | None = None) -> None: ...
+    @deprecated("Deprecated since Python 3.9. Use `addinfourl.url` attribute instead.")
+    def geturl(self) -> str: ...
+    @deprecated("Deprecated since Python 3.9. Use `addinfourl.headers` attribute instead.")
+    def info(self) -> Message: ...
+    @deprecated("Deprecated since Python 3.9. Use `addinfourl.status` attribute instead.")
+    def getcode(self) -> int | None: ...

@@ -1,0 +1,76 @@
+{
+  "name": "@jupyter-notebook/lab-extension",
+  "version": "7.6.0",
+  "description": "Jupyter Notebook - Lab Extension",
+  "homepage": "https://github.com/jupyter/notebook",
+  "bugs": {
+    "url": "https://github.com/jupyter/notebook/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyter/notebook.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "sideEffects": [
+    "style/**/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "directories": {
+    "lib": "lib/"
+  },
+  "files": [
+    "lib/*.d.ts",
+    "lib/*.js.map",
+    "lib/*.js",
+    "schema/*.json",
+    "style/index.js"
+  ],
+  "scripts": {
+    "build": "jlpm run build:labextension:dev",
+    "build:labextension": "jupyter-builder build .",
+    "build:labextension:dev": "jupyter-builder build --development True .",
+    "build:lib": "tsc -b",
+    "build:prod": "jlpm run build:labextension",
+    "clean": "jlpm run clean:lib && jlpm run clean:labextension",
+    "clean:labextension": "rimraf ../../notebook/labextension",
+    "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
+    "watch": "run-p watch:src watch:labextension",
+    "watch:labextension": "jupyter-builder watch .",
+    "watch:src": "tsc -w"
+  },
+  "dependencies": {
+    "@jupyter-notebook/application": "^7.6.0",
+    "@jupyterlab/application": "~4.6.0",
+    "@jupyterlab/apputils": "~4.7.0",
+    "@jupyterlab/coreutils": "~6.6.0",
+    "@jupyterlab/docregistry": "~4.6.0",
+    "@jupyterlab/notebook": "~4.6.0",
+    "@jupyterlab/translation": "~4.6.0",
+    "@jupyterlab/ui-components": "~4.6.0",
+    "@lumino/commands": "^2.3.3",
+    "@lumino/disposable": "^2.1.5"
+  },
+  "devDependencies": {
+    "@jupyter/builder": "^1.0.2",
+    "rimraf": "^3.0.2",
+    "typescript": "~5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "../../notebook/labextension",
+    "schemaDir": "schema",
+    "_build": {
+      "load": "static/remoteEntry.016fceb1d9e4f15b.js",
+      "extension": "./extension",
+      "style": "./style"
+    }
+  },
+  "styleModule": "style/index.js"
+}

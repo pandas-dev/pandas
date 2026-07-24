@@ -1,0 +1,14 @@
+{
+  "title": "Close and Shut Down Notebook",
+  "description": "Settings for the \"Close and Shut Down Notebook\" command.",
+  "properties": {
+    "promptForConfirmation": {
+      "type": "boolean",
+      "title": "Prompt for confirmation before closing and shutting down",
+      "description": "Whether to prompt the user for confirmation before closing the browser tab and shutting down the kernel.",
+      "default": true
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

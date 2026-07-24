@@ -1,0 +1,12 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "QueryVectors": {
+        "non_aggregate_keys": [
+          "distanceMetric"
+        ]
+      }
+    }
+  }
+}

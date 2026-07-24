@@ -1,0 +1,59 @@
+import urllib.request
+from _socket import _Address
+from _typeshed import ReadableBuffer, SupportsRead, Unused
+from collections.abc import Callable, Collection, Iterable, Mapping, MutableMapping
+from http.client import HTTPResponse
+from http.cookiejar import CookieJar
+from subprocess import Popen
+from typing import Any, AnyStr, TypeVar
+
+has_certifi: bool
+has_websockets: bool
+_T = TypeVar("_T")
+
+def load_plugins(name: str, suffix: str, namespace: dict[str, Any]) -> dict[str, type[Any]]: ...
+def traverse_dict(dictn: Mapping[str, Any], keys: Collection[str], casesense: bool = True) -> Any: ...
+def decode_base(value: str, digits: str) -> int: ...
+def platform_name() -> str: ...
+def get_subprocess_encoding() -> str: ...
+def register_socks_protocols() -> None: ...
+def handle_youtubedl_headers(headers: dict[str, Any]) -> dict[str, Any]: ...
+def request_to_url(req: urllib.request.Request | str) -> str: ...
+def sanitized_Request(
+    url: str,
+    data: ReadableBuffer | SupportsRead[bytes] | Iterable[bytes] | None = None,
+    headers: MutableMapping[str, str] = {},
+    origin_req_host: str | None = None,
+    unverifiable: bool = False,
+    method: str | None = None,
+) -> urllib.request.Request: ...
+
+class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
+    def __init__(
+        self,
+        params: Mapping[str, Any],
+        *args: Any,  # args passed to urllib.request.AbstractHTTPHandler.__init__().
+        context: Any = None,
+        source_address: _Address | None = None,
+        debuglevel: int | None = None,
+    ) -> None: ...
+
+YoutubeDLHTTPSHandler = YoutubeDLHandler
+
+class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
+    def __init__(self, cookiejar: CookieJar | None = None) -> None: ...
+    def http_response(self, request: urllib.request.Request, response: HTTPResponse) -> HTTPResponse: ...
+    https_request: Callable[[urllib.request.HTTPCookieProcessor, urllib.request.Request], HTTPResponse]  # type: ignore[assignment]
+    https_response = http_response
+
+def make_HTTPS_handler(
+    params: Mapping[str, Any], *, debuglevel: int | None = None, source_address: _Address | None = None
+) -> YoutubeDLHTTPSHandler: ...
+def process_communicate_or_kill(
+    p: Popen[Any], *args: Any, **kwargs: Any  # args/kwargs passed to Popen.__init__().
+) -> tuple[AnyStr, AnyStr]: ...
+def encodeFilename(s: str, for_subprocess: Unused = False) -> bytes: ...
+def decodeFilename(b: bytes, for_subprocess: Unused = False) -> str: ...
+def decodeArgument(b: _T) -> _T: ...
+def decodeOption(optval: AnyStr) -> str: ...
+def error_to_compat_str(err: Any) -> str: ...  # Calls str(err).

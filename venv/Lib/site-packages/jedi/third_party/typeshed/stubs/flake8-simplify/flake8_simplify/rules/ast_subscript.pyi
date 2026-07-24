@@ -1,0 +1,3 @@
+import ast
+
+def get_sim907(node: ast.Subscript) -> list[tuple[int, int, str]]: ...

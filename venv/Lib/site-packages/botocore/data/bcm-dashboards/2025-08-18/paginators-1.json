@@ -1,0 +1,16 @@
+{
+  "pagination": {
+    "ListDashboards": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "dashboards"
+    },
+    "ListScheduledReports": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "scheduledReports"
+    }
+  }
+}

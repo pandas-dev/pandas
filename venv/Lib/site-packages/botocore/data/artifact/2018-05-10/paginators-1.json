@@ -1,0 +1,34 @@
+{
+  "pagination": {
+    "ListReports": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "reports"
+    },
+    "ListCustomerAgreements": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "customerAgreements"
+    },
+    "ListReportVersions": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "reports"
+    },
+    "ListComplianceInquiries": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "complianceInquiries"
+    },
+    "ListComplianceInquiryQueries": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "queries"
+    }
+  }
+}

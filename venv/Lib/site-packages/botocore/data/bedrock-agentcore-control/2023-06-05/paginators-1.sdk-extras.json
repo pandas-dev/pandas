@@ -1,0 +1,14 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+        "ListDatasetExamples": {
+            "non_aggregate_keys": [
+                "datasetArn",
+                "datasetId",
+                "datasetVersion"
+            ]
+        }
+    }
+  }
+}

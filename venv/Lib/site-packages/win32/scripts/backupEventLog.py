@@ -1,0 +1,40 @@
+# Generate a base file name
+import os
+import time
+
+import win32api
+import win32evtlog
+
+
+def BackupClearLog(logType):
+    datePrefix = time.strftime("%Y%m%d", time.localtime(time.time()))
+    retry = 0
+    while True:  # file exists
+        index = "" if retry == 0 else f"-{retry}"
+        fname = os.path.join(
+            win32api.GetTempPath(),
+            f"{datePrefix}{index}-{logType}.evt",
+        )
+        if not os.path.exists(fname):
+            break
+        retry += 1
+    # OK - have unique file name.
+    try:
+        hlog = win32evtlog.OpenEventLog(None, logType)
+    except win32evtlog.error as details:
+        print("Could not open the event log", details)
+        return
+    try:
+        if win32evtlog.GetNumberOfEventLogRecords(hlog) == 0:
+            print("No records in event log %s - not backed up" % logType)
+            return
+        win32evtlog.ClearEventLog(hlog, fname)
+        print(f"Backed up {logType} log to {fname}")
+    finally:
+        win32evtlog.CloseEventLog(hlog)
+
+
+if __name__ == "__main__":
+    BackupClearLog("Application")
+    BackupClearLog("System")
+    BackupClearLog("Security")

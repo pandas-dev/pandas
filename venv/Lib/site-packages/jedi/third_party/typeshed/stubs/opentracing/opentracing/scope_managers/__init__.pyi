@@ -1,0 +1,9 @@
+from ..scope import Scope
+from ..scope_manager import ScopeManager
+from ..span import Span
+
+class ThreadLocalScopeManager(ScopeManager):
+    def __init__(self) -> None: ...
+    def activate(self, span: Span, finish_on_close: bool) -> Scope: ...
+    @property
+    def active(self) -> Scope: ...

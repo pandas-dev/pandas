@@ -1,0 +1,3 @@
+prefix_mapping: dict[str, str]
+
+def to_sax(walker, handler) -> None: ...

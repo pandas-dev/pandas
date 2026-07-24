@@ -1,0 +1,94 @@
+{
+  "pagination": {
+    "ListAssertions": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "assertions"
+    },
+    "ListDependencies": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "dependencySummaries"
+    },
+    "ListFailureModeAssessments": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "assessmentSummaries"
+    },
+    "ListFailureModeFindings": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "findingsSummary"
+    },
+    "ListInputSources": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "inputSourceSummaries"
+    },
+    "ListPolicies": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "policySummaries"
+    },
+    "ListReports": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "reportGenerationResults"
+    },
+    "ListResources": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "serviceResources"
+    },
+    "ListServiceEvents": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "events"
+    },
+    "ListServiceFunctions": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "serviceFunctions"
+    },
+    "ListServiceTopologyEdges": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "serviceTopologyEdgeSummaries"
+    },
+    "ListServices": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "serviceSummaries"
+    },
+    "ListSystemEvents": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "events"
+    },
+    "ListSystems": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "systemSummaries"
+    },
+    "ListUserJourneys": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "userJourneySummaries"
+    }
+  }
+}

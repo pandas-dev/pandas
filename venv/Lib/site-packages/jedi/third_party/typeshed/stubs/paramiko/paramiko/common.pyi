@@ -1,0 +1,133 @@
+import logging
+from typing import Final
+
+def byte_ord(c: int | str) -> int: ...
+def byte_chr(c: int) -> bytes: ...
+def byte_mask(c: int, mask: int) -> bytes: ...
+
+MSG_DISCONNECT: Final = 1
+MSG_IGNORE: Final = 2
+MSG_UNIMPLEMENTED: Final = 3
+MSG_DEBUG: Final = 4
+MSG_SERVICE_REQUEST: Final = 5
+MSG_SERVICE_ACCEPT: Final = 6
+MSG_EXT_INFO: Final = 7
+MSG_KEXINIT: Final = 20
+MSG_NEWKEYS: Final = 21
+MSG_USERAUTH_REQUEST: Final = 50
+MSG_USERAUTH_FAILURE: Final = 51
+MSG_USERAUTH_SUCCESS: Final = 52
+MSG_USERAUTH_BANNER: Final = 53
+MSG_USERAUTH_PK_OK: Final = 60
+MSG_USERAUTH_INFO_REQUEST: Final = 60
+MSG_USERAUTH_INFO_RESPONSE: Final = 61
+MSG_USERAUTH_GSSAPI_RESPONSE: Final = 60
+MSG_USERAUTH_GSSAPI_TOKEN: Final = 61
+MSG_USERAUTH_GSSAPI_EXCHANGE_COMPLETE: Final = 63
+MSG_USERAUTH_GSSAPI_ERROR: Final = 64
+MSG_USERAUTH_GSSAPI_ERRTOK: Final = 65
+MSG_USERAUTH_GSSAPI_MIC: Final = 66
+HIGHEST_USERAUTH_MESSAGE_ID: Final = 79
+MSG_GLOBAL_REQUEST: Final = 80
+MSG_REQUEST_SUCCESS: Final = 81
+MSG_REQUEST_FAILURE: Final = 82
+MSG_CHANNEL_OPEN: Final = 90
+MSG_CHANNEL_OPEN_SUCCESS: Final = 91
+MSG_CHANNEL_OPEN_FAILURE: Final = 92
+MSG_CHANNEL_WINDOW_ADJUST: Final = 93
+MSG_CHANNEL_DATA: Final = 94
+MSG_CHANNEL_EXTENDED_DATA: Final = 95
+MSG_CHANNEL_EOF: Final = 96
+MSG_CHANNEL_CLOSE: Final = 97
+MSG_CHANNEL_REQUEST: Final = 98
+MSG_CHANNEL_SUCCESS: Final = 99
+MSG_CHANNEL_FAILURE: Final = 100
+
+cMSG_DISCONNECT: Final[bytes]
+cMSG_IGNORE: Final[bytes]
+cMSG_UNIMPLEMENTED: Final[bytes]
+cMSG_DEBUG: Final[bytes]
+cMSG_SERVICE_REQUEST: Final[bytes]
+cMSG_SERVICE_ACCEPT: Final[bytes]
+cMSG_EXT_INFO: Final[bytes]
+cMSG_KEXINIT: Final[bytes]
+cMSG_NEWKEYS: Final[bytes]
+cMSG_USERAUTH_REQUEST: Final[bytes]
+cMSG_USERAUTH_FAILURE: Final[bytes]
+cMSG_USERAUTH_SUCCESS: Final[bytes]
+cMSG_USERAUTH_BANNER: Final[bytes]
+cMSG_USERAUTH_PK_OK: Final[bytes]
+cMSG_USERAUTH_INFO_REQUEST: Final[bytes]
+cMSG_USERAUTH_INFO_RESPONSE: Final[bytes]
+cMSG_USERAUTH_GSSAPI_RESPONSE: Final[bytes]
+cMSG_USERAUTH_GSSAPI_TOKEN: Final[bytes]
+cMSG_USERAUTH_GSSAPI_EXCHANGE_COMPLETE: Final[bytes]
+cMSG_USERAUTH_GSSAPI_ERROR: Final[bytes]
+cMSG_USERAUTH_GSSAPI_ERRTOK: Final[bytes]
+cMSG_USERAUTH_GSSAPI_MIC: Final[bytes]
+cMSG_GLOBAL_REQUEST: Final[bytes]
+cMSG_REQUEST_SUCCESS: Final[bytes]
+cMSG_REQUEST_FAILURE: Final[bytes]
+cMSG_CHANNEL_OPEN: Final[bytes]
+cMSG_CHANNEL_OPEN_SUCCESS: Final[bytes]
+cMSG_CHANNEL_OPEN_FAILURE: Final[bytes]
+cMSG_CHANNEL_WINDOW_ADJUST: Final[bytes]
+cMSG_CHANNEL_DATA: Final[bytes]
+cMSG_CHANNEL_EXTENDED_DATA: Final[bytes]
+cMSG_CHANNEL_EOF: Final[bytes]
+cMSG_CHANNEL_CLOSE: Final[bytes]
+cMSG_CHANNEL_REQUEST: Final[bytes]
+cMSG_CHANNEL_SUCCESS: Final[bytes]
+cMSG_CHANNEL_FAILURE: Final[bytes]
+
+MSG_NAMES: dict[int, str]
+
+AUTH_SUCCESSFUL: Final = 0
+AUTH_PARTIALLY_SUCCESSFUL: Final = 1
+AUTH_FAILED: Final = 2
+
+OPEN_SUCCEEDED: Final = 0
+OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED: Final = 1
+OPEN_FAILED_CONNECT_FAILED: Final = 2
+OPEN_FAILED_UNKNOWN_CHANNEL_TYPE: Final = 3
+OPEN_FAILED_RESOURCE_SHORTAGE: Final = 4
+
+CONNECTION_FAILED_CODE: dict[int, str]
+
+DISCONNECT_SERVICE_NOT_AVAILABLE: Final = 7
+DISCONNECT_AUTH_CANCELLED_BY_USER: Final = 13
+DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE: Final = 14
+
+zero_byte: bytes
+one_byte: bytes
+four_byte: bytes
+max_byte: bytes
+cr_byte: bytes
+linefeed_byte: bytes
+crlf: bytes
+cr_byte_value: int
+linefeed_byte_value: int
+xffffffff: int
+x80000000: int
+o666: int
+o660: int
+o644: int
+o600: int
+o777: int
+o700: int
+o70: int
+
+DEBUG = logging.DEBUG
+INFO = logging.INFO
+WARNING = logging.WARNING
+ERROR = logging.ERROR
+CRITICAL = logging.CRITICAL
+
+io_sleep: float
+
+DEFAULT_WINDOW_SIZE: Final[int]
+DEFAULT_MAX_PACKET_SIZE: Final[int]
+
+MIN_WINDOW_SIZE: Final[int]
+MIN_PACKET_SIZE: Final[int]
+MAX_WINDOW_SIZE: Final[int]

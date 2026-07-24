@@ -1,0 +1,58 @@
+{
+  "pagination": {
+    "ListAccounts": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "accounts"
+    },
+    "ListAutomationEventSteps": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "automationEventSteps"
+    },
+    "ListAutomationEventSummaries": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "automationEventSummaries"
+    },
+    "ListAutomationEvents": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "automationEvents"
+    },
+    "ListAutomationRulePreview": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "previewResults"
+    },
+    "ListAutomationRulePreviewSummaries": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "previewResultSummaries"
+    },
+    "ListAutomationRules": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "automationRules"
+    },
+    "ListRecommendedActionSummaries": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "recommendedActionSummaries"
+    },
+    "ListRecommendedActions": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "recommendedActions"
+    }
+  }
+}

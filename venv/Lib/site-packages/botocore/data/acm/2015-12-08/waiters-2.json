@@ -1,0 +1,106 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "AcmeDomainValidationDeleted" : {
+      "description" : "Wait until an ACME domain validation has been deleted.",
+      "delay" : 5,
+      "maxAttempts" : 60,
+      "operation" : "DescribeAcmeDomainValidation",
+      "acceptors" : [ {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "ResourceNotFoundException"
+      }, {
+        "matcher" : "path",
+        "argument" : "AcmeDomainValidation.Status",
+        "state" : "retry",
+        "expected" : "DELETING"
+      } ]
+    },
+    "AcmeDomainValidationValidated" : {
+      "description" : "Wait until an ACME domain validation reaches a terminal validation state.",
+      "delay" : 5,
+      "maxAttempts" : 60,
+      "operation" : "DescribeAcmeDomainValidation",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "AcmeDomainValidation.Status",
+        "state" : "success",
+        "expected" : "VALID"
+      }, {
+        "matcher" : "path",
+        "argument" : "AcmeDomainValidation.Status",
+        "state" : "failure",
+        "expected" : "INVALID"
+      }, {
+        "matcher" : "path",
+        "argument" : "AcmeDomainValidation.Status",
+        "state" : "retry",
+        "expected" : "VALIDATING"
+      } ]
+    },
+    "AcmeEndpointActive" : {
+      "description" : "Wait until an ACME endpoint has finished provisioning and is ACTIVE.",
+      "delay" : 5,
+      "maxAttempts" : 60,
+      "operation" : "DescribeAcmeEndpoint",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "AcmeEndpoint.Status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "AcmeEndpoint.Status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "AcmeEndpoint.Status",
+        "state" : "retry",
+        "expected" : "CREATING"
+      } ]
+    },
+    "AcmeEndpointDeleted" : {
+      "description" : "Wait until an ACME endpoint has been deleted.",
+      "delay" : 5,
+      "maxAttempts" : 60,
+      "operation" : "DescribeAcmeEndpoint",
+      "acceptors" : [ {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "ResourceNotFoundException"
+      }, {
+        "matcher" : "path",
+        "argument" : "AcmeEndpoint.Status",
+        "state" : "retry",
+        "expected" : "DELETING"
+      } ]
+    },
+    "CertificateValidated" : {
+      "delay" : 60,
+      "maxAttempts" : 5,
+      "operation" : "DescribeCertificate",
+      "acceptors" : [ {
+        "matcher" : "pathAll",
+        "argument" : "Certificate.DomainValidationOptions[].ValidationStatus",
+        "state" : "success",
+        "expected" : "SUCCESS"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "Certificate.DomainValidationOptions[].ValidationStatus",
+        "state" : "retry",
+        "expected" : "PENDING_VALIDATION"
+      }, {
+        "matcher" : "path",
+        "argument" : "Certificate.Status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      }, {
+        "matcher" : "error",
+        "state" : "failure",
+        "expected" : "ResourceNotFoundException"
+      } ]
+    }
+  }
+}

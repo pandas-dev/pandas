@@ -1,0 +1,4305 @@
+# Translations template for Sphinx.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the Sphinx project.
+# 
+# Translators:
+# Daniel Nylander <po@danielnylander.se>, 2025
+msgid ""
+msgstr ""
+"Project-Id-Version: Sphinx\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-12-04 06:45+0000\n"
+"PO-Revision-Date: 2013-04-02 08:44+0000\n"
+"Last-Translator: Daniel Nylander <po@danielnylander.se>, 2025\n"
+"Language-Team: Swedish (http://app.transifex.com/sphinx-doc/sphinx-1/language/sv/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+"Language: sv\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: roles.py:205
+#, python-format
+msgid "Common Vulnerabilities and Exposures; CVE %s"
+msgstr "Gemensamma sårbarheter och exponeringar; CVE %s"
+
+#: roles.py:228
+#, python-format
+msgid "invalid CVE number %s"
+msgstr "ogiltigt CVE-nummer %s"
+
+#: roles.py:250
+#, python-format
+msgid "Common Weakness Enumeration; CWE %s"
+msgstr "Gemensam svaghetsuppräkning; CWE %s"
+
+#: roles.py:273
+#, python-format
+msgid "invalid CWE number %s"
+msgstr "ogiltigt CWE-nummer %s"
+
+#: roles.py:293
+#, python-format
+msgid "Python Enhancement Proposals; PEP %s"
+msgstr "Förslag till förbättringar av Python; PEP %s"
+
+#: roles.py:316
+#, python-format
+msgid "invalid PEP number %s"
+msgstr "ogiltigt PEP-nummer %s"
+
+#: roles.py:354
+#, python-format
+msgid "invalid RFC number %s"
+msgstr "ogiltigt RFC-nummer %s"
+
+#: theming.py:117
+#, python-format
+msgid ""
+"Theme configuration sections other than [theme] and [options] are not "
+"supported (tried to get a value from %r)."
+msgstr "Andra temakonfigurationsavsnitt än [theme] och [options] stöds inte (försökte få ett värde från %r)."
+
+#: theming.py:122
+#, python-format
+msgid "setting %s.%s occurs in none of the searched theme configs"
+msgstr "inställningen %s.%s förekommer inte i någon av de sökta temakonfigurationerna"
+
+#: theming.py:137
+#, python-format
+msgid "unsupported theme option %r given"
+msgstr "temaalternativ som inte stöds %r ges"
+
+#: theming.py:218
+#, python-format
+msgid "file %r on theme path is not a valid zipfile or contains no theme"
+msgstr "fil %r på temasökvägen är inte en giltig zip-fil eller innehåller inget tema"
+
+#: theming.py:238
+#, python-format
+msgid "no theme named %r found (missing theme.toml?)"
+msgstr "inget tema med namnet %r hittades (saknas theme.toml?)"
+
+#: theming.py:278
+#, python-format
+msgid "The %r theme has circular inheritance"
+msgstr "Temat %r har cirkulär nedärvning"
+
+#: theming.py:286
+#, python-format
+msgid ""
+"The %r theme inherits from %r, which is not a loaded theme. Loaded themes "
+"are: %s"
+msgstr "Temat %r ärver från %r, som inte är ett inläst tema. Inlästa teman är: %s"
+
+#: theming.py:292
+#, python-format
+msgid "The %r theme has too many ancestors"
+msgstr "Temat %r har för många förfäder"
+
+#: theming.py:320
+#, python-format
+msgid "no theme configuration file found in %r"
+msgstr "ingen temakonfigurationsfil hittades i %r"
+
+#: theming.py:345 theming.py:398
+#, python-format
+msgid "theme %r doesn't have the \"theme\" table"
+msgstr "tema %r har inte tabellen \"tema\""
+
+#: theming.py:349
+#, python-format
+msgid "The %r theme \"[theme]\" table is not a table"
+msgstr "Tabellen %r tema \"[tema]\" är inte en tabell"
+
+#: theming.py:353 theming.py:401
+#, python-format
+msgid "The %r theme must define the \"theme.inherit\" setting"
+msgstr "Temat %r måste definiera inställningen \"theme.inherit\""
+
+#: theming.py:357
+#, python-format
+msgid "The %r theme \"[options]\" table is not a table"
+msgstr "Tabellen \"[alternativ]\" för temat %r är inte en tabell"
+
+#: theming.py:376
+#, python-format
+msgid "The \"theme.pygments_style\" setting must be a table. Hint: \"%s\""
+msgstr "Inställningen \"theme.pygments_style\" måste vara en tabell. Tips: \"%s\""
+
+#: project.py:72
+#, python-format
+msgid ""
+"multiple files found for the document \"%s\": %s\n"
+"Use %r for the build."
+msgstr "flera filer hittades för dokumentet \"%s\": %s\nAnvänd %r för att bygga."
+
+#: project.py:87
+#, python-format
+msgid "Ignored unreadable document %r."
+msgstr "Ignorerade oläsligt dokument %r."
+
+#: extension.py:58
+#, python-format
+msgid ""
+"The %s extension is required by needs_extensions settings, but it is not "
+"loaded."
+msgstr "Tillägget %s krävs av needs_extensions-inställningarna, men det är inte inläst."
+
+#: extension.py:79
+#, python-format
+msgid ""
+"This project needs the extension %s at least in version %s and therefore "
+"cannot be built with the loaded version (%s)."
+msgstr "Detta projekt behöver tillägget %s åtminstone i version %s och kan därför inte byggas med den inlästa versionen (%s)."
+
+#: highlighting.py:170
+#, python-format
+msgid "Pygments lexer name %r is not known"
+msgstr "Pygments lexernamn %r är inte känt"
+
+#: highlighting.py:209
+#, python-format
+msgid ""
+"Lexing literal_block %r as \"%s\" resulted in an error at token: %r. "
+"Retrying in relaxed mode."
+msgstr "Lexing av literal_block %r som \"%s\" resulterade i ett fel vid token: %r. Försöker igen i avslappnat läge."
+
+#: events.py:92
+#, python-format
+msgid "Event %r already present"
+msgstr "Händelse %r redan närvarande"
+
+#: events.py:386
+#, python-format
+msgid "Unknown event name: %s"
+msgstr "Okänt händelsenamn: %s"
+
+#: events.py:451
+#, python-format
+msgid "Handler %r for event %r threw an exception"
+msgstr "Handläggare %r för händelse %r gjorde ett undantag"
+
+#: application.py:218
+#, python-format
+msgid "Cannot find source directory (%s)"
+msgstr "Det går inte att hitta källkatalogen (%s)"
+
+#: application.py:223
+#, python-format
+msgid "Output directory (%s) is not a directory"
+msgstr "Utdatakatalogen (%s) är inte en katalog"
+
+#: application.py:228
+msgid "Source directory and destination directory cannot be identical"
+msgstr "Källkatalogen och destinationskatalogen kan inte vara identiska"
+
+#: application.py:258
+#, python-format
+msgid "Running Sphinx v%s"
+msgstr "Kör Sphinx v%s"
+
+#: application.py:286
+#, python-format
+msgid ""
+"This project needs at least Sphinx v%s and therefore cannot be built with "
+"this version."
+msgstr "Det här projektet kräver minst Sphinx v%s och kan därför inte byggas med den här versionen."
+
+#: application.py:305
+msgid "making output directory"
+msgstr "skapa utdatakatalog"
+
+#: application.py:310 registry.py:540
+#, python-format
+msgid "while setting up extension %s:"
+msgstr "medan inställning av tillägget %s:"
+
+#: application.py:317
+msgid ""
+"'setup' as currently defined in conf.py isn't a Python callable. Please "
+"modify its definition to make it a callable function. This is needed for "
+"conf.py to behave as a Sphinx extension."
+msgstr "'setup' som den för närvarande definieras i conf.py är inte en Python callable. Ändra dess definition så att den blir en anropsbar funktion. Detta behövs för att conf.py ska fungera som ett Sphinx-tillägg."
+
+#: application.py:360
+#, python-format
+msgid "loading translations [%s]... "
+msgstr "läser in översättningar [%s]... "
+
+#: application.py:384 util/display.py:89
+msgid "done"
+msgstr "klar"
+
+#: application.py:386
+msgid "not available for built-in messages"
+msgstr "inte tillgänglig för inbyggda meddelanden"
+
+#: application.py:400
+msgid "loading pickled environment"
+msgstr "läser in pickled-miljö"
+
+#: application.py:408
+#, python-format
+msgid "failed: %s"
+msgstr "misslyckades: %s"
+
+#: application.py:423
+msgid "No builder selected, using default: html"
+msgstr "Ingen byggare vald, standard används: html"
+
+#: application.py:455
+msgid "build finished with problems."
+msgstr "bygget färdigställdes med problem."
+
+#: application.py:457
+msgid "build succeeded."
+msgstr "bygget lyckades."
+
+#: application.py:462
+msgid ""
+"build finished with problems, 1 warning (with warnings treated as errors)."
+msgstr "bygget avslutades med problem, 1 varning (med varningar som behandlas som fel)."
+
+#: application.py:466
+msgid "build finished with problems, 1 warning."
+msgstr "bygget färdigt med problem, 1 varning."
+
+#: application.py:468
+msgid "build succeeded, 1 warning."
+msgstr "bygget lyckades, 1 varning."
+
+#: application.py:474
+#, python-format
+msgid ""
+"build finished with problems, %s warnings (with warnings treated as errors)."
+msgstr "bygget avslutades med problem, %s varningar (med varningar som behandlas som fel)."
+
+#: application.py:478
+#, python-format
+msgid "build finished with problems, %s warnings."
+msgstr "bygget slutfördes med problem, %s varningar."
+
+#: application.py:480
+#, python-format
+msgid "build succeeded, %s warnings."
+msgstr "bygget lyckades, %s varningar."
+
+#: application.py:1020
+#, python-format
+msgid "node class %r is already registered, its visitors will be overridden"
+msgstr "nodklass %r är redan registrerad, dess besökare kommer att åsidosättas"
+
+#: application.py:1113
+#, python-format
+msgid "directive %r is already registered and will not be overridden"
+msgstr "direktiv %r är redan registrerat och kommer inte att åsidosättas"
+
+#: application.py:1139 application.py:1167
+#, python-format
+msgid "role %r is already registered and will not be overridden"
+msgstr "roll %r är redan registrerad och kommer inte att åsidosättas"
+
+#: application.py:1766
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel reading, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr "tillägget %s deklarerar inte om det är säkert för parallell läsning, förutsatt att det inte är det - be tilläggets författare att kontrollera och göra det explicit"
+
+#: application.py:1771
+#, python-format
+msgid "the %s extension is not safe for parallel reading"
+msgstr "%s\\-tillägget är inte säkert för parallell läsning"
+
+#: application.py:1775
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel writing, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr "tillägget %s deklarerar inte om det är säkert för parallellskrivning, förutsatt att det inte är det - be tilläggets författare att kontrollera och göra det explicit"
+
+#: application.py:1780
+#, python-format
+msgid "the %s extension is not safe for parallel writing"
+msgstr "%s\\-tillägget är inte säkert för parallellskrivning"
+
+#: application.py:1788 application.py:1792
+#, python-format
+msgid "doing serial %s"
+msgstr "gör serie %s"
+
+#: registry.py:162
+#, python-format
+msgid "Builder class %s has no \"name\" attribute"
+msgstr "Byggarklassen %s har inget \"name\"-attribut"
+
+#: registry.py:166
+#, python-format
+msgid "Builder %r already exists (in module %s)"
+msgstr "Byggare %r finns redan (i modul %s)"
+
+#: registry.py:182
+#, python-format
+msgid "Builder name %s not registered or available through entry point"
+msgstr "Byggarens namn %s inte registrerat eller tillgängligt via ingångspunkten"
+
+#: registry.py:192
+#, python-format
+msgid "Builder name %s not registered"
+msgstr "Byggarens namn %s inte registrerat"
+
+#: registry.py:199
+#, python-format
+msgid "domain %s already registered"
+msgstr "domän %s redan registrerad"
+
+#: registry.py:223 registry.py:244 registry.py:257
+#, python-format
+msgid "domain %s not yet registered"
+msgstr "domän %s ännu inte registrerad"
+
+#: registry.py:230
+#, python-format
+msgid "The %r directive is already registered to domain %s"
+msgstr "Direktivet %r är redan registrerat på domänen %s"
+
+#: registry.py:248
+#, python-format
+msgid "The %r role is already registered to domain %s"
+msgstr "Rollen %r är redan registrerad på domänen %s"
+
+#: registry.py:261
+#, python-format
+msgid "The %r index is already registered to domain %s"
+msgstr "Indexet %r är redan registrerat på domänen %s"
+
+#: registry.py:308
+#, python-format
+msgid "The %r object_type is already registered"
+msgstr "Objekttypen %r är redan registrerad"
+
+#: registry.py:339
+#, python-format
+msgid "The %r crossref_type is already registered"
+msgstr "Crossref_type %r är redan registrerad"
+
+#: registry.py:348
+#, python-format
+msgid "source_suffix %r is already registered"
+msgstr "source_suffix %r är redan registrerat"
+
+#: registry.py:358
+#, python-format
+msgid "source_parser for %r is already registered"
+msgstr "source_parser för %r är redan registrerad"
+
+#: registry.py:367
+#, python-format
+msgid "Source parser for %s not registered"
+msgstr "Source parser för %s inte registrerad"
+
+#: registry.py:388
+#, python-format
+msgid "Translator for %r already exists"
+msgstr "Översättare för %r finns redan"
+
+#: registry.py:405
+#, python-format
+msgid "kwargs for add_node() must be a (visit, depart) function tuple: %r=%r"
+msgstr "kwargs för add_node() måste vara en (visit, depart) funktionstupel: %r=%r"
+
+#: registry.py:498
+#, python-format
+msgid "enumerable_node %r already registered"
+msgstr "enumerable_node %r redan registrerad"
+
+#: registry.py:514
+#, python-format
+msgid "math renderer %s is already registered"
+msgstr "math renderer %s är redan registrerad"
+
+#: registry.py:531
+#, python-format
+msgid ""
+"the extension %r was already merged with Sphinx since version %s; this "
+"extension is ignored."
+msgstr "tillägget %r var redan sammanslaget med Sphinx sedan version %s; detta tillägg ignoreras."
+
+#: registry.py:545
+msgid "Original exception:\n"
+msgstr "Ursprungligt undantag:\n"
+
+#: registry.py:547
+#, python-format
+msgid "Could not import extension %s"
+msgstr "Det gick inte att importera tillägget %s"
+
+#: registry.py:554
+#, python-format
+msgid ""
+"extension %r has no setup() function; is it really a Sphinx extension "
+"module?"
+msgstr "tillägget %r har ingen setup()-funktion; är det verkligen en Sphinx-modul?"
+
+#: registry.py:567
+#, python-format
+msgid ""
+"The %s extension used by this project needs at least Sphinx v%s; it "
+"therefore cannot be built with this version."
+msgstr "Tillägget %s som används av detta projekt kräver minst Sphinx v%s; det kan därför inte byggas med denna version."
+
+#: registry.py:579
+#, python-format
+msgid ""
+"extension %r returned an unsupported object from its setup() function; it "
+"should return None or a metadata dictionary"
+msgstr "tillägget %r returnerade ett objekt som inte stöds från sin setup()-funktion; den bör returnera None eller en metadatadictionary"
+
+#: registry.py:605
+#, python-format
+msgid "`None` is not a valid filetype for %r."
+msgstr "`None` är inte en giltig filtyp för %r."
+
+#: config.py:351
+#, python-format
+msgid "config directory doesn't contain a conf.py file (%s)"
+msgstr "config-katalogen innehåller inte någon conf.py-fil (%s)"
+
+#: config.py:374
+#, python-format
+msgid "'%s' must be '0' or '1', got '%s'"
+msgstr "'%s' måste vara '0' eller '1', fick '%s'"
+
+#: config.py:379
+#, python-format
+msgid ""
+"cannot override dictionary config setting %r, ignoring (use %r to set "
+"individual elements)"
+msgstr "kan inte åsidosätta konfigurationsinställningen för ordboken %r, ignorerar (använd %r för att ställa in enskilda element)"
+
+#: config.py:391
+#, python-format
+msgid "invalid number %r for config value %r, ignoring"
+msgstr "ogiltigt nummer %r för konfigurationsvärde %r, ignoreras"
+
+#: config.py:399
+#, python-format
+msgid "cannot override config setting %r with unsupported type, ignoring"
+msgstr "kan inte åsidosätta konfigurationsinställningen %r med en typ som inte stöds, ignorerar"
+
+#: config.py:422
+#, python-format
+msgid "unknown config value %r in override, ignoring"
+msgstr "okänt konfigurationsvärde %r i åsidosättande, ignoreras"
+
+#: config.py:476
+#, python-format
+msgid "No such config value: %r"
+msgstr "Inget sådant konfigurationsvärde: %r"
+
+#: config.py:504
+#, python-format
+msgid "Config value %r already present"
+msgstr "Konfigureringsvärde %r finns redan"
+
+#: config.py:541
+#, python-format
+msgid ""
+"cannot cache unpickleable configuration value: %r (because it contains a "
+"function, class, or module object)"
+msgstr "kan inte cachelagra ett konfigurationsvärde som inte kan plockas ut: %r (eftersom det innehåller ett funktions-, klass- eller modulobjekt)"
+
+#: config.py:577
+msgid ""
+"Invalid configuration value found: 'language = None'. Update your "
+"configuration to a valid language code. Falling back to 'en' (English)."
+msgstr "Ogiltigt konfigurationsvärde hittades: 'language = None'. Uppdatera din konfiguration till en giltig språkkod. Återgår till 'en' (engelska)."
+
+#: config.py:599
+#, python-format
+msgid "There is a syntax error in your configuration file: %s\n"
+msgstr "Det finns ett syntaxfel i din konfigurationsfil: %s\n"
+
+#: config.py:603
+msgid ""
+"The configuration file (or one of the modules it imports) called sys.exit()"
+msgstr "Konfigurationsfilen (eller en av de moduler som den importerar) kallade sys.exit()"
+
+#: config.py:611
+#, python-format
+msgid ""
+"There is a programmable error in your configuration file:\n"
+"\n"
+"%s"
+msgstr "Det finns ett programmerbart fel i din konfigurationsfil:\n\n%s"
+
+#: config.py:633
+#, python-format
+msgid "Failed to convert %r to a frozenset"
+msgstr "Misslyckades med att konvertera %r till en frozenset"
+
+#: config.py:651 config.py:659
+#, python-format
+msgid "Converting `source_suffix = %r` to `source_suffix = %r`."
+msgstr "Konvertering av `source_suffix = %r` till `source_suffix = %r`."
+
+#: config.py:665
+#, python-format
+msgid ""
+"The config value `source_suffix' expects a dictionary, a string, or a list "
+"of strings. Got `%r' instead (type %s)."
+msgstr "Konfigurationsvärdet `source_suffix' förväntar sig en ordbok, en sträng eller en lista med strängar. Fick `%r' istället (typ %s)."
+
+#: config.py:686
+#, python-format
+msgid "Section %s"
+msgstr "Sektion %s"
+
+#: config.py:687
+#, python-format
+msgid "Fig. %s"
+msgstr "Fig. %s"
+
+#: config.py:688
+#, python-format
+msgid "Table %s"
+msgstr "Tabell %s"
+
+#: config.py:689
+#, python-format
+msgid "Listing %s"
+msgstr "Listning %s"
+
+#: config.py:798
+#, python-brace-format
+msgid ""
+"The config value `{name}` has to be a one of {candidates}, but `{current}` "
+"is given."
+msgstr "Konfigurationsvärdet `{name}` måste vara ett av {candidates}, men `{current}` är givet."
+
+#: config.py:829
+#, python-brace-format
+msgid ""
+"The config value `{name}' has type `{current.__name__}'; expected "
+"{permitted}."
+msgstr "Konfigurationsvärdet `{name}' har typen `{current.__name__}'; förväntat {permitted}."
+
+#: config.py:846
+#, python-brace-format
+msgid ""
+"The config value `{name}' has type `{current.__name__}', defaults to "
+"`{default.__name__}'."
+msgstr "Konfigurationsvärdet `{name}' har typen `{current.__name__}', standard är `{default.__name__}'."
+
+#: config.py:858
+#, python-format
+msgid "primary_domain %r not found, ignored."
+msgstr "primary_domain %r hittades inte, ignoreras."
+
+#: config.py:878
+msgid ""
+"Sphinx now uses \"index\" as the master document by default. To keep pre-2.0"
+" behaviour, set \"master_doc = 'contents'\"."
+msgstr "Sphinx använder nu \"index\" som huvuddokument som standard. För att behålla beteendet före 2.0, ställ in \"master_doc = 'contents'\"."
+
+#: config.py:892
+msgid ""
+"Support for source encodings other than UTF-8 is deprecated and will be "
+"removed in Sphinx 10. Please comment at https://github.com/sphinx-"
+"doc/sphinx/issues/13665 if this causes a problem."
+msgstr "Stöd för andra källkodningar än UTF-8 är föråldrat och kommer att tas bort i Sphinx 10. Kommentera gärna på https://github.com/sphinx-doc/sphinx/issues/13665 om detta orsakar problem."
+
+#: environment/__init__.py:89
+msgid "new config"
+msgstr "ny konfiguration"
+
+#: environment/__init__.py:90
+msgid "config changed"
+msgstr "konfiguration ändrad"
+
+#: environment/__init__.py:91
+msgid "extensions changed"
+msgstr "tillägg ändrade"
+
+#: environment/__init__.py:261
+msgid "build environment version not current"
+msgstr "byggmiljöversionen är inte aktuell"
+
+#: environment/__init__.py:263
+msgid "source directory has changed"
+msgstr "källkatalogen har ändrats"
+
+#: environment/__init__.py:350
+#, python-format
+msgid "The configuration has changed (1 option: %r)"
+msgstr "Konfigurationen har ändrats (1 alternativ: %r)"
+
+#: environment/__init__.py:355
+#, python-format
+msgid "The configuration has changed (%d options: %s)"
+msgstr "Konfigurationen har ändrats (%d alternativ: %s)"
+
+#: environment/__init__.py:361
+#, python-format
+msgid "The configuration has changed (%d options: %s, ...)"
+msgstr "Konfigurationen har ändrats (%d alternativ: %s, ...)"
+
+#: environment/__init__.py:404
+msgid ""
+"This environment is incompatible with the selected builder, please choose "
+"another doctree directory."
+msgstr "Denna miljö är inte kompatibel med den valda byggaren, välj en annan doctree-katalog."
+
+#: environment/__init__.py:518
+#, python-format
+msgid "Failed to scan documents in %s: %r"
+msgstr "Misslyckades med att skanna dokument i %s: %r"
+
+#: environment/__init__.py:645 ext/intersphinx/_resolve.py:238
+#, python-format
+msgid "Domain %r is not registered"
+msgstr "Domän %r är inte registrerad"
+
+#: environment/__init__.py:811
+msgid "document isn't included in any toctree"
+msgstr "dokumentet ingår inte i någon toctree"
+
+#: environment/__init__.py:922
+msgid "self referenced toctree found. Ignored."
+msgstr "självrefererande toctree hittades. Ignoreras."
+
+#: environment/__init__.py:952
+#, python-format
+msgid "document is referenced in multiple toctrees: %s, selecting: %s <- %s"
+msgstr "dokumentet refereras till i flera toctrees: %s, urval: %s <- %s"
+
+#: locale/__init__.py:229
+msgid "Attention"
+msgstr "Observera"
+
+#: locale/__init__.py:230
+msgid "Caution"
+msgstr "Försiktighet"
+
+#: locale/__init__.py:231
+msgid "Danger"
+msgstr "Fara"
+
+#: locale/__init__.py:232
+msgid "Error"
+msgstr "Fel"
+
+#: locale/__init__.py:233
+msgid "Hint"
+msgstr "Ledtråd"
+
+#: locale/__init__.py:234
+msgid "Important"
+msgstr "Viktigt"
+
+#: locale/__init__.py:235
+msgid "Note"
+msgstr "Anteckning"
+
+#: locale/__init__.py:236
+msgid "See also"
+msgstr "Se även"
+
+#: locale/__init__.py:237
+msgid "Tip"
+msgstr "Tips"
+
+#: locale/__init__.py:238
+msgid "Warning"
+msgstr "Varning"
+
+#: builders/texinfo.py:41
+#, python-format
+msgid "The Texinfo files are in %(outdir)s."
+msgstr "Texinfo-filerna finns i %(outdir)s."
+
+#: builders/texinfo.py:44
+msgid ""
+"\n"
+"Run 'make' in that directory to run these through makeinfo\n"
+"(use 'make info' here to do that automatically)."
+msgstr "\nKör 'make' i den katalogen för att köra dessa genom makeinfo\n(använd 'make info' här för att göra det automatiskt)."
+
+#: builders/texinfo.py:73
+msgid "no \"texinfo_documents\" config value found; no documents will be written"
+msgstr "inget konfigurationsvärde för \"texinfo_documents\" hittades; inga dokument kommer att skrivas"
+
+#: builders/texinfo.py:85
+#, python-format
+msgid "\"texinfo_documents\" config value references unknown document %s"
+msgstr "\"texinfo_documents\" konfigurationsvärde refererar till okänt dokument %s"
+
+#: builders/latex/__init__.py:310 builders/texinfo.py:105
+#, python-format
+msgid "processing %s"
+msgstr "bearbetning %s"
+
+#: builders/latex/__init__.py:332 builders/manpage.py:54
+#: builders/singlehtml.py:176 builders/texinfo.py:111
+msgid "writing"
+msgstr "skriver"
+
+#: builders/latex/__init__.py:398 builders/texinfo.py:160
+msgid "resolving references..."
+msgstr "slår upp referenser..."
+
+#: builders/latex/__init__.py:409 builders/texinfo.py:170
+msgid " (in "
+msgstr " (i "
+
+#: builders/_epub_base.py:425 builders/html/__init__.py:768
+#: builders/latex/__init__.py:474 builders/texinfo.py:186
+msgid "copying images... "
+msgstr "kopierar bilder... "
+
+#: builders/_epub_base.py:447 builders/latex/__init__.py:489
+#: builders/texinfo.py:203
+#, python-format
+msgid "cannot copy image file %r: %s"
+msgstr "kan inte kopiera bildfilen %r: %s"
+
+#: builders/texinfo.py:210
+msgid "copying Texinfo support files"
+msgstr "kopierar Texinfo-stödfiler"
+
+#: builders/texinfo.py:218
+#, python-format
+msgid "error writing file Makefile: %s"
+msgstr "fel vid skrivning av filen Makefile: %s"
+
+#: builders/manpage.py:37
+#, python-format
+msgid "The manual pages are in %(outdir)s."
+msgstr "Manualsidorna finns i %(outdir)s."
+
+#: builders/manpage.py:45
+msgid "no \"man_pages\" config value found; no manual pages will be written"
+msgstr "inget konfigurationsvärde för \"man_pages\" hittades; inga manussidor kommer att skrivas"
+
+#: builders/manpage.py:64
+#, python-format
+msgid "\"man_pages\" config value references unknown document %s"
+msgstr "\"man_pages\" konfigurationsvärde refererar till okänt dokument %s"
+
+#: builders/singlehtml.py:35
+#, python-format
+msgid "The HTML page is in %(outdir)s."
+msgstr "HTML-sidan finns i %(outdir)s."
+
+#: builders/singlehtml.py:171
+msgid "assembling single document"
+msgstr "sammanställning av enstaka dokument"
+
+#: builders/singlehtml.py:189
+msgid "writing additional files"
+msgstr "skriva ytterligare filer"
+
+#: builders/dummy.py:19
+msgid "The dummy builder generates no files."
+msgstr "Dummybyggaren genererar inga filer."
+
+#: builders/gettext.py:243
+#, python-format
+msgid "The message catalogs are in %(outdir)s."
+msgstr "Meddelandekatalogerna finns i %(outdir)s."
+
+#: builders/__init__.py:400 builders/gettext.py:264
+#, python-format
+msgid "building [%s]: "
+msgstr "bygger [%s]: "
+
+#: builders/gettext.py:265
+#, python-format
+msgid "targets for %d template files"
+msgstr "mål för %d mallfiler"
+
+#: builders/gettext.py:271
+msgid "reading templates... "
+msgstr "läser mallar... "
+
+#: builders/gettext.py:310
+msgid "writing message catalogs... "
+msgstr "skriver meddelandekataloger... "
+
+#: builders/linkcheck.py:87
+#, python-format
+msgid "Look for any errors in the above output or in %(outdir)s/output.txt"
+msgstr "Leta efter eventuella fel i ovanstående utdata eller i %(outdir)s/output.txt"
+
+#: builders/linkcheck.py:159
+#, python-format
+msgid "broken link: %s (%s)"
+msgstr "trasig länk: %s (%s)"
+
+#: builders/linkcheck.py:561
+#, python-format
+msgid "Anchor '%s' not found"
+msgstr "Ankaret '%s' hittades inte"
+
+#: builders/linkcheck.py:789
+msgid "linkcheck_allowed_redirects. Expected a dictionary."
+msgstr "linkcheck_allowed_redirects. Förväntade sig en ordbok."
+
+#: builders/linkcheck.py:799
+#, python-format
+msgid "Failed to compile regex in linkcheck_allowed_redirects: %r %s"
+msgstr "Misslyckades med att kompilera regex i linkcheck_allowed_redirects: %r %s"
+
+#: builders/epub3.py:83
+#, python-format
+msgid "The ePub file is in %(outdir)s."
+msgstr "EPub-filen finns i %(outdir)s."
+
+#: builders/epub3.py:188
+msgid "writing nav.xhtml file..."
+msgstr "skriva nav.xhtml-filen..."
+
+#: builders/epub3.py:224
+msgid "conf value \"epub_language\" (or \"language\") should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_language\" (eller \"language\") ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:230
+msgid "conf value \"epub_uid\" should be XML NAME for EPUB3"
+msgstr "conf-värdet \"epub_uid\" ska vara XML NAME för EPUB3"
+
+#: builders/epub3.py:235
+msgid "conf value \"epub_title\" (or \"html_title\") should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_title\" (eller \"html_title\") ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:241
+msgid "conf value \"epub_author\" should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_author\" ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:245
+msgid "conf value \"epub_contributor\" should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_contributor\" ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:250
+msgid "conf value \"epub_description\" should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_description\" ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:254
+msgid "conf value \"epub_publisher\" should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_publisher\" ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:259
+msgid "conf value \"epub_copyright\" (or \"copyright\")should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_copyright\" (eller \"copyright\") ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:265
+msgid "conf value \"epub_identifier\" should not be empty for EPUB3"
+msgstr "conf-värdet \"epub_identifier\" ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:268
+msgid "conf value \"version\" should not be empty for EPUB3"
+msgstr "conf-värdet \"version\" ska inte vara tomt för EPUB3"
+
+#: builders/epub3.py:282 builders/html/__init__.py:1296
+#, python-format
+msgid "invalid css_file: %r, ignored"
+msgstr "ogiltig css_fil: %r, ignorerad"
+
+#: builders/xml.py:29
+#, python-format
+msgid "The XML files are in %(outdir)s."
+msgstr "XML-filerna finns i %(outdir)s."
+
+#: builders/html/__init__.py:1242 builders/text.py:71 builders/xml.py:81
+#, python-format
+msgid "error writing file %s: %s"
+msgstr "fel vid skrivning av fil %s: %s"
+
+#: builders/xml.py:103
+#, python-format
+msgid "The pseudo-XML files are in %(outdir)s."
+msgstr "Pseudo-XML-filerna finns i %(outdir)s."
+
+#: builders/_epub_base.py:223
+#, python-format
+msgid "duplicated ToC entry found: %s"
+msgstr "duplicerad ToC-post hittades: %s"
+
+#: builders/_epub_base.py:436
+#, python-format
+msgid "cannot read image file %r: copying it instead"
+msgstr "kan inte läsa bildfilen %r: kopiera den istället"
+
+#: builders/_epub_base.py:467
+#, python-format
+msgid "cannot write image file %r: %s"
+msgstr "kan inte skriva bildfil %r: %s"
+
+#: builders/_epub_base.py:479
+msgid "Pillow not found - copying image files"
+msgstr "Pillow hittades inte - kopiering av bildfiler"
+
+#: builders/_epub_base.py:514
+msgid "writing mimetype file..."
+msgstr "skriva mimetype-fil ..."
+
+#: builders/_epub_base.py:523
+msgid "writing META-INF/container.xml file..."
+msgstr "skriver filen META-INF/container.xml..."
+
+#: builders/_epub_base.py:561
+msgid "writing content.opf file..."
+msgstr "skriva innehåll.opf-fil..."
+
+#: builders/_epub_base.py:594
+#, python-format
+msgid "unknown mimetype for %s, ignoring"
+msgstr "okänd mimetype för %s, ignorerar"
+
+#: builders/_epub_base.py:749
+msgid "node has an invalid level"
+msgstr "noden har en ogiltig nivå"
+
+#: builders/_epub_base.py:769
+msgid "writing toc.ncx file..."
+msgstr "skriver filen toc.ncx..."
+
+#: builders/_epub_base.py:802
+#, python-format
+msgid "writing %s file..."
+msgstr "skriver %s fil ..."
+
+#: builders/text.py:27
+#, python-format
+msgid "The text files are in %(outdir)s."
+msgstr "Textfilerna finns i %(outdir)s."
+
+#: builders/__init__.py:229
+#, python-format
+msgid "a suitable image for %s builder not found: %s (%s)"
+msgstr "en lämplig bild för %s byggare hittades inte: %s (%s)"
+
+#: builders/__init__.py:237
+#, python-format
+msgid "a suitable image for %s builder not found: %s"
+msgstr "en lämplig bild för %s byggare hittades inte: %s"
+
+#: builders/__init__.py:260
+msgid "building [mo]: "
+msgstr "bygger [mo]: "
+
+#: builders/__init__.py:263 builders/__init__.py:771 builders/__init__.py:795
+msgid "writing output... "
+msgstr "skriver utdata... "
+
+#: builders/__init__.py:280
+#, python-format
+msgid "all of %d po files"
+msgstr "alla %d po-filer"
+
+#: builders/__init__.py:302
+#, python-format
+msgid "targets for %d po files that are specified"
+msgstr "mål för %d po-filer som anges"
+
+#: builders/__init__.py:314
+#, python-format
+msgid "targets for %d po files that are out of date"
+msgstr "mål för %d po-filer som är föråldrade"
+
+#: builders/__init__.py:324
+msgid "all source files"
+msgstr "alla källfiler"
+
+#: builders/__init__.py:335
+#, python-format
+msgid "file %r given on command line does not exist, "
+msgstr "filen %r som anges på kommandoraden finns inte, "
+
+#: builders/__init__.py:342
+#, python-format
+msgid ""
+"file %r given on command line is not under the source directory, ignoring"
+msgstr "filen %r som anges på kommandoraden finns inte i källkatalogen, ignoreras"
+
+#: builders/__init__.py:353
+#, python-format
+msgid "file %r given on command line is not a valid document, ignoring"
+msgstr "fil %r som anges på kommandoraden är inte ett giltigt dokument, ignoreras"
+
+#: builders/__init__.py:366
+#, python-format
+msgid "%d source files given on command line"
+msgstr "%d källfiler anges på kommandoraden"
+
+#: builders/__init__.py:382
+#, python-format
+msgid "targets for %d source files that are out of date"
+msgstr "mål för %d källfiler som är föråldrade"
+
+#: builders/__init__.py:411
+msgid "looking for now-outdated files... "
+msgstr "letar efter nu föråldrade filer... "
+
+#: builders/__init__.py:415
+#, python-format
+msgid "%d found"
+msgstr "%d hittades"
+
+#: builders/__init__.py:417
+msgid "none found"
+msgstr "ingen hittades"
+
+#: builders/__init__.py:424
+msgid "pickling environment"
+msgstr "miljö för betning"
+
+#: builders/__init__.py:431
+msgid "checking consistency"
+msgstr "kontroll av konsistens"
+
+#: builders/__init__.py:435
+msgid "no targets are out of date."
+msgstr "inga mål är inaktuella."
+
+#: builders/__init__.py:474
+msgid "updating environment: "
+msgstr "uppdaterar miljön: "
+
+#: builders/__init__.py:499
+#, python-format
+msgid "%s added, %s changed, %s removed"
+msgstr "%s tillagd, %s ändrad, %s borttagen"
+
+#: builders/__init__.py:536
+#, python-format
+msgid ""
+"Sphinx is unable to load the master document (%s) because it matches a "
+"built-in exclude pattern %r. Please move your master document to a different"
+" location."
+msgstr "Sphinx kan inte läsa in huvuddokumentet (%s) eftersom det matchar ett inbyggt uteslutningsmönster %r. Flytta ditt masterdokument till en annan plats."
+
+#: builders/__init__.py:545
+#, python-format
+msgid ""
+"Sphinx is unable to load the master document (%s) because it matches an "
+"exclude pattern specified in conf.py, %r. Please remove this pattern from "
+"conf.py."
+msgstr "Sphinx kan inte läsa in huvuddokumentet (%s) eftersom det matchar ett uteslutningsmönster som anges i conf.py, %r. Ta bort detta mönster från conf.py."
+
+#: builders/__init__.py:556
+#, python-format
+msgid ""
+"Sphinx is unable to load the master document (%s) because it is not included"
+" in the custom include_patterns = %r. Ensure that a pattern in "
+"include_patterns matches the master document."
+msgstr "Sphinx kan inte läsa in huvuddokumentet (%s) eftersom det inte ingår i det anpassade include_patterns = %r. Se till att ett mönster i include_patterns matchar huvuddokumentet."
+
+#: builders/__init__.py:563
+#, python-format
+msgid ""
+"Sphinx is unable to load the master document (%s). The master document must "
+"be within the source directory or a subdirectory of it."
+msgstr "Sphinx kan inte läsa in huvuddokumentet (%s). Masterdokumentet måste finnas i källkatalogen eller en underkatalog till den."
+
+#: builders/__init__.py:581 builders/__init__.py:598
+msgid "reading sources... "
+msgstr "läser källor... "
+
+#: builders/__init__.py:725
+#, python-format
+msgid "docnames to write: %s"
+msgstr "docnames att skriva: %s"
+
+#: builders/__init__.py:727
+msgid "no docnames to write!"
+msgstr "inga dokumentnamn att skriva!"
+
+#: builders/__init__.py:740
+msgid "preparing documents"
+msgstr "förbereda dokument"
+
+#: builders/__init__.py:743
+msgid "copying assets"
+msgstr "kopiering av tillgångar"
+
+#: builders/changes.py:29
+#, python-format
+msgid "The overview file is in %(outdir)s."
+msgstr "Översiktsfilen finns i %(outdir)s."
+
+#: builders/changes.py:65
+#, python-format
+msgid "no changes in version %s."
+msgstr "inga ändringar i version %s."
+
+#: builders/changes.py:67
+msgid "writing summary file..."
+msgstr "skriva sammanfattande fil ..."
+
+#: builders/changes.py:79
+msgid "Builtins"
+msgstr "Inbyggnader"
+
+#: builders/changes.py:81
+msgid "Module level"
+msgstr "Modulnivå"
+
+#: builders/changes.py:137
+msgid "copying source files..."
+msgstr "kopierar källfiler ..."
+
+#: builders/changes.py:146
+#, python-format
+msgid "could not read %r for changelog creation"
+msgstr "kunde inte läsa %r för skapande av changelog"
+
+#: ext/coverage.py:48
+#, python-format
+msgid "invalid regex %r in %s"
+msgstr "ogiltig regex %r i %s"
+
+#: ext/coverage.py:140 ext/coverage.py:301
+#, python-format
+msgid "module %s could not be imported: %s"
+msgstr "modul %s kunde inte importeras: %s"
+
+#: ext/coverage.py:148
+#, python-format
+msgid ""
+"the following modules are documented but were not specified in "
+"coverage_modules: %s"
+msgstr "följande moduler är dokumenterade men specificerades inte i coverage_modules: %s"
+
+#: ext/coverage.py:158
+#, python-format
+msgid ""
+"the following modules are specified in coverage_modules but were not "
+"documented: %s"
+msgstr "följande moduler anges i coverage_modules men dokumenterades inte: %s"
+
+#: ext/coverage.py:172
+#, python-brace-format, python-format
+msgid ""
+"Testing of coverage in the sources finished, look at the results in "
+"%(outdir)s{sep}python.txt."
+msgstr "Testningen av täckningen i källorna är klar, titta på resultaten i %(outdir)s{sep}python.txt."
+
+#: ext/coverage.py:187
+#, python-format
+msgid "invalid regex %r in coverage_c_regexes"
+msgstr "ogiltig regex %r i täckning_c_regexes"
+
+#: ext/coverage.py:260
+#, python-format
+msgid "undocumented c api: %s [%s] in file %s"
+msgstr "odokumenterad c api: %s [%s] i fil %s"
+
+#: ext/coverage.py:452
+#, python-format
+msgid "undocumented python function: %s :: %s"
+msgstr "odokumenterad python-funktion: %s :: %s"
+
+#: ext/coverage.py:473
+#, python-format
+msgid "undocumented python class: %s :: %s"
+msgstr "odokumenterad pythonklass: %s :: %s"
+
+#: ext/coverage.py:492
+#, python-format
+msgid "undocumented python method: %s :: %s :: %s"
+msgstr "odokumenterad python-metod: %s :: %s :: %s"
+
+#: ext/extlinks.py:82
+#, python-format
+msgid ""
+"hardcoded link %r could be replaced by an extlink (try using %r instead)"
+msgstr "hårdkodad länk %r kan ersättas av en extlänk (försök använda %r istället)"
+
+#: ext/todo.py:61
+msgid "Todo"
+msgstr "Att göra"
+
+#: ext/todo.py:94
+#, python-format
+msgid "TODO entry found: %s"
+msgstr "TODO-post hittades: %s"
+
+#: ext/todo.py:152
+msgid "<<original entry>>"
+msgstr "<<original entry>>"
+
+#: ext/todo.py:154
+#, python-format
+msgid "(The <<original entry>> is located in %s, line %d.)"
+msgstr "(<<original entry>> finns i %s, rad %d.)"
+
+#: ext/todo.py:166
+msgid "original entry"
+msgstr "ursprunglig post"
+
+#: ext/imgconverter.py:44
+#, python-format
+msgid ""
+"Unable to run the image conversion command %r. 'sphinx.ext.imgconverter' requires ImageMagick by default. Ensure it is installed, or set the 'image_converter' option to a custom conversion command.\n"
+"\n"
+"Traceback: %s"
+msgstr "Det går inte att köra kommandot för bildkonvertering %r. 'sphinx.ext.imgconverter' kräver ImageMagick som standard. Se till att det är installerat, eller sätt alternativet 'image_converter' till ett anpassat konverteringskommando.\n\nBakåtspårning: %s"
+
+#: ext/imgconverter.py:56 ext/imgconverter.py:90
+#, python-format
+msgid ""
+"convert exited with error:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "convert avslutades med fel:\n[stderr]\n%r\n[stdout]\n%r"
+
+#: ext/imgconverter.py:83
+#, python-format
+msgid "convert command %r cannot be run, check the image_converter setting"
+msgstr "convert-kommandot %r kan inte köras, kontrollera inställningen för image_converter"
+
+#: ext/graphviz.py:138
+msgid "Graphviz directive cannot have both content and a filename argument"
+msgstr "Graphviz-direktivet kan inte ha både innehåll och ett filnamnsargument"
+
+#: ext/graphviz.py:153
+#, python-format
+msgid "External Graphviz file %r not found or reading it failed"
+msgstr "Externa Graphviz-filen %r hittades inte eller så gick inte läsningen av den"
+
+#: ext/graphviz.py:164
+msgid "Ignoring \"graphviz\" directive without content."
+msgstr "Ignorerar \"graphviz\"-direktivet utan innehåll."
+
+#: ext/graphviz.py:287
+#, python-format
+msgid "graphviz_dot executable path must be set! %r"
+msgstr "graphviz_dot körbar sökväg måste ställas in! %r"
+
+#: ext/graphviz.py:328
+#, python-format
+msgid ""
+"dot command %r cannot be run (needed for graphviz output), check the "
+"graphviz_dot setting"
+msgstr "dot-kommandot %r kan inte köras (behövs för graphviz-utdata), kontrollera inställningen graphviz_dot"
+
+#: ext/graphviz.py:339
+#, python-format
+msgid ""
+"dot exited with error:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "dot avslutades med fel:\n[stderr]\n%r\n[stdout]\n%r"
+
+#: ext/graphviz.py:344
+#, python-format
+msgid ""
+"dot did not produce an output file:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "dot producerade inte någon utdatafil:\n[stderr]\n%r\n[stdout]\n%r"
+
+#: ext/graphviz.py:367
+#, python-format
+msgid "graphviz_output_format must be either 'png' or 'svg', but is %r"
+msgstr "graphviz_output_format måste vara antingen 'png' eller 'svg', men är %r"
+
+#: ext/graphviz.py:373 ext/graphviz.py:436 ext/graphviz.py:480
+#, python-format
+msgid "dot code %r: %s"
+msgstr "punktkod %r: %s"
+
+#: ext/graphviz.py:493 ext/graphviz.py:501
+#, python-format
+msgid "[graph: %s]"
+msgstr "[graph: %s]"
+
+#: ext/graphviz.py:495 ext/graphviz.py:503
+msgid "[graph]"
+msgstr "[graph]"
+
+#: ext/imgmath.py:148
+#, python-format
+msgid ""
+"LaTeX command %r cannot be run (needed for math display), check the "
+"imgmath_latex setting"
+msgstr "LaTeX-kommandot %r kan inte köras (behövs för visning av matematik), kontrollera inställningen imgmath_latex"
+
+#: ext/imgmath.py:167
+#, python-format
+msgid ""
+"%s command %r cannot be run (needed for math display), check the imgmath_%s "
+"setting"
+msgstr "%s-kommandot %r kan inte köras (behövs för visning av matematik), kontrollera inställningen imgmath_%s"
+
+#: ext/imgmath.py:326
+#, python-format
+msgid "display latex %r: %s"
+msgstr "visa latex %r: %s"
+
+#: ext/imgmath.py:362
+#, python-format
+msgid "inline latex %r: %s"
+msgstr "inline latex %r: %s"
+
+#: ext/imgmath.py:369 ext/mathjax.py:60
+msgid "Link to this equation"
+msgstr "Länk till denna ekvation"
+
+#: ext/doctest.py:118
+#, python-format
+msgid "missing '+' or '-' in '%s' option."
+msgstr "\"+\" eller \"-\" saknas i alternativet \"%s\"."
+
+#: ext/doctest.py:124
+#, python-format
+msgid "'%s' is not a valid option."
+msgstr "'%s' är inte ett giltigt alternativ."
+
+#: ext/doctest.py:139
+#, python-format
+msgid "'%s' is not a valid pyversion option"
+msgstr "'%s' är inte ett giltigt pyversion-alternativ"
+
+#: ext/doctest.py:226
+msgid "invalid TestCode type"
+msgstr "ogiltig TestCode-typ"
+
+#: ext/doctest.py:297
+#, python-format
+msgid ""
+"Testing of doctests in the sources finished, look at the results in "
+"%(outdir)s/output.txt."
+msgstr "Testningen av doctests i källorna är klar, titta på resultaten i %(outdir)s/output.txt."
+
+#: ext/doctest.py:451
+#, python-format
+msgid "no code/output in %s block at %s:%s"
+msgstr "ingen kod/utmatning i %s block vid %s:%s"
+
+#: ext/doctest.py:568
+#, python-format
+msgid "ignoring invalid doctest code: %r"
+msgstr "ignorerar ogiltig doctest-kod: %r"
+
+#: ext/autosectionlabel.py:52
+#, python-format
+msgid "section \"%s\" gets labeled as \"%s\""
+msgstr "avsnitt \"%s\" blir märkt som \"%s\""
+
+#: domains/std/__init__.py:833 domains/std/__init__.py:960
+#: ext/autosectionlabel.py:61
+#, python-format
+msgid "duplicate label %s, other instance in %s"
+msgstr "duplicerad etikett %s, annan instans i %s"
+
+#: ext/duration.py:47
+#, python-format
+msgid "Reading duration %.3fs exceeded the duration limit %.3fs"
+msgstr ""
+
+#: ext/duration.py:117
+msgid ""
+"====================== total reading duration =========================="
+msgstr ""
+
+#: ext/duration.py:124
+#, python-format
+msgid "Total time reading %d file%s: %dm %.3fs"
+msgstr ""
+
+#: ext/duration.py:136
+msgid ""
+"====================== slowest reading durations ======================="
+msgstr "====================== långsammaste lästiderna ======================="
+
+#: ext/duration.py:139
+#, python-format
+msgid "%.3fs %s"
+msgstr "%.3fs %s"
+
+#: ext/linkcode.py:86 ext/viewcode.py:232
+msgid "[source]"
+msgstr "[source]"
+
+#: ext/viewcode.py:295
+msgid "highlighting module code... "
+msgstr "markerar modulkod... "
+
+#: ext/viewcode.py:326
+msgid "[docs]"
+msgstr "[docs]"
+
+#: ext/viewcode.py:352
+msgid "Module code"
+msgstr "Modulkod"
+
+#: ext/viewcode.py:359
+#, python-format
+msgid "<h1>Source code for %s</h1>"
+msgstr "<h1>Källkod för %s</h1>"
+
+#: ext/viewcode.py:386
+msgid "Overview: module code"
+msgstr "Översikt: modulkod"
+
+#: ext/viewcode.py:387
+msgid "<h1>All modules for which code is available</h1>"
+msgstr "<h1>Alla moduler för vilka kod finns tillgänglig</h1>"
+
+#: domains/citation.py:75
+#, python-format
+msgid "duplicate citation %s, other instance in %s"
+msgstr "duplicerad citering %s, annan instans i %s"
+
+#: domains/citation.py:92
+#, python-format
+msgid "Citation [%s] is not referenced."
+msgstr "Citation [%s] är inte refererad."
+
+#: domains/math.py:73
+#, python-format
+msgid "duplicate label of equation %s, other instance in %s"
+msgstr "duplicerad etikett av ekvation %s, annan instans i %s"
+
+#: domains/math.py:130 writers/latex.py:2500
+#, python-format
+msgid "Invalid math_eqref_format: %r"
+msgstr "Ogiltigt math_eqref_format: %r"
+
+#: domains/javascript.py:183
+#, python-format
+msgid "%s() (built-in function)"
+msgstr "%s() (inbyggd funktion)"
+
+#: domains/javascript.py:184 domains/python/__init__.py:279
+#, python-format
+msgid "%s() (%s method)"
+msgstr "%s() (%s metod)"
+
+#: domains/javascript.py:186
+#, python-format
+msgid "%s() (class)"
+msgstr "%s() (klass)"
+
+#: domains/javascript.py:188
+#, python-format
+msgid "%s (global variable or constant)"
+msgstr "%s (global variabel eller konstant)"
+
+#: domains/javascript.py:190 domains/python/__init__.py:370
+#, python-format
+msgid "%s (%s attribute)"
+msgstr "%s (%s attribut)"
+
+#: domains/javascript.py:274
+msgid "Arguments"
+msgstr "Argument"
+
+#: domains/cpp/__init__.py:491 domains/javascript.py:281
+msgid "Throws"
+msgstr "Kastar"
+
+#: domains/c/__init__.py:367 domains/cpp/__init__.py:504
+#: domains/javascript.py:288 domains/python/_object.py:221
+msgid "Returns"
+msgstr "Returer"
+
+#: domains/c/__init__.py:373 domains/javascript.py:294
+#: domains/python/_object.py:227
+msgid "Return type"
+msgstr "Typ av retur"
+
+#: domains/javascript.py:374
+#, python-format
+msgid "%s (module)"
+msgstr "%s (modul)"
+
+#: domains/c/__init__.py:779 domains/cpp/__init__.py:943
+#: domains/javascript.py:419 domains/python/__init__.py:726
+msgid "function"
+msgstr "funktion"
+
+#: domains/javascript.py:420 domains/python/__init__.py:730
+msgid "method"
+msgstr "metod"
+
+#: domains/cpp/__init__.py:941 domains/javascript.py:421
+#: domains/python/__init__.py:728
+msgid "class"
+msgstr "klass"
+
+#: domains/javascript.py:422 domains/python/__init__.py:727
+msgid "data"
+msgstr "data"
+
+#: domains/javascript.py:423 domains/python/__init__.py:733
+msgid "attribute"
+msgstr "attribut"
+
+#: domains/javascript.py:424 domains/python/__init__.py:736
+msgid "module"
+msgstr "modul"
+
+#: domains/javascript.py:458
+#, python-format
+msgid "duplicate %s description of %s, other %s in %s"
+msgstr "duplicera %s beskrivning av %s, annan %s i %s"
+
+#: domains/rst.py:131 domains/rst.py:190
+#, python-format
+msgid "%s (directive)"
+msgstr "%s (direktiv)"
+
+#: domains/rst.py:191 domains/rst.py:202
+#, python-format
+msgid ":%s: (directive option)"
+msgstr ":%s: (direktivalternativ)"
+
+#: domains/rst.py:224
+#, python-format
+msgid "%s (role)"
+msgstr "%s (roll)"
+
+#: domains/rst.py:234
+msgid "directive"
+msgstr "direktiv"
+
+#: domains/rst.py:235
+msgid "directive-option"
+msgstr "direktiv-alternativ"
+
+#: domains/rst.py:236
+msgid "role"
+msgstr "roll"
+
+#: domains/rst.py:262
+#, python-format
+msgid "duplicate description of %s %s, other instance in %s"
+msgstr "duplicerad beskrivning av %s %s, annan instans i %s"
+
+#: domains/changeset.py:32
+#, python-format
+msgid "Added in version %s"
+msgstr "Tillagd i version %s"
+
+#: domains/changeset.py:33
+#, python-format
+msgid "Changed in version %s"
+msgstr "Ändrad i version %s"
+
+#: domains/changeset.py:34
+#, python-format
+msgid "Deprecated since version %s"
+msgstr "Föråldrad sedan version %s"
+
+#: domains/changeset.py:35
+#, python-format
+msgid "Removed in version %s"
+msgstr "Borttagen i version %s"
+
+#: domains/__init__.py:322
+#, python-format
+msgid "%s %s"
+msgstr "%s %s"
+
+#: cmd/build.py:64
+msgid "job number should be a positive number"
+msgstr "jobbnumret ska vara ett positivt tal"
+
+#: cmd/build.py:73 cmd/quickstart.py:582 ext/apidoc/_cli.py:27
+#: ext/autosummary/generate.py:876
+msgid "For more information, visit <https://www.sphinx-doc.org/>."
+msgstr "För mer information, besök <https://www.sphinx-doc.org/>."
+
+#: cmd/build.py:74
+msgid ""
+"\n"
+"Generate documentation from source files.\n"
+"\n"
+"sphinx-build generates documentation from the files in SOURCEDIR and places it\n"
+"in OUTPUTDIR. It looks for 'conf.py' in SOURCEDIR for the configuration\n"
+"settings. The 'sphinx-quickstart' tool may be used to generate template files,\n"
+"including 'conf.py'\n"
+"\n"
+"sphinx-build can create documentation in different formats. A format is\n"
+"selected by specifying the builder name on the command line; it defaults to\n"
+"HTML. Builders can also perform other tasks related to documentation\n"
+"processing.\n"
+"\n"
+"By default, everything that is outdated is built. Output only for selected\n"
+"files can be built by specifying individual filenames.\n"
+msgstr "\nGenerera dokumentation från källfiler.\n\nsphinx-build genererar dokumentation från filerna i SOURCEDIR och placerar den i\ni OUTPUTDIR. Den letar efter \"conf.py\" i SOURCEDIR för konfigurationsinställningarna\ninställningar. Verktyget 'sphinx-quickstart' kan användas för att generera mallfiler,\ninklusive 'conf.py'\n\nsphinx-build kan skapa dokumentation i olika format. Ett format väljs\nväljs genom att ange byggarens namn på kommandoraden; standardinställningen är\nHTML. Byggare kan också utföra andra uppgifter som är relaterade till dokumentations\nbearbetning.\n\nSom standard byggs allt som är föråldrat. Utdata endast för utvalda\nfiler kan byggas genom att ange enskilda filnamn.\n"
+
+#: cmd/build.py:100
+msgid "path to documentation source files"
+msgstr "sökväg till dokumentationens källfiler"
+
+#: cmd/build.py:103
+msgid "path to output directory"
+msgstr "sökväg till utdatakatalog"
+
+#: cmd/build.py:109
+msgid ""
+"(optional) a list of specific files to rebuild. Ignored if --write-all is "
+"specified"
+msgstr "(valfritt) en lista med specifika filer som ska byggas om. Ignoreras om --write-all anges"
+
+#: cmd/build.py:114
+msgid "general options"
+msgstr "allmänna alternativ"
+
+#: cmd/build.py:121
+msgid "builder to use (default: 'html')"
+msgstr "byggare att använda (standard: 'html')"
+
+#: cmd/build.py:131
+msgid ""
+"run in parallel with N processes, when possible. 'auto' uses the number of "
+"CPU cores"
+msgstr "körs parallellt med N processer, när så är möjligt. \"auto\" använder antalet CPU-kärnor"
+
+#: cmd/build.py:140
+msgid "write all files (default: only write new and changed files)"
+msgstr "skriva alla filer (standard: endast nya och ändrade filer skrivs)"
+
+#: cmd/build.py:147
+msgid "don't use a saved environment, always read all files"
+msgstr "använd inte en sparad miljö, läs alltid alla filer"
+
+#: cmd/build.py:150
+msgid "path options"
+msgstr "alternativ för sökväg"
+
+#: cmd/build.py:157
+msgid ""
+"directory for doctree and environment files (default: OUTPUT_DIR/.doctrees)"
+msgstr "katalog för doctree- och miljöfiler (standard: OUTPUT_DIR/.doctrees)"
+
+#: cmd/build.py:166
+msgid "directory for the configuration file (conf.py) (default: SOURCE_DIR)"
+msgstr "katalog för konfigurationsfilen (conf.py) (standard: SOURCE_DIR)"
+
+#: cmd/build.py:175
+msgid "use no configuration file, only use settings from -D options"
+msgstr "använd ingen konfigurationsfil, använd bara inställningar från -D-alternativ"
+
+#: cmd/build.py:184
+msgid "override a setting in configuration file"
+msgstr "åsidosätta en inställning i konfigurationsfilen"
+
+#: cmd/build.py:193
+msgid "pass a value into HTML templates"
+msgstr "skicka ett värde till HTML-mallar"
+
+#: cmd/build.py:202
+msgid "define tag: include \"only\" blocks with TAG"
+msgstr "definiera tagg: inkludera \"endast\" block med TAG"
+
+#: cmd/build.py:209
+msgid "nitpicky mode: warn about all missing references"
+msgstr "nitpicky mode: varna för alla saknade referenser"
+
+#: cmd/build.py:212
+msgid "console output options"
+msgstr "alternativ för konsolutmatning"
+
+#: cmd/build.py:219
+msgid "increase verbosity (can be repeated)"
+msgstr "öka ordrikedomen (kan upprepas)"
+
+#: cmd/build.py:226 ext/apidoc/_cli.py:66
+msgid "no output on stdout, just warnings on stderr"
+msgstr "ingen utdata på stdout, bara varningar på stderr"
+
+#: cmd/build.py:233
+msgid "no output at all, not even warnings"
+msgstr "ingen utdata alls, inte ens varningar"
+
+#: cmd/build.py:241
+msgid "do emit colored output (default: auto-detect)"
+msgstr "avge färgad utdata (standard: automatisk detektering)"
+
+#: cmd/build.py:249
+msgid "do not emit colored output (default: auto-detect)"
+msgstr "avger inte färgade utdata (standard: automatisk detektering)"
+
+#: cmd/build.py:252
+msgid "warning control options"
+msgstr "alternativ för varningskontroll"
+
+#: cmd/build.py:258
+msgid "write warnings (and errors) to given file"
+msgstr "skriva varningar (och fel) till en given fil"
+
+#: cmd/build.py:265
+msgid "turn warnings into errors"
+msgstr "omvandla varningar till fel"
+
+#: cmd/build.py:273
+msgid "show full traceback on exception"
+msgstr "visa fullständig spårning av undantag"
+
+#: cmd/build.py:276
+msgid "run Pdb on exception"
+msgstr "kör Pdb på undantag"
+
+#: cmd/build.py:282
+msgid "raise an exception on warnings"
+msgstr "skapa ett undantag vid varningar"
+
+#: cmd/build.py:325
+msgid "cannot combine -a option and filenames"
+msgstr "kan inte kombinera alternativet -a och filnamn"
+
+#: cmd/build.py:357
+#, python-format
+msgid "cannot open warning file '%s': %s"
+msgstr "kan inte öppna varningsfilen '%s': %s"
+
+#: cmd/build.py:376
+msgid "-D option argument must be in the form name=value"
+msgstr "-D alternativargumentet måste vara i formen name=value"
+
+#: cmd/build.py:383
+msgid "-A option argument must be in the form name=value"
+msgstr "-Ett option-argument måste vara i formen name=value"
+
+#: cmd/quickstart.py:52
+msgid "automatically insert docstrings from modules"
+msgstr "automatiskt infoga docstrings från moduler"
+
+#: cmd/quickstart.py:53
+msgid "automatically test code snippets in doctest blocks"
+msgstr "automatiskt testa kodsnuttar i doctest-block"
+
+#: cmd/quickstart.py:54
+msgid "link between Sphinx documentation of different projects"
+msgstr "länk mellan Sphinx-dokumentation av olika projekt"
+
+#: cmd/quickstart.py:55
+msgid "write \"todo\" entries that can be shown or hidden on build"
+msgstr "skriva \"att göra\"-poster som kan visas eller döljas på byggplatsen"
+
+#: cmd/quickstart.py:56
+msgid "checks for documentation coverage"
+msgstr "kontroll av dokumentationens täckning"
+
+#: cmd/quickstart.py:57
+msgid "include math, rendered as PNG or SVG images"
+msgstr "inkludera matematik, återgiven som PNG- eller SVG-bilder"
+
+#: cmd/quickstart.py:58
+msgid "include math, rendered in the browser by MathJax"
+msgstr "innehåller matematik, som återges i webbläsaren med MathJax"
+
+#: cmd/quickstart.py:59
+msgid "conditional inclusion of content based on config values"
+msgstr "villkorlig inkludering av innehåll baserat på konfigurationsvärden"
+
+#: cmd/quickstart.py:60
+msgid "include links to the source code of documented Python objects"
+msgstr "inkludera länkar till källkoden för dokumenterade Python-objekt"
+
+#: cmd/quickstart.py:61
+msgid "create .nojekyll file to publish the document on GitHub pages"
+msgstr "skapa .nojekyll-fil för att publicera dokumentet på GitHub-sidor"
+
+#: cmd/quickstart.py:111
+msgid "Please enter a valid path name."
+msgstr "Ange ett giltigt sökvägsnamn."
+
+#: cmd/quickstart.py:127
+msgid "Please enter some text."
+msgstr "Skriv in någon text."
+
+#: cmd/quickstart.py:134
+#, python-format
+msgid "Please enter one of %s."
+msgstr "Ange ett av %s."
+
+#: cmd/quickstart.py:142
+msgid "Please enter either 'y' or 'n'."
+msgstr "Ange antingen 'y' eller 'n'."
+
+#: cmd/quickstart.py:148
+msgid "Please enter a file suffix, e.g. '.rst' or '.txt'."
+msgstr "Ange ett filsuffix, t.ex. \".rst\" eller \".txt\"."
+
+#: cmd/quickstart.py:230
+#, python-format
+msgid "Welcome to the Sphinx %s quickstart utility."
+msgstr "Välkommen till Sphinx %s snabbstartverktyg."
+
+#: cmd/quickstart.py:235
+msgid ""
+"Please enter values for the following settings (just press Enter to\n"
+"accept a default value, if one is given in brackets)."
+msgstr "Ange värden för följande inställningar (tryck bara på Enter för att acceptera\nacceptera ett standardvärde, om ett sådant anges inom parentes)."
+
+#: cmd/quickstart.py:242
+#, python-format
+msgid "Selected root path: %s"
+msgstr "Vald rotsökväg: %s"
+
+#: cmd/quickstart.py:245
+msgid "Enter the root path for documentation."
+msgstr "Ange rotsökvägen för dokumentationen."
+
+#: cmd/quickstart.py:246
+msgid "Root path for the documentation"
+msgstr "Rotsökväg för dokumentationen"
+
+#: cmd/quickstart.py:255
+msgid "Error: an existing conf.py has been found in the selected root path."
+msgstr "Fel: en befintlig conf.py har hittats i den valda rotsökvägen."
+
+#: cmd/quickstart.py:260
+msgid "sphinx-quickstart will not overwrite existing Sphinx projects."
+msgstr "sphinx-quickstart kommer inte att skriva över befintliga Sphinx-projekt."
+
+#: cmd/quickstart.py:263
+msgid "Please enter a new root path (or just Enter to exit)"
+msgstr "Ange en ny rotsökväg (eller bara Enter för att avsluta)"
+
+#: cmd/quickstart.py:274
+msgid ""
+"You have two options for placing the build directory for Sphinx output.\n"
+"Either, you use a directory \"_build\" within the root path, or you separate\n"
+"\"source\" and \"build\" directories within the root path."
+msgstr "Du har två alternativ för att placera byggkatalogen för Sphinx-utdata.\nAntingen använder du en katalog \"_build\" i rotsökvägen, eller så separerar du\n\"source\" och \"build\" kataloger inom rotsökvägen."
+
+#: cmd/quickstart.py:280
+msgid "Separate source and build directories (y/n)"
+msgstr "Separata käll- och byggkataloger (y/n)"
+
+#: cmd/quickstart.py:287
+msgid ""
+"Inside the root directory, two more directories will be created; \"_templates\"\n"
+"for custom HTML templates and \"_static\" for custom stylesheets and other static\n"
+"files. You can enter another prefix (such as \".\") to replace the underscore."
+msgstr "Inuti rotkatalogen kommer ytterligare två kataloger att skapas; \"_templates\"\nför egna HTML-mallar och \"_static\" för egna stilmallar och andra statiska\nfiler. Du kan ange ett annat prefix (t.ex. \".\") för att ersätta understrecket."
+
+#: cmd/quickstart.py:292
+msgid "Name prefix for templates and static dir"
+msgstr "Namnprefix för mallar och statisk dir"
+
+#: cmd/quickstart.py:298
+msgid ""
+"The project name will occur in several places in the built documentation."
+msgstr "Projektnamnet kommer att förekomma på flera ställen i den byggda dokumentationen."
+
+#: cmd/quickstart.py:301
+msgid "Project name"
+msgstr "Projektnamn"
+
+#: cmd/quickstart.py:303
+msgid "Author name(s)"
+msgstr "Författarens namn(en)"
+
+#: cmd/quickstart.py:309
+msgid ""
+"Sphinx has the notion of a \"version\" and a \"release\" for the\n"
+"software. Each version can have multiple releases. For example, for\n"
+"Python the version is something like 2.5 or 3.0, while the release is\n"
+"something like 2.5.1 or 3.0a1. If you don't need this dual structure,\n"
+"just set both to the same value."
+msgstr "Sphinx har begreppet \"version\" och \"release\" för programvaran\nprogramvaran. Varje version kan ha flera utgåvor. Till exempel för\nPython är versionen något i stil med 2.5 eller 3.0, medan releasen är\nnågot i stil med 2.5.1 eller 3.0a1. Om du inte behöver den här dubbla strukturen,\nsätt bara båda till samma värde."
+
+#: cmd/quickstart.py:316
+msgid "Project version"
+msgstr "Projektversion"
+
+#: cmd/quickstart.py:318
+msgid "Project release"
+msgstr "Projektrelease"
+
+#: cmd/quickstart.py:324
+msgid ""
+"If the documents are to be written in a language other than English,\n"
+"you can select a language here by its language code. Sphinx will then\n"
+"translate text that it generates into that language.\n"
+"\n"
+"For a list of supported codes, see\n"
+"https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-language."
+msgstr "Om dokumenten ska skrivas på ett annat språk än engelska,\nkan du här välja ett språk med hjälp av dess språkkod. Sphinx kommer då att\növersätta text som den genererar till det språket.\n\nFör en lista över koder som stöds, se\nhttps://www.sphinx-doc.org/en/master/usage/configuration.html#confval-language."
+
+#: cmd/quickstart.py:332
+msgid "Project language"
+msgstr "Projektspråk"
+
+#: cmd/quickstart.py:340
+msgid ""
+"The file name suffix for source files. Commonly, this is either \".txt\"\n"
+"or \".rst\". Only files with this suffix are considered documents."
+msgstr "Filnamnssuffixet för källfiler. Vanligtvis är detta antingen \".txt\"\neller \".rst\". Endast filer med detta suffix betraktas som dokument."
+
+#: cmd/quickstart.py:344
+msgid "Source file suffix"
+msgstr "Suffix för källfil"
+
+#: cmd/quickstart.py:350
+msgid ""
+"One document is special in that it is considered the top node of the\n"
+"\"contents tree\", that is, it is the root of the hierarchical structure\n"
+"of the documents. Normally, this is \"index\", but if your \"index\"\n"
+"document is a custom template, you can also set this to another filename."
+msgstr "Ett dokument är speciellt på så sätt att det betraktas som den översta noden i\n\"innehållsträdet\", det vill säga det är roten till den hierarkiska strukturen\nav dokumenten. Normalt är detta \"index\", men om ditt \"index\"-dokument\ndokument är en anpassad mall kan du också ange ett annat filnamn."
+
+#: cmd/quickstart.py:357
+msgid "Name of your master document (without suffix)"
+msgstr "Namnet på ditt huvuddokument (utan suffix)"
+
+#: cmd/quickstart.py:368
+#, python-format
+msgid ""
+"Error: the master file %s has already been found in the selected root path."
+msgstr "Fel: Masterfilen %s har redan hittats på den valda rotsökvägen."
+
+#: cmd/quickstart.py:374
+msgid "sphinx-quickstart will not overwrite the existing file."
+msgstr "sphinx-quickstart kommer inte att skriva över den befintliga filen."
+
+#: cmd/quickstart.py:378
+msgid ""
+"Please enter a new file name, or rename the existing file and press Enter"
+msgstr "Ange ett nytt filnamn eller byt namn på en befintlig fil och tryck på Enter"
+
+#: cmd/quickstart.py:386
+msgid "Indicate which of the following Sphinx extensions should be enabled:"
+msgstr "Ange vilka av följande Sphinx-tillägg som ska aktiveras:"
+
+#: cmd/quickstart.py:397
+msgid ""
+"Note: imgmath and mathjax cannot be enabled at the same time. imgmath has "
+"been deselected."
+msgstr "Obs: imgmath och mathjax kan inte aktiveras samtidigt. imgmath har valts bort."
+
+#: cmd/quickstart.py:407
+msgid ""
+"A Makefile and a Windows command file can be generated for you so that you\n"
+"only have to run e.g. `make html' instead of invoking sphinx-build\n"
+"directly."
+msgstr "En Makefile och en Windows-kommandofil kan genereras åt dig så att du bara behöver\nbara behöver köra t.ex. `make html' istället för att anropa sphinx-build\ndirekt."
+
+#: cmd/quickstart.py:412
+msgid "Create Makefile? (y/n)"
+msgstr "Skapa Makefile? (ja/nej)"
+
+#: cmd/quickstart.py:416
+msgid "Create Windows command file? (y/n)"
+msgstr "Skapa Windows-kommandofil? (ja/nej)"
+
+#: cmd/quickstart.py:468 ext/apidoc/_generate.py:76
+#, python-format
+msgid "Creating file %s."
+msgstr "Skapar fil %s."
+
+#: cmd/quickstart.py:473 ext/apidoc/_generate.py:73
+#, python-format
+msgid "File %s already exists, skipping."
+msgstr "Fil %s finns redan, hoppar över."
+
+#: cmd/quickstart.py:516
+msgid "Finished: An initial directory structure has been created."
+msgstr "Färdigställt: En första katalogstruktur har skapats."
+
+#: cmd/quickstart.py:520
+#, python-format
+msgid ""
+"You should now populate your master file %s and create other documentation\n"
+"source files. "
+msgstr "Du ska nu fylla på din masterfil %s och skapa andra källfiler för\ndokumentationen. "
+
+#: cmd/quickstart.py:527
+msgid ""
+"Use the Makefile to build the docs, like so:\n"
+"   make builder"
+msgstr "Använd Makefile för att bygga dokumenten, så här:\n   make byggare"
+
+#: cmd/quickstart.py:531
+#, python-format
+msgid ""
+"Use the sphinx-build command to build the docs, like so:\n"
+"   sphinx-build -b builder %s %s"
+msgstr "Använd kommandot sphinx-build för att bygga dokumenten, så här:\n   sphinx-build -b byggare %s %s"
+
+#: cmd/quickstart.py:538
+msgid ""
+"where \"builder\" is one of the supported builders, e.g. html, latex or "
+"linkcheck."
+msgstr "där \"builder\" är en av de byggare som stöds, t.ex. html, latex eller linkcheck."
+
+#: cmd/quickstart.py:573
+msgid ""
+"\n"
+"Generate required files for a Sphinx project.\n"
+"\n"
+"sphinx-quickstart is an interactive tool that asks some questions about your\n"
+"project and then generates a complete documentation directory and sample\n"
+"Makefile to be used with sphinx-build.\n"
+msgstr "\nGenerera nödvändiga filer för ett Sphinx-projekt.\n\nsphinx-quickstart är ett interaktivt verktyg som ställer några frågor om ditt\nprojekt och sedan genererar en komplett dokumentationskatalog och ett exempel\nMakefile som kan användas med sphinx-build.\n"
+
+#: cmd/quickstart.py:592
+msgid "quiet mode"
+msgstr "tyst läge"
+
+#: cmd/quickstart.py:602
+msgid "project root"
+msgstr "projektrot"
+
+#: cmd/quickstart.py:605
+msgid "Structure options"
+msgstr "Strukturalternativ"
+
+#: cmd/quickstart.py:611
+msgid "if specified, separate source and build dirs"
+msgstr "om angivet, separata käll- och byggkataloger"
+
+#: cmd/quickstart.py:617
+msgid "if specified, create build dir under source dir"
+msgstr "om det anges, skapa byggkatalog under källkatalog"
+
+#: cmd/quickstart.py:623
+msgid "replacement for dot in _templates etc."
+msgstr "ersättning för punkt i _templates etc."
+
+#: cmd/quickstart.py:626
+msgid "Project basic options"
+msgstr "Projektets grundläggande alternativ"
+
+#: cmd/quickstart.py:628
+msgid "project name"
+msgstr "projektets namn"
+
+#: cmd/quickstart.py:631
+msgid "author names"
+msgstr "författarnamn"
+
+#: cmd/quickstart.py:638
+msgid "version of project"
+msgstr "version av projektet"
+
+#: cmd/quickstart.py:645
+msgid "release of project"
+msgstr "frisläppande av projekt"
+
+#: cmd/quickstart.py:652
+msgid "document language"
+msgstr "dokumentspråk"
+
+#: cmd/quickstart.py:655
+msgid "source file suffix"
+msgstr "suffix för källfil"
+
+#: cmd/quickstart.py:658
+msgid "master document name"
+msgstr "masterdokumentets namn"
+
+#: cmd/quickstart.py:661
+msgid "use epub"
+msgstr "använda epub"
+
+#: cmd/quickstart.py:664
+msgid "Extension options"
+msgstr "Alternativ för tillägg"
+
+#: cmd/quickstart.py:671
+#, python-format
+msgid "enable %s extension"
+msgstr "aktivera tillägget %s"
+
+#: cmd/quickstart.py:678
+msgid "enable arbitrary extensions"
+msgstr "aktivera godtyckliga tillägg"
+
+#: cmd/quickstart.py:681
+msgid "Makefile and Batchfile creation"
+msgstr "Skapande av Makefile och Batchfile"
+
+#: cmd/quickstart.py:687
+msgid "create makefile"
+msgstr "skapa makefile"
+
+#: cmd/quickstart.py:693
+msgid "do not create makefile"
+msgstr "skapa inte makefile"
+
+#: cmd/quickstart.py:700
+msgid "create batchfile"
+msgstr "skapa batchfil"
+
+#: cmd/quickstart.py:706
+msgid "do not create batchfile"
+msgstr "skapa inte batchfil"
+
+#: cmd/quickstart.py:715
+msgid "use make-mode for Makefile/make.bat"
+msgstr "använda make-mode för Makefile/make.bat"
+
+#: cmd/quickstart.py:718 ext/apidoc/_cli.py:243
+msgid "Project templating"
+msgstr "Templating av projekt"
+
+#: cmd/quickstart.py:724 ext/apidoc/_cli.py:249
+msgid "template directory for template files"
+msgstr "mallkatalog för mallfiler"
+
+#: cmd/quickstart.py:731
+msgid "define a template variable"
+msgstr "definiera en mallvariabel"
+
+#: cmd/quickstart.py:767
+msgid "\"quiet\" is specified, but any of \"project\" or \"author\" is not specified."
+msgstr "\"quiet\" är specificerat, men något av \"project\" eller \"author\" är inte specificerat."
+
+#: cmd/quickstart.py:786
+msgid ""
+"Error: specified path is not a directory, or sphinx files already exist."
+msgstr "Fel: angiven sökväg är inte en katalog, eller så finns det redan sphinx-filer."
+
+#: cmd/quickstart.py:793
+msgid ""
+"sphinx-quickstart only generate into a empty directory. Please specify a new"
+" root path."
+msgstr "sphinx-quickstart genererar bara till en tom katalog. Ange en ny rotsökväg."
+
+#: cmd/quickstart.py:810
+#, python-format
+msgid "Invalid template variable: %s"
+msgstr "Ogiltig mallvariabel: %s"
+
+#: directives/other.py:119
+#, python-format
+msgid "toctree glob pattern %r didn't match any documents"
+msgstr "toctree glob mönster %r matchade inga dokument"
+
+#: directives/other.py:153 environment/adapters/toctree.py:372
+#, python-format
+msgid "toctree contains reference to excluded document %r"
+msgstr "toctree innehåller referens till exkluderat dokument %r"
+
+#: directives/other.py:156
+#, python-format
+msgid "toctree contains reference to nonexisting document %r"
+msgstr "toctree innehåller referens till icke-existerande dokument %r"
+
+#: directives/other.py:169
+#, python-format
+msgid "duplicated entry found in toctree: %s"
+msgstr "duplicerad post hittades i toctree: %s"
+
+#: directives/other.py:203
+msgid "Section author: "
+msgstr "Kapitelförfattare: "
+
+#: directives/other.py:205
+msgid "Module author: "
+msgstr "Modulförfattare: "
+
+#: directives/other.py:207
+msgid "Code author: "
+msgstr "Källkodsförfattare: "
+
+#: directives/other.py:209
+msgid "Author: "
+msgstr "Upphovsperson: "
+
+#: directives/other.py:269
+msgid ".. acks content is not a list"
+msgstr "... acks innehåll är inte en lista"
+
+#: directives/other.py:292
+msgid ".. hlist content is not a list"
+msgstr "... hlist-innehåll är inte en lista"
+
+#: directives/patches.py:70
+msgid ""
+"\":file:\" option for csv-table directive now recognizes an absolute path as"
+" a relative path from source directory. Please update your document."
+msgstr "alternativet \":file:\" för direktivet csv-table känner nu igen en absolut sökväg som en relativ sökväg från källkatalogen. Uppdatera ditt dokument."
+
+#: directives/code.py:66
+msgid "non-whitespace stripped by dedent"
+msgstr "icke-blanksteg strippat av dedent"
+
+#: directives/code.py:87
+#, python-format
+msgid "Invalid caption: %s"
+msgstr "Ogiltig bildtext: %s"
+
+#: directives/code.py:131 directives/code.py:297 directives/code.py:483
+#, python-format
+msgid "line number spec is out of range(1-%d): %r"
+msgstr "radnummer spec är utanför intervallet (1-%d): %r"
+
+#: directives/code.py:216
+#, python-format
+msgid "Cannot use both \"%s\" and \"%s\" options"
+msgstr "Kan inte använda både alternativen \"%s\" och \"%s\""
+
+#: directives/code.py:231
+#, python-format
+msgid "Include file '%s' not found or reading it failed"
+msgstr "Include-filen '%s' hittades inte eller läsningen av den misslyckades"
+
+#: directives/code.py:235
+#, python-format
+msgid ""
+"Encoding %r used for reading included file '%s' seems to be wrong, try "
+"giving an :encoding: option"
+msgstr "Kodning %r som används för att läsa den inkluderade filen '%s' verkar vara fel, försök att ange ett :encoding: alternativ"
+
+#: directives/code.py:276
+#, python-format
+msgid "Object named %r not found in include file %r"
+msgstr "Objekt med namnet %r hittades inte i include-filen %r"
+
+#: directives/code.py:309
+msgid "Cannot use \"lineno-match\" with a disjoint set of \"lines\""
+msgstr "Det går inte att använda \"lineno-match\" med en disjunkt uppsättning \"linjer\""
+
+#: directives/code.py:314
+#, python-format
+msgid "Line spec %r: no lines pulled from include file %r"
+msgstr "Radspecifikation %r: inga rader hämtade från include-filen %r"
+
+#: builders/html/__init__.py:475 builders/latex/__init__.py:196
+#: transforms/__init__.py:134 writers/manpage.py:97 writers/texinfo.py:220
+#, python-format
+msgid "%b %d, %Y"
+msgstr "%b %d, %Y"
+
+#: builders/latex/__init__.py:203 domains/std/__init__.py:771
+#: domains/std/__init__.py:784 templates/latex/latex.tex.jinja:107
+#: themes/basic/genindex-single.html:22 themes/basic/genindex-single.html:48
+#: themes/basic/genindex-split.html:3 themes/basic/genindex-split.html:6
+#: themes/basic/genindex.html:3 themes/basic/genindex.html:26
+#: themes/basic/genindex.html:59 themes/basic/layout.html:127
+#: writers/texinfo.py:514
+msgid "Index"
+msgstr "Index"
+
+#: writers/latex.py:768 writers/texinfo.py:646
+msgid ""
+"encountered title node not in section, topic, table, admonition or sidebar"
+msgstr "påträffad titelnod inte i avsnitt, ämne, tabell, uppmaning eller sidofält"
+
+#: writers/latex.py:1118 writers/manpage.py:258 writers/texinfo.py:663
+msgid "Footnotes"
+msgstr "Fotnoter"
+
+#: writers/texinfo.py:1217
+msgid "caption not inside a figure."
+msgstr "bildtext inte inuti en figur."
+
+#: writers/texinfo.py:1303
+#, python-format
+msgid "unimplemented node type: %r"
+msgstr "oimplementerad nodtyp: %r"
+
+#: writers/manpage.py:288 writers/text.py:971
+#, python-format
+msgid "[image: %s]"
+msgstr "[image: %s]"
+
+#: writers/manpage.py:289 writers/text.py:972
+msgid "[image]"
+msgstr "[image]"
+
+#: writers/html5.py:96 writers/html5.py:105
+msgid "Link to this definition"
+msgstr "Länk till denna definition"
+
+#: writers/html5.py:431
+#, python-format
+msgid "numfig_format is not defined for %s"
+msgstr "numfig_format är inte definierat för %s"
+
+#: writers/html5.py:441
+#, python-format
+msgid "Any IDs not assigned for %s node"
+msgstr "Alla ID som inte tilldelats för %s-noden"
+
+#: writers/html5.py:496
+msgid "Link to this term"
+msgstr "Länk till denna termin"
+
+#: writers/html5.py:548 writers/html5.py:553
+msgid "Link to this heading"
+msgstr "Länk till denna rubrik"
+
+#: writers/html5.py:558
+msgid "Link to this table"
+msgstr "Länk till detta bord"
+
+#: writers/html5.py:572 writers/latex.py:1127
+#, python-format
+msgid "unsupported rubric heading level: %s"
+msgstr "rubricering utan stöd rubriknivå: %s"
+
+#: writers/html5.py:636
+msgid "Link to this code"
+msgstr "Länk till denna kod"
+
+#: writers/html5.py:638
+msgid "Link to this image"
+msgstr "Länk till denna bild"
+
+#: writers/html5.py:640
+msgid "Link to this toctree"
+msgstr "Länk till detta toctree"
+
+#: writers/html5.py:766
+msgid "Could not obtain image size. :scale: option is ignored."
+msgstr "Det gick inte att få fram bildstorleken. :scale: alternativet ignoreras."
+
+#: writers/latex.py:386
+#, python-format
+msgid "unknown %r toplevel_sectioning for class %r"
+msgstr "okänd %r toplevel_sectioning för klass %r"
+
+#: builders/latex/__init__.py:221 writers/latex.py:436
+#, python-format
+msgid "no Babel option known for language %r"
+msgstr "inget Babel-alternativ känt för språk %r"
+
+#: writers/latex.py:454
+msgid "too large :maxdepth:, ignored."
+msgstr "för stor :maxdepth:, ignoreras."
+
+#: writers/latex.py:616
+#, python-format
+msgid "template %s not found; loading from legacy %s instead"
+msgstr "mallen %s hittades inte; läser in från legacy %s istället"
+
+#: writers/latex.py:732
+msgid "document title is not a single Text node"
+msgstr "dokumenttiteln är inte en enda textnod"
+
+#: writers/latex.py:1198
+msgid ""
+"both tabularcolumns and :widths: option are given. :widths: is ignored."
+msgstr "både tabularcolumns och alternativet :widths: anges. :widths: ignoreras."
+
+#: writers/latex.py:1228
+#, python-format
+msgid ""
+"colspec %s was given which appears to use tabulary syntax.  But this table "
+"can not be rendered as a tabulary; the given colspec will be ignored."
+msgstr "colspec %s gavs som verkar använda tabulär syntax.  Men denna tabell kan inte återges som en tabulary; den angivna colspec kommer att ignoreras."
+
+#: writers/latex.py:1615
+#, python-format
+msgid "dimension unit %s is invalid. Ignored."
+msgstr "dimensionsenheten %s är ogiltig. Ignoreras."
+
+#: writers/latex.py:1950
+#, python-format
+msgid "unknown index entry type %s found"
+msgstr "okänd indexposttyp %s hittades"
+
+#: _cli/__init__.py:73
+msgid "Usage:"
+msgstr "Användning:"
+
+#: _cli/__init__.py:75
+#, python-brace-format
+msgid "{0} [OPTIONS] <COMMAND> [<ARGS>]"
+msgstr "{0} [ALTERNATIV] <COMMAND> [<ARGS>]"
+
+#: _cli/__init__.py:78
+msgid "  The Sphinx documentation generator."
+msgstr "  Sphinx dokumentationsgenerator."
+
+#: _cli/__init__.py:87
+msgid "Commands:"
+msgstr "Kommandon:"
+
+#: _cli/__init__.py:98
+msgid "Options"
+msgstr "Alternativ"
+
+#: _cli/__init__.py:113 _cli/__init__.py:181
+msgid "For more information, visit https://www.sphinx-doc.org/en/master/man/."
+msgstr "För mer information, besök https://www.sphinx-doc.org/en/master/man/."
+
+#: _cli/__init__.py:171
+#, python-brace-format
+msgid ""
+"{0}: error: {1}\n"
+"Run '{0} --help' for information"
+msgstr "{0}: fel: {1}\nKör '{0} --help' för information"
+
+#: _cli/__init__.py:179
+msgid "   Manage documentation with Sphinx."
+msgstr "   Hantera dokumentation med Sphinx."
+
+#: _cli/__init__.py:191
+msgid "Show the version and exit."
+msgstr "Visa versionen och avsluta."
+
+#: _cli/__init__.py:199
+msgid "Show this message and exit."
+msgstr "Visa detta meddelande och avsluta."
+
+#: _cli/__init__.py:203
+msgid "Logging"
+msgstr "Loggning"
+
+#: _cli/__init__.py:210
+msgid "Increase verbosity (can be repeated)"
+msgstr "Öka ordrikedomen (kan upprepas)"
+
+#: _cli/__init__.py:218
+msgid "Only print errors and warnings."
+msgstr "Skriv bara ut fel och varningar."
+
+#: _cli/__init__.py:225
+msgid "No output at all"
+msgstr "Ingen utmatning alls"
+
+#: _cli/__init__.py:231
+msgid "<command>"
+msgstr "<command>"
+
+#: _cli/__init__.py:263
+msgid "See 'sphinx --help'.\n"
+msgstr "Se \"sphinx --help\".\n"
+
+#: transforms/i18n.py:230 transforms/i18n.py:305
+#, python-brace-format
+msgid ""
+"inconsistent footnote references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "inkonsekventa fotnotreferenser i översatt meddelande. original: {0}, översatt: {1}"
+
+#: transforms/i18n.py:275
+#, python-brace-format
+msgid ""
+"inconsistent references in translated message. original: {0}, translated: "
+"{1}"
+msgstr "inkonsekventa referenser i översatt meddelande. original: {0}, översatt: {1}"
+
+#: transforms/i18n.py:325
+#, python-brace-format
+msgid ""
+"inconsistent citation references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "inkonsekventa källhänvisningar i översatt meddelande. original: {0}, översatt: {1}"
+
+#: transforms/i18n.py:347
+#, python-brace-format
+msgid ""
+"inconsistent term references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "inkonsekventa termreferenser i översatt meddelande. original: {0}, översatt: {1}"
+
+#: transforms/__init__.py:144
+msgid "could not calculate translation progress!"
+msgstr "kunde inte beräkna översättningens framsteg!"
+
+#: transforms/__init__.py:149
+msgid "no translated elements!"
+msgstr "inga översatta element!"
+
+#: transforms/__init__.py:258
+#, python-format
+msgid ""
+"4 column based index found. It might be a bug of extensions you use: %r"
+msgstr "4 kolumnbaserade index hittades. Det kan vara en bugg i de tillägg du använder: %r"
+
+#: transforms/__init__.py:299
+#, python-format
+msgid "Footnote [%s] is not referenced."
+msgstr "Fotnot [%s] är inte refererad."
+
+#: transforms/__init__.py:308
+msgid "Footnote [*] is not referenced."
+msgstr "Fotnot [*] är inte refererad."
+
+#: transforms/__init__.py:319
+msgid "Footnote [#] is not referenced."
+msgstr "Fotnot [#] är inte refererad."
+
+#: util/inventory.py:147
+#, python-format
+msgid "inventory <%s> contains duplicate definitions of %s"
+msgstr "inventering <%s> innehåller duplicerade definitioner av %s"
+
+#: util/inventory.py:166
+#, python-format
+msgid "inventory <%s> contains multiple definitions for %s"
+msgstr "inventering <%s> innehåller flera definitioner för %s"
+
+#: util/i18n.py:100
+#, python-format
+msgid "reading error: %s, %s"
+msgstr "läsfel: %s, %s"
+
+#: util/i18n.py:113
+#, python-format
+msgid "writing error: %s, %s"
+msgstr "skrivfel: %s, %s"
+
+#: util/i18n.py:146
+#, python-format
+msgid "locale_dir %s does not exist"
+msgstr "locale_dir %s finns inte"
+
+#: util/i18n.py:244
+#, python-format
+msgid "Invalid Babel locale: %r."
+msgstr "Ogiltig Babel-lokal: %r."
+
+#: util/i18n.py:253
+#, python-format
+msgid ""
+"Invalid date format. Quote the string by single quote if you want to output "
+"it directly: %s"
+msgstr "Ogiltigt datumformat. Citera strängen med enkla citattecken om du vill skriva ut den direkt: %s"
+
+#: util/osutil.py:131
+#, python-format
+msgid ""
+"Aborted attempted copy from %s to %s (the destination path has existing "
+"data)."
+msgstr "Avbrutet kopieringsförsök från %s till %s (målbanan har befintliga data)."
+
+#: util/display.py:82
+msgid "skipped"
+msgstr "hoppades över"
+
+#: util/display.py:87
+msgid "failed"
+msgstr "misslyckades"
+
+#: util/docutils.py:325
+#, python-format
+msgid "unknown directive name: %s"
+msgstr "okänt direktivnamn: %s"
+
+#: util/docutils.py:361
+#, python-format
+msgid "unknown role name: %s"
+msgstr "okänt rollnamn: %s"
+
+#: util/docutils.py:805
+#, python-format
+msgid "unknown node type: %r"
+msgstr "okänd nodtyp: %r"
+
+#: util/fileutil.py:76
+#, python-format
+msgid ""
+"Aborted attempted copy from rendered template %s to %s (the destination path"
+" has existing data)."
+msgstr "Försök till kopiering från renderad mall %s till %s avbröts (destinationssökvägen har befintliga data)."
+
+#: util/fileutil.py:89
+#, python-format
+msgid "Writing evaluated template result to %s"
+msgstr "Skriva utvärderat mallresultat till %s"
+
+#: util/docfields.py:103
+#, python-format
+msgid ""
+"Problem in %s domain: field is supposed to use role '%s', but that role is "
+"not in the domain."
+msgstr "Problem i %s-domänen: fältet ska använda rollen '%s', men den rollen finns inte i domänen."
+
+#: util/rst.py:73
+#, python-format
+msgid "default role %s not found"
+msgstr "standardroll %s hittades inte"
+
+#: util/nodes.py:462
+#, python-format
+msgid ""
+"%r is no longer supported for index entries (from entry %r). Use 'pair: %s' "
+"instead."
+msgstr ""
+
+#: util/nodes.py:523
+#, python-format
+msgid "toctree contains ref to nonexisting file %r"
+msgstr "toctree innehåller ref till icke-existerande fil %r"
+
+#: util/nodes.py:739
+#, python-format
+msgid "exception while evaluating only directive expression: %s"
+msgstr "undantag vid utvärdering av endast direktivuttryck: %s"
+
+#: templates/latex/longtable.tex.jinja:52
+#: templates/latex/sphinxmessages.sty.jinja:8
+msgid "continued from previous page"
+msgstr "fortsättning från föregående sida"
+
+#: templates/latex/longtable.tex.jinja:63
+#: templates/latex/sphinxmessages.sty.jinja:9
+msgid "continues on next page"
+msgstr "fortsätter på nästa sida"
+
+#: templates/latex/sphinxmessages.sty.jinja:10
+msgid "Non-alphabetical"
+msgstr "Icke alfabetisk"
+
+#: environment/adapters/indexentries.py:267
+#: templates/latex/sphinxmessages.sty.jinja:11
+msgid "Symbols"
+msgstr "Symboler"
+
+#: templates/latex/sphinxmessages.sty.jinja:12
+msgid "Numbers"
+msgstr "Nummer"
+
+#: templates/latex/sphinxmessages.sty.jinja:13
+msgid "page"
+msgstr "sida"
+
+#: builders/latex/__init__.py:206 templates/latex/latex.tex.jinja:92
+msgid "Release"
+msgstr "Släpp"
+
+#: transforms/post_transforms/images.py:79
+#, python-format
+msgid "Could not fetch remote image: %s [%s]"
+msgstr "Kunde inte hämta fjärrbild: %s [%s]"
+
+#: transforms/post_transforms/images.py:96
+#, python-format
+msgid "Could not fetch remote image: %s [%d]"
+msgstr "Kunde inte hämta fjärrbild: %s [%d]"
+
+#: transforms/post_transforms/images.py:143
+#, python-format
+msgid "Unknown image format: %s..."
+msgstr "Okänt bildformat: %s..."
+
+#: transforms/post_transforms/__init__.py:88
+msgid ""
+"Could not determine the fallback text for the cross-reference. Might be a "
+"bug."
+msgstr "Det gick inte att fastställa fallback-texten för korsreferensen. Kan vara en bugg."
+
+#: transforms/post_transforms/__init__.py:233
+#, python-format
+msgid "more than one target found for 'any' cross-reference %r: could be %s"
+msgstr "mer än ett mål hittades för 'any' korsreferens %r: kan vara %s"
+
+#: transforms/post_transforms/__init__.py:291
+#, python-format
+msgid "%s:%s reference target not found: %s"
+msgstr "%s:%s referensmål hittades inte: %s"
+
+#: transforms/post_transforms/__init__.py:297
+#, python-format
+msgid "%r reference target not found: %s"
+msgstr "%r referensmål hittades inte: %s"
+
+#: _cli/util/errors.py:190
+msgid "Interrupted!"
+msgstr "Avbruten!"
+
+#: _cli/util/errors.py:194
+msgid "reStructuredText markup error!"
+msgstr "reStructuredText markeringsfel!"
+
+#: _cli/util/errors.py:200
+msgid "Encoding error!"
+msgstr "Kodningsfel!"
+
+#: _cli/util/errors.py:203
+msgid "Recursion error!"
+msgstr "Rekursionsfel!"
+
+#: _cli/util/errors.py:207
+msgid ""
+"This can happen with very large or deeply nested source files. You can "
+"carefully increase the default Python recursion limit of 1,000 in conf.py "
+"with e.g.:"
+msgstr "Detta kan hända med mycket stora eller djupt nästlade källfiler. Du kan försiktigt öka Pythons standardgräns för rekursion på 1 000 i conf.py med t.ex:"
+
+#: _cli/util/errors.py:227
+msgid "Starting debugger:"
+msgstr "Startar felsökningsverktyget:"
+
+#: _cli/util/errors.py:235
+msgid "The full traceback has been saved in:"
+msgstr "Den fullständiga spårningen har sparats i:"
+
+#: _cli/util/errors.py:240
+msgid ""
+"To report this error to the developers, please open an issue at "
+"<https://github.com/sphinx-doc/sphinx/issues/>. Thanks!"
+msgstr "För att rapportera detta fel till utvecklarna, öppna ett ärende på <https://github.com/sphinx-doc/sphinx/issues/>. Tack så mycket!"
+
+#: _cli/util/errors.py:246
+msgid ""
+"Please also report this if it was a user error, so that a better error "
+"message can be provided next time."
+msgstr "Rapportera även detta om det var ett användarfel, så att ett bättre felmeddelande kan tillhandahållas nästa gång."
+
+#: themes/classic/layout.html:12 themes/classic/static/sidebar.js.jinja:51
+msgid "Collapse sidebar"
+msgstr "Dölja sidofältet"
+
+#: themes/basic/layout.html:18
+msgid "Navigation"
+msgstr "Navigering"
+
+#: themes/basic/layout.html:115
+#, python-format
+msgid "Search within %(docstitle)s"
+msgstr "Sök inom %(docstitle)s"
+
+#: themes/basic/layout.html:124
+msgid "About these documents"
+msgstr "Om dessa dokument"
+
+#: themes/agogo/layout.html:34 themes/basic/layout.html:130
+#: themes/basic/search.html:3 themes/basic/search.html:15
+msgid "Search"
+msgstr "Sök"
+
+#: themes/basic/layout.html:133 themes/basic/layout.html:177
+#: themes/basic/layout.html:179
+msgid "Copyright"
+msgstr "Upphovsrätt"
+
+#: themes/basic/layout.html:183 themes/basic/layout.html:189
+#, python-format
+msgid "&#169; %(copyright_prefix)s %(copyright)s."
+msgstr "© %(copyright_prefix)s %(copyright)s."
+
+#: themes/basic/layout.html:201
+#, python-format
+msgid "Last updated on %(last_updated)s."
+msgstr "Senast uppdaterad den %(last_updated)s."
+
+#: themes/basic/layout.html:204
+#, python-format
+msgid ""
+"Created using <a href=\"https://www.sphinx-doc.org/\">Sphinx</a> "
+"%(sphinx_version)s."
+msgstr "Skapad med hjälp av <a href=\"https://www.sphinx-doc.org/\">Sphinx</a> %(sphinx_version)s."
+
+#: themes/basic/relations.html:4
+msgid "Previous topic"
+msgstr "Föregående ämne"
+
+#: themes/basic/relations.html:6
+msgid "previous chapter"
+msgstr "föregående kapitel"
+
+#: themes/basic/relations.html:11
+msgid "Next topic"
+msgstr "Nästa ämne"
+
+#: themes/basic/relations.html:13
+msgid "next chapter"
+msgstr "nästa kapitel"
+
+#: themes/basic/genindex-single.html:26
+#, python-format
+msgid "Index &#x2013; %(key)s"
+msgstr "Index - %(key)s"
+
+#: themes/basic/genindex-single.html:54 themes/basic/genindex-split.html:16
+#: themes/basic/genindex-split.html:30 themes/basic/genindex.html:65
+msgid "Full index on one page"
+msgstr "Fullständigt index på en sida"
+
+#: themes/basic/sourcelink.html:4
+msgid "This Page"
+msgstr "Den här sidan"
+
+#: themes/agogo/layout.html:81 themes/basic/sourcelink.html:7
+msgid "Show Source"
+msgstr "Visa källa"
+
+#: themes/basic/searchbox.html:4
+msgid "Quick search"
+msgstr "Snabbsök"
+
+#: themes/agogo/layout.html:37 themes/basic/searchbox.html:8
+#: themes/basic/searchfield.html:12
+msgid "Go"
+msgstr "Start"
+
+#: themes/basic/defindex.html:4
+msgid "Overview"
+msgstr "Översikt"
+
+#: themes/basic/defindex.html:8
+msgid "Welcome! This is"
+msgstr "Välkomna! Det här är"
+
+#: themes/basic/defindex.html:9
+msgid "the documentation for"
+msgstr "dokumentationen för"
+
+#: themes/basic/defindex.html:10
+msgid "last updated"
+msgstr "senast uppdaterad"
+
+#: themes/basic/defindex.html:13
+msgid "Indices and tables:"
+msgstr "Index och tabeller:"
+
+#: themes/basic/defindex.html:16
+msgid "Complete Table of Contents"
+msgstr "Fullständig innehållsförteckning"
+
+#: themes/basic/defindex.html:17
+msgid "lists all sections and subsections"
+msgstr "listar alla avsnitt och underavsnitt"
+
+#: domains/std/__init__.py:773 domains/std/__init__.py:786
+#: themes/basic/defindex.html:18
+msgid "Search Page"
+msgstr "Söksida"
+
+#: themes/basic/defindex.html:19
+msgid "search this documentation"
+msgstr "sök i denna dokumentation"
+
+#: themes/basic/defindex.html:21
+msgid "Global Module Index"
+msgstr "Globalt modulindex"
+
+#: themes/basic/defindex.html:22
+msgid "quick access to all modules"
+msgstr "snabb åtkomst till alla moduler"
+
+#: builders/html/__init__.py:496 themes/basic/defindex.html:23
+msgid "General Index"
+msgstr "Allmänt index"
+
+#: themes/basic/defindex.html:24
+msgid "all functions, classes, terms"
+msgstr "alla funktioner, klasser, termer"
+
+#: themes/agogo/layout.html:29 themes/basic/globaltoc.html:2
+#: themes/basic/localtoc.html:4 themes/scrolls/layout.html:32
+msgid "Table of Contents"
+msgstr "Innehåll"
+
+#: themes/basic/opensearch.xml:4
+#, python-format
+msgid "Search %(docstitle)s"
+msgstr "Sök %(docstitle)s"
+
+#: themes/basic/genindex-split.html:8
+msgid "Index pages by letter"
+msgstr "Indexsidor per bokstav"
+
+#: themes/basic/genindex-split.html:17
+msgid "can be huge"
+msgstr "kan vara enorma"
+
+#: themes/basic/search.html:20
+msgid ""
+"Please activate JavaScript to enable the search\n"
+"    functionality."
+msgstr "Aktivera JavaScript för att aktivera sök-\n    funktionalitet."
+
+#: themes/basic/search.html:28
+msgid ""
+"Searching for multiple words only shows matches that contain\n"
+"    all words."
+msgstr "Vid sökning efter flera ord visas endast matchningar som innehåller\n    alla ord."
+
+#: themes/basic/search.html:35
+msgid "search"
+msgstr "sök"
+
+#: themes/haiku/layout.html:16
+msgid "Contents"
+msgstr "Innehåll"
+
+#: themes/basic/static/searchtools.js:132
+msgid "Search Results"
+msgstr "Sökresultat"
+
+#: themes/basic/static/searchtools.js:134
+msgid ""
+"Your search did not match any documents. Please make sure that all words are"
+" spelled correctly and that you've selected enough categories."
+msgstr "Din sökning matchade inte några dokument. Kontrollera att alla ord är rättstavade och att du har valt tillräckligt många kategorier."
+
+#: themes/basic/static/searchtools.js:138
+#, python-brace-format
+msgid "Search finished, found one page matching the search query."
+msgid_plural ""
+"Search finished, found ${resultCount} pages matching the search query."
+msgstr[0] "Sökningen är klar, hittade en sida som matchar sökfrågan."
+msgstr[1] "Sökningen är klar, hittade ${resultCount} sidor som matchar sökfrågan."
+
+#: themes/basic/static/searchtools.js:276
+msgid "Searching"
+msgstr "Söker"
+
+#: themes/basic/static/searchtools.js:293
+msgid "Preparing search..."
+msgstr "Förbereder sökning..."
+
+#: themes/basic/static/searchtools.js:526
+msgid ", in "
+msgstr ", i "
+
+#: themes/basic/static/sphinx_highlight.js:112
+msgid "Hide Search Matches"
+msgstr "Dölj sökträffar"
+
+#: themes/basic/changes/frameset.html:5
+#: themes/basic/changes/versionchanges.html:12
+#, python-format
+msgid "Changes in Version %(version)s &#8212; %(docstitle)s"
+msgstr "Ändringar i version %(version)s - %(docstitle)s"
+
+#: themes/basic/changes/rstsource.html:5
+#, python-format
+msgid "%(filename)s &#8212; %(docstitle)s"
+msgstr "%(filename)s - %(docstitle)s"
+
+#: themes/basic/changes/versionchanges.html:17
+#, python-format
+msgid "Automatically generated list of changes in version %(version)s"
+msgstr "Automatiskt genererad lista över ändringar i version %(version)s"
+
+#: themes/basic/changes/versionchanges.html:18
+msgid "Library changes"
+msgstr "Förändringar i biblioteket"
+
+#: themes/basic/changes/versionchanges.html:23
+msgid "C API changes"
+msgstr "C API-ändringar"
+
+#: themes/basic/changes/versionchanges.html:25
+msgid "Other changes"
+msgstr "Övriga ändringar"
+
+#: themes/classic/static/sidebar.js.jinja:42
+msgid "Expand sidebar"
+msgstr "Visa sidofältet"
+
+#: domains/python/_annotations.py:522
+msgid "Positional-only parameter separator (PEP 570)"
+msgstr "Parameteravskiljare för enbart positionering (PEP 570)"
+
+#: domains/python/_annotations.py:533
+msgid "Keyword-only parameters separator (PEP 3102)"
+msgstr "Separator för parametrar som endast innehåller nyckelord (PEP 3102)"
+
+#: domains/c/__init__.py:354 domains/cpp/__init__.py:485
+#: domains/python/_object.py:190 ext/napoleon/docstring.py:980
+msgid "Parameters"
+msgstr "Parametrar"
+
+#: domains/python/_object.py:206
+msgid "Variables"
+msgstr "Variabler"
+
+#: domains/python/_object.py:214
+msgid "Raises"
+msgstr "Höjer"
+
+#: domains/python/__init__.py:105 domains/python/__init__.py:270
+#, python-format
+msgid "%s() (in module %s)"
+msgstr "%s() (i modul %s)"
+
+#: domains/python/__init__.py:172 domains/python/__init__.py:366
+#: domains/python/__init__.py:426 domains/python/__init__.py:466
+#, python-format
+msgid "%s (in module %s)"
+msgstr "%s (i modul %s)"
+
+#: domains/python/__init__.py:174
+#, python-format
+msgid "%s (built-in variable)"
+msgstr "%s (inbyggd variabel)"
+
+#: domains/python/__init__.py:209
+#, python-format
+msgid "%s (built-in class)"
+msgstr "%s (inbyggd klass)"
+
+#: domains/python/__init__.py:210
+#, python-format
+msgid "%s (class in %s)"
+msgstr "%s (klass i %s)"
+
+#: domains/python/__init__.py:275
+#, python-format
+msgid "%s() (%s class method)"
+msgstr "%s() (%s klassmetod)"
+
+#: domains/python/__init__.py:277
+#, python-format
+msgid "%s() (%s static method)"
+msgstr "%s() (%s statisk metod)"
+
+#: domains/python/__init__.py:430
+#, python-format
+msgid "%s (%s property)"
+msgstr "%s (%s fastighet)"
+
+#: domains/python/__init__.py:470
+#, python-format
+msgid "%s (type alias in %s)"
+msgstr "%s (typ alias i %s)"
+
+#: domains/python/__init__.py:624
+msgid "Python Module Index"
+msgstr "Index för Python-moduler"
+
+#: domains/python/__init__.py:625
+msgid "modules"
+msgstr "moduler"
+
+#: domains/python/__init__.py:703
+msgid "Deprecated"
+msgstr "Föråldrat"
+
+#: domains/python/__init__.py:729
+msgid "exception"
+msgstr "undantag"
+
+#: domains/python/__init__.py:731
+msgid "class method"
+msgstr "klassmetod"
+
+#: domains/python/__init__.py:732
+msgid "static method"
+msgstr "statisk metod"
+
+#: domains/python/__init__.py:734
+msgid "property"
+msgstr "fastighet"
+
+#: domains/python/__init__.py:735
+msgid "type alias"
+msgstr "typ alias"
+
+#: domains/python/__init__.py:804
+#, python-format
+msgid ""
+"duplicate object description of %s, other instance in %s, use :no-index: for"
+" one of them"
+msgstr "duplicerad objektbeskrivning av %s, annan instans i %s, använd :no-index: för en av dem"
+
+#: domains/python/__init__.py:974
+#, python-format
+msgid "more than one target found for cross-reference %r: %s"
+msgstr "mer än ett mål hittades för korsreferens %r: %s"
+
+#: domains/python/__init__.py:1048
+msgid " (deprecated)"
+msgstr " (föråldrad)"
+
+#: domains/cpp/__init__.py:394 domains/cpp/_symbol.py:946
+#, python-format
+msgid ""
+"Duplicate C++ declaration, also defined at %s:%s.\n"
+"Declaration is '.. cpp:%s:: %s'."
+msgstr "Duplicerad C++-deklaration, även definierad i %s:%s.\nDeklarationen är '.. cpp:%s:: %s'."
+
+#: domains/cpp/__init__.py:159
+msgid "Template Parameters"
+msgstr "Parametrar för mall"
+
+#: domains/cpp/__init__.py:302
+#, python-format
+msgid "%s (C++ %s)"
+msgstr "%s (C++ %s)"
+
+#: domains/c/__init__.py:361 domains/cpp/__init__.py:498
+msgid "Return values"
+msgstr "Returvärden"
+
+#: domains/c/__init__.py:782 domains/cpp/__init__.py:942
+msgid "union"
+msgstr "forbund"
+
+#: domains/c/__init__.py:777 domains/cpp/__init__.py:944
+msgid "member"
+msgstr "medlem"
+
+#: domains/c/__init__.py:785 domains/cpp/__init__.py:945
+msgid "type"
+msgstr "typ"
+
+#: domains/cpp/__init__.py:946
+msgid "concept"
+msgstr "koncept"
+
+#: domains/c/__init__.py:783 domains/cpp/__init__.py:947
+msgid "enum"
+msgstr "enum"
+
+#: domains/c/__init__.py:784 domains/cpp/__init__.py:948
+msgid "enumerator"
+msgstr "uppräknare"
+
+#: domains/c/__init__.py:788 domains/cpp/__init__.py:951
+msgid "function parameter"
+msgstr "funktion parameter"
+
+#: domains/cpp/__init__.py:954
+msgid "template parameter"
+msgstr "parameter för mall"
+
+#: domains/c/__init__.py:279 domains/c/_symbol.py:569
+#, python-format
+msgid ""
+"Duplicate C declaration, also defined at %s:%s.\n"
+"Declaration is '.. c:%s:: %s'."
+msgstr "Duplikat C-deklaration, även definierad vid %s:%s.\nDeklarationen är '.. c:%s:: %s'."
+
+#: domains/c/__init__.py:211
+#, python-format
+msgid "%s (C %s)"
+msgstr "%s (C %s)"
+
+#: domains/c/__init__.py:778
+msgid "variable"
+msgstr "variabel"
+
+#: domains/c/__init__.py:780
+msgid "macro"
+msgstr "makro"
+
+#: domains/c/__init__.py:781
+msgid "struct"
+msgstr "struktur"
+
+#: domains/std/__init__.py:88 domains/std/__init__.py:108
+#, python-format
+msgid "environment variable; %s"
+msgstr "miljövariabel; %s"
+
+#: domains/std/__init__.py:116
+#, python-format
+msgid "%s; configuration value"
+msgstr "%s; konfigurationsvärde"
+
+#: domains/std/__init__.py:172
+msgid "Type"
+msgstr "Typ"
+
+#: domains/std/__init__.py:182
+msgid "Default"
+msgstr "Standard"
+
+#: domains/std/__init__.py:239
+#, python-format
+msgid ""
+"Malformed option description %r, should look like \"opt\", \"-opt args\", \""
+"--opt args\", \"/opt args\" or \"+opt args\""
+msgstr "Felaktig alternativbeskrivning %r, ska se ut som \"opt\", \"-opt args\", \"--opt args\", \"/opt args\" eller \"+opt args\""
+
+#: domains/std/__init__.py:319
+#, python-format
+msgid "%s command line option"
+msgstr "%s alternativ för kommandoraden"
+
+#: domains/std/__init__.py:321
+msgid "command line option"
+msgstr "kommandoradsalternativ"
+
+#: domains/std/__init__.py:461
+msgid "glossary term must be preceded by empty line"
+msgstr "ordlistetermen måste föregås av en tom rad"
+
+#: domains/std/__init__.py:474
+msgid "glossary terms must not be separated by empty lines"
+msgstr "termer i ordlistan får inte separeras av tomma rader"
+
+#: domains/std/__init__.py:486 domains/std/__init__.py:504
+msgid "glossary seems to be misformatted, check indentation"
+msgstr "ordlistan verkar vara felformaterad, kontrollera indragning"
+
+#: domains/std/__init__.py:729
+msgid "glossary term"
+msgstr "ordlista term"
+
+#: domains/std/__init__.py:730
+msgid "grammar token"
+msgstr "grammatisk token"
+
+#: domains/std/__init__.py:731
+msgid "reference label"
+msgstr "referensetikett"
+
+#: domains/std/__init__.py:733
+msgid "environment variable"
+msgstr "miljövariabel"
+
+#: domains/std/__init__.py:734
+msgid "program option"
+msgstr "programalternativ"
+
+#: domains/std/__init__.py:735
+msgid "document"
+msgstr "dokument"
+
+#: domains/std/__init__.py:772 domains/std/__init__.py:785
+msgid "Module Index"
+msgstr "Modulindex"
+
+#: domains/std/__init__.py:857
+#, python-format
+msgid "duplicate %s description of %s, other instance in %s"
+msgstr "duplicera %s beskrivning av %s, annan instans i %s"
+
+#: domains/std/__init__.py:1113
+msgid "numfig is disabled. :numref: is ignored."
+msgstr "numfig är avaktiverad. :numref: ignoreras."
+
+#: domains/std/__init__.py:1124
+#, python-format
+msgid "Failed to create a cross reference. Any number is not assigned: %s"
+msgstr "Misslyckades med att skapa en korsreferens. Något nummer har inte tilldelats: %s"
+
+#: domains/std/__init__.py:1138
+#, python-format
+msgid "the link has no caption: %s"
+msgstr "länken har ingen bildtext: %s"
+
+#: domains/std/__init__.py:1153
+#, python-format
+msgid "invalid numfig_format: %s (%r)"
+msgstr "ogiltigt numfig_format: %s (%r)"
+
+#: domains/std/__init__.py:1157
+#, python-format
+msgid "invalid numfig_format: %s"
+msgstr "ogiltigt numfig_format: %s"
+
+#: domains/std/__init__.py:1453
+#, python-format
+msgid "undefined label: %r"
+msgstr "odefinierad etikett: %r"
+
+#: domains/std/__init__.py:1456
+#, python-format
+msgid "Failed to create a cross reference. A title or caption not found: %r"
+msgstr "Misslyckades med att skapa en korsreferens. En titel eller bildtext hittades inte: %r"
+
+#: ext/napoleon/docstring.py:178
+#, python-format
+msgid "invalid value set (missing closing brace): %s"
+msgstr "ogiltig värdeuppsättning (slutklammer saknas): %s"
+
+#: ext/napoleon/docstring.py:185
+#, python-format
+msgid "invalid value set (missing opening brace): %s"
+msgstr "ogiltig värdeuppsättning (saknar öppningsparentes): %s"
+
+#: ext/napoleon/docstring.py:192
+#, python-format
+msgid "malformed string literal (missing closing quote): %s"
+msgstr "missbildad sträng (saknar avslutande citattecken): %s"
+
+#: ext/napoleon/docstring.py:199
+#, python-format
+msgid "malformed string literal (missing opening quote): %s"
+msgstr "missbildad sträng (saknar inledande citat): %s"
+
+#: ext/napoleon/docstring.py:902
+msgid "Example"
+msgstr "Exempel"
+
+#: ext/napoleon/docstring.py:903
+msgid "Examples"
+msgstr "Exempel"
+
+#: ext/napoleon/__init__.py:356 ext/napoleon/docstring.py:947
+msgid "Keyword Arguments"
+msgstr "Argument för nyckelord"
+
+#: ext/napoleon/docstring.py:962
+msgid "Notes"
+msgstr "Anteckningar"
+
+#: ext/napoleon/docstring.py:971
+msgid "Other Parameters"
+msgstr "Övriga parametrar"
+
+#: ext/napoleon/docstring.py:1007
+msgid "Receives"
+msgstr "Mottagare"
+
+#: ext/napoleon/docstring.py:1011
+msgid "References"
+msgstr "Referenser"
+
+#: ext/napoleon/docstring.py:1043
+msgid "Warns"
+msgstr "Varningar"
+
+#: ext/napoleon/docstring.py:1047
+msgid "Yields"
+msgstr "Yields"
+
+#: ext/autodoc/_generate.py:151
+#: ext/autodoc/_legacy_class_based/_documenters.py:859
+#, python-format
+msgid "A mocked object is detected: %r"
+msgstr "Ett mockat objekt har upptäckts: %r"
+
+#: ext/autodoc/_generate.py:334 ext/autodoc/_generate.py:348
+#: ext/autodoc/_generate.py:370 ext/autodoc/_generate.py:386
+#: ext/autodoc/_legacy_class_based/_documenters.py:1860
+#: ext/autodoc/_legacy_class_based/_documenters.py:1889
+#: ext/autodoc/_legacy_class_based/_documenters.py:1983
+#, python-format
+msgid "alias of %s"
+msgstr "alias för %s"
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:1745
+#: ext/autodoc/_renderer.py:88
+#, python-format
+msgid "Bases: %s"
+msgstr "Baser: %s"
+
+#: ext/autodoc/_directive_options.py:226
+#: ext/autodoc/_legacy_class_based/_directive_options.py:47
+#, python-format
+msgid "invalid value for member-order option: %s"
+msgstr "ogiltigt värde för medlemsorderalternativ: %s"
+
+#: ext/autodoc/_directive_options.py:233
+#: ext/autodoc/_legacy_class_based/_directive_options.py:55
+#, python-format
+msgid "invalid value for class-doc-from option: %s"
+msgstr "ogiltigt värde för alternativet class-doc-from: %s"
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:239
+#: ext/autodoc/_names.py:45
+#, python-format
+msgid "invalid signature for auto%s (%r)"
+msgstr "ogiltig signatur för auto%s (%r)"
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:800
+#: ext/autodoc/_names.py:53 ext/autodoc/_names.py:101
+#, python-format
+msgid ""
+"don't know which module to import for autodocumenting %r (try placing a "
+"\"module\" or \"currentmodule\" directive in the document, or giving an "
+"explicit module name)"
+msgstr "vet inte vilken modul som ska importeras för autodokumentation %r (försök placera ett \"module\"- eller \"currentmodule\"-direktiv i dokumentet, eller ange ett explicit modulnamn)"
+
+#: ext/autodoc/_names.py:89
+#, python-format
+msgid "signature arguments given for automodule: '%s'"
+msgstr "signaturargument angivna för automodule: '%s'"
+
+#: ext/autodoc/_names.py:93
+#, python-format
+msgid "return annotation given for automodule: '%s'"
+msgstr "returnera annotation som ges för automodulen: '%s'"
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:956
+#: ext/autodoc/_names.py:134
+msgid "\"::\" in automodule name doesn't make sense"
+msgstr "\"::\" i automodulens namn är inte meningsfullt"
+
+#: ext/apidoc/_shared.py:29 ext/autosummary/generate.py:984
+#, python-format
+msgid "Failed to remove %s: %s"
+msgstr "Misslyckades med att ta bort %s: %s"
+
+#: ext/apidoc/_generate.py:69
+#, python-format
+msgid "Would create file %s."
+msgstr "Skulle skapa fil %s."
+
+#: ext/apidoc/_cli.py:28
+msgid ""
+"\n"
+"Look recursively in <MODULE_PATH> for Python modules and packages and create\n"
+"one reST file with automodule directives per package in the <OUTPUT_PATH>.\n"
+"\n"
+"The <EXCLUDE_PATTERN>s can be file and/or directory patterns that will be\n"
+"excluded from generation.\n"
+"\n"
+"Note: By default this script will not overwrite already created files."
+msgstr "\nLeta rekursivt i <MODULE_PATH> efter Python-moduler och -paket och skapa\nen reST-fil med automoduldirektiv per paket i <OUTPUT_PATH>.\n\n<EXCLUDE_PATTERN>s kan vara fil- och/eller katalogmönster som kommer att\nuteslutas från generering.\n\nObs: Som standard kommer detta skript inte att skriva över redan skapade filer."
+
+#: ext/apidoc/_cli.py:45
+msgid "path to module to document"
+msgstr "sökväg till modul till dokument"
+
+#: ext/apidoc/_cli.py:50
+msgid ""
+"fnmatch-style file and/or directory patterns to exclude from generation"
+msgstr "fil- och/eller katalogmönster av typen fnmatch som ska uteslutas från generering"
+
+#: ext/apidoc/_cli.py:60
+msgid "directory to place all output"
+msgstr "katalog för att placera alla utdata"
+
+#: ext/apidoc/_cli.py:75
+msgid "maximum depth of submodules to show in the TOC (default: 4)"
+msgstr "maximalt antal undermoduler som ska visas i innehållsförteckningen (standard: 4)"
+
+#: ext/apidoc/_cli.py:82
+msgid "overwrite existing files"
+msgstr "skriva över befintliga filer"
+
+#: ext/apidoc/_cli.py:91
+msgid ""
+"follow symbolic links. Powerful when combined with "
+"collective.recipe.omelette."
+msgstr "följa symboliska länkar. Kraftfull i kombination med collective.recipe.omelette."
+
+#: ext/apidoc/_cli.py:99
+msgid "run the script without creating files"
+msgstr "köra skriptet utan att skapa filer"
+
+#: ext/apidoc/_cli.py:106
+msgid "put documentation for each module on its own page"
+msgstr "lägga dokumentation för varje modul på en egen sida"
+
+#: ext/apidoc/_cli.py:113
+msgid "include \"_private\" modules"
+msgstr "inkludera \"_private\" moduler"
+
+#: ext/apidoc/_cli.py:120
+msgid "filename of table of contents (default: modules)"
+msgstr "filnamn för innehållsförteckningen (standard: modules)"
+
+#: ext/apidoc/_cli.py:127
+msgid "don't create a table of contents file"
+msgstr "skapa inte en innehållsförteckningsfil"
+
+#: ext/apidoc/_cli.py:135
+msgid ""
+"don't create headings for the module/package packages (e.g. when the "
+"docstrings already contain them)"
+msgstr "skapa inte rubriker för modul-/paketpaket (t.ex. när dokumentationen redan innehåller dem)"
+
+#: ext/apidoc/_cli.py:145
+msgid "put module documentation before submodule documentation"
+msgstr "sätta moduldokumentation före undermodulsdokumentation"
+
+#: ext/apidoc/_cli.py:152
+msgid ""
+"interpret module paths according to PEP-0420 implicit namespaces "
+"specification"
+msgstr "tolka modulvägar enligt PEP-0420 specifikation för implicita namnrymder"
+
+#: ext/apidoc/_cli.py:160
+msgid ""
+"Comma-separated list of options to pass to automodule directive (or use "
+"SPHINX_APIDOC_OPTIONS)."
+msgstr "Kommaseparerad lista över alternativ som ska skickas till automoduldirektivet (eller använd SPHINX_APIDOC_OPTIONS)."
+
+#: ext/apidoc/_cli.py:170
+msgid "file suffix (default: rst)"
+msgstr "filsuffix (standard: rst)"
+
+#: ext/apidoc/_cli.py:178 ext/autosummary/generate.py:950
+msgid "Remove existing files in the output directory that were not generated"
+msgstr "Ta bort befintliga filer i utdatakatalogen som inte har genererats"
+
+#: ext/apidoc/_cli.py:186
+msgid "generate a full project with sphinx-quickstart"
+msgstr "skapa ett fullständigt projekt med sphinx-quickstart"
+
+#: ext/apidoc/_cli.py:193
+msgid "append module_path to sys.path, used when --full is given"
+msgstr "lägg till module_path till sys.path, används när --full anges"
+
+#: ext/apidoc/_cli.py:200
+msgid "project name (default: root module name)"
+msgstr "projektnamn (standard: namn på rotmodul)"
+
+#: ext/apidoc/_cli.py:207
+msgid "project author(s), used when --full is given"
+msgstr "projektförfattare, används när --full är angiven"
+
+#: ext/apidoc/_cli.py:214
+msgid "project version, used when --full is given"
+msgstr "projektversion, används när --full anges"
+
+#: ext/apidoc/_cli.py:222
+msgid "project release, used when --full is given, defaults to --doc-version"
+msgstr "projektversion, används när --full anges, standard är --doc-version"
+
+#: ext/apidoc/_cli.py:226
+msgid "extension options"
+msgstr "tilläggssalternativ"
+
+#: ext/apidoc/_cli.py:232
+msgid "enable arbitrary extensions, used when --full is given"
+msgstr "aktivera godtyckliga tillägg, används när --full anges"
+
+#: ext/apidoc/_cli.py:240
+#, python-format
+msgid "enable %s extension, used when --full is given"
+msgstr "aktivera tillägget %s, används när --full anges"
+
+#: ext/apidoc/_cli.py:291
+#, python-format
+msgid "%s is not a directory."
+msgstr "%s är inte en katalog."
+
+#: ext/apidoc/_extension.py:50
+msgid "Running apidoc"
+msgstr "Körning av apidoc"
+
+#: ext/apidoc/_extension.py:102
+#, python-format
+msgid "apidoc_modules item %i must be a dict"
+msgstr "apidoc_modules objekt %i måste vara en dict"
+
+#: ext/apidoc/_extension.py:110
+#, python-format
+msgid "apidoc_modules item %i must have a 'path' key"
+msgstr "apidoc_modules objekt %i måste ha en \"path\"-nyckel"
+
+#: ext/apidoc/_extension.py:115
+#, python-format
+msgid "apidoc_modules item %i 'path' must be a string"
+msgstr "apidoc_modules item %i \"path\" måste vara en sträng"
+
+#: ext/apidoc/_extension.py:121
+#, python-format
+msgid "apidoc_modules item %i 'path' is not an existing folder: %s"
+msgstr "apidoc_modules item %i 'path' är inte en befintlig mapp: %s"
+
+#: ext/apidoc/_extension.py:133
+#, python-format
+msgid "apidoc_modules item %i must have a 'destination' key"
+msgstr "apidoc_modules objekt %i måste ha en \"destination\"-nyckel"
+
+#: ext/apidoc/_extension.py:140
+#, python-format
+msgid "apidoc_modules item %i 'destination' must be a string"
+msgstr "apidoc_modules item %i \"destination\" måste vara en sträng"
+
+#: ext/apidoc/_extension.py:147
+#, python-format
+msgid "apidoc_modules item %i 'destination' should be a relative path"
+msgstr "apidoc_modules item %i 'destination' ska vara en relativ sökväg"
+
+#: ext/apidoc/_extension.py:157
+#, python-format
+msgid "apidoc_modules item %i cannot create destination directory: %s"
+msgstr "apidoc_modules objekt %i kan inte skapa destinationskatalog: %s"
+
+#: ext/apidoc/_extension.py:178
+#, python-format
+msgid "apidoc_modules item %i '%s' must be an int"
+msgstr "apidoc_modules item %i '%s' måste vara ett int"
+
+#: ext/apidoc/_extension.py:192
+#, python-format
+msgid "apidoc_modules item %i '%s' must be a boolean"
+msgstr "apidoc_modules item %i '%s' måste vara en boolean"
+
+#: ext/apidoc/_extension.py:210
+#, python-format
+msgid "apidoc_modules item %i has unexpected keys: %s"
+msgstr "apidoc_modules objekt %i har oväntade nycklar: %s"
+
+#: ext/apidoc/_extension.py:248
+#, python-format
+msgid "apidoc_modules item %i '%s' must be a sequence"
+msgstr "apidoc_modules item %i '%s' måste vara en sekvens"
+
+#: ext/apidoc/_extension.py:257
+#, python-format
+msgid "apidoc_modules item %i '%s' must contain strings"
+msgstr "apidoc_modules item %i '%s' måste innehålla strängar"
+
+#: ext/autosummary/generate.py:212 ext/autosummary/generate.py:425
+#, python-format
+msgid ""
+"autosummary: failed to determine %r to be documented, the following exception was raised:\n"
+"%s"
+msgstr "autosummary: kunde inte fastställa att %r var dokumenterad, följande undantag uppstod:\n%s"
+
+#: ext/autosummary/generate.py:630
+#, python-format
+msgid "[autosummary] generating autosummary for: %s"
+msgstr "[autosummary] genererar autosummary för: %s"
+
+#: ext/autosummary/generate.py:634
+#, python-format
+msgid "[autosummary] writing to %s"
+msgstr "[autosummary] skriver till %s"
+
+#: ext/autosummary/generate.py:679
+#, python-format
+msgid ""
+"[autosummary] failed to import %s.\n"
+"Possible hints:\n"
+"%s"
+msgstr "[autosummary] misslyckades med att importera %s.\nMöjliga ledtrådar:\n%s"
+
+#: ext/autosummary/generate.py:877
+msgid ""
+"\n"
+"Generate ReStructuredText using autosummary directives.\n"
+"\n"
+"sphinx-autogen is a frontend to sphinx.ext.autosummary.generate. It generates\n"
+"the reStructuredText files from the autosummary directives contained in the\n"
+"given input files.\n"
+"\n"
+"The format of the autosummary directive is documented in the\n"
+"``sphinx.ext.autosummary`` Python module and can be read using::\n"
+"\n"
+"  pydoc sphinx.ext.autosummary\n"
+msgstr "\nGenerera ReStructuredText med hjälp av autosummary-direktiv.\n\nsphinx-autogen är en frontend till sphinx.ext.autosummary.generate. Den genererar\nreStructuredText-filerna från de autosummary-direktiv som finns i de\ngivna indatafilerna.\n\nFormatet för autosummary-direktivet finns dokumenterat i\n``sphinx.ext.autosummary`` Python-modulen och kan läsas med hjälp av::\n\n  pydoc sphinx.ext.autosummary\n"
+
+#: ext/autosummary/generate.py:899
+msgid "source files to generate rST files for"
+msgstr "källfiler för att generera rST-filer för"
+
+#: ext/autosummary/generate.py:907
+msgid "directory to place all output in"
+msgstr "katalog för att placera alla utdata i"
+
+#: ext/autosummary/generate.py:915
+#, python-format
+msgid "default suffix for files (default: %(default)s)"
+msgstr "standardsuffix för filer (standard: %(default)s)"
+
+#: ext/autosummary/generate.py:923
+#, python-format
+msgid "custom template directory (default: %(default)s)"
+msgstr "katalog för anpassad mall (standard: %(default)s)"
+
+#: ext/autosummary/generate.py:931
+#, python-format
+msgid "document imported members (default: %(default)s)"
+msgstr "dokumentets importerade medlemmar (standard: %(default)s)"
+
+#: ext/autosummary/generate.py:940
+#, python-format
+msgid ""
+"document exactly the members in module __all__ attribute. (default: "
+"%(default)s)"
+msgstr "dokumenterar exakt de medlemmar som finns i modulens __all__-attribut. (standard: %(default)s)"
+
+#: ext/autosummary/__init__.py:235
+#, python-format
+msgid "autosummary references excluded document %r. Ignored."
+msgstr "autosummary refererar till uteslutet dokument %r. Ignoreras."
+
+#: ext/autosummary/__init__.py:239
+#, python-format
+msgid ""
+"autosummary: stub file not found %r. Check your autosummary_generate "
+"setting."
+msgstr "autosummary: stub-fil hittades inte %r. Kontrollera din inställning för autosummary_generate."
+
+#: ext/autosummary/__init__.py:260
+msgid "A captioned autosummary requires :toctree: option. ignored."
+msgstr "En textad automatisk sammanfattning kräver :toctree: alternativ. ignoreras."
+
+#: ext/autosummary/__init__.py:329
+#, python-format
+msgid ""
+"autosummary: failed to import %s.\n"
+"Possible hints:\n"
+"%s"
+msgstr "autosummary: misslyckades med att importera %s.\nMöjliga ledtrådar:\n%s"
+
+#: ext/autosummary/__init__.py:358
+#, python-format
+msgid "failed to import object %s"
+msgstr "misslyckades med att importera objekt %s"
+
+#: ext/autosummary/__init__.py:652
+#, python-format
+msgid ""
+"Summarised items should not include the current module. Replace %r with %r."
+msgstr "Sammanfattade objekt ska inte omfatta den aktuella modulen. Ersätt %r med %r."
+
+#: ext/autosummary/__init__.py:850
+#, python-format
+msgid "autosummary_generate: file not found: %s"
+msgstr "autosummary_generate: filen hittades inte: %s"
+
+#: ext/autosummary/__init__.py:860
+msgid ""
+"autosummary generates .rst files internally. But your source_suffix does not"
+" contain .rst. Skipped."
+msgstr "autosummary genererar .rst-filer internt. Men din source_suffix innehåller inte .rst. Hoppa över."
+
+#: ext/intersphinx/_load.py:61
+#, python-format
+msgid ""
+"Invalid intersphinx project identifier `%r` in intersphinx_mapping. Project "
+"identifiers must be non-empty strings."
+msgstr "Ogiltig intersphinx-projektidentifierare `%r` i intersphinx_mapping. Projektidentifierare måste vara icke-tomma strängar."
+
+#: ext/intersphinx/_load.py:72
+#, python-format
+msgid ""
+"Invalid value `%r` in intersphinx_mapping[%r]. Expected a two-element tuple "
+"or list."
+msgstr "Ogiltigt värde `%r` i intersphinx_mapping[%r]. Förväntade en tupel eller lista med två element."
+
+#: ext/intersphinx/_load.py:83
+#, python-format
+msgid ""
+"Invalid value `%r` in intersphinx_mapping[%r]. Values must be a (target URI,"
+" inventory locations) pair."
+msgstr "Ogiltigt värde `%r` i intersphinx_mapping[%r]. Värdena måste vara ett par (mål-URI, inventeringsplatser)."
+
+#: ext/intersphinx/_load.py:94
+#, python-format
+msgid ""
+"Invalid target URI value `%r` in intersphinx_mapping[%r][0]. Target URIs "
+"must be unique non-empty strings."
+msgstr "Ogiltigt mål-URI-värde `%r` i intersphinx_mapping[%r][0]. Mål-URI:er måste vara unika, icke-tomma strängar."
+
+#: ext/intersphinx/_load.py:103
+#, python-format
+msgid ""
+"Invalid target URI value `%r` in intersphinx_mapping[%r][0]. Target URIs "
+"must be unique (other instance in intersphinx_mapping[%r])."
+msgstr "Ogiltigt mål-URI-värde `%r` i intersphinx_mapping[%r][0]. Mål-URI:er måste vara unika (annan instans i intersphinx_mapping[%r])."
+
+#: ext/intersphinx/_load.py:122
+#, python-format
+msgid ""
+"Invalid inventory location value `%r` in intersphinx_mapping[%r][1]. "
+"Inventory locations must be non-empty strings or None."
+msgstr "Ogiltigt värde för inventeringsplats `%r` i intersphinx_mapping[%r][1]. Inventeringsplatser måste vara icke-tomma strängar eller None."
+
+#: ext/intersphinx/_load.py:132
+msgid "Invalid `intersphinx_mapping` configuration (1 error)."
+msgstr "Ogiltig konfiguration för `intersphinx_mapping` (1 fel)."
+
+#: ext/intersphinx/_load.py:135
+#, python-format
+msgid "Invalid `intersphinx_mapping` configuration (%s errors)."
+msgstr "Ogiltig konfiguration för `intersphinx_mapping` (%s fel)."
+
+#: ext/intersphinx/_load.py:158
+msgid "An invalid intersphinx_mapping entry was added after normalisation."
+msgstr "En ogiltig intersphinx_mapping-post lades till efter normaliseringen."
+
+#: ext/intersphinx/_load.py:297
+#, python-format
+msgid "loading intersphinx inventory '%s' from %s ..."
+msgstr "läser in intersphinx-inventariet '%s' från %s ..."
+
+#: ext/intersphinx/_load.py:324
+msgid ""
+"encountered some issues with some of the inventories, but they had working "
+"alternatives:"
+msgstr "stötte på vissa problem med några av inventarierna, men de hade fungerande alternativ:"
+
+#: ext/intersphinx/_load.py:332
+#, python-format
+msgid ""
+"failed to reach any of the inventories with the following issues:\n"
+"%s"
+msgstr ""
+
+#: ext/intersphinx/_load.py:411
+#, python-format
+msgid "intersphinx inventory has moved: %s -> %s"
+msgstr "intersphinx lager har flyttats: %s -> %s"
+
+#: ext/intersphinx/_resolve.py:53
+#, python-format
+msgid "(in %s %s)"
+msgstr "(i %s %s)"
+
+#: ext/intersphinx/_resolve.py:55
+#, python-format
+msgid "(in %s)"
+msgstr "(i %s)"
+
+#: ext/intersphinx/_resolve.py:112
+#, python-format
+msgid "inventory '%s': duplicate matches found for %s:%s"
+msgstr "inventering '%s': dubbla matchningar hittades för %s:%s"
+
+#: ext/intersphinx/_resolve.py:122
+#, python-format
+msgid "inventory '%s': multiple matches found for %s:%s"
+msgstr "inventering '%s': flera träffar hittades för %s:%s"
+
+#: ext/intersphinx/_resolve.py:387
+#, python-format
+msgid "inventory for external cross-reference not found: %r"
+msgstr "inventering för extern korsreferens hittades inte: %r"
+
+#: ext/intersphinx/_resolve.py:396
+#, python-format
+msgid "invalid external cross-reference suffix: %r"
+msgstr "ogiltigt externt korsreferenssuffix: %r"
+
+#: ext/intersphinx/_resolve.py:407
+#, python-format
+msgid "domain for external cross-reference not found: %r"
+msgstr "domän för extern korsreferens hittades inte: %r"
+
+#: ext/intersphinx/_resolve.py:561
+#, python-format
+msgid "external %s:%s reference target not found: %s"
+msgstr "extern %s:%s referensmål hittades inte: %s"
+
+#: ext/autodoc/_dynamic/_loader.py:144
+#: ext/autodoc/_legacy_class_based/_documenters.py:882
+#, python-format
+msgid "error while formatting signature for %s: %s"
+msgstr "fel vid formatering av signatur för %s: %s"
+
+#: ext/autodoc/_dynamic/_loader.py:193
+#, python-format
+msgid "Ignoring invalid __all__ in module %s: %r"
+msgstr "Ignorerar ogiltig __all__ i modul %s: %r"
+
+#: ext/autodoc/_dynamic/_loader.py:332 ext/autodoc/_dynamic/_signatures.py:496
+#: ext/autodoc/_dynamic/_signatures.py:612
+#: ext/autodoc/_legacy_class_based/_documenters.py:1284
+#: ext/autodoc/_legacy_class_based/_documenters.py:1372
+#: ext/autodoc/_legacy_class_based/_documenters.py:2906
+#, python-format
+msgid "Failed to get a function signature for %s: %s"
+msgstr "Misslyckades med att få en funktionssignatur för %s: %s"
+
+#: ext/autodoc/_dynamic/_type_comments.py:120
+#, python-format
+msgid "Failed to update signature for %r: parameter not found: %s"
+msgstr "Misslyckades med att uppdatera signaturen för %r: parametern hittades inte: %s"
+
+#: ext/autodoc/_dynamic/_type_comments.py:123
+#, python-format
+msgid "Failed to parse type_comment for %r: %s"
+msgstr "Misslyckades med att analysera type_comment för %r: %s"
+
+#: ext/autodoc/_dynamic/_docstrings.py:268
+#: ext/autodoc/_legacy_class_based/_documenters.py:2499
+#, python-format
+msgid "Invalid __slots__ found on %s. Ignored."
+msgstr "Ogiltiga __slots__ hittades på %s. Ignoreras."
+
+#: ext/autodoc/_dynamic/_signatures.py:102
+#: ext/autodoc/_legacy_class_based/_documenters.py:358
+#, python-format
+msgid "error while formatting arguments for %s: %s"
+msgstr "fel vid formatering av argument för %s: %s"
+
+#: ext/autodoc/_dynamic/_signatures.py:494
+#: ext/autodoc/_legacy_class_based/_documenters.py:1607
+#, python-format
+msgid "Failed to get a constructor signature for %s: %s"
+msgstr "Misslyckades med att få en konstruktörsignatur för %s: %s"
+
+#: ext/autodoc/_dynamic/_signatures.py:498
+#: ext/autodoc/_legacy_class_based/_documenters.py:2235
+#: ext/autodoc/_legacy_class_based/_documenters.py:2355
+#, python-format
+msgid "Failed to get a method signature for %s: %s"
+msgstr "Misslyckades med att få en metodsignatur för %s: %s"
+
+#: ext/autodoc/_dynamic/_signatures.py:500
+#, python-format
+msgid "Failed to get a signature for %s: %s"
+msgstr "Misslyckades med att få en signatur för %s: %s"
+
+#: ext/autodoc/_dynamic/_preserve_defaults.py:156
+#, python-format
+msgid "Failed to parse a default argument value for %r: %s"
+msgstr "Misslyckades med att tolka ett standardargumentvärde för %r: %s"
+
+#: ext/autodoc/_dynamic/_member_finder.py:420
+#, python-format
+msgid ""
+"attribute %s is listed in :members: but is missing as it was not found in "
+"object %r"
+msgstr "attributet %s listas i :members: men saknas eftersom det inte hittades i objektet %r"
+
+#: ext/autodoc/_dynamic/_member_finder.py:473
+#: ext/autodoc/_legacy_class_based/_documenters.py:677
+#, python-format
+msgid ""
+"autodoc: failed to determine %s.%s (%r) to be documented, the following exception was raised:\n"
+"%s"
+msgstr "autodoc: kunde inte fastställa att %s.%s (%r) skulle dokumenteras, följande undantag uppstod:\n%s"
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:964
+#, python-format
+msgid "signature arguments or return annotation given for automodule %s"
+msgstr ""
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:980
+#, python-format
+msgid ""
+"__all__ should be a list of strings, not %r (in module %s) -- ignoring "
+"__all__"
+msgstr ""
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:1057
+#, python-format
+msgid ""
+"missing attribute mentioned in :members: option: module %s, attribute %s"
+msgstr ""
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:1764
+#, python-format
+msgid "missing attribute %s in object %s"
+msgstr "saknar attributet %s i objektet %s"
+
+#: ext/autodoc/_legacy_class_based/_documenters.py:1876
+#, python-format
+msgid "alias of TypeVar(%s)"
+msgstr "alias av TypeVar(%s)"
+
+#: builders/html/_build_info.py:32
+msgid "failed to read broken build info file (unknown version)"
+msgstr "kunde inte läsa broken build info file (okänd version)"
+
+#: builders/html/_build_info.py:36
+msgid "failed to read broken build info file (missing config entry)"
+msgstr "kunde inte läsa trasig bygginfo-fil (saknade konfigurationspost)"
+
+#: builders/html/_build_info.py:39
+msgid "failed to read broken build info file (missing tags entry)"
+msgstr "kunde inte läsa broken build info-filen (saknar taggar)"
+
+#: builders/html/__init__.py:114
+#, python-format
+msgid "The HTML pages are in %(outdir)s."
+msgstr "HTML-sidorna finns i %(outdir)s."
+
+#: builders/html/__init__.py:337
+#, python-format
+msgid "Failed to read build info file: %r"
+msgstr "Misslyckades med att läsa bygginfo-filen: %r"
+
+#: builders/html/__init__.py:353
+msgid "build_info mismatch, copying .buildinfo to .buildinfo.bak"
+msgstr "build_info-missmatchning, kopiering av .buildinfo till .buildinfo.bak"
+
+#: builders/html/__init__.py:355
+msgid "building [html]: "
+msgstr "bygger [html]: "
+
+#: builders/html/__init__.py:372
+#, python-format
+msgid ""
+"template %s has been changed since the previous build, all docs will be "
+"rebuilt"
+msgstr "mall %s har ändrats sedan föregående version, alla dokument kommer att byggas om"
+
+#: builders/html/__init__.py:496
+msgid "index"
+msgstr "index"
+
+#: builders/html/__init__.py:549
+#, python-format
+msgid "Logo of %s"
+msgstr "Logotyp för %s"
+
+#: builders/html/__init__.py:578
+msgid "next"
+msgstr "nästa"
+
+#: builders/html/__init__.py:587
+msgid "previous"
+msgstr "föregående"
+
+#: builders/html/__init__.py:685
+msgid "generating indices"
+msgstr "genererar index"
+
+#: builders/html/__init__.py:700
+msgid "writing additional pages"
+msgstr "skriver ytterligare sidor"
+
+#: builders/html/__init__.py:783
+#, python-format
+msgid "cannot copy image file '%s': %s"
+msgstr "kan inte kopiera bildfilen '%s': %s"
+
+#: builders/html/__init__.py:795
+msgid "copying downloadable files... "
+msgstr "kopierar hämtningsbara filer... "
+
+#: builders/html/__init__.py:807
+#, python-format
+msgid "cannot copy downloadable file %r: %s"
+msgstr "kan inte kopiera hämtningsbara filen %r: %s"
+
+#: builders/html/__init__.py:853
+#, python-format
+msgid "Failed to copy a file in the theme's 'static' directory: %s: %r"
+msgstr "Misslyckades med att kopiera en fil i temats \"static\"-katalog: %s: %r"
+
+#: builders/html/__init__.py:871
+#, python-format
+msgid "Failed to copy a file in html_static_file: %s: %r"
+msgstr "Misslyckades med att kopiera en fil i html_static_file: %s: %r"
+
+#: builders/html/__init__.py:906
+msgid "copying static files"
+msgstr "kopiering av statiska filer"
+
+#: builders/html/__init__.py:923
+#, python-format
+msgid "cannot copy static file %r"
+msgstr "kan inte kopiera statisk fil %r"
+
+#: builders/html/__init__.py:928
+msgid "copying extra files"
+msgstr "kopierar extrafiler"
+
+#: builders/html/__init__.py:938
+#, python-format
+msgid "cannot copy extra file %r"
+msgstr "kan inte kopiera extrafil %r"
+
+#: builders/html/__init__.py:944
+#, python-format
+msgid "Failed to write build info file: %r"
+msgstr "Misslyckades med att skriva bygginfo-fil: %r"
+
+#: builders/html/__init__.py:994
+msgid ""
+"search index couldn't be loaded, but not all documents will be built: the "
+"index will be incomplete."
+msgstr "sökindex kunde inte läsas in, men alla dokument kommer inte att byggas: indexet kommer att vara ofullständigt."
+
+#: builders/html/__init__.py:1038
+#, python-format
+msgid "page %s matches two patterns in html_sidebars: %r and %r"
+msgstr "sidan %s matchar två mönster i html_sidebars: %r och %r"
+
+#: builders/html/__init__.py:1204
+#, python-format
+msgid ""
+"a Unicode error occurred when rendering the page %s. Please make sure all "
+"config values that contain non-ASCII content are Unicode strings."
+msgstr "ett Unicode-fel uppstod vid rendering av sidan %s. Kontrollera att alla konfigurationsvärden som innehåller icke-ASCII-innehåll är Unicode-strängar."
+
+#: builders/html/__init__.py:1217
+#, python-format
+msgid ""
+"The '%s' theme does not support this version of Sphinx, because it uses the "
+"'style' field in HTML templates, which was  was deprecated in Sphinx 5.1 and"
+" removed in Sphinx 7.0. The theme must be updated to use the 'styles' field "
+"instead. See https://www.sphinx-"
+"doc.org/en/master/development/html_themes/templating.html#styles"
+msgstr "Temat '%s' stöder inte den här versionen av Sphinx, eftersom det använder fältet 'style' i HTML-mallar, vilket inte längre används i Sphinx 5.1 och togs bort i Sphinx 7.0. Temat måste uppdateras för att använda fältet \"styles\" istället. Se https://www.sphinx-doc.org/en/master/development/html_themes/templating.html#styles"
+
+#: builders/html/__init__.py:1225
+#, python-format
+msgid ""
+"An error happened in rendering the page %s.\n"
+"Reason: %r"
+msgstr "Ett fel inträffade vid rendering av sidan %s.\nAnledning: %r"
+
+#: builders/html/__init__.py:1258
+msgid "dumping object inventory"
+msgstr "dumpning av objektinventering"
+
+#: builders/html/__init__.py:1266
+#, python-format
+msgid "dumping search index in %s"
+msgstr "dumpning av sökindex i %s"
+
+#: builders/html/__init__.py:1313
+#, python-format
+msgid "invalid js_file: %r, ignored"
+msgstr "ogiltig js_file: %r, ignorerad"
+
+#: builders/html/__init__.py:1347
+msgid "Many math_renderers are registered. But no math_renderer is selected."
+msgstr "Många math_renderers är registrerade. Men ingen math_renderer är vald."
+
+#: builders/html/__init__.py:1351
+#, python-format
+msgid "Unknown math_renderer %r is given."
+msgstr "Okänd math_renderer %r har angetts."
+
+#: builders/html/__init__.py:1365
+#, python-format
+msgid "html_extra_path entry %r is placed inside outdir"
+msgstr "html_extra_path post %r är placerad inuti outdir"
+
+#: builders/html/__init__.py:1370
+#, python-format
+msgid "html_extra_path entry %r does not exist"
+msgstr "html_extra_path post %r finns inte"
+
+#: builders/html/__init__.py:1385
+#, python-format
+msgid "html_static_path entry %r is placed inside outdir"
+msgstr "html_static_path post %r är placerad inuti outdir"
+
+#: builders/html/__init__.py:1390
+#, python-format
+msgid "html_static_path entry %r does not exist"
+msgstr "html_static_path-post %r finns inte"
+
+#: builders/html/__init__.py:1401 builders/latex/__init__.py:497
+#, python-format
+msgid "logo file %r does not exist"
+msgstr "logotypfilen %r finns inte"
+
+#: builders/html/__init__.py:1412
+#, python-format
+msgid "favicon file %r does not exist"
+msgstr "filen favicon %r finns inte"
+
+#: builders/html/__init__.py:1425
+#, python-format
+msgid ""
+"Values in 'html_sidebars' must be a list of strings. At least one pattern "
+"has a string value: %s. Change to `html_sidebars = %r`."
+msgstr "Värdena i \"html_sidebars\" måste vara en lista med strängar. Åtminstone ett mönster har ett strängvärde: %s. Ändra till `html_sidebars = %r`."
+
+#: builders/html/__init__.py:1438
+msgid ""
+"HTML 4 is no longer supported by Sphinx. (\"html4_writer=True\" detected in "
+"configuration options)"
+msgstr "HTML 4 stöds inte längre av Sphinx. (\"html4_writer=True\" upptäcktes i konfigurationsalternativen)"
+
+#: builders/html/__init__.py:1454
+#, python-format
+msgid "%s %s documentation"
+msgstr "%s %s dokumentation"
+
+#: builders/latex/theming.py:87
+#, python-format
+msgid "%r doesn't have \"theme\" setting"
+msgstr "%r har inte inställningen \"theme\""
+
+#: builders/latex/theming.py:90
+#, python-format
+msgid "%r doesn't have \"%s\" setting"
+msgstr "%r har inte inställningen \"%s\""
+
+#: builders/latex/transforms.py:120
+msgid "Failed to get a docname!"
+msgstr "Misslyckades med att hämta ett docname!"
+
+#: builders/latex/transforms.py:121
+#, python-format
+msgid "Failed to get a docname for source %r!"
+msgstr "Misslyckades med att få ett dokumentnamn för källa %r!"
+
+#: builders/latex/transforms.py:487
+#, python-format
+msgid "No footnote was found for given reference node %r"
+msgstr "Ingen fotnot hittades för angiven referensnod %r"
+
+#: builders/latex/__init__.py:115
+#, python-format
+msgid "The LaTeX files are in %(outdir)s."
+msgstr "LaTeX-filerna finns i %(outdir)s."
+
+#: builders/latex/__init__.py:118
+msgid ""
+"\n"
+"Run 'make' in that directory to run these through (pdf)latex\n"
+"(use `make latexpdf' here to do that automatically)."
+msgstr "\nKör 'make' i den katalogen för att köra dessa genom (pdf)latex\n(använd `make latexpdf' här för att göra det automatiskt)."
+
+#: builders/latex/__init__.py:156
+msgid "no \"latex_documents\" config value found; no documents will be written"
+msgstr "inget konfigurationsvärde för \"latex_documents\" hittades; inga dokument kommer att skrivas"
+
+#: builders/latex/__init__.py:167
+#, python-format
+msgid "\"latex_documents\" config value references unknown document %s"
+msgstr "\"latex_documents\" konfigurationsvärde refererar till okänt dokument %s"
+
+#: builders/latex/__init__.py:421
+msgid "copying TeX support files"
+msgstr "kopiering av TeX-stödfiler"
+
+#: builders/latex/__init__.py:458
+msgid "copying additional files"
+msgstr "kopiering av ytterligare filer"
+
+#: builders/latex/__init__.py:529
+#, python-format
+msgid "Unknown configure key: latex_elements[%r], ignored."
+msgstr "Okänd konfigurationsnyckel: latex_elements[%r], ignorerad."
+
+#: builders/latex/__init__.py:537
+#, python-format
+msgid "Unknown theme option: latex_theme_options[%r], ignored."
+msgstr "Okänt temaalternativ: latex_theme_options[%r], ignoreras."
+
+#: environment/collectors/toctree.py:259
+#, python-format
+msgid "%s is already assigned section numbers (nested numbered toctree?)"
+msgstr "%s är redan tilldelad sektionsnummer (nästlad numrerad toctree?)"
+
+#: environment/collectors/asset.py:98
+#, python-format
+msgid "image file not readable: %s"
+msgstr "bildfilen är inte läsbar: %s"
+
+#: environment/collectors/asset.py:126
+#, python-format
+msgid "image file %s not readable: %s"
+msgstr "bildfil %s inte läsbar: %s"
+
+#: environment/collectors/asset.py:165
+#, python-format
+msgid "download file not readable: %s"
+msgstr "hämtningsfil inte läsbar: %s"
+
+#: environment/adapters/toctree.py:335
+#, python-format
+msgid "circular toctree references detected, ignoring: %s <- %s"
+msgstr "cirkulära toctree-referenser upptäckta, ignorerar: %s <- %s"
+
+#: environment/adapters/toctree.py:360
+#, python-format
+msgid ""
+"toctree contains reference to document %r that doesn't have a title: no link"
+" will be generated"
+msgstr "toctree innehåller referens till dokument %r som inte har en titel: ingen länk kommer att genereras"
+
+#: environment/adapters/toctree.py:375
+#, python-format
+msgid "toctree contains reference to non-included document %r"
+msgstr "toctree innehåller hänvisning till icke-inkluderat dokument %r"
+
+#: environment/adapters/toctree.py:378
+#, python-format
+msgid "toctree contains reference to non-existing document %r"
+msgstr "toctree innehåller referens till icke-existerande dokument %r"
+
+#: environment/adapters/indexentries.py:122
+#, python-format
+msgid "see %s"
+msgstr "se %s"
+
+#: environment/adapters/indexentries.py:132
+#, python-format
+msgid "see also %s"
+msgstr "se även %s"
+
+#: environment/adapters/indexentries.py:140
+#, python-format
+msgid "unknown index entry type %r"
+msgstr "okänd typ av indexpost %r"

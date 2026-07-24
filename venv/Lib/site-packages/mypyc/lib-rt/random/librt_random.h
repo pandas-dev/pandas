@@ -1,0 +1,10 @@
+#ifndef LIBRT_RANDOM_H
+#define LIBRT_RANDOM_H
+
+#include <Python.h>
+
+#define LIBRT_RANDOM_ABI_VERSION 1
+#define LIBRT_RANDOM_API_VERSION 9
+#define LIBRT_RANDOM_API_LEN 13
+
+#endif  // LIBRT_RANDOM_H

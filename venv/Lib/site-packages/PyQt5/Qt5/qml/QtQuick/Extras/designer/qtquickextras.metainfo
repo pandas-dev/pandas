@@ -1,0 +1,122 @@
+MetaInfo {
+    Type {
+        name: "QtQuick.Extras.DelayButton"
+        icon: "images/delaybutton-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Delay Button"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/delaybutton-icon.png"
+            version: "1.0"
+            requiredImport: "QtQuick.Extras"
+
+            Property {
+                name: "text"
+                type: "binding"
+                value: "qsTr(\"Button\")"
+            }
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.ToggleButton"
+        icon: "images/togglebutton-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Toggle Button"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/togglebutton-icon.png"
+            version: "1.0"
+            requiredImport: "QtQuick.Extras"
+
+            Property {
+                name: "text"
+                type: "binding"
+                value: "qsTr(\"Button\")"
+            }
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.Gauge"
+        icon: "images/gauge-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Gauge"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/gauge-icon.png"
+            version: "1.0"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.CircularGauge"
+        icon: "images/circulargauge-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Circular Gauge"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/circulargauge-icon.png"
+            version: "1.0"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.PieMenu"
+        icon: "images/piemenu-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Pie Menu"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/piemenu-icon.png"
+            version: "1.0"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.Dial"
+        icon: "images/dial-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Dial"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/dial-icon.png"
+            version: "1.0"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.StatusIndicator"
+        icon: "images/statusindicator-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Status Indicator"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/statusindicator-icon.png"
+            version: "1.1"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.Tumbler"
+        icon: "images/tumbler-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Tumbler"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/tumbler-icon.png"
+            version: "1.2"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+    Type {
+        name: "QtQuick.Extras.Picture"
+        icon: "images/picture-icon16.png"
+
+        ItemLibraryEntry {
+            name: "Picture"
+            category: "Qt Quick - Extras"
+            libraryIcon: "images/picture-icon.png"
+            version: "1.3"
+            requiredImport: "QtQuick.Extras"
+        }
+    }
+}

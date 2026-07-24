@@ -1,0 +1,2 @@
+The jupyterlab_semver.py file is from https://github.com/podhmo/python-semver
+which is licensed under the "MIT" license.  See the jupyterlab_semver.py file for details.

@@ -1,0 +1,28 @@
+{
+  "pagination": {
+    "ListMarketplaceRevenueShareAllocations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "MarketplaceRevenueShareAllocationSummaries"
+    },
+    "ListMarketplaceRevenueShares": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "MarketplaceRevenueShareSummaries"
+    },
+    "ListRevenueAttributionAllocations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "RevenueAttributionAllocationSummaries"
+    },
+    "ListRevenueAttributions": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "RevenueAttributionSummaries"
+    }
+  }
+}

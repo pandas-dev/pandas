@@ -1,0 +1,13 @@
+from _typeshed import Incomplete
+
+from braintree.error_result import ErrorResult
+from braintree.merchant_account import MerchantAccount
+from braintree.successful_result import SuccessfulResult
+
+class MerchantAccountGateway:
+    gateway: Incomplete
+    config: Incomplete
+    def __init__(self, gateway) -> None: ...
+    def find(self, merchant_account_id: str) -> MerchantAccount: ...
+    def create_for_currency(self, params: dict[str, Incomplete] | None = None) -> SuccessfulResult | ErrorResult | None: ...
+    def all(self) -> SuccessfulResult: ...

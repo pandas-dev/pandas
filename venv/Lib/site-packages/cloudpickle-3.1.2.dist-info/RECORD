@@ -1,0 +1,11 @@
+cloudpickle-3.1.2.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+cloudpickle-3.1.2.dist-info/METADATA,sha256=PQJjv-nuTyOyRL3K_3OsvnoZV-v4J0O2rkJpOtxI1yE,7079
+cloudpickle-3.1.2.dist-info/RECORD,,
+cloudpickle-3.1.2.dist-info/WHEEL,sha256=G2gURzTEtmeR8nrdXUJfNiB3VYVxigPQ-bEQujpNiNs,82
+cloudpickle-3.1.2.dist-info/licenses/LICENSE,sha256=MCnqNBc-n9wjOtMV3GsQC9HqcfUpscGvl2ZKJy_cVfU,1754
+cloudpickle/__init__.py,sha256=ErKyvqqAErOkbCowrizhGpN9DN-TaD22QtqI9CQ9sDw,308
+cloudpickle/__pycache__/__init__.cpython-312.pyc,,
+cloudpickle/__pycache__/cloudpickle.cpython-312.pyc,,
+cloudpickle/__pycache__/cloudpickle_fast.cpython-312.pyc,,
+cloudpickle/cloudpickle.py,sha256=KcLA_uAxp2KuMJb9vaTVve7FLFUQu7mYkD3dCscxeRc,58874
+cloudpickle/cloudpickle_fast.py,sha256=AI5ZKf2AbLNxD8lXyLDpKZyzeZ2ofFtdK1ZWFq_ec1c,323

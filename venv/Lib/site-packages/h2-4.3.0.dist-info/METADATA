@@ -1,0 +1,129 @@
+Metadata-Version: 2.4
+Name: h2
+Version: 4.3.0
+Summary: Pure-Python HTTP/2 protocol implementation
+Author-email: Cory Benfield <cory@lukasa.co.uk>
+Maintainer-email: Thomas Kriechbaumer <thomas@kriechbaumer.name>
+License: The MIT License (MIT)
+        
+        Copyright (c) 2015-2020 Cory Benfield and contributors
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in
+        all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+        THE SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/python-hyper/h2/
+Project-URL: Bug Reports, https://github.com/python-hyper/h2/issues
+Project-URL: Source, https://github.com/python-hyper/h2/
+Project-URL: Documentation, https://python-hyper.org/
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: hyperframe<7,>=6.1
+Requires-Dist: hpack<5,>=4.1
+Dynamic: license-file
+
+=========================
+h2: HTTP/2 Protocol Stack
+=========================
+
+.. image:: https://github.com/python-hyper/h2/workflows/CI/badge.svg
+    :target: https://github.com/python-hyper/h2/actions
+    :alt: Build Status
+.. image:: https://codecov.io/gh/python-hyper/h2/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/python-hyper/h2
+    :alt: Code Coverage
+.. image:: https://readthedocs.org/projects/h2/badge/?version=latest
+    :target: https://h2.readthedocs.io/en/latest/
+    :alt: Documentation Status
+.. image:: https://img.shields.io/badge/chat-join_now-brightgreen.svg
+    :target: https://gitter.im/python-hyper/community
+    :alt: Chat community
+
+.. image:: https://raw.github.com/python-hyper/documentation/master/source/logo/hyper-black-bg-white.png
+
+This repository contains a pure-Python implementation of a HTTP/2 protocol
+stack. It's written from the ground up to be embeddable in whatever program you
+choose to use, ensuring that you can speak HTTP/2 regardless of your
+programming paradigm.
+
+You use it like this:
+
+.. code-block:: python
+
+    import h2.connection
+    import h2.config
+
+    config = h2.config.H2Configuration()
+    conn = h2.connection.H2Connection(config=config)
+    conn.send_headers(stream_id=stream_id, headers=headers)
+    conn.send_data(stream_id, data)
+    socket.sendall(conn.data_to_send())
+    events = conn.receive_data(socket_data)
+
+This repository does not provide a parsing layer, a network layer, or any rules
+about concurrency. Instead, it's a purely in-memory solution, defined in terms
+of data actions and HTTP/2 frames. This is one building block of a full Python
+HTTP implementation.
+
+To install it, just run:
+
+.. code-block:: console
+
+    $ python -m pip install h2
+
+Documentation
+=============
+
+Documentation is available at https://h2.readthedocs.io .
+
+Contributing
+============
+
+``h2`` welcomes contributions from anyone! Unlike many other projects we
+are happy to accept cosmetic contributions and small contributions, in addition
+to large feature requests and changes.
+
+Before you contribute (either by opening an issue or filing a pull request),
+please `read the contribution guidelines`_.
+
+.. _read the contribution guidelines: https://python-hyper.org/en/latest/contributing.html
+
+License
+=======
+
+``h2`` is made available under the MIT License. For more details, see the
+``LICENSE`` file in the repository.
+
+Authors
+=======
+
+``h2`` was authored by Cory Benfield and is maintained
+by the members of `python-hyper <https://github.com/orgs/python-hyper/people>`_.

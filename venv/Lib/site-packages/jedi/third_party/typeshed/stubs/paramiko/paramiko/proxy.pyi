@@ -1,0 +1,19 @@
+from _typeshed import ReadableBuffer
+from subprocess import Popen
+from typing import Any
+
+from paramiko.util import ClosingContextManager
+
+subprocess_import_error: ImportError | None
+
+class ProxyCommand(ClosingContextManager):
+    cmd: list[str]
+    process: Popen[Any]
+    timeout: float | None
+    def __init__(self, command_line: str) -> None: ...
+    def send(self, content: ReadableBuffer) -> int: ...
+    def recv(self, size: int) -> bytes: ...
+    def close(self) -> None: ...
+    @property
+    def closed(self) -> bool: ...
+    def settimeout(self, timeout: float) -> None: ...

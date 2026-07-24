@@ -1,0 +1,93 @@
+{
+  "title": "Image Viewer",
+  "description": "Image viewer settings.",
+  "jupyter.lab.menus": {
+    "context": [
+      {
+        "command": "imageviewer:zoom-in",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 1
+      },
+      {
+        "command": "imageviewer:zoom-out",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 2
+      },
+      {
+        "command": "imageviewer:reset-image",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 3
+      },
+      {
+        "command": "imageviewer:rotate-clockwise",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 4
+      },
+      {
+        "command": "imageviewer:rotate-counterclockwise",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 5
+      },
+      {
+        "command": "imageviewer:flip-horizontal",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 6
+      },
+      {
+        "command": "imageviewer:flip-vertical",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 7
+      },
+      {
+        "command": "imageviewer:invert-colors",
+        "selector": ".jp-ImageViewer.jp-mod-svg",
+        "rank": 8
+      }
+    ]
+  },
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "imageviewer:flip-horizontal",
+      "keys": ["H"],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:flip-vertical",
+      "keys": ["V"],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:invert-colors",
+      "keys": ["I"],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:reset-image",
+      "keys": ["0"],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:rotate-clockwise",
+      "keys": ["]"],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:rotate-counterclockwise",
+      "keys": ["["],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:zoom-in",
+      "keys": ["="],
+      "selector": ".jp-ImageViewer"
+    },
+    {
+      "command": "imageviewer:zoom-out",
+      "keys": ["-"],
+      "selector": ".jp-ImageViewer"
+    }
+  ],
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

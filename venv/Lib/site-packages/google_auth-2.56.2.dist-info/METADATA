@@ -1,0 +1,159 @@
+Metadata-Version: 2.4
+Name: google-auth
+Version: 2.56.2
+Summary: Google Authentication Library
+Home-page: https://github.com/googleapis/google-cloud-python/tree/main/packages/google-auth
+Author: Google Cloud Platform
+Author-email: googleapis-packages@google.com
+License: Apache 2.0
+Keywords: google auth oauth client
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: pyasn1-modules>=0.2.1
+Requires-Dist: cryptography>=38.0.3; python_version < "3.14"
+Requires-Dist: cryptography>=41.0.5; python_version >= "3.14"
+Provides-Extra: cryptography
+Requires-Dist: cryptography>=38.0.3; python_version < "3.14" and extra == "cryptography"
+Requires-Dist: cryptography>=41.0.5; python_version >= "3.14" and extra == "cryptography"
+Provides-Extra: pyopenssl
+Requires-Dist: cryptography>=38.0.3; python_version < "3.14" and extra == "pyopenssl"
+Requires-Dist: cryptography>=41.0.5; python_version >= "3.14" and extra == "pyopenssl"
+Provides-Extra: aiohttp
+Requires-Dist: aiohttp<4.0.0,>=3.8.0; python_version < "3.14" and extra == "aiohttp"
+Requires-Dist: aiohttp<4.0.0,>=3.9.0; python_version >= "3.14" and extra == "aiohttp"
+Requires-Dist: requests<3.0.0,>=2.30.0; extra == "aiohttp"
+Provides-Extra: enterprise-cert
+Requires-Dist: cryptography>=38.0.3; python_version < "3.14" and extra == "enterprise-cert"
+Requires-Dist: cryptography>=41.0.5; python_version >= "3.14" and extra == "enterprise-cert"
+Provides-Extra: pyjwt
+Requires-Dist: pyjwt>=2.0; extra == "pyjwt"
+Provides-Extra: reauth
+Requires-Dist: pyu2f>=0.1.5; extra == "reauth"
+Provides-Extra: requests
+Requires-Dist: requests<3.0.0,>=2.30.0; extra == "requests"
+Provides-Extra: testing
+Requires-Dist: grpcio<2.0.0,>=1.59.0; python_version < "3.14" and extra == "testing"
+Requires-Dist: grpcio<2.0.0,>=1.75.1; python_version >= "3.14" and extra == "testing"
+Requires-Dist: flask; extra == "testing"
+Requires-Dist: freezegun; extra == "testing"
+Requires-Dist: pyjwt>=2.0; extra == "testing"
+Requires-Dist: pytest; extra == "testing"
+Requires-Dist: pytest-cov; extra == "testing"
+Requires-Dist: pytest-localserver; extra == "testing"
+Requires-Dist: pyu2f>=0.1.5; extra == "testing"
+Requires-Dist: responses; extra == "testing"
+Requires-Dist: urllib3<3.0.0,>=1.26.15; extra == "testing"
+Requires-Dist: packaging>=20.0; extra == "testing"
+Requires-Dist: aiohttp<4.0.0,>=3.8.0; python_version < "3.14" and extra == "testing"
+Requires-Dist: aiohttp<4.0.0,>=3.9.0; python_version >= "3.14" and extra == "testing"
+Requires-Dist: requests<3.0.0,>=2.30.0; extra == "testing"
+Requires-Dist: aioresponses; extra == "testing"
+Requires-Dist: pytest-asyncio; extra == "testing"
+Provides-Extra: urllib3
+Requires-Dist: urllib3<3.0.0,>=1.26.15; extra == "urllib3"
+Requires-Dist: packaging>=20.0; extra == "urllib3"
+Provides-Extra: rsa
+Requires-Dist: rsa<5,>=4.0.0; extra == "rsa"
+Provides-Extra: grpc
+Requires-Dist: grpcio<2.0.0,>=1.59.0; python_version < "3.14" and extra == "grpc"
+Requires-Dist: grpcio<2.0.0,>=1.75.1; python_version >= "3.14" and extra == "grpc"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+Google Auth Python Library
+==========================
+
+|pypi|
+
+This library simplifies using Google's various server-to-server authentication
+mechanisms to access Google APIs.
+
+.. |pypi| image:: https://img.shields.io/pypi/v/google-auth.svg
+   :target: https://pypi.python.org/pypi/google-auth
+
+Installing
+----------
+
+You can install using `pip`_::
+
+    $ pip install google-auth
+
+.. _pip: https://pip.pypa.io/en/stable/
+
+For more information on setting up your Python development environment, please refer to `Python Development Environment Setup Guide`_ for Google Cloud Platform.
+
+.. _`Python Development Environment Setup Guide`: https://cloud.google.com/python/docs/setup
+
+Extras
+------
+
+google-auth has few extras that you can install. For example::
+
+    $ pip install google-auth[pyopenssl]
+
+Note that the extras pyopenssl and enterprise_cert should not be used together because they use conflicting versions of `cryptography`_.
+
+.. _`cryptography`: https://cryptography.io/en/latest/
+
+Supported Python Versions
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Python >= 3.10
+
+
+
+Documentation
+-------------
+
+Google Auth Python Library has usage and reference documentation at https://googleapis.dev/python/google-auth/latest/index.html.
+
+Current Maintainers
+-------------------
+- googleapis-auth@google.com
+
+Authors
+-------
+
+- `@theacodes <https://github.com/theacodes>`_ (Thea Flowers)
+- `@dhermes <https://github.com/dhermes>`_ (Danny Hermes)
+- `@lukesneeringer <https://github.com/lukesneeringer>`_ (Luke Sneeringer)
+- `@busunkim96 <https://github.com/busunkim96>`_ (Bu Sun Kim)
+
+Contributing
+------------
+
+Contributions to this library are always welcome and highly encouraged.
+
+See `CONTRIBUTING.rst`_ for more information on how to get started.
+
+.. _CONTRIBUTING.rst: https://github.com/googleapis/google-auth-library-python/blob/main/CONTRIBUTING.rst
+
+License
+-------
+
+Apache 2.0 - See `the LICENSE`_ for more information.
+
+.. _the LICENSE: https://github.com/googleapis/google-auth-library-python/blob/main/LICENSE

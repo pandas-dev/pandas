@@ -1,0 +1,4 @@
+module QtQuick.Controls.Styles.Flat
+plugin qtquickextrasflatplugin
+classname QtQuickExtrasStylesPlugin
+depends QtQml 2.14

@@ -1,0 +1,88 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "FailureModeAssessmentSuccess" : {
+      "description" : "Wait until a failure mode assessment completes successfully",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "ListFailureModeAssessments",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "length(assessmentSummaries[]) == `0`",
+        "state" : "retry",
+        "expected" : true
+      }, {
+        "matcher" : "pathAll",
+        "argument" : "assessmentSummaries[].assessmentStatus",
+        "state" : "success",
+        "expected" : "SUCCESS"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "assessmentSummaries[].assessmentStatus",
+        "state" : "failure",
+        "expected" : "FAILED"
+      } ]
+    },
+    "ReportSucceeded" : {
+      "description" : "Wait until report generation succeeds",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "ListReports",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "length(reportGenerationResults[]) == `0`",
+        "state" : "retry",
+        "expected" : true
+      }, {
+        "matcher" : "pathAll",
+        "argument" : "reportGenerationResults[].status",
+        "state" : "success",
+        "expected" : "SUCCEEDED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "reportGenerationResults[].status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      } ]
+    },
+    "ServiceAssessmentCompleted" : {
+      "description" : "Wait until a service assessment completes successfully",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetService",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "service.assessmentStatus",
+        "state" : "success",
+        "expected" : "SUCCESS"
+      }, {
+        "matcher" : "path",
+        "argument" : "service.assessmentStatus",
+        "state" : "failure",
+        "expected" : "FAILED"
+      } ]
+    },
+    "ServiceResourceDiscoveryCompleted" : {
+      "description" : "Wait until service resource discovery completes",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetService",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "service.resourceDiscovery.status",
+        "state" : "success",
+        "expected" : "SUCCEEDED"
+      }, {
+        "matcher" : "path",
+        "argument" : "service.resourceDiscovery.status",
+        "state" : "success",
+        "expected" : "COMPLETED_WITH_FAILURES"
+      }, {
+        "matcher" : "path",
+        "argument" : "service.resourceDiscovery.status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      } ]
+    }
+  }
+}

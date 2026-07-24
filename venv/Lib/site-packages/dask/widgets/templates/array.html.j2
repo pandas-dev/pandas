@@ -1,0 +1,40 @@
+<table>
+    <tr>
+        <td>
+            <table style="border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <td> </td>
+                        <th> Array </th>
+                        <th> Chunk </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if nbytes %}
+                    <tr>
+                        <th> Bytes </th>
+                        <td> {{ nbytes }} </td>
+                        <td> {{ cbytes }} </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th> Shape </th>
+                        <td> {{ array.shape }} </td>
+                        <td> {{ array.chunksize }} </td>
+                    </tr>
+                    <tr>
+                        <th> Dask graph </th>
+                        <td colspan="2"> {{ array.npartitions }} chunks in {{ layers }} </td>
+                    </tr>
+                    <tr>
+                        <th> Data type </th>
+                        <td colspan="2"> {{ array.dtype }} {{ array._meta | type | typename }} </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td>
+        {{grid}}
+        </td>
+    </tr>
+</table>

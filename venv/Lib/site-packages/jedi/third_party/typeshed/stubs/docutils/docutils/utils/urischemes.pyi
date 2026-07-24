@@ -1,0 +1,1 @@
+schemes: dict[str, str]

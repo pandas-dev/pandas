@@ -1,0 +1,387 @@
+Metadata-Version: 2.4
+Name: jupyterlab_widgets
+Version: 3.0.16
+Summary: Jupyter interactive widgets for JupyterLab
+Project-URL: Homepage, https://github.com/jupyter-widgets/ipywidgets
+Author-email: Jupyter Development Team <jupyter@googlegroups.com>
+License: Copyright (c) 2015 Project Jupyter Contributors
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        1. Redistributions of source code must retain the above copyright notice, this
+           list of conditions and the following disclaimer.
+        
+        2. Redistributions in binary form must reproduce the above copyright notice,
+           this list of conditions and the following disclaimer in the documentation
+           and/or other materials provided with the distribution.
+        
+        3. Neither the name of the copyright holder nor the names of its
+           contributors may be used to endorse or promote products derived from
+           this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+        
+        ------------------------------------------------------------------------------
+        
+        This package bundles several JavaScript npm packages in the
+        jupyterlab_widgets/static directory. Their licenses (as packaged in their
+        distributions in the node_modules package installation directory) are copied
+        below.
+        
+        ------------------------------------------------------------------------------
+        From css-loader/LICENSE:
+        
+        Copyright JS Foundation and other contributors
+        
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        'Software'), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+        
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+        IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+        CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+        TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+        SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        
+        ------------------------------------------------------------------------------
+        From style-loader/LICENSE:
+        
+        Copyright JS Foundation and other contributors
+        
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        'Software'), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+        
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+        IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+        CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+        TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+        SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        
+        ------------------------------------------------------------------------------
+        From backbone/backbone.js
+        
+        //     (c) 2010-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+        //     Backbone may be freely distributed under the MIT license.
+        //     For all details and documentation:
+        //     http://backbonejs.org
+        
+        ------------------------------------------------------------------------------
+        From base-64/LICENSE
+        
+        The MIT License (MIT)
+        
+        Copyright (c) 2014 Jameson Little
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in
+        all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+        THE SOFTWARE.
+        
+        ------------------------------------------------------------------------------
+        From lodash/LICENSE
+        
+        Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
+        
+        Based on Underscore.js, copyright Jeremy Ashkenas,
+        DocumentCloud and Investigative Reporters & Editors <http://underscorejs.org/>
+        
+        This software consists of voluntary contributions made by many
+        individuals. For exact contribution history, see the revision history
+        available at https://github.com/lodash/lodash
+        
+        The following license applies to all parts of this software except as
+        documented below:
+        
+        ====
+        
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+        
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        
+        ====
+        
+        Copyright and related rights for sample code are waived via CC0. Sample
+        code is defined as all source code displayed within the prose of the
+        documentation.
+        
+        CC0: http://creativecommons.org/publicdomain/zero/1.0/
+        
+        ====
+        
+        Files located in the node_modules and vendor directories are externally
+        maintained libraries used by this software which have their own
+        licenses; we recommend you read them, as their terms may differ from the
+        terms above.
+        
+        ------------------------------------------------------------------------------
+        From d3-format/LICENSE:
+        
+        Copyright 2010-2015 Mike Bostock
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without modification,
+        are permitted provided that the following conditions are met:
+        
+        * Redistributions of source code must retain the above copyright notice, this
+          list of conditions and the following disclaimer.
+        
+        * Redistributions in binary form must reproduce the above copyright notice,
+          this list of conditions and the following disclaimer in the documentation
+          and/or other materials provided with the distribution.
+        
+        * Neither the name of the author nor the names of contributors may be used to
+          endorse or promote products derived from this software without specific prior
+          written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+        ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+        WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+        ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+        (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+        LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+        ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+        (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+        
+        ------------------------------------------------------------------------------
+        From noUISlider/LICENSE.md (https://github.com/leongersen/noUiSlider/blob/eca62f9e56aaf02f0841b36e7993adf8db3721d5/LICENSE.md)
+        
+        MIT License
+        
+        Copyright (c) 2019 Léon Gersen
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+        ------------------------------------------------------------------
+        From jquery/LICENSE.txt
+        
+        Copyright JS Foundation and other contributors, https://js.foundation/
+        
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+        
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        
+        ------------------------------------------------------------------
+        From semver/LICENSE:
+        
+        The ISC License
+        
+        Copyright (c) Isaac Z. Schlueter and Contributors
+        
+        Permission to use, copy, modify, and/or distribute this software for any
+        purpose with or without fee is hereby granted, provided that the above
+        copyright notice and this permission notice appear in all copies.
+        
+        THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+        WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+        MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+        ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+        WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+        ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
+        IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+        
+        ------------------------------------------------------------------
+        From underscore/LICENSE
+        
+        Copyright (c) 2009-2018 Jeremy Ashkenas, DocumentCloud and Investigative
+        Reporters & Editors
+        
+        Permission is hereby granted, free of charge, to any person
+        obtaining a copy of this software and associated documentation
+        files (the "Software"), to deal in the Software without
+        restriction, including without limitation the rights to use,
+        copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the
+        Software is furnished to do so, subject to the following
+        conditions:
+        
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+        OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+        HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+        WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+        FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+        OTHER DEALINGS IN THE SOFTWARE.
+License-File: LICENSE
+Keywords: Interactive,Interpreter,Jupyter,JupyterLab,JupyterLab3,Shell,Web,notebook,widgets
+Classifier: Framework :: Jupyter
+Classifier: Framework :: Jupyter :: JupyterLab
+Classifier: Framework :: Jupyter :: JupyterLab :: 3
+Classifier: Framework :: Jupyter :: JupyterLab :: 4
+Classifier: Framework :: Jupyter :: JupyterLab :: Extensions
+Classifier: Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+
+# Jupyter Widgets JupyterLab Extension
+
+A JupyterLab extension for Jupyter/IPython widgets.
+
+## Installation
+
+To enable ipywidgets support in JupyterLab 3.x or 4.x:
+
+```bash
+pip install jupyterlab_widgets
+```
+
+### Version compatibility
+
+Prior to JupyterLab 3.0, use the appropriate command from the following list
+to install a compatible JupyterLab extension.
+
+- For JupyterLab 0.30, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.31`
+- For JupyterLab 0.31rc1, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.32`
+- For JupyterLab 0.31rc2, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.33`
+- For JupyterLab 0.31.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.34`
+- For JupyterLab 0.32.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.35`
+- For JupyterLab 0.33.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.36`
+- For JupyterLab 0.34.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.37`
+- For JupyterLab 0.35.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.38`
+- For JupyterLab 1.0.x and 1.1.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@1.0`
+- For JupyterLab 1.2.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@1.1`
+- For JupyterLab 2.x, use `jupyter labextension install @jupyter-widgets/jupyterlab-manager@2`
+
+## Contributing
+
+### Development install
+
+Note: You will need Node.js to build the extension package.
+
+The `jlpm` command is JupyterLab's pinned version of
+[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
+`yarn` or `npm` in lieu of `jlpm` below.
+
+```bash
+# Clone the repo to your local environment
+# Change directory to the jupyterlab_widgets directory
+# Install package in development mode
+pip install -e .
+# Link your development version of the extension with JupyterLab
+jupyter labextension develop . --overwrite
+# Rebuild extension Typescript source after making changes
+jlpm build
+```
+
+You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
+
+```bash
+# Watch the source directory in one terminal, automatically rebuilding when needed
+jlpm watch
+# Run JupyterLab in another terminal
+jupyter lab
+```
+
+With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
+
+### Uninstall
+
+```bash
+pip uninstall jupyterlab_widgets
+```

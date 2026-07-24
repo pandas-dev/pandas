@@ -1,0 +1,2 @@
+[console_scripts]
+pkginfo = pkginfo.commandline:main

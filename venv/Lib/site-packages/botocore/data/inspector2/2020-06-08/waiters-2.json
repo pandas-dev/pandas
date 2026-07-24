@@ -1,0 +1,66 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "ConnectorConnected" : {
+      "description" : "Wait until a connector reaches the CONNECTED health status, typically after CreateConnector or UpdateConnector + ConnectorEnabled. Caller MUST filter ListConnectors by the specific connector ARN so the matchers apply only to the target connector. Success when all returned items have health.connectorStatus == CONNECTED. Failure when any item is in health.connectorStatus == FAILED_TO_CONNECT or enablementStatus == FAILED_TO_ENABLE.",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "ListConnectors",
+      "acceptors" : [ {
+        "matcher" : "pathAll",
+        "argument" : "items[].health.connectorStatus",
+        "state" : "success",
+        "expected" : "CONNECTED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "items[].health.connectorStatus",
+        "state" : "failure",
+        "expected" : "FAILED_TO_CONNECT"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "items[].enablementStatus",
+        "state" : "failure",
+        "expected" : "FAILED_TO_ENABLE"
+      } ]
+    },
+    "ConnectorDeleted" : {
+      "description" : "Wait until a connector is no longer returned by ListConnectors. Caller MUST filter ListConnectors by the specific connector ARN; success is reached when the filtered result returns zero items. Failure when the deletion terminally fails (FAILED_TO_DELETE).",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "ListConnectors",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "length(items) == `0`",
+        "state" : "success",
+        "expected" : true
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "items[].enablementStatus",
+        "state" : "failure",
+        "expected" : "FAILED_TO_DELETE"
+      } ]
+    },
+    "ConnectorEnabled" : {
+      "description" : "Wait until a connector reaches the ENABLED state, whether after CreateConnector or UpdateConnector. Caller MUST filter ListConnectors by the specific connector ARN so the matchers apply only to the target connector. Success when all returned items have enablementStatus == ENABLED. Failure when any item is in FAILED_TO_ENABLE or FAILED_TO_UPDATE.",
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "ListConnectors",
+      "acceptors" : [ {
+        "matcher" : "pathAll",
+        "argument" : "items[].enablementStatus",
+        "state" : "success",
+        "expected" : "ENABLED"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "items[].enablementStatus",
+        "state" : "failure",
+        "expected" : "FAILED_TO_ENABLE"
+      }, {
+        "matcher" : "pathAny",
+        "argument" : "items[].enablementStatus",
+        "state" : "failure",
+        "expected" : "FAILED_TO_UPDATE"
+      } ]
+    }
+  }
+}

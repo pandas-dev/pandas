@@ -1,0 +1,3 @@
+class AuthorizationServerMetadata(dict[str, object]):
+    REGISTRY_KEYS: list[str]
+    def validate_require_signed_request_object(self) -> None: ...

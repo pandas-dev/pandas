@@ -1,0 +1,32 @@
+{
+  "title": "Menu override",
+  "description": "Override some menu items",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "command": "toc:show-panel",
+            "disabled": true
+          },
+          {
+            "command": "toc:toggle-panel",
+            "rank": 4
+          },
+          {
+            "command": "debugger:show-panel",
+            "disabled": true
+          },
+          {
+            "command": "debugger:toggle-panel",
+            "rank": 5
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}
