@@ -8118,6 +8118,82 @@ class DataFrame(NDFrame, OpsMixin):
             raise TypeError("supplying multiple axes to axis is no longer supported.")
 
         axis = self._get_axis_number(axis)
+
+        # Single-block fast path for homogeneous NumPy DataFrames
+        if (
+            subset is None
+            and thresh is lib.no_default
+            and len(self._mgr.blocks) == 1
+            and isinstance(self._mgr.blocks[0].dtype, np.dtype)
+        ):
+            blk = self._mgr.blocks[0]
+            values = blk.values  # shape: (columns, rows)
+            assert isinstance(values, np.ndarray)
+
+            if how not in ("any", "all"):
+                raise ValueError(f"invalid how option: {how}")
+
+            if not blk._can_hold_na:
+                if inplace:
+                    if ignore_index:
+                        self.index = default_index(len(self))
+                    return None
+                result = self.copy(deep=False)
+                if ignore_index:
+                    result.index = default_index(len(result))
+                return result
+
+            if values.dtype.kind in "fc":
+                nan_mask = np.isnan(values)
+            else:
+                nan_mask = isna(values)
+
+            if axis == 0:
+                if how == "all":
+                    mask = ~nan_mask.all(axis=0)
+                else:
+                    mask = ~nan_mask.any(axis=0)
+            elif how == "all":
+                mask = ~nan_mask.all(axis=1)
+            else:
+                mask = ~nan_mask.any(axis=1)
+
+            if np.all(mask):
+                if inplace:
+                    if ignore_index:
+                        self.index = default_index(len(self))
+                    return None
+                result = self.copy(deep=False)
+                if ignore_index:
+                    result.index = default_index(len(result))
+                return result
+
+            if axis == 0:
+                new_values = values[:, mask]
+                new_index = self.index[mask]
+                new_columns = self.columns
+            else:
+                new_values = values[mask, :]
+                new_index = self.index
+                new_columns = self.columns[mask]
+
+            from pandas._libs.internals import BlockPlacement
+
+            from pandas.core.internals.blocks import new_block_2d
+
+            new_blk = new_block_2d(
+                new_values, placement=BlockPlacement(slice(len(new_columns)))
+            )
+            new_mgr = BlockManager((new_blk,), [new_columns, new_index])
+            result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            if ignore_index:
+                result.index = default_index(len(result))
+
+            if not inplace:
+                return result
+            self._update_inplace(result)
+            return None
+
         agg_axis = 1 - axis
 
         agg_obj = self
