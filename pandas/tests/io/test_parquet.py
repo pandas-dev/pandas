@@ -1095,6 +1095,25 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.skipif(
+        not using_string_dtype(),
+        reason="Schema unification across null/string batches relies on the "
+        "default string dtype; with infer_string disabled batches are written "
+        "as object/null and pyarrow cannot reconcile them.",
+    )
+    def test_read_first_batch_all_null(self, pa, tmp_path):
+        # GH#55731 reading a multi-file parquet directory raised
+        # ArrowNotImplementedError when the first file was entirely null and
+        # a later file held a non-null value, because the first batch was
+        # written with a "null" type that could not be cast to "string".
+        expected = pd.DataFrame({"funny_col": [None, None, None, "funny"]})
+
+        expected.iloc[:2].to_parquet(tmp_path / "part-00.parquet", engine=pa)
+        expected.iloc[2:].to_parquet(tmp_path / "part-01.parquet", engine=pa)
+
+        result = read_parquet(tmp_path, engine=pa)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
     @pytest.mark.filterwarnings(
         "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
