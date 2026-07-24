@@ -309,6 +309,8 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
+- Fixed bug in :func:`testing.assert_almost_equal` (and ``assert_series_equal`` / ``assert_frame_equal`` with ``check_exact=False``) where ``rtol`` / ``atol`` were ignored for integer values beyond 2**53, because ``math.isclose`` casts its arguments to ``float64`` and loses precision; integer comparisons now use integer arithmetic so the tolerance is honored (:issue:`66400`)
+- Fixed bug in :func:`testing.assert_almost_equal` where the integer arithmetic path could silently overflow for :class:`numpy.int64` boundary values (e.g. ``INT64_MIN`` vs ``INT64_MAX``) and report clearly unequal values as almost equal; operands are now promoted to Python ``int`` before subtraction or negation (:issue:`66405`)
 - Fixed bug in :func:`testing.assert_series_equal` showing a misleading class mismatch message when Series values were backed by different :class:`numpy.ndarray` subclasses (:issue:`65770`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
