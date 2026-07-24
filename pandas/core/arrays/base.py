@@ -1196,6 +1196,7 @@ class ExtensionArray:
         limit_direction,
         limit_area,
         copy: bool,
+        limit_behavior: Literal["fill", "skip"] = "fill",
         **kwargs,
     ) -> Self:
         """
@@ -1239,6 +1240,14 @@ class ExtensionArray:
             * 'outside': Only fill NaNs outside valid values (extrapolate).
         copy : bool
             If True, a copy of the object is returned with interpolated values.
+        limit_behavior : {'fill', 'skip'}, default 'fill'
+            How to handle NaN gaps relative to the limit.
+
+            * 'fill': Default behavior. Fill up to ``limit`` consecutive NaNs.
+            * 'skip': Only interpolate if ``gap size <= limit``. If gap exceeds
+              ``limit``, skip the entire gap (no interpolation).
+
+            .. versionadded:: 3.1.0
         **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
 

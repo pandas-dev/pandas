@@ -8048,6 +8048,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
+        limit_behavior: Literal["fill", "skip"] = "fill",
         **kwargs,
     ) -> Self:
         """
@@ -8104,6 +8105,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+        limit_behavior : {'fill', 'skip'}, default 'fill'
+            How to handle NaN gaps relative to the limit.
+
+            * 'fill': Default behavior. Fill up to ``limit`` consecutive NaNs.
+            * 'skip': Only interpolate if ``gap size <= limit``. If gap exceeds
+              ``limit``, skip the entire gap (no interpolation).
+
+            .. versionadded:: 3.1.0
 
         **kwargs : optional
             Keyword arguments to pass on to the interpolating function. Not
@@ -8209,6 +8219,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2     9.0
         3    16.0
         Name: d, dtype: float64
+
+        Compare the behavior of the ``limit_behavior`` parameter when a gap
+        exceeds the limit. With ``limit_behavior='fill'`` (default), we partially
+        fill the gap up to the limit. With ``limit_behavior='skip'``, we skip
+        filling the entire gap.
+
+        >>> s = pd.Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        >>> s.interpolate(limit=1, limit_behavior="fill")
+        0    1.0
+        1    2.0
+        2    NaN
+        3    NaN
+        4    5.0
+        dtype: float64
+
+        >>> s.interpolate(limit=1, limit_behavior="skip")
+        0    1.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    5.0
+        dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -8239,6 +8271,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
+        limit_behavior = missing.validate_limit_behavior(limit_behavior)
 
         index = missing.get_interp_index(method, obj.index)
         new_data = obj._mgr.interpolate(
@@ -8247,6 +8280,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
+            limit_behavior=limit_behavior,
             inplace=inplace,
             **kwargs,
         )

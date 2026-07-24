@@ -311,6 +311,24 @@ def validate_limit_area(limit_area: str | None) -> Literal["inside", "outside"] 
     return limit_area  # type: ignore[return-value]
 
 
+def validate_limit_behavior(limit_behavior: str) -> Literal["fill", "skip"]:
+    valid_limit_behaviors = ("fill", "skip")
+    if not isinstance(limit_behavior, str):
+        raise ValueError(
+            f"Invalid limit_behavior: expecting one of {valid_limit_behaviors}, got "
+            f"{limit_behavior!r}."
+        )
+    limit_behavior = limit_behavior.lower()
+    if limit_behavior not in valid_limit_behaviors:
+        raise ValueError(
+            f"Invalid limit_behavior: expecting one of {valid_limit_behaviors}, got "
+            f"{limit_behavior!r}."
+        )
+    # error: Incompatible return value type (got "str", expected
+    # "Literal['fill', 'skip']")
+    return limit_behavior  # type: ignore[return-value]
+
+
 def infer_limit_direction(
     limit_direction: Literal["backward", "forward", "both"] | None, method: str
 ) -> Literal["backward", "forward", "both"]:
@@ -377,6 +395,7 @@ def interpolate_2d_inplace(
     limit_area: str | None = None,
     fill_value: Any | None = None,
     mask=None,
+    limit_behavior: str = "fill",
     **kwargs,
 ) -> None:
     """
@@ -406,6 +425,7 @@ def interpolate_2d_inplace(
 
     limit_direction = validate_limit_direction(limit_direction)
     limit_area_validated = validate_limit_area(limit_area)
+    limit_behavior = validate_limit_behavior(limit_behavior)
 
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
@@ -425,6 +445,7 @@ def interpolate_2d_inplace(
             fill_value=fill_value,
             bounds_error=False,
             mask=mask,
+            limit_behavior=limit_behavior,
             **kwargs,
         )
 
@@ -516,6 +537,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     mask=None,
+    limit_behavior: str = "fill",
     **kwargs,
 ) -> None:
     """
@@ -582,6 +604,23 @@ def _interpolate_1d(
         mid_nans = np.setdiff1d(all_nans, start_nans, assume_unique=True)
         mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
         preserve_nans = np.union1d(preserve_nans, mid_nans)
+
+    if limit_behavior == "skip" and limit is not None and len(all_nans) > 0:
+        # Identify contiguous runs of NaNs using diff on a padded boolean mask.
+        # This is a vectorized approach to find gap starts, ends, and lengths.
+        padded = np.concatenate(([False], invalid, [False]))
+        diff = np.diff(padded.astype(np.int8))
+        starts = np.where(diff == 1)[0]
+        ends = np.where(diff == -1)[0]
+        lengths = ends - starts
+
+        keep_mask = np.zeros(len(invalid), dtype=bool)
+        for start, end in zip(
+            starts[lengths > limit], ends[lengths > limit], strict=True
+        ):
+            keep_mask[start:end] = True
+
+        preserve_nans = np.union1d(preserve_nans, np.flatnonzero(keep_mask))
 
     is_datetimelike = yvalues.dtype.kind in "mM"
 
