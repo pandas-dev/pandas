@@ -142,6 +142,25 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [None, "timestamp[ns][pyarrow]"])
+    def test_to_pydatetime_preserves_index_and_name(self, dtype):
+        if dtype is not None:
+            pytest.importorskip("pyarrow")
+        ser = Series(
+            date_range("2013-01-01", periods=2),
+            index=Index([10, 11]),
+            name="dates",
+            dtype=dtype,
+        )
+        result = ser.dt.to_pydatetime()
+        expected = Series(
+            [value.to_pydatetime() for value in ser],
+            index=ser.index,
+            name=ser.name,
+            dtype=object,
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_dt_namespace_accessor_datetime64tz(self):
         # GH#7207, GH#11128
         # test .dt namespace accessor
