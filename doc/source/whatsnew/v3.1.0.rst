@@ -394,6 +394,7 @@ Conversion
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 - Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
+- Fixed bug in :meth:`Series.convert_dtypes` and :meth:`DataFrame.convert_dtypes` where ``dtype_backend="numpy_nullable"`` could return a :class:`StringDtype` with ``storage="pyarrow"`` instead of ``storage="python"`` when pyarrow was installed (:issue:`64238`)
 
 Strings
 ^^^^^^^

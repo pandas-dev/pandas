@@ -1062,9 +1062,19 @@ def convert_dtypes(
                 pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
-    elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
-        # GH 53648
-        inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
+    elif dtype_backend == "numpy_nullable":
+        if isinstance(inferred_dtype, ArrowDtype):
+            # GH 53648
+            inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
+        elif (
+            isinstance(inferred_dtype, StringDtype)
+            and inferred_dtype.storage == "pyarrow"
+        ):
+            # GH#64238 respect dtype_backend="numpy_nullable" even when
+            # pd.options.mode.string_storage resolves to "pyarrow"
+            inferred_dtype = StringDtype(
+                storage="python", na_value=inferred_dtype.na_value
+            )
 
     assert not isinstance(inferred_dtype, str)
     return inferred_dtype
