@@ -3547,7 +3547,11 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         if pat is None:
-            split_func = pc.utf8_split_whitespace
+            result = self._apply_elementwise(
+                lambda val: val.split() if n is None else val.split(None, n)
+            )
+            chunks = [pa.array(chunk, type=pa.list_(pa.string())) for chunk in result]
+            return self._from_pyarrow_array(pa.chunked_array(chunks))
         elif regex is True:
             split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         elif regex is False:
@@ -3566,9 +3570,11 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         if pat is None:
-            return self._from_pyarrow_array(
-                pc.utf8_split_whitespace(self._pa_array, max_splits=n, reverse=True)
+            result = self._apply_elementwise(
+                lambda val: val.rsplit() if n is None else val.rsplit(None, n)
             )
+            chunks = [pa.array(chunk, type=pa.list_(pa.string())) for chunk in result]
+            return self._from_pyarrow_array(pa.chunked_array(chunks))
         return self._from_pyarrow_array(
             pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )

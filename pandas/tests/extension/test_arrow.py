@@ -2429,6 +2429,47 @@ def test_str_split_pat_none(method):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["rsplit", "split"])
+def test_str_split_pat_none_whitespace(method):
+    # GH 66368 — str.split() on ArrowDtype must match Python str.split()
+    # behavior: strip leading/trailing empty strings from whitespace split
+    ser = pd.Series(
+        ["  hi  there ", "", " ", "a b c", None],
+        dtype=ArrowDtype(pa.string()),
+    )
+    result = getattr(ser.str, method)()
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["hi", "there"], [], [], ["a", "b", "c"], None]))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_split_pat_none_n():
+    # GH 66368 — max_splits (n) with pat=None on ArrowDtype
+    ser = pd.Series(
+        ["a b c d", "  hi  there  "],
+        dtype=ArrowDtype(pa.string()),
+    )
+    result = ser.str.split(n=1)
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a", "b c d"], ["hi", "there  "]]))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_rsplit_pat_none_n():
+    # GH 66368 — max_splits (n) with pat=None on ArrowDtype (right split)
+    ser = pd.Series(
+        ["a b c d", "  hi  there  "],
+        dtype=ArrowDtype(pa.string()),
+    )
+    result = ser.str.rsplit(n=1)
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a b c", "d"], ["  hi", "there"]]))
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_split():
     # GH 52401
     ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
