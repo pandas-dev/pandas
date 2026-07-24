@@ -452,6 +452,13 @@ def concat(
         is_frame = True
         is_series = False
 
+    # Ensure input objects with MultiIndex have consistent level order.
+    # Only reorder when all inputs share the same set of index level names.
+    # Inputs with missing or extra index levels are intentionally not coerced.
+    if bm_axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
+        objs = _match_index_levels(objs)
+
+    if sample.ndim != 1:
         # Need to flip BlockManager axis in the DataFrame special case
         bm_axis = sample._get_block_manager_axis(bm_axis)
 
@@ -881,6 +888,34 @@ def _get_sample_object(
             return non_empties[0], non_empties
 
     return objs[0], objs
+
+
+def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFrame]:
+    """Make MultiIndex objects with consistent level order.
+
+    If all inputs have the same set of level names, but in different order,
+    reorder each index to match the first object's level order.
+    """
+    index_names = [obj.index.names for obj in objs]
+    first_names = index_names[0]
+
+    # detect same set of unique names but different order
+    same_unique_elements = all(
+        len(names) == len(set(names)) and set(names) == set(first_names)
+        for names in index_names
+    )
+    different_order = any(names != first_names for names in index_names)
+    if same_unique_elements and different_order:
+        # reorder indexes to match first
+        new_objs = []
+        for obj in objs:
+            idx = obj.index
+            if isinstance(idx, MultiIndex) and obj.index.names != first_names:
+                obj = obj.copy(deep=False)  # don't mutate any original
+                obj.index = idx.reorder_levels(first_names)
+            new_objs.append(obj)
+        objs = new_objs
+    return objs
 
 
 def _concat_indexes(indexes) -> Index:
