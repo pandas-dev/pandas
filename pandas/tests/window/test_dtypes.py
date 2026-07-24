@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,7 @@ from pandas.errors import DataError
 
 from pandas.core.dtypes.common import pandas_dtype
 
+import pandas as pd
 from pandas import (
     NA,
     DataFrame,
@@ -171,3 +174,52 @@ def test_dataframe_dtypes(method, expected_data, dtypes, min_periods, step):
         result = getattr(rolled, method)()
         expected = DataFrame(expected_data, dtype="float64")[::step]
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("window_method", ["rolling", "expanding", "ewm"])
+@pytest.mark.parametrize(
+    "arrow_dtype, numpy_dtype",
+    [("timestamp[ns][pyarrow]", "M8[ns]"), ("duration[ns][pyarrow]", "m8[ns]")],
+)
+def test_arrow_temporal_matches_numpy(window_method, arrow_dtype, numpy_dtype):
+    # GH#66445 ArrowDtype timestamps/durations are not covered by
+    #  needs_i8_conversion, so they used to skip the guard in _prep_values and
+    #  come back as float64 counts instead of raising like their NumPy
+    #  counterparts.
+    pytest.importorskip("pyarrow")
+
+    values = [1, 2, 3]
+    arrow = Series(pd.array(values, dtype=arrow_dtype))
+    numpy = Series(np.array(values, dtype=numpy_dtype))
+
+    def agg(ser):
+        if window_method == "ewm":
+            return ser.ewm(span=2).mean()
+        return getattr(ser, window_method)(2).sum()
+
+    msg = "No numeric types to aggregate"
+    with pytest.raises(DataError, match=msg):
+        agg(numpy)
+    with pytest.raises(DataError, match=msg):
+        agg(arrow)
+
+
+@pytest.mark.parametrize("dtype", ["date32[day][pyarrow]", "date64[ms][pyarrow]"])
+def test_arrow_date_unchanged(dtype):
+    # GH#66445 date32/date64 report dtype.kind == "M" but are not backed by a
+    #  DatetimeArray, so they must not be swept into the temporal guard. They
+    #  already raised via the float64 conversion below it; assert that is
+    #  unchanged. See also test_is_arrow_temporal_dtype for the predicate.
+    pytest.importorskip("pyarrow")
+
+    ser = Series(pd.array([datetime.date(2020, 1, 1)] * 3, dtype=dtype))
+    with pytest.raises(DataError, match="No numeric types to aggregate"):
+        ser.rolling(2).sum()
+
+
+def test_arrow_numeric_unaffected(any_numeric_ea_and_arrow_dtype):
+    # GH#66445 the temporal guard must not touch numeric arrow dtypes
+    ser = Series([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
+    result = ser.rolling(2).sum()
+    expected = Series([np.nan, 3.0, 5.0], dtype="float64")
+    tm.assert_series_equal(result, expected)
