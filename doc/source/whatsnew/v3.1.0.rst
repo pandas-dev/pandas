@@ -465,7 +465,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` raising ``IndexError`` instead of a clear ``ValueError`` when passing an empty sequence with ``level=None`` or a list-like ``level`` (:issue:`16147`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 - Bug in :meth:`MultiIndex.union` raising ``InvalidIndexError`` when combining levels containing :class:`datetime.date` and :class:`Timestamp` values representing the same date (:issue:`61807`)
-- Constructing a :class:`DataFrame` that reindexes an integer :class:`MultiIndex` onto a flat integer index now raises an informative ``ValueError`` instead of a cryptic ``ValueError: Buffer dtype mismatch`` (:issue:`26460`)
+- Bug in the :class:`DataFrame` constructor where passing a :class:`DataFrame` with a unique integer :class:`MultiIndex` together with a flat integer ``index`` raised ``ValueError: Buffer dtype mismatch`` instead of reindexing to an all-``NaN`` result (:issue:`26460`)
 - :meth:`MultiIndex.isin` now raises an informative ``ValueError`` when the values are not tuples matching the number of levels, instead of raising a cryptic ``TypeError`` or ``AssertionError`` or silently returning incorrect results (:issue:`20252`, :issue:`26622`)
 
 I/O
