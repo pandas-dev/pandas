@@ -161,7 +161,7 @@ def test_precise_xstrtod_large_mantissa(c_parser_only, value):
     ],
 )
 def test_float_correctly_rounded(all_parsers, value):
-    # GH#66456
+    # GH#66457
     parser = all_parsers
     result = parser.read_csv(StringIO(f"data\n{value}"))
 
