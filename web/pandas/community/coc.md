@@ -42,13 +42,8 @@ reported issues. The working group is made up of pandas contributors and users.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported by contacting the working group by e-mail (coc@pandas.pydata.org).
 Messages sent to this e-mail address will not be publicly visible but only to
-the working group members. The working group currently includes
-
-<ul>
-    {% for person in maintainers.coc %}
-    <li>{{ person }}</li>
-    {% endfor %}
-</ul>
+the working group members. The current working group composition can be found
+at the [pandas team page](https://pandas.pydata.org/about/team.html#workgroups).
 
 All complaints will be reviewed and investigated and will result in a response
 that is deemed necessary and appropriate to the circumstances. Maintainers are
