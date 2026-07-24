@@ -2955,14 +2955,7 @@ def _factorize_keys(
                 count += 1
             return llab, rlab, count
 
-        if not isinstance(lk, BaseMaskedArray) and not (
-            # exclude arrow dtypes that would get cast to object
-            isinstance(lk.dtype, ArrowDtype)
-            and (
-                is_numeric_dtype(lk.dtype.numpy_dtype)
-                or (is_string_dtype(lk.dtype) and not sort)
-            )
-        ):
+        if not isinstance(lk, BaseMaskedArray):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
