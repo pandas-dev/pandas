@@ -330,6 +330,48 @@ class TestDataFrameColor:
         assert ax.collections[0].cmap.name == "cividis"
         assert ax.collections[1].cmap.name == "magma"
 
+    def test_scatter_colorbar_no_side_effect_on_colors(self):
+        # GH#64980: colorbar=True should not change scatter point colors.
+        # When all c values are identical, matplotlib's colorbar._process_values
+        # called nonsingular() on the shared norm in-place, expanding vmin/vmax
+        # from (0, 0) to (-0.1, 0.1), which shifted norm(0) from 0.0 to 0.5
+        # and mapped to a different colormap color.
+        from matplotlib.colors import ListedColormap
+
+        df = DataFrame({"x": [1, 2, 3], "c": [0, 0, 0]})
+        cmap = ListedColormap(["blue", "red"])
+
+        _, ax_no_cb = plt.subplots()
+        df.plot(
+            "x",
+            "x",
+            kind="scatter",
+            c=df["c"],
+            colormap=cmap,
+            colorbar=False,
+            ax=ax_no_cb,
+        )
+        ax_no_cb.get_figure().canvas.draw()
+        colors_no_cb = ax_no_cb.collections[-1].get_facecolor()
+
+        _, ax_with_cb = plt.subplots()
+        df.plot(
+            "x",
+            "x",
+            kind="scatter",
+            c=df["c"],
+            colormap=cmap,
+            colorbar=True,
+            ax=ax_with_cb,
+        )
+        ax_with_cb.get_figure().canvas.draw()
+        colors_with_cb = ax_with_cb.collections[-1].get_facecolor()
+
+        tm.assert_numpy_array_equal(colors_no_cb, colors_with_cb)
+        # All points should map to the first colormap color (blue = [0, 0, 1, 1])
+        expected_color = np.array([[0.0, 0.0, 1.0, 1.0]] * 3)
+        tm.assert_numpy_array_equal(colors_no_cb, expected_color)
+
     def test_line_colors(self):
         custom_colors = "rgcby"
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
