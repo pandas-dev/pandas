@@ -269,7 +269,12 @@ class TestDataFrameAnalytics:
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
-                msg = "could not convert string to float: 'bar'"
+                msg = "|".join(
+                    [
+                        "could not convert string to float: 'bar'",
+                        "Could not convert array to numeric",
+                    ]
+                )
             elif opname == "product":
                 if axis == 1:
                     msg = "can't multiply sequence by non-int of type 'float'"
@@ -589,10 +594,9 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(expected, result)
 
         # df1 has all numbers, df2 has a letter inside
-        msg = r"unsupported operand type\(s\) for -: 'float' and 'str'"
+        msg = "Could not convert array to numeric"
         with pytest.raises(TypeError, match=msg):
             getattr(df1, meth)(axis=1, numeric_only=False)
-        msg = "could not convert string to float: 'a'"
         with pytest.raises(TypeError, match=msg):
             getattr(df2, meth)(axis=1, numeric_only=False)
 
@@ -1068,9 +1072,9 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
-        with pytest.raises(TypeError, match="could not convert"):
+        with pytest.raises(TypeError, match="Could not convert"):
             float_string_frame.std(axis=1)
-        with pytest.raises(TypeError, match="could not convert"):
+        with pytest.raises(TypeError, match="Could not convert"):
             float_string_frame.var(axis=1)
         with pytest.raises(TypeError, match="unsupported operand type"):
             float_string_frame.mean(axis=1)
@@ -2665,6 +2669,7 @@ def test_fails_on_non_numeric(kernel):
             "not supported between instances of",
             "unsupported operand type",
             "argument must be a string or a real number",
+            "Could not convert array to numeric",
         ]
     )
     if kernel == "median":
