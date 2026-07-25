@@ -1278,6 +1278,31 @@ class TestSeriesReductions:
         assert isna(ser.min())
         assert isna(ser.max())
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            ["a", None, "d"],
+            # pre-3.1 this silently returned 1.0/3.0 rather than propagating
+            [1.0, np.nan, 3.0],
+            [date(2018, 1, 1), None, date(2018, 1, 3)],
+            [Timestamp("2024-05-13", tz="America/New_York"), NaT],
+            [np.nan, np.nan],
+        ],
+    )
+    def test_minmax_object_with_na_skipna_false(self, data):
+        # GH#4147: object dtype used to compare NAs as-is under skipna=False,
+        # raising or returning a wrong answer instead of propagating the NA
+        ser = Series(data, dtype=object)
+        assert isna(ser.min(skipna=False))
+        assert isna(ser.max(skipna=False))
+
+    @pytest.mark.parametrize("data", [["a", "d"], [(1, 3), (2, 2)]])
+    def test_minmax_object_skipna_false_no_na(self, data):
+        # GH#4147: without NAs, skipna=False still reduces normally
+        ser = Series(data, dtype=object)
+        assert ser.min(skipna=False) == data[0]
+        assert ser.max(skipna=False) == data[1]
+
     def test_idxminmax_object_dtype(self, using_infer_string):
         # pre-2.1 object-dtype was disallowed for argmin/max
         ser = Series(["foo", "bar", "baz"])

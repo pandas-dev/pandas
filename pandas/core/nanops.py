@@ -1145,13 +1145,21 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
-        if dtype == object and skipna:
+        min_count = 1
+        if dtype == object:
             # GH#65500: _get_values' +/-inf fill isn't comparable with arbitrary
             # objects (Timestamps, strings) and raises.  Fill NAs from the same
             # slice instead (leaves min/max unchanged); all-NA slices keep the
             # +/-inf fill since _maybe_null_out discards them anyway.
-            mask = _maybe_get_mask(values, skipna, mask)
-            if mask is not None and mask.any():
+            if mask is None:
+                mask = isna(values)
+            if not skipna:
+                # GH#4147: a float NaN propagates through the comparison on its
+                # own, but an object NA does not, so it used to be compared
+                # as-is.  Fill it like the skipna case so nothing raises, then
+                # null out every slice that held one to match float64/str/dt64.
+                min_count = values.size if axis is None else values.shape[axis]
+            if mask.any():
                 fill_value = _get_fill_value(dtype, fill_value_typ=fill_value_typ)
                 if mask.all():
                     values = np.full(values.shape, fill_value, dtype=object)
@@ -1175,7 +1183,12 @@ def _nanminmax(meth, fill_value_typ):
             )
         result = getattr(values, meth)(axis)
         result = _maybe_null_out(
-            result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"
+            result,
+            axis,
+            mask,
+            values.shape,
+            min_count=min_count,
+            datetimelike=dtype.kind in "mM",
         )
         return result
 
