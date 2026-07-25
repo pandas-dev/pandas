@@ -16,7 +16,9 @@ Reference for binary data compression:
 
 from __future__ import annotations
 
+import codecs
 from datetime import datetime
+import functools
 import sys
 from typing import TYPE_CHECKING
 
@@ -36,6 +38,7 @@ from pandas._libs.sas import (
     get_subheader_index,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas.compat import HAS_PYARROW
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -43,6 +46,8 @@ from pandas import (
     DataFrame,
     Timestamp,
 )
+from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import ArrowStringArray
 
 from pandas.io.common import get_handle
 import pandas.io.sas.sas_constants as const
@@ -58,6 +63,84 @@ if TYPE_CHECKING:
 
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
+
+# Values of SAS7BDATReader._str_mode; must match the StringModes enum in
+# pandas/_libs/sas.pyx.
+_STR_MODE_OBJECT = 0
+_STR_MODE_UTF8 = 1
+_STR_MODE_TABLE = 2
+
+# str_table_len entry marking a byte the source encoding does not define.
+_UNDEFINED_BYTE = 0xFF
+
+
+@functools.cache
+def _utf8_translation_table(
+    encoding: str,
+) -> tuple[np.ndarray, np.ndarray, bool] | None:
+    """
+    Build a byte -> utf-8 lookup table for a single-byte `encoding`.
+
+    Returns ``(table, lengths, ascii_identity)``, where ``table`` is a flat
+    ``(256 * width,)`` array whose ``b``-th row holds the utf-8 encoding of
+    source byte ``b``, ``lengths[b]`` is that encoding's length (or
+    ``_UNDEFINED_BYTE`` if `encoding` does not define ``b``), and
+    ``ascii_identity`` says whether every byte below 0x80 maps to itself, which
+    lets the parser memcpy ascii runs instead of translating byte by byte.
+
+    Returns None if `encoding` is not a simple single-byte encoding — the
+    multi-byte CJK encodings SAS can declare (shift_jis, big5, cp936, ...) and
+    utf-8 itself, none of which have a per-byte translation.
+
+    Cached because the probing below costs far more than a chunk's parse; the
+    tables are tiny and read-only.
+    """
+    # A single-byte encoding maps each of the 256 bytes to exactly one
+    # character, so the whole range round-trips to 256 replacement-or-real
+    # characters. Multi-byte encodings consume several bytes per character and
+    # come up short.
+    try:
+        if len(bytes(range(256)).decode(encoding, errors="replace")) != 256:
+            return None
+    except (LookupError, UnicodeError):
+        return None
+
+    encoded: list[bytes | None] = []
+    undefined: list[int] = []
+    for value in range(256):
+        try:
+            char = bytes([value]).decode(encoding)
+        except UnicodeDecodeError:
+            encoded.append(None)
+            undefined.append(value)
+            continue
+        if len(char) != 1:
+            return None
+        encoded.append(char.encode("utf-8"))
+
+    # A byte that is genuinely *undefined* fails to decode in every context,
+    # whereas a multi-byte *lead* byte decodes fine once a continuation byte
+    # follows it. Without this probe utf-8 itself would look single-byte (its
+    # lead bytes are undefined in isolation) and every non-ascii cell would
+    # wrongly raise.
+    for value in undefined:
+        for follower in range(256):
+            try:
+                bytes([value, follower]).decode(encoding)
+            except UnicodeDecodeError:
+                continue
+            return None
+
+    width = max((len(utf8) for utf8 in encoded if utf8 is not None), default=1)
+    table = np.zeros(256 * width, dtype=np.uint8)
+    lengths = np.full(256, _UNDEFINED_BYTE, dtype=np.uint8)
+    for value, utf8 in enumerate(encoded):
+        if utf8 is not None:
+            lengths[value] = len(utf8)
+            table[value * width : value * width + len(utf8)] = bytearray(utf8)
+    ascii_identity = all(encoded[value] == bytes([value]) for value in range(0x80))
+    return table, lengths, ascii_identity
+
 
 # SAS uses a modified Gregorian calendar where years divisible by 4000 are
 # not leap years (unlike proleptic Gregorian). These are the SAS day counts
@@ -695,18 +778,78 @@ class SAS7BDATReader(SASReader):
         nd = self._column_types.count(b"d")
         ns = self._column_types.count(b"s")
 
-        self._string_chunk = np.empty((ns, nrows), dtype=object)
         self._byte_chunk = np.zeros((nd, 8 * nrows), dtype=np.uint8)
+        self._setup_string_buffers(ns, nrows)
 
         self._current_row_in_chunk_index = 0
         p = Parser(self)
         p.read(nrows)
+        if self._str_mode != _STR_MODE_OBJECT:
+            self._str_values = p.string_values()
 
         rslt = self._chunk_to_dataframe()
         if self.index is not None:
             rslt = rslt.set_index(self.index)
 
         return rslt
+
+    def _string_mode(self, ns: int) -> tuple[int, tuple | None]:
+        """
+        Pick how the Cython parser should emit string cells for this chunk.
+
+        Returns ``(mode, table)``; see the StringModes enum in sas.pyx. The
+        pyarrow modes require that the result actually be a pyarrow-backed str
+        column, and that the source encoding translate byte by byte to utf-8.
+        """
+        if ns == 0 or not self.convert_text or self.encoding is None:
+            # Nothing to decode: string cells stay raw bytes.
+            return _STR_MODE_OBJECT, None
+        if not (using_string_dtype() and HAS_PYARROW):
+            return _STR_MODE_OBJECT, None
+        if StringDtype(na_value=np.nan).storage != "pyarrow":
+            # mode.string_storage is pinned to "python"; building an Arrow
+            # array here would only have to be converted back.
+            return _STR_MODE_OBJECT, None
+
+        try:
+            canonical = codecs.lookup(self.encoding).name
+        except LookupError:
+            # Leave the error to the per-cell decode, which words it better.
+            return _STR_MODE_OBJECT, None
+        if canonical == "utf-8":
+            return _STR_MODE_UTF8, None
+        table = _utf8_translation_table(canonical)
+        if table is None:
+            # Multi-byte encoding (shift_jis, big5, ...): no per-byte mapping.
+            return _STR_MODE_OBJECT, None
+        return _STR_MODE_TABLE, table
+
+    def _setup_string_buffers(self, ns: int, nrows: int) -> None:
+        mode, table = self._string_mode(ns)
+        self._str_mode = mode
+        # The parser reads every buffer below unconditionally, so hand it empty
+        # arrays for whichever output this chunk does not use.
+        empty_u1 = np.empty(0, dtype=np.uint8)
+        self._string_chunk = np.empty(
+            (ns if mode == _STR_MODE_OBJECT else 0, nrows), dtype=object
+        )
+        self._str_table = empty_u1
+        self._str_table_len = empty_u1
+        self._str_table_width = 1
+        self._str_ascii_identity = False
+        self._str_encoding = self.encoding
+        if mode == _STR_MODE_OBJECT:
+            self._str_offsets = np.empty((0, 0), dtype=np.int64)
+            self._str_valid = np.empty((0, 0), dtype=np.uint8)
+            return
+
+        self._str_offsets = np.zeros((ns, nrows + 1), dtype=np.int64)
+        # Cells the parser never reaches stay null, matching the object path's
+        # np.empty(dtype=object) filling those cells with None.
+        self._str_valid = np.zeros((ns, nrows), dtype=np.uint8)
+        if table is not None:
+            self._str_table, self._str_table_len, self._str_ascii_identity = table
+            self._str_table_width = len(self._str_table) // 256
 
     def _read_page_data(self):
         """Read the next page from the file. Returns True if EOF."""
@@ -760,11 +903,18 @@ class SAS7BDATReader(SASReader):
                     rslt[name] = _convert_datetimes(rslt[name], convert_type)
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
-                if self.convert_text and (self.encoding is not None):
-                    rslt[name] = self._decode_string(rslt[name].str)
-                    if infer_string:
-                        rslt[name] = rslt[name].astype("str")
+                if self._str_mode != _STR_MODE_OBJECT:
+                    rslt[name] = pd.Series(
+                        self._string_column(js), index=ix, copy=False
+                    )
+                else:
+                    rslt[name] = pd.Series(
+                        self._string_chunk[js, :], index=ix, copy=False
+                    )
+                    if self.convert_text and (self.encoding is not None):
+                        rslt[name] = self._decode_string(rslt[name].str)
+                        if infer_string:
+                            rslt[name] = rslt[name].astype("str")
 
                 js += 1
             else:
@@ -773,6 +923,59 @@ class SAS7BDATReader(SASReader):
 
         df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
         return df
+
+    def _string_column(self, js: int) -> ArrowStringArray:
+        """
+        Wrap string column `js`'s parse buffers as a pyarrow-backed str column.
+
+        The Cython parser has already written utf-8 into ``_str_values[js]``,
+        so this only has to hand the buffers to pyarrow — there is no
+        object-dtype array of bytes to decode.
+        """
+        import pyarrow as pa
+
+        values = self._str_values[js]
+        # Copied out of the shared 2-D offsets array so that keeping one column
+        # of the result alive does not pin every column's offsets.
+        offsets = self._str_offsets[js].copy()
+        valid = self._str_valid[js]
+        nrows = len(valid)
+
+        parsed = self._current_row_in_chunk_index
+        if parsed < nrows:
+            # The parser stopped early (a file whose pages run out before the
+            # row count in its header). Offsets for the rows it never reached
+            # are still zero, which would make them non-monotonic; flatten the
+            # tail so the array is well formed and the caller's length check
+            # reports the truncation instead of pyarrow reporting bad offsets.
+            offsets[parsed + 1 :] = offsets[parsed]
+
+        if valid.all():
+            validity = None
+        else:
+            validity = pa.py_buffer(np.packbits(valid, bitorder="little"))
+        pa_arr = pa.Array.from_buffers(
+            pa.large_string(),
+            nrows,
+            [validity, pa.py_buffer(offsets), pa.py_buffer(values)],
+        )
+        if self._str_mode == _STR_MODE_UTF8:
+            # from_buffers does no validation, and a file declaring utf-8 can
+            # still hold invalid bytes, so check here rather than deferring the
+            # failure to first access. validate() checks each value separately,
+            # which matters because a multi-byte character split across two
+            # fixed-width SAS fields is invalid in both cells even though the
+            # concatenated values buffer is well-formed.
+            try:
+                pa_arr.validate(full=True)
+            except pa.lib.ArrowInvalid:
+                # Re-raise as the UnicodeDecodeError the per-cell decode gave.
+                for row in range(len(offsets) - 1):
+                    bytes(values[offsets[row] : offsets[row + 1]]).decode("utf-8")
+                raise
+        return ArrowStringArray(
+            pa.chunked_array([pa_arr]), dtype=StringDtype(na_value=np.nan)
+        )
 
     def _decode_string(self, b):
         return b.decode(self.encoding or self.default_encoding)

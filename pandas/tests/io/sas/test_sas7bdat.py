@@ -12,7 +12,12 @@ from pandas.errors import EmptyDataError
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.sas.sas7bdat import SAS7BDATReader
+from pandas.io.sas.sas7bdat import (
+    _STR_MODE_OBJECT,
+    _UNDEFINED_BYTE,
+    SAS7BDATReader,
+    _utf8_translation_table,
+)
 
 
 @pytest.fixture
@@ -390,3 +395,102 @@ def test_0x00_control_byte(datapath):
     with pd.read_sas(fname, chunksize=11_000) as reader:
         df = next(reader)
     assert df.shape == (11_000, 20)
+
+
+@pytest.mark.parametrize(
+    "encoding", ["utf-8", "latin-1", "cp1252", "cp437", "cp1251", "latin9", "ascii"]
+)
+@pytest.mark.parametrize("name", ["test1", "test16", "load_log", "productsales"])
+@pytest.mark.parametrize("chunksize", [None, 7])
+def test_string_fast_path_matches_object_path(
+    datapath, monkeypatch, encoding, name, chunksize
+):
+    # GH#47339 string columns are built as pyarrow arrays directly rather than
+    # via an object-dtype array of bytes; the two must agree, including on
+    # which files fail to decode.
+    fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+
+    def read(fast):
+        if not fast:
+            monkeypatch.setattr(
+                SAS7BDATReader,
+                "_string_mode",
+                lambda self, ns: (_STR_MODE_OBJECT, None),
+            )
+        else:
+            monkeypatch.undo()
+        try:
+            with contextlib.closing(
+                SAS7BDATReader(fname, encoding=encoding, chunksize=chunksize)
+            ) as rdr:
+                return next(iter(rdr)) if chunksize else rdr.read(), None
+        except UnicodeDecodeError as err:
+            return None, str(err)
+
+    expected, expected_err = read(fast=False)
+    result, result_err = read(fast=True)
+    assert (expected_err is None) == (result_err is None)
+    if expected_err is None:
+        tm.assert_frame_equal(result, expected)
+
+
+def test_string_fast_path_respects_string_storage(datapath, monkeypatch):
+    # GH#47339 the fast path builds a pyarrow-backed column, so it must not be
+    # taken when the resolved storage is python.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with pd.option_context("mode.string_storage", "python"):
+        with contextlib.closing(SAS7BDATReader(fname, encoding="cp1252")) as rdr:
+            assert (
+                rdr._string_mode(rdr._column_types.count(b"s"))[0] == _STR_MODE_OBJECT
+            )
+            str_col = rdr.column_names[rdr._column_types.index(b"s")]
+            result = rdr.read()
+    assert result[str_col].dtype.storage == "python"
+
+    monkeypatch.setattr(
+        SAS7BDATReader, "_string_mode", lambda self, ns: (_STR_MODE_OBJECT, None)
+    )
+    with pd.option_context("mode.string_storage", "python"):
+        expected = pd.read_sas(fname, encoding="cp1252")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("encoding", [None, "shift_jis", "big5", "euc_jp"])
+def test_string_fast_path_skipped(datapath, encoding):
+    # encoding=None keeps raw bytes, and multi-byte encodings have no per-byte
+    # translation to utf-8, so both fall back to the object path.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding=encoding)) as rdr:
+        assert rdr._string_mode(rdr._column_types.count(b"s"))[0] == _STR_MODE_OBJECT
+
+
+@pytest.mark.parametrize(
+    "encoding", ["latin-1", "cp1252", "cp437", "cp1251", "latin9", "ascii", "cp874"]
+)
+def test_utf8_translation_table(encoding):
+    # GH#47339 the parser translates single-byte encodings through this table
+    # instead of decoding cell by cell, so it must agree with the codec.
+    table, lengths, ascii_identity = _utf8_translation_table(encoding)
+    width = len(table) // 256
+    assert ascii_identity == all(
+        bytes([value]).decode(encoding, "replace") == chr(value)
+        for value in range(0x80)
+    )
+    for value in range(256):
+        try:
+            expected = bytes([value]).decode(encoding).encode("utf-8")
+        except UnicodeDecodeError:
+            assert lengths[value] == _UNDEFINED_BYTE
+            continue
+        assert lengths[value] == len(expected)
+        assert bytes(table[value * width : value * width + len(expected)]) == expected
+
+
+@pytest.mark.parametrize(
+    "encoding", ["utf-8", "utf-8-sig", "utf-16", "shift_jis", "big5", "cp932", "euc_jp"]
+)
+def test_utf8_translation_table_rejects_multibyte(encoding):
+    # A multi-byte lead byte is undefined in isolation but decodes fine once a
+    # continuation byte follows, so it must not be mistaken for an undefined
+    # byte and mapped through the table.
+    assert _utf8_translation_table(encoding) is None
