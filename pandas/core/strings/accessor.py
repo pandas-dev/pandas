@@ -2207,8 +2207,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Notes
         -----
-        Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.
+        Follows the same rules as :meth:`str.zfill`: a leading sign character
+        ('+'/'-') is kept at the front of the string and the '0' padding is
+        inserted after it.
 
         Examples
         --------
@@ -2222,10 +2223,10 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
-        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        special character and the zero is added to the right of it
-        (:meth:`str.zfill` would have moved it to the left). ``1000``
-        remains unchanged as it is longer than `width`.
+        converted to ``NaN``. The minus sign in ``'-1'`` is kept at the front
+        of the string and the '0' padding is inserted after it, the same as
+        :meth:`str.zfill`. ``1000`` remains unchanged as it is longer than
+        `width`.
 
         >>> s.str.zfill(3)
         0     -01
