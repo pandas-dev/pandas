@@ -59,7 +59,9 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.14'
-          pip-install: build
+
+      - name: Install build
+        run: python -m pip install build
 
       - name: Build sdist
         run: python -m build --sdist
@@ -139,8 +141,10 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.14'
-          # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
-          pip-install: wheel cryptography==46.0.3
+
+      - name: Install wheel
+        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
+        run: python -m pip install wheel cryptography==46.0.3
 
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
