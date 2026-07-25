@@ -375,6 +375,29 @@ def test_rle_rdc_exceptions(
         pd.read_sas(io.BytesIO(data), format="sas7bdat")
 
 
+@pytest.mark.parametrize(
+    "test_file, offset_field, row_length",
+    [
+        # byte offset of the first column's data-offset field in the
+        # column-attributes subheader, and that file's row length
+        ("test2.sas7bdat", 126580, 809),  # RLE compressed
+        ("test1.sas7bdat", 126588, 816),  # uncompressed
+    ],
+)
+@pytest.mark.parametrize("overshoot", [1, 8, 4096])
+def test_column_offset_past_row_raises(
+    datapath, test_file, offset_field, row_length, overshoot
+):
+    # GH#47339 a column whose data runs past the end of the row would be read
+    # out of bounds; the 8-byte numeric fast path did not check.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    bad_offset = row_length + overshoot - 8
+    data[offset_field : offset_field + 4] = bad_offset.to_bytes(4, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat")
+
+
 def test_0x40_control_byte(datapath):
     # GH 31243
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
