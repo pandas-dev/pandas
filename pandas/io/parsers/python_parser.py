@@ -514,6 +514,7 @@ class PythonParser(ParserBase):
                 true_values=self.true_values,
                 false_values=self.false_values,
                 convert_numeric=convert_numeric,
+                convert_bool=True,
             )
 
         # use the EA's implementation of casting

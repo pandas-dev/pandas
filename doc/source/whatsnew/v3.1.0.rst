@@ -82,8 +82,7 @@ where floating-point rounding previously differed (:issue:`46819`).
 :func:`read_csv` with ``dtype="category"`` and the ``c`` or ``python`` engine
 produced string categories for numeric and boolean columns, while the
 ``pyarrow`` engine inferred numeric and boolean categories. All engines now
-infer numeric and boolean categories, matching the type a column would receive
-without ``dtype="category"`` under the default ``dtype_backend``
+infer numeric and boolean categories under the default ``dtype_backend``
 (:issue:`56044`).
 
 .. ipython:: python
@@ -100,7 +99,28 @@ Columns whose values do not all parse as numeric or boolean, and columns read
 with non-default ``thousands`` or ``decimal`` options, retain string categories.
 Datetime-like columns continue to follow each engine's usual inference (the
 ``c`` and ``python`` engines keep string categories unless ``parse_dates`` is
-given, while the ``pyarrow`` engine infers datetime categories).
+given, while the ``pyarrow`` engine infers datetime categories). An integer
+column containing missing values gets integer categories rather than the
+``float64`` the same column receives without ``dtype="category"``, since the
+codes already carry the missing values. With a non-default ``dtype_backend``
+the categories are not yet converted to the requested backend (:issue:`66382`).
+
+The ``pyarrow`` engine gave nullable ``Int64`` categories for integer columns
+under the default ``dtype_backend``; it now gives numpy ``int64`` like the other
+engines.
+
+Two further inconsistencies in the ``c`` and ``python`` engines are fixed. A
+:class:`CategoricalDtype` that specifies ``ordered=True`` without specifying
+``categories`` no longer discards ``ordered``, and ``low_memory=True`` (the
+default for the ``c`` engine) no longer leaves string categories in the order
+the file's buffer chunks happened to produce them:
+
+.. ipython:: python
+
+    from pandas.api.types import CategoricalDtype
+
+    data = "a\n2\n1"
+    pd.read_csv(StringIO(data), dtype={"a": CategoricalDtype(ordered=True)})["a"].dtype
 
 .. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
 

@@ -197,6 +197,50 @@ def test_categorical_dtype_large_integers(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.parametrize(
+    "data, categories",
+    [
+        ("a\n2\n1", [1, 2]),
+        ("a\ny\nx", ["x", "y"]),
+        ("a\nTrue\nFalse", [False, True]),
+    ],
+)
+def test_categorical_dtype_ordered_inferred_categories(all_parsers, data, categories):
+    # GH#56044 ordered is honored when the CategoricalDtype leaves the
+    #  categories to be inferred
+    parser = all_parsers
+    cat_dtype = CategoricalDtype(ordered=True)
+    expected = DataFrame(
+        {"a": Categorical(categories[::-1], categories=categories, ordered=True)}
+    )
+    actual = parser.read_csv(StringIO(data), dtype={"a": cat_dtype})
+    tm.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        list(reversed(range(60))),
+        [f"s{i:02d}" for i in reversed(range(60))],
+    ],
+)
+def test_categorical_dtype_ordered_low_memory(all_parsers, monkeypatch, values):
+    # GH#56044 as above, through the deferred low-memory path.  ordered is
+    #  applied after concatenation because union_categoricals rejects ordered
+    #  inputs whose categories differ.
+    parser = all_parsers
+    heuristic = 2**5
+    data = "a\n" + "\n".join(str(val) for val in values)
+    cat_dtype = CategoricalDtype(ordered=True)
+    expected = DataFrame(
+        {"a": Categorical(values, categories=sorted(values), ordered=True)}
+    )
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO(data), dtype={"a": cat_dtype})
+    tm.assert_frame_equal(actual, expected)
+
+
 def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
     # GH#56136 explicitly-requested IntegerDtype categories are preserved
     parser = all_parsers
@@ -277,11 +321,21 @@ def test_categorical_dtype_low_memory_mixed_type_chunks(all_parsers, monkeypatch
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
-    # category order for unconverted string chunks follows chunk-union
-    #  order; normalize to sorted before comparing
-    actual["a"] = actual["a"].cat.reorder_categories(
-        actual["a"].cat.categories.sort_values()
-    )
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_low_memory_sorts_string_categories(all_parsers, monkeypatch):
+    # GH#56044 union_categoricals leaves categories in chunk order; they are
+    #  sorted afterwards so low_memory=True agrees with low_memory=False
+    parser = all_parsers
+    heuristic = 2**5
+    rows = [f"s{i:02d}" for i in reversed(range(60))]
+    data = "a\n" + "\n".join(rows)
+    expected = DataFrame({"a": Categorical(rows)})
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO(data), dtype="category")
+    assert actual["a"].cat.categories.is_monotonic_increasing
     tm.assert_frame_equal(actual, expected)
 
 
@@ -329,13 +383,10 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     data = np.sort([str(i) for i in range(heuristic + 1)])
     csv_data = "a\n" + "\n".join(data)
     int_data = np.array([int(x) for x in data])
-    expected = DataFrame({"a": Categorical(int_data, ordered=True)})
+    expected = DataFrame({"a": Categorical(int_data)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO(csv_data), dtype="category")
-    actual["a"] = actual["a"].cat.reorder_categories(
-        np.sort(actual["a"].cat.categories), ordered=True
-    )
     tm.assert_frame_equal(actual, expected)
 
 

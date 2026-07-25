@@ -1043,12 +1043,15 @@ cdef class TextReader:
             array_type = dtype.construct_array_type()
             converted = array_type._maybe_convert_categories(
                 cat.categories, true_values=true_values,
-                false_values=false_values, convert_numeric=convert_numeric)
+                false_values=false_values, convert_numeric=convert_numeric,
+                convert_bool=True)
             if converted is None:
-                # keep the union result as-is rather than re-sorting its
-                #  categories
-                continue
-            data[i] = array_type._from_converted_categories(converted, cat._codes)
+                # no conversion applies, but union_categoricals still left the
+                #  categories in chunk order; sorting here is what makes
+                #  low_memory=True agree with low_memory=False
+                converted = cat.categories
+            data[i] = array_type._from_converted_categories(
+                converted, cat._codes, ordered=dtype.ordered)
         self.deferred_cat_cols = {}
 
     cdef _tokenize_rows(self, uint64_t nrows):
@@ -1370,25 +1373,28 @@ cdef class TextReader:
             true_values = [x.decode() for x in self.true_values]
             false_values = [x.decode() for x in self.false_values]
             array_type = dtype.construct_array_type()
-            if self.low_memory_chunking:
-                # GH#56044 chunks could each infer a different category
-                #  dtype, breaking union_categoricals; defer inference to
-                #  _maybe_infer_categoricals on the concatenated result
-                convert_numeric = False
-                convert_bool = False
-                if dtype.categories is None:
-                    self.deferred_cat_cols[i] = dtype
-            else:
-                # to_numeric inference is unaware of the thousands/decimal
-                #  options, so keep string categories when those are set
-                convert_numeric = (
-                    self.parser.thousands == b"\0" and self.parser.decimal == b"."
-                )
-                convert_bool = True
+            if self.low_memory_chunking and dtype.categories is None:
+                # GH#56044 chunks could each infer a different category dtype,
+                #  breaking union_categoricals; defer inference to
+                #  _maybe_infer_categoricals on the concatenated result.  dtype
+                #  is dropped for the per-chunk call along with it, since
+                #  union_categoricals rejects ordered inputs whose categories
+                #  differ.
+                self.deferred_cat_cols[i] = dtype
+                cat = array_type._from_inferred_categories(
+                    cats, codes, None, true_values=true_values,
+                    false_values=false_values)
+                return cat, na_count
+
+            # to_numeric inference is unaware of the thousands/decimal
+            #  options, so keep string categories when those are set
+            convert_numeric = (
+                self.parser.thousands == b"\0" and self.parser.decimal == b"."
+            )
             cat = array_type._from_inferred_categories(
                 cats, codes, dtype, true_values=true_values,
                 false_values=false_values, convert_numeric=convert_numeric,
-                convert_bool=convert_bool)
+                convert_bool=True)
             return cat, na_count
 
         elif isinstance(dtype, ExtensionDtype):

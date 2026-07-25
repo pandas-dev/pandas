@@ -498,12 +498,17 @@ among the specified categories will raise.
 
 .. note::
 
-   With ``dtype="category"``, numeric and boolean categories are inferred,
-   matching the type each column would receive without ``dtype="category"``.
+   With ``dtype="category"``, numeric and boolean categories are inferred.
 
    .. versionchanged:: 3.1.0
 
       Previously the categories were always parsed as strings.
+
+   .. ipython:: python
+
+      df = pd.read_csv(StringIO(data), dtype="category")
+      df.dtypes
+      df["col3"]
 
    Columns whose values do not all parse as numeric or boolean, and columns
    read with non-default ``thousands`` or ``decimal`` options, retain string
@@ -512,12 +517,6 @@ among the specified categories will raise.
 
    When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
    all numeric, all datetimes, etc.), the conversion is done automatically.
-
-   .. ipython:: python
-
-      df = pd.read_csv(StringIO(data), dtype="category")
-      df.dtypes
-      df["col3"]
 
 
 Naming and using columns

@@ -192,17 +192,23 @@ def _post_convert_dtypes(
         # GH#56136 IntegerDtype was used above to avoid lossy float64
         #  conversion in pyarrow; convert back to numpy now that the data
         #  is categorical
-        # runtime import to avoid circular import
+        # runtime import to avoid circular import; core.dtypes.cast imports
+        #  this module at module scope
         from pandas.core.arrays.integer import IntegerDtype
 
+        col_dtypes = df.dtypes
         for i in range(len(df.columns)):
-            col_dtype = df.dtypes.iloc[i]
+            col_dtype = col_dtypes.iloc[i]
             if not isinstance(col_dtype, pd.CategoricalDtype):
                 continue
             cat_arr_dtype = col_dtype.categories.dtype
             if not isinstance(cat_arr_dtype, IntegerDtype):
                 continue
-            requested = dtype.get(df.columns[i]) if isinstance(dtype, dict) else dtype
+            if isinstance(dtype, dict):
+                # dtype dicts may be keyed by position as well as by name
+                requested = dtype.get(df.columns[i], dtype.get(i))
+            else:
+                requested = dtype
             if (
                 isinstance(requested, pd.CategoricalDtype)
                 and requested.categories is not None

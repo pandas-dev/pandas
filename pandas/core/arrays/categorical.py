@@ -661,8 +661,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cats: Index,
         true_values=None,
         false_values=None,
-        convert_numeric: bool = True,
-        convert_bool: bool = True,
+        convert_numeric: bool = False,
+        convert_bool: bool = False,
     ) -> Index | None:
         """
         Try converting string categories to numeric or boolean, mirroring
@@ -677,9 +677,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         false_values : list, optional
             Strings recognized as False, in addition to the defaults
             "False", "FALSE", and "false."
-        convert_numeric : bool, default True
+        convert_numeric : bool, default False
             Whether to attempt numeric conversion.
-        convert_bool : bool, default True
+        convert_bool : bool, default False
             Whether to attempt boolean conversion.
 
         Returns
@@ -720,25 +720,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return None
 
     @classmethod
-    def _from_converted_categories(cls, converted: Index, codes: np.ndarray) -> Self:
+    def _from_converted_categories(
+        cls, converted: Index, codes: np.ndarray, ordered: bool | None = False
+    ) -> Self:
         """
         Construct a Categorical from ``_maybe_convert_categories`` output,
         merging categories that converted to the same value, sorting, and
         recoding ``codes`` accordingly.
         """
-        if not converted.is_unique:
-            # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True
-            unique_cats = converted.unique()
-            codes = recode_for_categories(codes, converted, unique_cats, copy=False)
-            converted = unique_cats
-
-        if not converted.is_monotonic_increasing:
-            sorted_cats = converted.sort_values()
-            codes = recode_for_categories(codes, converted, sorted_cats, copy=False)
-            converted = sorted_cats
-
-        dtype = CategoricalDtype(converted, ordered=False)
-        return cls._simple_new(codes, dtype=dtype)
+        # unique() because distinct strings can convert to the same value,
+        #  e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True
+        target = converted.unique().sort_values()
+        codes = recode_for_categories(codes, converted, target, copy=False)
+        return cls._simple_new(codes, dtype=CategoricalDtype(target, ordered=ordered))
 
     @classmethod
     def _from_inferred_categories(
@@ -748,8 +742,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype,
         true_values=None,
         false_values=None,
-        convert_numeric: bool = True,
-        convert_bool: bool = True,
+        convert_numeric: bool = False,
+        convert_bool: bool = False,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
@@ -769,10 +763,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         false_values : list, optional
             If none are provided, the default ones are
             "False", "FALSE", and "false."
-        convert_numeric : bool, default True
+        convert_numeric : bool, default False
             Whether to convert string categories to numeric when `dtype` does
             not provide categories. See ``_maybe_convert_categories``.
-        convert_bool : bool, default True
+        convert_bool : bool, default False
             Whether to convert string categories to boolean when `dtype` does
             not provide categories. See ``_maybe_convert_categories``.
 
@@ -791,6 +785,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
+        ordered = dtype.ordered if isinstance(dtype, CategoricalDtype) else False
 
         if not known_categories:
             # GH#56044 mirror the type inference performed on ordinary
@@ -803,7 +798,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 convert_bool=convert_bool,
             )
             if converted is not None:
-                return cls._from_converted_categories(converted, inferred_codes)
+                return cls._from_converted_categories(
+                    converted, inferred_codes, ordered=ordered
+                )
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
@@ -835,9 +832,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = recode_for_categories(
                 inferred_codes, unsorted, categories, copy=False, warn=True
             )
-            dtype = CategoricalDtype(categories, ordered=False)
+            dtype = CategoricalDtype(categories, ordered=ordered)
         else:
-            dtype = CategoricalDtype(cats, ordered=False)
+            dtype = CategoricalDtype(cats, ordered=ordered)
             codes = inferred_codes
 
         return cls._simple_new(codes, dtype=dtype)
