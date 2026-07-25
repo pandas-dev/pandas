@@ -535,6 +535,39 @@ class TestTimeConversionFormats:
         expected = DatetimeIndex(expected_dates)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(
+        not PY315, reason="%:z directive not supported prior to 3.15", raises=ValueError
+    )
+    def test_to_datetime_colon_z_offset(self):
+        dates = [
+            "2010-01-01 12:00:00+04:00",
+            "2010-01-01 12:00:00+04:30",
+            "2010-01-01 12:00:00-05:00",
+        ]
+        expected_dates = [
+            "2010-01-01 08:00:00+00:00",
+            "2010-01-01 07:30:00+00:00",
+            "2010-01-01 17:00:00+00:00",
+        ]
+        fmt = "%Y-%m-%d %H:%M:%S%:z"
+
+        result = to_datetime(dates, format=fmt, utc=True)
+        expected = DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_datetime_missing_colon_z_offset(self):
+        # test adapted from python/cpython#136961
+        dates = ["+04:0030"]
+        fmt = "%:z"
+
+        if PY315:
+            msg = r"Missing colon in %:z before '30', got '\+04:0030'"
+        else:
+            msg = "':' is a bad directive in format '%:z'"
+
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(dates, format=fmt, utc=True)
+
     @pytest.mark.parametrize(
         "offset", ["+0", "-1foo", "UTCbar", ":10", "+01:000:01", ""]
     )
