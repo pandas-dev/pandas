@@ -66,12 +66,12 @@ cdef bint buf_copy_backref(
     # destination -- that overlap is how an RDC back-reference expands a short
     # pattern -- so this has to stay a forward byte-at-a-time copy. Only the
     # bounds checks are hoisted out of the loop.
-    cdef int i
+    cdef int idx
     assert src_offset >= 0, "Out of bounds read"
     assert <size_t>(dst_offset + length) <= buf.length, "Out of bounds write"
     assert <size_t>(src_offset + length) <= buf.length, "Out of bounds read"
-    for i in range(length):
-        buf.data[dst_offset + i] = buf.data[src_offset + i]
+    for idx in range(length):
+        buf.data[dst_offset + idx] = buf.data[src_offset + idx]
     return True
 
 
@@ -104,9 +104,6 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         int nbytes, end_of_first_byte
         size_t ipos = 0
 
-    # Every branch below expands to either a run of literal bytes taken from
-    # inbuff or a run of one repeated value, so each is a single memcpy/memset
-    # with one bounds check, not a per-byte loop.
     while ipos < inbuff.length:
         control_byte = buf_get(inbuff, ipos) & 0xF0
         end_of_first_byte = <int>(buf_get(inbuff, ipos) & 0x0F)
@@ -195,7 +192,8 @@ cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         size_t ipos = 0
 
     # Unlike RLE, RDC streams are dominated by single-byte literals, so the
-    # per-byte accessor overhead is the cost here rather than the runs.
+    # accessor overhead on each input byte is the cost here rather than the runs;
+    # hence the raw reads with the bounds check written out once per command.
     while ipos < in_len:
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
@@ -220,35 +218,36 @@ cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
 
         # short RLE
         if cmd == 0:
+            assert ipos < in_len, "Out of bounds read"
             cnt += 3
-            buf_fill(outbuff, rpos, cnt, buf_get(inbuff, ipos))
+            buf_fill(outbuff, rpos, cnt, in_data[ipos])
             rpos += cnt
             ipos += 1
 
         # long RLE
         elif cmd == 1:
-            cnt += <uint16_t>buf_get(inbuff, ipos) << 4
+            assert ipos + 2 <= in_len, "Out of bounds read"
+            cnt += <uint16_t>in_data[ipos] << 4
             cnt += 19
-            ipos += 1
-            buf_fill(outbuff, rpos, cnt, buf_get(inbuff, ipos))
+            buf_fill(outbuff, rpos, cnt, in_data[ipos + 1])
             rpos += cnt
-            ipos += 1
+            ipos += 2
 
         # long pattern
         elif cmd == 2:
+            assert ipos + 2 <= in_len, "Out of bounds read"
             ofs = cnt + 3
-            ofs += <uint16_t>buf_get(inbuff, ipos) << 4
-            ipos += 1
-            cnt = <uint16_t>buf_get(inbuff, ipos)
-            ipos += 1
-            cnt += 16
+            ofs += <uint16_t>in_data[ipos] << 4
+            cnt = <uint16_t>in_data[ipos + 1] + 16
+            ipos += 2
             buf_copy_backref(outbuff, rpos, rpos - <int>ofs, cnt)
             rpos += cnt
 
         # short pattern
         else:
+            assert ipos < in_len, "Out of bounds read"
             ofs = cnt + 3
-            ofs += <uint16_t>buf_get(inbuff, ipos) << 4
+            ofs += <uint16_t>in_data[ipos] << 4
             ipos += 1
             buf_copy_backref(outbuff, rpos, rpos - <int>ofs, cmd)
             rpos += cmd
