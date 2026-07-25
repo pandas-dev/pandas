@@ -485,6 +485,18 @@ def test_from_product_datetimeindex():
     tm.assert_numpy_array_equal(mi.values, etalon)
 
 
+def test_from_product_preserves_datetime_date():
+    # GH#28152 python datetime.date labels must not be upcast to Timestamp
+    day = date(2019, 2, 2)
+    mi = MultiIndex.from_product([[day, day], [2, 3]])
+    assert mi[0] == (day, 2)
+    assert type(mi[0][0]) is date
+
+    # from_tuples is explicitly called out in the issue as having the same bug
+    mt = MultiIndex.from_tuples([(day, 2), (day, 3)])
+    assert type(mt[0][0]) is date
+
+
 def test_from_product_rangeindex():
     # RangeIndex is preserved by factorize, so preserved in levels
     rng = Index(range(5))

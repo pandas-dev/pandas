@@ -12,7 +12,6 @@ from io import (
     TextIOWrapper,
 )
 import mmap
-import os
 import tarfile
 
 import numpy as np
@@ -550,14 +549,14 @@ def test_buffer_rd_bytes_bad_unicode(c_parser_only):
 
 
 @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
-def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
+def test_read_tarfile(c_parser_only, datapath, tar_suffix):
     # see gh-16530
     #
     # Unfortunately, Python's CSV library can't handle
     # tarfile objects (expects string, not bytes when
     # iterating through a file-like).
     parser = c_parser_only
-    tar_path = os.path.join(csv_dir_path, "tar_csv" + tar_suffix)
+    tar_path = datapath("io", "parser", "data", "tar_csv" + tar_suffix)
 
     with tarfile.open(tar_path, "r") as tar:
         data_file = tar.extractfile("tar_data.csv")
@@ -854,3 +853,16 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
     for nrows in range(52_415, 52_431):
         result = parser.read_csv(StringIO(data), nrows=nrows)
         assert len(result) == nrows
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
+    # GH#66277: the pyarrow string fast path computed token lengths with
+    # strlen, so a quoted field with an embedded NUL byte was truncated at the
+    # NUL instead of matching the object path
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), **kwargs)
+    expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
+    assert result["a"][0] == "x\x00y"
+    assert expected["a"][0] == "x\x00y"

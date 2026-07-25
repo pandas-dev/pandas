@@ -136,12 +136,14 @@ jobs:
 
       - name: Setup Python
         id: setup_python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
           cache: 'pip'
-          pip-install: '-r requirements-dev.txt'
           cache-dependency-path: 'requirements-dev.txt'
 
       - name: Check Pip Cache Hit
         run: echo ${{ steps.setup_python.outputs.cache-hit }}
+
+      - name: Install requirements-dev.txt
+        run: python -m pip install -r requirements-dev.txt

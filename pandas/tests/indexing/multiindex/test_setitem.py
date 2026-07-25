@@ -555,6 +555,29 @@ def test_frame_setitem_partial_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
+def test_loc_scalar_setitem_scalar_column_multiindex_columns():
+    # GH#13474 adding a scalar (non-tuple) column to a frame with MultiIndex
+    #  columns should give scalar .loc access and correct in-place augmented
+    #  assignment, rather than returning a 1-element Series / writing NaN
+    df = DataFrame(0, index=range(2), columns=MultiIndex.from_product([[1], [2]]))
+    msg = "Setting a new column on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        # GH#17024 padding the scalar key is deprecated
+        df["oth"] = 1
+
+    # getitem returns a scalar, not a 1-element Series
+    assert df.loc[0, "oth"] == 1
+    # while the column-slice form stays a Series (the dimensionality the issue
+    # was retitled around)
+    assert isinstance(df.loc[:, "oth"], Series)
+
+    df.loc[0, "oth"] += 1
+    assert df.loc[0, "oth"] == 2
+    assert df.loc[1, "oth"] == 1
+    # the augmented assignment must not coerce the column to float / NaN
+    assert df[("oth", "")].tolist() == [2, 1]
+
+
 def test_loc_scalar_key_expansion_warns():
     # GH#17024 - deprecate .loc expansion with non-tuple key on MultiIndex
     df = DataFrame(
