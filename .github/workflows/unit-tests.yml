@@ -443,7 +443,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false
+    # if: false
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
