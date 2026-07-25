@@ -367,12 +367,12 @@ def collect_page_subheaders(parser):
         int row_start
         list processors = parser._subheader_processors
         object processor
+        bint compressed = bool(parser.compression)
 
     row_start = subheader_pointers_offset + bit_offset
 
     for i in range(n_subheaders):
         total_offset = row_start + subheader_pointer_length * <int>i
-        assert total_offset >= 0, "Out of bounds read"
         assert <size_t>(total_offset + 2 * int_length + 2) <= page_len, \
             "Out of bounds read"
 
@@ -399,19 +399,17 @@ def collect_page_subheaders(parser):
 
         # Read the int_length-byte signature the pointer points at.
         assert subheader_offset + int_length <= page_len, "Out of bounds read"
-        if int_length == 4:
-            memcpy(&sig32, &page[subheader_offset], 4)
-            subheader_index = lookup_subheader_index_32(sig32)
-        else:
+        if int_length == 8:
             memcpy(&sig64, &page[subheader_offset], 8)
             subheader_index = lookup_subheader_index_64(sig64)
+        else:
+            memcpy(&sig32, &page[subheader_offset], 4)
+            subheader_index = lookup_subheader_index_32(sig32)
 
         if subheader_index == data_subheader_index:
-            # A compressed data row. parser.compression is read here rather
-            # than hoisted because _process_columntext_subheader can set it
-            # earlier on this same page.
+            # A compressed data row.
             if not (
-                parser.compression
+                compressed
                 and (
                     subheader_compression == c_compressed_subheader_id
                     or subheader_compression == 0
@@ -420,7 +418,7 @@ def collect_page_subheaders(parser):
             ):
                 raise ValueError(
                     f"Unknown subheader signature "
-                    f"{bytes(page[subheader_offset:subheader_offset + int_length])}"
+                    f"{page[subheader_offset:subheader_offset + int_length]}"
                 )
             if count >= data_capacity:
                 raise ValueError(
@@ -433,6 +431,9 @@ def collect_page_subheaders(parser):
         else:
             processor = processors[subheader_index]
             processor(<int>subheader_offset, <int>subheader_length)
+            # _process_columntext_subheader can turn compression on partway
+            # through a page, so re-read it rather than hoisting once.
+            compressed = bool(parser.compression)
 
     return count
 
@@ -455,7 +456,7 @@ cdef class Parser:
         int cached_page_len
         int current_row_on_page_index
         int current_page_block_count
-        int current_page_data_subheader_pointers_len
+        int n_data_subheaders
         int current_page_subheaders_count
         int current_row_in_chunk_index
         int current_row_in_file_index
@@ -589,19 +590,15 @@ cdef class Parser:
                     self.current_page_subheaders_count
                 )
                 try:
-                    self.current_page_data_subheader_pointers_len = (
-                        collect_page_subheaders(self.parser)
-                    )
+                    self.n_data_subheaders = collect_page_subheaders(self.parser)
                 except Exception:
                     self.parser.close()
                     raise
-                self.parser._data_subheader_count = (
-                    self.current_page_data_subheader_pointers_len
-                )
+                self.parser._data_subheader_count = self.n_data_subheaders
                 return False
             elif (self.current_page_type == page_data_type
                     or self.current_page_type == page_mix_type):
-                self.current_page_data_subheader_pointers_len = 0
+                self.n_data_subheaders = 0
                 self.parser._data_subheader_count = 0
                 return False
             # else: unsupported page type (e.g. AMD), skip to next page
@@ -610,9 +607,7 @@ cdef class Parser:
         # Called once from __init__ to sync with the page the Python parser
         # left off on after _parse_metadata.
         self._parse_page_header()
-        self.current_page_data_subheader_pointers_len = (
-            self.parser._data_subheader_count
-        )
+        self.n_data_subheaders = self.parser._data_subheader_count
 
     cdef bint readline(self) except? True:
 
@@ -634,8 +629,7 @@ cdef class Parser:
         # Loop until a data row is read
         while True:
             if self.current_page_type in (page_meta_types_0, page_meta_types_1):
-                flag = self.current_row_on_page_index >=\
-                    self.current_page_data_subheader_pointers_len
+                flag = self.current_row_on_page_index >= self.n_data_subheaders
                 if flag:
                     done = self.read_next_page()
                     if done:

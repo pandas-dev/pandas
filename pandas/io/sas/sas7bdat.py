@@ -334,8 +334,14 @@ class SAS7BDATReader(SASReader):
         )
 
         # A page cannot hold more subheader pointers than its own length divided
-        # by the pointer size, so that bounds the data-subheader arrays.
-        max_subheaders = self._page_length // self._subheader_pointer_length + 1
+        # by the pointer size, nor more than its subheader-count field can express,
+        # so those bound the data-subheader arrays. The second bound matters
+        # because _page_length is an unvalidated header field.
+        # Parser caches memoryviews of these, so never rebind them after that.
+        max_subheaders = min(
+            self._page_length // self._subheader_pointer_length + 1,
+            1 << (8 * const.subheader_count_length),
+        )
         self._data_subheader_offsets = np.empty(max_subheaders, dtype=np.int64)
         self._data_subheader_lengths = np.empty(max_subheaders, dtype=np.int64)
 
