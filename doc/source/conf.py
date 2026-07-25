@@ -9,7 +9,10 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 import doctest
 import importlib
 import inspect
@@ -1100,11 +1103,37 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
+def set_offset_signature(app, obj, bound_method) -> None:
+    if obj is not pandas.tseries.offsets.BusinessDay:
+        return
+
+    obj.__signature__ = inspect.Signature(
+        parameters=[
+            inspect.Parameter(
+                "n",
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                default=1,
+            ),
+            inspect.Parameter(
+                "normalize",
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                default=False,
+            ),
+            inspect.Parameter(
+                "offset",
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                default=timedelta(0),
+            ),
+        ]
+    )
+
+
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("autodoc-before-process-signature", set_offset_signature)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)

@@ -2553,7 +2553,7 @@ cdef class BusinessDay(BusinessMixin):
     business day or a number of business days. Business days exclude weekends
     (Saturday and Sunday) by default.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
