@@ -381,6 +381,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`Series.min`, and :meth:`Series.max` on object-dtype data raising ``TypeError`` when missing values were present alongside values that do not support comparison with ``float`` (e.g. strings, :class:`datetime.date` objects, or mixed-timezone :class:`Timestamp` objects) (:issue:`4147`, :issue:`18588`, :issue:`24109`, :issue:`58707`, :issue:`61204`, :issue:`65500`)
+- Bug in :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`Series.min`, and :meth:`Series.max` on object-dtype data with ``skipna=False`` failing to propagate missing values, either raising ``TypeError`` or returning a value computed as though the missing values were absent; they now return a missing value like other dtypes do (:issue:`4147`)
 - Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` returning incorrect row labels for nullable ``UInt64`` columns containing missing values alongside values above ``2**53`` (:issue:`64478`)
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` with ``axis=1`` and ``skipna=False`` returning incorrect column labels for extension array dtypes (e.g. :class:`BooleanDtype`, nullable integer/float, :class:`ArrowDtype`) (:issue:`56903`)

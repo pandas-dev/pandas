@@ -2199,8 +2199,10 @@ class TestDataFrameReductions:
         expected = Series([winner, ts1], dtype=object)
         tm.assert_series_equal(result, expected)
 
+        # GH#4147: the NaT row holds an NA, so skipna=False propagates it.
+        # object-dtype reductions use None as the NA sentinel.
         result = getattr(df, method)(axis=1, skipna=False)
-        expected = Series([winner, pd.NaT], dtype=object)
+        expected = Series([winner, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_frame_any_with_timedelta(self):
@@ -2641,6 +2643,27 @@ def test_minmax_object_na_positions_differ_per_slice(axis):
 
     tm.assert_series_equal(df.min(axis=axis), exp_min)
     tm.assert_series_equal(df.max(axis=axis), exp_max)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_minmax_object_skipna_false_propagates_per_slice(axis):
+    # GH#4147: only the slices that actually hold an NA reduce to NA
+    df = DataFrame(
+        {
+            "a": ["x", None, "b"],
+            "b": ["r", "q", "p"],
+        },
+        dtype=object,
+    )
+    if axis == 0:
+        exp_min = Series([None, "p"], index=Index(["a", "b"]), dtype=object)
+        exp_max = Series([None, "r"], index=Index(["a", "b"]), dtype=object)
+    else:
+        exp_min = Series(["r", None, "b"], dtype=object)
+        exp_max = Series(["x", None, "p"], dtype=object)
+
+    tm.assert_series_equal(df.min(axis=axis, skipna=False), exp_min)
+    tm.assert_series_equal(df.max(axis=axis, skipna=False), exp_max)
 
 
 @pytest.mark.parametrize("ts_value", [Timestamp("2000-01-01"), pd.NaT])
