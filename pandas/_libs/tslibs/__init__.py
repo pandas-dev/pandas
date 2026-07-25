@@ -4,6 +4,7 @@ __all__ = [
     "IncompatibleFrequency",
     "NaT",
     "NaTType",
+    "Offset",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
     "Period",
@@ -63,6 +64,7 @@ from pandas._libs.tslibs.np_datetime import (
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
     Day,
+    Offset,
     Tick,
     to_offset,
 )

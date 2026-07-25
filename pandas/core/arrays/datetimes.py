@@ -3228,7 +3228,7 @@ def _generate_range(
         if periods == 1:
             end = start
         else:
-            # error: No overload variant of "__radd__" of "BaseOffset" matches
+            # error: No overload variant of "__radd__" of "Offset" matches
             # argument type "None"
             end = start + (periods - 1) * offset  # type: ignore[operator]
 
@@ -3237,7 +3237,7 @@ def _generate_range(
         if periods == 1:
             start = end
         else:
-            # error: No overload variant of "__radd__" of "BaseOffset" matches
+            # error: No overload variant of "__radd__" of "Offset" matches
             # argument type "None"
             start = end - (periods - 1) * offset  # type: ignore[operator]
 

@@ -41,7 +41,6 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
-    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -56,6 +55,7 @@ from pandas.tseries.offsets import (
     LastWeekOfMonth,
     MonthBegin,
     Nano,
+    Offset,
     Tick,
     Week,
     WeekOfMonth,
@@ -123,7 +123,9 @@ def month_classes(request):
 
 @pytest.fixture(
     params=[
-        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if o not in ("Tick", "BaseOffset", "Offset")
     ]
 )
 def offset_types(request):
@@ -844,12 +846,12 @@ def test_issubclass_dateoffset_no_warning_for_non_offset(klass):
     assert result is False
 
 
-def test_baseoffset_check_no_warning():
-    # GH#48262 BaseOffset is the non-deprecated alternative
+def test_offset_check_no_warning():
+    # GH#48262 Offset is the non-deprecated alternative
     bday = BDay()
     with tm.assert_produces_warning(None):
-        assert isinstance(bday, BaseOffset)
-        assert issubclass(BDay, BaseOffset)
+        assert isinstance(bday, Offset)
+        assert issubclass(BDay, Offset)
 
 
 class TestOffsetNames:

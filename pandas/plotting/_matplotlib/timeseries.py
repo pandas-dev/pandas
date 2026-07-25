@@ -269,7 +269,7 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     # inspect the first element because the index has a (possibly inferred)
     # freq, so the rest are evenly spaced relative to it.
     if isinstance(index, ABCDatetimeIndex):
-        # error: "BaseOffset" has no attribute "_period_dtype_code"
+        # error: "Offset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:

@@ -306,7 +306,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if op in (operator.mul, rmul):
             if bool(isna(other)):
                 return None
-            # error: No overload variant of "__mul__" of "BaseOffset"
+            # error: No overload variant of "__mul__" of "Offset"
             # matches argument type "object"
             new_freq = freq * other  # type: ignore[operator]
             if new_freq.n == 0:
