@@ -1,4 +1,7 @@
-from datetime import timedelta
+from datetime import (
+    date,
+    timedelta,
+)
 from decimal import Decimal
 import re
 
@@ -2576,6 +2579,68 @@ def test_minmax_extensionarray(method, numeric_only):
         index=Index(["Int64"]),
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_minmax_axis0_string_columns_with_na(dtype):
+    # GH#18588: the string columns were silently dropped as nuisance columns,
+    # and once numeric_only stopped dropping them the +/-inf NA fill raised
+    df = DataFrame(
+        {
+            "col1": [0, 1, 2, 3],
+            "col2": Series(["a", "b", None, "d"], dtype=dtype),
+            "col3": Series(["e", "f", None, "h"], dtype=dtype),
+        }
+    )
+    index = Index(["col1", "col2", "col3"])
+
+    result = df.min(axis=0)
+    tm.assert_series_equal(result, Series([0, "a", "e"], index=index, dtype=object))
+
+    result = df.max(axis=0)
+    tm.assert_series_equal(result, Series([3, "d", "h"], index=index, dtype=object))
+
+
+def test_minmax_axis0_object_date_with_na():
+    # GH#61204
+    df = DataFrame(
+        {"dates": [np.nan, np.nan, date(2025, 1, 3), date(2025, 1, 4)]}, dtype=object
+    )
+    index = Index(["dates"])
+
+    result = df.min(axis=0)
+    tm.assert_series_equal(
+        result, Series([date(2025, 1, 3)], index=index, dtype=object)
+    )
+
+    result = df.max(axis=0)
+    tm.assert_series_equal(
+        result, Series([date(2025, 1, 4)], index=index, dtype=object)
+    )
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_minmax_object_na_positions_differ_per_slice(axis):
+    # GH#18588: the NA fill is taken per reduction slice, so slices whose NAs
+    # sit in different positions do not borrow each other's values, and an
+    # all-NA slice reduces to NA rather than poisoning its neighbours
+    df = DataFrame(
+        {
+            "a": ["x", None, "b"],
+            "b": [None, "q", "p"],
+            "c": [None, None, None],
+        },
+        dtype=object,
+    )
+    if axis == 0:
+        exp_min = Series(["b", "p", None], index=Index(["a", "b", "c"]), dtype=object)
+        exp_max = Series(["x", "q", None], index=Index(["a", "b", "c"]), dtype=object)
+    else:
+        exp_min = Series(["x", "q", "b"], dtype=object)
+        exp_max = Series(["x", "q", "p"], dtype=object)
+
+    tm.assert_series_equal(df.min(axis=axis), exp_min)
+    tm.assert_series_equal(df.max(axis=axis), exp_max)
 
 
 @pytest.mark.parametrize("ts_value", [Timestamp("2000-01-01"), pd.NaT])

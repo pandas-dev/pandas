@@ -1,4 +1,5 @@
 from datetime import (
+    date,
     datetime,
     timedelta,
 )
@@ -23,6 +24,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    concat,
     date_range,
     isna,
     period_range,
@@ -1230,7 +1232,20 @@ class TestSeriesReductions:
         [
             (["a", "b", np.nan], "a", "b"),
             (["a", "b", None], "a", "b"),
+            # GH#4147
+            (["alpha", np.nan, "charlie", "delta"], "alpha", "delta"),
             ([(1, 3), (2, 2), np.nan], (1, 3), (2, 2)),
+            # GH#24109, including the NaT sentinel left behind by .dt.date
+            (
+                [date(2018, 1, 1), None, date(2018, 1, 3)],
+                date(2018, 1, 1),
+                date(2018, 1, 3),
+            ),
+            (
+                [date(2018, 1, 1), NaT, date(2018, 1, 3)],
+                date(2018, 1, 1),
+                date(2018, 1, 3),
+            ),
         ],
     )
     def test_minmax_object_with_na(self, data, exp_min, exp_max):
@@ -1248,6 +1263,14 @@ class TestSeriesReductions:
         ser = Series([ts1, ts2, NaT], dtype=object)
         assert ser.max() == ts1
         assert ser.min() == ts2
+
+    def test_minmax_object_tzaware_with_nat(self):
+        # GH#58707: concatenating tz-aware with tz-naive NaT gives object dtype
+        ts = Timestamp("2024-05-13 12:00:00", tz="America/New_York")
+        ser = concat([Series([ts]), Series([NaT])])
+        assert ser.dtype == object
+        assert ser.max() == ts
+        assert ser.min() == ts
 
     def test_minmax_object_all_na(self):
         # GH#65500
