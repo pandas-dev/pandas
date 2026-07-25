@@ -41,17 +41,11 @@ cdef uint8_t buf_get(Buffer buf, size_t offset) except? 255:
     return buf.data[offset]
 
 
-cdef bint buf_set(Buffer buf, size_t offset, uint8_t value) except 0:
-    assert offset < buf.length, "Out of bounds write"
-    buf.data[offset] = value
-    return True
-
-
 cdef bint buf_copy(
     Buffer dst, size_t dst_offset, Buffer src, size_t src_offset, size_t length
 ) except 0:
-    # Bulk form of `length` buf_get/buf_set pairs, checking the bounds once per
-    # run rather than once per byte. `src` and `dst` must not overlap.
+    # Copy a run of bytes, checking the bounds once per run rather than once per
+    # byte. `src` and `dst` must not overlap.
     assert src_offset + length <= src.length, "Out of bounds read"
     assert dst_offset + length <= dst.length, "Out of bounds write"
     memcpy(&dst.data[dst_offset], &src.data[src_offset], length)
@@ -59,7 +53,7 @@ cdef bint buf_copy(
 
 
 cdef bint buf_fill(Buffer buf, size_t offset, size_t length, uint8_t value) except 0:
-    # Bulk form of `length` buf_set calls that all write the same value.
+    # Write a run of `length` copies of the same value, bounds-checked once.
     assert offset + length <= buf.length, "Out of bounds write"
     memset(&buf.data[offset], value, length)
     return True
@@ -201,7 +195,7 @@ cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         size_t ipos = 0
 
     # Unlike RLE, RDC streams are dominated by single-byte literals, so the
-    # per-byte buf_get/buf_set wrappers are the cost here rather than the runs.
+    # per-byte accessor overhead is the cost here rather than the runs.
     while ipos < in_len:
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
