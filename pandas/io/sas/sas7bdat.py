@@ -64,15 +64,6 @@ if TYPE_CHECKING:
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
 
-# Values of SAS7BDATReader._str_mode; must match the StringModes enum in
-# pandas/_libs/sas.pyx.
-_STR_MODE_OBJECT = 0
-_STR_MODE_UTF8 = 1
-_STR_MODE_TABLE = 2
-
-# str_table_len entry marking a byte the source encoding does not define.
-_UNDEFINED_BYTE = 0xFF
-
 
 @functools.cache
 def _utf8_translation_table(
@@ -84,7 +75,7 @@ def _utf8_translation_table(
     Returns ``(table, lengths, ascii_identity)``, where ``table`` is a flat
     ``(256 * width,)`` array whose ``b``-th row holds the utf-8 encoding of
     source byte ``b``, ``lengths[b]`` is that encoding's length (or
-    ``_UNDEFINED_BYTE`` if `encoding` does not define ``b``), and
+    ``const.undefined_byte`` if `encoding` does not define ``b``), and
     ``ascii_identity`` says whether every byte below 0x80 maps to itself, which
     lets the parser memcpy ascii runs instead of translating byte by byte.
 
@@ -133,12 +124,15 @@ def _utf8_translation_table(
 
     width = max((len(utf8) for utf8 in encoded if utf8 is not None), default=1)
     table = np.zeros(256 * width, dtype=np.uint8)
-    lengths = np.full(256, _UNDEFINED_BYTE, dtype=np.uint8)
+    lengths = np.full(256, const.undefined_byte, dtype=np.uint8)
     for value, utf8 in enumerate(encoded):
         if utf8 is not None:
             lengths[value] = len(utf8)
             table[value * width : value * width + len(utf8)] = bytearray(utf8)
     ascii_identity = all(encoded[value] == bytes([value]) for value in range(0x80))
+    # Every reader gets these same arrays, so no one may write to them.
+    table.flags.writeable = False
+    lengths.flags.writeable = False
     return table, lengths, ascii_identity
 
 
@@ -784,7 +778,7 @@ class SAS7BDATReader(SASReader):
         self._current_row_in_chunk_index = 0
         p = Parser(self)
         p.read(nrows)
-        if self._str_mode != _STR_MODE_OBJECT:
+        if self._str_mode != const.string_mode_object:
             self._str_values = p.string_values()
 
         rslt = self._chunk_to_dataframe()
@@ -793,36 +787,38 @@ class SAS7BDATReader(SASReader):
 
         return rslt
 
-    def _string_mode(self, ns: int) -> tuple[int, tuple | None]:
+    def _string_mode(
+        self, ns: int
+    ) -> tuple[int, tuple[np.ndarray, np.ndarray, bool] | None]:
         """
         Pick how the Cython parser should emit string cells for this chunk.
 
-        Returns ``(mode, table)``; see the StringModes enum in sas.pyx. The
+        Returns ``(mode, table)``; see the string modes in sas_constants.py. The
         pyarrow modes require that the result actually be a pyarrow-backed str
         column, and that the source encoding translate byte by byte to utf-8.
         """
         if ns == 0 or not self.convert_text or self.encoding is None:
             # Nothing to decode: string cells stay raw bytes.
-            return _STR_MODE_OBJECT, None
+            return const.string_mode_object, None
         if not (using_string_dtype() and HAS_PYARROW):
-            return _STR_MODE_OBJECT, None
+            return const.string_mode_object, None
         if StringDtype(na_value=np.nan).storage != "pyarrow":
             # mode.string_storage is pinned to "python"; building an Arrow
             # array here would only have to be converted back.
-            return _STR_MODE_OBJECT, None
+            return const.string_mode_object, None
 
         try:
             canonical = codecs.lookup(self.encoding).name
         except LookupError:
             # Leave the error to the per-cell decode, which words it better.
-            return _STR_MODE_OBJECT, None
+            return const.string_mode_object, None
         if canonical == "utf-8":
-            return _STR_MODE_UTF8, None
+            return const.string_mode_utf8, None
         table = _utf8_translation_table(canonical)
         if table is None:
             # Multi-byte encoding (shift_jis, big5, ...): no per-byte mapping.
-            return _STR_MODE_OBJECT, None
-        return _STR_MODE_TABLE, table
+            return const.string_mode_object, None
+        return const.string_mode_table, table
 
     def _setup_string_buffers(self, ns: int, nrows: int) -> None:
         mode, table = self._string_mode(ns)
@@ -831,14 +827,14 @@ class SAS7BDATReader(SASReader):
         # arrays for whichever output this chunk does not use.
         empty_u1 = np.empty(0, dtype=np.uint8)
         self._string_chunk = np.empty(
-            (ns if mode == _STR_MODE_OBJECT else 0, nrows), dtype=object
+            (ns if mode == const.string_mode_object else 0, nrows), dtype=object
         )
         self._str_table = empty_u1
         self._str_table_len = empty_u1
         self._str_table_width = 1
         self._str_ascii_identity = False
         self._str_encoding = self.encoding
-        if mode == _STR_MODE_OBJECT:
+        if mode == const.string_mode_object:
             self._str_offsets = np.empty((0, 0), dtype=np.int64)
             self._str_valid = np.empty((0, 0), dtype=np.uint8)
             return
@@ -903,7 +899,7 @@ class SAS7BDATReader(SASReader):
                     rslt[name] = _convert_datetimes(rslt[name], convert_type)
                 jb += 1
             elif self._column_types[j] == b"s":
-                if self._str_mode != _STR_MODE_OBJECT:
+                if self._str_mode != const.string_mode_object:
                     rslt[name] = pd.Series(
                         self._string_column(js), index=ix, copy=False
                     )
@@ -959,7 +955,7 @@ class SAS7BDATReader(SASReader):
             nrows,
             [validity, pa.py_buffer(offsets), pa.py_buffer(values)],
         )
-        if self._str_mode == _STR_MODE_UTF8:
+        if self._str_mode == const.string_mode_utf8:
             # from_buffers does no validation, and a file declaring utf-8 can
             # still hold invalid bytes, so check here rather than deferring the
             # failure to first access. validate() checks each value separately,

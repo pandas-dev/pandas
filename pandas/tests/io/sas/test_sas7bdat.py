@@ -7,17 +7,19 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.errors import EmptyDataError
 
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.sas.sas7bdat import (
-    _STR_MODE_OBJECT,
-    _UNDEFINED_BYTE,
     SAS7BDATReader,
     _utf8_translation_table,
 )
+import pandas.io.sas.sas_constants as const
 
 
 @pytest.fixture
@@ -397,6 +399,17 @@ def test_0x00_control_byte(datapath):
     assert df.shape == (11_000, 20)
 
 
+def _fast_string_path_available() -> bool:
+    # Mirrors the environment half of SAS7BDATReader._string_mode's gate. Builds
+    # without pyarrow compare the object path against itself below, so the test
+    # has to know which of the two it is looking at.
+    return (
+        using_string_dtype()
+        and HAS_PYARROW
+        and pd.StringDtype(na_value=np.nan).storage == "pyarrow"
+    )
+
+
 @pytest.mark.parametrize(
     "encoding", ["utf-8", "latin-1", "cp1252", "cp437", "cp1251", "latin9", "ascii"]
 )
@@ -409,31 +422,43 @@ def test_string_fast_path_matches_object_path(
     # via an object-dtype array of bytes; the two must agree, including on
     # which files fail to decode.
     fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    if not _fast_string_path_available():
+        expected_mode = const.string_mode_object
+    elif encoding == "utf-8":
+        expected_mode = const.string_mode_utf8
+    else:
+        expected_mode = const.string_mode_table
 
-    def read(fast):
-        if not fast:
-            monkeypatch.setattr(
-                SAS7BDATReader,
-                "_string_mode",
-                lambda self, ns: (_STR_MODE_OBJECT, None),
-            )
-        else:
-            monkeypatch.undo()
-        try:
-            with contextlib.closing(
-                SAS7BDATReader(fname, encoding=encoding, chunksize=chunksize)
-            ) as rdr:
-                return next(iter(rdr)) if chunksize else rdr.read(), None
-        except UnicodeDecodeError as err:
-            return None, str(err)
+    def read():
+        with contextlib.closing(
+            SAS7BDATReader(fname, encoding=encoding, chunksize=chunksize)
+        ) as rdr:
+            try:
+                frame = next(iter(rdr)) if chunksize else rdr.read()
+            except UnicodeDecodeError as err:
+                return None, str(err), rdr._str_mode
+            return frame, None, rdr._str_mode
 
-    expected, expected_err = read(fast=False)
-    result, result_err = read(fast=True)
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            SAS7BDATReader,
+            "_string_mode",
+            lambda self, ns: (const.string_mode_object, None),
+        )
+        expected, expected_err, _ = read()
+    result, result_err, result_mode = read()
+    # Without this the comparison above silently degrades to object-vs-object
+    # if the gate in _string_mode ever stops opening.
+    assert result_mode == expected_mode
     assert (expected_err is None) == (result_err is None)
     if expected_err is None:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="string columns are object dtype, with no storage, under infer_string=0",
+)
 def test_string_fast_path_respects_string_storage(datapath, monkeypatch):
     # GH#47339 the fast path builds a pyarrow-backed column, so it must not be
     # taken when the resolved storage is python.
@@ -441,14 +466,17 @@ def test_string_fast_path_respects_string_storage(datapath, monkeypatch):
     with pd.option_context("mode.string_storage", "python"):
         with contextlib.closing(SAS7BDATReader(fname, encoding="cp1252")) as rdr:
             assert (
-                rdr._string_mode(rdr._column_types.count(b"s"))[0] == _STR_MODE_OBJECT
+                rdr._string_mode(rdr._column_types.count(b"s"))[0]
+                == const.string_mode_object
             )
             str_col = rdr.column_names[rdr._column_types.index(b"s")]
             result = rdr.read()
     assert result[str_col].dtype.storage == "python"
 
     monkeypatch.setattr(
-        SAS7BDATReader, "_string_mode", lambda self, ns: (_STR_MODE_OBJECT, None)
+        SAS7BDATReader,
+        "_string_mode",
+        lambda self, ns: (const.string_mode_object, None),
     )
     with pd.option_context("mode.string_storage", "python"):
         expected = pd.read_sas(fname, encoding="cp1252")
@@ -461,7 +489,10 @@ def test_string_fast_path_skipped(datapath, encoding):
     # translation to utf-8, so both fall back to the object path.
     fname = datapath("io", "sas", "data", "test1.sas7bdat")
     with contextlib.closing(SAS7BDATReader(fname, encoding=encoding)) as rdr:
-        assert rdr._string_mode(rdr._column_types.count(b"s"))[0] == _STR_MODE_OBJECT
+        assert (
+            rdr._string_mode(rdr._column_types.count(b"s"))[0]
+            == const.string_mode_object
+        )
 
 
 @pytest.mark.parametrize(
@@ -480,7 +511,7 @@ def test_utf8_translation_table(encoding):
         try:
             expected = bytes([value]).decode(encoding).encode("utf-8")
         except UnicodeDecodeError:
-            assert lengths[value] == _UNDEFINED_BYTE
+            assert lengths[value] == const.undefined_byte
             continue
         assert lengths[value] == len(expected)
         assert bytes(table[value * width : value * width + len(expected)]) == expected

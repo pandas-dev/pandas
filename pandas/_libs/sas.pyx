@@ -270,23 +270,6 @@ cdef enum ColumnTypes:
     column_type_string = 2
 
 
-cdef enum StringModes:
-    # How string cells are handed back to sas7bdat.py.
-    # Writes a Python bytes (or NaN) per cell into string_chunk; the caller
-    # decodes. Used when the result is not a pyarrow-backed str column.
-    string_mode_object = 0
-    # Source bytes are already utf-8: copy them verbatim into the column's
-    # value buffer. Validated once per chunk after the fact.
-    string_mode_utf8 = 1
-    # Source is a single-byte encoding: translate to utf-8 through a
-    # 256-entry lookup table.
-    string_mode_table = 2
-
-
-# str_table_len entry marking a byte that the source encoding does not define.
-cdef uint8_t undefined_byte = 0xFF
-
-
 # Const aliases
 assert len(const.page_meta_types) == 2
 cdef:
@@ -295,6 +278,12 @@ cdef:
     int page_mix_type = const.page_mix_type
     int page_data_type = const.page_data_type
     int subheader_pointers_offset = const.subheader_pointers_offset
+
+    # See sas_constants.py for what each string mode means. string_mode_table
+    # needs no alias here: it is whatever the other two are not.
+    int string_mode_object = const.string_mode_object
+    int string_mode_utf8 = const.string_mode_utf8
+    uint8_t undefined_byte = const.undefined_byte
 
     # Copy of subheader_signature_to_index that allows for much faster lookups.
     # Lookups are done in get_subheader_index. The C structures are initialized
@@ -377,9 +366,10 @@ cdef class Parser:
         uint8_t[:, ::1] str_valid
         # str_table[b * str_table_width : ...] holds the utf-8 for source byte
         # b, str_table_len[b] its length (undefined_byte if b is not a valid
-        # character in str_encoding). Only set for string_mode_table.
-        uint8_t[::1] str_table
-        uint8_t[::1] str_table_len
+        # character in str_encoding). Only set for string_mode_table. const
+        # because these are shared, read-only arrays cached across readers.
+        const uint8_t[::1] str_table
+        const uint8_t[::1] str_table_len
         int str_table_width
         bint str_ascii_identity
         object str_encoding
@@ -655,10 +645,10 @@ cdef class Parser:
         cdef:
             Py_ssize_t j
             int s, k, m, jb, js, current_row, rpos
-            int bi, blen, str_mode, table_width
+            int bi, blen, table_width
             int64_t lngt, start, ct
             uint8_t bval
-            bint ascii_identity
+            bint ascii_identity, mode_object, mode_utf8
             Buffer source
             StrColumn *col
             int64_t[:] column_types
@@ -669,8 +659,8 @@ cdef class Parser:
             StrColumn *str_cols
             int64_t[:, ::1] str_offsets
             uint8_t[:, ::1] str_valid
-            uint8_t[::1] str_table
-            uint8_t[::1] str_table_len
+            const uint8_t[::1] str_table
+            const uint8_t[::1] str_table_len
             bint compressed
 
         assert offset + length <= self.cached_page_len, "Out of bounds read"
@@ -692,7 +682,10 @@ cdef class Parser:
         offsets = self.offsets
         byte_chunk = self.byte_chunk
         string_chunk = self.string_chunk
-        str_mode = self.str_mode
+        # Resolved once per row so that the per-cell branches below test a
+        # local rather than reloading the module-level mode constants.
+        mode_object = self.str_mode == string_mode_object
+        mode_utf8 = self.str_mode == string_mode_utf8
         str_cols = self.str_cols
         str_offsets = self.str_offsets
         str_valid = self.str_valid
@@ -730,7 +723,7 @@ cdef class Parser:
                 # .rstrip(b"\x00 ") but without Python call overhead.
                 while lngt > 0 and buf_get(source, start + lngt - 1) in b"\x00 ":
                     lngt -= 1
-                if str_mode == string_mode_object:
+                if mode_object:
                     if lngt == 0 and self.blank_missing:
                         string_chunk[js, current_row] = np_nan
                     else:
@@ -740,16 +733,15 @@ cdef class Parser:
                 else:
                     col = &str_cols[js]
                     if lngt > 0 or not self.blank_missing:
-                        # The rstrip loop above bounds-checked the full field,
-                        # but re-assert it: everything below writes through raw
-                        # pointers rather than the checked buf_* helpers.
+                        # Spell out the bound the raw-pointer reads below rely
+                        # on; the rstrip loop's buf_get established it.
                         assert start + lngt <= <int64_t>source.length, \
                             "Out of bounds read"
                         # Cells start null (str_valid is zero-initialized), so
                         # only non-null ones need marking.
                         str_valid[js, current_row] = 1
                         strcol_reserve(col, lngt * table_width)
-                        if str_mode == string_mode_utf8:
+                        if mode_utf8:
                             memcpy(col.data + col.size, &source.data[start], lngt)
                             col.size += lngt
                         else:
