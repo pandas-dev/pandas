@@ -2938,13 +2938,28 @@ class Timestamp(_Timestamp):
 
             ts_input = datetime(**datetime_kwargs)
 
-        elif is_integer_object(year):
+        elif is_integer_object(year) and is_integer_object(ts_input):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, tzinfo]]]]])
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
+
+        elif (year is not None or month is not None or day is not None or
+                hour is not None or minute is not None or second is not None or
+                microsecond is not None):
+            # GH#31930 A datetime-like ts_input was passed together with
+            # by-component keyword arguments (year, month, day, hour, minute,
+            # second, or microsecond), which would otherwise be silently
+            # ignored. (nanosecond is excluded: it is also accepted alongside
+            # a datetime-like ts_input, GH#18898.)
+            raise ValueError(
+                "Cannot pass a date attribute keyword argument (year, month, "
+                "day, hour, minute, second, or microsecond) when passing a "
+                "datetime-like positional argument; build the Timestamp from "
+                "components or from the datetime-like input, but not both."
+            )
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "

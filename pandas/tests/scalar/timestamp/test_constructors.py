@@ -317,6 +317,37 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp("2010-10-10 12:59:59.999999999", **kwarg)
 
+    @pytest.mark.parametrize(
+        "ts_input",
+        [
+            datetime(2020, 12, 31),
+            Timestamp("2020-12-31"),
+            np.datetime64("2020-12-31"),
+            date(2020, 12, 31),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "arg", ["year", "month", "day", "hour", "minute", "second", "microsecond"]
+    )
+    def test_date_kwarg_with_datetime_input_raises(self, ts_input, arg):
+        # GH#31930 passing a by-component keyword together with a datetime-like
+        # ts_input previously silently ignored the keyword; now raises
+        msg = "Cannot pass a date attribute keyword argument"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(ts_input, **{arg: 5})
+
+    def test_date_kwarg_with_int_unit_input_raises(self):
+        # GH#31930 same for the int + unit value form
+        msg = "Cannot pass a date attribute keyword argument"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(1_600_000_000, unit="s", hour=5)
+
+    def test_nanosecond_kwarg_with_datetime_input_allowed(self):
+        # GH#18898 nanosecond is a genuine extension of datetime and remains
+        # allowed alongside a datetime-like ts_input (GH#31930)
+        result = Timestamp(datetime(2020, 12, 31), nanosecond=5)
+        assert result.nanosecond == 5
+
     @pytest.mark.parametrize("kwargs", [{}, {"year": 2020}, {"year": 2020, "month": 1}])
     def test_constructor_missing_keyword(self, kwargs):
         # GH#31200
