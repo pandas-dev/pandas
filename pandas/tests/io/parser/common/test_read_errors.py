@@ -6,7 +6,6 @@ specific classification into the other test modules.
 import codecs
 import csv
 from io import StringIO
-import os
 from pathlib import Path
 
 import numpy as np
@@ -68,13 +67,13 @@ def test_empty_sep(pyarrow_parser_only):
         parser.read_csv(StringIO(data), sep="")
 
 
-def test_bad_stream_exception(all_parsers, csv_dir_path):
+def test_bad_stream_exception(all_parsers, datapath):
     # see gh-13652
     #
     # This test validates that both the Python engine and C engine will
     # raise UnicodeDecodeError instead of C engine raising ParserError
     # and swallowing the exception that caused read to fail.
-    path = os.path.join(csv_dir_path, "sauron.SHIFT_JIS.csv")
+    path = datapath("io", "parser", "data", "sauron.SHIFT_JIS.csv")
     codec = codecs.lookup("utf-8")
     utf8 = codecs.lookup("utf-8")
     parser = all_parsers
