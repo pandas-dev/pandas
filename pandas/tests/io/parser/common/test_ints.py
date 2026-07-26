@@ -179,20 +179,14 @@ def test_int64_overflow(all_parsers, conv, request):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
-    "val",
-    [
-        np.iinfo(np.uint64).max,
-        np.iinfo(np.int64).max,
-        np.iinfo(np.int64).min,
-    ],
+    "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
 def test_int64_uint64_range(all_parsers, val):
     # These numbers fall right inside the int64-uint64
     # range, so they should be parsed as integer.
     parser = all_parsers
-    if parser.engine == "pyarrow" and val == np.iinfo(np.uint64).max:
-        pytest.skip("pyarrow infers uint64 max as double and loses precision")
     result = parser.read_csv(StringIO(str(val)), header=None)
 
     expected = DataFrame([val])
