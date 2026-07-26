@@ -342,7 +342,7 @@ def collect_page_subheaders(parser):
 
     On a compressed file nearly every subheader on a page is a data subheader,
     so keeping this walk in C avoids building a Python list of tuples -- and
-    re-acquiring the GIL to index it -- once per row.
+    indexing it, with a tuple unpack and two unboxes -- once per row.
     """
     cdef:
         bytes cached_page = parser._cached_page
@@ -373,8 +373,11 @@ def collect_page_subheaders(parser):
 
     for i in range(n_subheaders):
         total_offset = row_start + subheader_pointer_length * <int>i
-        assert <size_t>(total_offset + 2 * int_length + 2) <= page_len, \
-            "Out of bounds read"
+        # These three page-bounds checks raise rather than assert so that a
+        # corrupt file keeps reporting as bad input, the way it did when these
+        # reads went through _read_bytes, instead of looking like a pandas bug.
+        if <size_t>(total_offset + 2 * int_length + 2) > page_len:
+            raise ValueError("The cached page is too small.")
 
         if int_length == 8:
             memcpy(&subheader_offset, &page[total_offset], 8)
@@ -397,8 +400,17 @@ def collect_page_subheaders(parser):
         if subheader_length == 0 or subheader_compression == c_truncated_subheader_id:
             continue
 
-        # Read the int_length-byte signature the pointer points at.
-        assert subheader_offset + int_length <= page_len, "Out of bounds read"
+        # Read the int_length-byte signature the pointer points at. Both pointer
+        # fields are raw file data, so these subtract rather than add -- adding
+        # would wrap in uint64 and let a crafted offset through. The check above
+        # guarantees page_len > int_length.
+        if subheader_offset > page_len - int_length:
+            raise ValueError("The cached page is too small.")
+        # Both branches below narrow the length to a C int -- readline() for data
+        # subheaders, the processor call for everything else -- so a 64-bit field
+        # would otherwise truncate to a wrong but perfectly in-bounds value.
+        if subheader_length > page_len - subheader_offset:
+            raise ValueError("The cached page is too small.")
         if int_length == 8:
             memcpy(&sig64, &page[subheader_offset], 8)
             subheader_index = lookup_subheader_index_64(sig64)

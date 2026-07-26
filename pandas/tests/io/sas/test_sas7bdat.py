@@ -3,6 +3,7 @@ from datetime import datetime
 import io
 import os
 from pathlib import Path
+import struct
 
 import numpy as np
 import pytest
@@ -372,6 +373,48 @@ def test_rle_rdc_exceptions(
         data = bytearray(fd.read())
     data[override_offset] = override_value
     with pytest.raises(Exception, match=expected_msg):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat")
+
+
+@pytest.mark.parametrize(
+    "fname, fmt, field_offset, value",
+    [
+        # Fields of subheader pointers on page 0 of test9 (64-bit), which is
+        # walked from Python during _parse_metadata.
+        # Offset field, big enough that offset + int_length wraps in uint64.
+        ("test9.sas7bdat", "<Q", 68144, (1 << 64) - 1),
+        # Length field, big enough to truncate to a negative C int.
+        ("test9.sas7bdat", "<Q", 68152, 1 << 31),
+        # Length field of a *non-data* (ColumnName) pointer, big enough to
+        # truncate to a positive C int that is wrong but in bounds -- unchecked,
+        # this fabricates an extra column rather than raising.
+        ("test9.sas7bdat", "<Q", 65680, (1 << 32) + 836),
+        # Offset field on page 1 of test_meta2_page (32-bit, three pages), which
+        # is walked from Parser.read_next_page instead.
+        ("test_meta2_page.sas7bdat", "<I", 131096, 0xFFFFFFFF),
+    ],
+)
+def test_corrupt_subheader_pointer(datapath, fname, fmt, field_offset, value):
+    # GH#47339 a corrupt subheader pointer must be rejected before it is used to
+    # index the page.
+    with open(datapath("io", "sas", "data", fname), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into(fmt, data, field_offset, value)
+    # Rejected while walking the pointers, not later from inside the decompressor
+    # once a bad offset or length has already been accepted.
+    with pytest.raises(ValueError, match="cached page is too small"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat")
+
+
+def test_unknown_subheader_signature(datapath):
+    # GH#47339 an unrecognized signature on an uncompressed file is reported with
+    # the offending bytes. 121376 is where the last live subheader pointer on
+    # page 0 of test1.sas7bdat points.
+    with open(datapath("io", "sas", "data", "test1.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    data[121376:121380] = b"\xde\xad\xbe\xef"
+    msg = r"Unknown subheader signature b'\\xde\\xad\\xbe\\xef'"
+    with pytest.raises(ValueError, match=msg):
         pd.read_sas(io.BytesIO(data), format="sas7bdat")
 
 
