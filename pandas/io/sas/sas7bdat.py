@@ -122,6 +122,15 @@ def _utf8_translation_table(
                 continue
             return None
 
+    # A byte's meaning must also not depend on the bytes that follow it. The
+    # probes above miss escape-style codecs: raw_unicode_escape maps every byte
+    # one to one in isolation, yet decodes b"\\u0041" as "A".
+    probe = b"\\u0041"
+    if probe.decode(encoding, "replace") != "".join(
+        bytes([value]).decode(encoding, "replace") for value in probe
+    ):
+        return None
+
     width = max((len(utf8) for utf8 in encoded if utf8 is not None), default=1)
     table = np.zeros(256 * width, dtype=np.uint8)
     lengths = np.full(256, const.undefined_byte, dtype=np.uint8)
@@ -780,6 +789,9 @@ class SAS7BDATReader(SASReader):
         p.read(nrows)
         if self._str_mode != const.string_mode_object:
             self._str_values = p.string_values()
+        # Release the growable parse buffers before building the DataFrame, so
+        # that their spare capacity is not held alongside the copies above.
+        del p
 
         rslt = self._chunk_to_dataframe()
         if self.index is not None:

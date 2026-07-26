@@ -80,7 +80,10 @@ cdef bint strcol_reserve(StrColumn *col, int64_t extra) except 0:
         int64_t capacity = col.capacity
         uint8_t *data
 
-    if needed <= capacity:
+    # A zero capacity means data is still NULL, so allocate even when nothing is
+    # needed: an empty first cell would otherwise leave callers memcpy-ing into
+    # NULL, which is undefined behavior even for a length of zero.
+    if needed <= capacity and capacity > 0:
         return True
     if capacity == 0:
         capacity = 4096
