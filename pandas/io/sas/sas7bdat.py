@@ -19,11 +19,13 @@ from __future__ import annotations
 from datetime import datetime
 import sys
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
 from pandas._config import using_string_dtype
 
+from pandas._libs import lib
 from pandas._libs.byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
@@ -36,7 +38,11 @@ from pandas._libs.sas import (
     get_subheader_index,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    Pandas4Warning,
+)
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -167,8 +173,12 @@ class SAS7BDATReader(SASReader):
         with given number of lines.
     encoding : str, 'infer', defaults to None
         String encoding acc. to Python standard encodings,
-        encoding='infer' tries to detect the encoding from the file header,
-        encoding=None will leave the data in binary format.
+        encoding='infer' decodes using the encoding recorded in the file
+        header, falling back to latin-1 if the header does not name one
+        pandas recognizes; encoding=None will leave the data in binary format.
+
+        .. deprecated:: 3.1.0
+            The default will change from ``None`` to ``'infer'``.
     convert_text : bool, defaults to True
         If False, text variables are left as raw bytes.
     convert_header_text : bool, defaults to True
@@ -178,6 +188,7 @@ class SAS7BDATReader(SASReader):
 
     _int_length: int
     _cached_page: bytes | None
+    encoding: str | None
 
     def __init__(
         self,
@@ -186,16 +197,19 @@ class SAS7BDATReader(SASReader):
         convert_dates: bool = True,
         blank_missing: bool = True,
         chunksize: int | None = None,
-        encoding: str | None = None,
+        encoding: str | None | lib.NoDefault = lib.no_default,
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
     ) -> None:
+        self._encoding_specified = encoding is not lib.no_default
+        self._non_ascii_header_text = False
+
         self.index = index
         self.convert_dates = convert_dates
         self.blank_missing = blank_missing
         self.chunksize = chunksize
-        self.encoding = encoding
+        self.encoding = None if encoding is lib.no_default else encoding
         self.convert_text = convert_text
         self.convert_header_text = convert_header_text
 
@@ -298,10 +312,13 @@ class SAS7BDATReader(SASReader):
         buf = self._read_bytes(const.encoding_offset, const.encoding_length)[0]
         if buf in const.encoding_names:
             self.inferred_encoding = const.encoding_names[buf]
-            if self.encoding == "infer":
-                self.encoding = self.inferred_encoding
         else:
             self.inferred_encoding = f"unknown (code={buf})"
+        if self.encoding == "infer":
+            # GH#66470 fall back rather than trying to decode with "infer".
+            # default_encoding is latin-1, which cannot raise, so encoding=None
+            # (opting out of decoding) keeps decoding header text infallibly.
+            self.encoding = const.encoding_names.get(buf, self.default_encoding)
 
         # Timestamp is epoch 01/01/1960
         epoch = datetime(1960, 1, 1)
@@ -400,6 +417,22 @@ class SAS7BDATReader(SASReader):
                     self._column_convert_types.append(None)
             else:
                 self._column_convert_types.append(None)
+
+        # The default also governs header text, which is decoded either way, so
+        #  a numeric-only file with non-ascii column names changes too
+        if not self._encoding_specified and (
+            (self.convert_text and b"s" in self._column_types)
+            or self._non_ascii_header_text
+        ):
+            warnings.warn(
+                "The default value of 'encoding' in read_sas is deprecated. In a "
+                "future version the default will change from None to 'infer', and "
+                "text will be decoded using the encoding recorded in the file "
+                "rather than returned as bytes. Pass encoding='infer' to adopt "
+                "the future behavior, or encoding=None to keep the current one.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
@@ -779,6 +812,9 @@ class SAS7BDATReader(SASReader):
 
     def _convert_header_text(self, b: bytes) -> str | bytes:
         if self.convert_header_text:
+            if not b.isascii():
+                # latin-1 and the file's own encoding disagree only here
+                self._non_ascii_header_text = True
             return self._decode_string(b)
         else:
             return b
