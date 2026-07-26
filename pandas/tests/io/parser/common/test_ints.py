@@ -179,9 +179,17 @@ def test_int64_overflow(all_parsers, conv, request):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
-    "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
+    "val",
+    [
+        pytest.param(
+            np.iinfo(np.uint64).max,
+            marks=skip_pyarrow,
+            id="uint64_max",
+        ),
+        np.iinfo(np.int64).max,
+        np.iinfo(np.int64).min,
+    ],
 )
 def test_int64_uint64_range(all_parsers, val):
     # These numbers fall right inside the int64-uint64

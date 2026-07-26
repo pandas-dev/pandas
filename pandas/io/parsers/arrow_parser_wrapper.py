@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from io import BytesIO
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -466,14 +467,51 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
         convert_options = self._get_convert_options()
+        read_options = pyarrow_csv.ReadOptions(**self.read_options)
+        parse_options = pyarrow_csv.ParseOptions(**self.parse_options)
 
         try:
-            table = pyarrow_csv.read_csv(
-                self.src,
-                read_options=pyarrow_csv.ReadOptions(**self.read_options),
-                parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-                convert_options=convert_options,
-            )
+            start_position = self.src.tell()
+        except (AttributeError, OSError, ValueError):
+            start_position = None
+
+        try:
+            try:
+                table = pyarrow_csv.read_csv(
+                    self.src,
+                    read_options=read_options,
+                    parse_options=parse_options,
+                    convert_options=convert_options,
+                )
+            except pa.ArrowInvalid as err:
+                # GH#62635 pyarrow cannot infer the number of columns from a
+                # single physical line without a line terminator. Retry with
+                # a terminator appended, preserving the original source.
+                if (
+                    start_position is None
+                    or "cannot infer number of columns" not in str(err)
+                ):
+                    raise
+                try:
+                    self.src.seek(start_position)
+                    single_line = self.src.read()
+                except (AttributeError, OSError, ValueError):
+                    single_line = None
+
+                if (
+                    not isinstance(single_line, bytes)
+                    or not single_line
+                    or b"\n" in single_line
+                    or b"\r" in single_line
+                ):
+                    raise
+
+                table = pyarrow_csv.read_csv(
+                    BytesIO(single_line + b"\n"),
+                    read_options=read_options,
+                    parse_options=parse_options,
+                    convert_options=convert_options,
+                )
         except pa.ArrowInvalid as err:
             # pyarrow reports "Empty CSV file or block" when it cannot extract
             # any columns from the source; re-raise as EmptyDataError so the
