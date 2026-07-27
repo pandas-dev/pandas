@@ -574,6 +574,53 @@ def test_unknown_subheader_signature(datapath):
         pd.read_sas(io.BytesIO(data), format="sas7bdat")
 
 
+@pytest.mark.parametrize(
+    "test_file, offset_field, int_len, row_length",
+    [
+        # byte offset of the first column's data-offset field in the
+        # column-attributes subheader, the file's word size, and its row length
+        ("test2.sas7bdat", 126580, 4, 809),  # 32-bit, RLE compressed
+        ("test1.sas7bdat", 126588, 4, 816),  # 32-bit, uncompressed
+        ("test7.sas7bdat", 125532, 8, 816),  # 64-bit
+    ],
+)
+@pytest.mark.parametrize("overshoot", [1, 8, 4096])
+def test_column_offset_past_row_raises(
+    datapath, test_file, offset_field, int_len, row_length, overshoot
+):
+    # GH#47339 a column whose data runs past the end of the row would be read
+    # out of bounds; the 8-byte numeric fast path did not check.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    bad_offset = row_length + overshoot - 8
+    data[offset_field : offset_field + int_len] = bad_offset.to_bytes(int_len, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("bad_length", [9, 16, 4096])
+def test_numeric_column_longer_than_8_bytes_raises(datapath, bad_length):
+    # GH#47339 a numeric column is widened into 8 bytes of the output buffer, so
+    # a longer one wrote past the front of it even though it fits in the row.
+    with open(datapath("io", "sas", "data", "test1.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    # byte offset of the first column's data-length field, which is 4 bytes wide
+    data[126592:126596] = bad_length.to_bytes(4, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("bad_offset", [2**63 - 1, 2**64 - 1])
+def test_column_offset_near_int64_max_raises(datapath, bad_offset):
+    # GH#47339 a 64-bit file can declare an offset large enough that adding the
+    # column length wraps around in int64, which must not slip past validation.
+    with open(datapath("io", "sas", "data", "test7.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    data[125532:125540] = bad_offset.to_bytes(8, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
 def test_0x40_control_byte(datapath):
     # GH 31243
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
