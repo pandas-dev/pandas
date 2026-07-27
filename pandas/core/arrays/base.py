@@ -154,6 +154,7 @@ class ExtensionArray:
     repeat
     searchsorted
     shift
+    sort
     take
     tolist
     unique
@@ -1069,6 +1070,53 @@ class ExtensionArray:
             na_position=na_position,
             mask=np.asarray(self.isna()),
         )
+
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        """
+        Sort the array in-place.
+
+        Reorders the elements of the array using :meth:`argsort` and writes the
+        sorted result back through ``self[:]``. Subclasses backed by immutable
+        storage may override this method to raise ``NotImplementedError``.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether to sort in ascending order.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If 'first', put NaN values at the beginning.
+            If 'last', put NaN values at the end.
+
+        Returns
+        -------
+        None
+            This method mutates the array in place and does not return a value.
+
+        See Also
+        --------
+        ExtensionArray.argsort : Return the indices that would sort this array.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.sort()
+        >>> arr
+        <IntegerArray>
+        [1, 2, 3, 4, 5]
+        Length: 5, dtype: Int64
+        """
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        self[:] = self.take(sort_indices)
 
     def argmin(self, skipna: bool = True) -> int:
         """
@@ -2856,6 +2904,53 @@ class ExtensionArray:
         # Tuple[np.ndarray, npt.NDArray[np.bool_]]", expected "Self")
         result, _ = mode(self, dropna=dropna)
         return result  # type: ignore[return-value]
+
+    def round(self, decimals: int = 0) -> Self:
+        """
+        Round each value in the array to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal
+            point.
+
+        Returns
+        -------
+        ExtensionArray
+            Rounded values of the ExtensionArray.
+
+        See Also
+        --------
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+
+        Notes
+        -----
+        This is a non-performant default implementation.  Subclasses are
+        encouraged to override it to avoid the elementwise loop.
+
+        Examples
+        --------
+        >>> arr = pd.array([1.234, 5.678, pd.NA], dtype="Float64")
+        >>> arr.round(1)
+        <FloatingArray>
+        [1.2, 5.7, <NA>]
+        Length: 3, dtype: Float64
+        """
+        if self.dtype._is_boolean:
+            return self.copy()
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot round dtype {self.dtype} as it is non-numeric")
+        # Python's builtin round on complex emits DeprecationWarning (and
+        # raises TypeError in a future Python release); use np.round there.
+        round_fn = np.round if self.dtype.kind == "c" else round
+        rounded = [
+            round_fn(item, decimals) if not item_isna else item
+            for item, item_isna in zip(self, self.isna(), strict=True)
+        ]
+        return type(self)._from_sequence(rounded, dtype=self.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(

@@ -2305,6 +2305,9 @@ class Timestamp(_Timestamp):
         format string, using the same directives as the standard library's
         :meth:`datetime.datetime.strftime`.
 
+        In addition to the standard directives, ``%N`` is supported to format
+        the nanoseconds as a 9-digit zero-padded number.
+
         Parameters
         ----------
         format : str
@@ -2323,7 +2326,22 @@ class Timestamp(_Timestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
+
+        Use ``%N`` to format nanoseconds:
+
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
+        '2020-03-14T15:32:52.192548651'
         """
+        # Handle %N (nanoseconds) before delegating to datetime.strftime.
+        # Replace %% with a placeholder first so that %%N is not misidentified.
+        nano_placeholder = "^`NS`^"
+        pct_placeholder = "^`PC`^"
+        fmt = format.replace("%%", pct_placeholder)
+        has_nano = "%N" in fmt
+        if has_nano:
+            fmt = fmt.replace("%N", nano_placeholder)
+        fmt = fmt.replace(pct_placeholder, "%%")
+
         try:
             _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
@@ -2335,7 +2353,13 @@ class Timestamp(_Timestamp):
                 "For now, please call the components you need (such as `.year` "
                 "and `.month`) and construct your string from there."
             ) from err
-        return _dt.strftime(format)
+        result = _dt.strftime(fmt)
+
+        if has_nano:
+            nanos = self.microsecond * 1000 + self._nanosecond
+            result = result.replace(nano_placeholder, f"{nanos:09d}")
+
+        return result
 
     def ctime(self):
         """

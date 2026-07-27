@@ -79,6 +79,7 @@ from pandas.tseries.frequencies import (
 )
 from pandas.tseries.offsets import (
     Day,
+    Hour,
     Tick,
 )
 
@@ -604,7 +605,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
-            result.index.name = self.obj.index.name
 
         return result
 
@@ -2269,25 +2269,23 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         ax = self.ax
 
-        if is_subperiod(ax.freq, self.freq):
-            # Downsampling
-            return self._groupby_and_aggregate(how, **kwargs)
-        elif is_superperiod(ax.freq, self.freq):
-            if how == "ohlc":
-                # GH #13083
-                # upsampling to subperiods is handled as an asfreq, which works
-                # for pure aggregating/reducing methods
-                # OHLC reduces along the time dimension, but creates multiple
-                # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how)
-            return self.asfreq()
-        elif ax.freq == self.freq:
-            return self.asfreq()
+        if not (
+            is_subperiod(ax.freq, self.freq)
+            or is_superperiod(ax.freq, self.freq)
+            or ax.freq == self.freq
+        ):
+            raise IncompatibleFrequency(
+                f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
+                "as they are not sub or super periods"
+            )
 
-        raise IncompatibleFrequency(
-            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
-            "as they are not sub or super periods"
-        )
+        if not len(ax):
+            # reset to the new freq
+            obj = self._obj_with_exclusions.copy()
+            obj.index = obj.index.asfreq(self.freq)
+            return obj
+
+        return self._groupby_and_aggregate(how, **kwargs)
 
     def _upsample(self, method, limit: int | None = None, fill_value=None):
         """
@@ -2463,7 +2461,9 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        if not isinstance(freq, Tick):
+        # GH#44996: the Day check is deferred to _get_resampler, where the
+        # binning axis is known.
+        if not isinstance(freq, (Tick, Day)):
             if offset is not None:
                 warnings.warn(
                     "The 'offset' keyword does not take effect when resampling "
@@ -2560,6 +2560,30 @@ class TimeGrouper(Grouper):
 
         """
         _, ax, _ = self._set_grouper(obj, gpr_index=None)
+
+        # GH#44996: with a Day freq, origin/offset take effect only on a
+        # tz-naive DatetimeIndex (where Day is equivalent to 24h), except
+        # that offset also takes effect in _get_time_delta_bins.
+        if isinstance(self.freq, Day) and not (
+            isinstance(ax, DatetimeIndex) and ax.tz is None
+        ):
+            if self.offset is not None and not isinstance(ax, TimedeltaIndex):
+                warnings.warn(
+                    "The 'offset' keyword does not take effect when resampling "
+                    "with a Day 'freq' unless the index is a timezone-naive "
+                    "DatetimeIndex",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if self.origin != "start_day":
+                warnings.warn(
+                    "The 'origin' keyword does not take effect when resampling "
+                    "with a Day 'freq' unless the index is a timezone-naive "
+                    "DatetimeIndex",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2876,7 +2900,8 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array(),
+                name=ax.name,
             )
         return obj, ax, indexer
 
@@ -2949,7 +2974,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, Tick):
+    if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2957,6 +2982,11 @@ def _get_timestamp_range_edges(
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
+
+        if isinstance(freq, Day):
+            # GH#44996: tz-naive Day should produce the same bins as the
+            # equivalent Hour offset.
+            freq = Hour(24 * freq.n)
 
         first, last = _adjust_dates_anchored(
             first,

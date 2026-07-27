@@ -258,7 +258,7 @@ def test_resample_empty_sum_string(string_dtype_no_object, min_count):
 @pytest.mark.parametrize(
     "freq",
     [
-        pytest.param("ME", marks=pytest.mark.xfail(reason="Don't know why this fails")),
+        "M",
         "D",
         "h",
     ],

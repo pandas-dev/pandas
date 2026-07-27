@@ -2,9 +2,10 @@
 """
 Check pandas required and optional dependencies are synced across:
 
-ci/deps/actions-.*-minimum_versions.yaml
+pixi.toml
 pandas/compat/_optional.py
-setup.cfg
+pyproject.toml
+environment.yml
 
 TODO: doc/source/getting_started/install.rst
 
@@ -26,14 +27,16 @@ from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
 BASE_PATH = pathlib.Path(__file__).parents[1]
 DOC_PATH = (BASE_PATH / "doc/source/getting_started/install.rst").resolve()
-CI_PATH = next(
-    (BASE_PATH / "ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
-)
+PIXI_PATH = (BASE_PATH / "pixi.toml").resolve()
 CODE_PATH = (BASE_PATH / "pandas/compat/_optional.py").resolve()
-SETUP_PATH = (BASE_PATH / "pyproject.toml").resolve()
-YAML_PATH = BASE_PATH / "ci/deps"
+PYPROJECT_PATH = (BASE_PATH / "pyproject.toml").resolve()
 ENV_PATH = BASE_PATH / "environment.yml"
-EXCLUDE_DEPS = {"tzdata", "pyqt", "pyqt5"}
+EXCLUDE_DEPS = {"blosc", "tzdata", "pyqt", "pyqt5"}
+ADDITIONAL_PIXI_OPTIONAL_DEPENDENCIES = {
+    ("feature", "pyarrow", "dependencies"): None,
+    ("feature", "test-base", "dependencies"): {"hypothesis", "pytest"},
+    ("feature", "test-clipboard", "dependencies"): {"qtpy"},
+}
 # pandas package is not available
 # in pre-commit environment
 sys.path.append(str(BASE_PATH / "pandas/compat"))
@@ -46,32 +49,29 @@ sys.modules["pandas.util._exceptions"] = _exceptions
 import _optional
 
 
-def pin_min_versions_to_ci_deps() -> int:
+def pin_min_versions_to_environment_yml() -> int:
     """
-    Pin minimum versions to CI dependencies.
+    Pin minimum versions to environment.yml dependencies.
 
     Pip dependencies are not pinned.
     """
-    all_yaml_files = list(YAML_PATH.iterdir())
-    all_yaml_files.append(ENV_PATH)
     toml_dependencies = {}
-    with open(SETUP_PATH, "rb") as toml_f:
+    with open(PYPROJECT_PATH, "rb") as toml_f:
         toml_dependencies = tomllib.load(toml_f)
     ret = 0
-    for curr_file in all_yaml_files:
-        with open(curr_file, encoding="utf-8") as yaml_f:
-            yaml_start_data = yaml_f.read()
-        yaml_file = yaml.safe_load(yaml_start_data)
-        yaml_dependencies = yaml_file["dependencies"]
-        yaml_map = get_yaml_map_from(yaml_dependencies)
-        toml_map = get_toml_map_from(toml_dependencies)
-        yaml_result_data = pin_min_versions_to_yaml_file(
-            yaml_map, toml_map, yaml_start_data
-        )
-        if yaml_result_data != yaml_start_data:
-            with open(curr_file, "w", encoding="utf-8") as f:
-                f.write(yaml_result_data)
-            ret |= 1
+    with open(ENV_PATH, encoding="utf-8") as yaml_f:
+        yaml_start_data = yaml_f.read()
+    yaml_file = yaml.safe_load(yaml_start_data)
+    yaml_dependencies = yaml_file["dependencies"]
+    yaml_map = get_yaml_map_from(yaml_dependencies)
+    toml_map = get_toml_map_from(toml_dependencies)
+    yaml_result_data = pin_min_versions_to_yaml_file(
+        yaml_map, toml_map, yaml_start_data
+    )
+    if yaml_result_data != yaml_start_data:
+        with open(ENV_PATH, "w", encoding="utf-8") as f:
+            f.write(yaml_result_data)
+        ret |= 1
     return ret
 
 
@@ -191,47 +191,99 @@ def get_versions_from_code() -> dict[str, str]:
 
 
 def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, str]]:
-    """Min versions in CI job for testing all optional dependencies."""
-    # Don't parse with pyyaml because it ignores comments we're looking for
-    seen_required = False
-    seen_optional = False
-    seen_test = False
-    required_deps = {}
-    optional_deps = {}
-    for line in content:
-        if "# test dependencies" in line:
-            seen_test = True
-        elif seen_test and "- pytest>=" in line:
-            # Only grab pytest
-            package, version = line.strip().split(">=")
-            package = package[2:]
-            optional_deps[package.casefold()] = version
-        elif "# required dependencies" in line:
-            seen_required = True
-        elif "# optional dependencies" in line:
-            seen_optional = True
-        elif "- pip:" in line:
-            continue
-        elif seen_required and line.strip():
-            if "==" in line:
-                package, version = line.strip().split("==", maxsplit=1)
-            else:
-                package, version = line.strip().split("=", maxsplit=1)
-            package = package.split()[-1]
-            if package in EXCLUDE_DEPS:
-                continue
-            if not seen_optional:
-                required_deps[package.casefold()] = version
-            else:
-                optional_deps[package.casefold()] = version
+    """Min versions in pixi.toml for testing all optional dependencies."""
+    separator = "" if any(line.endswith(("\n", "\r")) for line in content) else "\n"
+    pixi_toml = tomllib.loads(separator.join(content))
+    install_map = _optional.INSTALL_MAPPING
+    required_deps = _get_required_dependencies_from_pixi_content(content, pixi_toml)
+    optional_deps = _get_dependencies_from_pixi_table(
+        pixi_toml["feature"]["optional-dependencies"]["dependencies"],
+        install_map,
+    )
+    required_deps.update(
+        _get_dependencies_from_pixi_table(
+            pixi_toml["feature"]["numpy"]["dependencies"],
+            install_map,
+        )
+    )
+    for keys, packages in ADDITIONAL_PIXI_OPTIONAL_DEPENDENCIES.items():
+        dependencies = pixi_toml
+        for key in keys:
+            dependencies = dependencies[key]
+        optional_deps.update(
+            _get_dependencies_from_pixi_table(dependencies, install_map, packages)
+        )
     return required_deps, optional_deps
+
+
+def _get_required_dependencies_from_pixi_content(
+    content: list[str], pixi_toml: dict[str, Any]
+) -> dict[str, str]:
+    # pixi.toml keeps build and required deps in the same TOML table.
+    required_deps = {}
+    in_dependencies = False
+    in_required_dependencies = False
+    for line in content:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("["):
+            in_dependencies = line == "[dependencies]"
+            in_required_dependencies = False
+            continue
+        if not in_dependencies:
+            continue
+        if line.casefold() == "# required dependencies":
+            in_required_dependencies = True
+            continue
+        if line.startswith("#"):
+            in_required_dependencies = False
+            continue
+        if not in_required_dependencies:
+            continue
+        package = line.split("=", maxsplit=1)[0].strip()
+        version = _get_version_from_pixi_spec(pixi_toml["dependencies"][package])
+        if version is not None and package not in EXCLUDE_DEPS:
+            required_deps[package.casefold()] = version
+    return required_deps
+
+
+def _get_dependencies_from_pixi_table(
+    dependencies: dict[str, str | dict[str, Any]],
+    install_map: dict[str, str],
+    packages: set[str] | None = None,
+) -> dict[str, str]:
+    versions = {}
+    for package, spec in dependencies.items():
+        package = install_map.get(package, package).casefold()
+        if package in EXCLUDE_DEPS or (
+            packages is not None and package not in packages
+        ):
+            continue
+        version = _get_version_from_pixi_spec(spec)
+        if version is not None:
+            versions[package] = version
+    return versions
+
+
+def _get_version_from_pixi_spec(spec: str | dict[str, Any]) -> str | None:
+    if isinstance(spec, dict):
+        spec = spec.get("version", "")
+    if spec in {"", "*"}:
+        return None
+    for operator in ("==", ">=", "="):
+        if spec.startswith(operator):
+            version = spec.removeprefix(operator).split(",", maxsplit=1)[0]
+            if "*" not in version:
+                return version
+    return None
 
 
 def get_versions_from_toml() -> dict[str, str]:
     """Min versions in pyproject.toml for pip install pandas[extra]."""
     install_map = _optional.INSTALL_MAPPING
     optional_dependencies = {}
-    with open(SETUP_PATH, "rb") as pyproject_f:
+    with open(PYPROJECT_PATH, "rb") as pyproject_f:
         pyproject_toml = tomllib.load(pyproject_f)
         opt_deps = pyproject_toml["project"]["optional-dependencies"]
         dependencies = set(opt_deps["all"])
@@ -251,31 +303,31 @@ def get_versions_from_toml() -> dict[str, str]:
 
 def main() -> int:
     ret = 0
-    ret |= pin_min_versions_to_ci_deps()
-    with open(CI_PATH, encoding="utf-8") as f:
+    ret |= pin_min_versions_to_environment_yml()
+    with open(PIXI_PATH, encoding="utf-8") as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
     code_optional = get_versions_from_code()
-    setup_optional = get_versions_from_toml()
+    pyproject_optional = get_versions_from_toml()
 
-    diff = (ci_optional.items() | code_optional.items() | setup_optional.items()) - (
-        ci_optional.items() & code_optional.items() & setup_optional.items()
-    )
+    diff = (
+        ci_optional.items() | code_optional.items() | pyproject_optional.items()
+    ) - (ci_optional.items() & code_optional.items() & pyproject_optional.items())
 
     if diff:
         packages = {package for package, _ in diff}
         out = sys.stdout
         out.write(
             f"The follow minimum version differences were found between  "
-            f"{CI_PATH}, {CODE_PATH} AND {SETUP_PATH}. "
+            f"{PIXI_PATH}, {CODE_PATH} AND {PYPROJECT_PATH}. "
             f"Please ensure these are aligned: \n\n"
         )
 
         for package in packages:
             out.write(
                 f"{package}\n"
-                f"{CI_PATH}: {ci_optional.get(package, 'Not specified')}\n"
+                f"{PIXI_PATH}: {ci_optional.get(package, 'Not specified')}\n"
                 f"{CODE_PATH}: {code_optional.get(package, 'Not specified')}\n"
-                f"{SETUP_PATH}: {setup_optional.get(package, 'Not specified')}\n\n"
+                f"{PYPROJECT_PATH}: {pyproject_optional.get(package, 'Not specified')}\n\n"  # noqa: E501
             )
         ret |= 1
     return ret

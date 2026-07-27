@@ -1091,6 +1091,21 @@ def test_match(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat",
+    [r"^foo|bar", r"^bar|foo", r"^foo|bar$", r"^(foo)|bar"],
+)
+def test_match_anchored_alternation(any_string_dtype, pat):
+    # GH#66069
+    ser = Series(["xbar", "bar", "foo", "xfoo"], dtype=any_string_dtype)
+    result = ser.str.match(pat)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([False, True, True, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_match_mixed_object():
     mixed = Series(
         [

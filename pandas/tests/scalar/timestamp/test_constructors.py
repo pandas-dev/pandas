@@ -261,7 +261,9 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 
     def test_constructor_keyword(self):
         # GH#10758
-        msg = "function missing required argument 'day'|Required argument 'day'"
+        msg = "|".join(
+            ["function missing required argument 'day'", "Required argument 'day'"]
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(year=2000, month=1)
 
@@ -1180,3 +1182,12 @@ def test_timestamp_constructor_na_value(na_value):
     result = Timestamp(na_value)
     expected = NaT
     assert result is expected
+
+
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_timestamp_iso8601_offset_out_of_bounds(tz):
+    # GH#65353 shifting to UTC takes this past Timestamp.max; it must raise
+    # rather than silently wrap around to a bogus in-bounds datetime
+    msg = "Out of bounds nanosecond timestamp"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        Timestamp("2262-04-11T20:00:00.000000000-11:00", tz=tz)

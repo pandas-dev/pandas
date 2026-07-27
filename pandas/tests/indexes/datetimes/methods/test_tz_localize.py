@@ -144,7 +144,7 @@ class TestTZLocalize:
         fromdates = DatetimeIndex(strdates, tz=tzstr)
 
         assert conv.tz == fromdates.tz
-        tm.assert_numpy_array_equal(conv.values, fromdates.values)
+        tm.assert_numpy_array_equal(conv.asi8, fromdates.asi8)
 
     @pytest.mark.parametrize("prefix", ["", "dateutil/"])
     def test_dti_tz_localize(self, prefix):
@@ -156,10 +156,10 @@ class TestTZLocalize:
             start="1/1/2005 05:00", end="1/1/2005 5:00:02.256", freq="ms", tz="utc"
         )
 
-        tm.assert_numpy_array_equal(dti2.values, dti_utc.values)
+        tm.assert_numpy_array_equal(dti2.to_numpy(), dti_utc.to_numpy())
 
         dti3 = dti2.tz_convert(prefix + "US/Pacific")
-        tm.assert_numpy_array_equal(dti3.values, dti_utc.values)
+        tm.assert_numpy_array_equal(dti3.to_numpy(), dti_utc.to_numpy())
 
         dti = date_range(start="11/6/2011 1:59:59", end="11/6/2011 2:00", freq="ms")
         with pytest.raises(ValueError, match="Cannot infer dst time"):
@@ -248,7 +248,7 @@ class TestTZLocalize:
 
         # left dtype is datetime64[ns, US/Eastern]
         # right is datetime64[ns, tzfile('/usr/share/zoneinfo/US/Eastern')]
-        tm.assert_numpy_array_equal(di_test.values, localized.values)
+        tm.assert_numpy_array_equal(di_test.asi8, localized.asi8)
 
     def test_dti_tz_localize_ambiguous_flags(self, tz, unit):
         # November 6, 2011, fall back, repeat 2 AM hour
@@ -270,20 +270,20 @@ class TestTZLocalize:
         is_dst = [1, 1, 0, 0, 0]
         localized = di.tz_localize(tz, ambiguous=is_dst)
         expected = dr._with_freq(None)
-        tm.assert_index_equal(expected, localized)
+        tm.assert_index_equal(expected, localized, check_freq=False)
 
         result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst).astype("bool"))
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test constructor
         localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test duplicate times where inferring the dst fails
         times += times
@@ -353,6 +353,26 @@ class TestTZLocalize:
                 "2018-03-11 02:33:00",
                 "US/Pacific",
                 "2018-03-11 01:33:00",
+                timedelta(hours=-1),
+            ],
+            # GH#40705, GH#40915: shifting across the UTC+0 DST boundary
+            ["2021-03-28 01:20:00", "Europe/London", "2021-03-28 02:00:00", "forward"],
+            [
+                "2021-03-28 01:20:00",
+                "Europe/London",
+                "2021-03-28 00:59:59.999999999",
+                "backward",
+            ],
+            [
+                "2021-03-28 01:20:00",
+                "Europe/London",
+                "2021-03-28 02:20:00",
+                timedelta(hours=1),
+            ],
+            [
+                "2021-03-28 01:20:00",
+                "Europe/London",
+                "2021-03-28 00:20:00",
                 timedelta(hours=-1),
             ],
         ],

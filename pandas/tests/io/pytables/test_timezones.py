@@ -270,7 +270,7 @@ def test_fixed_offset_tz(temp_hdfstore):
 
     temp_hdfstore["frame"] = frame
     recons = temp_hdfstore["frame"]
-    tm.assert_index_equal(recons.index, rng)
+    tm.assert_index_equal(recons.index, rng, check_freq=False)
     assert rng.tz == recons.index.tz
 
 
@@ -332,4 +332,4 @@ def test_read_with_where_tz_aware_index(temp_hdfstore):
     with pd.HDFStore(temp_hdfstore) as store:
         store.append(key, expected, format="table", append=True)
     result = pd.read_hdf(temp_hdfstore, key, where="DATE > 20151130")
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_freq=False)

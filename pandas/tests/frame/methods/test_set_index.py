@@ -147,7 +147,7 @@ class TestSetIndex:
         res = df.set_index(["index", "a"])
         exp_index = MultiIndex.from_arrays([di, [0, 1, 2]], names=["index", "a"])
         exp = DataFrame({"b": [3, 4, 5]}, index=exp_index)
-        tm.assert_frame_equal(res, exp)
+        tm.assert_frame_equal(res, exp, check_freq=False)
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame

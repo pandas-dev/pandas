@@ -304,7 +304,7 @@ def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
     else:
-        msg = "unexpected end of data|expected after"
+        msg = "|".join(["unexpected end of data", "expected after"])
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
 

@@ -18,15 +18,16 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_array_like_deprecate_non_pandas,
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
@@ -54,6 +55,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        AxisInt,
         Dtype,
         NpDtype,
         Scalar,
@@ -175,6 +177,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             pa_array = pa.chunked_array([pa_array])
         obj._pa_array = pa_array
         obj._dtype = self._dtype
+        obj._cache = {}
         return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -335,7 +338,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif isinstance(value, type(self)):
             pass
         else:
-            if not is_array_like(value):
+            if not is_array_like_deprecate_non_pandas(value):
                 value = np.asarray(value, dtype=object)
             else:
                 value = np.asarray(value)
@@ -386,6 +389,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     _str_isalnum = ArrowStringArrayMixin._str_isalnum
     _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isascii = ArrowStringArrayMixin._str_isascii
     _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
     _str_isdigit = ArrowStringArrayMixin._str_isdigit
     _str_islower = ArrowStringArrayMixin._str_islower
@@ -414,6 +418,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
+    _str_zfill = ArrowStringArrayMixin._str_zfill
 
     @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
@@ -586,8 +591,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return Float64Dtype().__from_arrow__(result)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         if self.dtype.na_value is np.nan and name in ["any", "all"]:
             if not skipna:
                 nas = pc.is_null(self._pa_array)

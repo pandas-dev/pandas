@@ -314,7 +314,7 @@ class TestAtErrors:
         new_row = [6, 7]
         with pytest.raises(
             InvalidIndexError,
-            match=f"You can only assign a scalar value not a \\{type(new_row)}",
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
         ):
             df.at[5] = new_row
 
@@ -345,6 +345,31 @@ class TestAtErrors:
         new_row = [123, 15]
         with pytest.raises(
             InvalidIndexError,
-            match=f"You can only assign a scalar value not a \\{type(new_row)}",
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
         ):
             df.at["a"] = new_row
+
+    @pytest.mark.parametrize("key", [lambda df: df["b"] == 6, [0, 1], np.array([0, 1])])
+    def test_at_setitem_nonscalar_indexer_raises(self, key):
+        # GH#51866 - .at setitem with a mask/list/array indexer should raise a
+        #  clear error directing the user to .loc, not the misleading
+        #  "scalar value" message
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = key(df) if callable(key) else key
+        with pytest.raises(
+            InvalidIndexError,
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
+        ):
+            df.at[indexer, "b"] = 9.0
+
+    @pytest.mark.parametrize("key", [lambda ser: ser > 2, [0, 1], np.array([0, 1])])
+    def test_at_setitem_series_nonscalar_indexer_raises(self, key):
+        # GH#51866 - Series .at setitem with a non-scalar indexer should raise a
+        #  clear error rather than dumping the raw indexer
+        ser = Series([1, 2, 3, 4])
+        indexer = key(ser) if callable(key) else key
+        with pytest.raises(
+            InvalidIndexError,
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
+        ):
+            ser.at[indexer] = 9.0

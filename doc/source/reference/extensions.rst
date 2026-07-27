@@ -65,6 +65,7 @@ objects.
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted
       api.extensions.ExtensionArray.shift
+      api.extensions.ExtensionArray.sort
       api.extensions.ExtensionArray.take
       api.extensions.ExtensionArray.unique
       api.extensions.ExtensionArray.dtype

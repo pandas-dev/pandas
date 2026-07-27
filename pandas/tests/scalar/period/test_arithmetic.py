@@ -131,7 +131,9 @@ class TestPeriodArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
+                msg = "|".join(
+                    ["Input has different freq", "Input cannot be converted to Period"]
+                )
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     per + off
                 with pytest.raises(IncompatibleFrequency, match=msg):

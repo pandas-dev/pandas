@@ -69,8 +69,6 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
     # GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
     # GH 38140: exclude nan from indexer for categories
     unique_notnan_codes = unique1d(c.codes[c.codes != -1])
-    if sort:
-        unique_notnan_codes = np.sort(unique_notnan_codes)
     if (num_cat := len(c.categories)) > len(unique_notnan_codes):
         # GH 13179: All categories need to be present, even if missing from the data
         missing_codes = np.setdiff1d(

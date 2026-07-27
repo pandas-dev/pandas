@@ -211,9 +211,9 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        # Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no attribute "na_value"
         return op_name in ["min", "max", "sum", "count"] or (
-            ser.dtype.na_value is np.nan  # type: ignore[union-attr]
-            and op_name in ("any", "all")
+            op_name in ("any", "all") and ser.dtype.na_value is np.nan  # type: ignore[union-attr]
         )
 
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
@@ -290,11 +290,15 @@ class Test2DCompat(base.Dim2CompatTests):
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
 
 
-def test_searchsorted_with_na_raises(data_for_sorting, as_series):
-    # GH50447
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_searchsorted_with_na_raises(data_for_sorting, as_series, na_position):
+    # GH50447, GH65837
     b, c, a = data_for_sorting
     arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
-    arr[-1] = pd.NA
+    if na_position == "last":
+        arr[-1] = pd.NA
+    else:
+        arr[0] = pd.NA
 
     if as_series:
         arr = pd.Series(arr)
@@ -305,3 +309,23 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_searchsorted_with_na_and_sorter_raises(data_for_sorting, na_position):
+    # GH65837
+    b, c, a = data_for_sorting
+    arr = data_for_sorting.take([0, 2, 1])
+    arr[1] = pd.NA
+
+    if na_position == "last":
+        sorter = np.array([0, 2, 1])
+    else:
+        sorter = np.array([1, 0, 2])
+
+    msg = (
+        "searchsorted requires array to be sorted, "
+        "which is impossible with NAs present."
+    )
+    with pytest.raises(ValueError, match=msg):
+        arr.searchsorted(b, sorter=sorter)

@@ -7,6 +7,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -61,20 +63,15 @@ class TestReductions:
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
-            if isinstance(obj.values, ArrowStringArray):
+            if isinstance(obj._values, ArrowStringArray):
                 # max not on the interface
-                expected = getattr(np.array(obj.values), opname)()
+                expected = getattr(np.array(obj._values), opname)()
             else:
-                expected = getattr(obj.values, opname)()
+                expected = getattr(obj._values, opname)()
         else:
             expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
 
-        if getattr(obj, "tz", None) is not None:
-            # We need to de-localize before comparing to the numpy-produced result
-            expected = expected.astype("M8[ns]").astype("int64")
-            assert result._value == expected
-        else:
-            assert result == expected
+        assert result == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize(
@@ -118,6 +115,49 @@ class TestReductions:
         obj = klass([None, val, None], dtype=dtype)
         assert getattr(obj, opname)() == val
         assert check_missing(getattr(obj, opname)(skipna=False))
+
+    def test_minmax_object_dtype_preserves_numpy_scalars(self, index_or_series):
+        # GH#64266
+        klass = index_or_series
+        left, right = np.int8(1), np.int8(3)
+        obj = klass([left, right], dtype=object)
+        assert obj.min() is left  # monotonic fast path for Index
+        assert obj.max() is right
+        assert np.maximum.reduce(obj) is right
+
+        val = np.longdouble("1.1") + np.longdouble("1e-19")
+        idx = Index([val, np.longdouble("0.5")], dtype=object)
+        result = idx.max()
+        assert result is val
+        ser = Series(["a", "b"], index=idx)
+        # Ensure we can index using the result.
+        assert ser.loc[result] == "a"
+
+    def test_object_dtype_reductions(self, index_or_series, using_python_scalars):
+        # GH#64266
+        klass = index_or_series
+        obj = klass([1, 2, 4], dtype=object)
+        if klass is Index and not np_version_gt2:
+            # np.any/np.all return an element for object dtype (numpy#4352)
+            expected_bool = int
+        else:
+            expected_bool = bool if using_python_scalars else np.bool_
+        result = obj.any()
+        assert type(result) is expected_bool
+        assert result
+        result = obj.all()
+        assert type(result) is expected_bool
+        assert result
+        if klass is Series:
+            result = obj.mean()
+            assert type(result) is np.float64
+            assert result == 7 / 3
+            # for corr/cov/autocorr, checking the exact float value would
+            #  just re-derive the statistic; only the type is of interest
+            other = Series([2, 5, 7], dtype=object)
+            assert type(obj.corr(other)) is np.float64
+            assert type(obj.cov(other)) is np.float64
+            assert type(obj.autocorr()) is np.float64
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     def test_nanargminmax(self, opname, index_or_series):
@@ -715,7 +755,6 @@ class TestSeriesReductions:
             msg = "|".join(
                 [
                     "operation 'var' not allowed",
-                    r"cannot perform var with type timedelta64\[ns\]",
                     "does not support operation 'var'",
                 ]
             )
@@ -1185,6 +1224,36 @@ class TestSeriesReductions:
             test_input.idxmax()
         with pytest.raises(ValueError, match=msg):
             test_input.idxmax(skipna=False)
+
+    @pytest.mark.parametrize(
+        "data, exp_min, exp_max",
+        [
+            (["a", "b", np.nan], "a", "b"),
+            (["a", "b", None], "a", "b"),
+            ([(1, 3), (2, 2), np.nan], (1, 3), (2, 2)),
+        ],
+    )
+    def test_minmax_object_with_na(self, data, exp_min, exp_max):
+        # GH#65500: NA entries in object dtype were filled with +/-inf,
+        # which cannot be compared with strings/tuples
+        ser = Series(data, dtype=object)
+        assert ser.min() == exp_min
+        assert ser.max() == exp_max
+
+    def test_minmax_object_timestamps_mixed_tz(self):
+        # GH#65500
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        ser = Series([ts1, ts2, NaT], dtype=object)
+        assert ser.max() == ts1
+        assert ser.min() == ts2
+
+    def test_minmax_object_all_na(self):
+        # GH#65500
+        ser = Series([np.nan, np.nan], dtype=object)
+        assert isna(ser.min())
+        assert isna(ser.max())
 
     def test_idxminmax_object_dtype(self, using_infer_string):
         # pre-2.1 object-dtype was disallowed for argmin/max

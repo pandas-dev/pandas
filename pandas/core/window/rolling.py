@@ -2249,6 +2249,26 @@ class Rolling(RollingAndExpandingMixin):
         2    6.0
         3    5.0
         dtype: float64
+
+        By default ``func`` is applied to each column independently. Use
+        ``method="table"`` (which requires ``engine="numba"`` and ``raw=True``) to
+        instead pass the whole :class:`DataFrame` window to ``func`` as a single 2D
+        ndarray, so the function can combine multiple columns. Here a rolling dot
+        product of columns ``A`` and ``B`` is computed; the scalar result is
+        broadcast across the columns.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4, 5], "B": [5, 4, 3, 2, 1]})
+        >>> def dot(window):
+        ...     return (window[:, 0] * window[:, 1]).sum()
+        >>> df.rolling(3, method="table").apply(
+        ...     dot, engine="numba", raw=True
+        ... )  # doctest: +SKIP
+              A     B
+        0   NaN   NaN
+        1   NaN   NaN
+        2  22.0  22.0
+        3  25.0  25.0
+        4  22.0  22.0
         """
         return super().apply(
             func,

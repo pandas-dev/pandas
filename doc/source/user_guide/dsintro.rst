@@ -435,6 +435,8 @@ To construct a DataFrame with missing data, we use ``np.nan`` to
 represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing. See :ref:`Missing data <missing_data>` for more.
+Note that masked arrays with a structured dtype are not supported;
+constructing a DataFrame from one raises an error.
 
 Alternate constructors
 ~~~~~~~~~~~~~~~~~~~~~~

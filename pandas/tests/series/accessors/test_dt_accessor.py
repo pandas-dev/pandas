@@ -169,7 +169,9 @@ class TestSeriesDatetimeValues:
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
         freq_result = ser.dt.freq
-        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+        msg = "Series.values returning an ndarray that drops timezone information"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -230,7 +232,9 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        assert freq_result == PeriodIndex(ser.values).freq
+        msg = "Series.values returning an object-dtype ndarray for PeriodDtype"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert freq_result == PeriodIndex(ser.values).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both
@@ -623,6 +627,65 @@ class TestSeriesDatetimeValues:
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
         result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
         expected = Series(["2013-01-01 02:32:59", "2013-01-02 14:32:01"])
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_nanosecond_directive(self):
+        # GH#29461 - %N directive for nanoseconds, vectorized fast paths
+        ser = Series(
+            [
+                pd.Timestamp("2019-05-18 15:17:08.132263123"),
+                pd.Timestamp("2019-05-18 15:17:08.000000123"),
+            ]
+        )
+
+        # fast path: format matches the hardcoded "%Y-%m-%d %H:%M:%S.%N" branch
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S.%N")
+        expected = Series(
+            ["2019-05-18 15:17:08.132263123", "2019-05-18 15:17:08.000000123"]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # template path: %N in a non-hardcoded format goes through the
+        # str.format-based fmt_template path
+        result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S.%N")
+        expected = Series(
+            ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # DatetimeIndex.strftime should produce the same result
+        dti = DatetimeIndex(
+            [
+                pd.Timestamp("2019-05-18 15:17:08.132263123"),
+                pd.Timestamp("2019-05-18 15:17:08.000000123"),
+            ]
+        )
+        result = dti.strftime("%Y-%m-%dT%H:%M:%S.%N")
+        expected = Index(
+            ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_strftime_nanosecond_directive_tz(self):
+        # GH#29461 - %N directive must work for tz-aware data via the
+        # template path (Localizer is wired up only for the template path)
+        dti = DatetimeIndex(
+            [
+                pd.Timestamp("2019-05-18 15:17:08.132263123", tz="US/Eastern"),
+                pd.Timestamp("2019-05-18 15:17:08.000000123", tz="US/Eastern"),
+            ]
+        )
+        result = dti.strftime("%Y-%m-%dT%H:%M:%S.%N")
+        expected = Index(
+            ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_strftime_nanosecond_directive_nat(self):
+        # GH#29461 - NaT should produce NaN through ser.dt.strftime
+        ser = Series([pd.Timestamp("2019-05-18 15:17:08.132263123"), pd.NaT])
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S.%N")
+        expected = Series(["2019-05-18 15:17:08.132263123", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_hours(self):

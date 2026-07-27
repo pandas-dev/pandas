@@ -46,7 +46,7 @@ Some other important things to know about the docs:
   instructions on how to write a correct docstring.
 
   .. toctree::
-     :maxdepth: 2
+     :maxdepth: 1
 
      contributing_docstring.rst
 

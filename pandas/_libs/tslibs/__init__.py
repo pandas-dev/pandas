@@ -28,6 +28,7 @@ __all__ = [
     "is_supported_dtype",
     "is_unitless",
     "localize_pydatetime",
+    "mul_overflowsafe",
     "nat_strings",
     "normalize_i8_timestamps",
     "periods_per_day",
@@ -59,6 +60,7 @@ from pandas._libs.tslibs.np_datetime import (
     get_supported_dtype,
     is_supported_dtype,
     is_unitless,
+    mul_overflowsafe,
     py_get_unit_from_dtype as get_unit_from_dtype,
 )
 from pandas._libs.tslibs.offsets import (

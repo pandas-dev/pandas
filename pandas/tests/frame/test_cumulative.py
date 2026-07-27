@@ -105,3 +105,12 @@ class TestDataFrameCumulativeOps:
         result = getattr(df, method)(axis=axis, numeric_only=True)
         expected = getattr(df_numeric_only, method)(axis)
         tm.assert_frame_equal(result, expected)
+
+    def test_cummax_pyarrow_float_negative(self):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
+
+        result = df.cummax()
+        expected = DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
+        tm.assert_frame_equal(result, expected)
