@@ -518,11 +518,11 @@ def test_rdc_overlapping_back_reference(datapath):
     # rewritten to expand 8 bytes from 4 back.
     with open(datapath("io", "sas", "data", "test11.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
-    original = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+    original = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat", encoding=None)
 
     assert data[120922:120924] == b"\x8d\x00"
     data[120922:120924] = b"\x81\x00"
-    result = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+    result = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat", encoding=None)
 
     # Column11 is bytes 56-63 of the row and is now copied from byte 52, so it
     # repeats the second half of Column9 (bytes 48-55) twice. The fixture is
