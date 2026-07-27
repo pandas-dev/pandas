@@ -1528,6 +1528,9 @@ def nanskew(
     np.float64(1.732051)
     """
     preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
+    values = _ensure_numeric_array(
+        values, try_complex_conversion=False, preferred_order=preferred_order
+    )
     dtype = values.dtype
     if values.dtype != np.float64:
         values = values.astype(np.float64, order=preferred_order)
@@ -1588,6 +1591,9 @@ def nankurt(
     np.float64(-1.289256)
     """
     preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
+    values = _ensure_numeric_array(
+        values, try_complex_conversion=False, preferred_order=preferred_order
+    )
     dtype = values.dtype
     if values.dtype != np.float64:
         values = values.astype(np.float64, order=preferred_order)
@@ -2005,6 +2011,32 @@ def _ensure_numeric(x):
             except ValueError as err:
                 # e.g. "foo"
                 raise TypeError(f"Could not convert {x} to numeric") from err
+    return x
+
+
+def _ensure_numeric_array(
+    x: np.ndarray, try_complex_conversion: bool, preferred_order: Literal["K", "F", "C"]
+) -> np.ndarray:
+    # This is a copy of `_ensure_numeric` specific to arrays.
+    # It doesn't print the full array on error.
+    # The main purpose of this function is
+    # to avoid the conversion performed by numpy on numeric strings.
+    if x.dtype.kind in "biu":
+        return x.astype(np.float64, order=preferred_order)
+
+    if x.dtype == object:
+        inferred = lib.infer_dtype(x)
+        if inferred in {"string", "mixed"}:
+            raise TypeError("Could not convert array to numeric")
+
+        if try_complex_conversion:
+            x = x.astype(np.complex128, order=preferred_order)
+            if not np.any(np.imag(x)):
+                return x.real
+            return x
+
+        return x.astype(np.float64, order=preferred_order)
+
     return x
 
 
