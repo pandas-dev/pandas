@@ -343,9 +343,39 @@ class SAS7BDATReader(SASReader):
         try:
             self._get_properties()
             self._parse_metadata()
+            self._validate_column_data_ranges()
         except Exception:
             self.close()
             raise
+
+    def _validate_column_data_ranges(self) -> None:
+        # The column offsets, lengths and types come straight out of the file's
+        # column-attributes subheader, and every row is then read at those
+        # positions out of a buffer only row_length bytes long. Validate them
+        # once here rather than per row: a corrupt or hostile file would
+        # otherwise read past the end of that buffer. These are Python ints, so
+        # unlike the int64 the parser holds them in, the sum cannot overflow.
+        for index, (offset, length, ctype) in enumerate(
+            zip(
+                self._column_data_offsets,
+                self._column_data_lengths,
+                self._column_types,
+                strict=True,
+            )
+        ):
+            # A numeric column is widened into 8 bytes of the parser's output
+            # buffer, so a longer one would also write past the front of it.
+            if ctype == b"d" and length > 8:
+                raise ValueError(
+                    f"Column {index} is numeric but declares {length} bytes of "
+                    f"data, more than the 8 a SAS number can occupy; the file "
+                    f"is corrupt"
+                )
+            if offset + length > self.row_length:
+                raise ValueError(
+                    f"Column {index} spans bytes {offset}-{offset + length} of a "
+                    f"{self.row_length}-byte row; the file is corrupt"
+                )
 
     def column_data_lengths(self) -> np.ndarray:
         """Return a numpy int64 array of the column data lengths"""
