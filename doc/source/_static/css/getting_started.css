@@ -12,6 +12,7 @@
 
 .gs-data-header {
   background-color: var(--pst-color-on-surface);
+  color: var(--pst-color-text-base)
 }
 
 .gs-data-list {
