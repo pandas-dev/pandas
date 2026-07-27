@@ -361,7 +361,11 @@ class DatetimeProperties(Properties):
         # GH#20306
         from pandas import Series
 
-        return Series(self._get_values().to_pydatetime(), index=self._parent.index, dtype=object)
+        return Series(
+            self._get_values().to_pydatetime(),
+            index=self._parent.index,
+            dtype=object,
+        )
 
     @property
     def freq(self):
