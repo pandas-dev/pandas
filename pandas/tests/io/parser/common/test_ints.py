@@ -257,7 +257,7 @@ def test_integer_precision(all_parsers):
 
 
 def test_thousands_digit_char(all_parsers):
-    # GH#XXXXX: a digit thousands separator is degenerate but accepted, and
+    # GH#66487: a digit thousands separator is degenerate but accepted, and
     # gets stripped like any other separator; the C engine's all-digits
     # integer fast path must not swallow it
     parser = all_parsers
