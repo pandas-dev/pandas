@@ -1999,7 +1999,9 @@ class TestLocWithMultiIndex:
     def test_additional_element_to_categorical_series_loc(self):
         # GH#47677
         result = Series(["a", "b", "c"], dtype="category")
-        result.loc[3] = 0
+        # 0 is not among the categories, so the dtype changes (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            result.loc[3] = 0
         expected = Series(["a", "b", "c", 0], dtype="object")
         tm.assert_series_equal(result, expected)
 
@@ -2125,7 +2127,10 @@ class TestLocSetitemWithExpansion:
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         df = DataFrame({"A": pd.array([1, 2, 3], dtype=dtype)})
-        df.loc[len(df)] = [2.5]
+        # the promotion warns since 2.5 cannot be held by the integer
+        #  dtype (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            df.loc[len(df)] = [2.5]
         assert df["A"].dtype.kind == "f"
         assert df.loc[len(df) - 1, "A"] == 2.5
 
@@ -2549,11 +2554,13 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
         # GH#62523 expanding with a finer-resolution value that cannot be cast
         #  down to the original coarser unit should keep the finer unit rather
-        #  than raising ArrowInvalid
+        #  than raising ArrowInvalid.  The unit change warns since the second
+        #  resolution cannot hold the value (GH#62369).
         ser = Series(
             to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
         )
-        ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
         expected = Series(
             [
                 Timestamp("2020-01-01"),
@@ -3890,6 +3897,44 @@ def test_loc_setitem_extension_array_into_object_series():
     ser.loc[:] = arr
     expected = Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+def test_loc_setitem_expansion_incompatible_dtype_warns():
+    # GH#62369 silent dtype change during setitem-with-expansion
+    df = DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
+    # GH#62369 an explicitly-typed empty column is a meaningful dtype, so a
+    #  zero-row frame warns on an incompatible expansion just like a Series
+    df = DataFrame({"a": Series([], dtype=np.float64)})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = "x"
+    expected_dtype = "str" if using_infer_string else object
+    assert df["a"].dtype == expected_dtype
+
+
+def test_loc_setitem_expansion_ea_column_warns():
+    # GH#62369 EA-dtyped columns participate in the expansion deprecation
+    df = DataFrame({"a": Series([1, 2], dtype="Int64"), "b": [1.5, 2.5]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_placeholder_column_no_warning():
+    # GH#62369 a column materialized during indexer preprocessing carries a
+    #  np.void NA-proxy placeholder dtype, which is not meaningful to retain,
+    #  so creating it via expansion does not warn
+    df = DataFrame()
+    with tm.assert_produces_warning(None):
+        df.loc[0, "a"] = 5
+    assert df["a"].dtype == np.float64
 
 
 def test_loc_getitem_list_integer_columns_preserves_order():
