@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
@@ -1286,7 +1287,7 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    timezone.utc,
+    UTC,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
@@ -1321,7 +1322,7 @@ def tz_aware_fixture(request):
     return request.param
 
 
-_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
+_UTCS = ["utc", "dateutil/UTC", tzutc(), UTC]
 
 if pytz is not None:
     _UTCS.append(pytz.utc)

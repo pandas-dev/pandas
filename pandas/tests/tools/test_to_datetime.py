@@ -3,6 +3,7 @@
 import calendar
 from collections import deque
 from datetime import (
+    UTC,
     date,
     datetime,
     timedelta,
@@ -1757,7 +1758,7 @@ class TestToDatetime:
         arr = np.array([parse("2012-06-13T01:39:00Z")], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        assert result.tz is timezone.utc
+        assert result.tz is UTC
 
     def test_to_datetime_fixed_offset(self):
         from pandas.tests.indexes.datetimes.test_timezones import FixedOffset
@@ -2784,7 +2785,7 @@ class TestToDatetimeMisc:
     )
     def test_to_datetime_iso8601_with_timezone_valid(self, input, format):
         # https://github.com/pandas-dev/pandas/issues/12649
-        expected = Timestamp(2020, 1, 1, tzinfo=timezone.utc)
+        expected = Timestamp(2020, 1, 1, tzinfo=UTC)
         result = to_datetime(input, format=format)
         assert result == expected
 
@@ -3218,7 +3219,7 @@ class TestToDatetimeInferFormat:
         # GH 41047
         ser = Series([ts + zero_tz])
         result = to_datetime(ser)
-        tz = timezone.utc if zero_tz == "Z" else None
+        tz = UTC if zero_tz == "Z" else None
         expected = Series([Timestamp(ts, tz=tz)])
         tm.assert_series_equal(result, expected)
 
@@ -3657,7 +3658,7 @@ class TestOrigin:
     def test_invalid_origins_tzinfo(self):
         # GH16842
         with pytest.raises(ValueError, match="must be tz-naive"):
-            to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=timezone.utc))
+            to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=UTC))
 
     def test_incorrect_value_exception(self):
         # GH47495
