@@ -7,7 +7,6 @@ from io import (
     BytesIO,
     TextIOWrapper,
 )
-import os
 import tempfile
 
 import numpy as np
@@ -74,15 +73,15 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
-def test_utf16_example(all_parsers, csv_dir_path):
-    path = os.path.join(csv_dir_path, "utf16_ex.txt")
+def test_utf16_example(all_parsers, datapath):
+    path = datapath("io", "parser", "data", "utf16_ex.txt")
     parser = all_parsers
     result = parser.read_csv(path, encoding="utf-16", sep="\t")
     assert len(result) == 50
 
 
-def test_unicode_encoding(all_parsers, csv_dir_path):
-    path = os.path.join(csv_dir_path, "unicode_series.csv")
+def test_unicode_encoding(all_parsers, datapath):
+    path = datapath("io", "parser", "data", "unicode_series.csv")
     parser = all_parsers
 
     result = parser.read_csv(path, header=None, encoding="latin-1")
