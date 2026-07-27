@@ -1042,6 +1042,29 @@ class TestDataFrameSelectReindex:
 
         tm.assert_frame_equal(result, expected)
 
+    #! new testing method added
+    def test_reindex_multi_missing_column(self):
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            index=["a", "b"],
+            columns = ["x", "y"],
+        )
+
+        result = df.reindex(
+            index = ["b", "a"],
+            columns=["x", "missing", "y"],
+        )
+
+        expected = DataFrame(
+            [
+                [3.0, np.nan, 4.0],
+                [1.0, np.nan, 2.0],
+            ],
+            index=["b", "a"],
+            columns=["x", "missing", "y"],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_multi_categorical_time(self):
         # https://github.com/pandas-dev/pandas/issues/21390
         midx = MultiIndex.from_product(
