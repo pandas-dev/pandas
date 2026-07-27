@@ -17,7 +17,6 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
 #include "pandas/parser/tokenizer.h"
-#include "pandas/parser/pd_strtoi.h"
 #include "pandas/portable.h"
 
 #include <ctype.h>
@@ -25,6 +24,10 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include <system_error>
+
+#include "fast_float/fast_float.h"
 
 // Arch selection comes from the build-time SIMD config (pandas/_libs/simd),
 // which sets exactly one of PANDAS_HAVE_NEON / PANDAS_HAVE_SSE2 /
@@ -2320,16 +2323,65 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
+/* Fast path for the common case: an optional sign followed by 1-18 digits
+ * filling the whole [p_item, p_item+length) span. 18 digits cannot overflow
+ * int64, and a pure-digit span can contain no spaces or trailing junk — and
+ * no thousands separator either, except in the degenerate (but accepted)
+ * case where tsep is itself a digit, which therefore disqualifies the fast
+ * path. Digit validation and parsing use fast_float's 8-digits-at-a-time
+ * helpers, which inline here and skip the leading-zero and overflow
+ * bookkeeping that makes the general from_chars parse slower on short
+ * tokens. Returns true and stores the value in *result on success; anything
+ * else returns false so the caller falls through to the general path. */
+static inline bool swar_try_parse_int64(const char *p_item, int64_t length,
+                                        char tsep, int64_t *result) {
+  if (length < 1 || isdigit_ascii(tsep)) {
+    return false;
+  }
+  const char *p_end = p_item + length;
+  const bool neg = *p_item == '-';
+  const char *digits = p_item + (neg || *p_item == '+');
+  size_t rem = (size_t)(p_end - digits);
+  if (rem < 1 || rem > 18) {
+    return false;
+  }
+  uint64_t acc = 0;
+  while (rem >= 8) {
+    const uint64_t block = fast_float::read8_to_u64(digits);
+    if (!fast_float::is_made_of_eight_digits_fast(block)) {
+      return false;
+    }
+    acc = acc * 100000000ULL + fast_float::parse_eight_digits_unrolled(block);
+    digits += 8;
+    rem -= 8;
+  }
+  for (; rem > 0; rem--, digits++) {
+    const unsigned char digit = (unsigned char)(*digits - '0');
+    if (digit > 9) {
+      return false;
+    }
+    acc = acc * 10 + digit;
+  }
+  *result = neg ? -(int64_t)acc : (int64_t)acc;
+  return true;
+}
+
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
+  int64_t swar_result;
+  if (swar_try_parse_int64(p_item, length, tsep, &swar_result)) {
+    *error = 0;
+    return swar_result;
+  }
+
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
   }
 
-  // Handle sign. std::from_chars accepts '-' but rejects '+', so strip '+'
-  // after verifying the following char is a digit (not another sign).
+  // Handle sign. fast_float::from_chars accepts '-' but rejects '+', so strip
+  // '+' after verifying the following char is a digit (not another sign).
   const bool has_sign = *p == '-' || *p == '+';
   const char *digit_start = has_sign ? p + 1 : p;
   if (!isdigit_ascii(*digit_start)) {
@@ -2359,21 +2411,23 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
   }
 
   int64_t number;
-  const char *endptr;
-  const pd_strtoi_status status = pd_strtoll(p, p + str_len, &number, &endptr);
+  // On result_out_of_range, from_chars still leaves ptr past the final digit,
+  // so the caller can tell a pure overflow from one with trailing junk.
+  const auto result = fast_float::from_chars(p, p + str_len, number, 10);
+  const char *endptr = result.ptr;
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input that
     // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=',').
     endptr = number_end;
   }
-  if (status == PD_STRTOI_OVERFLOW) {
+  if (result.ec == std::errc::result_out_of_range) {
     // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
     // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
     // at NUL) → OVERFLOW (caller retries as uint64).
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
-  if (status == PD_STRTOI_INVALID) {
+  if (result.ec != std::errc()) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
@@ -2435,17 +2489,17 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
   }
 
   uint64_t number;
-  const char *endptr;
-  const pd_strtoi_status status = pd_strtoull(p, p + str_len, &number, &endptr);
+  const auto result = fast_float::from_chars(p, p + str_len, number, 10);
+  const char *endptr = result.ptr;
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input.
     endptr = number_end;
   }
-  if (status == PD_STRTOI_OVERFLOW) {
+  if (result.ec == std::errc::result_out_of_range) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
-  if (status == PD_STRTOI_INVALID) {
+  if (result.ec != std::errc()) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }

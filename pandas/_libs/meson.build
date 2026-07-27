@@ -64,7 +64,6 @@ subdir('simd')
 tokenizer_lib = static_library(
     'pandas_tokenizer',
     'src/parser/fast_float_wrappers.cpp',
-    'src/parser/pd_strtoi.cpp',
     'src/parser/tokenizer.cpp',
     include_directories: [inc_pd, simd_config_inc],
     dependencies: [fast_float_dep, py.dependency()],
