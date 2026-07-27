@@ -14,7 +14,10 @@ from libc.stdlib cimport (
     calloc,
     free,
 )
-from libc.string cimport memcpy
+from libc.string cimport (
+    memcpy,
+    memset,
+)
 
 import numpy as np
 
@@ -38,9 +41,37 @@ cdef uint8_t buf_get(Buffer buf, size_t offset) except? 255:
     return buf.data[offset]
 
 
-cdef bint buf_set(Buffer buf, size_t offset, uint8_t value) except 0:
-    assert offset < buf.length, "Out of bounds write"
-    buf.data[offset] = value
+cdef bint buf_copy(
+    Buffer dst, size_t dst_offset, Buffer src, size_t src_offset, size_t length
+) except 0:
+    # Copy a run of bytes, checking the bounds once per run rather than once per
+    # byte. `src` and `dst` must not overlap.
+    assert src_offset + length <= src.length, "Out of bounds read"
+    assert dst_offset + length <= dst.length, "Out of bounds write"
+    memcpy(&dst.data[dst_offset], &src.data[src_offset], length)
+    return True
+
+
+cdef bint buf_fill(Buffer buf, size_t offset, size_t length, uint8_t value) except 0:
+    # Write a run of `length` copies of the same value, bounds-checked once.
+    assert offset + length <= buf.length, "Out of bounds write"
+    memset(&buf.data[offset], value, length)
+    return True
+
+
+cdef bint buf_copy_backref(
+    Buffer buf, int dst_offset, int src_offset, int length
+) except 0:
+    # Copy within a single buffer, where the source is allowed to overlap the
+    # destination -- that overlap is how an RDC back-reference expands a short
+    # pattern -- so this has to stay a forward byte-at-a-time copy. Only the
+    # bounds checks are hoisted out of the loop.
+    cdef int idx
+    assert src_offset >= 0, "Out of bounds read"
+    assert <size_t>(dst_offset + length) <= buf.length, "Out of bounds write"
+    assert <size_t>(src_offset + length) <= buf.length, "Out of bounds read"
+    for idx in range(length):
+        buf.data[dst_offset + idx] = buf.data[src_offset + idx]
     return True
 
 
@@ -70,9 +101,8 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
     cdef:
         uint8_t control_byte, x
         int rpos = 0
-        int i, nbytes, end_of_first_byte
+        int nbytes, end_of_first_byte
         size_t ipos = 0
-        Py_ssize_t _
 
     while ipos < inbuff.length:
         control_byte = buf_get(inbuff, ipos) & 0xF0
@@ -82,76 +112,64 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         if control_byte == 0x00:
             nbytes = <int>(buf_get(inbuff, ipos)) + 64 + end_of_first_byte * 256
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos))
-                rpos += 1
-                ipos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
+            ipos += nbytes
         elif control_byte == 0x40:
             # not documented
             nbytes = <int>(buf_get(inbuff, ipos)) + 18 + end_of_first_byte * 256
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos))
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, buf_get(inbuff, ipos))
+            rpos += nbytes
             ipos += 1
         elif control_byte == 0x60:
             nbytes = end_of_first_byte * 256 + <int>(buf_get(inbuff, ipos)) + 17
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x20)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x20)
+            rpos += nbytes
         elif control_byte == 0x70:
             nbytes = end_of_first_byte * 256 + <int>(buf_get(inbuff, ipos)) + 17
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x00)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x00)
+            rpos += nbytes
         elif control_byte == 0x80:
             nbytes = end_of_first_byte + 1
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0x90:
             nbytes = end_of_first_byte + 17
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0xA0:
             nbytes = end_of_first_byte + 33
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0xB0:
             nbytes = end_of_first_byte + 49
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0xC0:
             nbytes = end_of_first_byte + 3
             x = buf_get(inbuff, ipos)
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, x)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, x)
+            rpos += nbytes
         elif control_byte == 0xD0:
             nbytes = end_of_first_byte + 2
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x40)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x40)
+            rpos += nbytes
         elif control_byte == 0xE0:
             nbytes = end_of_first_byte + 2
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x20)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x20)
+            rpos += nbytes
         elif control_byte == 0xF0:
             nbytes = end_of_first_byte + 2
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x00)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x00)
+            rpos += nbytes
         else:
             raise ValueError(f"unknown control byte: {control_byte}")
 
@@ -166,67 +184,72 @@ cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
     cdef:
         uint8_t cmd
         uint16_t ctrl_bits = 0, ctrl_mask = 0, ofs, cnt
-        int rpos = 0, k, ii
+        uint8_t *in_data = inbuff.data
+        uint8_t *out_data = outbuff.data
+        size_t in_len = inbuff.length
+        size_t out_len = outbuff.length
+        int rpos = 0
         size_t ipos = 0
 
-    ii = -1
-
-    while ipos < inbuff.length:
-        ii += 1
+    # Unlike RLE, RDC streams are dominated by single-byte literals, so the
+    # accessor overhead on each input byte is the cost here rather than the runs;
+    # hence the raw reads with the bounds check written out once per command.
+    while ipos < in_len:
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
-            ctrl_bits = ((<uint16_t>buf_get(inbuff, ipos) << 8) +
-                         <uint16_t>buf_get(inbuff, ipos + 1))
+            assert ipos + 2 <= in_len, "Out of bounds read"
+            ctrl_bits = ((<uint16_t>in_data[ipos] << 8) +
+                         <uint16_t>in_data[ipos + 1])
             ipos += 2
             ctrl_mask = 0x8000
 
         if ctrl_bits & ctrl_mask == 0:
-            buf_set(outbuff, rpos, buf_get(inbuff, ipos))
+            assert ipos < in_len, "Out of bounds read"
+            assert <size_t>rpos < out_len, "Out of bounds write"
+            out_data[rpos] = in_data[ipos]
             ipos += 1
             rpos += 1
             continue
 
-        cmd = (buf_get(inbuff, ipos) >> 4) & 0x0F
-        cnt = <uint16_t>(buf_get(inbuff, ipos) & 0x0F)
+        assert ipos < in_len, "Out of bounds read"
+        cmd = (in_data[ipos] >> 4) & 0x0F
+        cnt = <uint16_t>(in_data[ipos] & 0x0F)
         ipos += 1
 
         # short RLE
         if cmd == 0:
+            assert ipos < in_len, "Out of bounds read"
             cnt += 3
-            for k in range(cnt):
-                buf_set(outbuff, rpos + k, buf_get(inbuff, ipos))
+            buf_fill(outbuff, rpos, cnt, in_data[ipos])
             rpos += cnt
             ipos += 1
 
         # long RLE
         elif cmd == 1:
-            cnt += <uint16_t>buf_get(inbuff, ipos) << 4
+            assert ipos + 2 <= in_len, "Out of bounds read"
+            cnt += <uint16_t>in_data[ipos] << 4
             cnt += 19
-            ipos += 1
-            for k in range(cnt):
-                buf_set(outbuff, rpos + k, buf_get(inbuff, ipos))
+            buf_fill(outbuff, rpos, cnt, in_data[ipos + 1])
             rpos += cnt
-            ipos += 1
+            ipos += 2
 
         # long pattern
         elif cmd == 2:
+            assert ipos + 2 <= in_len, "Out of bounds read"
             ofs = cnt + 3
-            ofs += <uint16_t>buf_get(inbuff, ipos) << 4
-            ipos += 1
-            cnt = <uint16_t>buf_get(inbuff, ipos)
-            ipos += 1
-            cnt += 16
-            for k in range(cnt):
-                buf_set(outbuff, rpos + k, buf_get(outbuff, rpos - <int>ofs + k))
+            ofs += <uint16_t>in_data[ipos] << 4
+            cnt = <uint16_t>in_data[ipos + 1] + 16
+            ipos += 2
+            buf_copy_backref(outbuff, rpos, rpos - <int>ofs, cnt)
             rpos += cnt
 
         # short pattern
         else:
+            assert ipos < in_len, "Out of bounds read"
             ofs = cnt + 3
-            ofs += <uint16_t>buf_get(inbuff, ipos) << 4
+            ofs += <uint16_t>in_data[ipos] << 4
             ipos += 1
-            for k in range(cmd):
-                buf_set(outbuff, rpos + k, buf_get(outbuff, rpos - <int>ofs + k))
+            buf_copy_backref(outbuff, rpos, rpos - <int>ofs, cmd)
             rpos += cmd
 
     return rpos
@@ -247,8 +270,8 @@ cdef:
     int subheader_pointers_offset = const.subheader_pointers_offset
 
     # Copy of subheader_signature_to_index that allows for much faster lookups.
-    # Lookups are done in get_subheader_index. The C structures are initialized
-    # in _init_subheader_signatures().
+    # Lookups are done in lookup_subheader_index_32/64. The C structures are
+    # initialized in _init_subheader_signatures().
     uint32_t subheader_signatures_32bit[13]
     int subheader_indices_32bit[13]
     uint64_t subheader_signatures_64bit[17]
@@ -259,6 +282,9 @@ cdef:
     int c_page_type_mask2 = const.page_type_mask2
     int c_block_count_offset = const.block_count_offset
     int c_subheader_count_offset = const.subheader_count_offset
+    int c_truncated_subheader_id = const.truncated_subheader_id
+    int c_compressed_subheader_id = const.compressed_subheader_id
+    int c_compressed_subheader_type = const.compressed_subheader_type
 
 
 def _init_subheader_signatures():
@@ -286,25 +312,165 @@ def _init_subheader_signatures():
 _init_subheader_signatures()
 
 
-def get_subheader_index(bytes signature):
-    """Fast version of 'subheader_signature_to_index.get(signature)'."""
-    cdef:
-        uint32_t sig32
-        uint64_t sig64
-        Py_ssize_t i
-    assert len(signature) in (4, 8)
-    if len(signature) == 4:
-        sig32 = (<uint32_t *><char *>signature)[0]
-        for i in range(len(subheader_signatures_32bit)):
-            if subheader_signatures_32bit[i] == sig32:
-                return subheader_indices_32bit[i]
-    else:
-        sig64 = (<uint64_t *><char *>signature)[0]
-        for i in range(len(subheader_signatures_64bit)):
-            if subheader_signatures_64bit[i] == sig64:
-                return subheader_indices_64bit[i]
-
+cdef int lookup_subheader_index_32(uint32_t sig) noexcept:
+    """Fast version of 'subheader_signature_to_index.get(signature)', 4-byte."""
+    cdef Py_ssize_t i
+    for i in range(len(subheader_signatures_32bit)):
+        if subheader_signatures_32bit[i] == sig:
+            return subheader_indices_32bit[i]
     return data_subheader_index
+
+
+cdef int lookup_subheader_index_64(uint64_t sig) noexcept:
+    """Fast version of 'subheader_signature_to_index.get(signature)', 8-byte."""
+    cdef Py_ssize_t i
+    for i in range(len(subheader_signatures_64bit)):
+        if subheader_signatures_64bit[i] == sig:
+            return subheader_indices_64bit[i]
+    return data_subheader_index
+
+
+cdef uint32_t bswap32(uint32_t val) noexcept:
+    return (
+        (val >> 24)
+        | ((val >> 8) & 0x0000FF00)
+        | ((val << 8) & 0x00FF0000)
+        | (val << 24)
+    )
+
+
+cdef uint64_t bswap64(uint64_t val) noexcept:
+    return (
+        (val >> 56)
+        | ((val >> 40) & <uint64_t>0xFF00)
+        | ((val >> 24) & <uint64_t>0xFF0000)
+        | ((val >> 8) & <uint64_t>0xFF000000)
+        | ((val << 8) & <uint64_t>0xFF00000000)
+        | ((val << 24) & <uint64_t>0xFF0000000000)
+        | ((val << 40) & <uint64_t>0xFF000000000000)
+        | (val << 56)
+    )
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def collect_page_subheaders(parser):
+    """
+    Walk the subheader pointers on the parser's current cached page.
+
+    Data subheaders (compressed rows) are written into
+    parser._data_subheader_offsets / _data_subheader_lengths; every other
+    subheader is dispatched to the matching entry of
+    parser._subheader_processors. Returns the number of data subheaders found.
+
+    On a compressed file nearly every subheader on a page is a data subheader,
+    so keeping this walk in C avoids building a Python list of tuples -- and
+    indexing it, with a tuple unpack and two unboxes -- once per row.
+    """
+    cdef:
+        bytes cached_page = parser._cached_page
+        const uint8_t *page = <const uint8_t *>cached_page
+        size_t page_len = len(cached_page)
+        int n_subheaders = parser._current_page_subheaders_count
+        int subheader_pointer_length = parser._subheader_pointer_length
+        int int_length = parser._int_length
+        int bit_offset = parser._page_bit_offset
+        bint need_byteswap = parser.need_byteswap
+        Py_ssize_t i
+        int total_offset
+        uint64_t subheader_offset = 0, subheader_length = 0
+        uint32_t off32 = 0, len32 = 0, sig32 = 0
+        uint64_t sig64 = 0
+        uint8_t subheader_compression, subheader_type
+        int subheader_index
+        int64_t[::1] data_offsets = parser._data_subheader_offsets
+        int64_t[::1] data_lengths = parser._data_subheader_lengths
+        Py_ssize_t data_capacity = data_offsets.shape[0]
+        int count = 0
+        int row_start
+        list processors = parser._subheader_processors
+        object processor
+        bint compressed = bool(parser.compression)
+
+    row_start = subheader_pointers_offset + bit_offset
+
+    for i in range(n_subheaders):
+        total_offset = row_start + subheader_pointer_length * <int>i
+        # These three page-bounds checks raise rather than assert so that a
+        # corrupt file keeps reporting as bad input, the way it did when these
+        # reads went through _read_bytes, instead of looking like a pandas bug.
+        if <size_t>(total_offset + 2 * int_length + 2) > page_len:
+            raise ValueError("The cached page is too small.")
+
+        if int_length == 8:
+            memcpy(&subheader_offset, &page[total_offset], 8)
+            memcpy(&subheader_length, &page[total_offset + 8], 8)
+            if need_byteswap:
+                subheader_offset = bswap64(subheader_offset)
+                subheader_length = bswap64(subheader_length)
+        else:
+            memcpy(&off32, &page[total_offset], 4)
+            memcpy(&len32, &page[total_offset + 4], 4)
+            if need_byteswap:
+                off32 = bswap32(off32)
+                len32 = bswap32(len32)
+            subheader_offset = off32
+            subheader_length = len32
+
+        subheader_compression = page[total_offset + 2 * int_length]
+        subheader_type = page[total_offset + 2 * int_length + 1]
+
+        if subheader_length == 0 or subheader_compression == c_truncated_subheader_id:
+            continue
+
+        # Read the int_length-byte signature the pointer points at. Both pointer
+        # fields are raw file data, so these subtract rather than add -- adding
+        # would wrap in uint64 and let a crafted offset through. The check above
+        # guarantees page_len > int_length.
+        if subheader_offset > page_len - int_length:
+            raise ValueError("The cached page is too small.")
+        # Both branches below narrow the length to a C int -- readline() for data
+        # subheaders, the processor call for everything else -- so a 64-bit field
+        # would otherwise truncate to a wrong but perfectly in-bounds value.
+        if subheader_length > page_len - subheader_offset:
+            raise ValueError("The cached page is too small.")
+        if int_length == 8:
+            memcpy(&sig64, &page[subheader_offset], 8)
+            subheader_index = lookup_subheader_index_64(sig64)
+        else:
+            memcpy(&sig32, &page[subheader_offset], 4)
+            subheader_index = lookup_subheader_index_32(sig32)
+
+        if subheader_index == data_subheader_index:
+            # A compressed data row.
+            if not (
+                compressed
+                and (
+                    subheader_compression == c_compressed_subheader_id
+                    or subheader_compression == 0
+                )
+                and subheader_type == c_compressed_subheader_type
+            ):
+                raise ValueError(
+                    f"Unknown subheader signature "
+                    f"{page[subheader_offset:subheader_offset + int_length]}"
+                )
+            if count >= data_capacity:
+                raise ValueError(
+                    f"Page holds more data subheaders ({count + 1}) than the "
+                    f"page can address ({data_capacity})"
+                )
+            data_offsets[count] = <int64_t>subheader_offset
+            data_lengths[count] = <int64_t>subheader_length
+            count += 1
+        else:
+            processor = processors[subheader_index]
+            processor(<int>subheader_offset, <int>subheader_length)
+            # _process_columntext_subheader can turn compression on partway
+            # through a page, so re-read it rather than hoisting once.
+            compressed = bool(parser.compression)
+
+    return count
 
 
 cdef class Parser:
@@ -316,11 +482,16 @@ cdef class Parser:
         int64_t[:] column_types
         uint8_t[:, :] byte_chunk
         object[:, :] string_chunk
+        # (offset, length) of each compressed data subheader on the current
+        # page, filled in by collect_page_subheaders and indexed by
+        # current_row_on_page_index in readline().
+        int64_t[::1] data_subheader_offsets
+        int64_t[::1] data_subheader_lengths
         uint8_t *cached_page
         int cached_page_len
         int current_row_on_page_index
         int current_page_block_count
-        int current_page_data_subheader_pointers_len
+        int n_data_subheaders
         int current_page_subheaders_count
         int current_row_in_chunk_index
         int current_row_in_file_index
@@ -355,6 +526,8 @@ cdef class Parser:
         self.offsets = parser.column_data_offsets()
         self.byte_chunk = parser._byte_chunk
         self.string_chunk = parser._string_chunk
+        self.data_subheader_offsets = parser._data_subheader_offsets
+        self.data_subheader_lengths = parser._data_subheader_lengths
         self.row_length = parser.row_length
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
@@ -447,18 +620,21 @@ cdef class Parser:
 
             if (self.current_page_type == page_meta_types_0
                     or self.current_page_type == page_meta_types_1):
-                # Set Python attr needed by _process_page_metadata
+                # Set Python attr needed by collect_page_subheaders
                 self.parser._current_page_subheaders_count = (
                     self.current_page_subheaders_count
                 )
-                self.parser._process_page_metadata()
-                self.current_page_data_subheader_pointers_len = len(
-                    self.parser._current_page_data_subheader_pointers
-                )
+                try:
+                    self.n_data_subheaders = collect_page_subheaders(self.parser)
+                except Exception:
+                    self.parser.close()
+                    raise
+                self.parser._data_subheader_count = self.n_data_subheaders
                 return False
             elif (self.current_page_type == page_data_type
                     or self.current_page_type == page_mix_type):
-                self.current_page_data_subheader_pointers_len = 0
+                self.n_data_subheaders = 0
+                self.parser._data_subheader_count = 0
                 return False
             # else: unsupported page type (e.g. AMD), skip to next page
 
@@ -466,9 +642,7 @@ cdef class Parser:
         # Called once from __init__ to sync with the page the Python parser
         # left off on after _parse_metadata.
         self._parse_page_header()
-        self.current_page_data_subheader_pointers_len = len(
-            self.parser._current_page_data_subheader_pointers
-        )
+        self.n_data_subheaders = self.parser._data_subheader_count
 
     cdef bint readline(self) except? True:
 
@@ -490,14 +664,16 @@ cdef class Parser:
         # Loop until a data row is read
         while True:
             if self.current_page_type in (page_meta_types_0, page_meta_types_1):
-                flag = self.current_row_on_page_index >=\
-                    self.current_page_data_subheader_pointers_len
+                flag = self.current_row_on_page_index >= self.n_data_subheaders
                 if flag:
                     done = self.read_next_page()
                     if done:
                         return True
                     continue
-                offset, length = self.parser._current_page_data_subheader_pointers[
+                offset = <int>self.data_subheader_offsets[
+                    self.current_row_on_page_index
+                ]
+                length = <int>self.data_subheader_lengths[
                     self.current_row_on_page_index
                 ]
                 self.process_byte_array_with_data(offset, length)

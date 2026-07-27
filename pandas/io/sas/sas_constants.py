@@ -110,8 +110,13 @@ compression_literals: Final = [rle_compression, rdc_compression]
 # https://support.sas.com/documentation/onlinedoc/dfdmstudio/2.6/dmpdmsug/Content/dfU_Encodings_SAS.html
 # corresponding to the Python documentation of standard encodings
 # https://docs.python.org/3/library/codecs.html#standard-encodings
+# Codes without a Python codec are commented out rather than omitted silently.
 encoding_names: Final = {
+    # 0 means the file records no encoding of its own; SAS falls back to
+    # wlatin1 in that case, as do ReadStat/pyreadstat/haven.
+    0: "cp1252",
     20: "utf-8",
+    28: "ascii",
     29: "latin1",
     30: "latin2",
     31: "latin3",
@@ -152,19 +157,43 @@ encoding_names: Final = {
     66: "cp1256",
     67: "cp1257",
     68: "cp1258",
+    69: "mac_roman",
+    70: "mac_arabic",
+    # 71: "",  # not found
+    72: "mac_greek",
+    # 73: "",  # not found
+    75: "mac_turkish",
+    # 76: "",  # not found
     118: "cp950",
     # 119: "",  # not found
     123: "big5",
-    125: "gb2312",
+    # gb18030 is a superset of gb2312 and decodes it identically
+    125: "gb18030",
     126: "cp936",
+    # 128: "",  # not found
     134: "euc_jp",
     136: "cp932",
+    # 137: "",  # not found
     138: "shift_jis",
     140: "euc-kr",
     141: "cp949",
+    142: "cp949",
+    163: "mac_iceland",
+    167: "iso2022_jp",
+    168: "iso2022_kr",
+    # 169: "",  # not found
+    # 172: "",  # not found
+    # 204 is SAS "any", which behaves like 0
+    204: "cp1252",
+    205: "gb18030",
     227: "latin8",
     # 228: "", # not found
     # 229: ""  # not found
+    242: "iso8859_13",
+    245: "mac_croatian",
+    246: "mac_cyrillic",
+    247: "mac_romanian",
+    248: "shift_jisx0213",
 }
 
 
