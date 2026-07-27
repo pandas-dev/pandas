@@ -376,24 +376,6 @@ cdef class Parser:
             else:
                 raise ValueError(f"unknown column type: {self.parser.columns[j].ctype}")
 
-        # The column offsets and lengths come straight out of the file's
-        # column-attributes subheader, and every row is then read at those
-        # positions out of a buffer only row_length bytes long. Validate them
-        # once here rather than per row: a corrupt or hostile file would
-        # otherwise read past the end of that buffer.
-        for j in range(self.column_count):
-            if self.offsets[j] < 0 or self.lengths[j] < 0:
-                raise ValueError(
-                    f"Column {j} has a negative data offset or length "
-                    f"({self.offsets[j]}, {self.lengths[j]})"
-                )
-            if self.offsets[j] + self.lengths[j] > self.row_length:
-                raise ValueError(
-                    f"Column {j} spans bytes "
-                    f"{self.offsets[j]}-{self.offsets[j] + self.lengths[j]} of a "
-                    f"{self.row_length}-byte row; the file is corrupt"
-                )
-
         # compression
         if parser.compression == const.rle_compression:
             self.decompress = rle_decompress
