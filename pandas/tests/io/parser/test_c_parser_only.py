@@ -856,13 +856,21 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
-def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
-    # GH#66277: the pyarrow string fast path computed token lengths with
+@pytest.mark.parametrize("prefix_len", [1, 200])
+def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
+    # GH#19886: the pyarrow string fast path computed token lengths with
     # strlen, so a quoted field with an embedded NUL byte was truncated at the
-    # NUL instead of matching the object path
+    # NUL.  Column "b" is the last token in the stream, so its length comes
+    # from the stream end rather than from the next token's start.
     pytest.importorskip("pyarrow")
     parser = c_parser_only
-    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), **kwargs)
-    expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
-    assert result["a"][0] == "x\x00y"
-    assert expected["a"][0] == "x\x00y"
+    value = b"x" * prefix_len + b"\x00y"
+    data = b'a,b\n"' + value + b'","' + value + b'"'
+    result = parser.read_csv(BytesIO(data), **kwargs)
+    # engine="python", not dtype=object: the C object path interns words by
+    # their NUL-terminated prefix, so it is not a sound reference for NUL data
+    expected = read_csv(BytesIO(data), engine="python")
+    assert result["a"][0] == value.decode()
+    assert result["b"][0] == value.decode()
+    assert expected["a"][0] == value.decode()
+    assert expected["b"][0] == value.decode()
