@@ -1066,6 +1066,55 @@ _BUSINED_ALIASES = [
     ]
 ]
 
+_OFFSET_PARAMETERS = {
+    "n": inspect.Parameter(
+        "n",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=1,
+    ),
+    "normalize": inspect.Parameter(
+        "normalize",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=False,
+    ),
+    "weekmask": inspect.Parameter(
+        "weekmask",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default="Mon Tue Wed Thu Fri",
+    ),
+    "holidays": inspect.Parameter(
+        "holidays",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "calendar": inspect.Parameter(
+        "calendar",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "offset": inspect.Parameter(
+        "offset",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=timedelta(0),
+    ),
+}
+
+_OFFSET_SIGNATURES = {
+    pandas.tseries.offsets.BusinessDay: (
+        "n",
+        "normalize",
+        "offset",
+    ),
+    pandas.tseries.offsets.CustomBusinessDay: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+}
+
 
 def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
     """
@@ -1103,29 +1152,24 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
-def set_offset_signature(app, obj, bound_method) -> None:
-    if obj is not pandas.tseries.offsets.BusinessDay:
-        return
+def set_offset_signature(
+    app,
+    what,
+    name,
+    obj,
+    options,
+    signature,
+    return_annotation,
+):
+    parameter_names = _OFFSET_SIGNATURES.get(obj)
+    if parameter_names is None:
+        return None
 
-    obj.__signature__ = inspect.Signature(
-        parameters=[
-            inspect.Parameter(
-                "n",
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=1,
-            ),
-            inspect.Parameter(
-                "normalize",
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=False,
-            ),
-            inspect.Parameter(
-                "offset",
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=timedelta(0),
-            ),
-        ]
+    offset_signature = inspect.Signature(
+        parameters=[_OFFSET_PARAMETERS[name] for name in parameter_names]
     )
+
+    return str(offset_signature), return_annotation
 
 
 def setup(app) -> None:
@@ -1133,7 +1177,7 @@ def setup(app) -> None:
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
-    app.connect("autodoc-before-process-signature", set_offset_signature)
+    app.connect("autodoc-process-signature", set_offset_signature)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
