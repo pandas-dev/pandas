@@ -14,7 +14,10 @@ from libc.stdlib cimport (
     calloc,
     free,
 )
-from libc.string cimport memcpy
+from libc.string cimport (
+    memcpy,
+    memset,
+)
 
 import numpy as np
 
@@ -38,9 +41,37 @@ cdef uint8_t buf_get(Buffer buf, size_t offset) except? 255:
     return buf.data[offset]
 
 
-cdef bint buf_set(Buffer buf, size_t offset, uint8_t value) except 0:
-    assert offset < buf.length, "Out of bounds write"
-    buf.data[offset] = value
+cdef bint buf_copy(
+    Buffer dst, size_t dst_offset, Buffer src, size_t src_offset, size_t length
+) except 0:
+    # Copy a run of bytes, checking the bounds once per run rather than once per
+    # byte. `src` and `dst` must not overlap.
+    assert src_offset + length <= src.length, "Out of bounds read"
+    assert dst_offset + length <= dst.length, "Out of bounds write"
+    memcpy(&dst.data[dst_offset], &src.data[src_offset], length)
+    return True
+
+
+cdef bint buf_fill(Buffer buf, size_t offset, size_t length, uint8_t value) except 0:
+    # Write a run of `length` copies of the same value, bounds-checked once.
+    assert offset + length <= buf.length, "Out of bounds write"
+    memset(&buf.data[offset], value, length)
+    return True
+
+
+cdef bint buf_copy_backref(
+    Buffer buf, int dst_offset, int src_offset, int length
+) except 0:
+    # Copy within a single buffer, where the source is allowed to overlap the
+    # destination -- that overlap is how an RDC back-reference expands a short
+    # pattern -- so this has to stay a forward byte-at-a-time copy. Only the
+    # bounds checks are hoisted out of the loop.
+    cdef int idx
+    assert src_offset >= 0, "Out of bounds read"
+    assert <size_t>(dst_offset + length) <= buf.length, "Out of bounds write"
+    assert <size_t>(src_offset + length) <= buf.length, "Out of bounds read"
+    for idx in range(length):
+        buf.data[dst_offset + idx] = buf.data[src_offset + idx]
     return True
 
 
@@ -70,9 +101,8 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
     cdef:
         uint8_t control_byte, x
         int rpos = 0
-        int i, nbytes, end_of_first_byte
+        int nbytes, end_of_first_byte
         size_t ipos = 0
-        Py_ssize_t _
 
     while ipos < inbuff.length:
         control_byte = buf_get(inbuff, ipos) & 0xF0
@@ -82,76 +112,64 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         if control_byte == 0x00:
             nbytes = <int>(buf_get(inbuff, ipos)) + 64 + end_of_first_byte * 256
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos))
-                rpos += 1
-                ipos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
+            ipos += nbytes
         elif control_byte == 0x40:
             # not documented
             nbytes = <int>(buf_get(inbuff, ipos)) + 18 + end_of_first_byte * 256
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos))
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, buf_get(inbuff, ipos))
+            rpos += nbytes
             ipos += 1
         elif control_byte == 0x60:
             nbytes = end_of_first_byte * 256 + <int>(buf_get(inbuff, ipos)) + 17
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x20)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x20)
+            rpos += nbytes
         elif control_byte == 0x70:
             nbytes = end_of_first_byte * 256 + <int>(buf_get(inbuff, ipos)) + 17
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x00)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x00)
+            rpos += nbytes
         elif control_byte == 0x80:
             nbytes = end_of_first_byte + 1
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0x90:
             nbytes = end_of_first_byte + 17
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0xA0:
             nbytes = end_of_first_byte + 33
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0xB0:
             nbytes = end_of_first_byte + 49
-            for i in range(nbytes):
-                buf_set(outbuff, rpos, buf_get(inbuff, ipos + i))
-                rpos += 1
+            buf_copy(outbuff, rpos, inbuff, ipos, nbytes)
+            rpos += nbytes
             ipos += nbytes
         elif control_byte == 0xC0:
             nbytes = end_of_first_byte + 3
             x = buf_get(inbuff, ipos)
             ipos += 1
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, x)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, x)
+            rpos += nbytes
         elif control_byte == 0xD0:
             nbytes = end_of_first_byte + 2
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x40)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x40)
+            rpos += nbytes
         elif control_byte == 0xE0:
             nbytes = end_of_first_byte + 2
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x20)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x20)
+            rpos += nbytes
         elif control_byte == 0xF0:
             nbytes = end_of_first_byte + 2
-            for _ in range(nbytes):
-                buf_set(outbuff, rpos, 0x00)
-                rpos += 1
+            buf_fill(outbuff, rpos, nbytes, 0x00)
+            rpos += nbytes
         else:
             raise ValueError(f"unknown control byte: {control_byte}")
 
@@ -166,67 +184,72 @@ cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
     cdef:
         uint8_t cmd
         uint16_t ctrl_bits = 0, ctrl_mask = 0, ofs, cnt
-        int rpos = 0, k, ii
+        uint8_t *in_data = inbuff.data
+        uint8_t *out_data = outbuff.data
+        size_t in_len = inbuff.length
+        size_t out_len = outbuff.length
+        int rpos = 0
         size_t ipos = 0
 
-    ii = -1
-
-    while ipos < inbuff.length:
-        ii += 1
+    # Unlike RLE, RDC streams are dominated by single-byte literals, so the
+    # accessor overhead on each input byte is the cost here rather than the runs;
+    # hence the raw reads with the bounds check written out once per command.
+    while ipos < in_len:
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
-            ctrl_bits = ((<uint16_t>buf_get(inbuff, ipos) << 8) +
-                         <uint16_t>buf_get(inbuff, ipos + 1))
+            assert ipos + 2 <= in_len, "Out of bounds read"
+            ctrl_bits = ((<uint16_t>in_data[ipos] << 8) +
+                         <uint16_t>in_data[ipos + 1])
             ipos += 2
             ctrl_mask = 0x8000
 
         if ctrl_bits & ctrl_mask == 0:
-            buf_set(outbuff, rpos, buf_get(inbuff, ipos))
+            assert ipos < in_len, "Out of bounds read"
+            assert <size_t>rpos < out_len, "Out of bounds write"
+            out_data[rpos] = in_data[ipos]
             ipos += 1
             rpos += 1
             continue
 
-        cmd = (buf_get(inbuff, ipos) >> 4) & 0x0F
-        cnt = <uint16_t>(buf_get(inbuff, ipos) & 0x0F)
+        assert ipos < in_len, "Out of bounds read"
+        cmd = (in_data[ipos] >> 4) & 0x0F
+        cnt = <uint16_t>(in_data[ipos] & 0x0F)
         ipos += 1
 
         # short RLE
         if cmd == 0:
+            assert ipos < in_len, "Out of bounds read"
             cnt += 3
-            for k in range(cnt):
-                buf_set(outbuff, rpos + k, buf_get(inbuff, ipos))
+            buf_fill(outbuff, rpos, cnt, in_data[ipos])
             rpos += cnt
             ipos += 1
 
         # long RLE
         elif cmd == 1:
-            cnt += <uint16_t>buf_get(inbuff, ipos) << 4
+            assert ipos + 2 <= in_len, "Out of bounds read"
+            cnt += <uint16_t>in_data[ipos] << 4
             cnt += 19
-            ipos += 1
-            for k in range(cnt):
-                buf_set(outbuff, rpos + k, buf_get(inbuff, ipos))
+            buf_fill(outbuff, rpos, cnt, in_data[ipos + 1])
             rpos += cnt
-            ipos += 1
+            ipos += 2
 
         # long pattern
         elif cmd == 2:
+            assert ipos + 2 <= in_len, "Out of bounds read"
             ofs = cnt + 3
-            ofs += <uint16_t>buf_get(inbuff, ipos) << 4
-            ipos += 1
-            cnt = <uint16_t>buf_get(inbuff, ipos)
-            ipos += 1
-            cnt += 16
-            for k in range(cnt):
-                buf_set(outbuff, rpos + k, buf_get(outbuff, rpos - <int>ofs + k))
+            ofs += <uint16_t>in_data[ipos] << 4
+            cnt = <uint16_t>in_data[ipos + 1] + 16
+            ipos += 2
+            buf_copy_backref(outbuff, rpos, rpos - <int>ofs, cnt)
             rpos += cnt
 
         # short pattern
         else:
+            assert ipos < in_len, "Out of bounds read"
             ofs = cnt + 3
-            ofs += <uint16_t>buf_get(inbuff, ipos) << 4
+            ofs += <uint16_t>in_data[ipos] << 4
             ipos += 1
-            for k in range(cmd):
-                buf_set(outbuff, rpos + k, buf_get(outbuff, rpos - <int>ofs + k))
+            buf_copy_backref(outbuff, rpos, rpos - <int>ofs, cmd)
             rpos += cmd
 
     return rpos

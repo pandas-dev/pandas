@@ -3,6 +3,7 @@ from datetime import datetime
 import io
 import os
 from pathlib import Path
+import struct
 
 import numpy as np
 import pytest
@@ -506,6 +507,29 @@ def test_rle_rdc_exceptions(
     data[override_offset] = override_value
     with pytest.raises(Exception, match=expected_msg):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+def test_rdc_overlapping_back_reference(datapath):
+    # GH#47339 An RDC back-reference may point closer to the write position than
+    # the run it expands is long, so the copy has to propagate byte by byte; a
+    # bulk memcpy/memmove would instead read the bytes as they stood before the
+    # copy began. No fixture happens to contain such a back-reference, so
+    # re-point one: these two command bytes expand 8 bytes from 16 back, and are
+    # rewritten to expand 8 bytes from 4 back.
+    with open(datapath("io", "sas", "data", "test11.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    original = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+
+    assert data[120922:120924] == b"\x8d\x00"
+    data[120922:120924] = b"\x81\x00"
+    result = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+
+    # Column11 is bytes 56-63 of the row and is now copied from byte 52, so it
+    # repeats the second half of Column9 (bytes 48-55) twice. The fixture is
+    # big-endian.
+    second_half = struct.pack(">d", original.loc[0, "Column9"])[4:]
+    expected = struct.unpack(">d", second_half * 2)[0]
+    assert result.loc[0, "Column11"] == expected
 
 
 def test_0x40_control_byte(datapath):
