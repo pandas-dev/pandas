@@ -275,6 +275,10 @@ def read_excel(
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
         Use ``object`` to preserve data as stored in Excel and not interpret dtype,
         which will necessarily result in ``object`` dtype.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
         If you use ``None``, it will infer the dtype of each column based on the data.
@@ -296,6 +300,12 @@ def read_excel(
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
+
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` option (xlsm
+            files are format-detected as xlsx), to keep the current behavior.
 
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
@@ -1010,7 +1020,15 @@ class ExcelWriter(Generic[_WorkbookT]):
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
-        File mode to use (write or append). Append does not work with fsspec URLs.
+        File mode to use (write or append). Append does not work with fsspec
+        URLs.
+
+        .. warning::
+
+           In append mode the existing workbook is read and completely
+           rewritten by the engine, so any content the engine cannot
+           represent (e.g. VBA macros in ``.xlsm`` files, charts or images)
+           is silently lost and the workbook may be otherwise altered.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -1553,6 +1571,12 @@ class ExcelFile:
             then ``openpyxl`` will be used.
         - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` option (xlsm
+            files are format-detected as xlsx), to keep the current behavior.
+
         .. warning::
 
            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
@@ -1646,6 +1670,28 @@ class ExcelFile:
                 engine = config["io"]["excel"][ext]["reader"]
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="reader")
+                    # GH#56542 - the calamine engine will become the default
+                    # for xlsx/xlsm. Warn while calamine is available so the
+                    # switch is actionable; an explicit engine or the
+                    # io.excel.xlsx.reader option silences this. xlsm files
+                    # are format-sniffed as xlsx, so ext is never "xlsm" here.
+                    if (
+                        ext == "xlsx"
+                        and engine == "openpyxl"
+                        and import_optional_dependency(
+                            "python_calamine", errors="ignore"
+                        )
+                        is not None
+                    ):
+                        warnings.warn(
+                            "The default engine for reading 'xlsx' files "
+                            "will change from 'openpyxl' to 'calamine' in a "
+                            "future version. Pass engine='openpyxl' (or set "
+                            "the 'io.excel.xlsx.reader' option) to keep the "
+                            "current engine and silence this warning.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
 
         assert engine is not None
         self.engine = engine

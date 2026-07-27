@@ -147,9 +147,10 @@ class TestPandasContainer:
             expected_warning = Pandas4Warning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
-            result = read_json(
-                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
-            )
+            json = StringIO(df.to_json(orient=orient))
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, orient=orient, convert_dates=["x"])
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
@@ -905,7 +906,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(df.to_json(date_unit="ns"))
 
-        result = read_json(json, convert_dates=False)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected["date"] = expected["date"].values.view("i8")
         expected["foo"] = expected["foo"].astype("int64")
@@ -1171,7 +1174,9 @@ class TestPandasContainer:
             df = df.convert_dtypes(dtype_backend=dtype_backend)
 
         json = df.to_json(date_format="iso", date_unit=unit)
-        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
@@ -1197,7 +1202,9 @@ class TestPandasContainer:
         assert list(parsed.values()) == i8
 
         # and the frame round-trips, preserving the original resolution (GH#55827)
-        roundtripped = read_json(StringIO(result), convert_dates=["date"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            roundtripped = read_json(StringIO(result), convert_dates=["date"])
         tm.assert_frame_equal(roundtripped, df)
 
     def test_weird_nested_json(self):
@@ -1255,7 +1262,9 @@ class TestPandasContainer:
     def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(httpserver.url, convert_dates=True)
         for field, dtype in [
             ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
             ["closed_at", "datetime64[us]"],
@@ -2547,12 +2556,14 @@ def test_read_json_lines_rangeindex():
 
 def test_large_number():
     # GH#20608
-    result = read_json(
-        StringIO('["9999999999999999"]'),
-        orient="values",
-        typ="series",
-        convert_dates=False,
-    )
+    depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            StringIO('["9999999999999999"]'),
+            orient="values",
+            typ="series",
+            convert_dates=False,
+        )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
 

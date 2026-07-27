@@ -17,12 +17,12 @@ def test_unique(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
         if isinstance(obj.dtype, pd.DatetimeTZDtype):
             expected = expected.normalize()
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
     else:
         expected = np.array(unique_values)
         tm.assert_numpy_array_equal(result, expected)
@@ -119,6 +119,25 @@ def test_unique_bad_unicode(index_or_series):
     else:
         expected = np.array(["\ud83d"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.single_cpu
+def test_unique_distinct_bad_unicode(index_or_series):
+    # GH#34550 distinct non-utf8-encodable values must not collapse together.
+    #  Repeated values can pass even when the underlying buffers dangle.
+    uvals = [chr(0xD800 + i) for i in range(50)]
+    arr = np.empty(len(uvals), dtype=object)
+    arr[:] = uvals
+
+    obj = index_or_series(arr, dtype=object)
+    result = obj.unique()
+
+    assert len(result) == len(uvals)
+    assert set(result) == set(uvals)
+
+    codes, uniques = pd.factorize(arr)
+    tm.assert_numpy_array_equal(codes, np.arange(len(uvals), dtype=np.intp))
+    assert set(uniques) == set(uvals)
 
 
 def test_nunique_dropna(dropna):

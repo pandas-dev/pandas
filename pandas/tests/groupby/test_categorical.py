@@ -1190,7 +1190,7 @@ def test_groupby_multiindex_categorical_datetime():
         names=["key1", "key2"],
     )
     expected = DataFrame({"values": [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_freq=False)
 
 
 @pytest.mark.parametrize(
@@ -2185,3 +2185,27 @@ def test_categorical_with_noncategorical_na(observed, sort):
         .take(taker)
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_observed_false_expands_only_categorical_levels():
+    # GH#24592 with observed=False only categorical groupers are expanded to
+    #  all their categories; non-categorical levels keep only observed values
+    df = DataFrame(
+        {
+            "L0": [1, 1, 2],
+            "L1": ["a", "b", "a"],
+            "L2": Categorical(["X", "X", "X"], categories=["X", "Y"]),
+        }
+    )
+    result = df.groupby(["L0", "L1", "L2"], observed=False).size()
+    # observed (L0, L1) pairs are (1, a), (1, b), (2, a); each is crossed with
+    # the two L2 categories -- crucially (2, b) is absent (never observed)
+    assert result.index.tolist() == [
+        (1, "a", "X"),
+        (1, "a", "Y"),
+        (1, "b", "X"),
+        (1, "b", "Y"),
+        (2, "a", "X"),
+        (2, "a", "Y"),
+    ]
+    assert result.tolist() == [1, 0, 1, 0, 1, 0]

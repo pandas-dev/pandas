@@ -394,6 +394,15 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
    (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")
 
+.. note::
+
+   You may also see :meth:`Timestamp.timestamp` used for this conversion.
+   The explicit subtraction above is recommended because it is unambiguous
+   about treating a timezone-naive value as UTC: :meth:`Timestamp.timestamp`
+   treats a naive ``Timestamp`` as UTC, which does *not* match the standard
+   library ``datetime.datetime.timestamp``, where a naive value is
+   interpreted as local time.
+
 Another common way to perform this conversion is to convert directly to an integer dtype. Note that the exact integers this produces will depend on the specific unit
 or resolution of the datetime64 dtype:
 
@@ -1458,30 +1467,54 @@ For some frequencies you can specify an anchoring suffix:
     "W\-THU", "weekly frequency, week ends on Thursday"
     "W\-FRI", "weekly frequency, week ends on Friday"
     "W\-SAT", "weekly frequency, week ends on Saturday"
-    "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
-    "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
-    "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
-    "(B)Q(E)(S)\-MAR", "quarterly frequency, year ends in March"
-    "(B)Q(E)(S)\-APR", "quarterly frequency, year ends in April"
-    "(B)Q(E)(S)\-MAY", "quarterly frequency, year ends in May"
-    "(B)Q(E)(S)\-JUN", "quarterly frequency, year ends in June"
-    "(B)Q(E)(S)\-JUL", "quarterly frequency, year ends in July"
-    "(B)Q(E)(S)\-AUG", "quarterly frequency, year ends in August"
-    "(B)Q(E)(S)\-SEP", "quarterly frequency, year ends in September"
-    "(B)Q(E)(S)\-OCT", "quarterly frequency, year ends in October"
-    "(B)Q(E)(S)\-NOV", "quarterly frequency, year ends in November"
-    "(B)Y(E)(S)\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
-    "(B)Y(E)(S)\-JAN", "annual frequency, anchored end of January"
-    "(B)Y(E)(S)\-FEB", "annual frequency, anchored end of February"
-    "(B)Y(E)(S)\-MAR", "annual frequency, anchored end of March"
-    "(B)Y(E)(S)\-APR", "annual frequency, anchored end of April"
-    "(B)Y(E)(S)\-MAY", "annual frequency, anchored end of May"
-    "(B)Y(E)(S)\-JUN", "annual frequency, anchored end of June"
-    "(B)Y(E)(S)\-JUL", "annual frequency, anchored end of July"
-    "(B)Y(E)(S)\-AUG", "annual frequency, anchored end of August"
-    "(B)Y(E)(S)\-SEP", "annual frequency, anchored end of September"
-    "(B)Y(E)(S)\-OCT", "annual frequency, anchored end of October"
-    "(B)Y(E)(S)\-NOV", "annual frequency, anchored end of November"
+    "(B)QE\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
+    "(B)QE\-JAN", "quarterly frequency, year ends in January"
+    "(B)QE\-FEB", "quarterly frequency, year ends in February"
+    "(B)QE\-MAR", "quarterly frequency, year ends in March"
+    "(B)QE\-APR", "quarterly frequency, year ends in April"
+    "(B)QE\-MAY", "quarterly frequency, year ends in May"
+    "(B)QE\-JUN", "quarterly frequency, year ends in June"
+    "(B)QE\-JUL", "quarterly frequency, year ends in July"
+    "(B)QE\-AUG", "quarterly frequency, year ends in August"
+    "(B)QE\-SEP", "quarterly frequency, year ends in September"
+    "(B)QE\-OCT", "quarterly frequency, year ends in October"
+    "(B)QE\-NOV", "quarterly frequency, year ends in November"
+    "(B)QS\-JAN", "quarterly frequency, year starts in January. Same as 'QS'"
+    "(B)QS\-FEB", "quarterly frequency, year starts in February"
+    "(B)QS\-MAR", "quarterly frequency, year starts in March"
+    "(B)QS\-APR", "quarterly frequency, year starts in April"
+    "(B)QS\-MAY", "quarterly frequency, year starts in May"
+    "(B)QS\-JUN", "quarterly frequency, year starts in June"
+    "(B)QS\-JUL", "quarterly frequency, year starts in July"
+    "(B)QS\-AUG", "quarterly frequency, year starts in August"
+    "(B)QS\-SEP", "quarterly frequency, year starts in September"
+    "(B)QS\-OCT", "quarterly frequency, year starts in October"
+    "(B)QS\-NOV", "quarterly frequency, year starts in November"
+    "(B)QS\-DEC", "quarterly frequency, year starts in December"
+    "(B)YE\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
+    "(B)YE\-JAN", "annual frequency, anchored end of January"
+    "(B)YE\-FEB", "annual frequency, anchored end of February"
+    "(B)YE\-MAR", "annual frequency, anchored end of March"
+    "(B)YE\-APR", "annual frequency, anchored end of April"
+    "(B)YE\-MAY", "annual frequency, anchored end of May"
+    "(B)YE\-JUN", "annual frequency, anchored end of June"
+    "(B)YE\-JUL", "annual frequency, anchored end of July"
+    "(B)YE\-AUG", "annual frequency, anchored end of August"
+    "(B)YE\-SEP", "annual frequency, anchored end of September"
+    "(B)YE\-OCT", "annual frequency, anchored end of October"
+    "(B)YE\-NOV", "annual frequency, anchored end of November"
+    "(B)YS\-JAN", "annual frequency, anchored start of January. Same as 'YS'"
+    "(B)YS\-FEB", "annual frequency, anchored start of February"
+    "(B)YS\-MAR", "annual frequency, anchored start of March"
+    "(B)YS\-APR", "annual frequency, anchored start of April"
+    "(B)YS\-MAY", "annual frequency, anchored start of May"
+    "(B)YS\-JUN", "annual frequency, anchored start of June"
+    "(B)YS\-JUL", "annual frequency, anchored start of July"
+    "(B)YS\-AUG", "annual frequency, anchored start of August"
+    "(B)YS\-SEP", "annual frequency, anchored start of September"
+    "(B)YS\-OCT", "annual frequency, anchored start of October"
+    "(B)YS\-NOV", "annual frequency, anchored start of November"
+    "(B)YS\-DEC", "annual frequency, anchored start of December"
 
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions

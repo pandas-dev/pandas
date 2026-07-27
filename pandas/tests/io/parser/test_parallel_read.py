@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -424,6 +425,21 @@ class TestFindChunkByteOffsets:
         # Can't produce 8 distinct split points in 4 bytes.
         assert len(offsets) >= 2
 
+    def test_one_long_line_does_not_collapse_the_split(self, tmp_path):
+        # A line long enough to swallow several split targets must only cost
+        # those targets, not every boundary after it.
+        path = tmp_path / "data.csv"
+        lines = [b"a,b\n"] + [b"1,2\n"] * 20_000
+        lines.insert(10, b'1,"' + b"x" * 40_000 + b'"\n')
+        path.write_bytes(b"".join(lines))
+
+        offsets = _find_chunk_byte_offsets(str(path), 32, data_start=4)
+        # Skipping only the swallowed targets keeps most of the split; giving
+        # up at the first one degenerates to 2 chunks.  The long line covers
+        # roughly a third of the 32 targets.
+        assert len(offsets) - 1 >= 20
+        assert all(offsets[i] < offsets[i + 1] for i in range(len(offsets) - 1))
+
 
 # ---------------------------------------------------------------------------
 # _read_csv_parallel  (correctness: parallel == serial)
@@ -579,6 +595,44 @@ class TestReadCsvParallel:
         path = tmp_path / "implicit.csv"
         lines = "a,b\n" + "".join(f"idx{i},{i},{i * 2}\n" for i in range(5_000))
         path.write_text(lines, encoding="utf-8")
+        kwds = self._base_kwds(path)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
+    def test_long_first_line_keeps_fine_split(self, tmp_path, monkeypatch):
+        # The chunk count comes from an estimated row count.  The estimate
+        # samples several lines across the data section, so one huge first
+        # data line must not collapse the split (or worse, force a serial
+        # read via the few-rows bailout) (GH#66275).
+        path = tmp_path / "data.csv"
+        lines = ["a,b\n", f"0,s{'x' * 50_000}\n"]
+        lines += [f"{i},s{i}\n" for i in range(30_000)]
+        path.write_text("".join(lines), encoding="utf-8")
+
+        n_targets = []
+
+        def spy(filepath, n_chunks, data_start):
+            n_targets.append(n_chunks)
+            return _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+
+        monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+        kwds = self._base_kwds(path)
+        result = _read_csv_parallel(str(path), kwds, 4)
+        assert result is not None
+        expected = self._serial_read(path)
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        # 30k rows over the 2000-row chunk floor supports the full 4*3
+        # split; an estimate from the first line alone would give 2 chunks.
+        assert n_targets[0] >= 10
+
+    def test_few_estimated_rows_returns_none(self, tmp_path):
+        # ~300 long rows: even a 2-way split would leave each chunk far
+        # below _PARALLEL_MIN_CHUNK_ROWS, and the file is small enough that
+        # the per-chunk per-column fixed costs would outweigh the
+        # parallelism (GH#66275).
+        path = tmp_path / "wide.csv"
+        header = ",".join(f"c{i}" for i in range(500)) + "\n"
+        row = ",".join(["123456789"] * 500) + "\n"
+        path.write_text(header + row * 300, encoding="utf-8")
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
@@ -884,6 +938,39 @@ def test_parallel_single_long_line(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
+    # A line covering the middle of the file swallows the interior split
+    # targets.  The boundaries after it must survive: the results are correct
+    # either way, so a collapse is invisible except as lost parallelism, which
+    # is what this asserts (GH#66392).
+    path = tmp_path / "data.csv"
+    blob = "1," + "9" * 39_995 + "\n"  # 40 KB, covering 20-60% of the data
+    path.write_text(
+        "a,b\n" + "1,2\n" * 5_000 + blob + "1,2\n" * 10_000, encoding="utf-8"
+    )
+
+    chunk_counts = []
+
+    def spy(filepath, n_chunks, data_start):
+        offsets = _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+        chunk_counts.append(len(offsets) - 1)
+        return offsets
+
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    tm.assert_frame_equal(result, expected)
+    # Two of the interior targets land inside the long line; giving up at the
+    # first leaves 2 chunks no matter how many workers were asked for.
+    assert chunk_counts, "the parallel path did not run"
+    assert chunk_counts[0] >= 3
+
+
 def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     # A numeric column whose only non-numeric row sits in one chunk parses as
     # int64 in the clean chunks but object in the dirty one; serial gives
@@ -1094,3 +1181,54 @@ def test_parallel_bom_at_file_start_header_none(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # the stripped BOM means the first cell parses as an integer
     assert result["a"].iloc[0] == 0
+
+
+def test_parallel_string_dtype_python_storage(tmp_path, monkeypatch):
+    # Without the pyarrow string fast path, the gathered object column must
+    # get the same string-dtype inference a serial read applies via the
+    # DataFrame constructor (GH#66275).
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},s{i % 7}" for i in range(5000))
+    path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.string_storage", "python"):
+        with option_context("mode.max_threads", 1):
+            serial = read_csv(path)
+        with option_context("mode.max_threads", 4):
+            parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_blank_line_run(tmp_path, monkeypatch):
+    # A run of blank lines spanning entire chunks parses those chunks to zero
+    # rows; the reused worker parsers must not leak StopIteration out of
+    # read_csv (GH#66275).
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},{i * 2}" for i in range(100))
+    path.write_text(
+        "a,b\n" + rows + "\n" + "\n" * 20000 + rows + "\n", encoding="utf-8"
+    )
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
+    # Same for chunks whose lines are all skipped via on_bad_lines="skip"
+    # (GH#66275).
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},{i * 2}" for i in range(100))
+    bad = "\n".join("x,y,z,w,v" for _ in range(5000))
+    path.write_text("a,b\n" + rows + "\n" + bad + "\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, on_bad_lines="skip")
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path, on_bad_lines="skip")
+    tm.assert_frame_equal(result, expected)

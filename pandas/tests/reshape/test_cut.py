@@ -875,3 +875,24 @@ def test_cut_int64_intervalindex_more_bins_than_leaf_size():
 
     expected_codes = np.array([1, -1, 10], dtype=result.codes.dtype)
     tm.assert_numpy_array_equal(result.codes, expected_codes)
+
+
+def test_cut_datetime_series_with_intervalindex_bins():
+    # GH#48083 cut on a datetime Series with IntervalIndex bins must assign the
+    # matching intervals instead of returning all-NaN
+    ser = Series(to_datetime(["2000-01-01", "2000-01-02", "2000-01-02", "2000-01-03"]))
+    bins = interval_range(ser[0], ser[3])
+    result = cut(ser, bins)
+    # 2000-01-01 is the left edge of the first right-closed interval, so it is
+    # unassigned (-1); the rest fall in their intervals
+    expected_codes = np.array([-1, 0, 0, 1], dtype=result.cat.codes.dtype)
+    tm.assert_numpy_array_equal(result.cat.codes.to_numpy(), expected_codes)
+
+    # same IntervalIndex bins with an ndarray input (also all-NaN pre-fix)
+    result_arr = cut(ser.to_numpy(), bins)
+    tm.assert_numpy_array_equal(result_arr.codes, expected_codes)
+
+    # DatetimeIndex bins with a list input -- pre-fix this raised TypeError
+    # ("'<' not supported between int and Timestamp"), a different failure mode
+    result_list = cut(list(ser), date_range(ser[0], ser[3]))
+    tm.assert_numpy_array_equal(result_list.codes, expected_codes)

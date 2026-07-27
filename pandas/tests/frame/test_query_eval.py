@@ -140,6 +140,22 @@ class TestDataFrameEval:
         result = (1 - np.isnan(df)).iloc[0:25]
         tm.assert_frame_equal(result, expected)
 
+    def test_eval_method_call_fillna(self):
+        # GH#34045 eval must handle a chained method call such as .fillna(0)
+        df = DataFrame([1, 2], columns=["a"])
+        result = df.eval("((a - 1) / (a - 1)).fillna(0)")
+        expected = Series([0.0, 1.0], name="a")
+        tm.assert_series_equal(result, expected)
+
+    def test_query_method_call_isnull(self, engine):
+        # GH#34251 query must support a method call such as name.isnull().
+        # The crash was numexpr-engine-specific, so exercise both engines
+        # explicitly (the default silently falls back to python without numexpr)
+        df = DataFrame({"id": [0, 1, 2], "name": ["a", None, None]})
+        result = df.query("name.isnull()", engine=engine)
+        expected = df.iloc[[1, 2]]
+        tm.assert_frame_equal(result, expected)
+
     def test_query_non_str(self):
         # GH 11485
         df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "b"]})
@@ -1017,6 +1033,16 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
 
 class TestDataFrameQueryStrings:
+    def test_query_ordered_categorical_comparison(self, parser, engine):
+        # GH#15186 comparing an ordered categorical column against a scalar
+        #  string in .query should work for all engines/parsers
+        bands = [f"{i}AM" for i in range(10)]
+        df = DataFrame({"Time": bands})
+        df["Time"] = df["Time"].astype(pd.CategoricalDtype(bands, ordered=True))
+        result = df.query("Time >= '5AM'", parser=parser, engine=engine)
+        expected = df[df["Time"] >= "5AM"]
+        tm.assert_frame_equal(result, expected)
+
     def test_str_query_method(self, parser, engine):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))

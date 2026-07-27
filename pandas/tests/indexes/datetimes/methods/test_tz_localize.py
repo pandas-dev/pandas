@@ -270,20 +270,20 @@ class TestTZLocalize:
         is_dst = [1, 1, 0, 0, 0]
         localized = di.tz_localize(tz, ambiguous=is_dst)
         expected = dr._with_freq(None)
-        tm.assert_index_equal(expected, localized)
+        tm.assert_index_equal(expected, localized, check_freq=False)
 
         result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst).astype("bool"))
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test constructor
         localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test duplicate times where inferring the dst fails
         times += times

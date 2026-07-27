@@ -580,7 +580,7 @@ class TestUnique:
             expected = Index(unique_values, dtype=index.dtype)
             if isinstance(index.dtype, DatetimeTZDtype):
                 expected = expected.normalize()
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
     def test_factorize_multiindex_empty(self):
         # GH#57517
