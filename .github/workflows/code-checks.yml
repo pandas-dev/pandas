@@ -140,8 +140,10 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          pip-install: '-r requirements-dev.txt'
           cache-dependency-path: 'requirements-dev.txt'
 
       - name: Check Pip Cache Hit
         run: echo ${{ steps.setup_python.outputs.cache-hit }}
+
+      - name: Install requirements-dev.txt
+        run: python -m pip install -r requirements-dev.txt

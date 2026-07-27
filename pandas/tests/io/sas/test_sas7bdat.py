@@ -3,6 +3,7 @@ from datetime import datetime
 import io
 import os
 from pathlib import Path
+import struct
 
 import numpy as np
 import pytest
@@ -10,7 +11,10 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -20,6 +24,8 @@ from pandas.io.sas.sas7bdat import (
     _utf8_translation_table,
 )
 import pandas.io.sas.sas_constants as const
+
+encoding_depr_msg = "The default value of 'encoding' in read_sas is deprecated"
 
 
 @pytest.fixture
@@ -114,7 +120,7 @@ class TestSAS7BDAT:
 
 def test_encoding_options(datapath):
     fname = datapath("io", "sas", "data", "test1.sas7bdat")
-    df1 = pd.read_sas(fname)
+    df1 = pd.read_sas(fname, encoding=None)
     df2 = pd.read_sas(fname, encoding="utf-8")
     for col in df1.columns:
         try:
@@ -123,10 +129,137 @@ def test_encoding_options(datapath):
             pass
     tm.assert_frame_equal(df1, df2)
 
-    with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
+    with contextlib.closing(
+        SAS7BDATReader(fname, encoding=None, convert_header_text=False)
+    ) as rdr:
         df3 = rdr.read()
     for x, y in zip(df1.columns, df3.columns, strict=True):
         assert x == y.decode()
+
+
+def test_encoding_default_deprecated(datapath):
+    # GH#66470
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with tm.assert_produces_warning(Pandas4Warning, match=encoding_depr_msg):
+        result = pd.read_sas(fname)
+    assert result["Column2"].iloc[0] == b"pear"
+
+    for encoding in [None, "infer", "cp1252"]:
+        with tm.assert_produces_warning(None):
+            pd.read_sas(fname, encoding=encoding)
+
+
+def test_encoding_default_deprecated_sas7bdatreader(datapath):
+    # GH#66470 the reader's own default moved too
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with tm.assert_produces_warning(Pandas4Warning, match=encoding_depr_msg):
+        with contextlib.closing(SAS7BDATReader(fname)) as rdr:
+            rdr.read()
+
+
+def test_encoding_default_not_deprecated_without_text(datapath):
+    # GH#66470 nothing changes for files with no character columns and no
+    #  non-ascii header text
+    fname = datapath("io", "sas", "data", "test_meta2_page.sas7bdat")
+    with tm.assert_produces_warning(None):
+        pd.read_sas(fname)
+
+
+def test_encoding_default_deprecated_header_text_only(datapath):
+    # GH#66470 the default governs header text too, so a numeric-only file with
+    #  non-ascii column names still changes and must warn
+    fname = datapath("io", "sas", "data", "datetime.sas7bdat")
+    with open(fname, "rb") as fd:
+        data = bytearray(fd.read())
+    assert b"s" not in SAS7BDATReader(fname, encoding=None)._column_types
+    # This file declares cp1251; make a column name non-ascii so latin-1 and
+    #  the declared encoding disagree
+    ix = data.index(b"DateTimeHi")
+    data[ix : ix + 2] = b"\xc4\xe0"
+
+    with tm.assert_produces_warning(Pandas4Warning, match=encoding_depr_msg):
+        result = pd.read_sas(io.BytesIO(data), format="sas7bdat")
+    assert "ÄàteTimeHi" in result.columns
+
+    expected = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding="infer")
+    assert b"\xc4\xe0".decode("cp1251") + "teTimeHi" in expected.columns
+
+
+@pytest.mark.parametrize(
+    "fname, expected",
+    [
+        # code 0: no encoding recorded, the most common case
+        ("airline", "cp1252"),
+        ("cars", "cp1252"),
+        # code 28: us-ascii
+        ("productsales", "ascii"),
+    ],
+)
+def test_encoding_infer_newly_recognized_codes(datapath, fname, expected):
+    # GH#66470 these codes used to be absent from encoding_names, so
+    #  encoding="infer" raised LookupError instead of reading the file
+    fname = datapath("io", "sas", "data", f"{fname}.sas7bdat")
+    with pd.read_sas(fname, encoding="infer", iterator=True) as reader:
+        assert reader.inferred_encoding == expected
+        assert reader.encoding == expected
+
+
+def test_encoding_names_are_valid_codecs():
+    # GH#66470 a bogus name only surfaces as a LookupError when a user
+    #  happens to read a file recording that encoding
+    for name in const.encoding_names.values():
+        b"".decode(name)
+
+
+def test_encoding_infer_unrecognized_code(datapath):
+    # GH#66470 encoding="infer" used to raise LookupError("unknown encoding: infer")
+    #  for files whose header encoding code pandas does not map
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with open(fname, "rb") as fd:
+        data = bytearray(fd.read())
+    assert data[const.encoding_offset] not in (250, 251)
+    data[const.encoding_offset] = 250  # unassigned by SAS
+
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", encoding="infer", iterator=True
+    ) as reader:
+        assert reader.inferred_encoding == "unknown (code=250)"
+        result = reader.read()
+    expected = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding="latin-1")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_header_text_encoding_contract(datapath):
+    # GH#66470 "infer" decodes header text with the encoding the file declares;
+    #  encoding=None opts out of decoding and keeps the latin-1 fallback
+    fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
+    with open(fname, "rb") as fd:
+        data = bytearray(fd.read())
+    # This file declares utf-8; swap two ascii bytes of a column name for the
+    #  two-byte utf-8 encoding of "é" so the name is non-ascii but same length
+    ix = data.index(b"ecgrtxt")
+    data[ix : ix + 2] = "é".encode()
+
+    result = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding="infer")
+    assert "égrtxt" in result.columns
+
+    # encoding=None opts out of decoding entirely, so header text keeps the
+    #  latin-1 fallback, which cannot raise on arbitrary bytes
+    result = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+    assert "Ã©grtxt" in result.columns
+
+
+def test_header_text_never_raises_without_encoding(datapath):
+    # GH#66470 encoding=None is the documented way to opt out of decoding, so
+    #  it must not start raising on header bytes the declared encoding rejects
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with open(fname, "rb") as fd:
+        data = bytearray(fd.read())
+    # test1 declares cp1252, which is undefined at 0x81
+    data[data.index(b"Column1")] = 0x81
+
+    result = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+    assert "\x81olumn1" in result.columns
 
 
 def test_encoding_infer(datapath):
@@ -379,6 +512,71 @@ def test_rle_rdc_exceptions(
         data = bytearray(fd.read())
     data[override_offset] = override_value
     with pytest.raises(Exception, match=expected_msg):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+def test_rdc_overlapping_back_reference(datapath):
+    # GH#47339 An RDC back-reference may point closer to the write position than
+    # the run it expands is long, so the copy has to propagate byte by byte; a
+    # bulk memcpy/memmove would instead read the bytes as they stood before the
+    # copy began. No fixture happens to contain such a back-reference, so
+    # re-point one: these two command bytes expand 8 bytes from 16 back, and are
+    # rewritten to expand 8 bytes from 4 back.
+    with open(datapath("io", "sas", "data", "test11.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    original = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+
+    assert data[120922:120924] == b"\x8d\x00"
+    data[120922:120924] = b"\x81\x00"
+    result = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+
+    # Column11 is bytes 56-63 of the row and is now copied from byte 52, so it
+    # repeats the second half of Column9 (bytes 48-55) twice. The fixture is
+    # big-endian.
+    second_half = struct.pack(">d", original.loc[0, "Column9"])[4:]
+    expected = struct.unpack(">d", second_half * 2)[0]
+    assert result.loc[0, "Column11"] == expected
+
+
+@pytest.mark.parametrize(
+    "fname, fmt, field_offset, value",
+    [
+        # Fields of subheader pointers on page 0 of test9 (64-bit), which is
+        # walked from Python during _parse_metadata.
+        # Offset field, big enough that offset + int_length wraps in uint64.
+        ("test9.sas7bdat", "<Q", 68144, (1 << 64) - 1),
+        # Length field, big enough to truncate to a negative C int.
+        ("test9.sas7bdat", "<Q", 68152, 1 << 31),
+        # Length field of a *non-data* (ColumnName) pointer, big enough to
+        # truncate to a positive C int that is wrong but in bounds -- unchecked,
+        # this fabricates an extra column rather than raising.
+        ("test9.sas7bdat", "<Q", 65680, (1 << 32) + 836),
+        # Offset field on page 1 of test_meta2_page (32-bit, three pages), which
+        # is walked from Parser.read_next_page instead.
+        ("test_meta2_page.sas7bdat", "<I", 131096, 0xFFFFFFFF),
+    ],
+)
+def test_corrupt_subheader_pointer(datapath, fname, fmt, field_offset, value):
+    # GH#47339 a corrupt subheader pointer must be rejected before it is used to
+    # index the page.
+    with open(datapath("io", "sas", "data", fname), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into(fmt, data, field_offset, value)
+    # Rejected while walking the pointers, not later from inside the decompressor
+    # once a bad offset or length has already been accepted.
+    with pytest.raises(ValueError, match="cached page is too small"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat")
+
+
+def test_unknown_subheader_signature(datapath):
+    # GH#47339 an unrecognized signature on an uncompressed file is reported with
+    # the offending bytes. 121376 is where the last live subheader pointer on
+    # page 0 of test1.sas7bdat points.
+    with open(datapath("io", "sas", "data", "test1.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    data[121376:121380] = b"\xde\xad\xbe\xef"
+    msg = r"Unknown subheader signature b'\\xde\\xad\\xbe\\xef'"
+    with pytest.raises(ValueError, match=msg):
         pd.read_sas(io.BytesIO(data), format="sas7bdat")
 
 
@@ -394,7 +592,7 @@ def test_0x40_control_byte(datapath):
 def test_0x00_control_byte(datapath):
     # GH 47099
     fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
-    with pd.read_sas(fname, chunksize=11_000) as reader:
+    with pd.read_sas(fname, chunksize=11_000, encoding=None) as reader:
         df = next(reader)
     assert df.shape == (11_000, 20)
 
