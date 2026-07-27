@@ -20,6 +20,10 @@ See LICENSE for the license
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
@@ -243,3 +247,7 @@ double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
 int try_parse_plain_double(const char *start, const char *end, char decimal,
                            double *out);
 int to_boolean(const char *item, uint8_t *val);
+
+#ifdef __cplusplus
+}
+#endif

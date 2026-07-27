@@ -178,11 +178,11 @@ void parser_set_default_options(parser_t *self) {
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 static void parser_clear_data_buffers(parser_t *self) {
-  free_if_not_null((void *)&self->stream);
-  free_if_not_null((void *)&self->words);
-  free_if_not_null((void *)&self->word_starts);
-  free_if_not_null((void *)&self->line_start);
-  free_if_not_null((void *)&self->line_fields);
+  free_if_not_null((void **)&self->stream);
+  free_if_not_null((void **)&self->words);
+  free_if_not_null((void **)&self->word_starts);
+  free_if_not_null((void **)&self->line_start);
+  free_if_not_null((void **)&self->line_fields);
 }
 
 static void parser_cleanup(parser_t *self) {
@@ -193,8 +193,8 @@ static void parser_cleanup(parser_t *self) {
   }
 
   // XXX where to put this
-  free_if_not_null((void *)&self->error_msg);
-  free_if_not_null((void *)&self->warn_msg);
+  free_if_not_null((void **)&self->error_msg);
+  free_if_not_null((void **)&self->warn_msg);
 
   if (self->skipset != NULL) {
     kh_destroy_int64((kh_int64_t *)self->skipset);
@@ -222,7 +222,7 @@ int parser_init(parser_t *self) {
   self->warn_msg = NULL;
 
   // token stream
-  self->stream = malloc(STREAM_INIT_SIZE);
+  self->stream = (char *)malloc(STREAM_INIT_SIZE);
   if (self->stream == NULL) {
     parser_cleanup(self);
     return PARSER_OUT_OF_MEMORY;
@@ -231,19 +231,19 @@ int parser_init(parser_t *self) {
   self->stream_len = 0;
 
   // word pointers and metadata
-  _Static_assert(STREAM_INIT_SIZE / 10 > 0,
-                 "STREAM_INIT_SIZE must be defined and >= 10");
+  static_assert(STREAM_INIT_SIZE / 10 > 0,
+                "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
-  self->words = malloc(sz * sizeof(char *));
-  self->word_starts = malloc(sz * sizeof(int64_t));
+  self->words = (char **)malloc(sz * sizeof(char *));
+  self->word_starts = (int64_t *)malloc(sz * sizeof(int64_t));
   self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
 
   // line pointers and metadata
-  self->line_start = malloc(sz * sizeof(int64_t));
+  self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
 
-  self->line_fields = malloc(sz * sizeof(int64_t));
+  self->line_fields = (int64_t *)malloc(sz * sizeof(int64_t));
 
   self->lines_cap = sz;
   self->lines = 0;
@@ -292,7 +292,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
   */
 
   int status;
-  char *orig_ptr = (void *)self->stream;
+  char *orig_ptr = self->stream;
   self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
                                      &self->stream_cap, nbytes * 2, 1, &status);
 
@@ -374,7 +374,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 static int push_char(parser_t *self, char c) {
   if (self->stream_len >= self->stream_cap) {
     const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
     snprintf(self->error_msg, bufsize,
              "Buffer overflow caught - possible malformed input file.\n");
     return PARSER_OUT_OF_MEMORY;
@@ -387,7 +387,7 @@ static inline int end_field(parser_t *self) {
   // XXX cruft
   if (self->words_len >= self->words_cap) {
     const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
     snprintf(self->error_msg, bufsize,
              "Buffer overflow caught - possible malformed input file.\n");
     return PARSER_OUT_OF_MEMORY;
@@ -415,7 +415,7 @@ static void append_warning(parser_t *self, const char *msg) {
   const int64_t length = strlen(msg);
 
   if (self->warn_msg == NULL) {
-    self->warn_msg = malloc(length + 1);
+    self->warn_msg = (char *)malloc(length + 1);
     snprintf(self->warn_msg, length + 1, "%s", msg);
   } else {
     const int64_t ex_length = strlen(self->warn_msg);
@@ -472,7 +472,7 @@ static int end_line(parser_t *self) {
     // file_lines is now the actual file line number (starting at 1)
     if (self->on_bad_lines == BLHM_ERROR) {
       const size_t bufsize = 100;
-      self->error_msg = malloc(bufsize);
+      self->error_msg = (char *)malloc(bufsize);
       snprintf(self->error_msg, bufsize,
                "Expected %" PRId64 " fields in line %" PRIu64 ", saw %" PRId64
                "\n",
@@ -498,7 +498,7 @@ static int end_line(parser_t *self) {
       // might overrun the buffer when closing fields
       if (make_stream_space(self, ex_fields - fields) < 0) {
         const size_t bufsize = 100;
-        self->error_msg = malloc(bufsize);
+        self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize, "out of memory");
         return -1;
       }
@@ -516,7 +516,7 @@ static int end_line(parser_t *self) {
     // good line, set new start point
     if (self->lines >= self->lines_cap) {
       const size_t bufsize = 100;
-      self->error_msg = malloc(bufsize);
+      self->error_msg = (char *)malloc(bufsize);
       snprintf(self->error_msg, bufsize,
                "Buffer overflow caught - "
                "possible malformed input file.\n");
@@ -568,7 +568,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
   if (status != REACHED_EOF && self->data == NULL) {
     const size_t bufsize = 200;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
 
     if (status == CALLING_READ_FAILED) {
       snprintf(self->error_msg, bufsize,
@@ -591,7 +591,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 #define PUSH_CHAR(c)                                                           \
   if (slen >= self->stream_cap) {                                              \
     const size_t bufsize = 100;                                                \
-    self->error_msg = malloc(bufsize);                                         \
+    self->error_msg = (char *)malloc(bufsize);                                 \
     snprintf(self->error_msg, bufsize,                                         \
              "Buffer overflow caught - possible malformed input file.\n");     \
     return PARSER_OUT_OF_MEMORY;                                               \
@@ -1226,7 +1226,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
     snprintf(self->error_msg, bufsize, "out of memory");
     return -1;
   }
@@ -1863,11 +1863,12 @@ int parser_trim_buffers(parser_t *self) {
   /* trim words, word_starts */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
-    self->words = realloc(self->words, new_cap * sizeof(char *));
+    self->words = (char **)realloc(self->words, new_cap * sizeof(char *));
     if (self->words == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
-    self->word_starts = realloc(self->word_starts, new_cap * sizeof(int64_t));
+    self->word_starts =
+        (int64_t *)realloc(self->word_starts, new_cap * sizeof(int64_t));
     if (self->word_starts == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
@@ -1894,7 +1895,7 @@ int parser_trim_buffers(parser_t *self) {
         }
       }
 
-      self->stream = newptr;
+      self->stream = (char *)newptr;
       self->stream_cap = new_cap;
     }
   }
@@ -1906,13 +1907,13 @@ int parser_trim_buffers(parser_t *self) {
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      self->line_start = newptr;
+      self->line_start = (int64_t *)newptr;
     }
     newptr = realloc(self->line_fields, new_cap * sizeof(int64_t));
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      self->line_fields = newptr;
+      self->line_fields = (int64_t *)newptr;
       self->lines_cap = new_cap;
     }
   }
@@ -2048,8 +2049,9 @@ int to_boolean(const char *item, uint8_t *val) {
 
 // Defined in fast_float_wrappers.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
-int fast_float_strtod(const char *start, const char *end, double *value,
-                      const char **endptr, char decimal);
+extern "C" int fast_float_strtod(const char *start, const char *end,
+                                 double *value, const char **endptr,
+                                 char decimal);
 
 double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
                                 char sci, char tsep, int skip_trailing,
