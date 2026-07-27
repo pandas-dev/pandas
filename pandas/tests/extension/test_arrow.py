@@ -4036,6 +4036,34 @@ class TestGroupbyAggPyArrowNative:
         assert result.iloc[0] == expected
         assert result.iloc[0] == getattr(ser, agg_func)()
 
+    @pytest.mark.parametrize(
+        "how, pa_type, values, expected",
+        [
+            # product needs 39 digits, one more than decimal128 can hold
+            (
+                "prod",
+                pa.decimal128(20, 0),
+                [Decimal(10**19), Decimal(12 * 10**18)],
+                Decimal(12 * 10**37),
+            ),
+            # sum needs 39 digits, one more than decimal128 can hold
+            (
+                "sum",
+                pa.decimal128(38, 0),
+                [Decimal(3 * 10**37)] * 5,
+                Decimal(15 * 10**37),
+            ),
+        ],
+    )
+    def test_groupby_sum_prod_exceeds_max_precision(
+        self, how, pa_type, values, expected
+    ):
+        # GH#63416 a group result that does not fit the maximum decimal
+        # precision falls back to a wider type instead of raising
+        ser = pd.Series(values, dtype=ArrowDtype(pa_type))
+        result = getattr(ser.groupby([1] * len(values)), how)()
+        assert result.iloc[0] == expected
+
     @pytest.mark.parametrize("how", ["std", "sem"])
     def test_groupby_std_sem_supported(self, how):
         # GH#63416 these used to raise NotImplementedError on decimal

@@ -3387,9 +3387,15 @@ class ArrowExtensionArray(
             # what hash_sum does and what Series.prod returns.
             prod_type = result_values.type
             if pa.types.is_decimal256(prod_type):
-                result_values = result_values.cast(pa.decimal256(76, prod_type.scale))
+                wider_type = pa.decimal256(76, prod_type.scale)
             else:
-                result_values = result_values.cast(pa.decimal128(38, prod_type.scale))
+                wider_type = pa.decimal128(38, prod_type.scale)
+            try:
+                result_values = result_values.cast(wider_type)
+            except pa.ArrowInvalid:
+                # A product needs more digits than the maximum precision, so
+                # there is no Arrow type that can hold it. Fall back.
+                return None
 
         output_type = result_values.type
         default_value = pa.scalar(self._PYARROW_AGG_DEFAULTS.get(how), type=output_type)
@@ -3423,21 +3429,27 @@ class ArrowExtensionArray(
         result_values_np = result_values.to_numpy(zero_copy_only=False)
 
         default_py = default_value.as_py()
-        if default_py is not None and min_count == 0:
-            # Fill missing groups with identity element
-            output_np = np.full(ngroups, default_py, dtype=result_values_np.dtype)
-            output_np[result_group_ids_np] = result_values_np
-            pa_result = pa.array(output_np, type=output_type)
-        else:
-            # Fill missing groups with null
-            output_np = np.empty(ngroups, dtype=result_values_np.dtype)
-            null_mask = np.ones(ngroups, dtype=bool)
-            output_np[result_group_ids_np] = result_values_np
-            null_mask[result_group_ids_np] = False
-            if result_values.null_count > 0:
-                result_nulls = pc.is_null(result_values).to_numpy()
-                null_mask[result_group_ids_np[result_nulls]] = True
-            pa_result = pa.array(output_np, type=output_type, mask=null_mask)
+        try:
+            if default_py is not None and min_count == 0:
+                # Fill missing groups with identity element
+                output_np = np.full(ngroups, default_py, dtype=result_values_np.dtype)
+                output_np[result_group_ids_np] = result_values_np
+                pa_result = pa.array(output_np, type=output_type)
+            else:
+                # Fill missing groups with null
+                output_np = np.empty(ngroups, dtype=result_values_np.dtype)
+                null_mask = np.ones(ngroups, dtype=bool)
+                output_np[result_group_ids_np] = result_values_np
+                null_mask[result_group_ids_np] = False
+                if result_values.null_count > 0:
+                    result_nulls = pc.is_null(result_values).to_numpy()
+                    null_mask[result_group_ids_np[result_nulls]] = True
+                pa_result = pa.array(output_np, type=output_type, mask=null_mask)
+        except pa.ArrowInvalid:
+            # A group result does not fit the aggregated type, e.g. a decimal
+            # sum or product needing more digits than the maximum precision.
+            # Fall back so the result keeps the wider type it needs.
+            return None
 
         return self._from_pyarrow_array(pa_result)
 
