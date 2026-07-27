@@ -7,17 +7,23 @@ ROOT = Path(__file__).parents[3] / "pandas" / "tests" / "io" / "sas" / "data"
 
 class SAS:
     def time_read_sas7bdat(self):
-        read_sas(ROOT / "test1.sas7bdat")
+        read_sas(ROOT / "test1.sas7bdat", encoding=None)
 
     def time_read_xpt(self):
-        read_sas(ROOT / "paxraw_d_short.xpt")
+        read_sas(ROOT / "paxraw_d_short.xpt", encoding=None)
 
     def time_read_sas7bdat_2(self):
-        next(read_sas(ROOT / "0x00controlbyte.sas7bdat.bz2", chunksize=11000))
+        next(
+            read_sas(
+                ROOT / "0x00controlbyte.sas7bdat.bz2", chunksize=11000, encoding=None
+            )
+        )
 
     def time_read_sas7bdat_2_chunked(self):
         for i, _ in enumerate(
-            read_sas(ROOT / "0x00controlbyte.sas7bdat.bz2", chunksize=1000)
+            read_sas(
+                ROOT / "0x00controlbyte.sas7bdat.bz2", chunksize=1000, encoding=None
+            )
         ):
             if i == 10:
                 break

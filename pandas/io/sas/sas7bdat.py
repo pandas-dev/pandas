@@ -19,11 +19,13 @@ from __future__ import annotations
 from datetime import datetime
 import sys
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
 from pandas._config import using_string_dtype
 
+from pandas._libs import lib
 from pandas._libs.byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
@@ -33,10 +35,14 @@ from pandas._libs.byteswap import (
 )
 from pandas._libs.sas import (
     Parser,
-    get_subheader_index,
+    collect_page_subheaders,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    Pandas4Warning,
+)
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -167,8 +173,12 @@ class SAS7BDATReader(SASReader):
         with given number of lines.
     encoding : str, 'infer', defaults to None
         String encoding acc. to Python standard encodings,
-        encoding='infer' tries to detect the encoding from the file header,
-        encoding=None will leave the data in binary format.
+        encoding='infer' decodes using the encoding recorded in the file
+        header, falling back to latin-1 if the header does not name one
+        pandas recognizes; encoding=None will leave the data in binary format.
+
+        .. deprecated:: 3.1.0
+            The default will change from ``None`` to ``'infer'``.
     convert_text : bool, defaults to True
         If False, text variables are left as raw bytes.
     convert_header_text : bool, defaults to True
@@ -178,6 +188,7 @@ class SAS7BDATReader(SASReader):
 
     _int_length: int
     _cached_page: bytes | None
+    encoding: str | None
 
     def __init__(
         self,
@@ -186,16 +197,19 @@ class SAS7BDATReader(SASReader):
         convert_dates: bool = True,
         blank_missing: bool = True,
         chunksize: int | None = None,
-        encoding: str | None = None,
+        encoding: str | None | lib.NoDefault = lib.no_default,
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
     ) -> None:
+        self._encoding_specified = encoding is not lib.no_default
+        self._non_ascii_header_text = False
+
         self.index = index
         self.convert_dates = convert_dates
         self.blank_missing = blank_missing
         self.chunksize = chunksize
-        self.encoding = encoding
+        self.encoding = None if encoding is lib.no_default else encoding
         self.convert_text = convert_text
         self.convert_header_text = convert_header_text
 
@@ -206,7 +220,12 @@ class SAS7BDATReader(SASReader):
         self.column_formats: list[str | bytes] = []
         self.columns: list[_Column] = []
 
-        self._current_page_data_subheader_pointers: list[tuple[int, int]] = []
+        # (offset, length) of each data subheader on the current page, filled
+        # in by collect_page_subheaders. Sized in _get_properties, once the
+        # page length is known.
+        self._data_subheader_offsets = np.empty(0, dtype=np.int64)
+        self._data_subheader_lengths = np.empty(0, dtype=np.int64)
+        self._data_subheader_count = 0
         self._cached_page = None
         self._column_data_lengths: list[int] = []
         self._column_data_offsets: list[int] = []
@@ -238,9 +257,39 @@ class SAS7BDATReader(SASReader):
         try:
             self._get_properties()
             self._parse_metadata()
+            self._validate_column_data_ranges()
         except Exception:
             self.close()
             raise
+
+    def _validate_column_data_ranges(self) -> None:
+        # The column offsets, lengths and types come straight out of the file's
+        # column-attributes subheader, and every row is then read at those
+        # positions out of a buffer only row_length bytes long. Validate them
+        # once here rather than per row: a corrupt or hostile file would
+        # otherwise read past the end of that buffer. These are Python ints, so
+        # unlike the int64 the parser holds them in, the sum cannot overflow.
+        for index, (offset, length, ctype) in enumerate(
+            zip(
+                self._column_data_offsets,
+                self._column_data_lengths,
+                self._column_types,
+                strict=True,
+            )
+        ):
+            # A numeric column is widened into 8 bytes of the parser's output
+            # buffer, so a longer one would also write past the front of it.
+            if ctype == b"d" and length > 8:
+                raise ValueError(
+                    f"Column {index} is numeric but declares {length} bytes of "
+                    f"data, more than the 8 a SAS number can occupy; the file "
+                    f"is corrupt"
+                )
+            if offset + length > self.row_length:
+                raise ValueError(
+                    f"Column {index} spans bytes {offset}-{offset + length} of a "
+                    f"{self.row_length}-byte row; the file is corrupt"
+                )
 
     def column_data_lengths(self) -> np.ndarray:
         """Return a numpy int64 array of the column data lengths"""
@@ -298,10 +347,13 @@ class SAS7BDATReader(SASReader):
         buf = self._read_bytes(const.encoding_offset, const.encoding_length)[0]
         if buf in const.encoding_names:
             self.inferred_encoding = const.encoding_names[buf]
-            if self.encoding == "infer":
-                self.encoding = self.inferred_encoding
         else:
             self.inferred_encoding = f"unknown (code={buf})"
+        if self.encoding == "infer":
+            # GH#66470 fall back rather than trying to decode with "infer".
+            # default_encoding is latin-1, which cannot raise, so encoding=None
+            # (opting out of decoding) keeps decoding header text infallibly.
+            self.encoding = const.encoding_names.get(buf, self.default_encoding)
 
         # Timestamp is epoch 01/01/1960
         epoch = datetime(1960, 1, 1)
@@ -327,6 +379,18 @@ class SAS7BDATReader(SASReader):
         self._page_length = self._read_uint(
             const.page_size_offset + align1, const.page_size_length
         )
+
+        # A page cannot hold more subheader pointers than its own length divided
+        # by the pointer size, nor more than its subheader-count field can express,
+        # so those bound the data-subheader arrays. The second bound matters
+        # because _page_length is an unvalidated header field.
+        # Parser caches memoryviews of these, so never rebind them after that.
+        max_subheaders = min(
+            self._page_length // self._subheader_pointer_length + 1,
+            1 << (8 * const.subheader_count_length),
+        )
+        self._data_subheader_offsets = np.empty(max_subheaders, dtype=np.int64)
+        self._data_subheader_lengths = np.empty(max_subheaders, dtype=np.int64)
 
     def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
@@ -401,6 +465,22 @@ class SAS7BDATReader(SASReader):
             else:
                 self._column_convert_types.append(None)
 
+        # The default also governs header text, which is decoded either way, so
+        #  a numeric-only file with non-ascii column names changes too
+        if not self._encoding_specified and (
+            (self.convert_text and b"s" in self._column_types)
+            or self._non_ascii_header_text
+        ):
+            warnings.warn(
+                "The default value of 'encoding' in read_sas is deprecated. In a "
+                "future version the default will change from None to 'infer', and "
+                "text will be decoded using the encoding recorded in the file "
+                "rather than returned as bytes. Pass encoding='infer' to adopt "
+                "the future behavior, or encoding=None to keep the current one.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
     def _process_page_meta(self) -> bool:
         self._read_page_header()
         pt = [*const.page_meta_types, const.page_amd_type, const.page_mix_type]
@@ -408,11 +488,7 @@ class SAS7BDATReader(SASReader):
             self._process_page_metadata()
         is_data_page = self._current_page_type == const.page_data_type
         is_mix_page = self._current_page_type == const.page_mix_type
-        return bool(
-            is_data_page
-            or is_mix_page
-            or self._current_page_data_subheader_pointers != []
-        )
+        return bool(is_data_page or is_mix_page or self._data_subheader_count > 0)
 
     def _read_page_header(self) -> None:
         bit_offset = self._page_bit_offset
@@ -428,47 +504,14 @@ class SAS7BDATReader(SASReader):
         )
 
     def _process_page_metadata(self) -> None:
-        bit_offset = self._page_bit_offset
-
-        for i in range(self._current_page_subheaders_count):
-            offset = const.subheader_pointers_offset + bit_offset
-            total_offset = offset + self._subheader_pointer_length * i
-
-            subheader_offset = self._read_uint(total_offset, self._int_length)
-            total_offset += self._int_length
-
-            subheader_length = self._read_uint(total_offset, self._int_length)
-            total_offset += self._int_length
-
-            subheader_compression = self._read_uint(total_offset, 1)
-            total_offset += 1
-
-            subheader_type = self._read_uint(total_offset, 1)
-
-            if (
-                subheader_length == 0
-                or subheader_compression == const.truncated_subheader_id
-            ):
-                continue
-
-            subheader_signature = self._read_bytes(subheader_offset, self._int_length)
-            subheader_index = get_subheader_index(subheader_signature)
-            subheader_processor = self._subheader_processors[subheader_index]
-
-            if subheader_processor is None:
-                f1 = subheader_compression in (const.compressed_subheader_id, 0)
-                f2 = subheader_type == const.compressed_subheader_type
-                if self.compression and f1 and f2:
-                    self._current_page_data_subheader_pointers.append(
-                        (subheader_offset, subheader_length)
-                    )
-                else:
-                    self.close()
-                    raise ValueError(
-                        f"Unknown subheader signature {subheader_signature}"
-                    )
-            else:
-                subheader_processor(subheader_offset, subheader_length)
+        # Walks the page's subheader pointers in Cython, collecting data
+        # subheaders into self._data_subheader_offsets/_lengths and dispatching
+        # the rest back to self._subheader_processors.
+        try:
+            self._data_subheader_count = collect_page_subheaders(self)
+        except Exception:
+            self.close()
+            raise
 
     def _process_rowsize_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
@@ -710,7 +753,7 @@ class SAS7BDATReader(SASReader):
 
     def _read_page_data(self):
         """Read the next page from the file. Returns True if EOF."""
-        self._current_page_data_subheader_pointers = []
+        self._data_subheader_count = 0
         self._cached_page = self._path_or_buf.read(self._page_length)
         if len(self._cached_page) <= 0:
             return True
@@ -779,6 +822,9 @@ class SAS7BDATReader(SASReader):
 
     def _convert_header_text(self, b: bytes) -> str | bytes:
         if self.convert_header_text:
+            if not b.isascii():
+                # latin-1 and the file's own encoding disagree only here
+                self._non_ascii_header_text = True
             return self._decode_string(b)
         else:
             return b

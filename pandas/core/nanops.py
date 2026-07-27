@@ -5,6 +5,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 import warnings
@@ -1321,8 +1322,9 @@ def nanskew(
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_skew(
-            values.ravel("K"), skipna, mask.ravel("K") if mask is not None else None
+            values.ravel(order), skipna, mask.ravel(order) if mask is not None else None
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
@@ -1378,8 +1380,9 @@ def nankurt(
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_kurt(
-            values.ravel("K"), skipna, mask.ravel("K") if mask is not None else None
+            values.ravel(order), skipna, mask.ravel(order) if mask is not None else None
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
