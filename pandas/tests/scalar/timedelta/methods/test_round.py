@@ -278,7 +278,7 @@ class TestTimedeltaRound:
 
     def test_round_freq_finer_than_resolution(self):
         # GH#64828
-        td = Timedelta(1.0, unit="days").as_unit("s")
+        td = Timedelta(1.0, input_unit="days").as_unit("s")
         assert td.unit == "s"
         assert td.round("100ms") == Timedelta("1 days 00:00:00")
         assert td.floor("100ms") == Timedelta("1 days 00:00:00")

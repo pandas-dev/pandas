@@ -35,7 +35,7 @@ You can construct a ``Timedelta`` scalar through various arguments, including `I
    pd.Timedelta(days=1, seconds=1)
 
    # integers with a unit
-   pd.Timedelta(1, unit="D")
+   pd.Timedelta(1, input_unit="D")
 
    # from a datetime.timedelta/np.timedelta64
    pd.Timedelta(datetime.timedelta(days=1, seconds=1))
@@ -88,17 +88,17 @@ or a list/array of strings:
 
    pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
 
-The ``unit`` keyword argument specifies the unit of the Timedelta if the input
+The ``input_unit`` keyword argument specifies the unit of the Timedelta if the input
 is numeric:
 
 .. ipython:: python
 
-   pd.to_timedelta(np.arange(5), unit="s")
-   pd.to_timedelta(np.arange(5), unit="D")
+   pd.to_timedelta(np.arange(5), input_unit="s")
+   pd.to_timedelta(np.arange(5), input_unit="D")
 
 .. warning::
-    If a string or array of strings is passed as an input then the ``unit`` keyword
-    argument will be ignored. If a string without units is passed then the default
+    If a string or array of strings is passed as an input then the ``input_unit``
+    keyword argument will be ignored. If a string without units is passed then the default
     unit of nanoseconds is assumed.
 
 .. _timedeltas.limitations:
@@ -122,7 +122,7 @@ step size of that instance's resolution:
 
 .. ipython:: python
 
-   td = pd.Timedelta(1, unit="s")
+   td = pd.Timedelta(1, input_unit="s")
    td.min
    td.max
    td.resolution
@@ -214,7 +214,7 @@ You can fillna on timedeltas, passing a timedelta to get a particular value.
 .. ipython:: python
 
    y.fillna(pd.Timedelta(0))
-   y.fillna(pd.Timedelta(10, unit="s"))
+   y.fillna(pd.Timedelta(10, input_unit="s"))
    y.fillna(pd.Timedelta("-1 days, 00:00:05"))
 
 You can also negate, multiply and use ``abs`` on ``Timedeltas``:

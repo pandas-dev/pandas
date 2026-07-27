@@ -1273,14 +1273,14 @@ def test_apply_empty_string_nan_coerce_bug():
             {
                 "a": [1, 1, 2, 2],
                 "b": ["", "", "", ""],
-                "c": pd.to_datetime([1, 2, 3, 4], unit="s"),
+                "c": pd.to_datetime([1, 2, 3, 4], input_unit="s"),
             }
         )
         .groupby(["a", "b"])
         .apply(lambda df: df.iloc[-1])
     )
     expected = DataFrame(
-        [[pd.to_datetime(2, unit="s")], [pd.to_datetime(4, unit="s")]],
+        [[pd.to_datetime(2, input_unit="s")], [pd.to_datetime(4, input_unit="s")]],
         columns=["c"],
         index=MultiIndex.from_tuples([(1, ""), (2, "")], names=["a", "b"]),
     )

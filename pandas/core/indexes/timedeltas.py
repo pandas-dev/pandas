@@ -405,7 +405,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         rbound = (
             lbound
             + to_offset(reso_str)
-            - Timedelta(1, unit=self.unit).as_unit(self.unit)
+            - Timedelta(1, input_unit=self.unit).as_unit(self.unit)
         )
         # If reso is finer than the index unit, the window [lbound, rbound]
         # collapses to lbound alone; without the clamp rbound < lbound.

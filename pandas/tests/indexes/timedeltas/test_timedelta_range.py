@@ -25,31 +25,33 @@ class TestTimedeltas:
 
     def test_timedelta_range(self):
         expected = (
-            to_timedelta(np.arange(5), unit="D").as_unit("us")._with_freq("infer")
+            to_timedelta(np.arange(5), input_unit="D").as_unit("us")._with_freq("infer")
         )
         result = timedelta_range("0 days", periods=5, freq="D")
         tm.assert_index_equal(result, expected)
 
         expected = (
-            to_timedelta(np.arange(11), unit="D").as_unit("us")._with_freq("infer")
+            to_timedelta(np.arange(11), input_unit="D")
+            .as_unit("us")
+            ._with_freq("infer")
         )
         result = timedelta_range("0 days", "10 days", freq="D")
         tm.assert_index_equal(result, expected)
 
         expected = (
-            to_timedelta(np.arange(5), unit="D").as_unit("us") + Second(2) + Day()
+            to_timedelta(np.arange(5), input_unit="D").as_unit("us") + Second(2) + Day()
         )._with_freq("infer")
         result = timedelta_range("1 days, 00:00:02", "5 days, 00:00:02", freq="D")
         tm.assert_index_equal(result, expected)
 
         expected = (
-            to_timedelta([1, 3, 5, 7, 9], unit="D").as_unit("us") + Second(2)
+            to_timedelta([1, 3, 5, 7, 9], input_unit="D").as_unit("us") + Second(2)
         )._with_freq("infer")
         result = timedelta_range("1 days, 00:00:02", periods=5, freq="2D")
         tm.assert_index_equal(result, expected)
 
         expected = (
-            to_timedelta(np.arange(50), unit="min").as_unit("us") * 30
+            to_timedelta(np.arange(50), input_unit="min").as_unit("us") * 30
         )._with_freq("infer")
         result = timedelta_range("0 days", freq="30min", periods=50)
         tm.assert_index_equal(result, expected)
@@ -60,17 +62,17 @@ class TestTimedeltas:
         depr_msg = (
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )
-        expected = to_timedelta(np.arange(5), unit=unit)
+        expected = to_timedelta(np.arange(5), input_unit=unit)
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = to_timedelta(np.arange(5), unit=depr_unit)
-            tm.assert_index_equal(result, expected)
+            result = to_timedelta(np.arange(5), input_unit=depr_unit)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
     def test_timedelta_unit_T_L_U_N_raises(self, unit):
         msg = f"invalid unit abbreviation: {unit}"
 
         with pytest.raises(ValueError, match=msg):
-            to_timedelta(np.arange(5), unit=unit)
+            to_timedelta(np.arange(5), input_unit=unit)
 
     @pytest.mark.parametrize(
         "periods, freq", [(3, "2D"), (5, "D"), (6, "19h12min"), (7, "16h"), (9, "12h")]

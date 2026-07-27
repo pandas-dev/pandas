@@ -969,12 +969,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # roll forward to ensure we land on B date
                 stamp = self.to_timestamp(how="start")
                 unit = "ns" if ns_target else stamp.unit
-                adjust = Timedelta(1, unit="D") - Timedelta(1, unit=unit)
+                adjust = Timedelta(1, input_unit="D") - Timedelta(1, input_unit=unit)
                 return stamp + adjust
             else:
                 stamp = (self + self.freq).to_timestamp(how="start")
                 unit = "ns" if ns_target else stamp.unit
-                return stamp - Timedelta(1, unit=unit)
+                return stamp - Timedelta(1, input_unit=unit)
 
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()

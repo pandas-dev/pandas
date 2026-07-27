@@ -1895,16 +1895,16 @@ class TestSeriesConstructors:
         # construct Series from dict as data and TimedeltaIndex as index
         # will result NaN in result Series data
         expected = Series(
-            data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
+            data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], input_unit="s")
         )
 
         result = Series(
             data={
-                pd.to_timedelta(0, unit="s"): "A",
-                pd.to_timedelta(10, unit="s"): "B",
-                pd.to_timedelta(20, unit="s"): "C",
+                pd.to_timedelta(0, input_unit="s"): "A",
+                pd.to_timedelta(10, input_unit="s"): "B",
+                pd.to_timedelta(20, input_unit="s"): "C",
             },
-            index=pd.to_timedelta([0, 10, 20], unit="s"),
+            index=pd.to_timedelta([0, 10, 20], input_unit="s"),
         )
         tm.assert_series_equal(result, expected)
 
@@ -1964,7 +1964,7 @@ class TestSeriesConstructors:
     def test_constructor_dtype_timedelta_alternative_construct(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[us]")
-        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="us"))
+        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], input_unit="us"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("data", [[1.5, 2.5, 90.0], [1, 2.5, 90], [1.5, NaT, 90]])
@@ -1973,7 +1973,7 @@ class TestSeriesConstructors:
         #  the dtype's unit, matching the integer case, instead of as
         #  nanoseconds (which silently truncated these to zero)
         result = Series(data, dtype="timedelta64[s]")
-        expected = Series(pd.to_timedelta(data, unit="s").as_unit("s"))
+        expected = Series(pd.to_timedelta(data, input_unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):

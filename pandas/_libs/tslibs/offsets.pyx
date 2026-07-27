@@ -7191,7 +7191,7 @@ _dont_uppercase = {"min", "h", "bh", "cbh", "s", "ms", "us", "ns"}
 
 # Map tick-prefix string -> (Tick subclass, factor relative to that class's unit).
 # Used to fast-path to_offset for integer strides; matches what
-# ``delta_to_tick(Timedelta(1, unit=name))`` returns. ``D`` produces ``Hour``
+# ``delta_to_tick(Timedelta(1, input_unit=name))`` returns. ``D`` produces ``Hour``
 # (not ``Day``) because ``Day`` is not a ``Tick``; the ``Day`` post-processing
 # in ``to_offset`` converts back when appropriate.
 _tick_klass_factor = {
@@ -7474,7 +7474,7 @@ cpdef to_offset(freq, bint is_period=False):
                     # For these prefixes, fractional strides like "2.5min"
                     #  go through Tick.__mul__(float) which handles unit
                     #  promotion to a higher-resolution Tick subclass.
-                    td = Timedelta(1, unit=name)
+                    td = Timedelta(1, input_unit=name)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
                     if n != 0:
