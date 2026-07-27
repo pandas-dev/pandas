@@ -4064,6 +4064,20 @@ class TestGroupbyAggPyArrowNative:
         result = getattr(ser.groupby([1] * len(values)), how)()
         assert result.iloc[0] == expected
 
+    @pytest.mark.xfail(
+        reason="PyArrow's product wraps silently once the result exceeds int256, "
+        "so the group result is a wrong (negative) value; this predates the "
+        "PyArrow-native path and is unchanged by it"
+    )
+    def test_groupby_prod_exceeds_int256(self):
+        # GH#63416 a product that does not fit int256 cannot be represented by
+        # any decimal type, and PyArrow reports no error for the overflow
+        ser = pd.Series(
+            [Decimal(10**39), Decimal(10**39)], dtype=ArrowDtype(pa.decimal256(40, 0))
+        )
+        result = ser.groupby([1, 1]).prod()
+        assert result.iloc[0] == Decimal(10**78)
+
     @pytest.mark.parametrize("how", ["std", "sem"])
     def test_groupby_std_sem_supported(self, how):
         # GH#63416 these used to raise NotImplementedError on decimal
