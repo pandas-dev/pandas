@@ -84,9 +84,11 @@ def test_constructor_from_dict():
 
 class MySeq(pd.Series):
     _metadata = ["property"]
+
     @property
     def _constructor(self):
         return MySeq
+
 
 def test_metadata_subclass_name_preserved():
     # GH 61491

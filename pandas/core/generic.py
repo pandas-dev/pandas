@@ -6282,7 +6282,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if getattr(self, "ndim", 0) == 1 and hasattr(other, "_name"):
                 object.__setattr__(self, "_name", getattr(other, "_name", None))
 
-
         elif hasattr(other, "input_objs"):
             objs = other.input_objs
             # propagate attrs only if all inputs have the same attrs
