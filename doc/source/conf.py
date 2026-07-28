@@ -1161,7 +1161,7 @@ def set_offset_signature(
     signature,
     return_annotation,
 ):
-    parameter_names = _OFFSET_SIGNATURES.get(obj)
+    parameter_names = _OFFSET_SIGNATURES.get(name)
     if parameter_names is None:
         return None
 
