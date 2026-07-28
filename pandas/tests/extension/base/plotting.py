@@ -7,6 +7,16 @@ from typing import Literal
 import pytest
 
 mpl = pytest.importorskip("matplotlib", reason="test requires matplotlib")
+pyparsing = pytest.importorskip("pyparsing", reason="test requires pyparsing")
+
+# Raised by pyparsing in minimum-version CI for pyparsing>=3.3.0 and
+# matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
+if pyparsing.__version__ >= "3.3.0" and mpl.__version__ < "3.11":
+    pytestmark = pytest.mark.filterwarnings(
+        "ignore:'enablePackrat' deprecated - use 'enable_packrat'"
+        ":pyparsing.warnings.PyparsingDeprecationWarning"
+    )
+
 from matplotlib import (
     axes as maxes,
     axis as maxis,
@@ -133,12 +143,6 @@ def _plot(
         _check_plot_data(ax, plot_df[col], axis)  # type: ignore[arg-type]
 
 
-# Raised by pyparsing in minimum-version CI for pyparsing>=3.3.0 and
-# matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
-@pytest.mark.filterwarnings(
-    "ignore:'enablePackrat' deprecated - use 'enable_packrat'"
-    ":pyparsing.warnings.PyparsingDeprecationWarning"
-)
 class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
 
