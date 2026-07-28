@@ -605,7 +605,7 @@ def json_normalize(
     records: list = []
     lengths = []
 
-    meta_vals: defaultdict = defaultdict(list)
+    meta_vals = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
