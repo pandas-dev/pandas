@@ -1207,6 +1207,44 @@ class TestIsin:
         expected = Series(False)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "comps_dtype,values_dtype",
+        [
+            (np.uint64, np.int64),
+            (np.int64, np.uint64),
+            ("UInt64", np.int64),
+            ("Int64", np.uint64),
+        ],
+    )
+    def test_isin_uint64_vs_int64_ndarray_no_precision_loss(
+        self, comps_dtype, values_dtype
+    ):
+        # GH#59609: signed/unsigned 64-bit integers promote to float64 as a
+        # common type. Values above 2**53 must not match via that lossy cast
+        # when ``values`` is already an ndarray (the list-like path already
+        # had protection from GH#46485).
+        a = 635554097106142143
+        b = 635554097106142079
+        assert float(a) == float(b)
+
+        ser = Series([a], dtype=comps_dtype)
+        result = ser.isin(np.array([b], dtype=values_dtype))
+        expected_dtype = "boolean" if isinstance(comps_dtype, str) else bool
+        expected = Series([False], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+        # Matching values still succeed.
+        result_match = ser.isin(np.array([a], dtype=values_dtype))
+        expected_match = Series([True], dtype=expected_dtype)
+        tm.assert_series_equal(result_match, expected_match)
+
+    def test_isin_uint64_vs_int64_ndarray_small_values(self):
+        # GH#59609: values within float64's exact-int range remain correct
+        # (and may use the numeric common-type path).
+        ser = Series([1, 2, 3], dtype=np.uint64)
+        result = ser.isin(np.array([2, 4], dtype=np.int64))
+        tm.assert_series_equal(result, Series([False, True, False]))
+
     def test_isin_uint64_vs_float_no_precision_loss(self):
         # GH#46485: a uint64 magnitude > 2**53 must not be down-cast to float64
         # when checking membership against float targets.
