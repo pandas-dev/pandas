@@ -553,7 +553,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         for i, name in enumerate(axis_index.names):
             if name is not None:
-                key = level = name
+                key = name
+                level = i
             else:
                 # prefix with 'i' or 'c' depending on the input axis
                 # e.g., you must do ilevel_0 for the 0th level of an unnamed
