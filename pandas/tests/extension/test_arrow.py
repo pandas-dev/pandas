@@ -3907,7 +3907,9 @@ class TestGroupbyAggPyArrowNative:
             ArrowDtype(pa.string()),
             ArrowDtype(pa.large_string()),
         ],
-        ids=str,
+        # "string[pyarrow]" is a StringDtype, while ArrowDtype(pa.string())
+        # merely reprs as "string[pyarrow]", so spell the ids out
+        ids=["str", "StringDtype", "ArrowDtype", "ArrowDtype_large"],
     )
     def test_groupby_string_dtypes_min_max(self, dtype, how):
         # GH#63416 every PyArrow-backed string dtype takes the same path
@@ -3926,7 +3928,9 @@ class TestGroupbyAggPyArrowNative:
             ArrowDtype(pa.string()),
             ArrowDtype(pa.large_string()),
         ],
-        ids=str,
+        # "string[pyarrow]" is a StringDtype, while ArrowDtype(pa.string())
+        # merely reprs as "string[pyarrow]", so spell the ids out
+        ids=["str", "StringDtype", "ArrowDtype", "ArrowDtype_large"],
     )
     def test_groupby_string_dtypes_skipna_false(self, dtype, how):
         # GH#63416 a group containing NA used to aggregate to a value, so the
@@ -3946,7 +3950,9 @@ class TestGroupbyAggPyArrowNative:
             ArrowDtype(pa.string()),
             ArrowDtype(pa.large_string()),
         ],
-        ids=str,
+        # "string[pyarrow]" is a StringDtype, while ArrowDtype(pa.string())
+        # merely reprs as "string[pyarrow]", so spell the ids out
+        ids=["str", "StringDtype", "ArrowDtype", "ArrowDtype_large"],
     )
     def test_groupby_string_dtypes_min_count(self, dtype, how):
         # GH#63416 min_count used to be ignored, so a group with fewer non-NA
@@ -4047,7 +4053,7 @@ class TestGroupbyAggPyArrowNative:
             (list("badc"), ArrowDtype(pa.string())),
             (list("badc"), "str"),
         ],
-        ids=["decimal", "ArrowDtype(str)", "str"],
+        ids=["decimal", "ArrowDtype", "str"],
     )
     def test_groupby_missing_groups_min_max(self, values, dtype, agg_func):
         # GH#63416 min and max have no identity element, so an unobserved
@@ -4083,7 +4089,9 @@ class TestGroupbyAggPyArrowNative:
         "dropna, expected", [(True, ["a", "d"]), (False, ["a", "c", "d"])]
     )
     @pytest.mark.parametrize(
-        "dtype", ["str", "string[pyarrow]", ArrowDtype(pa.string())], ids=str
+        "dtype",
+        ["str", "string[pyarrow]", ArrowDtype(pa.string())],
+        ids=["str", "StringDtype", "ArrowDtype"],
     )
     def test_groupby_string_dropna(self, dtype, dropna, expected):
         # GH#63416 rows with an NA key are dropped before aggregating unless
@@ -4206,7 +4214,7 @@ class TestGroupbyAggPyArrowNative:
     @pytest.mark.parametrize(
         "dtype",
         [ArrowDtype(pa.decimal128(10, 2)), ArrowDtype(pa.string()), "str"],
-        ids=str,
+        ids=["decimal", "ArrowDtype", "str"],
     )
     def test_groupby_empty(self, dtype, how):
         # GH#63416 an empty input has no groups to scatter into
@@ -4233,7 +4241,9 @@ class TestGroupbyAggPyArrowNative:
         assert result["string"].tolist() == ["a", "c"]
 
     @pytest.mark.parametrize(
-        "dtype", ["str", "string[pyarrow]", ArrowDtype(pa.string())], ids=str
+        "dtype",
+        ["str", "string[pyarrow]", ArrowDtype(pa.string())],
+        ids=["str", "StringDtype", "ArrowDtype"],
     )
     def test_groupby_string_sum_falls_back(self, dtype):
         # GH#63416 PyArrow has no string sum, so it goes to the fallback path
