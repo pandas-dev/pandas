@@ -456,14 +456,9 @@ static inline p_kh_str_starts_t kh_init_str_starts(void) {
   return result;
 }
 
-// NOTE: these two derive the length with strlen, so an na_value or a field
-// containing an embedded NUL is still compared only up to that NUL -- exactly
-// the pre-existing behavior. Giving them an explicit length is what fixes
-// GH#19886, and is deliberately left to a follow-up because it changes
-// user-visible NA semantics (and hence dtype inference).
 static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
-                                              const char *key, int *ret) {
-  size_t len = strlen(key);
+                                              const char *key, size_t len,
+                                              int *ret) {
   khuint_t result = kh_put_str(table->table, kh_strview(key, len), ret);
   if (*ret != 0) {
     // The empty key gets its own flag rather than a slot in starts[]. Sharing
@@ -478,8 +473,7 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
 }
 
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
-                                              const char *key) {
-  size_t len = strlen(key);
+                                              const char *key, size_t len) {
   if (len == 0)
     return (khuint_t)table->has_empty;
   if (table->starts[(unsigned char)key[0]] &&

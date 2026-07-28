@@ -109,9 +109,9 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     kh_str_starts_t* kh_init_str_starts() nogil
     khuint_t kh_put_str_starts_item(kh_str_starts_t* table, const char* key,
-                                    int* ret) nogil
+                                    size_t length, int* ret) nogil
     khuint_t kh_get_str_starts_item(const kh_str_starts_t* table,
-                                    const char* key) nogil
+                                    const char* key, size_t length) nogil
     void kh_destroy_str_starts(kh_str_starts_t*) nogil
     void kh_resize_str_starts(kh_str_starts_t*, khuint_t) nogil
 
