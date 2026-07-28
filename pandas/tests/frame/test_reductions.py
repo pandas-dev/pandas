@@ -2666,6 +2666,142 @@ def test_minmax_object_skipna_false_propagates_per_slice(axis):
     tm.assert_series_equal(df.max(axis=axis, skipna=False), exp_max)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_idxminmax_object_with_na(axis):
+    # GH#4147: idxmin/idxmax raised TypeError on object data holding NAs even
+    # though min/max on the same data works
+    # the NA fill is taken per slice, so the data has to be one where a global
+    # fill (the frame's first non-NA) would give a different answer
+    df = DataFrame(
+        {
+            "a": ["d", None, "a"],
+            "b": ["z", "y", None],
+            "c": ["a", "b", None],
+        },
+        dtype=object,
+    )
+    if axis == 0:
+        exp_min = Series([2, 1, 0], index=Index(["a", "b", "c"]))
+        exp_max = Series([0, 0, 1], index=Index(["a", "b", "c"]))
+    else:
+        exp_min = Series(["c", "c", "a"])
+        exp_max = Series(["b", "b", "a"])
+
+    tm.assert_series_equal(df.idxmin(axis=axis), exp_min)
+    tm.assert_series_equal(df.idxmax(axis=axis), exp_max)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [object, "str", pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_string_reduction_skipna_false_axis1(dtype, method):
+    # GH#18588: string columns reduce along axis=1 via the EA _groupby_op
+    # fastpath, whose python fallback used to drop skipna and return a non-NA
+    # answer.  object is not an ExtensionDtype, so it transposes onto nanops
+    # instead, where the NA used to raise TypeError.
+    df = DataFrame(
+        {
+            "a": Series(["x", None], dtype=dtype),
+            "b": Series(["y", "z"], dtype=dtype),
+        }
+    )
+    result = getattr(df, method)(axis=1, skipna=False)
+    expected = Series([("x" if method == "min" else "y"), None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_prod_object_skipna_false(axis):
+    # GH#4147: only the slices holding an NA are nulled out; the others still
+    # reduce normally.  Deliberately non-square, so that nulling along the
+    # wrong axis is distinguishable.
+    df = DataFrame({"a": [1, 2, None], "b": [3, 4, 5]}, dtype=object)
+    if axis == 0:
+        exp_sum = Series([None, 12], index=Index(["a", "b"]), dtype=object)
+        exp_prod = Series([None, 60], index=Index(["a", "b"]), dtype=object)
+    else:
+        exp_sum = Series([4, 6, None], dtype=object)
+        exp_prod = Series([3, 8, None], dtype=object)
+
+    tm.assert_series_equal(df.sum(axis=axis, skipna=False), exp_sum)
+    tm.assert_series_equal(df.prod(axis=axis, skipna=False), exp_prod)
+
+
+@pytest.mark.parametrize(
+    "method, exp_skipna, exp_no_na",
+    [("min", 1, 1), ("max", 4, 4), ("sum", 8, 10), ("prod", 12, 24)],
+)
+def test_object_reduction_axis_none(method, exp_skipna, exp_no_na):
+    # GH#4147: axis=None reduces over the whole frame, so one NA anywhere
+    # makes the skipna=False result NA
+    df = DataFrame({"a": [1, None], "b": [3, 4]}, dtype=object)
+    assert isna(getattr(df, method)(axis=None, skipna=False))
+    # ... while skipna=True reduces over the rest
+    assert getattr(df, method)(axis=None) == exp_skipna
+
+    # without an NA it still reduces normally
+    df = DataFrame({"a": [1, 2], "b": [3, 4]}, dtype=object)
+    assert getattr(df, method)(axis=None, skipna=False) == exp_no_na
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("method", ["sum", "prod"])
+def test_sum_prod_object_skipna_false_min_count(axis, method):
+    # GH#4147: a min_count larger than the slice still nulls out the slices
+    # that hold no NA, i.e. skipna=False must not weaken it
+    df = DataFrame({"a": [1, None], "b": [3, 4]}, dtype=object)
+    result = getattr(df, method)(axis=axis, skipna=False, min_count=5)
+    # column/row "b" holds no NA, so only min_count nulls it out
+    index = Index(["a", "b"]) if axis == 0 else Index([0, 1])
+    expected = Series([None, None], index=index, dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_minmax_object_incomparable_skipna_false_axis1(method):
+    # GH#4147: every row holds an NA, so every row is nulled out and the
+    # mutually-incomparable values must never be compared
+    df = DataFrame({"a": [1, "p"], "b": ["a", "q"], "c": [None, None]}, dtype=object)
+    result = getattr(df, method)(axis=1, skipna=False)
+    tm.assert_series_equal(result, Series([None, None], dtype=object))
+
+
+@pytest.mark.parametrize("method", ["sum", "prod"])
+def test_sum_prod_ea_skipna_false_axis1(method):
+    # GH#18588: an extension dtype reduces along axis=1 through the same python
+    # fallback, which used to drop skipna.  object does not reach it (not an
+    # ExtensionDtype), so it needs an actual EA to cover.
+    df = DataFrame(
+        {
+            "a": DecimalArray([Decimal(2), Decimal("NaN")]),
+            "b": DecimalArray([Decimal(3), Decimal(4)]),
+        }
+    )
+    result = getattr(df, method)(axis=1, skipna=False)
+    assert result.iloc[0] == (5 if method == "sum" else 6)
+    assert isna(result.iloc[1])
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_interval_reduction_skipna_false_axis1(method):
+    # GH#18588: IntervalDtype takes the same python fallback as the string dtypes
+    df = DataFrame(
+        {
+            "a": pd.arrays.IntervalArray.from_tuples([(0, 1), (4, 5)]),
+            "b": pd.arrays.IntervalArray.from_tuples([(2, 3), None]),
+        }
+    )
+    result = getattr(df, method)(axis=1, skipna=False)
+    expected = Series(
+        pd.arrays.IntervalArray.from_tuples(
+            [(0, 1) if method == "min" else (2, 3), None]
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("ts_value", [Timestamp("2000-01-01"), pd.NaT])
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
