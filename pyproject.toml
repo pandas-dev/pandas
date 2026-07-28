@@ -484,8 +484,7 @@ junit_family = "xunit2"
 
 [tool.mypy]
 # Import discovery
-mypy_path = "typings"
-files = ["pandas", "typings"]
+files = ["pandas"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
@@ -668,7 +667,7 @@ skip = "pandas/__init__.py"
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
 useLibraryCodeForTypes = false
-include = ["pandas", "typings"]
+include = ["pandas"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version", "pandas/core/_numba/extensions.py"]
 # enable subset of "strict"
 reportDuplicateImport = true

@@ -61,7 +61,7 @@ def generate_numba_apply_func(
         *args: Any,
     ) -> np.ndarray:
         result = np.empty(len(begin))
-        for i in numba.prange(len(result)):
+        for i in numba.prange(len(result)):  # type: ignore[attr-defined]
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -122,7 +122,7 @@ def generate_numba_ewm_func(
         old_wt_factor = 1.0 - alpha
         new_wt = 1.0 if adjust else alpha
 
-        for i in numba.prange(len(begin)):
+        for i in numba.prange(len(begin)):  # type: ignore[attr-defined]
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -217,7 +217,7 @@ def generate_numba_table_func(
     ):
         result = np.empty((len(begin), values.shape[1]))
         min_periods_mask = np.empty(result.shape)
-        for i in numba.prange(len(result)):
+        for i in numba.prange(len(result)):  # type: ignore[attr-defined]
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -249,7 +249,7 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     # on platforms without tbb/openmp (GH#40454).
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
-        for i in numba.prange(table.shape[1]):
+        for i in numba.prange(table.shape[1]):  # type: ignore[attr-defined]
             partition = table[:, i]
             result[i] = nan_func(partition)
         return result
@@ -312,7 +312,7 @@ def generate_numba_ewm_table_func(
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
-            for j in numba.prange(len(cur)):
+            for j in numba.prange(len(cur)):  # type: ignore[attr-defined]
                 if not np.isnan(weighted[j]):
                     if is_observations[j] or not ignore_na:
                         if normalize:
