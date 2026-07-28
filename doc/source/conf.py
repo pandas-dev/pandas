@@ -1100,12 +1100,12 @@ _OFFSET_PARAMETERS = {
 }
 
 _OFFSET_SIGNATURES = {
-    pandas.tseries.offsets.BusinessDay: (
+    "pandas.tseries.offsets.BusinessDay": (
         "n",
         "normalize",
         "offset",
     ),
-    pandas.tseries.offsets.CustomBusinessDay: (
+    "pandas.tseries.offsets.CustomBusinessDay": (
         "n",
         "normalize",
         "weekmask",
