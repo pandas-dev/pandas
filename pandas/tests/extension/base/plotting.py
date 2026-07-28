@@ -133,6 +133,12 @@ def _plot(
         _check_plot_data(ax, plot_df[col], axis)  # type: ignore[arg-type]
 
 
+# Raised by pyparsing in minimum-version CI for pyparsing>=3.3.0 and
+# matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
+@pytest.mark.filterwarnings(
+    "ignore:'enablePackrat' deprecated - use 'enable_packrat'"
+    ":pyparsing.warnings.PyparsingDeprecationWarning"
+)
 class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
 
