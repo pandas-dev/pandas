@@ -27,7 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-
 LONE_SURROGATE = "\ud800"
 
 
