@@ -3836,6 +3836,12 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+# The default "str" dtype, spelled out rather than passed as "str" so the tests
+# below do not depend on the mode.string_storage option, which decides whether
+# "str" is Arrow-backed at all.
+_STR_DTYPE = pd.StringDtype("pyarrow", na_value=np.nan)
+
+
 class TestGroupbyAggPyArrowNative:
     """Tests for PyArrow-native groupby aggregations on decimal and string types."""
 
@@ -3902,7 +3908,7 @@ class TestGroupbyAggPyArrowNative:
     @pytest.mark.parametrize(
         "dtype",
         [
-            "str",
+            _STR_DTYPE,
             "string[pyarrow]",
             ArrowDtype(pa.string()),
             ArrowDtype(pa.large_string()),
@@ -3923,7 +3929,7 @@ class TestGroupbyAggPyArrowNative:
     @pytest.mark.parametrize(
         "dtype",
         [
-            "str",
+            _STR_DTYPE,
             "string[pyarrow]",
             ArrowDtype(pa.string()),
             ArrowDtype(pa.large_string()),
@@ -3945,7 +3951,7 @@ class TestGroupbyAggPyArrowNative:
     @pytest.mark.parametrize(
         "dtype",
         [
-            "str",
+            _STR_DTYPE,
             "string[pyarrow]",
             ArrowDtype(pa.string()),
             ArrowDtype(pa.large_string()),
@@ -4051,7 +4057,7 @@ class TestGroupbyAggPyArrowNative:
                 ArrowDtype(pa.decimal128(10, 2)),
             ),
             (list("badc"), ArrowDtype(pa.string())),
-            (list("badc"), "str"),
+            (list("badc"), _STR_DTYPE),
         ],
         ids=["decimal", "ArrowDtype", "str"],
     )
@@ -4090,7 +4096,7 @@ class TestGroupbyAggPyArrowNative:
     )
     @pytest.mark.parametrize(
         "dtype",
-        ["str", "string[pyarrow]", ArrowDtype(pa.string())],
+        [_STR_DTYPE, "string[pyarrow]", ArrowDtype(pa.string())],
         ids=["str", "StringDtype", "ArrowDtype"],
     )
     def test_groupby_string_dropna(self, dtype, dropna, expected):
@@ -4215,7 +4221,7 @@ class TestGroupbyAggPyArrowNative:
     @pytest.mark.parametrize("how", ["sum", "min", "max"])
     @pytest.mark.parametrize(
         "dtype",
-        [ArrowDtype(pa.decimal128(10, 2)), ArrowDtype(pa.string()), "str"],
+        [ArrowDtype(pa.decimal128(10, 2)), ArrowDtype(pa.string()), _STR_DTYPE],
         ids=["decimal", "ArrowDtype", "str"],
     )
     def test_groupby_empty(self, dtype, how):
@@ -4244,7 +4250,7 @@ class TestGroupbyAggPyArrowNative:
 
     @pytest.mark.parametrize(
         "dtype",
-        ["str", "string[pyarrow]", ArrowDtype(pa.string())],
+        [_STR_DTYPE, "string[pyarrow]", ArrowDtype(pa.string())],
         ids=["str", "StringDtype", "ArrowDtype"],
     )
     def test_groupby_string_sum_falls_back(self, dtype):
