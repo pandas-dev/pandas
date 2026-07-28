@@ -117,6 +117,8 @@ from pandas._libs.khash cimport (
     kh_str_starts_t,
     kh_str_t,
     kh_strbox_t,
+    kh_strview,
+    kh_strview_t,
     khiter_t,
 )
 
@@ -1944,6 +1946,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         ndarray[object] result
 
         int ret = 0
@@ -1961,6 +1964,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
 
     for i in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
+        word_len = _token_len(parser, token_idx)
 
         if na_filter:
             if kh_get_str_starts_item(na_hashset, word):
@@ -1969,16 +1973,17 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
                 result[i] = NA
                 continue
 
-        # no deletions from this table, so ret == 0 means already present
-        k = kh_put_strbox(table, word, &ret)
+        # no deletions from this table, so ret == 0 means already present.
+        # The key carries its length, so two fields that differ only past an
+        # embedded NUL no longer intern to the same object.
+        k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
 
         # in the hash table
         if ret == 0:
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            pyval = PyUnicode_DecodeUTF8(
-                word, _token_len(parser, token_idx), encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
             table.vals[k] = <PyObject *>pyval
 
@@ -2200,7 +2205,7 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
     from an arena captured by `_collect_arena`.
     """
     cdef:
-        Py_ssize_t i, lines = offsets.shape[0]
+        Py_ssize_t i, lines = offsets.shape[0], word_len
         const char *buf = PyBytes_AsString(arena)
         const char *word
         ndarray[object] result = np.empty(lines, dtype=np.object_)
@@ -2216,13 +2221,14 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
             result[i] = NA
             continue
         word = buf + offsets[i]
+        word_len = strlen(word)
 
-        k = kh_get_strbox(table, word)
+        k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
         if k != table.n_buckets:
             pyval = <object>table.vals[k]
         else:
-            pyval = PyUnicode_DecodeUTF8(word, strlen(word), encoding_errors)
-            k = kh_put_strbox(table, word, &ret)
+            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
             table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
@@ -2680,6 +2686,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        int64_t word_len
 
         int64_t NA = -1
         int64_t[::1] codes
@@ -2687,6 +2695,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
         int ret = 0
         kh_str_t *table
+        kh_strview_t key
         khiter_t k
 
     lines = line_end - line_start
@@ -2699,7 +2708,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         coliter_setup(&it, parser, col, line_start)
 
         for i in range(lines):
-            word = coliter_next(&it)
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_len = _token_len(parser, token_idx)
 
             if na_filter:
                 if kh_get_str_starts_item(na_hashset, word):
@@ -2708,10 +2718,11 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
                     codes[i] = NA
                     continue
 
-            k = kh_get_str(table, word)
+            key = kh_strview(word, <size_t>word_len)
+            k = kh_get_str(table, key)
             # not in the hash table
             if k == table.n_buckets:
-                k = kh_put_str(table, word, &ret)
+                k = kh_put_str(table, key, &ret)
                 table.vals[k] = current_category
                 current_category += 1
 
@@ -2721,7 +2732,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
     result = np.empty(table.n_occupied, dtype=np.object_)
     for k in range(table.n_buckets):
         if kh_exist_str(table, k):
-            result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
+            result[table.vals[k]] = PyUnicode_DecodeUTF8(
+                table.keys[k].ptr, table.keys[k].len, NULL)
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count

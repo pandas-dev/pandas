@@ -866,3 +866,15 @@ def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
     expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
     assert result["a"][0] == "x\x00y"
     assert expected["a"][0] == "x\x00y"
+
+
+@pytest.mark.parametrize("dtype", [object, "category", None])
+def test_embedded_nul_distinct_values(c_parser_only, dtype):
+    # GH#19886: the object path interned fields in a hash table keyed on the
+    # NUL-terminated word, so two fields differing only past an embedded NUL
+    # were silently boxed to the same value.
+    parser = c_parser_only
+    data = b'a\n"x\x00y"\n"x\x00z"\n"x"\n'
+
+    result = parser.read_csv(BytesIO(data), dtype=dtype, keep_default_na=False)
+    assert list(result["a"]) == ["x\x00y", "x\x00z", "x"]
