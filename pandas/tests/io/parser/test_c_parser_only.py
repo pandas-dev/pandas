@@ -866,3 +866,43 @@ def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
     expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
     assert result["a"][0] == "x\x00y"
     assert expected["a"][0] == "x\x00y"
+
+
+def test_embedded_nul_fixed_width_bytes(c_parser_only):
+    # GH#19886: the fixed-width "S" path copied with strncpy, which stops at an
+    # embedded NUL even though numpy "S" can hold one.
+    parser = c_parser_only
+    data = b'a\n"x\x00y"\n"x\x00z"\n'
+
+    result = parser.read_csv(BytesIO(data), dtype="S5")
+    assert result["a"].tolist() == [b"x\x00y", b"x\x00z"]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), dtype="S5", engine="python"))
+
+    # a token longer than the width is still truncated to the width
+    assert parser.read_csv(BytesIO(b"a\nabcdef\n"), dtype="S3")["a"].tolist() == [
+        b"abc"
+    ]
+
+
+def test_embedded_nul_converter(c_parser_only):
+    # GH#19886: converters were handed a value truncated at the NUL, so they
+    # disagreed with the object path on the same input.
+    parser = c_parser_only
+    data = b'a\n"x\x00y"\n"x\x00z"\n'
+
+    result = parser.read_csv(BytesIO(data), converters={"a": str})
+    assert result["a"].tolist() == ["x\x00y", "x\x00z"]
+    tm.assert_frame_equal(
+        result, read_csv(BytesIO(data), converters={"a": str}, engine="python")
+    )
+
+
+def test_embedded_nul_column_name(c_parser_only):
+    # GH#19886: a column name was truncated at an embedded NUL, which could
+    # also collide two distinct names into one.
+    parser = c_parser_only
+    data = b'"h\x001","h\x002"\n1,2\n'
+
+    result = parser.read_csv(BytesIO(data))
+    assert list(result.columns) == ["h\x001", "h\x002"]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))

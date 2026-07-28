@@ -72,7 +72,6 @@ from libc.string cimport (
     memset,
     strcasecmp,
     strlen,
-    strncpy,
 )
 
 import numpy as np
@@ -804,8 +803,11 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    name = PyUnicode_DecodeUTF8(word, strlen(word),
-                                                self.encoding_errors)
+                    # _token_len, not strlen: a column name containing an
+                    # embedded NUL must not be truncated at it.
+                    name = PyUnicode_DecodeUTF8(
+                        word, _token_len(self.parser, start + i),
+                        self.encoding_errors)
 
                     if name == "":
                         if self.has_mi_columns:
@@ -2750,12 +2752,22 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
         int64_t _
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        size_t word_len
 
     coliter_setup(&it, parser, col, line_start)
 
     for _ in range(line_end - line_start):
-        word = coliter_next(&it)
-        strncpy(data, word, width)
+        word = coliter_next_with_idx(&it, &token_idx)
+        # memcpy at the exact token length rather than strncpy, which stops at
+        # an embedded NUL -- numpy "S" dtype can hold one, so truncating there
+        # would collapse distinct values.
+        word_len = <size_t>_token_len(parser, token_idx)
+        if word_len > width:
+            word_len = width
+        memcpy(data, word, word_len)
+        if word_len < width:
+            memset(data + word_len, 0, width - word_len)
         data += width
 
 
@@ -3491,6 +3503,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
         ndarray[object] result
         object val
 
@@ -3500,8 +3513,10 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        word = coliter_next(&it)
-        val = PyUnicode_FromString(word)
+        word = coliter_next_with_idx(&it, &token_idx)
+        # _token_len, not PyUnicode_FromString: a converter must see the same
+        # value the object path produces, embedded NULs included.
+        val = PyUnicode_DecodeUTF8(word, _token_len(parser, token_idx), NULL)
         result[i] = f(val)
 
     return lib.maybe_convert_objects(result)
