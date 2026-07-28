@@ -49,11 +49,11 @@ def generate_apply_looper(
 
         if axis == 1:
             buff[0] = res0
-            for i in numba.prange(1, values.shape[0]):
+            for i in numba.prange(1, values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
                 buff[i] = nb_compat_func(values[i], *args)
         else:
             buff[:, 0] = res0
-            for j in numba.prange(1, values.shape[1]):
+            for j in numba.prange(1, values.shape[1]):  # type: ignore[no-untyped-call,attr-defined]
                 buff[:, j] = nb_compat_func(values[:, j], *args)
         return buff
 
@@ -85,7 +85,7 @@ def make_looper(
         ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], ngroups), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):
+            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
                 output, na_pos = func(
                     values[i], result_dtype, labels, ngroups, min_periods, *args
                 )
@@ -97,12 +97,7 @@ def make_looper(
     else:
 
         @numba.jit(nogil=nogil, parallel=parallel)
-        # error: Incompatible redefinition (redefinition with type
-        # "Callable[[ndarray[Any, Any], ndarray[Any, Any], ndarray[Any, Any],
-        # int, VarArg(Any)], tuple[ndarray[Any, Any], dict[int, ndarray[Any, Any]]]]",
-        # original type "Callable[[ndarray[Any, Any], ndarray[Any, Any], int, int,
-        # VarArg(Any)], tuple[ndarray[Any, Any], dict[int, ndarray[Any, Any]]]]")
-        def column_looper(  # type: ignore[misc]
+        def column_looper(
             values: np.ndarray,
             start: np.ndarray,
             end: np.ndarray,
@@ -111,7 +106,7 @@ def make_looper(
         ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], len(start)), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):
+            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
                 output, na_pos = func(
                     values[i], result_dtype, start, end, min_periods, *args
                 )

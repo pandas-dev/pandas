@@ -110,9 +110,9 @@ def generate_numba_agg_func(
         num_groups = len(begin)
 
         result = np.empty((num_groups, num_columns))
-        for i in numba.prange(num_groups):
+        for i in numba.prange(num_groups):  # type: ignore[no-untyped-call,attr-defined]
             group_index = index[begin[i] : end[i]]
-            for j in numba.prange(num_columns):
+            for j in numba.prange(num_columns):  # type: ignore[no-untyped-call,attr-defined]
                 group = values[begin[i] : end[i], j]
                 result[i, j] = numba_func(group, group_index, *args)
         return result
@@ -167,9 +167,9 @@ def generate_numba_transform_func(
         num_groups = len(begin)
 
         result = np.empty((len(values), num_columns))
-        for i in numba.prange(num_groups):
+        for i in numba.prange(num_groups):  # type: ignore[no-untyped-call,attr-defined]
             group_index = index[begin[i] : end[i]]
-            for j in numba.prange(num_columns):
+            for j in numba.prange(num_columns):  # type: ignore[no-untyped-call,attr-defined]
                 group = values[begin[i] : end[i], j]
                 result[begin[i] : end[i], j] = numba_func(group, group_index, *args)
         return result
