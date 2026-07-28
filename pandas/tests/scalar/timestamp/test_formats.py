@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 import pprint
 
@@ -184,13 +184,13 @@ class TestTimestampRendering:
         assert str(ts_nanos_micros) == "1970-01-01 00:00:00.000001200"
 
     def test_repr_matches_pydatetime_tz_stdlib(self):
-        dt_date = datetime(2013, 1, 2, tzinfo=timezone.utc)
+        dt_date = datetime(2013, 1, 2, tzinfo=UTC)
         assert str(dt_date) == str(Timestamp(dt_date))
 
-        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=timezone.utc)
+        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=UTC)
         assert str(dt_datetime) == str(Timestamp(dt_datetime))
 
-        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=timezone.utc)
+        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=UTC)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
     def test_repr_matches_pydatetime_tz_dateutil(self):

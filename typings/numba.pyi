@@ -1,7 +1,7 @@
 # pyright: reportIncompleteStub = false
+from collections.abc import Callable
 from typing import (
     Any,
-    Callable,
     Literal,
     overload,
 )

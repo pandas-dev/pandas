@@ -3,8 +3,8 @@ from collections import (
     defaultdict,
 )
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import numpy as np
@@ -211,15 +211,15 @@ class TestDataFrameToDict:
         # GH#18372 When converting to dict with orient='records' columns of
         # datetime that are tz-aware were not converted to required arrays
         data = [
-            (datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=timezone.utc),),
-            (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=timezone.utc),),
+            (datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=UTC),),
+            (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=UTC),),
         ]
         df = DataFrame(list(data), columns=["d"])
 
         result = df.to_dict(orient="records")
         expected = [
-            {"d": Timestamp("2017-11-18 21:53:00.219225+0000", tz=timezone.utc)},
-            {"d": Timestamp("2017-11-18 22:06:30.061810+0000", tz=timezone.utc)},
+            {"d": Timestamp("2017-11-18 21:53:00.219225+0000", tz=UTC)},
+            {"d": Timestamp("2017-11-18 22:06:30.061810+0000", tz=UTC)},
         ]
         tm.assert_dict_equal(result[0], expected[0])
         tm.assert_dict_equal(result[1], expected[1])
