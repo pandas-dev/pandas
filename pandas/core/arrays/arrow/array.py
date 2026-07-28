@@ -3380,22 +3380,24 @@ class ArrowExtensionArray(
             result_values = pc.divide(
                 result_values, pc.sqrt(result_table.column("value_count"))
             )
-        elif how == "prod" and pa.types.is_decimal(result_values.type):
-            # PyArrow's hash_product keeps the input precision even though a
-            # product needs more digits, so it can return a value too large for
-            # its own declared type. Widen to the maximum precision, which is
-            # what hash_sum does and what Series.prod returns.
-            prod_type = result_values.type
-            if pa.types.is_decimal256(prod_type):
-                wider_type = pa.decimal256(76, prod_type.scale)
+        elif how in ["sum", "prod"] and pa.types.is_decimal(result_values.type):
+            # PyArrow keeps the input precision even though a sum or a product
+            # needs more digits, so it can return a value too large for its own
+            # declared type. Newer PyArrow widens hash_sum but not hash_product,
+            # so widen both here to get the same dtype on every version, which
+            # is also what Series.sum and Series.prod return.
+            agg_type = result_values.type
+            if pa.types.is_decimal256(agg_type):
+                wider_type = pa.decimal256(76, agg_type.scale)
             else:
-                wider_type = pa.decimal128(38, prod_type.scale)
-            try:
-                result_values = result_values.cast(wider_type)
-            except pa.ArrowInvalid:
-                # A product needs more digits than the maximum precision, so
-                # there is no Arrow type that can hold it. Fall back.
-                return None
+                wider_type = pa.decimal128(38, agg_type.scale)
+            if agg_type != wider_type:
+                try:
+                    result_values = result_values.cast(wider_type)
+                except pa.ArrowInvalid:
+                    # The result needs more digits than the maximum precision,
+                    # so no Arrow type can hold it. Fall back.
+                    return None
 
         output_type = result_values.type
         default_value = pa.scalar(self._PYARROW_AGG_DEFAULTS.get(how), type=output_type)

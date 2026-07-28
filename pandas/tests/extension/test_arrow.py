@@ -4125,9 +4125,11 @@ class TestGroupbyAggPyArrowNative:
             [Decimal("1"), Decimal("2"), Decimal("3")], dtype=ArrowDtype(pa_type)
         )
         result = getattr(ser.groupby([1, 1, 2]), agg_func)()
-        max_precision = 38 if pa.types.is_decimal128(pa_type) else 76
-        assert result.dtype.pyarrow_dtype.precision == max_precision
-        assert result.dtype.pyarrow_dtype.scale == pa_type.scale
+        if pa.types.is_decimal128(pa_type):
+            expected_type = pa.decimal128(38, pa_type.scale)
+        else:
+            expected_type = pa.decimal256(76, pa_type.scale)
+        assert result.dtype.pyarrow_dtype == expected_type
         # other reductions keep the input type
         assert ser.groupby([1, 1, 2]).min().dtype == ser.dtype
 
