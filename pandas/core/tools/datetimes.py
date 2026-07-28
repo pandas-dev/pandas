@@ -527,8 +527,8 @@ def _to_datetime_with_unit(
     name,
     utc: bool,
     errors: str,
-    dayfirst=None,
-    yearfirst=None,
+    dayfirst,
+    yearfirst,
 ) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.

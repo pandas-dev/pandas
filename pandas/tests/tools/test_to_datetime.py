@@ -3977,6 +3977,7 @@ def test_empty_string_datetime_coerce__unit():
 @pytest.mark.parametrize(
     "kwargs, expected",
     [
+        ({}, "2012-10-11"),
         ({"dayfirst": True}, "2012-11-10"),
         ({"yearfirst": True}, "2010-11-12"),
         ({"dayfirst": True, "yearfirst": True}, "2010-12-11"),
@@ -3994,17 +3995,17 @@ def test_to_datetime_unit_dayfirst_yearfirst(kwargs, expected, cache):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    "kwargs, parsed",
     [
         ({"dayfirst": True}, "2012-11-10"),
         ({"yearfirst": True}, "2010-11-12"),
     ],
 )
-def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, expected, cache):
+def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, parsed, cache):
     # GH#63472 the unit still applies to the numeric entries
     result = to_datetime(["10/11/12", 1], unit="s", cache=cache, **kwargs)
 
-    expected = DatetimeIndex([expected, "1970-01-01 00:00:01"], dtype="datetime64[us]")
+    expected = DatetimeIndex([parsed, "1970-01-01 00:00:01"], dtype="datetime64[us]")
     tm.assert_index_equal(result, expected)
 
 
