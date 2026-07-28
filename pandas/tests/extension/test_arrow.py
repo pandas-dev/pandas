@@ -3898,6 +3898,44 @@ class TestGroupbyAggPyArrowNative:
         assert isinstance(result.dtype, ArrowDtype)
         assert result.tolist() == expected
 
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype", ["str", "string[pyarrow]", ArrowDtype(pa.string())], ids=str
+    )
+    def test_groupby_string_dtypes_min_max(self, dtype, how):
+        # GH#63416 every PyArrow-backed string dtype takes the same path
+        ser = pd.Series(["b", "a", "d", "c"], dtype=dtype)
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)()
+        expected = ["a", "c"] if how == "min" else ["b", "d"]
+        assert result.dtype == ser.dtype
+        assert result.tolist() == expected
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype", ["str", "string[pyarrow]", ArrowDtype(pa.string())], ids=str
+    )
+    def test_groupby_string_dtypes_skipna_false(self, dtype, how):
+        # GH#63416 a group containing NA used to aggregate to a value, so the
+        # NA was silently ignored; masked dtypes already returned NA here
+        ser = pd.Series(["b", None, "d", "c"], dtype=dtype)
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)(skipna=False)
+        assert result.dtype == ser.dtype
+        assert pd.isna(result.iloc[0])
+        assert result.iloc[1] == ("c" if how == "min" else "d")
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype", ["str", "string[pyarrow]", ArrowDtype(pa.string())], ids=str
+    )
+    def test_groupby_string_dtypes_min_count(self, dtype, how):
+        # GH#63416 min_count used to be ignored, so a group with fewer non-NA
+        # values than min_count still got a value
+        ser = pd.Series(["b", None, "d", "c"], dtype=dtype)
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)(min_count=2)
+        assert result.dtype == ser.dtype
+        assert pd.isna(result.iloc[0])
+        assert result.iloc[1] == ("c" if how == "min" else "d")
+
     @pytest.mark.parametrize(
         "dtype,values,expected,agg_func",
         [
@@ -4059,9 +4097,11 @@ class TestGroupbyAggPyArrowNative:
         self, how, pa_type, values, expected
     ):
         # GH#63416 a group result that does not fit the maximum decimal
-        # precision falls back to a wider type instead of raising
+        # precision falls back to a wider type inferred from the values
+        # instead of raising
         ser = pd.Series(values, dtype=ArrowDtype(pa_type))
         result = getattr(ser.groupby([1] * len(values)), how)()
+        assert result.dtype == ArrowDtype(pa.decimal256(39, 0))
         assert result.iloc[0] == expected
 
     @pytest.mark.xfail(
