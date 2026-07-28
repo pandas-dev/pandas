@@ -3,9 +3,9 @@ Tests for DatetimeIndex timezone-related methods
 """
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
     tzinfo,
 )
 import zoneinfo
@@ -210,12 +210,12 @@ class TestDatetimeIndexTimezones:
     )
     def test_with_tz(self, tz):
         # just want it to work
-        start = datetime(2011, 3, 12, tzinfo=timezone.utc)
+        start = datetime(2011, 3, 12, tzinfo=UTC)
         dr = bdate_range(start, periods=50, freq=pd.offsets.Hour())
-        assert dr.tz is timezone.utc
+        assert dr.tz is UTC
 
         # DateRange with naive datetimes
-        dr = bdate_range("1/1/2005", "1/1/2009", tz=timezone.utc)
+        dr = bdate_range("1/1/2005", "1/1/2009", tz=UTC)
         dr = bdate_range("1/1/2005", "1/1/2009", tz=tz)
 
         # normalized
@@ -232,12 +232,12 @@ class TestDatetimeIndexTimezones:
 
         # datetimes with tzinfo set
         dr = bdate_range(
-            datetime(2005, 1, 1, tzinfo=timezone.utc),
-            datetime(2009, 1, 1, tzinfo=timezone.utc),
+            datetime(2005, 1, 1, tzinfo=UTC),
+            datetime(2009, 1, 1, tzinfo=UTC),
         )
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(Exception, match=msg):
-            bdate_range(datetime(2005, 1, 1, tzinfo=timezone.utc), "1/1/2009", tz=tz)
+            bdate_range(datetime(2005, 1, 1, tzinfo=UTC), "1/1/2009", tz=tz)
 
     @pytest.mark.parametrize(
         "tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")]
@@ -253,4 +253,4 @@ class TestDatetimeIndexTimezones:
         converted = to_datetime(dates_aware, utc=True).as_unit("ns")
         ex_vals = np.array([Timestamp(x).as_unit("ns")._value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
-        assert converted.tz is timezone.utc
+        assert converted.tz is UTC

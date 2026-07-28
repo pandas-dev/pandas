@@ -1199,7 +1199,7 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             argc = cast(
-                "Union[list, tuple, ExtensionArray, np.ndarray, Series, Index]", arg
+                "list | tuple | ExtensionArray | np.ndarray | Series | Index", arg
             )
             cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
         except OutOfBoundsDatetime:
