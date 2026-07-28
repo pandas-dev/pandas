@@ -5,6 +5,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
+    NaT,
     Series,
     Timedelta,
 )
@@ -25,6 +26,14 @@ def test_to_numpy_cast_before_setting_na():
     ser = Series([1])
     result = ser.to_numpy(dtype=np.float64, na_value=np.nan)
     expected = np.array([1.0])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_tzaware_nat_unitless_dtype():
+    # GH#59772
+    result = Series(NaT).dt.tz_localize("UTC").to_numpy("datetime64")
+    expected = Series(NaT).to_numpy("datetime64")
+
     tm.assert_numpy_array_equal(result, expected)
 
 
