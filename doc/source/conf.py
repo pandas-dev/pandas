@@ -1100,12 +1100,12 @@ _OFFSET_PARAMETERS = {
 }
 
 _OFFSET_SIGNATURES = {
-    "pandas.tseries.offsets.BusinessDay": (
+    pandas.tseries.offsets.BusinessDay: (
         "n",
         "normalize",
         "offset",
     ),
-    "pandas.tseries.offsets.CustomBusinessDay": (
+    pandas.tseries.offsets.CustomBusinessDay: (
         "n",
         "normalize",
         "weekmask",
@@ -1114,6 +1114,11 @@ _OFFSET_SIGNATURES = {
         "offset",
     ),
 }
+
+for offset_class, parameter_names in _OFFSET_SIGNATURES.items():
+    offset_class.__signature__ = inspect.Signature(
+        parameters=[_OFFSET_PARAMETERS[name] for name in parameter_names]
+    )
 
 
 def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
@@ -1152,32 +1157,11 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
-def set_offset_signature(
-    app,
-    what,
-    name,
-    obj,
-    options,
-    signature,
-    return_annotation,
-):
-    parameter_names = _OFFSET_SIGNATURES.get(name)
-    if parameter_names is None:
-        return None
-
-    offset_signature = inspect.Signature(
-        parameters=[_OFFSET_PARAMETERS[name] for name in parameter_names]
-    )
-
-    return str(offset_signature), return_annotation
-
-
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
-    app.connect("autodoc-process-signature", set_offset_signature)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)

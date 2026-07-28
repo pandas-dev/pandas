@@ -6524,7 +6524,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
