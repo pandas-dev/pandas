@@ -8,11 +8,11 @@ import collections
 from collections import namedtuple
 from collections.abc import Iterator
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -1119,7 +1119,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=UTC), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 

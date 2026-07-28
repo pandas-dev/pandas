@@ -29,7 +29,6 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
-    Union,
     cast,
     final,
     overload,
@@ -5299,7 +5298,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )
-            shifted_dataframes.append(cast("Union[Series, DataFrame]", shifted))
+            shifted_dataframes.append(cast("Series | DataFrame", shifted))
 
         return (
             shifted_dataframes[0]

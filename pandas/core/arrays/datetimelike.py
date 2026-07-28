@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Self,
     TypeAlias,
-    Union,
     cast,
     final,
     overload,
@@ -382,7 +381,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast("Self | DTScalarOrNaT", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
