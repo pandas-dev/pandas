@@ -35,6 +35,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under14p0,
     pa_version_under21p0,
+    pa_version_under23p0,
     pa_version_under25p0,
 )
 from pandas.compat.numpy import function as nv
@@ -3435,16 +3436,46 @@ class ArrowExtensionArray(
             )
             result_values = pc.if_else(below_min_count, None, result_values)
 
-        # Scatter results into output array ordered by group id.
-        # Fallback to NumPy here due to the limitation of pc.scatter.
-        # Another workaround is to use join + sort.
-        # TODO: revisit this part when pc.scatter becomes more functionally complete.
+        # Scatter results into an output array ordered by group id.
+        default_py = default_value.as_py()
+
+        if not pa_version_under23p0:
+            # pc.scatter gained max_index in PyArrow 23, which is what sizes the
+            # output by ngroups; earlier versions pin it to the number of
+            # observed groups, and before PyArrow 20 there is no pc.scatter at
+            # all, so those fall through to the NumPy scatter below.
+            if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
+                try:
+                    # A decimal aggregate can hold more digits than its declared
+                    # type, and unlike building an array from NumPy, scattering
+                    # carries that invalid state through silently.
+                    result_values.validate(full=True)
+                except pa.ArrowInvalid:
+                    return None
+            pa_result = pc.scatter(
+                result_values, result_group_ids, max_index=ngroups - 1
+            )
+            if default_py is not None and min_count == 0:
+                if result_values.null_count == 0:
+                    # Every null is a group with no rows, so fill them all
+                    pa_result = _safe_fill_null(pa_result, default_value)
+                else:
+                    # skipna=False left nulls that have to survive, so fill only
+                    # the positions no group id scattered into
+                    seen = pc.scatter(
+                        pa.array(np.ones(len(result_values), dtype=bool)),
+                        result_group_ids,
+                        max_index=ngroups - 1,
+                    )
+                    pa_result = pc.if_else(pc.is_null(seen), default_value, pa_result)
+            return self._from_pyarrow_array(pa_result)
+
+        # Fall back to NumPy where pc.scatter cannot size its own output.
         result_group_ids_np = result_group_ids.to_numpy(zero_copy_only=False).astype(
             np.int64, copy=False
         )
         result_values_np = result_values.to_numpy(zero_copy_only=False)
 
-        default_py = default_value.as_py()
         try:
             if default_py is not None and min_count == 0:
                 # Fill missing groups with identity element
