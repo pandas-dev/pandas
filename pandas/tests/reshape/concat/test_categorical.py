@@ -283,3 +283,302 @@ class TestCategoricalConcat:
         df = DataFrame([[10, 11, 12]])
         result = pd.concat([df, df], keys=cidx).index.levels[0]
         tm.assert_index_equal(result, cidx)
+
+
+# ---------------------------------------------------------------------
+# pd.concat with union_categories=True (GH#14177)
+
+
+def test_union_categories_series_different_categories():
+    # GH#14177
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    s2 = Series(Categorical(["b", "c"], categories=["b", "c"]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_series_same_categories():
+    # Same categories should still work with union_categories=True
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    s2 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(["a", "b", "a", "b"], categories=["a", "b"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_dataframe_different_categories():
+    # GH#14177
+    df1 = DataFrame({"x": Categorical(["a", "b"], categories=["a", "b"])})
+    df2 = DataFrame({"x": Categorical(["b", "c"], categories=["b", "c"])})
+    result = pd.concat([df1, df2], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {"x": Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"])},
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_default_false_preserves_existing_behavior():
+    # union_categories=False (default) should not preserve categorical
+    # dtype when categories differ
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    s2 = Series(Categorical(["b", "c"], categories=["b", "c"]))
+    result = pd.concat([s1, s2], ignore_index=True)
+    expected = Series(["a", "b", "b", "c"])
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_mixed_categorical_noncategorical():
+    # When mixing categorical and non-categorical, keyword has no effect
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    s2 = Series(["b", "c"])
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    # Should fall through to existing behavior
+    expected = Series(["a", "b", "b", "c"])
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_ordered_same_order_subset_categories():
+    # Ordered categoricals with compatible categories
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+    s2 = Series(Categorical(["a"], categories=["a", "b"], ordered=True))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(["a", "b", "a"], categories=["a", "b"], ordered=True),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_ordered_incompatible_categories_drops_order():
+    # Ordered categoricals with different categories union to an unordered
+    # result rather than raising (GH#14177, dev-call decision)
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+    s2 = Series(Categorical(["b", "c"], categories=["b", "c"], ordered=True))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_mixed_ordered_unordered_drops_order():
+    # Mixed ordered/unordered with the same categories: dtypes differ, so
+    # the result is unordered rather than raising
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+    s2 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(["a", "b", "a", "b"], categories=["a", "b"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_ordered_same_categories_different_order_drops_order():
+    # Same category set in a different order means the dtypes differ, so
+    # the result is the unordered union rather than an ordered categorical
+    s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+    s2 = Series(Categorical(["a", "b"], categories=["b", "a"], ordered=True))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(["a", "b", "a", "b"], categories=["a", "b"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_incompatible_category_dtypes():
+    # Categories with different dtypes are cast to a common dtype instead of
+    # falling back to a non-categorical result
+    s1 = Series(Categorical(["a", "b"]))
+    s2 = Series(Categorical([1, 2]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(
+            np.array(["a", "b", 1, 2], dtype=object),
+            categories=np.array(["a", "b", 1, 2], dtype=object),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_numeric_category_dtypes():
+    # int and float categories are unioned under the common float64 dtype
+    s1 = Series(Categorical([1, 2]))
+    s2 = Series(Categorical([2.5, 3.5]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical([1.0, 2.0, 2.5, 3.5], categories=[1.0, 2.0, 2.5, 3.5])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_lossy_category_cast():
+    # int64 categories that are not exactly representable as float64 collapse
+    # under the common dtype, matching what a non-categorical concat gives
+    s1 = Series(Categorical([2**53, 2**53 + 1]))
+    s2 = Series(Categorical([2.5]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical([float(2**53), float(2**53), 2.5], categories=[float(2**53), 2.5])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_empty_categorical():
+    # GH#14177 an empty Categorical has object-dtype categories, which must not
+    # drag the result off of categorical dtype
+    ser = Series(Categorical(["a", "b"]))
+    result = pd.concat(
+        [ser, Series(dtype="category")], ignore_index=True, union_categories=True
+    )
+    expected = Series(Categorical(["a", "b"], categories=["a", "b"]))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_all_nan_categorical():
+    # an all-NaN Categorical has no categories, so it contributes nothing but
+    # the NaN itself
+    ser = Series(Categorical(["a", "b"]))
+    result = pd.concat(
+        [ser, Series(Categorical([np.nan]))], ignore_index=True, union_categories=True
+    )
+    expected = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_dataframe_column_missing_from_one_frame():
+    # Column present in only one frame still keeps categorical dtype,
+    # with NaN for the missing rows
+    df1 = DataFrame({"x": Categorical(["a", "b"]), "y": [1, 2]})
+    df2 = DataFrame({"y": [3]})
+    result = pd.concat([df1, df2], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {
+            "x": Categorical(["a", "b", np.nan], categories=["a", "b"]),
+            "y": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_different_categories_column_missing_from_one_frame():
+    # Differing categories AND a frame missing the column: the all-NA filler
+    # must not degrade the result to object
+    df1 = DataFrame({"x": Categorical(["a", "b"]), "y": [1, 2]})
+    df2 = DataFrame({"x": Categorical(["b", "c"]), "y": [3, 4]})
+    df3 = DataFrame({"y": [5]})
+    result = pd.concat([df1, df2, df3], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {
+            "x": Categorical(["a", "b", "b", "c", np.nan], categories=["a", "b", "c"]),
+            "y": [1, 2, 3, 4, 5],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # missing-column frame first
+    result = pd.concat([df3, df1, df2], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {
+            "y": [5, 1, 2, 3, 4],
+            "x": Categorical([np.nan, "a", "b", "b", "c"], categories=["a", "b", "c"]),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_ordered_column_missing_from_one_frame():
+    # Identical ordered dtypes stay ordered even when another frame lacks
+    # the column
+    df1 = DataFrame(
+        {"x": Categorical(["a"], categories=["a", "b"], ordered=True), "y": [1]}
+    )
+    df2 = DataFrame(
+        {"x": Categorical(["b"], categories=["a", "b"], ordered=True), "y": [2]}
+    )
+    df3 = DataFrame({"y": [3]})
+    result = pd.concat([df1, df2, df3], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {
+            "x": Categorical(["a", "b", np.nan], categories=["a", "b"], ordered=True),
+            "y": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_incompatible_category_dtypes_column_missing():
+    # Categories with differing dtypes are unioned also when a frame lacks
+    # the column
+    df1 = DataFrame({"x": Categorical(["a"]), "y": [1]})
+    df2 = DataFrame({"x": Categorical([2]), "y": [2]})
+    df3 = DataFrame({"y": [3]})
+    result = pd.concat([df1, df2, df3], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {
+            "x": Categorical(
+                np.array(["a", 2, np.nan], dtype=object),
+                categories=np.array(["a", 2], dtype=object),
+            ),
+            "y": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_integer_categories():
+    s1 = Series(Categorical([1, 2], categories=[1, 2]))
+    s2 = Series(Categorical([2, 3], categories=[2, 3]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical([1, 2, 2, 3], categories=[1, 2, 3]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_datetime_categories():
+    cat1 = Categorical(
+        pd.to_datetime(["2020-01-01", "2020-01-02"]),
+        categories=pd.to_datetime(["2020-01-01", "2020-01-02"]),
+    )
+    cat2 = Categorical(
+        pd.to_datetime(["2020-01-02", "2020-01-03"]),
+        categories=pd.to_datetime(["2020-01-02", "2020-01-03"]),
+    )
+    s1 = Series(cat1)
+    s2 = Series(cat2)
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = Series(
+        Categorical(
+            pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-02", "2020-01-03"]),
+            categories=pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"]),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_dataframe_multiple_categorical_columns():
+    # Multiple columns, each categorical with different categories
+    df1 = DataFrame(
+        {
+            "x": Categorical(["a", "b"], categories=["a", "b"]),
+            "y": Categorical([1, 2], categories=[1, 2]),
+        }
+    )
+    df2 = DataFrame(
+        {
+            "x": Categorical(["c"], categories=["b", "c"]),
+            "y": Categorical([3], categories=[2, 3]),
+        }
+    )
+    result = pd.concat([df1, df2], ignore_index=True, union_categories=True)
+    expected = DataFrame(
+        {
+            "x": Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
+            "y": Categorical([1, 2, 3], categories=[1, 2, 3]),
+        }
+    )
+    tm.assert_frame_equal(result, expected)

@@ -8,6 +8,9 @@ import struct
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
@@ -16,7 +19,10 @@ from pandas.errors import (
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.sas.sas7bdat import SAS7BDATReader
+from pandas.io.sas.sas7bdat import (
+    SAS7BDATReader,
+    _utf8_translation_table,
+)
 import pandas.io.sas.sas_constants as const
 
 encoding_depr_msg = "The default value of 'encoding' in read_sas is deprecated"
@@ -518,11 +524,11 @@ def test_rdc_overlapping_back_reference(datapath):
     # rewritten to expand 8 bytes from 4 back.
     with open(datapath("io", "sas", "data", "test11.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
-    original = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+    original = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat", encoding=None)
 
     assert data[120922:120924] == b"\x8d\x00"
     data[120922:120924] = b"\x81\x00"
-    result = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat")
+    result = pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat", encoding=None)
 
     # Column11 is bytes 56-63 of the row and is now copied from byte 52, so it
     # repeats the second half of Column9 (bytes 48-55) twice. The fixture is
@@ -574,6 +580,53 @@ def test_unknown_subheader_signature(datapath):
         pd.read_sas(io.BytesIO(data), format="sas7bdat")
 
 
+@pytest.mark.parametrize(
+    "test_file, offset_field, int_len, row_length",
+    [
+        # byte offset of the first column's data-offset field in the
+        # column-attributes subheader, the file's word size, and its row length
+        ("test2.sas7bdat", 126580, 4, 809),  # 32-bit, RLE compressed
+        ("test1.sas7bdat", 126588, 4, 816),  # 32-bit, uncompressed
+        ("test7.sas7bdat", 125532, 8, 816),  # 64-bit
+    ],
+)
+@pytest.mark.parametrize("overshoot", [1, 8, 4096])
+def test_column_offset_past_row_raises(
+    datapath, test_file, offset_field, int_len, row_length, overshoot
+):
+    # GH#47339 a column whose data runs past the end of the row would be read
+    # out of bounds; the 8-byte numeric fast path did not check.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    bad_offset = row_length + overshoot - 8
+    data[offset_field : offset_field + int_len] = bad_offset.to_bytes(int_len, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("bad_length", [9, 16, 4096])
+def test_numeric_column_longer_than_8_bytes_raises(datapath, bad_length):
+    # GH#47339 a numeric column is widened into 8 bytes of the output buffer, so
+    # a longer one wrote past the front of it even though it fits in the row.
+    with open(datapath("io", "sas", "data", "test1.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    # byte offset of the first column's data-length field, which is 4 bytes wide
+    data[126592:126596] = bad_length.to_bytes(4, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("bad_offset", [2**63 - 1, 2**64 - 1])
+def test_column_offset_near_int64_max_raises(datapath, bad_offset):
+    # GH#47339 a 64-bit file can declare an offset large enough that adding the
+    # column length wraps around in int64, which must not slip past validation.
+    with open(datapath("io", "sas", "data", "test7.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    data[125532:125540] = bad_offset.to_bytes(8, "little")
+    with pytest.raises(ValueError, match="the file is corrupt"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
 def test_0x40_control_byte(datapath):
     # GH 31243
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
@@ -589,3 +642,241 @@ def test_0x00_control_byte(datapath):
     with pd.read_sas(fname, chunksize=11_000, encoding=None) as reader:
         df = next(reader)
     assert df.shape == (11_000, 20)
+
+
+def _fast_string_path_available() -> bool:
+    # Mirrors the environment half of SAS7BDATReader._string_mode's gate. Builds
+    # without pyarrow compare the object path against itself below, so the test
+    # has to know which of the two it is looking at.
+    return (
+        using_string_dtype()
+        and HAS_PYARROW
+        and pd.StringDtype(na_value=np.nan).storage == "pyarrow"
+    )
+
+
+# cp037 is EBCDIC: the one encoding here whose bytes below 0x80 are not their
+# own utf-8, so it is what exercises the parser's non-ascii_identity path.
+@pytest.mark.parametrize(
+    "encoding",
+    ["utf-8", "latin-1", "cp1252", "cp437", "cp1251", "latin9", "ascii", "cp037"],
+)
+# test2 and test3 are the RLE- and RDC-compressed copies of test1, where the
+# parser reads cells out of the decompression buffer rather than the page.
+@pytest.mark.parametrize(
+    "name", ["test1", "test2", "test3", "test16", "load_log", "productsales"]
+)
+@pytest.mark.parametrize("chunksize", [None, 7])
+def test_string_fast_path_matches_object_path(
+    datapath, monkeypatch, encoding, name, chunksize
+):
+    # GH#47339 string columns are built as pyarrow arrays directly rather than
+    # via an object-dtype array of bytes; the two must agree, including on
+    # which files fail to decode.
+    fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    if not _fast_string_path_available():
+        expected_mode = const.string_mode_object
+    elif encoding == "utf-8":
+        expected_mode = const.string_mode_utf8
+    else:
+        expected_mode = const.string_mode_table
+
+    def read():
+        with contextlib.closing(
+            SAS7BDATReader(fname, encoding=encoding, chunksize=chunksize)
+        ) as rdr:
+            try:
+                # Concatenated rather than first-chunk-only so that the
+                # per-chunk buffers, and the short final chunk, are compared.
+                frame = pd.concat(list(rdr)) if chunksize else rdr.read()
+            except UnicodeDecodeError:
+                # Which cell is named differs: the table mode raises from the
+                # parse loop in row-major order, the object path column by
+                # column. Only that both reject the file is guaranteed.
+                return None, True, rdr._str_mode
+            return frame, False, rdr._str_mode
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            SAS7BDATReader,
+            "_string_mode",
+            lambda self, ns: (const.string_mode_object, None),
+        )
+        expected, expected_raised, _ = read()
+    result, result_raised, result_mode = read()
+    # Without this the comparison above silently degrades to object-vs-object
+    # if the gate in _string_mode ever stops opening.
+    assert result_mode == expected_mode
+    assert result_raised == expected_raised
+    if not expected_raised:
+        tm.assert_frame_equal(result, expected)
+
+
+def test_string_fast_path_blank_missing(datapath, monkeypatch):
+    # GH#47339 with blank_missing=False a blank cell is an empty string rather
+    # than NaN, so the fast path writes a valid zero-length cell for it.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+
+    def read():
+        with contextlib.closing(
+            SAS7BDATReader(fname, encoding="latin-1", blank_missing=False)
+        ) as rdr:
+            return rdr.read(), rdr._str_mode
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            SAS7BDATReader,
+            "_string_mode",
+            lambda self, ns: (const.string_mode_object, None),
+        )
+        expected, _ = read()
+    result, result_mode = read()
+    if _fast_string_path_available():
+        assert result_mode == const.string_mode_table
+    # Column54 opens with a blank cell, so its buffer starts out empty.
+    assert result["Column54"].iloc[0] == ""
+    tm.assert_frame_equal(result, expected)
+
+
+def test_string_fast_path_invalid_utf8(datapath, tmp_path, monkeypatch):
+    # GH#47339 pyarrow rejects invalid utf-8 with ArrowInvalid; the fast path has
+    # to surface the UnicodeDecodeError the object path raises instead.
+    data = bytearray(
+        Path(datapath("io", "sas", "data", "test16.sas7bdat")).read_bytes()
+    )
+    # Break the lead byte of a multi-byte character stored in a string cell.
+    data[data.index(b"\xe9\xab\x98")] = 0xFF
+    fname = tmp_path / "invalid_utf8.sas7bdat"
+    fname.write_bytes(bytes(data))
+
+    def read():
+        with contextlib.closing(SAS7BDATReader(fname, encoding="utf-8")) as rdr:
+            with pytest.raises(UnicodeDecodeError) as excinfo:
+                rdr.read()
+            return str(excinfo.value), rdr._str_mode
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            SAS7BDATReader,
+            "_string_mode",
+            lambda self, ns: (const.string_mode_object, None),
+        )
+        expected, _ = read()
+    result, result_mode = read()
+    if _fast_string_path_available():
+        assert result_mode == const.string_mode_utf8
+    assert result == expected
+
+
+def test_string_fast_path_truncated_file(datapath, tmp_path, monkeypatch):
+    # GH#47339 a file whose pages run out before the row count in its header
+    # leaves the tail of the offsets buffer unwritten; both paths must report the
+    # truncation the same way rather than pyarrow rejecting the offsets.
+    fname = datapath("io", "sas", "data", "load_log.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="utf-8")) as rdr:
+        page_length = rdr._page_length
+    truncated = tmp_path / "truncated.sas7bdat"
+    truncated.write_bytes(Path(fname).read_bytes()[:-page_length])
+
+    def read():
+        with contextlib.closing(SAS7BDATReader(truncated, encoding="utf-8")) as rdr:
+            with pytest.raises(ValueError, match="Length of values") as excinfo:
+                rdr.read()
+            return str(excinfo.value), rdr._str_mode
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            SAS7BDATReader,
+            "_string_mode",
+            lambda self, ns: (const.string_mode_object, None),
+        )
+        expected, _ = read()
+    result, result_mode = read()
+    if _fast_string_path_available():
+        assert result_mode == const.string_mode_utf8
+    assert result == expected
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="string columns are object dtype, with no storage, under infer_string=0",
+)
+def test_string_fast_path_respects_string_storage(datapath):
+    # GH#47339 the fast path builds a pyarrow-backed column, so it must not be
+    # taken when the resolved storage is python.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with pd.option_context("mode.string_storage", "python"):
+        with contextlib.closing(SAS7BDATReader(fname, encoding="cp1252")) as rdr:
+            assert (
+                rdr._string_mode(rdr._column_types.count(b"s"))[0]
+                == const.string_mode_object
+            )
+            str_col = rdr.column_names[rdr._column_types.index(b"s")]
+            result = rdr.read()
+    assert result[str_col].dtype.storage == "python"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"encoding": None},
+        {"encoding": "cp1252", "convert_text": False},
+        {"encoding": "shift_jis"},
+        {"encoding": "big5"},
+        {"encoding": "euc_jp"},
+    ],
+)
+def test_string_fast_path_skipped(datapath, kwargs):
+    # encoding=None and convert_text=False keep raw bytes, and multi-byte
+    # encodings have no per-byte translation to utf-8, so all fall back to the
+    # object path.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, **kwargs)) as rdr:
+        assert (
+            rdr._string_mode(rdr._column_types.count(b"s"))[0]
+            == const.string_mode_object
+        )
+
+
+@pytest.mark.parametrize(
+    "encoding",
+    ["latin-1", "cp1252", "cp437", "cp1251", "latin9", "ascii", "cp874", "cp037"],
+)
+def test_utf8_translation_table(encoding):
+    # GH#47339 the parser translates single-byte encodings through this table
+    # instead of decoding cell by cell, so it must agree with the codec.
+    table, lengths, ascii_identity = _utf8_translation_table(encoding)
+    width = len(table) // 256
+    assert ascii_identity == all(
+        bytes([value]).decode(encoding, "replace") == chr(value)
+        for value in range(0x80)
+    )
+    for value in range(256):
+        try:
+            expected = bytes([value]).decode(encoding).encode("utf-8")
+        except UnicodeDecodeError:
+            assert lengths[value] == const.undefined_byte
+            continue
+        assert lengths[value] == len(expected)
+        assert bytes(table[value * width : value * width + len(expected)]) == expected
+
+
+@pytest.mark.parametrize(
+    "encoding",
+    [
+        "utf-8",
+        "utf-8-sig",
+        "utf-16",
+        "shift_jis",
+        "big5",
+        "cp932",
+        "euc_jp",
+        "raw_unicode_escape",
+    ],
+)
+def test_utf8_translation_table_rejects_context_dependent(encoding):
+    # A byte whose meaning depends on what follows it cannot go through the
+    # table. Multi-byte lead bytes are undefined in isolation but decode fine
+    # once a continuation byte follows; raw_unicode_escape instead maps every
+    # byte one to one yet still reads b"\\u0041" as "A".
+    assert _utf8_translation_table(encoding) is None
