@@ -672,7 +672,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     def to_numpy(
         self,
-        dtype=None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
