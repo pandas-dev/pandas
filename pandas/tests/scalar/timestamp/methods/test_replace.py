@@ -31,6 +31,25 @@ class TestTimestampReplace:
         assert result.year == 99_999
         assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
 
+    def test_replace_nanosecond_result_would_be_nat(self):
+        # GH#66510 replace used to silently construct a Timestamp whose
+        #  underlying value is the NaT sentinel (iNaT)
+        ts = Timestamp.min
+        msg = "Out of bounds timestamp: 1677-09-21 00:12:43 with frequency 'ns'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.replace(nanosecond=ts.nanosecond - 1)
+
+        # the neighboring in-bounds value is unaffected
+        assert ts.replace(nanosecond=ts.nanosecond) == ts
+
+    def test_replace_nanosecond_result_would_be_nat_aware(self):
+        # GH#66510 same check for the tz-aware path, where the UTC value
+        #  would equal iNaT even though the wall time is representable
+        ts = Timestamp.min.tz_localize("UTC").tz_convert("Asia/Kolkata")
+        msg = "Out of bounds timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.replace(nanosecond=ts.nanosecond - 1)
+
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(
             91514880000000000, NpyDatetimeUnit.NPY_FR_us.value, None
