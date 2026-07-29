@@ -1279,7 +1279,7 @@ def test_constructor_nat_sentinel_neighbours():
     ],
 )
 def test_timestamp_constructor_nanosecond_kwarg(ts_input, kwargs):
-    # GH#XXXXX nanosecond was silently dropped for everything but pydatetime.
+    # GH#66533 nanosecond was silently dropped for everything but pydatetime.
     #  The inputs carrying 123ns also pin down "set", not "add", semantics.
     result = Timestamp(ts_input, nanosecond=5, **kwargs)
     assert result.nanosecond == 5
@@ -1288,7 +1288,7 @@ def test_timestamp_constructor_nanosecond_kwarg(ts_input, kwargs):
 
 
 def test_timestamp_constructor_nanosecond_kwarg_float():
-    # GH#XXXXX non-integral float input; the 456ns pins down set-not-add, and
+    # GH#66533 non-integral float input; the 456ns pins down set-not-add, and
     #  the microseconds must survive the overwrite
     result = Timestamp(0.000123456, unit="s", nanosecond=5)
     assert result == Timestamp("1970-01-01 00:00:00.000123") + Timedelta(nanoseconds=5)
@@ -1304,7 +1304,7 @@ def test_timestamp_constructor_nanosecond_kwarg_float():
     ],
 )
 def test_timestamp_constructor_nanosecond_kwarg_pre_epoch(ts_input, kwargs):
-    # GH#XXXXX -1ns has 999 in the sub-microsecond field, so adding rather
+    # GH#66533 -1ns has 999 in the sub-microsecond field, so adding rather
     #  than setting would carry into the microseconds
     result = Timestamp(ts_input, nanosecond=5, **kwargs)
     assert result == Timestamp("1969-12-31 23:59:59.999999") + Timedelta(nanoseconds=5)
@@ -1320,7 +1320,7 @@ def test_timestamp_constructor_nanosecond_kwarg_pre_epoch(ts_input, kwargs):
     ],
 )
 def test_timestamp_constructor_nanosecond_kwarg_preserves_microsecond(ts_input):
-    # GH#XXXXX only the sub-microsecond field is overwritten
+    # GH#66533 only the sub-microsecond field is overwritten
     result = Timestamp(ts_input, nanosecond=5)
     assert result.microsecond == 123
     assert result.nanosecond == 5
@@ -1335,7 +1335,7 @@ def test_timestamp_constructor_nanosecond_kwarg_preserves_microsecond(ts_input):
     ],
 )
 def test_timestamp_constructor_nanosecond_zero_not_passed(ts_input, kwargs):
-    # GH#XXXXX nanosecond=0 means "not passed", so the input's own
+    # GH#66533 nanosecond=0 means "not passed", so the input's own
     #  resolution is retained
     result = Timestamp(ts_input, nanosecond=0, **kwargs)
     assert result.unit == "s"
@@ -1350,7 +1350,7 @@ def test_timestamp_constructor_nanosecond_zero_not_passed(ts_input, kwargs):
     ],
 )
 def test_timestamp_constructor_nanosecond_zero_keeps_sub_microsecond(ts_input):
-    # GH#XXXXX "not passed" is the *only* meaning of nanosecond=0 -- it does not
+    # GH#66533 "not passed" is the *only* meaning of nanosecond=0 -- it does not
     #  zero an existing sub-microsecond value, matching the long-standing
     #  pydatetime behaviour.  A non-zero nanosecond does overwrite.
     assert Timestamp(ts_input).nanosecond == 123
@@ -1358,7 +1358,7 @@ def test_timestamp_constructor_nanosecond_zero_keeps_sub_microsecond(ts_input):
 
 
 def test_timestamp_constructor_nanosecond_kwarg_tz_epoch_int():
-    # GH#XXXXX an epoch integer is UTC-based, so tz converts rather than
+    # GH#66533 an epoch integer is UTC-based, so tz converts rather than
     #  localizes
     result = Timestamp(0, unit="s", nanosecond=5, tz="US/Pacific")
     assert result._value == 5
@@ -1375,7 +1375,7 @@ def test_timestamp_constructor_nanosecond_kwarg_tz_epoch_int():
     ],
 )
 def test_timestamp_constructor_nanosecond_kwarg_tz_wall(ts_input):
-    # GH#XXXXX datetime64/date/datetime are wall times, so tz localizes
+    # GH#66533 datetime64/date/datetime are wall times, so tz localizes
     result = Timestamp(ts_input, nanosecond=5, tz="US/Pacific")
     assert result._value == 8 * 3600 * 10**9 + 5
     assert result.nanosecond == 5
@@ -1412,7 +1412,7 @@ def test_timestamp_constructor_nanosecond_kwarg_tz_wall(ts_input):
 def test_timestamp_constructor_nanosecond_kwarg_out_of_bounds(
     ts_input, kwargs, nanosecond, msg
 ):
-    # GH#XXXXX
+    # GH#66533
     with pytest.raises(OutOfBoundsDatetime, match=msg):
         Timestamp(ts_input, nanosecond=nanosecond, **kwargs)
 
