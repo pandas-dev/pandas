@@ -351,6 +351,7 @@ Datetimelike
 - Bug in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns raising for years outside the range 1000-9999 (:issue:`65195`)
 - Bug in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns with ``errors="coerce"`` returning ``datetime64[s]`` dtype instead of ``datetime64[us]`` when all rows were invalid (:issue:`65195`)
 - Bug in :func:`to_datetime` when using a low time resolution ``unit``, higher resolution in ``origin`` is now preserved instead of silently dropped (e.g. ``unit="D"`` with microsecond precision origin) (:issue:`63419`)
+- Bug in :func:`to_datetime` with string input silently ignoring ``dayfirst`` and ``yearfirst`` when ``unit`` was also passed (:issue:`63472`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``AssertionError`` instead of :class:`OutOfBoundsDatetime` when replacing with a ``datetime`` value outside the ``datetime64[ns]`` range (:issue:`61671`)
 - Bug in :meth:`DataFrame.to_string` and :meth:`Series.to_string` where ``na_rep`` was ignored for datetime and timedelta columns, always displaying ``NaT`` (:issue:`55426`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)

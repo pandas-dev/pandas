@@ -3975,6 +3975,41 @@ def test_empty_string_datetime_coerce__unit():
     tm.assert_index_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "kwargs, expected",
+    [
+        ({}, "2012-10-11"),
+        ({"dayfirst": True}, "2012-11-10"),
+        ({"yearfirst": True}, "2010-11-12"),
+        ({"dayfirst": True, "yearfirst": True}, "2010-12-11"),
+    ],
+)
+def test_to_datetime_unit_dayfirst_yearfirst(kwargs, expected, cache):
+    # GH#63472 dayfirst/yearfirst were silently ignored for string entries
+    #  when 'unit' was passed
+    arg = ["10/11/12"]
+    result = to_datetime(arg, unit="s", cache=cache, **kwargs)
+
+    tm.assert_index_equal(result, DatetimeIndex([expected], dtype="datetime64[us]"))
+    # passing a unit gives the same result as not passing one
+    tm.assert_index_equal(result, to_datetime(arg, cache=cache, **kwargs))
+
+
+@pytest.mark.parametrize(
+    "kwargs, parsed",
+    [
+        ({"dayfirst": True}, "2012-11-10"),
+        ({"yearfirst": True}, "2010-11-12"),
+    ],
+)
+def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, parsed, cache):
+    # GH#63472 the unit still applies to the numeric entries
+    result = to_datetime(["10/11/12", 1], unit="s", cache=cache, **kwargs)
+
+    expected = DatetimeIndex([parsed, "1970-01-01 00:00:01"], dtype="datetime64[us]")
+    tm.assert_index_equal(result, expected)
+
+
 def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
     cstart = start_caching_at
