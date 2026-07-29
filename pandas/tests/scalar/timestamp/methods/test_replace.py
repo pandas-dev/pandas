@@ -1,4 +1,8 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 import zoneinfo
 
 from dateutil.tz import gettz
@@ -30,6 +34,42 @@ class TestTimestampReplace:
         result = ts.replace(year=99_999)
         assert result.year == 99_999
         assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
+
+    def test_replace_microsecond_lands_on_nat_sentinel(self):
+        # GH#66510 this wall time maps to the NaT sentinel; keeping it would
+        #  build a Timestamp that reports itself non-null but reads back as NaT
+        ts = Timestamp(np.datetime64(-(2**63) + 1, "us"))
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+            ts.replace(microsecond=224192)
+
+    @pytest.mark.parametrize(
+        "wall, tz",
+        [
+            ("1677-09-21 00:12:43.145224193", None),
+            ("1677-09-21 00:12:43.145224193", "UTC"),
+            # non-zero offset: the shift to UTC is what lands on the sentinel
+            ("1677-09-21 09:31:42.145224193", "Asia/Tokyo"),
+        ],
+    )
+    def test_replace_nanosecond_lands_on_nat_sentinel(self, wall, tz):
+        # GH#66510
+        ts = Timestamp(wall, tz=tz)
+
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+            ts.replace(nanosecond=192)
+
+        # neighbours: below is out of bounds, above is representable
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+            ts.replace(nanosecond=191)
+        assert ts.replace(nanosecond=194)._value == ts._value + 1
+
+    @pytest.mark.parametrize("offset_hours", [9, -9])
+    def test_replace_tzinfo_shift_out_of_bounds(self, offset_hours):
+        # GH#66510 the shift to UTC leaves the representable range; that must be
+        #  an OutOfBoundsDatetime, not a raw OverflowError from the int64 coercion
+        ts = Timestamp.max if offset_hours < 0 else Timestamp.min
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+            ts.replace(tzinfo=timezone(timedelta(hours=offset_hours)))
 
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(

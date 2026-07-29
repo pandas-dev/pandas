@@ -1192,3 +1192,29 @@ def test_timestamp_iso8601_offset_out_of_bounds(tz):
     msg = "Out of bounds nanosecond timestamp"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
         Timestamp("2262-04-11T20:00:00.000000000-11:00", tz=tz)
+
+
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+def test_timestamp_constructor_nat_sentinel_tz_shift(unit):
+    # GH#66510 a wall time whose shift to UTC lands on the NaT sentinel used to
+    #  come back as NaT.  `unit` is the creso handed to tz_localize_to_utc_single;
+    #  the offset can only be positive here, since a negative one puts the wall
+    #  time itself below int64 min.
+    offset_hours = 9
+    per_second = {"ns": 10**9, "us": 10**6, "ms": 10**3, "s": 1}[unit]
+    ts_input = np.datetime64(-(2**63) + offset_hours * 3600 * per_second, unit)
+    tz = timezone(timedelta(hours=offset_hours))
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds .* timestamp"):
+        Timestamp(ts_input, tz=tz)
+
+
+@pytest.mark.parametrize(
+    "ts_input, tz", [(Timestamp.max, "US/Pacific"), (Timestamp.min, "Asia/Tokyo")]
+)
+def test_timestamp_constructor_tz_shift_out_of_bounds(ts_input, tz):
+    # GH#66510 shifting the wall time to UTC leaves the representable range,
+    #  which must be OutOfBoundsDatetime rather than a raw OverflowError from
+    #  the int64 coercion
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
+        Timestamp(ts_input, tz=tz)

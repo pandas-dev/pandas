@@ -3691,6 +3691,14 @@ default 'raise'
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
+            if ts.value == NPY_NAT:
+                # npy_datetimestruct_to_datetime hands back the sentinel for this
+                #  one wall time instead of raising; keeping it would build a
+                #  Timestamp that reports itself non-null but reads back as NaT.
+                fmt = dts_to_iso_string(&dts)
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
+                )
             ts.dts = dts
             ts.creso = creso
             ts.fold = fold

@@ -443,6 +443,13 @@ cdef class _TSObject:
         return self.value
 
 
+cdef _raise_out_of_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT reso):
+    attrname = npy_unit_to_attrname[reso]
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {attrname} timestamp: {dts_to_iso_string(dts)}"
+    )
+
+
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                                    bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
@@ -492,6 +499,10 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                 obj.value = tz_localize_to_utc_single(
                     obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
                 )
+                if obj.value == NPY_NAT:
+                    # an in-bounds wall time can land on the sentinel once
+                    #  shifted to UTC
+                    _raise_out_of_bounds(&obj.dts, reso)
     elif is_integer_object(ts) or (is_float_object(ts) and ts.is_integer()):
         try:
             ts = <int64_t>ts
@@ -617,12 +628,31 @@ cdef _TSObject convert_datetime_to_tsobject(
         obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
     except OverflowError as err:
         attrname = npy_unit_to_attrname[reso]
-        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp") from err
+        raise OutOfBoundsDatetime(
+            f"Out of bounds {attrname} timestamp: {dts_to_iso_string(&obj.dts)}"
+        ) from err
+
+    if obj.value == NPY_NAT:
+        # Reachable via `nanos`, which Timestamp.replace supplies.  This is the
+        #  *wall* time, not the result: it is out of bounds at this reso, and
+        #  npy_datetimestruct_to_datetime hands back the sentinel for it
+        #  instead of raising.
+        _raise_out_of_bounds(&obj.dts, reso)
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
         pps = periods_per_second(reso)
-        obj.value -= int(offset.total_seconds() * pps)
+        # The shift to UTC can leave the representable range; report that as
+        #  OutOfBoundsDatetime rather than leaking a raw OverflowError from the
+        #  int64 coercion (cf. GH#65353, which fixed a silent wrap in the C
+        #  string parsers).
+        if checked_sub(obj.value, int(offset.total_seconds() * pps), &obj.value):
+            _raise_out_of_bounds(&obj.dts, reso)
+
+        if obj.value == NPY_NAT:
+            # ...and an in-bounds wall time can land on the sentinel once
+            #  shifted, which the guard above cannot see.
+            _raise_out_of_bounds(&obj.dts, reso)
 
     check_overflows(obj, reso)
     return obj
