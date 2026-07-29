@@ -8048,6 +8048,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
+        limit_distance: float | None = None,
         **kwargs,
     ) -> Self:
         """
@@ -8104,6 +8105,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+        limit_distance : float, optional
+            Maximum x-axis distance between consecutive valid points to interpolate.
+            Only supported when method is 'index' or 'values'.
 
         **kwargs : optional
             Keyword arguments to pass on to the interpolating function. Not
@@ -8247,6 +8252,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
+            limit_distance=limit_distance,
             inplace=inplace,
             **kwargs,
         )

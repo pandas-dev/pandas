@@ -375,6 +375,7 @@ def interpolate_2d_inplace(
     limit: int | None = None,
     limit_direction: str = "forward",
     limit_area: str | None = None,
+    limit_distance: float | None = None,
     fill_value: Any | None = None,
     mask=None,
     **kwargs,
@@ -422,6 +423,7 @@ def interpolate_2d_inplace(
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area_validated,
+            limit_distance=limit_distance,
             fill_value=fill_value,
             bounds_error=False,
             mask=mask,
@@ -512,6 +514,7 @@ def _interpolate_1d(
     limit: int | None = None,
     limit_direction: str = "forward",
     limit_area: Literal["inside", "outside"] | None = None,
+    limit_distance: float | None = None,
     fill_value: Any | None = None,
     bounds_error: bool = False,
     order: int | None = None,
@@ -582,6 +585,10 @@ def _interpolate_1d(
         mid_nans = np.setdiff1d(all_nans, start_nans, assume_unique=True)
         mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
         preserve_nans = np.union1d(preserve_nans, mid_nans)
+
+    if limit_distance is not None:
+        distance_nans = _interp_limit_distance(indices, invalid, limit_distance)
+        preserve_nans = np.union1d(preserve_nans, distance_nans)
 
     is_datetimelike = yvalues.dtype.kind in "mM"
 
@@ -1160,3 +1167,37 @@ def _interp_limit(
                 return b_idx
 
     return np.intersect1d(f_idx, b_idx, assume_unique=assume_unique)
+
+def _interp_limit_distance(
+    indices: np.ndarray,
+    invalid: npt.NDArray[np.bool_],
+    limit_distance: float,
+) -> np.ndarray:
+    """
+    Return index positions of invalid values that should not be filled
+    because the x-axis distance between the surrounding valid points
+    exceeds limit_distance.
+    """
+    valid_pos = np.flatnonzero(~invalid)
+    invalid_pos = np.flatnonzero(invalid)
+
+    if len(valid_pos) < 2 or len(invalid_pos) == 0:
+        return np.array([], dtype=np.int64)
+
+    # For every NaN position, find the valid index immediately next to it
+    right_idx = np.searchsorted(valid_pos, invalid_pos, side="left")
+
+    # Only inspect NaNs that sit BETWEEN two valid points (not leading/trailing NaNs)
+    inside_mask = (right_idx > 0) & (right_idx < len(valid_pos))
+    if not inside_mask.any():
+        return np.array([], dtype=np.int64)
+
+    invalid_inside = invalid_pos[inside_mask]
+    right_valid_pos = valid_pos[right_idx[inside_mask]]
+    left_valid_pos = valid_pos[right_idx[inside_mask] - 1]
+
+    # Calculate the physical x-axis gap across each NaN
+    gap_sizes = indices[right_valid_pos] - indices[left_valid_pos]
+
+    # Return only the NaN positions where the gap exceeds our threshold
+    return invalid_inside[gap_sizes > limit_distance]

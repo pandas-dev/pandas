@@ -1478,6 +1478,7 @@ class Block(PandasObject, libinternals.Block):
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area: Literal["inside", "outside"] | None = None,
+        limit_distance: float | None = None,
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1501,6 +1502,7 @@ class Block(PandasObject, libinternals.Block):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
+            limit_distance=limit_distance,
             copy=copy,
             **kwargs,
         )
