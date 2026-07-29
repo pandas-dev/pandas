@@ -93,6 +93,10 @@ def test_ewma_halflife_without_times(halflife_with_times):
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
 def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
+    # Deliberately not parametrized over adjust: with adjust=False and
+    # ignore_na=False the times path weights NaN gaps as a convex combination
+    # over the elapsed interval, which differs from the no-times recursion
+    # (GH#31178)
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
@@ -435,6 +439,29 @@ def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
         # check that ignore_na defaults to False
         result = s.ewm(com=2.0, adjust=adjust).mean()
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"com": 1}, {"span": 3}, {"alpha": 0.5}, {"halflife": 1}]
+)
+def test_ewma_nan_handling_adjust_false_com1(kwargs):
+    # GH#31178 com=1 was special-cased for the times= path, but the branch was
+    # not gated on times being provided, so it leaked into the equally-spaced
+    # path and returned 4.0 here.
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(adjust=False, ignore_na=False, **kwargs).mean()
+    # alpha = 0.5, so y[2] = (0.5**2 * 1 + 0.5 * 5) / (0.5**2 + 0.5)
+    expected = Series([1.0, 1.0, 11 / 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_ewma_nan_handling_adjust_false_com1_continuous():
+    # GH#31178 com=1 must not be discontinuous in alpha
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(com=1, adjust=False, ignore_na=False).mean()
+    for com in [1 - 1e-9, 1 + 1e-9]:
+        neighbor = ser.ewm(com=com, adjust=False, ignore_na=False).mean()
+        tm.assert_series_equal(result, neighbor, atol=1e-8, rtol=0)
 
 
 def test_ewm_alpha():

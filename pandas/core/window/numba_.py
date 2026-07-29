@@ -83,6 +83,7 @@ def generate_numba_ewm_func(
     adjust: bool,
     ignore_na: bool,
     deltas: tuple,
+    use_deltas: bool,
     normalize: bool,
 ):
     """
@@ -99,6 +100,9 @@ def generate_numba_ewm_func(
     adjust : bool
     ignore_na : bool
     deltas : tuple
+    use_deltas : bool
+        Whether `deltas` reflects user-provided `times`. False means the points
+        are equally spaced and `deltas` is all ones.
     normalize : bool
 
     Returns
@@ -143,8 +147,9 @@ def generate_numba_ewm_func(
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
                             old_wt *= old_wt_factor ** deltas[start + j - 1]
-                            if not adjust and com == 1:
-                                # update in case of irregular-interval time series
+                            if use_deltas and not adjust:
+                                # times were provided: weight by the elapsed interval
+                                # so old_wt and new_wt sum to 1 (GH#31178)
                                 new_wt = 1.0 - old_wt
                         else:
                             weighted = old_wt_factor * weighted
@@ -265,6 +270,7 @@ def generate_numba_ewm_table_func(
     adjust: bool,
     ignore_na: bool,
     deltas: tuple,
+    use_deltas: bool,
     normalize: bool,
 ):
     """
@@ -281,6 +287,9 @@ def generate_numba_ewm_table_func(
     adjust : bool
     ignore_na : bool
     deltas : tuple
+    use_deltas : bool
+        Whether `deltas` reflects user-provided `times`. False means the points
+        are equally spaced and `deltas` is all ones.
     normalize: bool
 
     Returns
@@ -319,8 +328,9 @@ def generate_numba_ewm_table_func(
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
                             old_wt[j] *= old_wt_factor ** deltas[i - 1]
-                            if not adjust and com == 1:
-                                # update in case of irregular-interval time series
+                            if use_deltas and not adjust:
+                                # times were provided: weight by the elapsed interval
+                                # so old_wt and new_wt sum to 1 (GH#31178)
                                 new_wt = 1.0 - old_wt[j]
                         else:
                             weighted[j] = old_wt_factor * weighted[j]

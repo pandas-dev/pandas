@@ -612,6 +612,30 @@ Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
         \frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
+``ignore_na`` makes the same distinction when ``adjust=False``, except that the
+decay is applied to the running average rather than to each observation. For
+equally spaced points (that is, when ``times`` is not supplied), letting
+:math:`u` be the index of the most recent non-null observation before :math:`t`,
+the recursion with ``ignore_na=False`` is
+
+.. math::
+
+    y_t = \frac{(1-\alpha)^{t-u} y_u + \alpha x_t}{(1-\alpha)^{t-u} + \alpha},
+
+so the weighted average of ``3, NaN, 5`` is
+
+.. math::
+
+        \frac{(1-\alpha)^2 \cdot 3 + \alpha \cdot 5}{(1-\alpha)^2 + \alpha}.
+
+With ``ignore_na=True`` the intermediate null does not count towards the
+exponent, so it is always :math:`1` and the recursion reduces to
+:math:`y_t = (1-\alpha) y_u + \alpha x_t`, giving
+
+.. math::
+
+        (1-\alpha) \cdot 3 + \alpha \cdot 5.
+
 The :meth:`~ExponentialMovingWindow.var`, :meth:`~ExponentialMovingWindow.std`, and :meth:`~ExponentialMovingWindow.cov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.
 For example, if ``bias=True``, ``ewmvar(x)`` is calculated as

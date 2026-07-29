@@ -337,8 +337,23 @@ class TestEWM:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_nan_adjust_false_com1(self, method, nogil, parallel):
+        # GH#31178 com=1 was special-cased in both numba ewm generators without
+        # gating on times being provided. Checked against the expected value
+        # rather than the cython engine, which had the same bug.
+        df = DataFrame({"B": [1.0, np.nan, 5.0]})
+        ewm = df.ewm(com=1, adjust=False, ignore_na=False, method=method)
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        # alpha = 0.5, so y[2] = (0.5**2 * 1 + 0.5 * 5) / (0.5**2 + 0.5)
+        expected = DataFrame({"B": [1.0, 1.0, 11 / 3]})
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("grouper", ["None", "groupby"])
-    def test_cython_vs_numba_times(self, grouper, nogil, parallel, ignore_na):
+    def test_cython_vs_numba_times(self, grouper, nogil, parallel, ignore_na, adjust):
         # GH 40951
 
         df = DataFrame({"B": [0, 0, 1, 1, 2, 2]})
@@ -360,7 +375,7 @@ class TestEWM:
             ]
         )
         ewm = grouper(df).ewm(
-            halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
+            halflife=halflife, adjust=adjust, ignore_na=ignore_na, times=times
         )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel}
