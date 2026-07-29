@@ -77,10 +77,56 @@ nanosecond component. The vectorized :meth:`TimedeltaIndex.total_seconds` and
 they now match the scalar result exactly, including at large magnitudes
 where floating-point rounding previously differed (:issue:`46819`).
 
-.. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_310.notable_bug_fixes.timestamp_ignored_arguments:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+:class:`Timestamp` no longer ignores date components and the positional ``tzinfo``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Timestamp` takes either a value to convert (a datetime-like object, a
+string, or an epoch number) or the individual date components, but passing both
+silently dropped the components:
+
+.. code-block:: ipython
+
+    In [1]: pd.Timestamp(datetime(2020, 12, 31), hour=5)
+    Out[1]: Timestamp('2020-12-31 00:00:00')
+
+This now raises ``ValueError``; write ``pd.Timestamp(datetime(2020, 12, 31, 5))``
+instead. Null-like input (``None``, ``NaT``, ``NaN``,
+``pd.NA``, ``numpy.datetime64("NaT")``) is exempt and gives ``NaT`` for any
+combination of the components; ``Timestamp(None, year=2020, month=1, day=1)``
+and friends therefore give ``NaT`` where they used to raise ``TypeError``.
+
+In the *positional* ``datetime.datetime``-like form the parameter names are
+shifted by one -- the parameter named ``hour`` is
+:class:`datetime.datetime`'s ``minute`` -- so a keyword argument used to land
+one field early:
+
+.. code-block:: ipython
+
+    In [2]: pd.Timestamp(2020, 12, 31, hour=5)
+    Out[2]: Timestamp('2020-12-31 00:05:00')
+
+This now raises ``ValueError`` as well, as does leaving the same gap with an
+explicit ``None`` (``Timestamp(2020, 1, 2, None, 5)``); write
+``pd.Timestamp(year=2020, month=12, day=31, hour=5)`` instead. Two cases cannot
+be detected. An ``int`` first argument is indistinguishable from a ``year``, so
+``Timestamp(2020, year=1, month=1)`` is still read as ``Timestamp(2020, 1, 1)``;
+and a keyword that exactly fills the next free positional slot is
+indistinguishable from passing it positionally, so
+``Timestamp(2020, 12, 31, day=5)`` is still read as ``Timestamp(2020, 12, 31, 5)``.
+
+Finally, in that same positional form the eighth argument is
+:class:`datetime.datetime`'s ``tzinfo`` and used to be dropped; it is now
+attached to the result just as :class:`datetime.datetime` does. Attaching
+differs from the localizing ``tz`` and ``tzinfo`` keywords: with a ``pytz``
+timezone, ``Timestamp(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
+now matches ``datetime(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
+and therefore carries that zone's LMT offset. :func:`copy.replace`
+reconstructs a :class:`Timestamp` through this form, so it too now keeps the
+timezone instead of returning a naive result; it still drops nanoseconds, and
+still raises ``ValueError`` for a ``fold=1`` (DST-ambiguous) timestamp
+(:issue:`31930`, :issue:`45307`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
@@ -491,6 +537,7 @@ I/O
 - :func:`read_sql` now raises an informative ``DatabaseError`` explaining that reading a table by name requires a SQLAlchemy connection when a bare table name is passed with a DBAPI connection (e.g. ``sqlite3``), instead of a cryptic SQL syntax error (:issue:`54233`)
 - :meth:`DataFrame.to_json` and :meth:`Series.to_json` now raise an informative ``ValueError`` instead of a cryptic ``OverflowError: Maximum recursion level reached`` when a column contains an unsupported object type such as :class:`pathlib.Path` (:issue:`36211`)
 - :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
+- A :class:`Timestamp` pickled by pandas 1.2 or earlier that carries a ``freq`` or a ``tz`` now raises ``ValueError`` when loaded with :func:`pickle.load` directly; read such files with :func:`read_pickle`, which handles the legacy format (:issue:`31930`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where ``names`` was silently ignored when ``header`` was also an integer; ``names`` now replaces the header row, extra leading columns form the index, and passing too many ``names`` raises ``ValueError`` as with the other engines. ``usecols`` together with ``names`` and an integer ``header`` is not supported by this engine and now raises an informative ``ValueError`` (:issue:`65862`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where a ``defaultdict`` passed as ``dtype`` did not apply its default to columns not explicitly listed (:issue:`41574`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where an empty ``usecols`` (e.g. ``usecols=[]``) was ignored and returned all columns instead of an empty frame, unlike the other engines (:issue:`66056`)
