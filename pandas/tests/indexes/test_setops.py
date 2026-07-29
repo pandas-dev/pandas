@@ -15,6 +15,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
+    ArrowDtype,
     CategoricalDtype,
     CategoricalIndex,
     DatetimeTZDtype,
@@ -1099,18 +1100,15 @@ def test_intersection_arrow_signed_zero(dtype):
 
 @td.skip_if_no("pyarrow")
 def test_intersection_arrow_chunked_run_across_seam():
-    # GH#66498 a run spanning a chunk boundary must still collapse
-    import pyarrow as pa
-
-    from pandas.arrays import ArrowExtensionArray
-
-    chunked = pa.chunked_array([[1, 2, 2], [2, 3]], type=pa.int64())
-    left = Index(ArrowExtensionArray(chunked))
+    # GH#66498 a run of 2 spanning a chunk boundary must still collapse
+    left = Index([1, 2, 2], dtype="int64[pyarrow]").append(
+        Index([2, 3], dtype="int64[pyarrow]")
+    )
+    # guard against the test silently no longer covering the seam
     assert left._values._pa_array.num_chunks == 2
 
-    right = Index([2, 3], dtype="int64[pyarrow]")
+    result = left.intersection(Index([2, 3], dtype="int64[pyarrow]"))
 
-    result = left.intersection(right)
     expected = Index([2, 3], dtype="int64[pyarrow]")
     tm.assert_index_equal(result, expected)
 
@@ -1140,39 +1138,25 @@ def test_intersection_arrow_lossy_join_target():
     # GH#66498 time64[ns] round-trips through datetime.time in the join
     # target, which holds only microseconds, so the merge output is not a
     # faithful copy. The dedup must read from self instead.
-    import pyarrow as pa
-
-    from pandas.arrays import ArrowExtensionArray
-
-    def mk(values):
-        arr = pa.array(values, type=pa.time64("ns"))
-        return Index(ArrowExtensionArray(pa.chunked_array([arr])))
-
-    left, right = mk([1, 1, 2, 3]), mk([2, 3, 4])
+    left = Index([1, 1, 2, 3], dtype="time64[ns][pyarrow]")
+    right = Index([2, 3, 4], dtype="time64[ns][pyarrow]")
 
     result = left.intersection(right)
 
     # not asserting these are *correct* -- the lossy join target predates this
     # path -- only that they come from the input rather than the corrupted
     # merge output
-    assert result._values._pa_array.cast(pa.int64()).to_pylist() == [1, 2, 3]
+    assert result._values._pa_array.cast("int64").to_pylist() == [1, 2, 3]
 
 
-@td.skip_if_no("pyarrow")
 def test_intersection_arrow_dictionary_no_run_end_kernel():
     # GH#66498 dictionary has no run-end kernel; this must fall back rather
     # than raise ArrowNotImplementedError
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
-    from pandas.arrays import ArrowExtensionArray
-
-    dtype = pa.dictionary(pa.int32(), pa.string())
-
-    def mk(values):
-        arr = pa.array(values, type=dtype)
-        return Index(ArrowExtensionArray(pa.chunked_array([arr])))
-
-    left, right = mk(["a", "a", "b", "c"]), mk(["b", "c", "d"])
+    dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    left = Index(["a", "a", "b", "c"], dtype=dtype)
+    right = Index(["b", "c", "d"], dtype=dtype)
 
     result = left.intersection(right)
 
@@ -1194,19 +1178,9 @@ def test_intersection_arrow_interleaved_signed_zero(dtype, left_values, expected
     # GH#66498 -0.0 and 0.0 are equal to the comparison that makes an index
     # monotonic but distinct to the encoder, so they can interleave and leave
     # duplicates that are sorted yet not adjacent
-    import pyarrow as pa
-
-    from pandas.arrays import ArrowExtensionArray
-
-    pa_type = pa.float64() if dtype == "float64[pyarrow]" else pa.float32()
-
-    def mk(values):
-        arr = pa.array(values, type=pa_type)
-        return Index(ArrowExtensionArray(pa.chunked_array([arr])))
-
-    left = mk(left_values)
+    left = Index(left_values, dtype=dtype)
     assert left.is_monotonic_increasing
-    right = mk([0.0, -0.0, 1.0])
+    right = Index([0.0, -0.0, 1.0], dtype=dtype)
 
     result = left.intersection(right)
 
