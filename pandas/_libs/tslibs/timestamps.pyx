@@ -3691,6 +3691,12 @@ default 'raise'
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
+            if ts.value == NPY_NAT:
+                # GH#66510 the value would be indistinguishable from NaT
+                fmt = dts_to_iso_string(&dts)
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
+                )
             ts.dts = dts
             ts.creso = creso
             ts.fold = fold
@@ -3716,6 +3722,12 @@ default 'raise'
         ts = convert_datetime_to_tsobject(
             ts_input, tzobj, nanos=dts.ps // 1000, reso=creso
         )
+        if ts.value == NPY_NAT:
+            # GH#66510 the value would be indistinguishable from NaT
+            fmt = dts_to_iso_string(&dts)
+            raise OutOfBoundsDatetime(
+                f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
+            )
         return create_timestamp_from_ts(
             ts.value, dts, tzobj, fold, reso=creso
         )
