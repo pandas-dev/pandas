@@ -90,9 +90,11 @@ class MySeq(pd.Series):
         return MySeq
 
 
-def test_metadata_subclass_name_preserved():
+def test_subclass_fancy_slice_metadata_preservation():
     # GH 61491
     seq = MySeq([*"abc"], name="data")
+    seq.property = "test_property"
     assert seq[0:1].name == "data"
     assert seq[[0, 1]].name == "data"
+    assert seq[[0, 1]].property == "test_property"
     assert seq.drop_duplicates().name == "data"

@@ -6276,9 +6276,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
-
             # Unconditionally propagate _name for Series, since subclasses
-            # often overwrite _metadata and lose _name. (GH61491)
+            # often overwrite _metadata and lose _name. (GH 61491)
+            # This does not clobber name-combination logic in binary ops,
+            # as _construct_result applies the computed name AFTER __finalize__.
             if getattr(self, "ndim", 0) == 1 and hasattr(other, "_name"):
                 object.__setattr__(self, "_name", getattr(other, "_name", None))
 
