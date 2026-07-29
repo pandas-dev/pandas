@@ -4,13 +4,18 @@ project(
     'c',
     'cpp',
     'cython',
-    version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
+    version: run_command(
+        find_program('python3', 'python'),
+        'generate_version.py',
+        '--print',
+        check: true,
+    ).stdout().strip(),
     license: 'BSD-3',
     meson_version: '>=1.2.3',
     default_options: [
         'buildtype=release',
         'c_std=c17',
-        'cpp_std=c++17',
+        'cpp_std=c++20',
         'warning_level=2',
     ],
 )
@@ -73,12 +78,11 @@ if cy.version().version_compare('>=3.1.0')
 
     # Use shared utility code to reduce wheel sizes
     # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
-    cy = find_program(cy.cmd_array()[0])
     cython_shared_src = custom_target(
         install: false,
         output: '_cyutility.c',
         command: [
-            cy,
+            cy.cmd_array(),
             '-3',
             '-Xfreethreading_compatible=true',
             '--fast-fail',

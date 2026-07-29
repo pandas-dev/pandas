@@ -619,13 +619,17 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
+        double i64_min = <double>INT64_MIN
+        double i64_max = <double>INT64_MAX
 
     for i in range(len(arr)):
         val = arr[i]
-        if (val != val) or (val == <int64_t>val):
+        if val != val:
             continue
-        else:
-            return False
+        # Check if val is integral and fits within int64_t
+        if i64_min <= val < i64_max and val == <int64_t>val:
+            continue
+        return False
     return True
 
 
@@ -813,7 +817,11 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     cdef:
         Py_ssize_t i, n = len(sequence)
         Py_ssize_t n4 = n & ~3
-        int6432_t first_element
+        # GH#64148: accumulate in uint64; ``first + i * step`` overflows int64
+        # (UB) for ranges spanning more than INT64_MAX. int64 values are equal
+        # iff their uint64 bit patterns are, so the comparison stays exact.
+        uint64_t first
+        uint64_t step_u = <uint64_t>step
         bint ret = True
 
     if step == 0:
@@ -821,23 +829,23 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     if n == 0:
         return True
 
-    first_element = sequence[0]
-    # sequence[0] == first_element by construction, so the i=0 lane of the
-    # unrolled loop is trivially true — skipping the explicit head loop
-    # costs one redundant compare on the first iteration.
+    first = <uint64_t>sequence[0]
+    # sequence[0] == first by construction, so the i=0 lane of the unrolled
+    # loop is trivially true -- skipping the explicit head loop costs one
+    # redundant compare on the first iteration.
     with nogil:
         for i in range(0, n4, 4):
             if (
-                (sequence[i] != first_element + i * step)
-                | (sequence[i + 1] != first_element + (i + 1) * step)
-                | (sequence[i + 2] != first_element + (i + 2) * step)
-                | (sequence[i + 3] != first_element + (i + 3) * step)
+                (<uint64_t>sequence[i] != first + <uint64_t>i * step_u)
+                | (<uint64_t>sequence[i + 1] != first + <uint64_t>(i + 1) * step_u)
+                | (<uint64_t>sequence[i + 2] != first + <uint64_t>(i + 2) * step_u)
+                | (<uint64_t>sequence[i + 3] != first + <uint64_t>(i + 3) * step_u)
             ):
                 ret = False
                 break
         if ret:
             for i in range(n4, n):
-                if sequence[i] != first_element + i * step:
+                if <uint64_t>sequence[i] != first + <uint64_t>i * step_u:
                     ret = False
                     break
     return ret
@@ -958,7 +966,6 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
-        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -1022,9 +1029,8 @@ cpdef ndarray[object] ensure_string_array(
 
         return result
 
-    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = newarr[i]
+        val = arr[i]
 
         if isinstance(val, str):
             continue
@@ -2156,7 +2162,7 @@ cdef class IntegerFloatValidator(Validator):
         return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
-cdef bint is_integer_float_array(ndarray values, bint skipna=True):
+cpdef bint is_integer_float_array(ndarray values, bint skipna=True):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(values.size,
                                                                 values.dtype,

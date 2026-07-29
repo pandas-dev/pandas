@@ -8,11 +8,11 @@ import collections
 from collections import namedtuple
 from collections.abc import Iterator
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -42,6 +42,7 @@ from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
 from pandas.core.dtypes.common import (
     ensure_int32,
+    is_array_like_deprecate_non_pandas,
     is_bool,
     is_complex,
     is_datetime64_any_dtype,
@@ -292,6 +293,37 @@ def test_is_array_like():
     assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
+
+
+def test_is_array_like_deprecate_non_pandas():
+    # ndarray, ExtensionArray (incl. NumpyExtensionArray), Index, Series
+    #  are not deprecated
+    for obj in [
+        np.array([1, 2, 3]),
+        pd.arrays.NumpyExtensionArray(np.array([1, 2, 3])),
+        pd.array([1, 2, 3], dtype="Int64"),
+        Categorical([1, 2, 3]),
+        Index([1, 2, 3]),
+        Series([1, 2, 3]),
+    ]:
+        with tm.assert_produces_warning(None):
+            assert is_array_like_deprecate_non_pandas(obj)
+
+    # duck-typed array-likes warn but still return True
+    duck = MockNumpyLikeArray(np.array([1, 2, 3]))
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="no longer be treated as array-like"
+    ):
+        assert is_array_like_deprecate_non_pandas(duck)
+
+    # non-array-likes return False without warning
+    with tm.assert_produces_warning(None):
+        assert not is_array_like_deprecate_non_pandas([1, 2, 3])
+        assert not is_array_like_deprecate_non_pandas("foo")
+
+    # 0-dim ndarrays are effective scalars, matching is_array_like
+    with tm.assert_produces_warning(None):
+        assert not is_array_like_deprecate_non_pandas(np.array(5))
 
 
 @pytest.mark.parametrize(
@@ -1087,7 +1119,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=UTC), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 

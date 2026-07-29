@@ -738,6 +738,27 @@ class TestHelpFunctions:
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_non_unique(self, dtype, writable):
+        N = 43
+        values = np.repeat((np.arange(N) + N).astype(dtype), 3)
+        targets = np.array([N + 1, N, 5], dtype=dtype)
+        values.flags.writeable = writable
+        targets.flags.writeable = writable
+        if dtype in (np.object_, np.complex128, np.complex64):
+            with pytest.raises(TypeError, match="(complex|object)"):
+                ht.get_indexer_non_unique(values, targets, False)
+            return
+        expected = np.array([3, 4, 5, 0, 1, 2, -1], dtype=np.intp)
+        expected_missing = np.array([2], dtype=np.intp)
+        # full-scan path
+        result, missing = ht.get_indexer_non_unique(values, targets, False)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+        # values are sorted, so the searchsorted path gives the same answer
+        result, missing = ht.get_indexer_non_unique(values, targets, True)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+
     def test_mode(self, dtype, writable):
         if dtype in (np.int8, np.uint8):
             N = 53

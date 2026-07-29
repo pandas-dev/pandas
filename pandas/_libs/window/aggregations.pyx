@@ -1,9 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport (
-    fabs,
-    signbit,
-)
+from libc.math cimport fabs
+from libcpp.cmath cimport signbit
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map
@@ -801,13 +799,20 @@ cdef void remove_cov(
     dy = val_y - mean_y[0]
 
     nobs[0] -= 1
-    mean_x[0] -= dx / nobs[0]
-    mean_y[0] -= dy / nobs[0]
-    ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
+    if nobs[0]:
+        mean_x[0] -= dx / nobs[0]
+        mean_y[0] -= dy / nobs[0]
+        ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
 
-    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
-        # possible catastrophic cancellation
-        numerically_unstable[0] = True
+        if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+    else:
+        # GH#65739 avoid 0/0 -> NaN poisoning subsequent windows
+        mean_x[0] = 0
+        mean_y[0] = 0
+        ssqdm_xy[0] = 0
+        numerically_unstable[0] = False
 
 
 def roll_cov(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,
@@ -946,15 +951,24 @@ cdef void remove_corr(
     dy = val_y - mean_y[0]
 
     nobs[0] -= 1
-    mean_x[0] -= dx / nobs[0]
-    mean_y[0] -= dy / nobs[0]
-    ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
-    ssqdm_x[0] -= (val_x - mean_x[0]) * dx
-    ssqdm_y[0] -= (val_y - mean_y[0]) * dy
+    if nobs[0]:
+        mean_x[0] -= dx / nobs[0]
+        mean_y[0] -= dy / nobs[0]
+        ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
+        ssqdm_x[0] -= (val_x - mean_x[0]) * dx
+        ssqdm_y[0] -= (val_y - mean_y[0]) * dy
 
-    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
-        # possible catastrophic cancellation
-        numerically_unstable[0] = True
+        if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+    else:
+        # GH#65739 avoid 0/0 -> NaN poisoning subsequent windows
+        mean_x[0] = 0
+        mean_y[0] = 0
+        ssqdm_xy[0] = 0
+        ssqdm_x[0] = 0
+        ssqdm_y[0] = 0
+        numerically_unstable[0] = False
 
 
 def roll_corr(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,

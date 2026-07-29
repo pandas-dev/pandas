@@ -136,15 +136,45 @@ def test_from_sequence_allows_i8():
     result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
     result2 = period_array(arr.asi8, dtype=arr.dtype)
     result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
-    # FIXME: GH#64227 this goes through a different path and gives different behavior
-    # result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
+    result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
     result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
 
     tm.assert_period_array_equal(result1, expected)
     tm.assert_period_array_equal(result2, expected)
     tm.assert_period_array_equal(result3, expected)
-    # tm.assert_period_array_equal(result4, expected)
+    tm.assert_period_array_equal(result4, expected)
     tm.assert_period_array_equal(result5, expected)
+
+
+def test_from_sequence_integers_with_na_consistent():
+    # GH#64227 an int is interpreted as a calendar year regardless of whether
+    #  an NA is present; previously a None flipped ints to raw-ordinal values
+    expected = PeriodArray._from_sequence([2000, 2001], dtype="period[D]")
+    assert expected.tolist() == [pd.Period("2000", "D"), pd.Period("2001", "D")]
+
+    result = PeriodArray._from_sequence([2000, None], dtype="period[D]")
+    tm.assert_period_array_equal(result[:1], expected[:1])
+    assert result[1] is pd.NaT
+
+    # the integer NaT sentinel is still respected in the object path
+    result = PeriodArray._from_sequence([iNaT, 2001], dtype="period[D]")
+    assert result[0] is pd.NaT
+    tm.assert_period_array_equal(result[1:], expected[1:])
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt32", "int64[pyarrow]"])
+def test_from_sequence_masked_arrow_integers_with_na(dtype):
+    # GH#64227 masked/arrow integer arrays with NA used to raise a misleading
+    #  "does not allow floating point" TypeError from the np.asarray-float path
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = pd.array([2000, None], dtype=dtype)
+    result = PeriodArray._from_sequence(values, dtype="period[D]")
+
+    expected = PeriodArray._from_sequence(
+        [pd.Period("2000", "D"), None], dtype="period[D]"
+    )
+    tm.assert_period_array_equal(result, expected)
 
 
 def test_from_td64nat_sequence_raises():

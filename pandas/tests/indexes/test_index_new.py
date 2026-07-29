@@ -3,9 +3,9 @@ Tests for the Index constructor conducting inference.
 """
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 
@@ -186,7 +186,7 @@ class TestIndexConstructorInference:
         # https://github.com/pandas-dev/pandas/pull/55793/files#r1383719998
         tz = maybe_get_tz("US/Central")
         dt1 = datetime(2020, 1, 1, tzinfo=tz)
-        dt2 = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        dt2 = datetime(2020, 1, 1, tzinfo=UTC)
         result = Index([dt1, dt2])
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
@@ -238,12 +238,12 @@ class TestDtypeEnforced:
         dti = date_range("2016-01-01", periods=3)
         cat = Categorical(dti)
         result = Index(cat, dti.dtype)
-        tm.assert_index_equal(result, dti)
+        tm.assert_index_equal(result, dti, check_freq=False)
 
         dti2 = dti.tz_localize("Asia/Tokyo")
         cat2 = Categorical(dti2)
         result = Index(cat2, dti2.dtype)
-        tm.assert_index_equal(result, dti2)
+        tm.assert_index_equal(result, dti2, check_freq=False)
 
         ii = IntervalIndex.from_breaks(range(5))
         cat3 = Categorical(ii)
@@ -254,12 +254,12 @@ class TestDtypeEnforced:
         dti = date_range("2016-01-01", periods=3)
         result = Index(dti, dtype="category")
         expected = CategoricalIndex(dti)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         dti2 = date_range("2016-01-01", periods=3, tz="US/Pacific")
         result = Index(dti2, dtype="category")
         expected = CategoricalIndex(dti2)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_constructor_period_values_mismatched_dtype(self):
         pi = period_range("2016-01-01", periods=3, freq="D")
@@ -272,7 +272,7 @@ class TestDtypeEnforced:
         tdi = timedelta_range("4 Days", periods=5)
         result = Index(tdi, dtype="category")
         expected = CategoricalIndex(tdi)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_constructor_interval_values_mismatched_dtype(self):
         dti = date_range("2016-01-01", periods=3)

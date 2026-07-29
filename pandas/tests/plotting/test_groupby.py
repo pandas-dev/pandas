@@ -165,3 +165,41 @@ class TestDataFrameGroupByPlots:
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             g.hist(legend=True, label="d")
+
+    def test_plot_kwargs_scatter_legend_labels(self):
+        # https://github.com/pandas-dev/pandas/pull/66027
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5],
+                "y": [1, 2, 3, 2, 1],
+                "z": list("ababa"),
+            }
+        )
+
+        res = df.groupby("z").plot.scatter(
+            x="x",
+            y="y",
+            legend=True,
+        )
+
+        _check_legend_labels(res["a"], ["a"])
+        _check_legend_labels(res["b"], ["b"])
+
+    def test_plot_kwargs_scatter_no_legend(self):
+        # https://github.com/pandas-dev/pandas/pull/66027
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5],
+                "y": [1, 2, 3, 2, 1],
+                "z": list("ababa"),
+            }
+        )
+
+        res = df.groupby("z").plot.scatter(
+            x="x",
+            y="y",
+            legend=False,
+        )
+
+        assert res["a"].get_legend() is None
+        assert res["b"].get_legend() is None

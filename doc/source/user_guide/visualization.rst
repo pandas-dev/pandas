@@ -1310,6 +1310,8 @@ plots, including those made by matplotlib, set the option
 ``pd.options.plotting.matplotlib.register_converters = True`` or use
 :meth:`pandas.plotting.register_matplotlib_converters`.
 
+.. _plotting.x_compat:
+
 Suppressing tick resolution adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1794,8 +1796,8 @@ This would be more or less equivalent to:
     >>> backend.module.plot(pd.Series([1, 2, 3]))
 
 The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
-to generate the plots. Some libraries implementing a backend for pandas are listed
-on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
+to generate the plots. Some libraries implementing a backend for pandas are
+listed on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html#plotting-backends>`_.
 
 Developers guide can be found at
 https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends

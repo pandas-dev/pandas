@@ -49,6 +49,25 @@ def test_read_index_error_close_store(temp_h5_path):
     df.to_hdf(temp_h5_path, key="k1")
 
 
+def test_read_other_error_closes_store(temp_h5_path, monkeypatch):
+    # GH 28430 read_hdf must close a store it opened on *any* error from
+    # select, not only ValueError/TypeError/LookupError
+    df = DataFrame({"a": range(2), "b": range(2)})
+    df.to_hdf(temp_h5_path, key="k1")
+
+    def raise_assertion(*args, **kwargs):
+        raise AssertionError("gaps in blocks ref_loc")
+
+    monkeypatch.setattr(HDFStore, "select", raise_assertion)
+
+    with pytest.raises(AssertionError, match="gaps in blocks ref_loc"):
+        read_hdf(temp_h5_path, "k1")
+
+    # smoke test to test that file is properly closed after the error,
+    # so we can reopen it for writing
+    df.to_hdf(temp_h5_path, key="k1")
+
+
 def test_read_missing_key_opened_store(temp_h5_path):
     # GH 28699
     df = DataFrame({"a": range(2), "b": range(2)})
