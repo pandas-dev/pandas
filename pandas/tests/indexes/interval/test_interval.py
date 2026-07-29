@@ -18,6 +18,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 
 
@@ -898,6 +899,35 @@ def test_from_arrays_mismatched_signedness_raises():
     right = np.array([1, 2, 3], dtype="uint64")
     with pytest.raises(TypeError, match="matching signedness"):
         IntervalIndex.from_arrays(left, right)
+
+
+@pytest.mark.parametrize(
+    "left, right",
+    [
+        # right overflows int64 -> right.dtype becomes object
+        pytest.param([0], [2**64], id="right-overflows"),
+        # left overflows int64 -> left.dtype becomes object (mirror case,
+        # already raised before this fix; kept here so both sides are
+        # covered by the same parametrization)
+        pytest.param([-(2**64)], [0], id="left-overflows"),
+    ],
+)
+def test_interval_index_endpoint_dtype_mismatch_raises(left, right):
+    # GH 66518: previously, an endpoint whose values overflow int64 (and
+    # therefore has object dtype) was only checked on `left`. When only
+    # `right` overflowed, IntervalIndex/IntervalArray silently produced a
+    # dtype of e.g. "interval[int64, right]" while `right.dtype` was
+    # actually object, so `dtype.subtype` disagreed with the real data.
+    msg = "category, object, and string subtypes are not supported for IntervalIndex"
+    with pytest.raises(TypeError, match=msg):
+        IntervalIndex.from_arrays(left, right)
+
+
+def test_interval_array_endpoint_dtype_mismatch_raises():
+    # GH 66518, IntervalArray counterpart of the IntervalIndex check above.
+    msg = "category, object, and string subtypes are not supported for IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        IntervalArray([Interval(0, 2**64)])
 
 
 def test_dir():
