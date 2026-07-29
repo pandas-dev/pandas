@@ -445,6 +445,35 @@ cdef class _TSObject:
         return self.value
 
 
+cdef _set_tso_nanosecond(_TSObject obj, int32_t nanos):
+    """
+    Overwrite the sub-microsecond portion of obj.dts/obj.value with `nanos`,
+    matching the "set" (not "add") semantics used for pydatetime input in
+    convert_datetime_to_tsobject.
+
+    Sub-microsecond information only exists at ns resolution, so this also
+    promotes obj.creso.  Callers must have built obj.dts at the input's own
+    resolution first: converting the raw input to ns up front would reject
+    values that only fit once the sub-microsecond field has been replaced.
+    """
+    cdef:
+        int64_t value
+
+    obj.creso = NPY_FR_ns
+    obj.dts.ps = nanos * 1000
+    try:
+        value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(
+            f"Out of bounds nanosecond timestamp: {dts_to_iso_string_ns(&obj.dts)}"
+        ) from err
+
+    # GH#66510 one in-bounds-looking wall time renders onto the sentinel
+    check_nat_sentinel(value, &obj.dts, NPY_FR_ns)
+
+    obj.value = value
+
+
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                                    bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
@@ -489,6 +518,10 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         obj.value = get_datetime64_nanos(ts, reso)
         if obj.value != NPY_NAT:
             pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
+            if nanos:
+                # set before localizing; `nanos` describes the wall time
+                _set_tso_nanosecond(obj, nanos)
+                reso = obj.creso
             if tz is not None:
                 # GH#24559, GH#42288 We treat np.datetime64 objects as *wall* times
                 obj.value = tz_localize_to_utc_single(
@@ -513,6 +546,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             obj.value = ts
             obj.creso = reso
             pandas_datetime_to_datetimestruct(ts, reso, &obj.dts)
+            if nanos:
+                _set_tso_nanosecond(obj, nanos)
     elif is_float_object(ts):
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
@@ -520,6 +555,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             ts = cast_from_unit(ts, unit)
             obj.value = ts
             pandas_datetime_to_datetimestruct(ts, NPY_FR_ns, &obj.dts)
+            if nanos:
+                _set_tso_nanosecond(obj, nanos)
     elif PyDateTime_Check(ts):
         if nanos == 0:
             if isinstance(ts, _Timestamp):
@@ -535,7 +572,10 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         # For date object we give the lowest supported resolution, i.e. "s"
         ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(
-            ts, tz, nanos=0, reso=NPY_DATETIMEUNIT.NPY_FR_s
+            ts,
+            tz,
+            nanos=nanos,
+            reso=NPY_FR_ns if nanos else NPY_DATETIMEUNIT.NPY_FR_s,
         )
     else:
         from .period import Period

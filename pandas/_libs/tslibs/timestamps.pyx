@@ -1917,7 +1917,9 @@ class Timestamp(_Timestamp):
     tzinfo : datetime.tzinfo, optional, default None
         Timezone info.
     nanosecond : int, optional, default 0
-        Value of nanosecond.
+        Value of nanosecond. A non-zero value stores the result in nanoseconds,
+        overriding ``unit`` and the resolution of ``ts_input``, so values too far
+        from the epoch to be held in nanoseconds raise ``OutOfBoundsDatetime``.
     tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
