@@ -1263,6 +1263,7 @@ def test_multi_column_dtype_assignment():
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
 
+
 def test_numpy_s3_dtype_on_index():
     # GH#50127
     index = pd.Index(["abcd", "1234"], dtype="S3")
