@@ -3280,3 +3280,130 @@ def test_pivot_non_column_label_raises_gh35785():
     )
     expected.columns.name = "bar"
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "box",
+    [list, np.array, Series, Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "ExtensionArray"],
+)
+def test_pivot_array_like_labels_gh35785(box):
+    # GH#35785 array-likes of valid column labels are labels, not values
+    df = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+
+    result = df.pivot(index=box(["foo"]), columns=box(["bar"]))
+    tm.assert_frame_equal(result, df.pivot(index="foo", columns="bar"))
+
+    result = df.pivot(columns=box(["bar"]))
+    tm.assert_frame_equal(result, df.pivot(columns="bar"))
+
+    # the values path is affected too; e.g. a Series ``columns`` reached unstack
+    result = df.pivot(index=box(["foo"]), columns=box(["bar"]), values=["baz"])
+    tm.assert_frame_equal(
+        result, df.pivot(index=["foo"], columns=["bar"], values=["baz"])
+    )
+
+
+@pytest.mark.parametrize(
+    "box",
+    [list, np.array, Series, Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "ExtensionArray"],
+)
+def test_pivot_array_like_multiple_labels_gh35785(box):
+    # GH#35785 two labels take unstack's _unstack_multiple path, which an
+    #  unconverted array-like reaches as an ambiguous truth value
+    df = DataFrame(
+        {
+            "lev1": [1, 1, 1, 2, 2, 2],
+            "lev2": [1, 1, 2, 1, 1, 2],
+            "lev3": [1, 2, 1, 2, 1, 2],
+            "values": [0, 1, 2, 3, 4, 5],
+        }
+    )
+
+    result = df.pivot(
+        index=box(["lev1"]), columns=box(["lev2", "lev3"]), values="values"
+    )
+    tm.assert_frame_equal(
+        result, df.pivot(index="lev1", columns=["lev2", "lev3"], values="values")
+    )
+
+
+@pytest.mark.parametrize("box", [Index, Series])
+def test_pivot_named_values_names_columns_level_gh35785(box):
+    # GH#35785 ``values`` is looked up as-is, so a named Index/Series names the
+    #  resulting columns level; normalizing it to a list would drop the name
+    df = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+
+    result = df.pivot(index="foo", columns="bar", values=box(["baz"], name="V"))
+
+    expected = df.pivot(index="foo", columns="bar", values=["baz"])
+    expected.columns.names = ["V", "bar"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [np.array, list, Series, Index, iter])
+def test_pivot_index_array_of_values_gh35785(box):
+    # GH#35785 an entry that set_index takes as level values is not a label
+    df = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+    values = ["x", "y", "z"]
+
+    result = df.pivot(index=[box(values)], columns="bar")
+    expected = df.set_index([np.array(values), "bar"]).unstack(["bar"])
+    tm.assert_frame_equal(result, expected)
+
+    # only set_index's array spellings are exempt from the label check, and only
+    #  on this path: with ``values`` the entries are looked up as columns
+    with pytest.raises(KeyError, match="'index' labels are not columns"):
+        df.pivot(index=[box(values)], columns="bar", values="baz")
+    with pytest.raises(KeyError, match="'index' labels are not columns"):
+        df.pivot(index=[{"a": 1}], columns="bar")
+
+
+def test_pivot_array_columns_entry_raises_gh35785():
+    # GH#35785 unlike index, a columns entry is always a label, so an array is
+    #  named by the KeyError instead of failing later in unstack
+    df = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+
+    with pytest.raises(KeyError, match="'columns' labels are not columns"):
+        df.pivot(columns=[np.array(["x", "y", "z"])])
+    with pytest.raises(KeyError, match="'values' labels are not columns"):
+        df.pivot(index="foo", columns="bar", values=[np.array(["x", "y", "z"])])
+
+
+def test_pivot_datetimelike_array_labels_gh35785():
+    # GH#35785 a datetimelike array-like of labels also reached the elementwise add
+    df = DataFrame({pd.Timestamp("2016-03-02"): ["one", "two"], "bar": ["A", "B"]})
+    result = df.pivot(columns=np.array(["2016-03-02"], dtype="M8[ns]"))
+    tm.assert_frame_equal(result, df.pivot(columns=[pd.Timestamp("2016-03-02")]))
+
+    df = DataFrame({pd.Timedelta("1D"): ["one", "two"], "bar": ["A", "B"]})
+    result = df.pivot(columns=np.array([86400000000000], dtype="m8[ns]"))
+    tm.assert_frame_equal(result, df.pivot(columns=[pd.Timedelta("1D")]))
+
+
+def test_pivot_iterator_labels_gh35785():
+    # GH#35785 a one-shot iterator must not be consumed by the label check
+    df = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+
+    result = df.pivot(index=(col for col in ["foo"]), columns=(col for col in ["bar"]))
+    tm.assert_frame_equal(result, df.pivot(index="foo", columns="bar"))
+
+    result = df.pivot(
+        index=(col for col in ["foo"]),
+        columns=(col for col in ["bar"]),
+        values=(col for col in ["baz"]),
+    )
+    tm.assert_frame_equal(
+        result, df.pivot(index=["foo"], columns=["bar"], values=["baz"])
+    )

@@ -13180,11 +13180,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        columns : Hashable or a sequence of the previous
+        columns : Hashable or a sequence of the previous, or array-like
             Column to use to make new frame's columns.
-        index : Hashable or a sequence of the previous, optional
+        index : Hashable or a sequence of the previous, or array-like, optional
             Column to use to make new frame's index. If not given, uses existing index.
-        values : Hashable or a sequence of the previous, optional
+        values : Hashable or a sequence of the previous, or array-like, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
@@ -13211,6 +13211,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        An array-like ``index`` or ``columns`` is a sequence of column labels, unlike
+        :meth:`DataFrame.pivot_table`, which also accepts an array of values to group
+        by. When ``values`` is not given, an array nested inside the ``index`` list is
+        a column of level values, as in :meth:`DataFrame.set_index`. ``index``,
+        ``columns`` and ``values`` may also be given as an iterator of labels.
+
         For finer-tuned control, see hierarchical indexing documentation along
         with the related stack/unstack methods.
 

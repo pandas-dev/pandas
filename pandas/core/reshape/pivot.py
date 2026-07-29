@@ -14,6 +14,7 @@ from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_hashable,
     is_list_like,
     is_nested_list_like,
     is_scalar,
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Iterable,
     )
 
     from pandas._typing import (
@@ -747,9 +749,9 @@ def _convert_by(by):
 def pivot(
     data: DataFrame,
     *,
-    columns: IndexLabel,
-    index: IndexLabel | lib.NoDefault = lib.no_default,
-    values: IndexLabel | lib.NoDefault = lib.no_default,
+    columns: IndexLabel | Iterable[Hashable],
+    index: IndexLabel | Iterable[Hashable] | lib.NoDefault = lib.no_default,
+    values: IndexLabel | Iterable[Hashable] | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     """
     Return reshaped DataFrame organized by given index / column values.
@@ -764,11 +766,11 @@ def pivot(
     ----------
     data : DataFrame
         Input pandas DataFrame object.
-    columns : Hashable or a sequence of the previous
+    columns : Hashable or a sequence of the previous, or array-like
         Column to use to make new frame's columns.
-    index : Hashable or a sequence of the previous, optional
+    index : Hashable or a sequence of the previous, or array-like, optional
         Column to use to make new frame's index. If not given, uses existing index.
-    values : Hashable or a sequence of the previous, optional
+    values : Hashable or a sequence of the previous, or array-like, optional
         Column(s) to use for populating new frame's values. If not
         specified, all remaining columns will be used and the result will
         have hierarchically indexed columns.
@@ -795,6 +797,12 @@ def pivot(
 
     Notes
     -----
+    An array-like ``index`` or ``columns`` is a sequence of column labels, unlike
+    :meth:`DataFrame.pivot_table`, which also accepts an array of values to group by.
+    When ``values`` is not given, an array nested inside the ``index`` list is a column
+    of level values, as in :meth:`DataFrame.set_index`. ``index``, ``columns`` and
+    ``values`` may also be given as an iterator of labels.
+
     For finer-tuned control, see hierarchical indexing documentation along
     with the related stack/unstack methods.
 
@@ -897,18 +905,45 @@ def pivot(
        ...
     ValueError: Index contains duplicate entries, cannot reshape
     """
-    columns_listlike = com.convert_to_list_like(columns)
+    # GH#35785 normalize index/columns to plain lists once and reuse them: array-likes
+    #  of valid labels are then used as labels instead of being combined elementwise,
+    #  and a one-shot iterator is not exhausted by the check below.
+    columns_listlike = list(com.convert_to_list_like(columns))
+    # GH#35785 check up front so the error names the offending parameter; the
+    #  downstream set_index/unstack failure does not say which argument was wrong.
+    labels_to_check: list[tuple[str, list]] = [("columns", columns_listlike)]
 
-    # GH#35785 without this, downstream label arithmetic raises cryptically.
-    labels_to_check: list[tuple[str, list]] = [("columns", list(columns_listlike))]
+    index_listlike: list = []
     if index is not lib.no_default:
-        labels_to_check.append(("index", list(com.convert_to_list_like(index))))
+        index_listlike = list(com.convert_to_list_like(index))
+        index_labels = index_listlike
+        if values is lib.no_default:
+            # GH#35785 the set_index below takes an Index/Series/ndarray/list/iterator
+            #  entry as a column of level values rather than as a label
+            index_labels = [
+                label
+                for label in index_listlike
+                if not isinstance(label, (Index, ABCSeries, np.ndarray, list))
+                and not lib.is_iterator(label)
+            ]
+        labels_to_check.append(("index", index_labels))
+
+    if lib.is_iterator(values):
+        # GH#35785 materialize before the check below consumes it. ``values`` is not
+        #  list-ified like index/columns: it is used for the lookup as-is, where a
+        #  named Index/Series names the resulting columns level.
+        values = list(cast("Iterable[Hashable]", values))
     if values is not lib.no_default and not isinstance(values, tuple):
         # GH#17160 a tuple ``values`` is a single (MultiIndex) label; the
         #  existing lookup already raises a KeyError naming it.
         labels_to_check.append(("values", list(com.convert_to_list_like(values))))
+
     for param_name, labels in labels_to_check:
-        missing = [label for label in labels if label not in data.columns]
+        missing = [
+            label
+            for label in labels
+            if not is_hashable(label) or label not in data.columns
+        ]
         if missing:
             raise KeyError(
                 f"The following '{param_name}' labels are not columns of the "
@@ -926,18 +961,8 @@ def pivot(
 
     indexed: DataFrame | Series
     if values is lib.no_default:
-        if index is not lib.no_default:
-            cols = com.convert_to_list_like(index)
-        else:
-            cols = []
-
         append = index is lib.no_default
-        # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
-        # error: Unsupported left operand type for + ("ExtensionArray")
-        indexed = data.set_index(
-            cols + columns_listlike,  # type: ignore[operator]
-            append=append,
-        )
+        indexed = data.set_index(index_listlike + columns_listlike, append=append)
     else:
         index_list: list[Index] | list[Series]
         if index is lib.no_default:
@@ -951,7 +976,7 @@ def pivot(
                     data._constructor_sliced(data.index, name=data.index.name)
                 ]
         else:
-            index_list = [data[idx] for idx in com.convert_to_list_like(index)]
+            index_list = [data[idx] for idx in index_listlike]
 
         data_columns = [data[col] for col in columns_listlike]
         index_list.extend(data_columns)
@@ -966,11 +991,8 @@ def pivot(
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
-    # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
-    # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
-    # "Hashable"
     # unstack with a MultiIndex returns a DataFrame
-    result = cast("DataFrame", indexed.unstack(columns_listlike))  # type: ignore[arg-type]
+    result = cast("DataFrame", indexed.unstack(columns_listlike))
     result.index.names = [
         name if name is not lib.no_default else None for name in result.index.names
     ]
