@@ -529,6 +529,11 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+                # GH#50127 we must update the `dtype` when we have the numpy
+                # type `S` to `_dtype_to_subclass`, because it would raise a
+                # `NotImplementedError`.
+                if dtype and dtype.kind == "S":
+                    dtype = _dtype_obj
         elif isinstance(data, (ABCSeries, Index)):
             # GH 56244: Avoid potential inference on object types
             pass
@@ -567,9 +572,15 @@ class Index(IndexOpsMixin, PandasObject):
                 # unlike Series, we default to object dtype:
                 data = np.array(data, dtype=object)
 
-            if len(data) and isinstance(data[0], tuple):
+            elif isinstance(data[0], tuple):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+
+            elif dtype and dtype.kind == "S":
+                # GH#50127 we update data to a np.array with the correct dtype.
+                data = np.array(data, dtype=dtype)
+                copy = False
+                dtype = _dtype_obj
 
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=bool(copy))
