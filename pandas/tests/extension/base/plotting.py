@@ -3,22 +3,26 @@ Tests for plotting compatibility.
 """
 
 from typing import Literal
+import warnings
 
 import pytest
 
 from pandas.util.version import Version
 
 mpl = pytest.importorskip("matplotlib", reason="test requires matplotlib")
-pyparsing = pytest.importorskip("pyparsing", reason="test requires pyparsing")
+pyparsing = pytest.importorskip("pyparsing", reason="matplotlib requires pyparsing")
+from pyparsing.warnings import PyparsingDeprecationWarning
 
-# Raised by pyparsing in minimum-version CI for pyparsing>=3.3.0 and
-# matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
+# Filter warning raised by pyparsing in minimum-version CI for pyparsing>=3.3.0
+# and matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
 if (Version(pyparsing.__version__) >= Version("3.3.0")) and (
     Version(mpl.__version__) < Version("3.11")
 ):
-    pytestmark = pytest.mark.filterwarnings(
-        "ignore:'enablePackrat' deprecated - use 'enable_packrat'"
-        ":pyparsing.warnings.PyparsingDeprecationWarning"
+    warnings.filterwarnings(
+        "ignore",
+        message="'enablePackrat' deprecated - use 'enable_packrat'",
+        category=PyparsingDeprecationWarning,
+        module=r"matplotlib.*",
     )
 
 from matplotlib import (
