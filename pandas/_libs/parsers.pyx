@@ -2571,7 +2571,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 continue
 
             # Not strlen: an embedded NUL is a data byte here, so strlen would
-            # truncate the field at it (GH#66277).
+            # truncate the field at it (GH#66415).
             wlen = _token_len_words(parser, token_idx, word)
 
             if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
@@ -3062,11 +3062,11 @@ cdef inline int64_t _token_len_words(parser_t *parser, int64_t token_idx,
     # rather than `word_starts`.  The tokenizer keeps the two in lockstep
     # (words[i] == stream + word_starts[i], rebased whenever the stream
     # reallocs), so the result is identical; what differs is which array the
-    # loop touches.  coliter_next already loaded words[token_idx] to produce
-    # `word`, so the boundary comes off a cache line the loop has in hand
-    # instead of streaming a second metadata array alongside the first.
-    # `word` must be the unmodified coliter_next result for `token_idx`;
-    # an adjusted pointer would silently yield a wrong length.
+    # loop touches.  coliter_next_with_idx already loaded words[token_idx] to
+    # produce `word`, so the boundary comes off a cache line the loop has in
+    # hand instead of streaming a second metadata array alongside the first.
+    # `word` must be the unmodified coliter_next_with_idx result for
+    # `token_idx`; an adjusted pointer would silently yield a wrong length.
     # Only the pyarrow string path uses this: rewriting _token_len itself to
     # this form regressed long-token ints ~6% (GH#66277), so the numeric
     # callers keep the word_starts version.

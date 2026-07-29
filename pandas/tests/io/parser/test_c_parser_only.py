@@ -858,10 +858,12 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("prefix_len", [1, 200])
 def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
-    # GH#19886: the pyarrow string fast path computed token lengths with
+    # GH#66415: the pyarrow string fast path computed token lengths with
     # strlen, so a quoted field with an embedded NUL byte was truncated at the
-    # NUL.  Column "b" is the last token in the stream, so its length comes
-    # from the stream end rather than from the next token's start.
+    # NUL.  Column "a" takes its length from the next token's start and column
+    # "b", last in the stream, from the stream end, covering both branches of
+    # the length helper; the two prefix_len values keep a length-capped scan
+    # from passing by accident.
     pytest.importorskip("pyarrow")
     parser = c_parser_only
     value = b"x" * prefix_len + b"\x00y"
