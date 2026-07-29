@@ -4831,6 +4831,10 @@ class MultiIndex(Index):
             if not isinstance(values, MultiIndex):
                 # GH#20252, GH#26622 from_tuples silently gives wrong results
                 #  for elements that aren't tuple-likes of length nlevels.
+                # GH#66514 iterators have no len, so materialize them first.
+                values = [
+                    tuple(value) if is_iterator(value) else value for value in values
+                ]
                 for position, value in enumerate(values):
                     if is_list_like(value) and len(value) == self.nlevels:
                         continue

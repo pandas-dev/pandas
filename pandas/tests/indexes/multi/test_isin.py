@@ -104,6 +104,27 @@ def test_isin_generator():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("box", [list, set])
+def test_isin_iterator_values(box):
+    # GH#66514 elements that are iterators have no len
+    midx = MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
+    result = midx.isin(box([iter([1, "a"])]))
+    expected = np.array([True, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_isin_iterator_values_wrong_length_raises():
+    # GH#66514 iterators are length-checked like any other element
+    midx = MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
+    msg = (
+        "MultiIndex.isin expects an iterable of tuples of length 2 "
+        r"\(the number of levels\); got an element of length 3 at position 0\. "
+        "To match on a single level, pass the level= argument\\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        midx.isin([iter([1, "a", "x"])])
+
+
 def test_isin_scalar_values_raises_gh20252():
     # GH#20252
     midx = MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
