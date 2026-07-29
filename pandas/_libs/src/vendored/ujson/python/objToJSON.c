@@ -1472,6 +1472,8 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             // numpy arrays are already scaled to the correct unit
             // only need to scale if coming from a datetime/timedelta object
             if (scaleNanosecToUnit(&i8date, targetUnit) == -1) {
+              PyObject_Free(cLabel);
+              Py_DECREF(item);
               NpyArr_freeLabels(ret, num);
               ret = 0;
               break;
