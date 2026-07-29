@@ -452,9 +452,10 @@ class TestJSONArray(base.ExtensionTests):
         # with the simple deserialization in the test.
         super().test_json_roundtrip(data)
 
-    @pytest.mark.skip(reason="JSONArray cannot be plotted on y-axis")
-    def test_plot_on_y_axis(self, df_plot):
-        super().test_plot_on_y_axis(df_plot)
+    def test_plot_on_y_axis(self, data):
+        # JSONArray cannot be plotted on y-axis
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(data)
 
 
 def custom_assert_series_equal(left, right, *args, **kwargs):

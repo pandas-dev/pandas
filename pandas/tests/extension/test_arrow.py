@@ -1138,10 +1138,9 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_plot_on_y_axis(self, data, request):
         # GH 64535
-        # Setup expected exception and message for xfail
-        err_cls = BaseException
+        # Setup expected exception and message for expected failures
+        err_cls = None
         msg = ""
-        reason = ""
 
         # Set expected values and kwargs for certain dtypes
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1149,20 +1148,17 @@ class TestArrowArray(base.ExtensionTests):
         # str and binary are supported by matplotlib, but not pandas at the moment
         if pa.types.is_string(pa_dtype):
             err_cls = TypeError
-            reason = "String data cannot be plotted on y-axis"
             msg = "no numeric data to plot"
         elif pa.types.is_binary(pa_dtype):
             err_cls = TypeError
-            reason = "Binary data cannot be plotted on y-axis"
             msg = "no numeric data to plot"
 
         # Call test, errors should only be raised for unsupported dtypes set above
-        try:
+        if err_cls:
+            with pytest.raises(err_cls, match=msg):
+                super().test_plot_on_y_axis(data)
+        else:
             super().test_plot_on_y_axis(data)
-        except err_cls as err:
-            if msg and msg in str(err):
-                request.applymarker(pytest.mark.xfail(raises=err_cls, reason=reason))
-            raise
 
 
 class TestLogicalOps:

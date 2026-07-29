@@ -149,6 +149,7 @@ class TestIntervalArray(base.ExtensionTests):
         # dictionary created in JSON serialization
         super().test_json_roundtrip(data)
 
-    @pytest.mark.skip(reason="IntervalArray cannot be plotted on y-axis")
     def test_plot_on_y_axis(self, data):
-        super().test_plot_on_y_axis(data)
+        # IntervalArray cannot be plotted on y-axis
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(data)

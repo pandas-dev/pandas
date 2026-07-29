@@ -532,15 +532,12 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_plot_on_y_axis(self, data, request):
         # GH 64535
         # While plotting complex numbers only the real part is plotted, therefore numpy
-        # raises a ComplexWarning. Skipping for object dtype as it cannot be plotted on
-        # y-axis.
+        # raises a ComplexWarning. Object dtype as it cannot be plotted on y-axis.
         if is_object_dtype(data.dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=TypeError, reason="object dtype cannot be plotted on y-axis"
-                )
-            )
-        super().test_plot_on_y_axis(data)
+            with pytest.raises(TypeError, match="no numeric data to plot"):
+                super().test_plot_on_y_axis(data)
+        else:
+            super().test_plot_on_y_axis(data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):
