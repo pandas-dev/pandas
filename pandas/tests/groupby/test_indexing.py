@@ -309,15 +309,12 @@ def test_groupby_get_nonexisting_groups():
     with pytest.raises(KeyError, match=msg):
         grps.get_group(("a2", "b1"))
 
+
 def test_groupby_groups_single_element_list_tuple_key():
     # GH 62141
-    df = pd.DataFrame(
-        {
-            "a": [1, 2, 7],
-            "b": [2, 5, 8]
-        })
+    df = pd.DataFrame({"a": [1, 2, 7], "b": [2, 5, 8]})
     grouped = df.groupby(["a"])
 
-    #list group keys should be tuples 
+    # list group keys should be tuples
     expected_keys = [(1,), (2,), (7,)]
     assert list(grouped.groups.keys()) == expected_keys

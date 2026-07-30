@@ -289,7 +289,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
          Timestamp('2023-02-01 00:00:00'): np.int64(4)}
         """
         groups_dict = self._grouper.groups
-        if isinstance(self.keys, list) and len(self.keys) ==1:
+        if isinstance(self.keys, list) and len(self.keys) == 1:
             return {(k,): v for k, v in groups_dict.items()}
         return groups_dict
 
