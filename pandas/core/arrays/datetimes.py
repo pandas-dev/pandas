@@ -3184,13 +3184,17 @@ def _generate_range(
     offset = to_offset(offset)
 
     start = Timestamp(start)
-    if start is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if start is not NaT:  # type: ignore[comparison-overlap]
         start = start.as_unit(unit)
     else:
         start = None
 
     end = Timestamp(end)
-    if end is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if end is not NaT:  # type: ignore[comparison-overlap]
         end = end.as_unit(unit)
     else:
         end = None
