@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
     timezone,
@@ -110,7 +111,7 @@ class TestTimestampArithmetic:
 
     def test_subtract_tzaware_datetime(self):
         t1 = Timestamp("2020-10-22T22:00:00+00:00")
-        t2 = datetime(2020, 10, 22, 22, tzinfo=timezone.utc)
+        t2 = datetime(2020, 10, 22, 22, tzinfo=UTC)
 
         result = t1 - t2
 
@@ -193,7 +194,7 @@ class TestTimestampArithmetic:
         ],
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ts = Timestamp(now).as_unit("ns")
         result = ts + other
         valdiff = result._value - ts._value

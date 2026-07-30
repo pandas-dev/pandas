@@ -453,6 +453,81 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@xfail_pyarrow  # pyarrow engine reads uint64-max via float64 and cannot cast it
+def test_nullable_int_dtype_boundary_values(all_parsers):
+    # A nullable-integer dtype whose boundary value coincides with the C
+    # parser's internal NA sentinel (int64 min / uint64 max) must be kept,
+    # not silently turned into NA.
+    parser = all_parsers
+    data = "a,b\n-9223372036854775808,18446744073709551615\n0,0\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64", "b": "UInt64"})
+    expected = DataFrame(
+        {
+            "a": pd.array([-9223372036854775808, 0], dtype="Int64"),
+            "b": pd.array([18446744073709551615, 0], dtype="UInt64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # pyarrow engine handles explicit ArrowDtype differently
+def test_explicit_arrow_numeric_dtype(all_parsers):
+    # Explicitly requesting a pyarrow-backed numeric dtype parses identically to
+    # dtype_backend="pyarrow" (e.g. it does not adopt pyarrow's more lenient
+    # string casting).
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a,b\n1,2.5\n,\n-3,4\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"a": "int64[pyarrow]", "b": "double[pyarrow]"}
+    )
+    expected = DataFrame(
+        {
+            "a": pd.array([1, pd.NA, -3], dtype="int64[pyarrow]"),
+            "b": pd.array([2.5, pd.NA, 4.0], dtype="double[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # hex is rejected, matching dtype="int64" (not silently parsed as 31)
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
+
+
+def test_explicit_arrow_temporal_dtype(all_parsers):
+    # Non-numeric pyarrow-backed dtypes round-trip through read_csv.
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a,b\n2020-01-01,1\n,2\n2021-06-15,3\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": "timestamp[ns][pyarrow]"})
+    expected = DataFrame(
+        {
+            "a": pd.array(
+                ["2020-01-01", None, "2021-06-15"], dtype="timestamp[ns][pyarrow]"
+            ),
+            "b": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # true_values/false_values not supported by the pyarrow engine
+def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
+    # User-supplied true_values/false_values augment the default token set.
+    parser = all_parsers
+    data = "a,b\nyes,1\nno,2\nTrue,3\n"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": "boolean"},
+        true_values=["yes"],
+        false_values=["no"],
+    )
+    expected = DataFrame(
+        {"a": pd.array([True, False, True], dtype="boolean"), "b": [1, 2, 3]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574

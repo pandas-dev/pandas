@@ -5,6 +5,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 import warnings
@@ -1321,8 +1322,9 @@ def nanskew(
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_skew(
-            values.ravel("K"), skipna, mask.ravel("K") if mask is not None else None
+            values.ravel(order), skipna, mask.ravel(order) if mask is not None else None
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
@@ -1378,8 +1380,9 @@ def nankurt(
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_kurt(
-            values.ravel("K"), skipna, mask.ravel("K") if mask is not None else None
+            values.ravel(order), skipna, mask.ravel(order) if mask is not None else None
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
@@ -1539,8 +1542,8 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
-    if mask is None and min_count == 0:
-        # nothing to check; short-circuit
+    if min_count <= 0:
+        # min_count <= 0 never nulls out; short-circuit
         return result
 
     if axis is not None and isinstance(result, np.ndarray):
@@ -1660,7 +1663,7 @@ def get_corr_func(
     elif method == "pearson":
 
         def func(a, b):
-            return np.corrcoef(a, b)[0, 1]
+            return _pearson_corr(a, b)
 
         return func
     elif callable(method):
@@ -1670,6 +1673,41 @@ def get_corr_func(
         f"Unknown method '{method}', expected one of "
         "'kendall', 'spearman', 'pearson', or callable"
     )
+
+
+def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
+    if a.ndim != 1 or b.ndim != 1 or np.iscomplexobj(a) or np.iscomplexobj(b):
+        return np.corrcoef(a, b)[0, 1]
+
+    if len(a) < 2:
+        return np.nan
+
+    a = a.astype(np.float64, copy=False)
+    b = b.astype(np.float64, copy=False)
+
+    a = a - a.mean()
+    b = b - b.mean()
+    a_scale = np.max(np.abs(a))
+    b_scale = np.max(np.abs(b))
+
+    if a_scale == 0 or b_scale == 0:
+        return np.nan
+
+    a = a / a_scale
+    b = b / b_scale
+    fact = len(a) - 1
+    divisor = np.sqrt(np.dot(a, a) / fact)
+
+    if divisor == 0:
+        return np.nan
+
+    result = np.dot(a, b) / fact / divisor
+    divisor = np.sqrt(np.dot(b, b) / fact)
+
+    if divisor == 0:
+        return np.nan
+
+    return np.clip(result / divisor, -1.0, 1.0)
 
 
 @disallow("M8", "m8")

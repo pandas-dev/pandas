@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import numpy as np
@@ -1533,6 +1533,20 @@ def test_loc_setitem_tz_aware_column_expansion():
     # Enlarging a DataFrame with a tz-aware datetime via loc
     # should preserve datetime64[us, tz] dtype, not fall back to object
     df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
-    _time = datetime.fromtimestamp(1695887042, timezone.utc)
+    _time = datetime.fromtimestamp(1695887042, UTC)
     df.loc[df.id >= 2, "time"] = _time
     assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")
+
+
+def test_setitem_boolean_mask_length_mismatch_message_gh45593():
+    # GH#45593
+    df = DataFrame({"a": [1], "b": [1]})
+    # split the columns into separate blocks so the value mismatch surfaces
+    df[["a", "b"]] = [[2, 2]]
+    select_df = DataFrame({"a": [True], "b": [False]})
+    msg = (
+        r"Cannot set with a boolean DataFrame mask: the number of values \(2\) "
+        r"does not match the number of True entries in the mask \(1\)\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        df[select_df] = [3, 3]

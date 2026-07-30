@@ -425,6 +425,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             npvalues = self._ndarray.T
             if copy:
                 npvalues = npvalues.copy()
+            elif self._readonly:
+                raise ValueError("Cannot modify read-only array")
             func(npvalues, limit=limit, limit_area=limit_area, mask=mask.T)
             npvalues = npvalues.T
 
@@ -516,6 +518,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         TypeError
             If value cannot be cast to self.dtype.
         """
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         value = self._validate_setitem_value(value)
 
         np.putmask(self._ndarray, mask, value)

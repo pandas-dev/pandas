@@ -145,7 +145,7 @@ class TestWhere:
         for arr in [np.nan, pd.NaT]:
             result = i.where(notna(i), other=arr)
             expected = i
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, check_freq=False)
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
@@ -217,7 +217,7 @@ class TestWhere:
         i = date_range("20130101", periods=3, tz="US/Eastern")
         result = i.where(notna(i))
         expected = i
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])

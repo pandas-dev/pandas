@@ -1029,6 +1029,19 @@ def test_concat_keys_overlapping_intervalindex_level():
     tm.assert_series_equal(result, expected)
 
 
+def test_concat_mismatched_nlevels_with_keys_gh25413():
+    # GH#25413
+    df1 = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
+    df2 = DataFrame(
+        np.arange(12).reshape(4, 3),
+        columns=["A", "B", "C"],
+        index=MultiIndex.from_product([["a", "b"], [1, 2]]),
+    )
+    msg = "Cannot concat indices that do not have the same number of levels"
+    with pytest.raises(ValueError, match=msg):
+        concat([df1, df2], keys=[1, 2])
+
+
 def test_concat_keys_overlapping_intervalindex_value_index():
     # GH#64825 the per-Series index is itself an overlapping IntervalIndex
     value_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="foo")
@@ -1043,3 +1056,33 @@ def test_concat_keys_overlapping_intervalindex_value_index():
         index=MultiIndex.from_product([level_index, value_index]),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_keys_duplicate_index_equal_lengths():
+    # GH#20565 concat with keys where each frame shares an identical duplicate
+    #  index must dedupe the shared level rather than repeat it per position
+    df1 = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"], index=["Z1"] * 3)
+    df2 = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"], index=["Z1"] * 3)
+    result = concat([df1, df2], keys=["Key1", "Key2"], names=["KEY", "ID"])
+    expected_index = MultiIndex(
+        levels=[["Key1", "Key2"], ["Z1"]],
+        codes=[[0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 0, 0]],
+        names=["KEY", "ID"],
+    )
+    tm.assert_index_equal(result.index, expected_index)
+
+
+def test_concat_tuple_index_series_axis1_not_multiindex():
+    # GH#24783 concatenating Series whose index labels are tuples must keep a
+    #  flat Index of those tuples, not explode them into a MultiIndex
+    s1 = Series([1.0, 2.0], index=[("a", "b"), ("x", "y", "z")], name="s1")
+    s2 = Series([3.0, 4.0], index=[("a", "b"), ("j", "k", "l")], name="s2")
+    result = concat([s1, s2], axis=1, sort=False)
+    assert result.index.nlevels == 1
+    index_arr = np.empty(3, dtype=object)
+    index_arr[:] = [("a", "b"), ("x", "y", "z"), ("j", "k", "l")]
+    expected = DataFrame(
+        {"s1": [1.0, 2.0, np.nan], "s2": [3.0, np.nan, 4.0]},
+        index=Index(index_arr),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -3,7 +3,6 @@ Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
 
-import os
 from pathlib import Path
 import tarfile
 import zipfile
@@ -142,11 +141,11 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
-def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt):
+def test_compression_utf_encoding(all_parsers, datapath, utf_value, encoding_fmt):
     # see gh-18071, gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
-    path = os.path.join(csv_dir_path, f"utf{utf_value}_ex_small.zip")
+    path = datapath("io", "parser", "data", f"utf{utf_value}_ex_small.zip")
 
     result = parser.read_csv(path, encoding=encoding, compression="zip", sep="\t")
     expected = DataFrame(
@@ -170,9 +169,9 @@ def test_invalid_compression(all_parsers, invalid_compression):
         parser.read_csv("test_file.zip", **compress_kwargs)
 
 
-def test_compression_tar_archive(all_parsers, csv_dir_path):
+def test_compression_tar_archive(all_parsers, datapath):
     parser = all_parsers
-    path = os.path.join(csv_dir_path, "tar_csv.tar.gz")
+    path = datapath("io", "parser", "data", "tar_csv.tar.gz")
     df = parser.read_csv(path)
     assert list(df.columns) == ["a"]
 

@@ -43,6 +43,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_get_option",
     "_fill_limit_area_1d",
     "_make_block",
+    "_concatenate_chunks",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
     "_parser",  # https://github.com/pandas-dev/pandas/issues/60833

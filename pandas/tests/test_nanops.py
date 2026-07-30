@@ -182,6 +182,29 @@ def arr_nan_float1_1d(arr_nan_float1):
     return arr_nan_float1[:, 0]
 
 
+@pytest.fixture(
+    params=[
+        "nanany",
+        "nanall",
+        "nansum",
+        "nanmean",
+        "nanmedian",
+        "nanstd",
+        "nanvar",
+        "nansem",
+        "nanargmax",
+        "nanargmin",
+        "nanmax",
+        "nanmin",
+        "nanskew",
+        "nankurt",
+        "nanprod",
+    ]
+)
+def nanops_univariate_methods(request):
+    return request.param
+
+
 class TestnanopsDataFrame:
     def setup_method(self):
         nanops._USE_BOTTLENECK = False
@@ -704,6 +727,90 @@ class TestnanopsDataFrame:
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
 
+    @pytest.mark.parametrize("dtype", [np.float64, np.float32, np.int64])
+    def test_nancorr_pearson_matches_corrcoef_1d_numeric(self, dtype):
+        a = np.array([1, 2, 4, 8, 16], dtype=dtype)
+        b = np.array([2, 3, 5, 9, 17], dtype=dtype)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a, b)[0, 1]
+
+        assert type(result) is type(expected)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (
+                np.array([1 + 1j, 2 + 2j, 4 + 4j]),
+                np.array([2 + 2j, 3 + 3j, 5 + 5j]),
+            ),
+            (
+                np.array([[1.0, 2.0], [4.0, 8.0]]),
+                np.array([[2.0, 3.0], [5.0, 9.0]]),
+            ),
+        ],
+    )
+    def test_nancorr_pearson_fallback_matches_corrcoef(self, a, b):
+        corr_func = nanops.get_corr_func("pearson")
+
+        result = corr_func(a, b)
+        expected = np.corrcoef(a, b)[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
+        a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
+        b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
+        valid = ~isna(a) & ~isna(b)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a[valid], b[valid])[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b, expected",
+        [
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e100, 2e100, 3e100]),
+                1.0,
+            ),
+            (
+                np.array([1e-160, 2e-160, 3e-160]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([3e-160, 2e-160, 1e-160]),
+                -1.0,
+            ),
+        ],
+    )
+    def test_nancorr_pearson_extreme_magnitudes(self, a, b, expected):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (np.array([1.0]), np.array([2.0])),
+            (np.array([1.0, 1.0, 1.0]), np.array([2.0, 3.0, 4.0])),
+        ],
+    )
+    def test_nancorr_pearson_not_well_defined(self, a, b):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        assert isna(result)
+
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
 
@@ -1217,28 +1324,9 @@ def test_numpy_ops(numpy_op, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "operation",
-    [
-        nanops.nanany,
-        nanops.nanall,
-        nanops.nansum,
-        nanops.nanmean,
-        nanops.nanmedian,
-        nanops.nanstd,
-        nanops.nanvar,
-        nanops.nansem,
-        nanops.nanargmax,
-        nanops.nanargmin,
-        nanops.nanmax,
-        nanops.nanmin,
-        nanops.nanskew,
-        nanops.nankurt,
-        nanops.nanprod,
-    ],
-)
-def test_nanops_independent_of_mask_param(operation):
+def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     # GH22764
+    operation = getattr(nanops, nanops_univariate_methods)
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
@@ -1454,3 +1542,34 @@ def test_idxminmax_float_inf_tie():
     assert df.idxmin().tolist() == [1, 0]
     assert df["a"].idxmax() == 1
     assert df["a"].idxmin() == 1
+
+
+def _copy_array_with_layout(arr, layout):
+    if layout == "strided":
+        base = np.zeros((arr.shape[0], arr.shape[1] * 2), dtype=arr.dtype)
+        base[:, ::2] = arr
+        return base[:, ::2]
+
+    return arr.copy(order=layout)
+
+
+@pytest.mark.parametrize("axis", [0, 1, None])
+@pytest.mark.parametrize("arr_layout", ["C", "F", "strided"])
+@pytest.mark.parametrize("mask_layout", ["C", "F", "strided"])
+def test_mask_memory_layout_mismatch(
+    disable_bottleneck, nanops_univariate_methods, axis, arr_layout, mask_layout
+):
+    func = getattr(nanops, nanops_univariate_methods)
+
+    rng = np.random.default_rng(2)
+    base_arr = rng.random((6, 5))
+    base_arr[0, 1] = np.nan
+    base_mask = np.isnan(base_arr)
+
+    arr = _copy_array_with_layout(base_arr, arr_layout)
+    mask = _copy_array_with_layout(base_mask, mask_layout)
+
+    expected = func(base_arr, axis=axis, mask=base_mask)
+    result = func(arr, axis=axis, mask=mask)
+
+    tm.assert_almost_equal(result, expected)

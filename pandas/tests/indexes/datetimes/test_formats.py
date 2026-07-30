@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import dateutil.tz
@@ -283,7 +283,7 @@ class TestDatetimeIndexRendering:
             result = idx._summary()
             assert result == expected
 
-    @pytest.mark.parametrize("tz", [None, timezone.utc, dateutil.tz.tzutc()])
+    @pytest.mark.parametrize("tz", [None, UTC, dateutil.tz.tzutc()])
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_repr_etc_smoke(self, tz, freq):
         # only really care that it works
