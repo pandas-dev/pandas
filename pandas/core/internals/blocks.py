@@ -20,8 +20,6 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
-from pandas._libs.tslibs import Timedelta
-
 from pandas._libs.internals import (
     BlockPlacement,
     BlockValuesRefs,
@@ -123,6 +121,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs.tslibs import Timedelta
     from pandas._typing import (
         ArrayLike,
         AxisInt,

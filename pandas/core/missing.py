@@ -22,6 +22,7 @@ from pandas._libs import (
     algos,
     lib,
 )
+from pandas._libs.tslibs import Timedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -42,9 +43,6 @@ from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
-
-from pandas._libs.tslibs import Timedelta
-from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -414,6 +412,8 @@ def interpolate_2d_inplace(
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
 
+    # Check index.unit first so microsecond/millisecond DatetimeIndexes are caught!
+    unit = getattr(index, "unit", None) or getattr(index.dtype, "unit", None)
     indices = _index_to_interp_indices(index, method)
 
     def func(yvalues: np.ndarray) -> None:
@@ -430,6 +430,7 @@ def interpolate_2d_inplace(
             fill_value=fill_value,
             bounds_error=False,
             mask=mask,
+            unit=unit,
             **kwargs,
         )
 
@@ -522,6 +523,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     mask=None,
+    unit: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -590,7 +592,9 @@ def _interpolate_1d(
         preserve_nans = np.union1d(preserve_nans, mid_nans)
 
     if limit_distance is not None:
-        distance_nans = _interp_limit_distance(indices, invalid, limit_distance)
+        distance_nans = _interp_limit_distance(
+            indices, invalid, limit_distance, unit=unit
+        )
         preserve_nans = np.union1d(preserve_nans, distance_nans)
 
     is_datetimelike = yvalues.dtype.kind in "mM"
@@ -1171,10 +1175,12 @@ def _interp_limit(
 
     return np.intersect1d(f_idx, b_idx, assume_unique=assume_unique)
 
+
 def _interp_limit_distance(
     indices: np.ndarray,
     invalid: npt.NDArray[np.bool_],
     limit_distance: float | int | str | Timedelta,
+    unit: str | None = None,
 ) -> np.ndarray:
     """
     Return index positions of invalid values that should not be filled
@@ -1202,7 +1208,14 @@ def _interp_limit_distance(
     """
     # Normalize and validate limit_distance
     if isinstance(limit_distance, (str, Timedelta)):
-        threshold = to_timedelta(limit_distance).value
+        from pandas.core.tools.timedeltas import to_timedelta
+
+        td = to_timedelta(limit_distance)
+        if unit is not None:
+            # Cast to matching NumPy timedelta unit then to int64
+            threshold = td.to_numpy().astype(f"m8[{unit}]").astype(np.int64)
+        else:
+            threshold = td.value
     else:
         threshold = limit_distance
 
@@ -1234,6 +1247,9 @@ def _interp_limit_distance(
 
     # Calculate the physical x-axis gap across each NaN
     gap_sizes = np.abs(indices[right_valid_pos] - indices[left_valid_pos])
+
+    if gap_sizes.dtype.kind in "mM":
+        gap_sizes = gap_sizes.view("i8")
 
     # Return only the NaN positions where the gap exceeds the threshold
     return invalid_inside[gap_sizes > threshold]
