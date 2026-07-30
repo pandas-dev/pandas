@@ -2701,7 +2701,7 @@ def maybe_convert_numeric(
                         seen.float_ = True
                         # if convert_to_masked_nullable:
                         #     mask[i] = 1
-                        floats[i] =  fval
+                        floats[i] = fval
                         continue
                 print("before")
                 floatify(val, &fval, &maybe_int)
