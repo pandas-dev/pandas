@@ -15,7 +15,6 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under15p0,
     pa_version_under16p0,
-    pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
