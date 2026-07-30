@@ -2402,6 +2402,13 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                     break
 
                 iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+                if iresult[i] == NPY_NAT:
+                    # GH#66510 NA rows already `continue`d above, so this is a
+                    # real value that rendered onto the NaT sentinel and would be
+                    # indistinguishable from NA. Defer to the object path like
+                    # any other date this fastpath cannot represent.
+                    fallback = True
+                    break
     except OverflowError:
         return None, 0
 

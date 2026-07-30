@@ -85,6 +85,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_nat_sentinel,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -3691,6 +3692,9 @@ default 'raise'
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
+            # GH#66510 the tz-aware legs below go through
+            #  convert_datetime_to_tsobject, which checks this for us
+            check_nat_sentinel(ts.value, &dts, creso)
             ts.dts = dts
             ts.creso = creso
             ts.fold = fold
