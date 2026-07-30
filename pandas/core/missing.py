@@ -1200,11 +1200,21 @@ def _interp_limit_distance(
         1D array of integer positions corresponding to invalid values that
         should be preserved as NaN (excluded from interpolation).
     """
+    # Normalize and validate limit_distance
+    if isinstance(limit_distance, (str, Timedelta)):
+        threshold = to_timedelta(limit_distance).value
+    else:
+        threshold = limit_distance
+
+    if threshold <= 0:
+        raise ValueError("limit_distance must be greater than 0")
+
+    # Identify valid and invalid positions
     valid_pos = np.flatnonzero(~invalid)
     invalid_pos = np.flatnonzero(invalid)
 
-    # everything is valid if there are no NaNs
-    # or if there are less than 2 valid points (impossible to interpolate)
+    # everything is valid if thereare less than 2 valid points
+    # or if there are no NaNs (impossible/no need to interpolate)
     if len(valid_pos) < 2 or len(invalid_pos) == 0:
         return np.array([], dtype=np.int64)
 
@@ -1223,13 +1233,7 @@ def _interp_limit_distance(
     left_valid_pos = valid_pos[right_idx[inside_mask] - 1]
 
     # Calculate the physical x-axis gap across each NaN
-    gap_sizes = indices[right_valid_pos] - indices[left_valid_pos]
-
-    # Normalize limit_distance to match indices units
-    if isinstance(limit_distance, (str, Timedelta)):
-        threshold = to_timedelta(limit_distance).value
-    else:
-        threshold = limit_distance
+    gap_sizes = np.abs(indices[right_valid_pos] - indices[left_valid_pos])
 
     # Return only the NaN positions where the gap exceeds the threshold
     return invalid_inside[gap_sizes > threshold]
