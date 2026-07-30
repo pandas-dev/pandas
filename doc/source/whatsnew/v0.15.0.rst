@@ -275,6 +275,7 @@ Series.dt accessor
 This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
 
 .. ipython:: python
+   :okwarning:
 
    # datetime
    s = pd.Series(pd.date_range('20130101 09:10:12', periods=4))
