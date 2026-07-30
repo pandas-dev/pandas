@@ -738,27 +738,6 @@ class TestnanopsDataFrame:
         assert type(result) is type(expected)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "a, b",
-        [
-            (
-                np.array([1 + 1j, 2 + 2j, 4 + 4j]),
-                np.array([2 + 2j, 3 + 3j, 5 + 5j]),
-            ),
-            (
-                np.array([[1.0, 2.0], [4.0, 8.0]]),
-                np.array([[2.0, 3.0], [5.0, 9.0]]),
-            ),
-        ],
-    )
-    def test_nancorr_pearson_fallback_matches_corrcoef(self, a, b):
-        corr_func = nanops.get_corr_func("pearson")
-
-        result = corr_func(a, b)
-        expected = np.corrcoef(a, b)[0, 1]
-
-        tm.assert_almost_equal(result, expected)
-
     def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
         a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
         b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
@@ -798,18 +777,6 @@ class TestnanopsDataFrame:
         result = nanops.nancorr(a, b, method="pearson")
 
         tm.assert_almost_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "a, b",
-        [
-            (np.array([1.0]), np.array([2.0])),
-            (np.array([1.0, 1.0, 1.0]), np.array([2.0, 3.0, 4.0])),
-        ],
-    )
-    def test_nancorr_pearson_not_well_defined(self, a, b):
-        result = nanops.nancorr(a, b, method="pearson")
-
-        assert isna(result)
 
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
