@@ -43,6 +43,9 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
+from pandas._libs.tslibs import Timedelta
+from pandas.core.tools.timedeltas import to_timedelta
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import TypeAlias
@@ -375,7 +378,7 @@ def interpolate_2d_inplace(
     limit: int | None = None,
     limit_direction: str = "forward",
     limit_area: str | None = None,
-    limit_distance: float | None = None,
+    limit_distance: float | int | str | Timedelta | None = None,
     fill_value: Any | None = None,
     mask=None,
     **kwargs,
@@ -514,7 +517,7 @@ def _interpolate_1d(
     limit: int | None = None,
     limit_direction: str = "forward",
     limit_area: Literal["inside", "outside"] | None = None,
-    limit_distance: float | None = None,
+    limit_distance: float | int | str | Timedelta | None = None,
     fill_value: Any | None = None,
     bounds_error: bool = False,
     order: int | None = None,
@@ -1171,27 +1174,50 @@ def _interp_limit(
 def _interp_limit_distance(
     indices: np.ndarray,
     invalid: npt.NDArray[np.bool_],
-    limit_distance: float,
+    limit_distance: float | int | str | Timedelta,
 ) -> np.ndarray:
     """
     Return index positions of invalid values that should not be filled
     because the x-axis distance between the surrounding valid points
     exceeds limit_distance.
+
+    Parameters
+    ----------
+    indices : np.ndarray
+        1D array of numeric x-axis values (e.g., index labels, timestamps,
+        or positional coordinates) used to measure physical distance.
+    invalid : npt.NDArray[np.bool_]
+        Boolean mask representing NA/NaN values where True indicates a
+        missing or invalid value.
+    limit_distance : float, int, str, or Timedelta
+        Maximum allowed x-axis distance between consecutive valid points
+        for interior NaN values to be interpolated. For DatetimeIndex or
+        TimedeltaIndex, can be a time duration string (e.g., '5s').
+
+    Returns
+    -------
+    np.ndarray
+        1D array of integer positions corresponding to invalid values that
+        should be preserved as NaN (excluded from interpolation).
     """
     valid_pos = np.flatnonzero(~invalid)
     invalid_pos = np.flatnonzero(invalid)
 
+    # everything is valid if there are no NaNs
+    # or if there are less than 2 valid points (impossible to interpolate)
     if len(valid_pos) < 2 or len(invalid_pos) == 0:
         return np.array([], dtype=np.int64)
 
     # For every NaN position, find the valid index immediately next to it
     right_idx = np.searchsorted(valid_pos, invalid_pos, side="left")
 
-    # Only inspect NaNs that sit BETWEEN two valid points (not leading/trailing NaNs)
+    # Only inspect NaNs that sit between two valid points (not leading/trailing NaNs)
     inside_mask = (right_idx > 0) & (right_idx < len(valid_pos))
     if not inside_mask.any():
         return np.array([], dtype=np.int64)
 
+    # Map each interior NaN to its own array index and the array indexes
+    # of the valid anchor points immediately to its left and right
     invalid_inside = invalid_pos[inside_mask]
     right_valid_pos = valid_pos[right_idx[inside_mask]]
     left_valid_pos = valid_pos[right_idx[inside_mask] - 1]
@@ -1199,5 +1225,11 @@ def _interp_limit_distance(
     # Calculate the physical x-axis gap across each NaN
     gap_sizes = indices[right_valid_pos] - indices[left_valid_pos]
 
-    # Return only the NaN positions where the gap exceeds our threshold
-    return invalid_inside[gap_sizes > limit_distance]
+    # Normalize limit_distance to match indices units
+    if isinstance(limit_distance, (str, Timedelta)):
+        threshold = to_timedelta(limit_distance).value
+    else:
+        threshold = limit_distance
+
+    # Return only the NaN positions where the gap exceeds the threshold
+    return invalid_inside[gap_sizes > threshold]

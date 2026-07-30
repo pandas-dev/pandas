@@ -33,6 +33,7 @@ from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
+    Timedelta,
     Timestamp,
     to_offset,
 )
@@ -8048,7 +8049,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
-        limit_distance: float | None = None,
+        limit_distance: float | int | str | Timedelta | None = None,
         **kwargs,
     ) -> Self:
         """
