@@ -8107,9 +8107,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
 
-        limit_distance : float, optional
-            Maximum x-axis distance between consecutive valid points to interpolate.
-            Only supported when method is 'index' or 'values'.
+        limit_distance : float, int, str, or Timedelta, optional
+            Maximum allowed x-axis distance between consecutive valid points to
+            interpolate. Must be greater than 0.
+
+            * For numerical indexes, should be a numeric scalar (`float` or `int`).
+            * For :class:`DatetimeIndex` or :class:`TimedeltaIndex`, can be a
+              time duration string (e.g., ``'5s'``, ``'2h'``) or a
+              :class:`Timedelta` object.
+            * Only supported when ``method`` is ``'index'``, ``'values'``, or
+              ``'time'``.
+
+            .. versionchanged:: 3.1.0
+               Added support for time duration strings and ``Timedelta`` objects
+               when interpolating over temporal indexes.
 
         **kwargs : optional
             Keyword arguments to pass on to the interpolating function. Not
