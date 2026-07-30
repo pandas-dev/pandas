@@ -510,6 +510,7 @@ class TestDataFrameIndexing:
             float_frame.loc[:, None], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
+
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_single_column_boolean_column_indexer(self, indexer):
         # GH#66527 boolean column indexer on a single-column DataFrame
