@@ -421,6 +421,8 @@ Indexing
 ^^^^^^^^
 - Bug in :class:`TimedeltaIndex` string indexing using the resolution of the parsed value rather than the string, so keys like ``"720s"`` (an exact multiple of a minute) matched a minute-sized window instead of a second-sized one (:issue:`33603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` replacing the index name with the key's name when indexing with an :class:`Index` (:issue:`17110`)
+- Bug in :meth:`DataFrame.loc` raising ``NotImplementedError`` when setting a single-column DataFrame with an :class:`ExtensionArray` dtype using a boolean column indexer (e.g. ``df.loc[:, [True]]`` or ``df.loc[:, df.columns.isin(["A"])]``) (:issue:`66527`)
+- Bug in :meth:`DataFrame.loc` raising ``ValueError`` when assigning a list of tuples to an object-dtype column with a boolean mask on a mixed-dtype DataFrame (:issue:`37629`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row on a :class:`DataFrame` with no columns and the label is not in the index (:issue:`17895`)
 - Bug in :meth:`DataFrame.loc` returning incorrect dtype when the column key is a ``slice`` (:issue:`63071`)
 - Bug in :meth:`Index.get_indexer` where ``method="pad"``, ``"backfill"``, or ``"nearest"`` returned incorrect results when the target contained ``NaT`` or ``NaN`` instead of ``-1`` (:issue:`32572`)
@@ -452,7 +454,6 @@ Indexing
 - Bug in :meth:`RangeIndex.get_indexer` returning spurious matches for extreme integer targets (near ``INT64_MIN`` or ``uint64`` values above ``INT64_MAX``) and failing to match genuine members of ranges spanning more than ``INT64_MAX`` (:issue:`64148`)
 - Bug in :meth:`RangeIndex.memory_usage` and :attr:`RangeIndex.nbytes` raising ``TypeError`` on PyPy (:issue:`46176`)
 - Bug in :meth:`Series.where` and :meth:`Series.mask` raising ``ValueError`` when ``other`` is a tuple on object-dtype :class:`Series` (:issue:`37681`)
-- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising ``NotImplementedError`` when setting with a boolean column indexer (e.g. ``df.loc[:, [True]] = ...``) on a single-column :class:`DataFrame` with an object or extension-array-backed dtype (:issue:`66527`)
 - Bug in setitem (e.g. :meth:`Series.iloc`) silently storing wrong values when assigning a nullable or :class:`ArrowDtype` extension array into a NumPy-dtype column that could not hold it losslessly, such as a negative value into an unsigned-integer column (``-1`` became ``18446744073709551615``) or a value overflowing a narrower float dtype (:issue:`47776`)
 - Bug in setitem on nullable masked arrays (``Int64``, ``Float64``, ``boolean``, ...) silently coercing list-like values that the equivalent scalar setitem would reject — e.g. ``arr[[0]] = ['1']`` parsed the string into the numeric dtype, ``arr[[0]] = [True]`` on ``Int64``/``Float64`` coerced the boolean to ``1``, and an out-of-bounds value such as ``arr[[0]] = [1000]`` on ``Int8`` silently wrapped instead of raising (:issue:`45404`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`26333`, :issue:`57962`)

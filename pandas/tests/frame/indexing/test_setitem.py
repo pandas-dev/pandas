@@ -701,6 +701,13 @@ class TestDataFrameSetItem:
         expected = Series([np.uint32, object, object, np.uint8], index=list("abcd"))
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_single_column_ea_boolean_column_indexer(self):
+        # GH#66527
+        df = DataFrame({"A": pd.array(["x", "y", "z"], dtype="string")})
+        expected = df.copy()
+        df.loc[:, df.columns.isin(["A"])] = df.loc[:, df.columns.isin(["A"])]
+        tm.assert_frame_equal(df, expected)
+
     def test_boolean_mask_nullable_int64(self):
         # GH 28928
         result = DataFrame({"a": [3, 4], "b": [5, 6]}).astype(
