@@ -3380,13 +3380,15 @@ def test_pivot_array_columns_entry_raises_gh35785():
 
 
 def test_pivot_datetimelike_array_labels_gh35785():
-    # GH#35785 a datetimelike array-like of labels also reached the elementwise add
+    # GH#35785 a datetimelike array-like of labels also reached the elementwise add.
+    #  A numpy M8/m8 array is not used here: its scalars only hash like Timestamp/
+    #  Timedelta on numpy >= 2.2, so the label lookup is numpy-version dependent.
     df = DataFrame({pd.Timestamp("2016-03-02"): ["one", "two"], "bar": ["A", "B"]})
-    result = df.pivot(columns=np.array(["2016-03-02"], dtype="M8[ns]"))
+    result = df.pivot(columns=pd.array(["2016-03-02"], dtype="M8[ns]"))
     tm.assert_frame_equal(result, df.pivot(columns=[pd.Timestamp("2016-03-02")]))
 
     df = DataFrame({pd.Timedelta("1D"): ["one", "two"], "bar": ["A", "B"]})
-    result = df.pivot(columns=np.array([86400000000000], dtype="m8[ns]"))
+    result = df.pivot(columns=pd.array([86400000000000], dtype="m8[ns]"))
     tm.assert_frame_equal(result, df.pivot(columns=[pd.Timedelta("1D")]))
 
 
