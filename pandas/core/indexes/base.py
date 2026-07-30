@@ -576,7 +576,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
-            elif dtype and dtype.kind == "S":
+            elif isinstance(dtype, np.dtype) and dtype.kind == "S":
                 # GH#50127 we update data to a np.array with the correct dtype.
                 data = np.array(data, dtype=dtype)
                 copy = False

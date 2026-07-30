@@ -1156,10 +1156,6 @@ class TestParquetPyArrow(Base):
                     datetime.datetime(2011, 1, 1, 0, 0),
                     datetime.datetime(2011, 1, 1, 1, 1),
                 ],
-                marks=pytest.mark.xfail(
-                    pa_version_under17p0,
-                    reason="pa.pandas_compat passes 'datetime64' to .astype",
-                ),
             ),
         ],
     )
