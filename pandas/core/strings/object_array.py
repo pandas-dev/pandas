@@ -243,7 +243,10 @@ class ObjectStringArrayMixin:
             # We need to check that flags matches pat.flags.
             # pat.flags will have re.U regardless, so we need to add it here
             # before checking for a match
-            flags = flags | re.U
+            if not (pat.flags & re.A):
+                flags = flags | re.U
+            else:
+                flags = flags | re.A
 
             if flags != pat.flags:
                 raise ValueError("Cannot pass flags that do not match pat.flags")
