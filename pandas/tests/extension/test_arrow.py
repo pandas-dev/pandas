@@ -4260,16 +4260,15 @@ def test_date_vs_timestamp_array_comparison():
     ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser2 = ser.astype("timestamp[ns][pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
-    with pytest.raises(TypeError):
-        assert not (ser == ser2).any()
-        assert not (ser2 == ser).any()
-        assert (ser != ser2).all()
-        assert (ser2 != ser).all()
+    assert not (ser == ser2).any()
+    assert not (ser2 == ser).any()
+    assert (ser != ser2).all()
+    assert (ser2 != ser).all()
 
-        assert not (ser == ser3).any()
-        assert not (ser3 == ser).any()
-        assert (ser != ser3).all()
-        assert (ser3 != ser).all()
+    assert not (ser == ser3).any()
+    assert not (ser3 == ser).any()
+    assert (ser != ser3).all()
+    assert (ser3 != ser).all()
 
 
 def test_ops_with_nan_is_na(using_nan_is_na):
@@ -4601,15 +4600,16 @@ def test_reduction_axis_out_of_bounds(method, axis):
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
 
+
 @pytest.mark.parametrize("op", ["eq", "ne", "lt", "le", "gt", "ge"])
 def test_timestamp_date_comparison_raises(op):
-    # pyarrow dtypes should match standard backend behaviour 
+    # pyarrow dtypes should match standard backend behaviour
     ts_series = pd.Series(
         [pd.Timestamp("2026-02-02"), None, pd.Timestamp("2024-08-22")],
         dtype="timestamp[ns][pyarrow]",
     )
     date_scalar = date(2026, 2, 2)
-    
+
     msg = "Invalid comparison between dtype=timestamp.* and date"
     with pytest.raises(TypeError, match=msg):
         getattr(ts_series, f"__{op}__")(date_scalar)
@@ -4619,7 +4619,7 @@ def test_timestamp_date_comparison_raises(op):
         dtype="date32[pyarrow]",
     )
     datetime_scalar = datetime(2026, 2, 2)
-    
+
     msg = "Invalid comparison between dtype=date32.* and datetime"
     with pytest.raises(TypeError, match=msg):
         getattr(date_series, f"__{op}__")(datetime_scalar)
