@@ -288,17 +288,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         {Timestamp('2023-01-01 00:00:00'): np.int64(2),
          Timestamp('2023-02-01 00:00:00'): np.int64(4)}
         """
-        if isinstance(self.keys, list) and len(self.keys) == 1:
-            warnings.warn(
-                "In a future version, the keys of `groups` will be a "
-                f"tuple with a single element, e.g. ({self.keys[0]},) , "
-                f"instead of a scalar, e.g. {self.keys[0]}, when grouping "
-                "by a list with a single element. Use ``df.groupby(by='a').groups`` "
-                "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        return self._grouper.groups
+        groups_dict = self._grouper.groups
+        if isinstance(self.keys, list) and len(self.keys) ==1:
+            return {(k,): v for k, v in groups_dict.items()}
+        return groups_dict
 
     @final
     @property
