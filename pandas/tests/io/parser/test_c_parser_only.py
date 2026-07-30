@@ -879,6 +879,27 @@ def test_embedded_nul_not_parsed_as_int(c_parser_only):
     tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
 
 
+def test_embedded_nul_nullable_backend(c_parser_only):
+    # GH#66524: the nullable backend accepted "1\x00xyz" as the integer 1, so
+    # the column came back as Int64 [1, 1, 3] instead of the strings
+    # engine="python" returns.
+    parser = c_parser_only
+    data = b"a\n1\n1\x00xyz\n3\n"
+    result = parser.read_csv(BytesIO(data), dtype_backend="numpy_nullable")
+    tm.assert_frame_equal(
+        result,
+        read_csv(BytesIO(data), engine="python", dtype_backend="numpy_nullable"),
+    )
+
+
+def test_embedded_nul_explicit_int_dtype(c_parser_only):
+    # GH#66524: with an explicit int dtype the c engine accepted "1\x00xyz" as
+    # the integer 1 and returned [1, 1, 3]; engine="python" rejects the column.
+    parser = c_parser_only
+    with pytest.raises(ValueError, match="invalid literal"):
+        parser.read_csv(BytesIO(b"a\n1\n1\x00xyz\n3\n"), dtype="int64")
+
+
 def test_embedded_nul_not_parsed_as_bool(c_parser_only):
     # GH#66524: the inferred-bool path treats the token as NUL-terminated, so
     # "True\x00xyz" was accepted as True instead of leaving the column as
