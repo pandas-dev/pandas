@@ -196,6 +196,12 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
+        if isinstance(a, (int, np.integer)) and isinstance(b, (int, np.integer)):
+            # GH#66400: int to float64 cast loses precision for large ints
+            if abs(a - b) > atol + rtol * max(abs(a), abs(b)):
+                assert False, (f"expected {b} but got {a}, "
+                               f"with rtol={rtol}, atol={atol}")
+            return True
         fa, fb = a, b
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
