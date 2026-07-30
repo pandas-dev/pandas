@@ -68,6 +68,7 @@ from libc.stdlib cimport (
     malloc,
 )
 from libc.string cimport (
+    memchr,
     memcpy,
     memset,
     strcasecmp,
@@ -1259,6 +1260,12 @@ cdef class TextReader:
                     if str(e) == "Number is not int":
                         maybe_int = False
                         continue
+                    elif str(e) == _NUL_NOT_NUMERIC:
+                        # GH#66524: an embedded NUL disqualifies the column from
+                        # numeric inference; float would truncate and accept it.
+                        col_res, na_count = self._string_convert(
+                            i, start, end, na_filter, na_hashset,
+                            allow_pyarrow=col_dtype is None)
                     else:
                         # This error is raised from trying to convert to uint64,
                         # and we discover that we cannot convert to any numerical
@@ -1271,9 +1278,14 @@ cdef class TextReader:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
                                                         end, na_filter, na_hashset)
-                    except ValueError:
+                    except ValueError as e:
+                        # GH#66524: the embedded-NUL rejection must keep
+                        # filtering NA; ordinary PyLong failures keep their
+                        # existing na_filter=0 fallback.
                         col_res, na_count = self._string_convert(
-                            i, start, end, 0, na_hashset,
+                            i, start, end,
+                            na_filter if str(e) == _NUL_NOT_NUMERIC else 0,
+                            na_hashset,
                             allow_pyarrow=col_dtype is None)
 
                 if col_res is not None:
@@ -1944,6 +1956,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         ndarray[object] result
 
         int ret = 0
@@ -1969,6 +1982,16 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
                 result[i] = NA
                 continue
 
+        word_len = _token_len(parser, token_idx)
+
+        if _has_embedded_nul(word, word_len):
+            # GH#66524: the intern table's keys are NUL-terminated, so such a
+            # token would collide with its own truncated prefix and whichever
+            # was decoded first would win for both. Decode directly instead;
+            # these tokens are simply not deduplicated.
+            result[i] = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            continue
+
         # no deletions from this table, so ret == 0 means already present
         k = kh_put_strbox(table, word, &ret)
 
@@ -1977,8 +2000,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            pyval = PyUnicode_DecodeUTF8(
-                word, _token_len(parser, token_idx), encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
             table.vals[k] = <PyObject *>pyval
 
@@ -2814,14 +2836,18 @@ cdef int _probe_int64(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
         if na_filter and kh_get_str_starts_item(na_hashset, word):
             continue
-        str_to_int64(word, _token_len(parser, token_idx),
-                     &error, parser.thousands)
+        word_len = _token_len(parser, token_idx)
+        str_to_int64(word, word_len, &error, parser.thousands)
+        if error != 0 and _nul_truncated_number(word, word_len,
+                                                parser.thousands):
+            return _NUL_TRUNCATED
         return error
     return 0
 
@@ -2871,13 +2897,16 @@ cdef int _probe_bool_flex(parser_t *parser, int64_t col,
         Py_ssize_t lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
         uint8_t tmp
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
-        word = coliter_next(&it)
+        word = coliter_next_with_idx(&it, &token_idx)
         if na_filter and kh_get_str_starts_item(na_hashset, word):
             continue
+        if _has_embedded_nul(word, _token_len(parser, token_idx)):
+            return -1
         if kh_get_str_starts_item(true_hashset, word):
             return 0
         if kh_get_str_starts_item(false_hashset, word):
@@ -3036,6 +3065,9 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         error = _try_uint64_nogil(parser, col, line_start, line_end,
                                   na_filter, na_hashset, data, &state)
     if error != 0:
+        if raise_on_invalid and error == _NUL_TRUNCATED:
+            # GH#66524: as in _try_int64.
+            raise ValueError(_NUL_NOT_NUMERIC)
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
@@ -3050,6 +3082,42 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         raise OverflowError("Overflow")
 
     return result
+
+
+# GH#66524: hands the embedded-NUL rejection up to _convert_tokens' cast-order
+# loop, following the "Number is not int" convention already used there.
+cdef str _NUL_NOT_NUMERIC = "Embedded NUL is not numeric"
+
+
+cdef enum:
+    # Not one of the ERROR_* codes: those are public through the pd_parser
+    # capsule, so their meaning must stay fixed. Never leaves this module.
+    _NUL_TRUNCATED = -2
+
+
+cdef inline bint _nul_truncated_number(const char *word, int64_t length,
+                                       char tsep) noexcept nogil:
+    # True when the token's NUL-terminated prefix is by itself a complete
+    # integer, i.e. only the embedded NUL ended the parse. engine="python"
+    # rejects those outright, so the caller must not fall through to the float
+    # stage. "1.5\0xyz" is not of this shape, so it still reaches float, where
+    # both engines agree on 1.5.
+    cdef:
+        int64_t prefix_len = <int64_t>strlen(word)
+        int err = 0
+    if prefix_len >= length:
+        return False
+    str_to_int64(word, prefix_len, &err, tsep)
+    # OVERFLOW still means the prefix was entirely digits.
+    return err == 0 or err == ERROR_OVERFLOW
+
+
+cdef inline bint _has_embedded_nul(const char *word,
+                                   int64_t length) noexcept nogil:
+    # True when the token carries a NUL before its real end. Every gate that
+    # compares NUL-terminated C strings needs this, or it accepts the prefix
+    # and silently drops the rest.
+    return length > 0 and memchr(word, 0, length) != NULL
 
 
 cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nogil:
@@ -3074,6 +3142,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
@@ -3087,16 +3156,20 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
-                                    &error, thousands)
+            word_len = _token_len(parser, token_idx)
+            data[i] = str_to_uint64(state, word, word_len, &error, thousands)
             if error != 0:
+                if _nul_truncated_number(word, word_len, thousands):
+                    return _NUL_TRUNCATED
                 return error
     else:
         for i in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
-            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
-                                    &error, thousands)
+            word_len = _token_len(parser, token_idx)
+            data[i] = str_to_uint64(state, word, word_len, &error, thousands)
             if error != 0:
+                if _nul_truncated_number(word, word_len, thousands):
+                    return _NUL_TRUNCATED
                 return error
 
     return 0
@@ -3128,6 +3201,10 @@ cdef _try_int64(parser_t *parser, int64_t col,
                                      na_filter, na_hashset, NA, data,
                                      &na_count)
     if error != 0:
+        if raise_on_invalid and error == _NUL_TRUNCATED:
+            # GH#66524: not numeric at all -- skip the rest of the cast order
+            # rather than retrying this column as float.
+            raise ValueError(_NUL_NOT_NUMERIC)
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
@@ -3149,6 +3226,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         char thousands = parser.thousands
 
     na_count[0] = 0
@@ -3163,16 +3241,20 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, _token_len(parser, token_idx),
-                                   &error, thousands)
+            word_len = _token_len(parser, token_idx)
+            data[i] = str_to_int64(word, word_len, &error, thousands)
             if error != 0:
+                if _nul_truncated_number(word, word_len, thousands):
+                    return _NUL_TRUNCATED
                 return error
     else:
         for i in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
-            data[i] = str_to_int64(word, _token_len(parser, token_idx),
-                                   &error, thousands)
+            word_len = _token_len(parser, token_idx)
+            data[i] = str_to_int64(word, word_len, &error, thousands)
             if error != 0:
+                if _nul_truncated_number(word, word_len, thousands):
+                    return _NUL_TRUNCATED
                 return error
 
     return 0
@@ -3188,6 +3270,7 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
         Py_ssize_t lines
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
         ndarray[object] result
         object NA = na_values[np.object_]
 
@@ -3196,12 +3279,18 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        word = coliter_next(&it)
+        word = coliter_next_with_idx(&it, &token_idx)
         if na_filter and kh_get_str_starts_item(na_hashset, word):
             # in the hash table
             na_count += 1
             result[i] = NA
             continue
+
+        if _has_embedded_nul(word, _token_len(parser, token_idx)):
+            # GH#66524: PyLong_FromString would stop at the NUL and accept the
+            # prefix. Signalled distinctly from the "Invalid integer" failure
+            # below so the caller can keep filtering NA for just this case.
+            raise ValueError(_NUL_NOT_NUMERIC)
 
         py_int = PyLong_FromString(word, NULL, 10)
         if py_int is None:
@@ -3258,13 +3347,14 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
         Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for _ in range(lines):
-            word = coliter_next(&it)
+            word = coliter_next_with_idx(&it, &token_idx)
 
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
@@ -3272,6 +3362,9 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                 data[0] = NA
                 data += 1
                 continue
+
+            if _has_embedded_nul(word, _token_len(parser, token_idx)):
+                return -1
 
             if kh_get_str_starts_item(true_hashset, word):
                 data[0] = 1
@@ -3288,7 +3381,10 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
             data += 1
     else:
         for _ in range(lines):
-            word = coliter_next(&it)
+            word = coliter_next_with_idx(&it, &token_idx)
+
+            if _has_embedded_nul(word, _token_len(parser, token_idx)):
+                return -1
 
             if kh_get_str_starts_item(true_hashset, word):
                 data[0] = 1
@@ -3308,18 +3404,21 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
     return 0
 
 
-cdef inline int _bool_numeric_literal(const char *word) noexcept nogil:
+cdef inline int _bool_numeric_literal(const char *word,
+                                      int64_t length) noexcept nogil:
     # The numeric boolean spellings BooleanArray accepts by default:
     # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.
-    if word[0] == ord("1"):
-        if word[1] == 0:
+    # GH#66524: driven by the token's real length rather than by a NUL
+    # terminator, so "1\0x" is not mistaken for the literal "1".
+    if length == 1:
+        if word[0] == ord("1"):
             return 1
-        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
-            return 1
-    elif word[0] == ord("0"):
-        if word[1] == 0:
+        if word[0] == ord("0"):
             return 0
-        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+    elif length == 3 and word[1] == ord(".") and word[2] == ord("0"):
+        if word[0] == ord("1"):
+            return 1
+        if word[0] == ord("0"):
             return 0
     return -1
 
@@ -3341,18 +3440,24 @@ cdef int _try_boolean_masked_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        int64_t word_len
         int numeric
 
     coliter_setup(&it, parser, col, line_start)
     for i in range(lines):
-        word = coliter_next(&it)
+        word = coliter_next_with_idx(&it, &token_idx)
 
         if na_filter and kh_get_str_starts_item(na_hashset, word):
             mask[i] = 1
             data[i] = 0
             continue
 
-        numeric = _bool_numeric_literal(word)
+        word_len = _token_len(parser, token_idx)
+        if _has_embedded_nul(word, word_len):
+            return -1
+
+        numeric = _bool_numeric_literal(word, word_len)
         if kh_get_str_starts_item(true_hashset, word) or numeric == 1:
             data[i] = 1
         elif kh_get_str_starts_item(false_hashset, word) or numeric == 0:

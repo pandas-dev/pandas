@@ -2343,6 +2343,9 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
   // lets from_chars get its end pointer without a strlen scan.
   size_t str_len =
       length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
+  // GH#66524: token end in the original input, captured before the tsep branch
+  // below reassigns p/str_len to the scratch buffer.
+  const char *const token_end = p + str_len;
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
@@ -2359,16 +2362,19 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
   int64_t number;
   const char *endptr;
   const pd_strtoi_status status = pd_strtoll(p, p + str_len, &number, &endptr);
+  // Compared against endptr, in whichever buffer endptr refers to.
+  const char *end = p + str_len;
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input that
     // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=',').
     endptr = number_end;
+    end = token_end;
   }
   if (status == PD_STRTOI_OVERFLOW) {
     // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
-    // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
-    // at NUL) → OVERFLOW (caller retries as uint64).
-    *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
+    // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (whole
+    // token consumed) → OVERFLOW (caller retries as uint64).
+    *error = endptr != end ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
   if (status == PD_STRTOI_INVALID) {
@@ -2377,12 +2383,13 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
   }
 
   // Skip trailing spaces.
-  while (isspace_ascii(*endptr)) {
+  while (endptr < end && isspace_ascii(*endptr)) {
     ++endptr;
   }
 
-  // Did we use up all the characters?
-  if (*endptr) {
+  // Did we use up all the characters? GH#66524: against the token end, not a
+  // *endptr NUL test, so "1\0xyz" is rejected instead of parsing as "1".
+  if (endptr != end) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
@@ -2419,6 +2426,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
   // lets from_chars get its end pointer without a strlen scan.
   size_t str_len =
       length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
+  // GH#66524: see str_to_int64.
+  const char *const token_end = p + str_len;
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
@@ -2435,12 +2444,14 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
   uint64_t number;
   const char *endptr;
   const pd_strtoi_status status = pd_strtoull(p, p + str_len, &number, &endptr);
+  const char *end = p + str_len;
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input.
     endptr = number_end;
+    end = token_end;
   }
   if (status == PD_STRTOI_OVERFLOW) {
-    *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
+    *error = endptr != end ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
   if (status == PD_STRTOI_INVALID) {
@@ -2449,12 +2460,12 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
   }
 
   // Skip trailing spaces.
-  while (isspace_ascii(*endptr)) {
+  while (endptr < end && isspace_ascii(*endptr)) {
     ++endptr;
   }
 
-  // Did we use up all the characters?
-  if (*endptr) {
+  // Did we use up all the characters? GH#66524: see str_to_int64.
+  if (endptr != end) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
