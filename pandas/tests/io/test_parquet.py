@@ -1210,7 +1210,7 @@ class TestParquetPyArrow(Base):
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
-        pa = pytest.importorskip("pyarrow", "16.0.0")
+        pa = pytest.importorskip("pyarrow")
         pq = pytest.importorskip("pyarrow.parquet")
 
         arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
@@ -1233,7 +1233,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, temp_file, pa)
 
     def test_maps_as_pydicts(self, pa, temp_file):
-        pyarrow = pytest.importorskip("pyarrow", "16.0.0")
+        pyarrow = pytest.importorskip("pyarrow")
 
         schema = pyarrow.schema(
             [("foo", pyarrow.map_(pyarrow.string(), pyarrow.int64()))]

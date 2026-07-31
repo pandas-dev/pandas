@@ -66,7 +66,7 @@ class ArrowStreamWrapper:
         return self.stream.__arrow_c_stream__(requested_schema)
 
 
-@td.skip_if_no("pyarrow", min_version="16.0")
+@td.skip_if_no("pyarrow")
 def test_dataframe_from_arrow(using_infer_string):
     # objects with __arrow_c_stream__
     table = pa.table({"a": [1, 2, 3], "b": ["a", "b", "c"]})
