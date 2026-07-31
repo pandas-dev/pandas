@@ -552,6 +552,28 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             ser.interpolate(method="index", limit_distance=limit_dist)
 
+    @pytest.mark.parametrize("limit_dist", [0, -5.0])
+    def test_interpolate_limit_distance_empty_series_raises(self, limit_dist):
+        # Ensure empty Series validates limit_distance consistently with non-empty
+        ser = Series([], dtype=float)
+        msg = "limit_distance must be greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="index", limit_distance=limit_dist)
+
+    def test_interpolate_limit_distance_type_mismatch_raises(self):
+        # 1. Passing time string/Timedelta to a non-temporal index
+        ser_int = Series([1.0, np.nan, 3.0], index=[0, 1, 2])
+        msg_int = "Cannot use a time duration string or Timedelta"
+        with pytest.raises(ValueError, match=msg_int):
+            ser_int.interpolate(method="index", limit_distance="5s")
+
+        # 2. Passing numeric integer/float to a temporal DatetimeIndex
+        times = pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"])
+        ser_time = Series([10.0, np.nan, 30.0], index=times)
+        msg_time = "Cannot use a numeric limit_distance with a temporal index"
+        with pytest.raises(ValueError, match=msg_time):
+            ser_time.interpolate(method="time", limit_distance=5)
+
     def test_interpolate_limit_distance_too_few_points(self):
         # 1. No NaNs
         ser_all_valid = Series([10.0, 20.0, 30.0], index=[1.0, 2.0, 3.0])

@@ -1206,6 +1206,20 @@ def _interp_limit_distance(
         1D array of integer positions corresponding to invalid values that
         should be preserved as NaN (excluded from interpolation).
     """
+    is_temporal = unit is not None
+    is_td_or_str = isinstance(limit_distance, (str, Timedelta))
+
+    if not is_temporal and is_td_or_str:
+        raise ValueError(
+            "Cannot use a time duration string or Timedelta limit_distance "
+            "with a non-temporal index."
+        )
+    if is_temporal and not is_td_or_str:
+        raise ValueError(
+            "Cannot use a numeric limit_distance with a temporal index; "
+            "pass a Timedelta or time duration string instead."
+        )
+
     # Normalize and validate limit_distance
     if isinstance(limit_distance, (str, Timedelta)):
         from pandas.core.tools.timedeltas import to_timedelta
