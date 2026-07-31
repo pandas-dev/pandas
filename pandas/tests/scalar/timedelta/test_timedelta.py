@@ -621,8 +621,10 @@ class TestTimedeltas:
         assert min_td._value == iNaT + 1
         assert max_td._value == lib.i8max
 
-        # Beyond lower limit, a NAT before the Overflow
-        assert (min_td - Timedelta(1, "ns")) is NaT
+        # GH#66552 - result landing on INT64_MIN must raise, not return NaT
+        msg = "Outside the range of representable timedeltas"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            min_td - Timedelta(1, "ns")
 
         msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):

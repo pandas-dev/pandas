@@ -985,9 +985,10 @@ def _binary_op_method_timedeltalike(op, name):
 
         res = op(self._value, other._value)
         if res == NPY_NAT:
-            # e.g. test_implementation_limits
-            # TODO: more generally could do an overflowcheck in op?
-            return NaT
+            raise OutOfBoundsTimedelta(
+                f"Outside the range of representable timedeltas: "
+                f"{self} {name} {other}"
+            )
 
         return _timedelta_from_value_and_reso(Timedelta, res, reso=self._creso)
 

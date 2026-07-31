@@ -873,6 +873,10 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
                 res_value = NPY_DATETIME_NAT
             else:
                 res_value = lval + rval
+                if res_value == NPY_DATETIME_NAT:
+                    # a sum of exactly int64.min is representable, but
+                    #  would be misinterpreted as NaT
+                    raise OverflowError
 
             # Analogous to: result[i] = res_value
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
