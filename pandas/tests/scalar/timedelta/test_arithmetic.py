@@ -423,6 +423,34 @@ class TestTimedeltaMultiplicationDivision:
             # invalid multiply with another timedelta
             op(td, td)
 
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.int32, np.int8])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_integer_overflow(self, op, dtype):
+        # GH#66551 numpy integer scalars used to keep the multiply in the
+        #  operand's own dtype, so an out-of-bounds product wrapped silently
+        #  instead of raising the way a Python int does.
+        td = Timedelta(2**62, unit="ns")
+
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            op(td, dtype(4))
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_float_precision(self, op, dtype):
+        # GH#66551 a float32 multiplier used to drag the product down to
+        #  float32 precision, losing 16 seconds here.
+        td = Timedelta(10**18, unit="ns")
+
+        result = op(td, dtype(1.0))
+        assert result == td
+
     def test_td_mul_numeric_ndarray(self):
         td = Timedelta("1 day")
         other = np.array([2])
