@@ -800,8 +800,7 @@ def pivot(
     An array-like ``index`` or ``columns`` is a sequence of column labels, unlike
     :meth:`DataFrame.pivot_table`, which also accepts an array of values to group by.
     When ``values`` is not given, an array nested inside the ``index`` list is a column
-    of level values, as in :meth:`DataFrame.set_index`. ``index``, ``columns`` and
-    ``values`` may also be given as an iterator of labels.
+    of level values, as in :meth:`DataFrame.set_index`.
 
     For finer-tuned control, see hierarchical indexing documentation along
     with the related stack/unstack methods.
@@ -929,9 +928,8 @@ def pivot(
         labels_to_check.append(("index", index_labels))
 
     if lib.is_iterator(values):
-        # GH#35785 materialize before the check below consumes it. ``values`` is not
-        #  list-ified like index/columns: it is used for the lookup as-is, where a
-        #  named Index/Series names the resulting columns level.
+        # GH#35785 materialize before the check below consumes it; unlike
+        #  index/columns, ``values`` is otherwise used for the lookup as-is.
         values = list(cast("Iterable[Hashable]", values))
     if values is not lib.no_default and not isinstance(values, tuple):
         # GH#17160 a tuple ``values`` is a single (MultiIndex) label; the

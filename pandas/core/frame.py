@@ -13214,8 +13214,7 @@ class DataFrame(NDFrame, OpsMixin):
         An array-like ``index`` or ``columns`` is a sequence of column labels, unlike
         :meth:`DataFrame.pivot_table`, which also accepts an array of values to group
         by. When ``values`` is not given, an array nested inside the ``index`` list is
-        a column of level values, as in :meth:`DataFrame.set_index`. ``index``,
-        ``columns`` and ``values`` may also be given as an iterator of labels.
+        a column of level values, as in :meth:`DataFrame.set_index`.
 
         For finer-tuned control, see hierarchical indexing documentation along
         with the related stack/unstack methods.
