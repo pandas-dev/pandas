@@ -866,3 +866,144 @@ def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
     expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
     assert result["a"][0] == "x\x00y"
     assert expected["a"][0] == "x\x00y"
+
+
+def test_embedded_nul_not_parsed_as_int(c_parser_only):
+    # GH#66524: str_to_int64 checked *endptr rather than whether the parse
+    # consumed the whole token, so "1\x00xyz" was accepted as the integer 1
+    # and the trailing bytes were silently dropped.
+    parser = c_parser_only
+    data = b"a\n1\n1\x00xyz\n3\n"
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"].tolist() == ["1", "1\x00xyz", "3"]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+def test_embedded_nul_nullable_backend(c_parser_only):
+    # GH#66524: the nullable backend accepted "1\x00xyz" as the integer 1, so
+    # the column came back as Int64 [1, 1, 3] instead of the strings
+    # engine="python" returns.
+    parser = c_parser_only
+    data = b"a\n1\n1\x00xyz\n3\n"
+    result = parser.read_csv(BytesIO(data), dtype_backend="numpy_nullable")
+    tm.assert_frame_equal(
+        result,
+        read_csv(BytesIO(data), engine="python", dtype_backend="numpy_nullable"),
+    )
+
+
+def test_embedded_nul_explicit_int_dtype(c_parser_only):
+    # GH#66524: with an explicit int dtype the c engine accepted "1\x00xyz" as
+    # the integer 1 and returned [1, 1, 3]; engine="python" rejects the column.
+    parser = c_parser_only
+    with pytest.raises(ValueError, match="invalid literal"):
+        parser.read_csv(BytesIO(b"a\n1\n1\x00xyz\n3\n"), dtype="int64")
+
+
+def test_embedded_nul_not_parsed_as_bool(c_parser_only):
+    # GH#66524: the inferred-bool path treats the token as NUL-terminated, so
+    # "True\x00xyz" was accepted as True instead of leaving the column as
+    # strings the way engine="python" does. Quoted, to cover the tokenizer's
+    # quoted-field branch as well.
+    parser = c_parser_only
+    data = b'a\nTrue\n"True\x00xyz"\nFalse\n'
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"].tolist() == ["True", "True\x00xyz", "False"]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+def test_embedded_nul_boolean_dtype(c_parser_only):
+    # GH#66524: _bool_numeric_literal treated word[1] == 0 as end-of-token, so
+    # "1\x00x" was accepted as the numeric literal "1" and never fell through
+    # to the generic path that raises.
+    parser = c_parser_only
+    with pytest.raises(ValueError, match="cannot be cast to bool"):
+        parser.read_csv(BytesIO(b"a\n1\x00x\nTrue\n"), dtype="boolean")
+
+
+def test_embedded_nul_bool_guards_both_gates(c_parser_only):
+    # GH#66524: the inferred-bool path has two independent gates that each
+    # assume a NUL-terminated token -- the true/false hash sets
+    # (kh_get_str_starts_item) and to_boolean's strcasecmp -- so a fix has to
+    # guard both. Each gate is exercised in isolation:
+    #   "tRuE" is not in the seeded hash sets, so only to_boolean can accept it
+    #   "yes" is rejected by to_boolean, so only the hash set can accept it
+    parser = c_parser_only
+
+    # to_boolean gate. That the c engine accepts the mixed-case spelling at all
+    # while engine="python" does not is a separate, pre-existing divergence;
+    # it is asserted here to pin it down as deliberately unchanged.
+    result = parser.read_csv(BytesIO(b"a\nTrue\ntRuE\nFalse\n"))
+    assert result["a"].tolist() == [True, True, False]
+
+    result = parser.read_csv(BytesIO(b"a\nTrue\ntRuE\x00xyz\nFalse\n"))
+    assert result["a"].tolist() == ["True", "tRuE\x00xyz", "False"]
+
+    # Hash-set gate, reached via a user-supplied true_values entry that
+    # to_boolean rejects outright.
+    kwds = {"true_values": ["yes"], "false_values": ["no"]}
+    result = parser.read_csv(BytesIO(b"a\nyes\nno\n"), **kwds)
+    assert result["a"].tolist() == [True, False]
+
+    result = parser.read_csv(BytesIO(b"a\nyes\nyes\x00xyz\nno\n"), **kwds)
+    assert result["a"].tolist() == ["yes", "yes\x00xyz", "no"]
+
+
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (b"a\nzzz\nzzz\x00xyz\n", ["zzz", "zzz\x00xyz"]),
+        (b"a\nzzz\x00xyz\nzzz\n", ["zzz\x00xyz", "zzz"]),
+    ],
+)
+def test_embedded_nul_string_intern_collision(c_parser_only, data, expected):
+    # GH#66524: _string_box_utf8 decoded with _token_len but keyed its intern
+    # table on the NUL-terminated word, so two tokens sharing a NUL-truncated
+    # prefix collided and whichever was decoded first won for both. In the
+    # second ordering that replaced the clean value with the NUL-bearing one.
+    # Reached without any numeric or boolean conversion being involved.
+    parser = c_parser_only
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"].tolist() == expected
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+def test_embedded_nul_not_parsed_as_uint64(c_parser_only):
+    # GH#66524: values above INT64_MAX take the str_to_uint64 retry path, which
+    # carried the same NUL-terminated completeness check as str_to_int64.
+    parser = c_parser_only
+    data = b"a\n18446744073709551615\n18446744073709551614\x00xyz\n"
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"].tolist() == [
+        "18446744073709551615",
+        "18446744073709551614\x00xyz",
+    ]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+def test_embedded_nul_pylong_fallback_keeps_na(c_parser_only):
+    # GH#66524: values that overflow int64 take the _try_pylong path, whose
+    # PyLong_FromString stops at a NUL. Its rejection lands in a different
+    # fallback branch than the int64 one, which must also filter NA rather than
+    # turning the blank row into a literal empty string.
+    parser = c_parser_only
+    data = b"a,b\n99999999999999999999999,x\n99999999999999999999998\x00y,y\n,z\n"
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"].tolist()[:2] == [
+        "99999999999999999999999",
+        "99999999999999999999998\x00y",
+    ]
+    assert result["a"].isna().tolist() == [False, False, True]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+def test_embedded_nul_fallback_keeps_na(c_parser_only):
+    # GH#66524: the embedded-NUL rejection routes the column to the string
+    # fallback through its own branch in the cast-order loop, which must pass
+    # the real na_filter/na_hashset through -- the neighbouring branch passes
+    # na_filter=0, which would turn the NA row into a literal empty string.
+    parser = c_parser_only
+    data = b"a,b\n1,x\n1\x00xyz,y\n,z\n3,w\n"
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"].isna().tolist() == [False, False, True, False]
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))

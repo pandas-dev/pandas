@@ -1069,8 +1069,6 @@ def test_parse_dates_low_memory_embedded_nul_chunks(position):
     # before converting anything ("first") or rebuilds earlier chunks from
     # receipts ("last")
     date_strings = [f"2020-01-{(i % 28) + 1:02d}" for i in range(19_999)]
-    # unique date prefix: avoids the NUL-terminated intern-table collision
-    # in _string_box_utf8, which is not under test here
     nul_value = "2021-06-15\x00X"
     if position == "first":
         date_strings.insert(0, nul_value)
