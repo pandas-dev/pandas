@@ -3997,4 +3997,3 @@ def test_loc_setitem_multi_element_list_into_cell():
     df = DataFrame([{"foo": None, "bar": None}], index=["a"])
     df.loc["a", "foo"] = ["123", "456"]
     assert df.loc["a", "foo"] == ["123", "456"]
->>>>>>> origin/main
