@@ -2876,6 +2876,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def sum_compat(obj: NDFrameT):
+                # GH#18588: see min_compat below
+                return obj.sum(skipna=skipna)
+
             # If we are grouping on categoricals we want unobserved categories to
             # return zero, rather than the default of NaN which the reindexing in
             # _agg_general() returns. GH #31422
@@ -2884,7 +2889,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     numeric_only=numeric_only,
                     min_count=min_count,
                     alias="sum",
-                    npfunc=np.sum,
+                    npfunc=sum_compat,
                     skipna=skipna,
                 )
 
@@ -2965,12 +2970,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+
+        def prod_compat(obj: NDFrameT):
+            # GH#18588: see min_compat below
+            return obj.prod(skipna=skipna)
+
         return self._agg_general(
             numeric_only=numeric_only,
             min_count=min_count,
             skipna=skipna,
             alias="prod",
-            npfunc=np.prod,
+            npfunc=prod_compat,
         )
 
     @final
@@ -3082,12 +3092,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def min_compat(obj: NDFrameT):
+                # GH#18588: object/string dtypes have no cython group_min_max
+                # and reduce through this alt instead, so it has to apply
+                # skipna itself; np.min would always skip.
+                return obj.min(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="min",
-                npfunc=np.min,
+                npfunc=min_compat,
             )
 
     @final
@@ -3199,12 +3216,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def max_compat(obj: NDFrameT):
+                # GH#18588: see min_compat above
+                return obj.max(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="max",
-                npfunc=np.max,
+                npfunc=max_compat,
             )
 
     @final
