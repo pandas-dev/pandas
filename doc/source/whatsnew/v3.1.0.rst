@@ -349,6 +349,7 @@ Datetimelike
 - Bug in :func:`to_datetime` and :class:`Timestamp` where a datetime near the implementation bounds with a fixed UTC offset silently wrapped when shifted to UTC instead of raising :class:`OutOfBoundsDatetime` (:issue:`65353`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` on ARM platforms where round ``float`` values outside the int64 domain (e.g. ``float(2**63)``) could silently produce incorrect results instead of raising (:issue:`64619`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` where ``uint64`` values greater than ``int64`` max silently overflowed instead of raising :class:`OutOfBoundsDatetime` or :class:`OutOfBoundsTimedelta` (:issue:`60677`)
+- Bug in :func:`to_datetime` raising a bare ``AssertionError`` instead of ``ValueError`` when passed an invalid ``errors`` value (:issue:`66542`)
 - Bug in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns raising for years outside the range 1000-9999 (:issue:`65195`)
 - Bug in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns with ``errors="coerce"`` returning ``datetime64[s]`` dtype instead of ``datetime64[us]`` when all rows were invalid (:issue:`65195`)
 - Bug in :func:`to_datetime` when using a low time resolution ``unit``, higher resolution in ``origin`` is now preserved instead of silently dropped (e.g. ``unit="D"`` with microsecond precision origin) (:issue:`63419`)
