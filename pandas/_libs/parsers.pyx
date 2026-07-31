@@ -1038,13 +1038,14 @@ cdef class TextReader:
         convert_numeric = (
             self.parser.thousands == b"\0" and self.parser.decimal == b"."
         )
+        float_only = self.parser.quoting == QUOTE_NONNUMERIC
         for i, dtype in self.deferred_cat_cols.items():
             cat = data[i]
             array_type = dtype.construct_array_type()
             converted = array_type._maybe_convert_categories(
                 cat.categories, true_values=true_values,
                 false_values=false_values, convert_numeric=convert_numeric,
-                convert_bool=True)
+                convert_bool=True, float_only=float_only)
             if converted is None:
                 # no conversion applies, but union_categoricals still left the
                 #  categories in chunk order; sorting here is what makes
@@ -1369,9 +1370,6 @@ cdef class TextReader:
             codes, cats, na_count = _categorical_convert(
                 self.parser, i, start, end, na_filter, na_hashset)
 
-            # Method accepts list of strings, not encoded ones.
-            true_values = [x.decode() for x in self.true_values]
-            false_values = [x.decode() for x in self.false_values]
             array_type = dtype.construct_array_type()
             if self.low_memory_chunking and dtype.categories is None:
                 # GH#56044 chunks could each infer a different category dtype,
@@ -1381,10 +1379,12 @@ cdef class TextReader:
                 #  union_categoricals rejects ordered inputs whose categories
                 #  differ.
                 self.deferred_cat_cols[i] = dtype
-                cat = array_type._from_inferred_categories(
-                    cats, codes, None, true_values=true_values,
-                    false_values=false_values)
+                cat = array_type._from_inferred_categories(cats, codes, None)
                 return cat, na_count
+
+            # Method accepts list of strings, not encoded ones.
+            true_values = [x.decode() for x in self.true_values]
+            false_values = [x.decode() for x in self.false_values]
 
             # to_numeric inference is unaware of the thousands/decimal
             #  options, so keep string categories when those are set
@@ -1394,7 +1394,8 @@ cdef class TextReader:
             cat = array_type._from_inferred_categories(
                 cats, codes, dtype, true_values=true_values,
                 false_values=false_values, convert_numeric=convert_numeric,
-                convert_bool=True)
+                convert_bool=True,
+                float_only=self.parser.quoting == QUOTE_NONNUMERIC)
             return cat, na_count
 
         elif isinstance(dtype, ExtensionDtype):

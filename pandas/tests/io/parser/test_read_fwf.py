@@ -16,6 +16,7 @@ from pandas.errors import EmptyDataError
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     DatetimeIndex,
 )
@@ -984,6 +985,21 @@ def test_invalid_dtype_backend():
     )
     with pytest.raises(ValueError, match=msg):
         read_fwf("test", dtype_backend="numpy")
+
+
+def test_dtype_category_infers_numeric_and_bool():
+    # GH#56044 read_fwf shares read_csv's category inference
+    data = """\
+  a      b
+  1   True
+  2  False
+  1   True
+"""
+    expected = DataFrame(
+        {"a": Categorical([1, 2, 1]), "b": Categorical([True, False, True])}
+    )
+    result = read_fwf(StringIO(data), dtype="category")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.network

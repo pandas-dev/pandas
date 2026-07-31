@@ -100,13 +100,21 @@ infer numeric and boolean categories under the default ``dtype_backend``
 
 Columns whose values do not all parse as numeric or boolean, and columns read
 with non-default ``thousands`` or ``decimal`` options, retain string categories.
-Datetime-like columns continue to follow each engine's usual inference (the
-``c`` and ``python`` engines keep string categories unless ``parse_dates`` is
-given, while the ``pyarrow`` engine infers datetime categories). An integer
-column containing missing values gets integer categories rather than the
-``float64`` the same column receives without ``dtype="category"``, since the
-codes already carry the missing values. With a non-default ``dtype_backend``
-the categories are not yet converted to the requested backend (:issue:`66382`).
+Datetime-like columns are not inferred: the ``c`` and ``python`` engines keep
+string categories, while the ``pyarrow`` engine gives ``datetime64`` categories
+for timestamps and ``object`` categories of :class:`datetime.date` for
+date-only columns. An integer or boolean column containing missing values gets
+integer or boolean categories rather than the ``float64`` or ``object`` the same
+column receives without ``dtype="category"``, since the codes already carry the
+missing values. Under a
+non-default ``dtype_backend`` the ``c`` engine still gives numpy-backed
+categories, as does the ``python`` engine with ``dtype_backend="numpy_nullable"``
+(:issue:`66382`).
+
+The same inference now applies to the other readers built on the shared text
+parser, including :func:`read_table`, :func:`read_fwf` and :func:`read_excel`,
+which already inferred numeric and boolean types for these columns without
+``dtype="category"``.
 
 The ``pyarrow`` engine gave nullable ``Int64`` categories for integer columns
 under the default ``dtype_backend``; it now gives numpy ``int64`` like the other

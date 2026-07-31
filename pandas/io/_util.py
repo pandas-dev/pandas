@@ -205,8 +205,7 @@ def _post_convert_dtypes(
             if not isinstance(cat_arr_dtype, IntegerDtype):
                 continue
             if isinstance(dtype, dict):
-                # dtype dicts may be keyed by position as well as by name
-                requested = dtype.get(df.columns[i], dtype.get(i))
+                requested = dtype.get(df.columns[i])
             else:
                 requested = dtype
             if (
@@ -251,11 +250,13 @@ def _maybe_convert_string_to_object(
     elif isinstance(data.dtype, pd.CategoricalDtype):
         cat_dtype = data.dtype.categories.dtype
         if isinstance(cat_dtype, pd.StringDtype) and cat_dtype.na_value is np.nan:
-            cat_dtype = pd.CategoricalDtype(
-                categories=data.dtype.categories.astype("object"),
-                ordered=data.dtype.ordered,
-            )
-            return data.astype(cat_dtype)
+            # not astype: for ordered categoricals CategoricalDtype.__eq__
+            #  ignores the categories' dtype, so astype would no-op
+            cat_arr = cast("pd.Categorical", data._values)
+            new_arr = cat_arr.set_categories(data.dtype.categories.astype("object"))
+            if isinstance(data, pd.Index):
+                return pd.CategoricalIndex(new_arr, name=data.name)
+            return pd.Series(new_arr, index=data.index, name=data.name, copy=False)
 
     # no conversion needed
     return None

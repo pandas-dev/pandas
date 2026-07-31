@@ -471,7 +471,8 @@ specification:
    pd.read_csv(StringIO(data), dtype={"col1": "category"}).dtypes
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
-whose ``categories`` are the unique values observed in the data. For more
+whose ``categories`` are the unique values observed in the data, after the
+numeric and boolean inference described below. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
 that column's ``dtype``.

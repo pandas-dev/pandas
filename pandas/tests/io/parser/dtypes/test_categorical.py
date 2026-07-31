@@ -9,6 +9,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import parsers as libparsers
 from pandas.errors import Pandas4Warning
 
@@ -271,20 +273,36 @@ def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend)
         assert cat_dtype == np.dtype("int64")
 
 
+def test_categorical_dtype_non_default_dtype_backend_str(all_parsers, dtype_backend):
+    # GH#56044 same divergence as the numeric case above for columns that keep
+    #  string categories, see GH#66382
+    parser = all_parsers
+    data = "a\nx\ny"
+    result = parser.read_csv(
+        StringIO(data), dtype="category", dtype_backend=dtype_backend
+    )
+    cat_dtype = result["a"].cat.categories.dtype
+    if dtype_backend == "pyarrow" and parser.engine in ("pyarrow", "python"):
+        pyarrow = pytest.importorskip("pyarrow")
+        assert cat_dtype == pd.ArrowDtype(pyarrow.string())
+    elif parser.engine == "pyarrow":
+        assert cat_dtype == pd.StringDtype(na_value=pd.NA)
+    elif using_string_dtype():
+        assert cat_dtype == pd.StringDtype(na_value=np.nan)
+    else:
+        assert cat_dtype == np.dtype("object")
+
+
 @xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 def test_categorical_dtype_quote_nonnumeric(all_parsers):
-    # GH#56044 with QUOTE_NONNUMERIC, non-categorical columns parse as
-    #  float64; the c engine currently infers int64 categories, while the
-    #  python engine (whose tokenizer produces floats) gives float64
+    # GH#56044 QUOTE_NONNUMERIC casts every unquoted field to float, so the
+    #  categories match what a non-categorical read gives
     parser = all_parsers
     data = '"a"\n1\n2'
     result = parser.read_csv(
         StringIO(data), dtype="category", quoting=csv.QUOTE_NONNUMERIC
     )
-    if parser.engine == "python":
-        expected = DataFrame({"a": Categorical([1.0, 2.0])})
-    else:
-        expected = DataFrame({"a": Categorical([1, 2])})
+    expected = DataFrame({"a": Categorical([1.0, 2.0])})
     tm.assert_frame_equal(result, expected)
 
 
@@ -297,6 +315,52 @@ def test_categorical_dtype_low_memory_mixed_numeric_chunks(all_parsers, monkeypa
     ints = [str(i) for i in range(40)]
     rows = [*ints, "1.5", *ints]
     expected = DataFrame({"a": Categorical([float(x) for x in rows])})
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_low_memory_all_na_chunk(all_parsers, monkeypatch):
+    # GH#56044 a chunk that is entirely NA infers no categories; it must not
+    #  break the union against the chunks that did infer some
+    parser = all_parsers
+    heuristic = 2**5
+    rows = [",1"] * 40 + ["x,1"] * 40
+    expected = DataFrame(
+        {
+            "a": Categorical([None] * 40 + ["x"] * 40),
+            "b": Categorical([1] * 80),
+        }
+    )
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO("a,b\n" + "\n".join(rows)), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "rows,values",
+    [
+        (
+            [*(str(i) for i in range(40)), *(f"{i}.0" for i in range(40))],
+            [*(float(i) for i in range(40))] * 2,
+        ),
+        (
+            [*["True"] * 25, *["TRUE"] * 25, *["False"] * 25],
+            [*[True] * 50, *[False] * 25],
+        ),
+    ],
+)
+def test_categorical_dtype_low_memory_duplicate_chunks(
+    all_parsers, monkeypatch, rows, values
+):
+    # GH#56044 distinct strings that convert to the same value must merge into
+    #  one category with recoded codes, even when union_categoricals collected
+    #  them across chunks in file order
+    parser = all_parsers
+    heuristic = 2**5
+    expected = DataFrame({"a": Categorical(values)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
@@ -336,6 +400,77 @@ def test_categorical_dtype_low_memory_sorts_string_categories(all_parsers, monke
         actual = parser.read_csv(StringIO(data), dtype="category")
     assert actual["a"].cat.categories.is_monotonic_increasing
     tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_integer_with_missing(all_parsers):
+    # GH#56044 the codes already carry the missing values, so the categories
+    #  stay int64 where a non-categorical read gives float64
+    parser = all_parsers
+    data = "a,b\n1,x\n,x\n2,x"
+    expected = DataFrame(
+        {"a": Categorical([1, None, 2]), "b": Categorical(["x", "x", "x"])}
+    )
+    result = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].cat.categories.dtype == np.dtype("int64")
+
+
+def test_categorical_dtype_boolean_with_missing(all_parsers):
+    # GH#56044 as above for booleans, where a non-categorical read gives object
+    parser = all_parsers
+    data = "a,b\nTrue,x\n,x\nFalse,x"
+    expected = DataFrame(
+        {
+            "a": Categorical([True, None, False]),
+            "b": Categorical(["x", "x", "x"]),
+        }
+    )
+    result = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].cat.categories.dtype == np.dtype("bool")
+
+
+def test_categorical_dtype_huge_integer_no_overflow(all_parsers):
+    # GH#56044 numeric inference must not propagate the OverflowError raised
+    #  for integers too large to represent as float64.  The resulting category
+    #  dtype is deliberately not pinned: to_numeric only raises when such an
+    #  integer is the first one it sees, so low_memory=True (which sorts the
+    #  categories first) keeps object categories where the other paths fall
+    #  back to strings.
+    parser = all_parsers
+    data = "a\n" + "1" * 400 + "\n1"
+    result = parser.read_csv(StringIO(data), dtype="category")
+    assert len(result["a"].cat.categories) == 2
+
+
+@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
+def test_categorical_dtype_quote_nonnumeric_large_integers(all_parsers):
+    # GH#56044 QUOTE_NONNUMERIC converts integers too large for int64/uint64
+    #  from their strings, since they arrive as Python ints that cannot be
+    #  cast to float64 directly
+    parser = all_parsers
+    data = '"a"\n99999999999999999999999999\n1'
+    expected = DataFrame({"a": Categorical([1e26, 1.0])})
+    result = parser.read_csv(
+        StringIO(data), dtype="category", quoting=csv.QUOTE_NONNUMERIC
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_dtype_empty_string_dtype_backend(all_parsers, dtype_backend):
+    # GH#56044 the NaN that to_numeric makes of "" cannot be a category, so
+    #  string categories are kept even when it yields a NaN value rather than
+    #  a null, as it does for the arrow-backed strings the python engine
+    #  produces
+    parser = all_parsers
+    data = "a,b\n,1\n2,3"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype="category",
+        keep_default_na=False,
+        dtype_backend=dtype_backend,
+    )
+    assert list(result["a"].cat.categories) == ["", "2"]
 
 
 @xfail_pyarrow  # pyarrow treats "" as null regardless of na_filter

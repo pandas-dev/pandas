@@ -663,6 +663,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         false_values=None,
         convert_numeric: bool = False,
         convert_bool: bool = False,
+        float_only: bool = False,
     ) -> Index | None:
         """
         Try converting string categories to numeric or boolean, mirroring
@@ -681,6 +682,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             Whether to attempt numeric conversion.
         convert_bool : bool, default False
             Whether to attempt boolean conversion.
+        float_only : bool, default False
+            Whether numeric conversion must produce floats, as with
+            ``quoting=csv.QUOTE_NONNUMERIC``.
 
         Returns
         -------
@@ -701,10 +705,27 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if convert_numeric:
             try:
                 converted = Index(to_numeric(cats, errors="raise"), copy=False)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, OverflowError):
+                # OverflowError: an integer too large to represent as float64
                 pass
             else:
-                if not converted.hasnans:
+                # test the values rather than Index.hasnans: arrow-backed
+                #  strings convert to a float NaN value rather than a null,
+                #  which the validity bitmap does not report
+                if not isna(np.asarray(converted)).any():
+                    if float_only and converted.dtype.kind != "f":
+                        # cast before the caller de-duplicates, so that values
+                        #  colliding at float64 precision merge into one category
+                        if converted.dtype.kind == "O":
+                            # ints too large for int64/uint64 arrive as Python
+                            #  ints and overflow a direct cast; parsing the
+                            #  strings gives inf, as the tokenizer does
+                            converted = Index(
+                                np.asarray(cats, dtype="U").astype(np.float64),
+                                copy=False,
+                            )
+                        else:
+                            converted = converted.astype(np.float64)
                     return converted
                 # to_numeric converts "" to NaN, which cannot be a category
 
@@ -744,6 +765,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         false_values=None,
         convert_numeric: bool = False,
         convert_bool: bool = False,
+        float_only: bool = False,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
@@ -769,6 +791,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         convert_bool : bool, default False
             Whether to convert string categories to boolean when `dtype` does
             not provide categories. See ``_maybe_convert_categories``.
+        float_only : bool, default False
+            Whether numeric conversion must produce floats. See
+            ``_maybe_convert_categories``.
 
         Returns
         -------
@@ -796,6 +821,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 false_values=false_values,
                 convert_numeric=convert_numeric,
                 convert_bool=convert_bool,
+                float_only=float_only,
             )
             if converted is not None:
                 return cls._from_converted_categories(
