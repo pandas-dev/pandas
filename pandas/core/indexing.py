@@ -2912,7 +2912,8 @@ class _iLocIndexer(_LocationIndexer):
             ):
                 col = item_labels[indexer[info_axis]]
                 if col in value.columns:
-                    value = self._align_series(indexer, value[col])
+                    val = self._align_series(indexer, value[col])
+                    value = getattr(val, "_values", val)
                 else:
                     value = np.nan
             else:
