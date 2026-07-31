@@ -14,6 +14,7 @@ from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     DatetimeIndex,
+    Timedelta,
     Timestamp,
     bdate_range,
     date_range,
@@ -412,3 +413,32 @@ class TestTZLocalize:
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
             dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
+
+
+def test_dti_tz_localize_nonexistent_shift_past_last_transition():
+    # GH#66550 a shift landing past the last cached DST transition indexed the
+    #  deltas array out of bounds, so the same call gave a different answer
+    #  each time
+    tz = gettz("America/Boise")
+    dti = DatetimeIndex([Timestamp("2015-03-08 02:30")])
+    shift = Timedelta(days=30_000)
+
+    result = dti.tz_localize(tz, nonexistent=shift)
+
+    expected = DatetimeIndex([dti[0] + shift]).tz_localize(tz)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, dti.tz_localize(tz, nonexistent=shift))
+
+
+def test_dti_tz_localize_nonexistent_shift_at_last_transition():
+    # GH#66550 Asia/Anadyr's last transition is a spring-forward, so the delta
+    #  in effect after it puts the shifted wall time back before that
+    #  transition; the offset from before it is the one that applies
+    tz = gettz("Asia/Anadyr")
+    dti = DatetimeIndex([Timestamp("2011-03-27 02:30")])
+
+    result = dti.tz_localize(tz, nonexistent="shift_backward")
+
+    expected = DatetimeIndex([Timestamp("2011-03-27 01:59:59.999999")]).tz_localize(tz)
+    tm.assert_index_equal(result, expected)
+    assert result[0].utcoffset() == timedelta(hours=11)
