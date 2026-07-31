@@ -348,7 +348,10 @@ timedelta-like}
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = v - delta
+                # GH#66550 use the checked shift so a fixed-offset localize that
+                #  wraps int64 or lands on the NaT sentinel raises, matching the
+                #  scalar tz_localize_to_utc_single path
+                result[i] = _shift_to_utc(v, delta, creso)
         return result.base  # to return underlying ndarray
 
     # Determine whether each date lies left of the DST transition (store in
@@ -551,6 +554,12 @@ cdef int64_t _shift_to_utc(
     cdef int64_t result
     if checked_sub(val, delta, &result):
         raise_out_of_bounds(val, BS_UNDERFLOW if delta > 0 else BS_OVERFLOW, creso)
+    # GH#66550 checked_sub catches wrapping past the int64 edge, but the shift
+    #  can also land *exactly* on NPY_NAT (INT64_MIN), which is representable as
+    #  an int64 yet reads back as NaT once stored. That is one below
+    #  Timestamp.min, i.e. an underflow, so reject it the same way.
+    if result == NPY_NAT:
+        raise_out_of_bounds(val, BS_UNDERFLOW, creso)
     return result
 
 
