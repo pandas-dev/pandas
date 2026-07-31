@@ -349,7 +349,7 @@ Renaming categories is done by using the
     s = s.cat.rename_categories(new_categories)
     s
     # You can also pass a dict-like object to map the renaming
-    s = s.cat.rename_categories({1: "x", 2: "y", 3: "z"})
+    s = s.cat.rename_categories({"Group a": "x", "Group b": "y", "Group c": "z"})
     s
 
 .. note::
