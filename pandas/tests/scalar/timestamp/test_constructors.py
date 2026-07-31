@@ -1392,7 +1392,9 @@ def test_timestamp_constructor_nanosecond_kwarg_tz_wall(ts_input):
             5,
             "Out of bounds nanosecond timestamp: 2500-01-01",
         ),
-        (date(2500, 1, 1), {}, 5, "Out of bounds nanosecond timestamp: 2500-01-01"),
+        # the date branch goes through convert_datetime_to_tsobject, whose
+        #  out-of-bounds message does not name the value
+        (date(2500, 1, 1), {}, 5, "Out of bounds nanosecond timestamp"),
         (10**11, {"unit": "s"}, 5, "Out of bounds nanosecond timestamp: 5138-11-16"),
         # in bounds until the sub-microsecond overwrite pushes it past the max
         (
@@ -1447,35 +1449,38 @@ def test_timestamp_constructor_nanosecond_kwarg_lands_on_nat_sentinel(ts_input, 
 
 
 @pytest.mark.parametrize(
-    "ts_input, tz",
+    "ts_input, tz, msg",
     [
-        # wall time itself is out of bounds at ns reso, even though the shift to
-        #  UTC would move the stored value back into range
-        (datetime(1677, 9, 21, 0, 12, 43, 145224), "US/Pacific"),
-        # wall time is in bounds; the shift to UTC lands it on the sentinel
-        (datetime(1677, 9, 21, 9, 31, 42, 145224), "Asia/Tokyo"),
+        # a fixed offset shifts via tz_localize_to_utc_single's use_fixed path
         (
             np.datetime64(-9223372036854775807 + 32400 * 10**9, "ns"),
             timezone(timedelta(hours=9)),
+            "Out of bounds nanosecond timestamp",
+        ),
+        # a tz carrying DST info instead goes through _get_utc_bounds; Tokyo's
+        #  pre-1888 LMT offset is +9:18:59
+        (
+            np.datetime64("1677-09-21T09:31:42.145224", "us"),
+            "Asia/Tokyo",
+            "underflows past",
         ),
     ],
 )
-def test_timestamp_constructor_nanosecond_kwarg_nat_sentinel_tz(ts_input, tz):
-    # GH#66510 the sentinel has to be caught both before and after the shift
-    #  to UTC, otherwise a non-zero-offset tz slips through
-    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
+def test_timestamp_constructor_nanosecond_kwarg_nat_sentinel_tz(ts_input, tz, msg):
+    # GH#66510 the wall time is in bounds; only the shift to UTC lands on the
+    #  sentinel, so it has to be rejected after the shift as well
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
         Timestamp(ts_input, nanosecond=192, tz=tz)
 
 
-def test_timestamp_constructor_nanosecond_kwarg_nat_sentinel_dst_aware_tz():
-    # GH#66510 for a tz carrying DST info the localization machinery rejects the
-    #  sentinel before we get to check it, so this reports a nonexistent-time
-    #  error rather than OutOfBoundsDatetime.  The message is imprecise (there is
-    #  no 1677 DST transition in Tokyo) and is expected to change when the
-    #  tz_localize side of GH#66510 is fixed; pinned so it cannot regress to NaT.
-    with pytest.raises(ValueError, match="nonexistent time"):
-        Timestamp(
-            np.datetime64("1677-09-21T09:31:42.145224", "us"),
-            nanosecond=192,
-            tz="Asia/Tokyo",
-        )
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+def test_constructor_dst_aware_tz_shift_onto_nat_sentinel(unit):
+    # GH#66550 Asia/Tokyo's pre-1888 LMT offset is +9:18:59, so this wall time
+    #  shifts to exactly iNaT.  _get_utc_bounds handed that to bisect_right_i8,
+    #  which requires val >= tdata[0] (== iNaT+1); it returned 0, leaving the
+    #  following deltas[pos - 1] lookup to read out of bounds.
+    lmt_seconds = 9 * 3600 + 18 * 60 + 59
+    per_second = {"ns": 10**9, "us": 10**6, "ms": 10**3, "s": 1}[unit]
+    ts_input = np.datetime64(-(2**63) + lmt_seconds * per_second, unit)
+    with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+        Timestamp(ts_input, tz="Asia/Tokyo")
