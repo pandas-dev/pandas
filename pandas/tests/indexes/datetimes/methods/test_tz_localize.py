@@ -10,6 +10,8 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 from pandas import (
     DatetimeIndex,
     Timestamp,
@@ -51,6 +53,21 @@ class TestTZLocalize:
         dti2 = dti[:1]
         result = dti2.tz_localize("US/Eastern")
         assert result.freq == "h"
+
+    def test_tz_localize_fixed_offset_hits_nat_sentinel(self):
+        # GH#66550 the vectorised fixed-offset shift must reject the NaT
+        #  sentinel too, matching the scalar path. Before the fix this stored a
+        #  wrapped value (a plausible-looking but wrong ~1970 timestamp) instead
+        #  of raising. Both paths now go through _shift_to_utc.
+        dti = DatetimeIndex([Timestamp(-(2**63) + 8 * 3600 * 10**9)])
+        msg = "underflows past"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            dti.tz_localize("Etc/GMT-8")
+
+        # neighbour is valid and must not raise
+        dti2 = DatetimeIndex([Timestamp(-(2**63) + 1 + 8 * 3600 * 10**9)])
+        result = dti2.tz_localize("Etc/GMT-8")
+        assert result.asi8[0] == -(2**63) + 1
 
     def test_tz_localize_utc_copies(self, utc_fixture):
         # GH#46460

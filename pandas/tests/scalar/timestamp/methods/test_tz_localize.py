@@ -51,6 +51,21 @@ class TestTimestampTZLocalize:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.tz_localize(pytz.timezone("US/Pacific"))
 
+    def test_tz_localize_fixed_offset_hits_nat_sentinel(self):
+        # GH#66550 the fixed-offset shift to UTC lands exactly on NPY_NAT
+        #  (INT64_MIN). That value is representable as an int64 but reads back
+        #  as NaT once stored, so it must raise OutOfBoundsDatetime rather than
+        #  silently returning NaT. checked_sub does not catch it because the
+        #  value does not wrap past the int64 edge; it is the edge minus one.
+        ts = Timestamp(-(2**63) + 8 * 3600 * 10**9)
+        msg = "underflows past"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.tz_localize("Etc/GMT-8")
+
+        # one nanosecond higher shifts to Timestamp.min and must still work
+        ts2 = Timestamp(-(2**63) + 1 + 8 * 3600 * 10**9)
+        assert ts2.tz_localize("Etc/GMT-8")._value == -(2**63) + 1
+
     @pytest.mark.parametrize(
         "tz",
         [zoneinfo.ZoneInfo("US/Central"), "dateutil/US/Central", "pytz/US/Central"],
