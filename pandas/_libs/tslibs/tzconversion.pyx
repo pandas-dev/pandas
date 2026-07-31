@@ -620,7 +620,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 isl = 0
 
         delta_l = deltas[isl]
-        if checked_sub(val, delta_l, &v_left):
+        # GH#66550 landing exactly on NPY_NAT is an underflow too: it is one
+        #  below the minimum representable value.  It also breaks
+        #  bisect_right_i8's `val >= tdata[0]` precondition (tdata[0] is
+        #  NPY_NAT+1), which would leave pos_left at -1 and read out of bounds.
+        if checked_sub(val, delta_l, &v_left) or v_left == NPY_NAT:
             status_left = BS_UNDERFLOW if delta_l > 0 else BS_OVERFLOW
         else:
             status_left = BS_OK
@@ -637,7 +641,8 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 isr = 0
 
         delta_r = deltas[isr]
-        if checked_sub(val, delta_r, &v_right):
+        # GH#66550 same guard as for v_left above
+        if checked_sub(val, delta_r, &v_right) or v_right == NPY_NAT:
             status_right = BS_UNDERFLOW if delta_r > 0 else BS_OVERFLOW
         else:
             status_right = BS_OK
