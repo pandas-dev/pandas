@@ -35,10 +35,11 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    floats_fit_integer_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_hashable,
     is_integer,
@@ -51,16 +52,21 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     construct_1d_array_from_inferred_fill_value,
     is_valid_na_for_dtype,
+    isna,
     na_value_for_dtype,
 )
 
@@ -68,6 +74,7 @@ from pandas.core import algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -323,6 +330,24 @@ class IndexingMixin:
         0     1     3
         1   100   300
         2  1000  3000
+
+        **Selecting along an explicit axis**
+
+        ``.iloc`` can be called with an ``axis`` argument to apply a single
+        indexer to that axis.
+
+        >>> df.iloc(axis=0)[1]
+        a    100
+        b    200
+        c    300
+        d    400
+        Name: 1, dtype: int64
+
+        >>> df.iloc(axis=1)[1]
+        0       2
+        1     200
+        2    2000
+        Name: b, dtype: int64
         """
         return _iLocIndexer("iloc", self)
 
@@ -466,6 +491,22 @@ class IndexingMixin:
         >>> df.loc[lambda df: df["shield"] == 8]
                     max_speed  shield
         sidewinder          7       8
+
+        **Selecting along an explicit axis**
+
+        ``.loc`` can be called with an ``axis`` argument to apply a single
+        indexer to that axis.
+
+        >>> df.loc(axis=0)["viper"]
+        max_speed    4
+        shield       5
+        Name: viper, dtype: int64
+
+        >>> df.loc(axis=1)["shield"]
+        cobra         2
+        viper         5
+        sidewinder    8
+        Name: shield, dtype: int64
 
         **Setting values**
 
@@ -970,8 +1011,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         orig_dtype_info: DtypeObj | npt.NDArray[np.object_],
         orig_columns: Index | None,
     ) -> None:
-        # setitem-with-expansion added new rows.  Try to retain
-        #  original dtypes
+        # setitem-with-expansion added new rows.  Where a column's dtype
+        #  changed, warn if the original dtype could not hold the new values
+        #  (a future version will disallow the silent change).
         if self.obj.ndim == 1:
             assert not isinstance(orig_dtype_info, np.ndarray)
             if orig_dtype_info != self.obj.dtype:
@@ -990,6 +1032,10 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # We added rows but not columns
                 changed_dtypes = new_dtypes != orig_dtypes
                 for idx in np.flatnonzero(changed_dtypes):
+                    if orig_dtypes[idx].kind == "V":
+                        # np.void NA-proxy placeholder from new-column
+                        #  creation; not a meaningful dtype to retain
+                        continue
                     orig_arr = pd_array([], dtype=orig_dtypes[idx])
                     new_arr = infer_and_maybe_downcast(
                         orig_arr, self.obj.iloc[:, idx]._values
@@ -1002,6 +1048,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 for col, orig_dtype in zip(orig_columns, orig_dtypes, strict=True):
                     new_dtype = self.obj[col].dtype
                     if new_dtype != orig_dtype:
+                        if orig_dtype.kind == "V":
+                            # np.void NA-proxy placeholder, as above
+                            continue
                         orig_arr = pd_array([], dtype=orig_dtype)
                         new_arr = infer_and_maybe_downcast(
                             orig_arr, self.obj[col]._values
@@ -2214,7 +2263,7 @@ class _iLocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
             if isinstance(key, ABCSeries):
                 arr = key._values
-            elif is_array_like(key):
+            elif is_array_like_deprecate_non_pandas(key):
                 arr = key
             else:
                 arr = np.array(key)
@@ -2458,6 +2507,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         _setitem_with_indexer cases that can go through DataFrame.__setitem__.
         """
+        # GH#65418 a dict is a label->value mapping; treat it as a Series so it
+        #  is aligned by key like the non-expansion paths, rather than being
+        #  sanitized positionally into its keys.
+        if isinstance(value, dict):
+            from pandas import Series
+
+            value = Series(value)
+
         # add the new item, and set the value
         # must have all defined axes if we have a scalar
         # or a list-like on the non-info axes if we have a
@@ -2475,7 +2532,7 @@ class _iLocIndexer(_LocationIndexer):
             # We are setting an entire column
             self.obj[key] = value
             return
-        elif is_array_like(value):
+        elif is_array_like_deprecate_non_pandas(value):
             # GH#42099
             arr = extract_array(value, extract_numpy=True)
             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
@@ -2542,6 +2599,12 @@ class _iLocIndexer(_LocationIndexer):
 
                     # reindex the axis
                     index = self.obj._get_axis(i)
+                    maybe_warn_multiindex_expansion(
+                        index,
+                        key,
+                        target="row on a DataFrame",
+                        hint="Use a full-length tuple key instead.",
+                    )
                     labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
@@ -2677,7 +2740,9 @@ class _iLocIndexer(_LocationIndexer):
         pi = indexer[0]
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        if not isinstance(value, list) and not is_array_like(value):
+        if not isinstance(value, list) and not is_array_like_deprecate_non_pandas(
+            value
+        ):
             value = np.asarray(value)
 
         if isinstance(value, list):
@@ -2772,7 +2837,9 @@ class _iLocIndexer(_LocationIndexer):
 
         is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        is_null_setter = com.is_empty_slice(pi) or (is_array_like(pi) and len(pi) == 0)
+        is_null_setter = com.is_empty_slice(pi) or (
+            is_array_like_deprecate_non_pandas(pi) and len(pi) == 0
+        )
 
         if is_null_setter:
             # no-op, don't cast dtype later
@@ -2895,6 +2962,12 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
+            maybe_warn_multiindex_expansion(
+                index,
+                indexer,
+                target="value on a Series",
+                hint="Use a full-length tuple key instead.",
+            )
             new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
@@ -2920,17 +2993,32 @@ class _iLocIndexer(_LocationIndexer):
                     # Every NA value is suitable for object, no conversion needed
                     value = na_value_for_dtype(self.obj.dtype, compat=False)
 
-            new_values = infer_and_maybe_downcast(self.obj.array, [value])
+            new_values = infer_and_maybe_downcast(
+                self.obj.array, [value], warn_if_cast=False
+            )
 
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
+                # GH#62523 infer_and_maybe_downcast may return a raw M8/m8
+                #  ndarray for datetimelike; wrap it so concat_compat does not
+                #  mix a bare ndarray with the DatetimeArray/TimedeltaArray
+                #  _values
+                new_values = ensure_wrapped_if_datetimelike(new_values)
                 new_values = concat_compat([self.obj._values, new_values])
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
 
         elif self.ndim == 2:
+            maybe_warn_multiindex_expansion(
+                self.obj.index,
+                indexer,
+                target="row on a DataFrame",
+                hint="Use a full-length tuple key and an explicit column "
+                "indexer instead, e.g. df.loc[key, :] = values.",
+            )
+
             if not len(self.obj.columns):
                 # GH#17895 no columns, just expand the index
                 new_index = self.obj.index.insert(len(self.obj.index), indexer)
@@ -3422,7 +3510,13 @@ class _iAtIndexer(_ScalarAccessIndexer):
 def _is_2d_value(value) -> bool:
     """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
     if isinstance(value, list):
-        return len(value) > 0 and isinstance(value[0], (list, tuple))
+        if len(value) == 0:
+            return False
+        first = value[0]
+        if isinstance(first, np.ndarray):
+            # a 0-d element is a scalar and a 2-D element makes value 3D
+            return first.ndim == 1
+        return isinstance(first, (list, tuple))
     return np.ndim(value) == 2
 
 
@@ -3500,7 +3594,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     if is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
-    elif not is_array_like(result):
+    elif not is_array_like_deprecate_non_pandas(result):
         # GH 33924
         # key may contain nan elements, check_array_indexer needs bool array
         result = pd_array(result, dtype=bool)
@@ -3607,7 +3701,81 @@ def check_dict_or_set_indexers(key) -> None:
         )
 
 
-def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
+def _expansion_can_hold(orig: ExtensionArray, new_arr) -> bool:
+    """
+    Can new_arr's values be set losslessly into an array of orig's dtype?
+
+    Decides whether a dtype change during setitem-with-expansion gets the
+    GH#62369 deprecation warning.
+    """
+    dtype = orig.dtype
+    np_dtype = dtype.numpy_dtype if isinstance(dtype, NumpyEADtype) else dtype
+    if (
+        isinstance(np_dtype, np.dtype)
+        and np_dtype.kind in "iu"
+        and isinstance(new_arr, np.ndarray)
+        and new_arr.dtype.kind == "f"
+        and not floats_fit_integer_dtype(new_arr, np_dtype)
+    ):
+        # GH#66394 can_hold_element's round-trip check cannot see an
+        #  out-of-range float->int cast, since e.g. 2**63 and 2**63 - 1 are
+        #  the same float64, so it would report the value as holdable.
+        return False
+
+    if isinstance(dtype, NumpyEADtype):
+        # can_hold_element treats NumpyExtensionArray as a generic
+        #  ExtensionArray; unwrap so the underlying numpy dtype is checked.
+        return can_hold_element(np.asarray(orig), new_arr)
+    if isinstance(dtype, (PeriodDtype, IntervalDtype, DatetimeTZDtype, np.dtype)) or (
+        dtype == "string"
+    ):
+        # the dtypes for which can_hold_element does a real setitem-validation
+        #  check, as opposed to unconditionally returning True
+        return can_hold_element(orig, new_arr)
+
+    # Generic ExtensionArray (masked, Categorical, ArrowDtype, ...): check
+    #  whether the values round-trip losslessly at the original dtype.
+    try:
+        with warnings.catch_warnings():
+            # this is an internal probe whose result we compare below, so
+            #  constructor warnings (e.g. Categorical's on out-of-category
+            #  values) are spurious
+            warnings.simplefilter("ignore")
+            converted = pd_array(new_arr, dtype=dtype)
+    except Exception:
+        # EA constructors raise assorted exception types for un-holdable
+        #  values (e.g. pyarrow.lib.ArrowInvalid, decimal.InvalidOperation);
+        #  any failure means the original dtype cannot hold the new values.
+        return False
+    return array_equivalent(
+        np.asarray(converted, dtype=object), np.asarray(new_arr, dtype=object)
+    )
+
+
+def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -> None:
+    """
+    GH#17024 warn when expanding a MultiIndex axis with a key that is not a
+    full-length tuple.  Depending on the path, such keys currently either
+    flatten the MultiIndex to an Index of tuples or get padded with "".
+    """
+    if isinstance(index, MultiIndex) and not (
+        isinstance(key, tuple) and len(key) == index.nlevels
+    ):
+        warnings.warn(
+            f"Setting a new {target} with a MultiIndex using a key that is "
+            "not a full-length tuple is deprecated and will raise in a "
+            f"future version. {hint}",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+
+def infer_and_maybe_downcast(
+    orig: ExtensionArray,
+    new_arr,
+    *,
+    warn_if_cast: bool = True,
+) -> ArrayLike:
     new_arr = orig._cast_pointwise_result(new_arr)
 
     dtype = orig.dtype
@@ -3639,6 +3807,44 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
             # Only accept the conversion if no values were truncated
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
+    elif dtype.kind in "mM" and new_arr.dtype != dtype:
+        # GH#66402 inference re-derives the unit from the scalars, which for a
+        #  freshly-constructed Timestamp/Timedelta is us.  Restore the original
+        #  resolution when every value still fits in it.
+        wrapped = ensure_wrapped_if_datetimelike(new_arr)
+        try:
+            converted = wrapped.as_unit(orig.unit, round_ok=False)  # type: ignore[attr-defined]
+        except (AttributeError, ValueError, TypeError):
+            pass
+        else:
+            # Guards against e.g. a tz-naive/tz-aware mismatch, where the units
+            #  line up but the dtypes are still not interchangeable.
+            if converted.dtype == dtype:
+                new_arr = converted
+
+    # The inferred result is returned unchanged, matching the historical
+    #  behavior.  We only warn when setitem-with-expansion lands on a dtype the
+    #  original cannot hold, which a future version will disallow.  warn_if_cast
+    #  is False for the intermediate inference inside _setitem_with_indexer_missing
+    #  and the frame.py concat path; those warn later from the post-expansion pass.
+    if new_arr.dtype != dtype and warn_if_cast:
+        # PDEP6 exception: int/uint -> float when result contains NaN
+        pdep6_allowed = (
+            is_np_dtype(dtype, "iu")
+            and is_np_dtype(new_arr.dtype, "f")
+            and isna(new_arr).any()
+        )
+        if not pdep6_allowed and not _expansion_can_hold(orig, new_arr):
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                f"and will raise an error in a future version of pandas. "
+                f"The existing dtype {dtype} cannot hold the value being "
+                f"set, so the result has dtype {new_arr.dtype}. Cast the "
+                f"object to {new_arr.dtype} before this operation to "
+                f"retain the current behavior.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
     if arr_type is not None:
         new_arr = arr_type(new_arr)

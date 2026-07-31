@@ -18,9 +18,10 @@ int scaleNanosecToUnit(int64_t *value, NPY_DATETIMEUNIT unit);
 // Converts an int64 object representing a date to ISO format
 // up to precision `base` e.g. base="s" yields 2020-01-03T00:00:00Z
 // while base="ns" yields "2020-01-01T00:00:00.000000000Z"
+// `utc` appends a trailing "Z" when nonzero (for UTC-localized values).
 // len is mutated to save the length of the returned string
 char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
-                 NPY_DATETIMEUNIT base, size_t *len);
+                 NPY_DATETIMEUNIT base, int utc, size_t *len);
 
 char *int64ToIsoDuration(int64_t value, NPY_DATETIMEUNIT valueUnit,
                          size_t *len);

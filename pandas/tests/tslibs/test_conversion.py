@@ -1,12 +1,13 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
     astype_overflowsafe,
     conversion,
@@ -17,6 +18,7 @@ from pandas._libs.tslibs import (
 )
 
 from pandas import (
+    Timedelta,
     Timestamp,
     date_range,
 )
@@ -57,7 +59,7 @@ def _compare_local_to_utc(tz_didx, naive_didx):
 def test_tz_localize_to_utc_copies():
     # GH#46460
     arr = np.arange(5, dtype="i8")
-    result = tz_convert_from_utc(arr, tz=timezone.utc)
+    result = tz_convert_from_utc(arr, tz=UTC)
     tm.assert_numpy_array_equal(result, arr)
     assert not np.shares_memory(arr, result)
 
@@ -102,7 +104,7 @@ def test_tz_convert_readonly():
     # GH#35530
     arr = np.array([0], dtype=np.int64)
     arr.setflags(write=False)
-    result = tz_convert_from_utc(arr, timezone.utc)
+    result = tz_convert_from_utc(arr, UTC)
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -144,17 +146,17 @@ class SubDatetime(datetime):
     [
         pytest.param(
             Timestamp("2000-01-01"),
-            Timestamp("2000-01-01", tz=timezone.utc),
+            Timestamp("2000-01-01", tz=UTC),
             id="timestamp",
         ),
         pytest.param(
             datetime(2000, 1, 1),
-            datetime(2000, 1, 1, tzinfo=timezone.utc),
+            datetime(2000, 1, 1, tzinfo=UTC),
             id="datetime",
         ),
         pytest.param(
             SubDatetime(2000, 1, 1),
-            SubDatetime(2000, 1, 1, tzinfo=timezone.utc),
+            SubDatetime(2000, 1, 1, tzinfo=UTC),
             id="subclassed_datetime",
         ),
     ],
@@ -163,5 +165,35 @@ def test_localize_pydatetime_dt_types(dt, expected):
     # GH 25851
     # ensure that subclassed datetime works with
     # localize_pydatetime
-    result = conversion.localize_pydatetime(dt, timezone.utc)
+    result = conversion.localize_pydatetime(dt, UTC)
     assert result == expected
+
+
+@pytest.mark.parametrize("unit", ["us", "ms", "s", "m", "h", "D", "W"])
+def test_cast_from_unit_vectorized_near_int64_boundary(unit):
+    # GH#57366 near +/-2**63 ns the array cast must agree with the scalar cast;
+    # near-bound floats used to wrap or spuriously raise. Walk every representable
+    # float straddling each int64 bound and check the two match.
+    ns_per_unit = np.timedelta64(1, unit).astype("timedelta64[ns]").astype(np.int64)
+
+    values = []
+    for bound in (-(2**63), 2**63 - 1):
+        low = high = np.float64(bound / ns_per_unit)
+        for _ in range(60):
+            low = np.nextafter(low, -np.inf)
+            high = np.nextafter(high, np.inf)
+        walker = low
+        while walker <= high:
+            values.append(walker)
+            walker = np.nextafter(walker, np.inf)
+
+    for val in values:
+        arr = np.array([val], dtype="float64")
+        # Timedelta(...).value is the scalar cast_from_unit result in ns
+        try:
+            expected = Timedelta(val, unit=unit).value
+        except (OutOfBoundsDatetime, OutOfBoundsTimedelta, OverflowError):
+            with pytest.raises(OutOfBoundsDatetime):
+                conversion.cast_from_unit_vectorized(arr, unit)
+        else:
+            assert conversion.cast_from_unit_vectorized(arr, unit)[0] == expected

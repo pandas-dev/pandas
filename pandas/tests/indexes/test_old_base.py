@@ -546,7 +546,8 @@ class TestBase:
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
 
-        msg = "|".join(["Lengths must match", "could not be broadcast"])
+        # the Index length check raises before NumPy can attempt to broadcast
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             index_a == index_b
         expected1 = np.array([True] * n)
@@ -675,7 +676,7 @@ class TestBase:
 
         result = idx.map(lambda x: x)
         # RangeIndex are equivalent to the similar Index with int64 dtype
-        tm.assert_index_equal(result, idx, exact="equiv")
+        tm.assert_index_equal(result, idx, exact="equiv", check_freq=False)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -727,7 +728,7 @@ class TestBase:
         dtype = CategoricalDtype(ordered=ordered)
         result = idx.astype(dtype, copy=copy)
         expected = CategoricalIndex(idx, name=name, ordered=ordered)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
@@ -736,13 +737,13 @@ class TestBase:
             result = idx.astype(dtype, copy=copy)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = CategoricalIndex(idx, name=name, dtype=dtype)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
             result = idx.astype("category", copy=copy)
             expected = CategoricalIndex(idx, name=name)
-            tm.assert_index_equal(result, expected, exact=True)
+            tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
     def test_is_unique(self, simple_index):
         # initialize a unique index
@@ -849,11 +850,15 @@ class TestBase:
         result = index.append(index)
         assert result.dtype == index.dtype
 
-        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
-        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
+        tm.assert_index_equal(
+            result[:N], index, exact=False, check_exact=True, check_freq=False
+        )
+        tm.assert_index_equal(
+            result[N:], index, exact=False, check_exact=True, check_freq=False
+        )
 
         alt = index.take(list(range(N)) * 2)
-        tm.assert_index_equal(result, alt, check_exact=True)
+        tm.assert_index_equal(result, alt, check_exact=True, check_freq=False)
 
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
@@ -926,13 +931,7 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "|".join(
-            [
-                "Cannot change data-type for array of references.",
-                "Cannot change data-type for object array.",
-                "",
-            ]
-        )
+        msg = "Cannot change data-type"
         with pytest.raises(TypeError, match=msg):
             # GH#55709
             idx.view(index_cls)

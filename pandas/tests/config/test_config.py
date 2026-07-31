@@ -56,6 +56,14 @@ class TestConfig:
         with pytest.raises(OptionError, match=msg):
             cf.register_option("a.b.c.d2", 1, "doc")
 
+        # can't register a prefix of an already-registered option (GH#29242)
+        cf.register_option("m.n.o", 1, "doc")
+        msg = "Option 'm.n' is a prefix of an already-registered option"
+        with pytest.raises(OptionError, match=msg):
+            cf.register_option("m.n", 2, "doc")
+        # the existing option is untouched
+        assert cf.get_option("m.n.o") == 1
+
         # no python keywords
         msg = "for is a python keyword"
         with pytest.raises(ValueError, match=msg):
@@ -247,11 +255,11 @@ class TestConfig:
             cf.set_option("b.c", 1)
 
         validator = cf.is_one_of_factory([None, cf.is_callable])
-        cf.register_option("b", lambda: None, "doc", validator=validator)
-        cf.set_option("b", "%.1f".format)  # Formatter is callable
-        cf.set_option("b", None)  # Formatter is none (default)
+        cf.register_option("e", lambda: None, "doc", validator=validator)
+        cf.set_option("e", "%.1f".format)  # Formatter is callable
+        cf.set_option("e", None)  # Formatter is none (default)
         with pytest.raises(ValueError, match="Value must be a callable"):
-            cf.set_option("b", "%.1f")
+            cf.set_option("e", "%.1f")
 
     def test_reset_option(self):
         cf.register_option("a", 1, "doc", validator=cf.is_int)

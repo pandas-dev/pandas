@@ -121,20 +121,14 @@ class TestFancy:
         idxr = indexer_sli(obj)
         nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
+        err = ValueError
         if indexer_sli is tm.iloc:
-            err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
+        elif indexer_sli is tm.setitem and frame_or_series is DataFrame:
+            # __setitem__ with a 3D key treats it as a boolean mask
+            msg = "Array conditional must be same shape as self"
         else:
-            err = ValueError
-            msg = "|".join(
-                [
-                    r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
-                    "Cannot set values with ndim > 1",
-                    "Index data must be 1-dimensional",
-                    "Data must be 1-dimensional",
-                    "Array conditional must be same shape as self",
-                ]
-            )
+            msg = "Index data must be 1-dimensional"
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
@@ -600,6 +594,36 @@ class TestFancy:
         expected = DataFrame({"A": val.to_numpy(dtype=dtype)})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "col_dtype, ea_dtype, bad_value, good_value",
+        [
+            ("uint64", "Int64", -1, 5),
+            ("uint64", "int64[pyarrow]", -1, 5),
+            ("float32", "Float64", 1e300, 5.0),
+            ("float32", "double[pyarrow]", 1e300, 5.0),
+        ],
+    )
+    @pytest.mark.parametrize("box", [Series, Index])
+    def test_iloc_setitem_ea_dtype_lossy_raises(
+        self, col_dtype, ea_dtype, bad_value, good_value, box
+    ):
+        # GH#47776 - a NA-free nullable/arrow EA whose values don't fit the
+        #  target numpy dtype must raise, not silently wrap (-1 -> 2**64-1) or
+        #  overflow (1e300 -> inf).
+        if "pyarrow" in ea_dtype:
+            pytest.importorskip("pyarrow")
+
+        df = DataFrame({"A": np.zeros(3, dtype=col_dtype)})
+        lossy = box([bad_value, good_value, good_value], dtype=ea_dtype)
+        with pytest.raises(TypeError, match="Invalid value"):
+            df.iloc[:, 0] = lossy
+
+        # a value that does fit is still assigned inplace, retaining the dtype
+        fits = box([good_value, good_value, good_value], dtype=ea_dtype)
+        df.iloc[:, 0] = fits
+        expected = DataFrame({"A": fits.to_numpy(dtype=col_dtype)})
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
     def test_index_type_coercion(self, indexer):
         # GH 11836
@@ -1056,12 +1080,8 @@ def test_ser_list_indexer_exceeds_dimensions(indexer_li):
 def test_scalar_setitem_with_nested_value(value):
     # For numeric data, we try to unpack and thus raise for mismatching length
     df = DataFrame({"A": [1, 2, 3]})
-    msg = "|".join(
-        [
-            "Must have equal len keys and value",
-            "setting an array element with a sequence",
-        ]
-    )
+    # NumPy rejects the nested value while building the column
+    msg = "setting an array element with a sequence"
     with pytest.raises(ValueError, match=msg):
         df.loc[0, "B"] = value
 
@@ -1179,6 +1199,16 @@ def test_loc_setitem_list_of_tuples_on_object_column():
     df2 = DataFrame({"a": [1, 1, 2, 1], "b": [(1, 1, 0)] * 4})
     df2.loc[df2["a"] == 1, "b"] = [[(0, 0, 1)]]
     tm.assert_frame_equal(df2, expected)
+
+
+@pytest.mark.parametrize("value", [[[1, 2], [3, 4], [5, 6]], [(1, 2), (3, 4), (5, 6)]])
+def test_loc_setitem_2d_list_on_object_frame(value):
+    # GH#65264 - a list of lists/tuples assigned to a 2D object block is a
+    # genuine 2D value; its rows must not be wrapped into single object cells
+    df = DataFrame({"a": [10, 20, 30], "b": [40, 50, 60]}, dtype=object)
+    df.loc[:, :] = value
+    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
 
 
 def test_object_dtype_series_set_series_element():

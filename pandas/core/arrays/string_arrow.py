@@ -24,10 +24,10 @@ from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_array_like_deprecate_non_pandas,
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
@@ -338,7 +338,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif isinstance(value, type(self)):
             pass
         else:
-            if not is_array_like(value):
+            if not is_array_like_deprecate_non_pandas(value):
                 value = np.asarray(value, dtype=object)
             else:
                 value = np.asarray(value)
@@ -389,6 +389,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     _str_isalnum = ArrowStringArrayMixin._str_isalnum
     _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isascii = ArrowStringArrayMixin._str_isascii
     _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
     _str_isdigit = ArrowStringArrayMixin._str_isdigit
     _str_islower = ArrowStringArrayMixin._str_islower
@@ -417,6 +418,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
+    _str_zfill = ArrowStringArrayMixin._str_zfill
 
     @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:

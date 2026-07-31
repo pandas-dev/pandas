@@ -1461,3 +1461,16 @@ Frequencies
    :toctree: api/
 
    to_offset
+
+.. _api.holiday:
+
+==================
+Holiday calendars
+==================
+.. currentmodule:: pandas.tseries.holiday
+
+.. autosummary::
+   :toctree: api/
+
+   AbstractHolidayCalendar
+   Holiday

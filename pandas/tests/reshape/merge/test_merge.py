@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -2599,9 +2600,12 @@ def test_merge_multiindex_columns():
     index = MultiIndex.from_product((letters, numbers), names=["outer", "inner"])
 
     frame_x = DataFrame(columns=index)
-    frame_x["id"] = ""
     frame_y = DataFrame(columns=index)
-    frame_y["id"] = ""
+    msg = "Setting a new column"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_x["id"] = ""
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_y["id"] = ""
 
     l_suf = "_x"
     r_suf = "_y"
@@ -3282,4 +3286,76 @@ def test_merge_right_sort_false_range_like_left(dtype, start, step):
     expected["v"] = left.set_index("k")["v"].reindex(expected["k"]).to_numpy()
     expected = expected[["k", "v", "w"]]
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+@pytest.mark.parametrize(
+    "range_k, other_k",
+    [
+        # uint64 keys above INT64_MAX were silently dropped (all-NaN)
+        (
+            np.array([2**63, 2**63 + 1, 2**63 + 2], dtype=np.uint64),
+            np.array([2**63 + 2, 2**63, 2**63 + 5], dtype=np.uint64),
+        ),
+        # a probe value near INT64_MIN overflowed and matched spuriously
+        (
+            np.array([10, 11, 12], dtype=np.int64),
+            np.array([11, np.iinfo(np.int64).min, 10], dtype=np.int64),
+        ),
+        # a two-element key whose implied step overflows int64
+        (
+            np.array([np.iinfo(np.int64).min, np.iinfo(np.int64).max], dtype=np.int64),
+            np.array(
+                [np.iinfo(np.int64).max, 0, np.iinfo(np.int64).min], dtype=np.int64
+            ),
+        ),
+    ],
+)
+def test_merge_sort_false_range_like_extreme_int_keys(how, range_k, other_k):
+    # GH#64148 the range-like fast path promoted one side's key to a RangeIndex
+    # and looked the other side up in it; for extreme integer keys this
+    # overflowed/wrapped and silently dropped matches or returned out-of-bounds
+    # (garbage) ones. The promoted side is the one opposite ``how``.
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    # reference lookup via reindex, which does not use the range-like fast path
+    if how == "left":
+        expected = left.copy()
+        expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+    else:
+        expected = right.copy()
+        expected.insert(1, "v", left.set_index("k")["v"].reindex(right["k"]).to_numpy())
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
+    # GH#64148 range-like keys spanning more than INT64_MAX: the promoted
+    # RangeIndex's offset computation overflowed int64 and fabricated matches.
+    # Expected values are hardcoded because a reindex-based reference would go
+    # through the same RangeIndex lookup.
+    range_k = np.array([-(2**62) - 1, -1, 2**62 - 1], dtype=np.int64)
+    other_k = np.array([2**62 - 1, 5, -1], dtype=np.int64)
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    if how == "left":
+        expected = DataFrame({"k": other_k, "v": [0, 1, 2], "w": [2.0, np.nan, 1.0]})
+    else:
+        expected = DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)

@@ -6,6 +6,7 @@ from io import (
 )
 import json
 import os
+from pathlib import Path
 import sys
 import uuid
 
@@ -146,9 +147,10 @@ class TestPandasContainer:
             expected_warning = Pandas4Warning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
-            result = read_json(
-                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
-            )
+            json = StringIO(df.to_json(orient=orient))
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, orient=orient, convert_dates=["x"])
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
@@ -904,7 +906,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(df.to_json(date_unit="ns"))
 
-        result = read_json(json, convert_dates=False)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected["date"] = expected["date"].values.view("i8")
         expected["foo"] = expected["foo"].astype("int64")
@@ -1170,7 +1174,9 @@ class TestPandasContainer:
             df = df.convert_dtypes(dtype_backend=dtype_backend)
 
         json = df.to_json(date_format="iso", date_unit=unit)
-        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
@@ -1196,7 +1202,9 @@ class TestPandasContainer:
         assert list(parsed.values()) == i8
 
         # and the frame round-trips, preserving the original resolution (GH#55827)
-        roundtripped = read_json(StringIO(result), convert_dates=["date"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            roundtripped = read_json(StringIO(result), convert_dates=["date"])
         tm.assert_frame_equal(roundtripped, df)
 
     def test_weird_nested_json(self):
@@ -1254,7 +1262,9 @@ class TestPandasContainer:
     def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(httpserver.url, convert_dates=True)
         for field, dtype in [
             ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
             ["closed_at", "datetime64[us]"],
@@ -1379,6 +1389,22 @@ class TestPandasContainer:
             result = ser.to_json()
         expected = '{"42":42}'
         assert result == expected
+
+    @pytest.mark.parametrize("base_typ", [datetime.date, datetime.timedelta])
+    def test_to_json_datetimelike_subclass_missing_creso(self, base_typ):
+        # GH#65904 a datetime.date/timedelta subclass carrying a "_value"
+        # attribute but no "_creso" reached get_long_attr and segfaulted; it
+        # should raise cleanly instead
+        class Fake(base_typ):
+            _value = 5
+
+        obj = Fake(2020, 1, 1) if base_typ is datetime.date else Fake(5)
+        # dtype=object keeps the subclass instance for the timedelta case, which
+        # would otherwise be inferred to timedelta64
+        index = Index([obj], dtype=object)
+        ser = Series([1], index=index)
+        with pytest.raises(AttributeError, match="_creso"):
+            ser.to_json(date_format="iso")
 
     def test_default_handler(self):
         value = object()
@@ -1522,12 +1548,17 @@ class TestPandasContainer:
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
         serexp = '{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}}'
+        splitexp = (
+            '{"name":null,'
+            '"data":["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]}'
+        )
 
         assert ujson_dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
         # Series[dt64tz] must preserve the tz like the DTI case
         assert ujson_dumps(Series(dti), iso_dates=True) == serexp
@@ -1542,10 +1573,14 @@ class TestPandasContainer:
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
         serexp = '{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+        splitexp = (
+            '{"name":null,"data":["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]}'
+        )
 
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
         assert ujson_dumps(Series(dti), iso_dates=True) == serexp
         df = DataFrame({"DT": dti})
@@ -1572,6 +1607,25 @@ class TestPandasContainer:
         assert df.to_json(orient=orient, date_format="iso") == df_expected.to_json(
             orient=orient, date_format="iso"
         )
+
+    def test_tz_aware_index_naive_datetime64_data(self):
+        # GH#66007 a dt64tz index must not leak a stale UTC flag onto naive
+        # np.datetime64 scalars serialized from object-dtype data
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02"], tz="UTC")
+        ser = Series(
+            np.array(
+                [np.datetime64("2021-06-01"), np.datetime64("2021-06-02")],
+                dtype=object,
+            ),
+            index=idx,
+        )
+        result = ser.to_json(orient="split", date_format="iso")
+        expected = (
+            '{"name":null,'
+            '"index":["2020-01-01T00:00:00.000Z","2020-01-02T00:00:00.000Z"],'
+            '"data":["2021-06-01T00:00:00.000","2021-06-02T00:00:00.000"]}'
+        )
+        assert result == expected
 
     def test_read_inline_jsonl(self):
         # GH9180
@@ -2502,12 +2556,14 @@ def test_read_json_lines_rangeindex():
 
 def test_large_number():
     # GH#20608
-    result = read_json(
-        StringIO('["9999999999999999"]'),
-        orient="values",
-        typ="series",
-        convert_dates=False,
-    )
+    depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            StringIO('["9999999999999999"]'),
+            orient="values",
+            typ="series",
+            convert_dates=False,
+        )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
 
@@ -2528,3 +2584,11 @@ def test_large_number_string_column():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_to_json_unsupported_object_gh36211():
+    # GH#36211
+    df = DataFrame({"a": [Path("m1")]})
+    msg = "Unable to serialize object to JSON: encountered an unsupported object type"
+    with pytest.raises(ValueError, match=msg):
+        df.to_json()

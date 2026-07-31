@@ -111,6 +111,38 @@ class NumericMaskedIndexing:
         self.data.get_indexer_for(self.indexer)
 
 
+class GetIndexerNonUnique:
+    params = [
+        ("int64", "float64", "object"),
+        ("monotonic", "non_monotonic"),
+    ]
+    param_names = ["dtype", "index_structure"]
+
+    def setup(self, dtype, index_structure):
+        N = 10**6
+        rng = np.random.default_rng(42)
+        values = rng.integers(0, N // 10, size=N)
+        targets = rng.integers(0, N // 10, size=N // 10)
+        if index_structure == "monotonic":
+            values = np.sort(values)
+        if dtype == "object":
+            self.idx = Index(values.astype(str), dtype=object)
+            self.targets = Index(targets.astype(str), dtype=object)
+            self.targets_few = Index(targets[:100].astype(str), dtype=object)
+        else:
+            self.idx = Index(values.astype(dtype))
+            self.targets = Index(targets.astype(dtype))
+            self.targets_few = Index(targets[:100].astype(dtype))
+        # warm the engine's cached properties outside the timer
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique_few_targets(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets_few)
+
+
 class NonNumericSeriesIndexing:
     params = [
         ("string", "datetime", "period"),

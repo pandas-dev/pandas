@@ -11,6 +11,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import PY313
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -635,14 +636,18 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
 
-        msg = "|".join(
-            [
-                r"Invalid dtype datetime64\[D\] for __floordiv__",
-                "'dtype' is an invalid keyword argument for this function",
-                "this function got an unexpected keyword argument 'dtype'",
-                r"ufunc '?floor_divide'? cannot use operands with types",
-            ]
-        )
+        # CPython 3.13 reworded the invalid-keyword error raised by the
+        # np.datetime64 constructor (boundary confirmed on CI: 3.12 old,
+        # 3.13 new; independent of NumPy version).
+        if PY313:
+            msg = "this function got an unexpected keyword argument 'dtype'"
+        else:
+            msg = "|".join(
+                [
+                    "'dtype' is an invalid keyword argument for this function",
+                    r"ufunc '?floor_divide'? cannot use operands with types",
+                ]
+            )
         with pytest.raises(TypeError, match=msg):
             td // np.datetime64("2016-01-01", dtype="datetime64[us]")
 
@@ -1235,17 +1240,23 @@ def test_ops_str_deprecated(box):
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             td // item
     else:
-        msg = "|".join(
+        # true division dispatches to NumPy; older NumPy raised via the ufunc
+        div_msg = "|".join(
             [
-                "ufunc 'divide' cannot use operands",
-                "Invalid dtype object for __floordiv__",
-                r"unsupported operand type\(s\) for /: 'int' and 'str'",
                 r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
+                "ufunc 'divide' cannot use operands",  # older NumPy
             ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=div_msg):
             td / item
-        with pytest.raises(TypeError, match=msg):
+        # floor division (either operand order) raises on the object dtype
+        floordiv_msg = "|".join(
+            [
+                "Invalid dtype object for __floordiv__",
+                r"unsupported operand type\(s\) for /: 'int' and 'str'",  # older NumPy
+            ]
+        )
+        with pytest.raises(TypeError, match=floordiv_msg):
             item // td
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=floordiv_msg):
             td // item

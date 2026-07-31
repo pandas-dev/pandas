@@ -212,13 +212,8 @@ class _Unstacker:
 
     @cache_readonly
     def _indexer_is_identity(self) -> bool:
-        # Fast check for the common case: sorted MI unstacking the last level
-        if (
-            self.sort
-            and self.level == self.index.nlevels - 1
-            and self.index.is_monotonic_increasing
-        ):
-            return True
+        # Note: index.is_monotonic_increasing would be wrong here: it reflects
+        #  tuple values, which can be monotonic while the codes are not (GH#65107).
         indexer, _ = self._indexer_and_to_sort
         return lib.is_range_indexer(indexer, len(self.index))
 
@@ -310,9 +305,9 @@ class _Unstacker:
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
             # sorted_values matches values when _indexer_is_identity,
-            #  i.e. when the MI is already sorted and we're unstacking
-            #  the last level.  _make_sorted_values short-circuits that
-            #  case and returns values directly.
+            #  i.e. when the codes-based sort indexer is a no-op.
+            #  _make_sorted_values short-circuits that case and returns
+            #  values directly.
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)

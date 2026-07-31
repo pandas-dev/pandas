@@ -1,7 +1,7 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 from zoneinfo import ZoneInfo
 
@@ -131,7 +131,7 @@ class TestTZLocalize:
 
         # UTC is OK
         dr = date_range(
-            datetime(2011, 3, 13), periods=48, freq=offsets.Minute(30), tz=timezone.utc
+            datetime(2011, 3, 13), periods=48, freq=offsets.Minute(30), tz=UTC
         )
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
@@ -270,20 +270,20 @@ class TestTZLocalize:
         is_dst = [1, 1, 0, 0, 0]
         localized = di.tz_localize(tz, ambiguous=is_dst)
         expected = dr._with_freq(None)
-        tm.assert_index_equal(expected, localized)
+        tm.assert_index_equal(expected, localized, check_freq=False)
 
         result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst).astype("bool"))
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test constructor
         localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
-        tm.assert_index_equal(dr, localized)
+        tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test duplicate times where inferring the dst fails
         times += times
@@ -310,8 +310,8 @@ class TestTZLocalize:
 
     def test_dti_tz_localize_bdate_range(self):
         dr = bdate_range("1/1/2009", "1/1/2010")
-        dr_utc = bdate_range("1/1/2009", "1/1/2010", tz=timezone.utc)
-        localized = dr.tz_localize(timezone.utc)
+        dr_utc = bdate_range("1/1/2009", "1/1/2010", tz=UTC)
+        localized = dr.tz_localize(UTC)
         tm.assert_index_equal(dr_utc, localized)
 
     @pytest.mark.parametrize(

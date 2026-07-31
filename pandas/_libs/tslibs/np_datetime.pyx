@@ -247,6 +247,40 @@ cdef str dts_to_iso_string(npy_datetimestruct *dts):
             f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
 
+cdef str dts_to_iso_string_ns(npy_datetimestruct *dts):
+    """
+    Render `dts`, including its sub-second digits if it has any.
+
+    For callers where the sub-second digits are what put the value out of
+    bounds, so that truncating to seconds would name a representable value.
+    Trailing zeros are dropped so that a coarser-than-nanosecond `dts` is not
+    given precision it does not have; the digits shown are always exact.
+    """
+    cdef:
+        int64_t nanos = dts.us * 1000 + dts.ps // 1000
+        str digits
+
+    if nanos == 0:
+        return dts_to_iso_string(dts)
+    digits = f"{nanos:09d}".rstrip("0")
+    return f"{dts_to_iso_string(dts)}.{digits}"
+
+
+cdef _raise_nat_sentinel(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit):
+    """
+    Out-of-line raise for check_nat_sentinel (see np_datetime.pxd).
+
+    NPY_NAT is INT64_MIN, so a rendered or tz-shifted value that lands on it is
+    not NaT but is indistinguishable from it downstream: it reads back as NaT as
+    soon as it is stored in a datetime64 array, and wraps if converted to another
+    unit. (GH#66510)
+    """
+    attrname = npy_unit_to_attrname[unit]
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(dts)}"
+    )
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
@@ -812,6 +846,10 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
     `right` may either be zero-dim or of the same shape as `left`.
+
+    TODO(numpy>=2.5): numpy raises OverflowError natively for datetime64/
+    timedelta64 add and subtract (numpy GH-31378); remove this once the numpy
+    floor is >= 2.5.
     """
     cdef:
         Py_ssize_t _, N = left.size
@@ -842,5 +880,53 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
             cnp.PyArray_MultiIter_NEXT(mi)
     except OverflowError as err:
         raise OverflowError("Overflow in int64 addition") from err
+
+    return iresult
+
+
+@cython.overflowcheck(True)
+cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+    """
+    Overflow-safe multiplication for timedelta64 dtype with int64 multiplier.
+
+    `right` may either be zero-dim or broadcastable to `left`'s shape.
+    NaT values in `left` are propagated.
+
+    TODO(numpy>=2.5): numpy raises OverflowError natively here (numpy GH-31378);
+    remove this once the numpy floor is >= 2.5.
+    """
+    cdef:
+        Py_ssize_t N = left.size
+        int64_t lval, rval, res_value
+        ndarray iresult = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    # Note: doing this try/except outside the loop improves performance over
+    #  doing it inside the loop.
+    try:
+        for _ in range(N):
+            # Analogous to: lval = lvalues[i]
+            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            # Analogous to: rval = rvalues[i]
+            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+            if lval == NPY_DATETIME_NAT:
+                res_value = NPY_DATETIME_NAT
+            else:
+                res_value = lval * rval
+                if res_value == NPY_DATETIME_NAT:
+                    # a product of exactly int64.min is representable, but
+                    #  would be misinterpreted as NaT
+                    raise OverflowError
+
+            # Analogous to: result[i] = res_value
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        raise OverflowError("Overflow in int64 multiplication") from err
 
     return iresult

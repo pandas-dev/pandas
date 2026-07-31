@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 from enum import Enum
 import functools
@@ -1307,10 +1307,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
 
         result = df_moscow + df
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")

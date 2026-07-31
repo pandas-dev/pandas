@@ -554,9 +554,23 @@ class TestDataFrameConstructors:
         # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
-        assert frame.index is idx
-        assert frame.columns is idx
+        tm.assert_index_equal(frame.index, idx)
+        tm.assert_index_equal(frame.columns, idx)
+        # GH#42934 the two axes must not be the same object, otherwise mutating
+        #  metadata on one (e.g. names) would silently affect the other
+        assert frame.index is not frame.columns
         assert len(frame._series) == 3
+
+    def test_constructor_same_index_and_columns_no_alias(self):
+        # GH#42934 passing one Index as both index and columns should not
+        #  alias the two axes, so mutating names on one leaves the other intact
+        idx = Index(["a", "b"])
+        frame = DataFrame([[1, 2], [3, 4]], index=idx, columns=idx)
+        assert frame.index is not frame.columns
+
+        frame.index.names = ["zzz"]
+        assert frame.columns.names == [None]
+        assert idx.names == [None]
 
     def test_constructor_dict_of_empty_lists(self):
         # with dict of empty list and Series
@@ -2609,6 +2623,18 @@ class TestDataFrameConstructors:
             np.random.default_rng(2).standard_normal((4, 4)), columns=index_lists
         )
         assert isinstance(multi.columns, MultiIndex)
+
+    def test_constructor_reindex_integer_multiindex_to_flat(self):
+        # GH#26460 constructing from a unique integer-MultiIndex DataFrame with a
+        #  flat integer index reindexes rather than raising a buffer-dtype error
+        df = DataFrame(
+            np.arange(9.0).reshape(3, 3),
+            columns=[[2, 2, 4], [6, 8, 10]],
+            index=[[4, 4, 8], [8, 10, 12]],
+        )
+        result = DataFrame(df.iloc[[0, 1]], index=[8, 10])
+        expected = DataFrame(np.nan, index=Index([8, 10]), columns=df.columns)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "input_vals",

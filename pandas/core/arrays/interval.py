@@ -114,6 +114,10 @@ if TYPE_CHECKING:
 IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
 IntervalOrNA: TypeAlias = Interval | float
 
+# Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
+# the result is deterministic across processes (unlike the builtin str hash).
+_CLOSED_HASH_VALUES = {"left": 0, "right": 1, "both": 2, "neither": 3}
+
 
 @set_module("pandas.arrays")
 class IntervalArray(IntervalMixin, ExtensionArray):
@@ -1024,7 +1028,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right_hash = hash_array(
             self._right, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
-        closed_val = np.uint64(hash(self.closed) % (2**63))
+        # Use a fixed mapping rather than hash(self.closed): the builtin str
+        # hash is salted per process (PYTHONHASHSEED), which would make the
+        # result nondeterministic across processes. GH#64605
+        closed_val = np.uint64(_CLOSED_HASH_VALUES[self.closed])
         closed_hash = hash_array(
             np.full(len(self), closed_val, dtype=np.uint64),
             encoding=encoding,
@@ -1681,6 +1688,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         value_left, value_right = self._validate_setitem_value(value)
 
         if isinstance(self._left, np.ndarray):

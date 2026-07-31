@@ -1677,16 +1677,15 @@ def test_apply_datetime_tz_issue(engine, request):
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_mixed_column_raises(df, method, using_infer_string):
     # GH 16832
-    if method == "sum":
+    if method == "sum" and not using_infer_string:
         msg = "|".join(
             [r'can only concatenate str \(not "int"\) to str', "does not support"]
         )
-    else:
-        msg = "not supported between instances of 'str' and 'float'"
-    if not using_infer_string:
         with pytest.raises(TypeError, match=msg):
             getattr(df, method)()
     else:
+        # GH#65500: object min/max fill NA from the same slice rather than
+        # +/-inf, so they no longer raise when NA sits alongside strings
         getattr(df, method)()
 
 
@@ -1938,6 +1937,67 @@ def test_agg_np_size():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_list_like_series_method_not_reduction():
+    # GH#65031 - the DataFrame-level reductions fast path must only fire for
+    # genuine column-wise reductions. Series-returning DataFrame methods that
+    # are not indexed by the columns (value_counts/duplicated/memory_usage)
+    # must fall back to the per-column path rather than silently producing NaN
+    # or wrong values.
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+    result = df.agg(["value_counts"])
+    expected = DataFrame(
+        {
+            ("A", "value_counts"): [1.0, 1.0, 1.0, np.nan, np.nan, np.nan],
+            ("B", "value_counts"): [np.nan, np.nan, np.nan, 1.0, 1.0, 1.0],
+        },
+        index=[1, 2, 3, 4, 5, 6],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg(["duplicated"])
+    expected = DataFrame(
+        {
+            ("A", "duplicated"): [False, False, False],
+            ("B", "duplicated"): [False, False, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # memory_usage is not a reduction; each column must match Series.memory_usage
+    result = df.agg(["memory_usage"])
+    for col in df.columns:
+        assert result.loc["memory_usage", col] == df[col].memory_usage()
+
+    # mixed dtypes previously raised ValueError on the fast path
+    df_mixed = DataFrame({"A": [1, 2, 3], "B": ["x", "yy", "zzz"]})
+    result = df_mixed.agg(["memory_usage"])
+    for col in df_mixed.columns:
+        assert result.loc["memory_usage", col] == df_mixed[col].memory_usage()
+
+
+def test_agg_list_like_square_frame_matching_labels():
+    # GH#65031 a square frame with identical row/column labels must not let
+    # a row-indexed result (DataFrame.duplicated) slip through the fast path
+    df = DataFrame([[0, 1], [0, 2]])
+    result = df.agg(["duplicated"])
+    expected = DataFrame(
+        {
+            (0, "duplicated"): [False, True],
+            (1, "duplicated"): [False, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_empty_frame_reduction():
+    # GH#65031 empty frame with a list of reductions returns an empty frame
+    # indexed by the func names (pandas 3.0 raised "No objects to concatenate")
+    result = DataFrame().agg(["sum"])
+    expected = DataFrame(index=["sum"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = DataFrame(
@@ -1968,3 +2028,109 @@ def test_apply_timedelta_preserves_resolution():
     direct = df["a"] - df["b"]
     applied = df.apply(lambda row: row["a"] - row["b"], axis=1)
     assert applied.dtype == direct.dtype
+
+
+def test_agg_dict_func_returning_series_not_transposed():
+    # GH#19756 agg with a dict whose function returns a Series must not be
+    #  transposed relative to a function returning the equivalent values
+    df = DataFrame([1, 2], columns=["a"])
+    result = df.agg({"a": lambda x: Series([1, 3], name="a")})
+    expected = df.agg({"a": lambda x: x.cumsum()})
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, DataFrame({"a": [1, 3]}))
+
+    # a function returning a scalar constant must likewise agree with an
+    # equivalent reduction (it used to broadcast to a transposed DataFrame)
+    tm.assert_series_equal(df.agg({"a": lambda x: 3}), df.agg({"a": lambda x: x.sum()}))
+
+
+def test_agg_list_of_funcs_on_object_columns():
+    # GH#31298 a list of functions can be applied to object/string columns,
+    # just like numeric columns
+    df = DataFrame(
+        {
+            "col_3": ["cat", "dog", "dog", "cat", "cat"],
+            "col_4": ["feline", "canine", "canine", "feline", "feline"],
+        }
+    )
+    result = df.agg([lambda x: len(x), lambda x: x.isnull().sum()])
+    expected = DataFrame(
+        [[5, 5], [0, 0]],
+        index=["<lambda>", "<lambda>"],
+        columns=["col_3", "col_4"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # a bare builtin (len) mixed with a lambda -- the form a commenter flagged
+    result_builtin = df.agg([len, lambda x: x.isnull().sum()])
+    expected_builtin = DataFrame(
+        [[5, 5], [0, 0]],
+        index=["len", "<lambda>"],
+        columns=["col_3", "col_4"],
+    )
+    tm.assert_frame_equal(result_builtin, expected_builtin)
+
+
+def test_agg_list_mixing_string_and_custom_named_func():
+    # GH#31851 a list mixing a string alias and a custom function whose
+    # __name__ was overridden must not raise
+    df = DataFrame({"A": [1, 2, 3, 4, 5, np.nan], "B": [1, 2, 3, 4, 5, 7.0]})
+
+    def perc_fun(q):
+        def func(arr):
+            return np.nanpercentile(arr, q)
+
+        func.__name__ = f"p-{q}"
+        return func
+
+    result = df.agg(["mean", perc_fun(10)])
+    expected = DataFrame(
+        {"A": [3.0, 1.4], "B": [3.6666666666666665, 1.5]},
+        index=["mean", "p-10"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_named_agg_with_lambda():
+    # GH#41768 named aggregation mixing builtins/strings with a lambda must not
+    # crash
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9], [np.nan, np.nan, np.nan]],
+        columns=["A", "B", "C"],
+    )
+    result = df.agg(x=("A", max), y=("B", "min"), z=("C", lambda s: np.mean(s)))
+    expected = DataFrame(
+        {
+            "A": [7.0, np.nan, np.nan],
+            "B": [np.nan, 2.0, np.nan],
+            "C": [np.nan, np.nan, 6.0],
+        },
+        index=["x", "y", "z"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # the plain dict-of-funcs form with a lambda (the sibling raised in the
+    # discussion) must also work
+    result_dict = df.agg({"A": max, "B": "min", "C": lambda s: np.mean(s)})
+    expected_dict = Series([7.0, 2.0, 6.0], index=["A", "B", "C"])
+    tm.assert_series_equal(result_dict, expected_dict)
+
+
+def test_agg_dict_string_funcs_with_duplicate_columns():
+    # GH#43748 aggregating with a dict of (non-list) string funcs must not
+    # crash when the selected labels are duplicated in the columns
+    df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["a", "a", "b", "b"])
+    result = df.agg({"a": "sum", "b": "min"})
+    expected = Series([6, 8, 3, 4], index=["a", "a", "b", "b"])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_expand_single_row_preserves_dict_order():
+    # GH#45783 apply(result_type="expand") on a single-row frame must preserve
+    # the dict key order returned by the callable instead of sorting columns
+    def func(row):
+        return {"Z": str(row["C1"]), "Y": "", "C2": "GCT", "C1": ""}
+
+    df = DataFrame(np.arange(4).reshape(1, 4), columns=["C4", "C3", "C2", "C1"])
+    result = df.apply(func, axis=1, result_type="expand")
+    assert result.columns.tolist() == ["Z", "Y", "C2", "C1"]

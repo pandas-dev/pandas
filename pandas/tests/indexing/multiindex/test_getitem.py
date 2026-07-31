@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -153,7 +155,8 @@ def test_tuple_string_column_names():
     # GH#50372
     mi = MultiIndex.from_tuples([("a", "aa"), ("a", "ab"), ("b", "ba"), ("b", "bb")])
     df = DataFrame([range(4), range(1, 5), range(2, 6)], columns=mi)
-    df["single_index"] = 0
+    with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+        df["single_index"] = 0
 
     df_flat = df.copy()
     df_flat.columns = df_flat.columns.to_flat_index()
