@@ -288,7 +288,6 @@ class TestDataFrameEval:
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
-        skip_if_no_pandas_parser(parser)
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
         index = MultiIndex.from_arrays([a, b], names=["color", "food"])
@@ -338,7 +337,6 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res2, exp)
 
     def test_query_with_unnamed_multiindex(self, parser, engine):
-        skip_if_no_pandas_parser(parser)
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
         index = MultiIndex.from_arrays([a, b])
@@ -426,7 +424,6 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res2, exp)
 
     def test_query_with_partially_named_multiindex(self, parser, engine):
-        skip_if_no_pandas_parser(parser)
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.arange(10)
         index = MultiIndex.from_arrays([a, b])
@@ -735,7 +732,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expect)
 
     def test_chained_cmp_and_in(self, engine, parser):
-        skip_if_no_pandas_parser(parser)
         cols = list("abc")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((100, len(cols))), columns=cols
@@ -748,7 +744,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(res, expec)
 
     def test_local_variable_with_in(self, engine, parser):
-        skip_if_no_pandas_parser(parser)
         a = Series(np.random.default_rng(2).integers(3, size=15), name="a")
         b = Series(np.random.default_rng(2).integers(10, size=15), name="b")
         df = DataFrame({"a": a, "b": b})
@@ -763,7 +758,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(expected, result)
 
     def test_at_inside_string(self, engine, parser):
-        skip_if_no_pandas_parser(parser)
         c = 1  # noqa: F841
         df = DataFrame({"a": ["a", "a", "b", "b", "@c", "@c"]})
         result = df.query('a == "@c"', engine=engine, parser=parser)
@@ -942,9 +936,9 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
-        msg = r"'BoolOp' nodes are not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            df.query("index < 20130101 < dates3", engine=engine, parser=parser)
+        res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
+        expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
+        tm.assert_frame_equal(res, expec)
 
     def test_nested_scope(self, engine, parser):
         # smoke test
@@ -1048,76 +1042,39 @@ class TestDataFrameQueryStrings:
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings == "a"]
 
-        if parser != "pandas":
-            col = "strings"
-            lst = '"a"'
+        res = df.query('"a" == strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            lhs = [col] * 2 + [lst] * 2
-            rhs = lhs[::-1]
+        res = df.query('strings == "a"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
+        tm.assert_frame_equal(res, df[df.strings.isin(["a"])])
 
-            eq, ne = "==", "!="
-            ops = 2 * ([eq, ne])
-            msg = r"'(Not)?In' nodes are not implemented"
+        expect = df[df.strings != "a"]
+        res = df.query('strings != "a"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            for lh, op_, rh in zip(lhs, ops, rhs, strict=True):
-                ex = f"{lh} {op_} {rh}"
-                with pytest.raises(NotImplementedError, match=msg):
-                    df.query(
-                        ex,
-                        engine=engine,
-                        parser=parser,
-                        local_dict={"strings": df.strings},
-                    )
-        else:
-            res = df.query('"a" == strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('strings == "a"', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-            tm.assert_frame_equal(res, df[df.strings.isin(["a"])])
-
-            expect = df[df.strings != "a"]
-            res = df.query('strings != "a"', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('"a" != strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-            tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
+        res = df.query('"a" != strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
+        tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
 
     def test_str_list_query_method(self, parser, engine):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings.isin(["a", "b"])]
 
-        if parser != "pandas":
-            col = "strings"
-            lst = '["a", "b"]'
+        res = df.query('strings == ["a", "b"]', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            lhs = [col] * 2 + [lst] * 2
-            rhs = lhs[::-1]
+        res = df.query('["a", "b"] == strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            eq, ne = "==", "!="
-            ops = 2 * ([eq, ne])
-            msg = r"'(Not)?In' nodes are not implemented"
+        expect = df[~df.strings.isin(["a", "b"])]
 
-            for lh, ops_, rh in zip(lhs, ops, rhs, strict=True):
-                ex = f"{lh} {ops_} {rh}"
-                with pytest.raises(NotImplementedError, match=msg):
-                    df.query(ex, engine=engine, parser=parser)
-        else:
-            res = df.query('strings == ["a", "b"]', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
+        res = df.query('strings != ["a", "b"]', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] == strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            expect = df[~df.strings.isin(["a", "b"])]
-
-            res = df.query('strings != ["a", "b"]', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('["a", "b"] != strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
+        res = df.query('["a", "b"] != strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
     def test_query_with_string_columns(self, parser, engine):
         df = DataFrame(
@@ -1128,22 +1085,13 @@ class TestDataFrameQueryStrings:
                 "d": np.random.default_rng(2).integers(9, size=12),
             }
         )
-        if parser == "pandas":
-            res = df.query("a in b", parser=parser, engine=engine)
-            expec = df[df.a.isin(df.b)]
-            tm.assert_frame_equal(res, expec)
+        res = df.query("a in b", parser=parser, engine=engine)
+        expec = df[df.a.isin(df.b)]
+        tm.assert_frame_equal(res, expec)
 
-            res = df.query("a in b and c < d", parser=parser, engine=engine)
-            expec = df[df.a.isin(df.b) & (df.c < df.d)]
-            tm.assert_frame_equal(res, expec)
-        else:
-            msg = r"'(Not)?In' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                df.query("a in b", parser=parser, engine=engine)
-
-            msg = r"'BoolOp' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                df.query("a in b and c < d", parser=parser, engine=engine)
+        res = df.query("a in b and c < d", parser=parser, engine=engine)
+        expec = df[df.a.isin(df.b) & (df.c < df.d)]
+        tm.assert_frame_equal(res, expec)
 
     def test_object_array_eq_ne(self, parser, engine):
         df = DataFrame(
@@ -1163,7 +1111,6 @@ class TestDataFrameQueryStrings:
         tm.assert_frame_equal(res, exp)
 
     def test_query_with_nested_strings(self, parser, engine):
-        skip_if_no_pandas_parser(parser)
         events = [
             f"page {n} {act}" for n in range(1, 4) for act in ["load", "exit"]
         ] * 2
@@ -1182,7 +1129,6 @@ class TestDataFrameQueryStrings:
         tm.assert_frame_equal(expected, res)
 
     def test_query_with_nested_special_character(self, parser, engine):
-        skip_if_no_pandas_parser(parser)
         df = DataFrame({"a": ["a", "b", "test & test"], "b": [1, 2, 3]})
         res = df.query('a == "test & test"', parser=parser, engine=engine)
         expec = df[df.a == "test & test"]
