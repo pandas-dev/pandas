@@ -984,7 +984,7 @@ def convert_dtypes(
                 )
                 if converted.dtype.kind in "iu":
                     inferred_dtype = NUMPY_INT_TO_DTYPE.get(
-                        converted.dtype, target_int_dtype
+                        cast(np.dtype, converted.dtype), target_int_dtype
                     )
 
         if convert_floating:
