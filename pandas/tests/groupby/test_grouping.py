@@ -561,34 +561,42 @@ class TestGrouping:
 
         df = DataFrame([[1, "A"]], columns=midx)
 
-        msg = "In a future version, the keys"
         grouped = df.groupby("to filter").groups
         assert grouped["A"] == [0]
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            grouped = df.groupby([("to filter", "")]).groups
-        assert grouped["A"] == [0]
+        grouped_tuple = df.groupby([("to filter", "")]).groups
+        assert grouped_tuple[("A",)] == [0]
 
         df = DataFrame([[1, "A"], [2, "B"]], columns=midx)
 
         expected = df.groupby("to filter").groups
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = df.groupby([("to filter", "")]).groups
+
+        expected = {(k,): v for k, v in expected.items()}
+
+        result = df.groupby([("to filter", "")]).groups
         assert result == expected
 
         df = DataFrame([[1, "A"], [2, "A"]], columns=midx)
 
         expected = df.groupby("to filter").groups
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = df.groupby([("to filter", "")]).groups
+
+        expected = {(k,): v for k, v in expected.items()}
+
+        result = df.groupby([("to filter", "")]).groups
         tm.assert_dict_equal(result, expected)
 
     def test_groupby_multiindex_tuple(self):
-        # GH 17979, GH#59179
+        # GH 17979, GH#59179, GH#62141
         df = DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
             columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
         )
+
+        expected = df.groupby([("b", 1)]).groups
+        result = df.groupby(("b", 1)).groups
+
+        result = {(k,): v for k, v in result.items()}
+        tm.assert_dict_equal(expected, result)
 
         msg = "In a future version, the keys"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -603,20 +611,22 @@ class TestGrouping:
             ),
         )
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = df2.groupby([("b", "d")]).groups
+        expected = df2.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
+
+        result = {(k,): v for k, v in result.items()}
         tm.assert_dict_equal(expected, result)
 
         df3 = DataFrame(df.values, columns=[("a", "d"), ("b", "d"), ("b", "e"), "c"])
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = df3.groupby([("b", "d")]).groups
+        expected = df3.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
+
+        result = {(k,): v for k, v in result.items()}
         tm.assert_dict_equal(expected, result)
 
     def test_groupby_multiindex_partial_indexing_equivalence(self):
-        # GH 17977, GH#59179
+        # GH 17977, GH#59179, GH#62141
         df = DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
             columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
@@ -642,10 +652,8 @@ class TestGrouping:
         result_max = df.groupby([("a", 1)])["b"].max()
         tm.assert_frame_equal(expected_max, result_max)
 
-        msg = "In a future version, the keys"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
-            result_groups = df.groupby([("a", 1)])["b"].groups
+        expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
+        result_groups = df.groupby([("a", 1)])["b"].groups
         tm.assert_dict_equal(expected_groups, result_groups)
 
     def test_groupby_level(self, sort, multiindex_dataframe_random_data, df):
