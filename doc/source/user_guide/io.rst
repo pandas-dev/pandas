@@ -3490,7 +3490,8 @@ and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either 
 or ``columns`` have serialized level names those will be read in as well by specifying
 the rows/columns that make up the levels.
 
-When reading an Excel file, rows before the first row specified by a list passed to ``header`` are skipped. Columns before the first column specified by a list passed to ``index_col`` are skipped as well.
+When reading an Excel file, rows before the first row specified by a list passed to ``header`` are skipped.
+Columns before the first column specified by a list passed to ``index_col`` are skipped as well.
 
 For example, to read in a ``MultiIndex`` index without names:
 
