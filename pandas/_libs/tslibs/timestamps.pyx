@@ -87,6 +87,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_nat_sentinel,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -1524,8 +1525,10 @@ cdef class _Timestamp(ABCTimestamp):
         By default, the fractional part is omitted if self.microsecond == 0
         and self._nanosecond == 0.
 
-        If self.tzinfo is not None, the UTC offset is also attached,
-        giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
+        If self.tzinfo is not None, the UTC offset is also attached, giving a
+        full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM[:SS[.ffffff]]'.
+        The ':SS' is present only if the offset is not a whole number of
+        minutes, as for a timezone in its pre-standardization era.
 
         Parameters
         ----------
@@ -1558,15 +1561,23 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self._year:04d}-" + base.split("-", 1)[1]
+        year_str = f"{self._year:04d}"
+        base = year_str + "-" + base.split("-", 1)[1]
 
         if self._nanosecond == 0 and timespec != "nanoseconds":
             return base
 
-        if self.tzinfo is not None:
-            base1, base2 = base[:-6], base[-6:]
-        else:
+        # The UTC offset is usually "+HH:MM", but grows a ":SS[.ffffff]" suffix when
+        # it is not a whole number of minutes, so find where it starts instead of
+        # assuming a fixed width.  Search past "YYYY-MM-DD" and the separator -- the
+        # year is not always 4 digits, and may be negative -- so that a date dash is
+        # never mistaken for the offset's sign.  No sign there means no offset.
+        time_start = len(year_str) + 7
+        tz_pos = max(base.rfind("+", time_start), base.rfind("-", time_start))
+        if tz_pos == -1:
             base1, base2 = base, ""
+        else:
+            base1, base2 = base[:tz_pos], base[tz_pos:]
 
         if timespec == "nanoseconds" or (timespec == "auto" and self._nanosecond):
             if self.microsecond or timespec == "nanoseconds":
@@ -3809,6 +3820,9 @@ default 'raise'
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
+            # GH#66510 the tz-aware legs below go through
+            #  convert_datetime_to_tsobject, which checks this for us
+            check_nat_sentinel(ts.value, &dts, creso)
             ts.dts = dts
             ts.creso = creso
             ts.fold = fold

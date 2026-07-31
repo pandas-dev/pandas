@@ -1463,3 +1463,75 @@ def test_timestamp_iso8601_offset_out_of_bounds(tz):
     msg = "Out of bounds nanosecond timestamp"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
         Timestamp("2262-04-11T20:00:00.000000000-11:00", tz=tz)
+
+
+# GH#66510 iNaT == INT64_MIN, one below Timestamp.min. A value that renders or
+#  shifts onto it is not NaT, but is indistinguishable from NaT once stored in a
+#  datetime64 array, so it has to be rejected instead.
+SENTINEL_UTC = "1677-09-21 00:12:43.145224192"
+SENTINEL_PLUS_1H = "1677-09-21 01:12:43.145224192"
+PLUS_1H = timezone(timedelta(hours=1))
+MINUS_1H = timezone(timedelta(hours=-1))
+
+
+def test_constructor_naive_datetime_renders_nat_sentinel():
+    # GH#66510 dtstruct -> int64 rendering lands on iNaT
+    msg = re.escape(f"Out of bounds nanosecond timestamp: {SENTINEL_UTC}")
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        Timestamp(datetime(1677, 9, 21, 0, 12, 43, 145224), nanosecond=192)
+
+
+def test_constructor_datetime64_tz_shift_hits_nat_sentinel():
+    # GH#66510 np.datetime64 is treated as a wall time; localizing it lands on iNaT
+    msg = re.escape(f"Out of bounds nanosecond timestamp: {SENTINEL_PLUS_1H}")
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        Timestamp(np.datetime64(SENTINEL_PLUS_1H.replace(" ", "T")), tz=PLUS_1H)
+
+
+def test_constructor_aware_datetime_offset_hits_nat_sentinel():
+    # GH#66510 subtracting the UTC offset lands on iNaT
+    msg = re.escape(f"Out of bounds nanosecond timestamp: {SENTINEL_PLUS_1H}")
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        Timestamp(
+            datetime(1677, 9, 21, 1, 12, 43, 145224, tzinfo=PLUS_1H), nanosecond=192
+        )
+
+
+@pytest.mark.parametrize(
+    "arg, kwargs",
+    [
+        # the tz keyword shifts via tz_localize_to_utc_single
+        (SENTINEL_PLUS_1H, {"tz": PLUS_1H}),
+        # an embedded offset shifts via the checked_sub fastpath
+        (f"{SENTINEL_PLUS_1H}+01:00", {}),
+    ],
+)
+def test_constructor_str_shift_hits_nat_sentinel(arg, kwargs):
+    # GH#66510 both shift paths in convert_str_to_tsobject
+    msg = re.escape(f"Out of bounds nanosecond timestamp: {SENTINEL_PLUS_1H}")
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        Timestamp(arg, **kwargs)
+
+
+def test_constructor_aware_datetime_offset_overflow():
+    # GH#66510 the offset subtraction used to raise a bare OverflowError
+    msg = re.escape("Out of bounds nanosecond timestamp: 2262-04-11 23:47:16.854775807")
+    tz = timezone(timedelta(hours=-23, minutes=-59))
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        Timestamp(datetime(2262, 4, 11, 23, 47, 16, 854775, tzinfo=tz), nanosecond=807)
+
+
+def test_constructor_offset_shifts_off_nat_sentinel():
+    # GH#66510 the wall time renders onto iNaT but the shift to UTC moves it back
+    #  in bounds, so the rejection has to happen after the shift, not before
+    ts = Timestamp(
+        datetime(1677, 9, 21, 0, 12, 43, 145224, tzinfo=MINUS_1H), nanosecond=192
+    )
+    assert ts._value == -(2**63) + 3600 * 10**9
+
+
+def test_constructor_nat_sentinel_neighbours():
+    # GH#66510 only the sentinel itself is out of bounds
+    assert Timestamp("1677-09-21 00:12:43.145224193")._value == -(2**63) + 1
+    assert Timestamp.min._value == -(2**63) + 1
+    assert Timestamp(NaT) is NaT
