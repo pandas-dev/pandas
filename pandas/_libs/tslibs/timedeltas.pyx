@@ -2723,6 +2723,12 @@ class Timedelta(_Timedelta):
                 # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
                 return NaT
 
+            # We want NumPy numeric scalars to behave like Python scalars
+            # post NEP 50
+            if isinstance(other, cnp.integer):
+                other = int(other)
+            if isinstance(other, cnp.floating):
+                other = float(other)
             return _timedelta_from_value_and_reso(
                 Timedelta,
                 <int64_t>(other * self._value),
