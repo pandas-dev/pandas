@@ -65,12 +65,15 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    add_overflowsafe,
+    astype_overflowsafe,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
     get_unit_from_dtype,
     import_pandas_datetime,
+    mul_overflowsafe,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
@@ -955,7 +958,29 @@ def _binary_op_method_timedeltalike(op, name):
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return f(self, item)
 
-            elif other.dtype.kind in "mM":
+            elif other.dtype.kind == "m":
+                # We cannot simply defer to numpy here, which silently wraps
+                #  on overflow and on promotion to the finer unit (GH-66552).
+                other_creso = get_unit_from_dtype(other.dtype)
+                reso = max(self._creso, other_creso)
+                if self._creso < reso:
+                    self = (<_Timedelta>self)._as_creso(reso, round_ok=True)
+                if other_creso < reso:
+                    other = astype_overflowsafe(
+                        other, np.dtype(f"m8[{npy_unit_to_abbrev(reso)}]")
+                    )
+                self_i8 = np.broadcast_to(
+                    np.array([self._value], dtype="i8"), other.shape
+                )
+                if name == "__sub__":
+                    new_values = add_overflowsafe(self_i8, -other.view("i8"))
+                elif name == "__rsub__":
+                    new_values = add_overflowsafe(-self_i8, other.view("i8"))
+                else:
+                    new_values = add_overflowsafe(self_i8, other.view("i8"))
+                return new_values.view(f"m8[{npy_unit_to_abbrev(reso)}]")
+
+            elif other.dtype.kind == "M":
                 return op(self.to_timedelta64(), other)
             elif other.dtype.kind == "O":
                 return np.array([op(self, x) for x in other])
@@ -986,8 +1011,10 @@ def _binary_op_method_timedeltalike(op, name):
         res = op(self._value, other._value)
         if res == NPY_NAT:
             # e.g. test_implementation_limits
-            # TODO: more generally could do an overflowcheck in op?
-            return NaT
+            # A result landing exactly on the sentinel (int64.min) is
+            #  representable but indistinguishable from NaT once stored, so we
+            #  raise just like the step further out of bounds (GH-66552).
+            raise OverflowError("Overflow in int64 addition")
 
         return _timedelta_from_value_and_reso(Timedelta, res, reso=self._creso)
 
@@ -1198,7 +1225,11 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
-    assert value != NPY_NAT
+    if value == NPY_NAT:
+        # The NaT sentinel cannot be stored as a real value: under `python -O`
+        #  a bare assert would let a live object with _value == iNaT through,
+        #  one that is not NaT and for which isna() is False (GH-66552).
+        raise OverflowError
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -2734,6 +2765,16 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__mul__(item)
+            if other.dtype.kind in "iu":
+                # We cannot simply defer to numpy here, which silently wraps
+                #  on overflow and on products landing on the sentinel
+                #  (GH-66552).
+                return mul_overflowsafe(
+                    np.broadcast_to(
+                        np.array([self._value], dtype="i8"), other.shape
+                    ),
+                    other.astype("i8", copy=False),
+                ).view(f"m8[{npy_unit_to_abbrev(self._creso)}]")
             return other * self.to_timedelta64()
 
         elif is_bool_object(other):

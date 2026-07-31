@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
+    iNaT,
     offsets,
     to_offset,
 )
@@ -325,6 +326,37 @@ class TestTimestampArithmetic:
 
         assert ts1 == ts2
         assert hash(ts1) == hash(ts2)
+
+    def test_arithmetic_landing_on_nat_sentinel_raises(self):
+        # GH-66552
+        # Operations whose result lands exactly on the NaT sentinel (int64
+        #  min) are indistinguishable from NaT once stored, so they raise
+        #  instead of silently returning NaT or wrapping.
+        ts_min = Timestamp.min
+        ts_max = Timestamp.max
+        td_ns1 = Timedelta(1, "ns")
+        td_neg1 = Timedelta(-1, "ns")
+
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts_min - td_ns1
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts_max + td_ns1
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts_min + td_neg1
+
+        # one unit away from the sentinel is still representable
+        assert ts_min + td_ns1 == Timestamp("1677-09-21 00:12:43.145224194")
+        assert ts_max - td_ns1 == Timestamp("2262-04-11 23:47:16.854775806")
+
+        # Timestamp - Timestamp landing on the sentinel
+        with pytest.raises(OutOfBoundsDatetime, match="Result is too large"):
+            ts_min - Timestamp(1)
+
+        # Timestamp + Week(-1) from a few days past the sentinel
+        ts_iatn_7d = Timestamp(iNaT + 7 * 86400 * 10**9)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts_iatn_7d + offsets.Week(-1)
 
 
 class SubDatetime(datetime):

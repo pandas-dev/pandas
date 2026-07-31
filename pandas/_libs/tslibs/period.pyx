@@ -2082,6 +2082,10 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
             ordinal = self._ordinal + inc
+        if ordinal == NPY_NAT:
+            # a sum of exactly int64.min is representable, but would be
+            #  indistinguishable from NaT once stored (GH-66552)
+            raise OverflowError
         return Period(ordinal=ordinal, freq=self._freq)
 
     def _add_offset(self, other) -> "Period":
@@ -2092,6 +2096,10 @@ cdef class _Period(PeriodMixin):
         self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
+        if ordinal == NPY_NAT:
+            # a sum of exactly int64.min is representable, but would be
+            #  indistinguishable from NaT once stored (GH-66552)
+            raise OverflowError
         return Period(ordinal=ordinal, freq=self._freq)
 
     @cython.overflowcheck(True)
@@ -2104,6 +2112,10 @@ cdef class _Period(PeriodMixin):
             return NaT
         elif util.is_integer_object(other):
             ordinal = self._ordinal + other * self._dtype._n
+            if ordinal == NPY_NAT:
+                # a sum of exactly int64.min is representable, but would be
+                #  indistinguishable from NaT once stored (GH-66552)
+                raise OverflowError
             return Period(ordinal=ordinal, freq=self._freq)
 
         elif is_period_object(other):

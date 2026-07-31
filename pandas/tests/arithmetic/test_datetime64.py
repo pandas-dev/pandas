@@ -1794,6 +1794,34 @@ class TestDatetime64OverflowHandling:
         with pytest.raises(OverflowError, match=msg):
             tmax - t2
 
+    def test_dti_add_dateoffset_landing_on_nat_sentinel_raises(self):
+        # GH-66552
+        # Operations whose result lands exactly on the NaT sentinel (int64
+        #  min) are indistinguishable from NaT once stored, so they raise
+        #  instead of silently returning NaT or wrapping.
+        dti_min = DatetimeIndex([Timestamp.min])
+        dti_max = DatetimeIndex([Timestamp.max])
+        msg = "Overflow in int64 addition"
+
+        with pytest.raises(OverflowError, match=msg):
+            dti_min + DateOffset(nanoseconds=-1)
+        with pytest.raises(OverflowError, match=msg):
+            dti_max + pd.offsets.BusinessDay()
+
+        # a few days past the sentinel, Week(-1)/Week(1) shifts onto it
+        dti_iatn_7d = DatetimeIndex(
+            [Timestamp(Timestamp.min._value - 1 + 7 * 86400 * 10**9)]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            dti_iatn_7d + pd.offsets.Week(-1)
+        with pytest.raises(OverflowError, match=msg):
+            dti_iatn_7d - pd.offsets.Week(1)
+
+        # one unit away from the sentinel still works (no silent wrap)
+        result = dti_min + Timedelta(1, "ns")
+        expected = DatetimeIndex([Timestamp("1677-09-21 00:12:43.145224194")])
+        tm.assert_index_equal(result, expected)
+
 
 class TestTimestampSeriesArithmetic:
     def test_empty_series_add_sub(self, box_with_array):

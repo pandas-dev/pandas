@@ -841,11 +841,22 @@ cdef int64_t _convert_reso_with_dtstruct(
 
 
 @cython.overflowcheck(True)
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left,
+    cnp.ndarray right,
+    bint raise_on_sentinel=True,
+):
     """
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
     `right` may either be zero-dim or of the same shape as `left`.
+
+    NaT values in `left` or `right` are propagated.  A result that lands
+    exactly on the NaT sentinel (INT64_MIN) is indistinguishable from a
+    missing value once stored, so by default we raise OverflowError for it
+    (GH-66552).  ``raise_on_sentinel=False`` allows such results through; it
+    is only used for Period count subtraction, where INT64_MIN is a valid
+    answer rather than the sentinel.
 
     TODO(numpy>=2.5): numpy raises OverflowError natively for datetime64/
     timedelta64 add and subtract (numpy GH-31378); remove this once the numpy
@@ -858,6 +869,31 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
             left.ndim, left.shape, cnp.NPY_INT64, 0
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+        object lmin, lmax, rmin, rmax
+
+    if raise_on_sentinel and left.ndim >= 1 and right.ndim >= 1:
+        # Fast path: if min/max of both operands are within the overflow-safe
+        #  range, there are no NATs (NAT == INT64_MIN) and no risk of a sum
+        #  landing on the sentinel or overflowing, so we can use numpy's
+        #  vectorized add.  Restricted to ndim >= 1 since 0-d .view(dtype)
+        #  has edge cases; the slow path handles 0-d fine.
+        if left.size > 0 and right.size > 0:
+            lmin = left.min()
+            lmax = left.max()
+            rmin = right.min()
+            rmax = right.max()
+            # The bound has to exclude INT64_MIN itself rather than merely
+            #  staying inside int64: a sum landing on the sentinel must still
+            #  be detected.
+            if (
+                int(lmin) > NPY_DATETIME_NAT
+                and int(lmax) < INT64_MAX
+                and int(rmin) > NPY_DATETIME_NAT
+                and int(rmax) < INT64_MAX
+                and int(lmin) + int(rmin) > NPY_DATETIME_NAT
+                and int(lmax) + int(rmax) < INT64_MAX
+            ):
+                return left + right
 
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.
@@ -873,6 +909,10 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
                 res_value = NPY_DATETIME_NAT
             else:
                 res_value = lval + rval
+                if res_value == NPY_DATETIME_NAT and raise_on_sentinel:
+                    # a sum of exactly int64.min is representable, but would be
+                    #  misinterpreted as NaT
+                    raise OverflowError
 
             # Analogous to: result[i] = res_value
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value

@@ -31,6 +31,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
+    add_overflowsafe,
     astype_overflowsafe,
     fields,
     get_supported_dtype,
@@ -801,12 +802,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and isinstance(offset, RelativeDeltaOffset)
             and not offset._use_relativedelta
         ):
-            res_values = self._ndarray + offset._pd_timedelta
-            # GH#64806 offset._pd_timedelta may have finer resolution than
-            # self, promoting res_values to a finer unit; derive the dtype
-            # from the promoted values rather than assuming self.dtype's unit.
-            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
-            res_dtype = tz_to_dtype(self.tz, res_unit)
+            # We cannot simply defer to numpy here, which silently wraps on
+            #  overflow and treats a result landing on the NaT sentinel as NaT
+            #  (GH-66552).
+            self_matched, other = self._ensure_matching_resos(offset._pd_timedelta)
+            other_i8, o_mask = self._get_i8_values_and_mask(other)
+            res_values = add_overflowsafe(
+                self_matched.asi8, np.asarray(other_i8, dtype="i8")
+            ).view(f"M8[{self_matched.unit}]")
+            res_dtype = tz_to_dtype(self.tz, self_matched.unit)
             result = type(self)._simple_new(res_values, dtype=res_dtype)
             if offset.normalize:
                 result = result.normalize()

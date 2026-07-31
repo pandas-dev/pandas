@@ -621,8 +621,12 @@ class TestTimedeltas:
         assert min_td._value == iNaT + 1
         assert max_td._value == lib.i8max
 
-        # Beyond lower limit, a NAT before the Overflow
-        assert (min_td - Timedelta(1, "ns")) is NaT
+        # Beyond lower limit, a NAT before the Overflow.  A result landing
+        # exactly on the NaT sentinel is representable but indistinguishable
+        # from NaT once stored, so it raises instead (GH-66552).
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            min_td - Timedelta(1, "ns")
 
         msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):
