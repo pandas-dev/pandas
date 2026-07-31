@@ -1179,6 +1179,7 @@ cdef class StringHashTable(HashTable):
             khiter_t k
             bint use_na_value
             bint non_null_na_value
+            list refs = []
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
@@ -1210,7 +1211,12 @@ cdef class StringHashTable(HashTable):
                 try:
                     v = PyUnicode_AsUTF8(<str>val)
                 except UnicodeEncodeError:
-                    v = PyUnicode_AsUTF8(<str>repr(val))
+                    # GH#34550 val is not utf-8 encodable (e.g. a lone
+                    #  surrogate). Retain the repr in `refs` so the buffer
+                    #  `v` points to outlives the nogil loop below.
+                    val = repr(val)
+                    refs.append(val)
+                    v = PyUnicode_AsUTF8(<str>val)
                 vecs[i] = v
 
         # compute
@@ -1324,7 +1330,11 @@ cdef class PyObjectHashTable(HashTable):
         kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
+        cdef khiter_t index
         if self.table is not NULL:
+            for index in range(self.table.n_buckets):
+                if kh_exist_pymap(self.table, index):
+                    Py_DECREF(<object>self.table.keys[index])
             kh_destroy_pymap(self.table)
             self.table = NULL
 
@@ -1379,6 +1389,8 @@ cdef class PyObjectHashTable(HashTable):
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         if kh_exist_pymap(self.table, k):
+            if ret != 0:
+                Py_INCREF(key)
             self.table.vals[k] = val
         else:
             raise KeyError(key)
@@ -1399,6 +1411,8 @@ cdef class PyObjectHashTable(HashTable):
 
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
+            if ret != 0:
+                Py_INCREF(val)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1498,6 +1512,7 @@ cdef class PyObjectHashTable(HashTable):
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                Py_INCREF(val)
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count

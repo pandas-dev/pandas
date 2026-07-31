@@ -1,11 +1,13 @@
 import builtins
 import datetime as dt
+from decimal import Decimal
 from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -20,8 +22,8 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.tests.extension.decimal import DecimalArray
 from pandas.tests.groupby import get_groupby_method_args
-from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
@@ -325,6 +327,22 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["idxmin", "idxmax"])
+@pytest.mark.parametrize("dtype", ["int64", "float64", "Int64", "Float64"])
+def test_idxmin_idxmax_skipna_false_no_na(how, dtype):
+    # GH#56903 with skipna=False and no NA values, the group_idxmin_idxmax
+    # kernel previously skipped every group and returned the all-NA sentinel.
+    df = DataFrame(
+        {"a": [1, 1, 2, 2, 2], "b": [3, 1, 4, 9, 2]},
+        index=[10, 11, 12, 13, 14],
+    ).astype({"b": dtype})
+    gb = df.groupby("a")
+    result = getattr(gb, how)(skipna=False)
+    # No NA is present, so skipna is irrelevant; result must match skipna=True.
+    expected = getattr(gb, how)(skipna=True)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, values",
     [
@@ -514,6 +532,84 @@ def test_first_last_skipna_ea_types(how, skipna):
             index=pd.Index([1, 2], name="g"),
         )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["min", "max"])
+@pytest.mark.parametrize(
+    "dtype",
+    [object, "str", pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_min_max_skipna_false_string_dtypes(how, dtype):
+    # GH#18588: string and object dtypes have no cython group_min_max, so they
+    # reduce through the pure-python fallback, which used to drop skipna
+    df = DataFrame({"g": [1, 1, 2, 2], "v": Series(["a", None, "y", "z"], dtype=dtype)})
+    result = getattr(df.groupby("g")["v"], how)(skipna=False)
+    expected = Series(
+        # np.nan rather than None: each group reduces to a scalar NA, which
+        # matters when "str" is plain object
+        [np.nan, "y" if how == "min" else "z"],
+        # the fallback re-infers an object result, so strings come back as str
+        dtype="str" if dtype is object else dtype,
+        index=pd.Index([1, 2], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_prod_skipna_false_object():
+    # GH#4147/GH#18588: object has no cython group_prod, so it takes the
+    # pure-python fallback, which dropped skipna; the underlying Series.prod
+    # then raised on the object NA.  (object *sum* has a cython implementation
+    # and already honoured skipna.)
+    df = DataFrame({"g": [1, 1, 2, 2], "v": Series([2, None, 3, 4], dtype=object)})
+    result = df.groupby("g")["v"].prod(skipna=False)
+    assert isna(result.loc[1])
+    assert result.loc[2] == 12
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+def test_sum_prod_skipna_false_ea_fallback(how):
+    # GH#18588: an extension dtype whose _groupby_op raises NotImplementedError
+    # reduces through the same fallback for sum as well as prod
+    values = DecimalArray(
+        [Decimal(2), Decimal("NaN"), Decimal(3), Decimal(4)],
+    )
+    df = DataFrame({"g": [1, 1, 2, 2], "v": values})
+    result = getattr(df.groupby("g")["v"], how)(skipna=False)
+    assert isna(result.loc[1])
+    assert result.loc[2] == (7 if how == "sum" else 12)
+
+
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_min_max_skipna_false_frame_object_block(how):
+    # GH#18588: DataFrameGroupBy on an object column reaches _agg_py_fallback
+    # through its 2D branch, unlike the 1D SeriesGroupBy one.  That branch also
+    # keeps object dtype rather than re-inferring str, as it does for skipna=True.
+    df = DataFrame(
+        {"g": [1, 1, 2, 2], "v": Series(["a", None, "y", "z"], dtype=object)}
+    )
+    result = getattr(df.groupby("g"), how)(skipna=False)
+    expected = DataFrame(
+        {"v": [np.nan, "y" if how == "min" else "z"]},
+        index=pd.Index([1, 2], name="g"),
+        dtype=object,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_min_max_skipna_false_interval_dtype(how):
+    # GH#18588: any EA whose _groupby_op raises NotImplementedError takes the
+    # same pure-python fallback
+    intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), None, (2, 3), (4, 5)])
+    df = DataFrame({"g": [1, 1, 2, 2], "v": intervals})
+    result = getattr(df.groupby("g")["v"], how)(skipna=False)
+    expected = Series(
+        pd.arrays.IntervalArray.from_tuples([None, (2, 3) if how == "min" else (4, 5)]),
+        index=pd.Index([1, 2], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_mean_no_overflow():
@@ -1650,3 +1746,64 @@ def test_mean_numeric_only_validates_bool():
 
     with pytest.raises(ValueError, match=msg):
         df.groupby(["A"]).mean(numeric_only=1)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+        "prod",
+    ],
+)
+def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is_na):
+    values = np.array([1.0, 2.0, 3.0, 4.0, np.nan], dtype="float64")
+    mask = np.array([False, False, False, False, False], dtype="bool")
+
+    ser = Series(pd.arrays.FloatingArray(values, mask))
+    df = DataFrame({"A": [1] * 5, "B": ser})
+
+    gb = df.groupby("A")["B"]
+    result = getattr(gb, method)(skipna=skipna)
+
+    if using_nan_is_na:
+        expected = Series(
+            [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+    else:
+        expected = Series(
+            [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+        "prod",
+    ],
+)
+def test_groupby_skipna_false_propagates_na_when_distinguish_nan_and_na(method):
+    # GH-65372: under future.distinguish_nan_and_na, a genuine NA with
+    # skipna=False must propagate to NA.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = Series([1.0, 2.0, 3.0, 4.0, pd.NA], dtype="Float64")
+        df = DataFrame({"A": [1] * 5, "B": ser})
+        gb = df.groupby("A")["B"]
+        expected = Series(
+            [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+        result = getattr(gb, method)(skipna=False)
+        tm.assert_series_equal(result, expected)

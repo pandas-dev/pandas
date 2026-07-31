@@ -30,6 +30,10 @@ class TestIntervalRange:
     def test_constructor_numeric(self, closed, name, freq, periods):
         start, end = 0, 100
         breaks = np.arange(101, step=freq)
+        if breaks.dtype.kind == "f":
+            breaks = breaks.astype(np.float64)
+        else:
+            breaks = breaks.astype(np.int64)
         expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq

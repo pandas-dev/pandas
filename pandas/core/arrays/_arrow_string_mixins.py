@@ -34,7 +34,7 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _from_pyarrow_array(self, pa_array) -> Self:
+    def _from_pyarrow_array(self, pa_array: pa.Array | pa.ChunkedArray) -> Self:
         raise NotImplementedError
 
     def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
@@ -169,6 +169,13 @@ class ArrowStringArrayMixin:
             pa_pad(self._pa_array, width=width, padding=fillchar)
         )
 
+    def _str_zfill(self, width: int) -> Self:
+        if pa_version_under21p0:
+            predicate = lambda val: val.zfill(width)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
+
     def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
         if i >= 0:
@@ -204,6 +211,12 @@ class ArrowStringArrayMixin:
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
 
+    def _str_getitem(self, key: slice | int) -> Self:
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
+
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
     ) -> Self:
@@ -237,6 +250,21 @@ class ArrowStringArrayMixin:
                 "replace is not supported with a re.Pattern, callable repl, "
                 "case=False, flags!=0, or when the replacement string contains "
                 "named group references (\\g<...>)"
+            )
+
+        if pat == "":
+            # pyarrow hangs for empty patterns
+            # (https://github.com/apache/arrow/issues/39149)
+            # use same func definition as ObjectStringArrayMixin._str_replace
+            if regex:
+                count = n if n >= 0 else 0
+                func = lambda val: re.sub(pat, repl, val, count=count)
+            else:
+                func = lambda val: val.replace(pat, repl, n)
+
+            result = self._apply_elementwise(func)
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -379,8 +407,9 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.startswith("^"):
-            pat = f"^({pat})"
+        if pat.startswith("^"):
+            pat = pat[1:]
+        pat = f"^({pat})"
         return ArrowStringArrayMixin._str_contains(
             self, pat, case, flags, na, regex=True
         )

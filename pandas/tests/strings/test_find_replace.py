@@ -1029,6 +1029,24 @@ def test_replace_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_replace_empty_pattern(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/64941
+    ser = Series(["abcd"], dtype=any_string_dtype)
+
+    result = ser.str.replace("", "")
+    expected = Series(["abcd"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("", "X")
+    expected = Series(["XaXbXcXdX"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series([], dtype=any_string_dtype)
+    result = ser.str.replace("", "X")
+    expected = Series([], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------
@@ -1070,6 +1088,21 @@ def test_match(any_string_dtype):
 
     result = values.str.match("\\^BAD[_]+.*BAD")
     expected = Series([False, True, na_value, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat",
+    [r"^foo|bar", r"^bar|foo", r"^foo|bar$", r"^(foo)|bar"],
+)
+def test_match_anchored_alternation(any_string_dtype, pat):
+    # GH#66069
+    ser = Series(["xbar", "bar", "foo", "xfoo"], dtype=any_string_dtype)
+    result = ser.str.match(pat)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([False, True, True, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
+import weakref
 
 import numpy as np
 import pytest
@@ -460,6 +461,72 @@ class TestPyObjectHashTableWithNans:
             table.get_item(other)
 
 
+class _WeakRefKey:
+    # Hashable key that supports weakref (unlike built-in str).
+    __slots__ = ("__weakref__", "name")
+
+    def __init__(self, name):
+        self.name = name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, _WeakRefKey) and self.name == other.name
+
+
+def test_pyobject_hashtable_map_locations_refcount():
+    # GH#21968
+    # Verify that map_locations holds proper references to stored keys,
+    # preventing use-after-free when the source array is deallocated.
+    keys = [_WeakRefKey(f"key_{i}") for i in range(10)]
+    values = np.array(keys, dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    table.map_locations(values)
+
+    # The table must keep the keys alive after the source list/array are gone.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del table
+    assert all(ref() is None for ref in refs)
+
+
+def test_pyobject_hashtable_set_item_refcount():
+    # GH#21968
+    key = _WeakRefKey("unique_key")
+    ref = weakref.ref(key)
+
+    table = ht.PyObjectHashTable(64)
+    table.set_item(key, 0)
+
+    del key
+    assert ref() is not None
+
+    del table
+    assert ref() is None
+
+
+def test_pyobject_hashtable_unique_refcount():
+    # GH#21968
+    keys = [_WeakRefKey(f"key_{i}") for i in range(5)]
+    # Duplicate some keys so _unique exercises the "already seen" path too
+    values = np.array(keys + keys[:2], dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    result = table.unique(values)
+
+    # Both the table and the returned uniques array must keep the keys alive.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del result, table
+    assert all(ref() is None for ref in refs)
+
+
 def test_hash_equal_tuple_with_nans():
     a = (float("nan"), (float("nan"), float("nan")))
     b = (float("nan"), (float("nan"), float("nan")))
@@ -670,6 +737,27 @@ class TestHelpFunctions:
         result = ht.ismember(arr, values)
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_non_unique(self, dtype, writable):
+        N = 43
+        values = np.repeat((np.arange(N) + N).astype(dtype), 3)
+        targets = np.array([N + 1, N, 5], dtype=dtype)
+        values.flags.writeable = writable
+        targets.flags.writeable = writable
+        if dtype in (np.object_, np.complex128, np.complex64):
+            with pytest.raises(TypeError, match="(complex|object)"):
+                ht.get_indexer_non_unique(values, targets, False)
+            return
+        expected = np.array([3, 4, 5, 0, 1, 2, -1], dtype=np.intp)
+        expected_missing = np.array([2], dtype=np.intp)
+        # full-scan path
+        result, missing = ht.get_indexer_non_unique(values, targets, False)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+        # values are sorted, so the searchsorted path gives the same answer
+        result, missing = ht.get_indexer_non_unique(values, targets, True)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
 
     def test_mode(self, dtype, writable):
         if dtype in (np.int8, np.uint8):

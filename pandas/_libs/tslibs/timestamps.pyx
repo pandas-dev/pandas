@@ -85,6 +85,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_nat_sentinel,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -278,8 +279,9 @@ cdef class _Timestamp(ABCTimestamp):
     _docstring_min = """
     Returns the minimum bound possible for Timestamp.
 
-    This property provides access to the smallest possible value that
-    can be represented by a Timestamp object.
+    Accessed on the class (``pd.Timestamp.min``), this returns the minimum
+    bound for nanosecond resolution. Accessed on an instance, it returns the
+    minimum bound for that instance's resolution (see :attr:`Timestamp.unit`).
 
     Returns
     -------
@@ -295,13 +297,17 @@ cdef class _Timestamp(ABCTimestamp):
     --------
     >>> pd.Timestamp.min
     Timestamp('1677-09-21 00:12:43.145224193')
+
+    >>> pd.Timestamp("2000-01-01").as_unit("s").min
+    Timestamp('-292277022657-01-27 08:29:53')
     """
 
     _docstring_max = """
     Returns the maximum bound possible for Timestamp.
 
-    This property provides access to the largest possible value that
-    can be represented by a Timestamp object.
+    Accessed on the class (``pd.Timestamp.max``), this returns the maximum
+    bound for nanosecond resolution. Accessed on an instance, it returns the
+    maximum bound for that instance's resolution (see :attr:`Timestamp.unit`).
 
     Returns
     -------
@@ -317,13 +323,18 @@ cdef class _Timestamp(ABCTimestamp):
     --------
     >>> pd.Timestamp.max
     Timestamp('2262-04-11 23:47:16.854775807')
+
+    >>> pd.Timestamp("2000-01-01").as_unit("s").max
+    Timestamp('292277026596-12-04 15:30:07')
     """
 
     _docstring_reso = """
     Returns the smallest possible difference between non-equal Timestamp objects.
 
-    The resolution value is determined by the underlying representation of time
-    units and is equivalent to Timedelta(nanoseconds=1).
+    Accessed on the class (``pd.Timestamp.resolution``), this returns the
+    resolution for nanosecond-unit Timestamps (one nanosecond). Accessed on an
+    instance, it returns the step size of that instance's resolution (see
+    :attr:`Timestamp.unit`).
 
     Returns
     -------
@@ -338,6 +349,9 @@ cdef class _Timestamp(ABCTimestamp):
     --------
     >>> pd.Timestamp.resolution
     Timedelta('0 days 00:00:00.000000001')
+
+    >>> pd.Timestamp("2000-01-01").as_unit("s").resolution
+    Timedelta('0 days 00:00:01')
     """
 
     min = MinMaxReso("min", _docstring_min)
@@ -1479,8 +1493,10 @@ cdef class _Timestamp(ABCTimestamp):
         By default, the fractional part is omitted if self.microsecond == 0
         and self._nanosecond == 0.
 
-        If self.tzinfo is not None, the UTC offset is also attached,
-        giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
+        If self.tzinfo is not None, the UTC offset is also attached, giving a
+        full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM[:SS[.ffffff]]'.
+        The ':SS' is present only if the offset is not a whole number of
+        minutes, as for a timezone in its pre-standardization era.
 
         Parameters
         ----------
@@ -1513,15 +1529,23 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self._year:04d}-" + base.split("-", 1)[1]
+        year_str = f"{self._year:04d}"
+        base = year_str + "-" + base.split("-", 1)[1]
 
         if self._nanosecond == 0 and timespec != "nanoseconds":
             return base
 
-        if self.tzinfo is not None:
-            base1, base2 = base[:-6], base[-6:]
-        else:
+        # The UTC offset is usually "+HH:MM", but grows a ":SS[.ffffff]" suffix when
+        # it is not a whole number of minutes, so find where it starts instead of
+        # assuming a fixed width.  Search past "YYYY-MM-DD" and the separator -- the
+        # year is not always 4 digits, and may be negative -- so that a date dash is
+        # never mistaken for the offset's sign.  No sign there means no offset.
+        time_start = len(year_str) + 7
+        tz_pos = max(base.rfind("+", time_start), base.rfind("-", time_start))
+        if tz_pos == -1:
             base1, base2 = base, ""
+        else:
+            base1, base2 = base[:tz_pos], base[tz_pos:]
 
         if timespec == "nanoseconds" or (timespec == "auto" and self._nanosecond):
             if self.microsecond or timespec == "nanoseconds":
@@ -2292,6 +2316,9 @@ class Timestamp(_Timestamp):
         format string, using the same directives as the standard library's
         :meth:`datetime.datetime.strftime`.
 
+        In addition to the standard directives, ``%N`` is supported to format
+        the nanoseconds as a 9-digit zero-padded number.
+
         Parameters
         ----------
         format : str
@@ -2310,7 +2337,22 @@ class Timestamp(_Timestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
+
+        Use ``%N`` to format nanoseconds:
+
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
+        '2020-03-14T15:32:52.192548651'
         """
+        # Handle %N (nanoseconds) before delegating to datetime.strftime.
+        # Replace %% with a placeholder first so that %%N is not misidentified.
+        nano_placeholder = "^`NS`^"
+        pct_placeholder = "^`PC`^"
+        fmt = format.replace("%%", pct_placeholder)
+        has_nano = "%N" in fmt
+        if has_nano:
+            fmt = fmt.replace("%N", nano_placeholder)
+        fmt = fmt.replace(pct_placeholder, "%%")
+
         try:
             _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
@@ -2322,7 +2364,13 @@ class Timestamp(_Timestamp):
                 "For now, please call the components you need (such as `.year` "
                 "and `.month`) and construct your string from there."
             ) from err
-        return _dt.strftime(format)
+        result = _dt.strftime(fmt)
+
+        if has_nano:
+            nanos = self.microsecond * 1000 + self._nanosecond
+            result = result.replace(nano_placeholder, f"{nanos:09d}")
+
+        return result
 
     def ctime(self):
         """
@@ -2979,8 +3027,8 @@ class Timestamp(_Timestamp):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the rounding resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -3056,6 +3104,11 @@ timedelta}, default 'raise'
         >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.round(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.round()
@@ -3086,8 +3139,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the flooring resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -3157,6 +3210,11 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.floor(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.floor()
@@ -3185,8 +3243,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the ceiling resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -3256,6 +3314,11 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.ceil(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 16:30:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.ceil()
@@ -3308,16 +3371,18 @@ timedelta}, default 'raise'
 
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
         """
-        Localize the Timestamp to a timezone.
+        Attach or detach a time zone on a Timestamp.
 
-        Convert naive Timestamp to local time zone or remove
-        timezone from timezone-aware Timestamp.
+        This method does not shift the date/time values. It attaches a time
+        zone to a tz-naive Timestamp, or detaches the time zone from a
+        tz-aware Timestamp. In both cases the wall time is preserved.
 
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+            Time zone to attach to the tz-naive Timestamp; the wall time is
+            preserved. ``None`` detaches the time zone from a tz-aware
+            Timestamp, returning a tz-naive Timestamp with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
@@ -3637,6 +3702,9 @@ default 'raise'
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
+            # GH#66510 the tz-aware legs below go through
+            #  convert_datetime_to_tsobject, which checks this for us
+            check_nat_sentinel(ts.value, &dts, creso)
             ts.dts = dts
             ts.creso = creso
             ts.fold = fold
@@ -3685,11 +3753,32 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
+        cdef:
+            npy_datetimestruct dts
+            int64_t year
+            int month, day, hour, minute, second, microsecond
+
         from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 
-        year = self._year
-        month = self.month
-        day = self.day
+        if self.tzinfo is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
+            year = dts.year
+            month = dts.month
+            day = dts.day
+            hour = dts.hour
+            minute = dts.min
+            second = dts.sec
+            microsecond = dts.us
+        else:
+            year = self._year
+            month = self.month
+            day = self.day
+            hour = self.hour
+            minute = self.minute
+            second = self.second
+            microsecond = self.microsecond
+
         if month <= 2:
             year -= 1
             month += 12
@@ -3701,10 +3790,10 @@ default 'raise'
             np.floor(year / 100) +
             np.floor(year / 400) +
             1721118.5 +
-            (self.hour +
-             self.minute / 60.0 +
-             self.second / 3600.0 +
-             self.microsecond / 3600.0 / 1e+6 +
+            (hour +
+             minute / 60.0 +
+             second / 3600.0 +
+             microsecond / 3600.0 / 1e+6 +
              self._nanosecond / 3600.0 / 1e+9
              ) / 24.0
         )

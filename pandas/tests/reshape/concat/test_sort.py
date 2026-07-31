@@ -116,3 +116,12 @@ class TestConcatSort:
         msg = "The 'sort' keyword only accepts boolean values; None was passed."
         with pytest.raises(ValueError, match=msg):
             pd.concat([df, df], sort=None)
+
+
+def test_concat_series_timestamp_names_anterior():
+    # GH#65333
+    s1 = pd.Series([0], name=pd.to_datetime("2026"))
+    s3 = pd.Series([1, 3], name=pd.to_datetime("2025"))
+    result = pd.concat([s1, s3])
+    expected = pd.Series([0, 1, 3], index=[0, 0, 1])
+    tm.assert_series_equal(result, expected)

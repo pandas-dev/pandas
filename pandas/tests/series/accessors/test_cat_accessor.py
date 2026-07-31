@@ -6,8 +6,10 @@ from pandas.errors import Pandas4Warning
 from pandas import (
     Categorical,
     DataFrame,
+    DatetimeIndex,
     Index,
     Series,
+    TimedeltaIndex,
     Timestamp,
     date_range,
     period_range,
@@ -156,7 +158,11 @@ class TestCatAccessor:
 
         # only testing field (like .day)
         # and bool (is_month_start)
-        attr_names = type(ser._values)._datetimelike_ops
+        # ``freq`` is exposed on the dt accessor but not on the underlying
+        # array's _datetimelike_ops list, so add it explicitly.
+        attr_names = list(type(ser._values)._datetimelike_ops)
+        if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
+            attr_names.append("freq")
 
         assert isinstance(cat.dt, Properties)
 

@@ -63,19 +63,24 @@ def index_flat2(index_flat):
     return index_flat
 
 
-def test_union_same_types(index):
+@pytest.fixture
+def index_flat2_sortable(index_flat_sortable):
+    return index_flat_sortable
+
+
+def test_union_same_types(index_sortable):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = index.sort_values()
-    idx2 = index.sort_values()
+    idx1 = index_sortable.sort_values()
+    idx2 = index_sortable.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2):
+def test_union_different_types(index_flat_sortable, index_flat2_sortable):
     # This test only considers combinations of indices
     # GH 23525
-    idx1 = index_flat
-    idx2 = index_flat2
+    idx1 = index_flat_sortable
+    idx2 = index_flat2_sortable
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -220,8 +225,8 @@ class TestSetOps:
                 first.intersection([1, 2, 3])
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_union_base(self, index):
-        index = index.unique()
+    def test_union_base(self, index_sortable):
+        index = index_sortable.unique()
         first = index[3:]
         second = index[:5]
         everything = index
@@ -272,7 +277,8 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_symmetric_difference(self, index, using_infer_string, request):
+    def test_symmetric_difference(self, index_sortable, using_infer_string, request):
+        index = index_sortable
         if (
             using_infer_string
             and index.dtype == "object"
@@ -362,11 +368,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat, fname, sname, expected_name):
-        if not index_flat.is_unique:
-            index = index_flat.unique()
+    def test_union_unequal(self, index_flat_sortable, fname, sname, expected_name):
+        if not index_flat_sortable.is_unique:
+            index = index_flat_sortable.unique()
         else:
-            index = index_flat
+            index = index_flat_sortable
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -431,11 +437,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
-        if not index_flat.is_unique:
-            index = index_flat.unique()
+    def test_intersect_unequal(self, index_flat_sortable, fname, sname, expected_name):
+        if not index_flat_sortable.is_unique:
+            index = index_flat_sortable.unique()
         else:
-            index = index_flat
+            index = index_flat_sortable
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)

@@ -265,6 +265,18 @@ def test_na_handling(labels):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+def test_cut_series_with_nan_integer_bins(use_bottleneck):
+    # GH#55684 cut on a Series with NaN and an integer number of bins raised
+    # "TypeError: putmask: first argument must be an array" when bottleneck
+    # was not in use, because nanmin/nanmax was computed on the Series itself.
+    with pd.option_context("use_bottleneck", use_bottleneck):
+        data = [1.1, 2.2, 3.3, np.nan]
+        result = cut(Series(data), 2)
+        expected = Series(cut(data, 2))
+        tm.assert_series_equal(result, expected)
+
+
 def test_inf_handling():
     data = np.arange(6)
     data_ser = Series(data, dtype="int64")
@@ -849,3 +861,38 @@ def test_cut_datetime_array_no_attributeerror():
     tm.assert_categorical_equal(
         result, expected, check_dtype=True, check_category_order=True
     )
+
+
+def test_cut_int64_intervalindex_more_bins_than_leaf_size():
+    # GH#44075 building the IntervalTree engine for >100 integer bins used to
+    #  raise on 32-bit platforms (int64 indices could not be safely cast to
+    #  intp inside PyArray_Take).
+    bins = IntervalIndex.from_breaks(
+        range(0, 102, 1), closed="left", dtype="interval[int64]"
+    )
+    data = [1.2, np.nan, 10.2]
+    result = cut(data, bins)
+
+    expected_codes = np.array([1, -1, 10], dtype=result.codes.dtype)
+    tm.assert_numpy_array_equal(result.codes, expected_codes)
+
+
+def test_cut_datetime_series_with_intervalindex_bins():
+    # GH#48083 cut on a datetime Series with IntervalIndex bins must assign the
+    # matching intervals instead of returning all-NaN
+    ser = Series(to_datetime(["2000-01-01", "2000-01-02", "2000-01-02", "2000-01-03"]))
+    bins = interval_range(ser[0], ser[3])
+    result = cut(ser, bins)
+    # 2000-01-01 is the left edge of the first right-closed interval, so it is
+    # unassigned (-1); the rest fall in their intervals
+    expected_codes = np.array([-1, 0, 0, 1], dtype=result.cat.codes.dtype)
+    tm.assert_numpy_array_equal(result.cat.codes.to_numpy(), expected_codes)
+
+    # same IntervalIndex bins with an ndarray input (also all-NaN pre-fix)
+    result_arr = cut(ser.to_numpy(), bins)
+    tm.assert_numpy_array_equal(result_arr.codes, expected_codes)
+
+    # DatetimeIndex bins with a list input -- pre-fix this raised TypeError
+    # ("'<' not supported between int and Timestamp"), a different failure mode
+    result_list = cut(list(ser), date_range(ser[0], ser[3]))
+    tm.assert_numpy_array_equal(result_list.codes, expected_codes)

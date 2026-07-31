@@ -803,7 +803,9 @@ class TestDataFrameSelectReindex:
         msg = "reindexing with a fill_value that cannot be held"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.reindex(range(15), fill_value="0")
-        expected = df.reindex(range(15)).fillna("0")
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            expected = df.reindex(range(15)).fillna("0")
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_uint_dtypes_fill_value(self, any_unsigned_int_numpy_dtype):

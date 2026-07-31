@@ -297,7 +297,7 @@ class TestDataFramePlots:
         plt.style.use(scheme)
         result = df.plot.box(return_type="dict")
         for k, v in expected.items():
-            assert result[k][0].get_color() == v
+            assert mpl.colors.same_color(result[k][0].get_color(), v)
 
     @pytest.mark.parametrize(
         "dict_colors, msg",
@@ -729,6 +729,31 @@ class TestDataFrameGroupByPlots:
 
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
         assert expected_xticklabel == result_xticklabel
+
+    @pytest.mark.parametrize("subplots", [True, False])
+    def test_groupby_boxplot_subset_columns(self, subplots):
+        # GH#41124 a column selection on the groupby is honored
+        df = DataFrame(
+            {
+                "cat": np.repeat([0, 1, 2, 3], 25),
+                "data": np.random.default_rng(2).random(100),
+                "other": np.random.default_rng(2).random(100),
+            }
+        )
+        grouped = df.groupby("cat")[["data"]]
+
+        if subplots:
+            axes = _check_plot_works(
+                grouped.boxplot, default_axes=True, subplots=True, return_type="axes"
+            )
+            for ax in axes:
+                assert [x.get_text() for x in ax.get_xticklabels()] == ["data"]
+        else:
+            axes = _check_plot_works(
+                grouped.boxplot, default_axes=True, subplots=False, return_type="axes"
+            )
+            expected = ["(0, data)", "(1, data)", "(2, data)", "(3, data)"]
+            assert [x.get_text() for x in axes.get_xticklabels()] == expected
 
     def test_groupby_boxplot_object(self, hist_df):
         # GH 43480

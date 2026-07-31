@@ -110,7 +110,22 @@ def test_1000_sep(all_parsers, number_csv, expected_number, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
+@pytest.mark.parametrize("value", ["1 ,", ", 1", ",1"])
+def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
+    parser = all_parsers
+    data = f"a\n{value}\n"
+    expected = DataFrame({"a": [value]})
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=";", thousands=",")
+        return
+
+    result = parser.read_csv(StringIO(data), sep=";", thousands=",")
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5
@@ -643,9 +658,9 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_sub_character(all_parsers, csv_dir_path):
+def test_sub_character(all_parsers, datapath):
     # see gh-16893
-    filename = os.path.join(csv_dir_path, "sub_char.csv")
+    filename = datapath("io", "parser", "data", "sub_char.csv")
     expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
 
     parser = all_parsers

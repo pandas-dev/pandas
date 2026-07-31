@@ -33,6 +33,7 @@ from pandas._libs.hashtable import duplicated
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
+    Pandas4Warning,
     PerformanceWarning,
     UnsortedIndexError,
 )
@@ -49,10 +50,12 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_array_like_deprecate_non_pandas,
     is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -66,7 +69,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -87,6 +89,7 @@ from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
+    droplevel_result,
     ensure_index,
     get_unanimous_names,
 )
@@ -536,7 +539,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        tuples : list / sequence of tuple-likes
+        tuples : list-like of tuples
             Each tuple is the index of one row/column.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
@@ -566,7 +569,7 @@ class MultiIndex(Index):
                    names=['number', 'color'])
         """
         if not is_list_like(tuples):
-            raise TypeError("Input must be a list / sequence of tuple-likes.")
+            raise TypeError("Input must be list-like of tuples.")
         if is_iterator(tuples):
             tuples = list(tuples)
         tuples = cast("Collection[tuple[Hashable, ...]]", tuples)
@@ -853,6 +856,13 @@ class MultiIndex(Index):
         it filters out all rows of the level C, MultiIndex.levels will still
         return A, B, C.
 
+        When a ``MultiIndex`` is built by the standard constructors (e.g.
+        :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_tuples`),
+        missing values (``NaN``) are not stored in ``levels``; they are
+        represented by a code of ``-1`` in :attr:`MultiIndex.codes`, so
+        ``levels`` does not contain ``NaN`` even when the corresponding
+        level of the ``MultiIndex`` does.
+
         See Also
         --------
         MultiIndex.codes : The codes of the levels in the MultiIndex.
@@ -1055,7 +1065,7 @@ class MultiIndex(Index):
 
         if isinstance(levels, Index):
             pass
-        elif is_array_like(levels):
+        elif is_array_like_deprecate_non_pandas(levels):
             levels = Index(levels)
         elif is_list_like(levels):
             levels = list(levels)
@@ -2043,8 +2053,9 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        return lev._shallow_copy(filled, name=name)
+        result = lev.take(level_codes, allow_fill=True)
+        result._name = name
+        return result
 
     def get_level_values(self, level) -> Index:
         """
@@ -2574,8 +2585,8 @@ class MultiIndex(Index):
         self: MultiIndex,
         indices,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value=None,
+        allow_fill: bool | lib.NoDefault = lib.no_default,
+        fill_value=lib.no_default,
         **kwargs,
     ) -> MultiIndex:
         """
@@ -2589,20 +2600,22 @@ class MultiIndex(Index):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-            from the right (the default). This is similar to
-            :func:`numpy.take`.
+              from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+              entries are set to NA. Any other negative values raise a
+              ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
-            * True: negative values in `indices` indicate
-            missing values. These values are set to `fill_value`. Any other
-            other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        fill_value : scalar, optional
+            Retained for API compatibility with :meth:`Index.take`; ``-1``
+            entries are always represented as NA in each level regardless of
+            the value passed.
         **kwargs
             Required for compatibility with numpy.
 
@@ -2635,13 +2648,32 @@ class MultiIndex(Index):
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
-        # only fill if we are passing a non-None fill_value
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill is lib.no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this case, but
+                # warn since the sentinel-based default would otherwise flip
+                # it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not lib.no_default
+
+        if allow_fill and (indices < -1).any():
+            raise ValueError("When allow_fill=True, all indices must be >= -1")
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
-
-        na_value = -1
 
         taken = [lab.take(indices) for lab in self.codes]
         if allow_fill:
@@ -2650,7 +2682,7 @@ class MultiIndex(Index):
                 masked = []
                 for new_label in taken:
                     label_values = new_label
-                    label_values[mask] = na_value
+                    label_values[mask] = -1
                     masked.append(np.asarray(label_values))
                 taken = masked
 
@@ -3305,8 +3337,10 @@ class MultiIndex(Index):
             else:
                 try:
                     target = MultiIndex.from_tuples(target)
-                except TypeError:
+                except (TypeError, ValueError):
                     # not all tuples, see test_constructor_dict_multiindex_reindex_flat
+                    # ValueError: non-object target dtype (e.g. int), so the
+                    #  entries can't be tuples (GH#26460)
                     return target
 
         target = self._maybe_preserve_names(target, preserve_names)
@@ -3511,6 +3545,10 @@ class MultiIndex(Index):
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
+                if isinstance(lab, str) and is_numeric_dtype(lev.dtype):
+                    # GH#60104 - numpy searchsorted gives wrong results for
+                    # string vs numeric comparisons; raise early
+                    raise TypeError(f"Level type mismatch: {lab}")
                 try:
                     loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:
@@ -3643,19 +3681,21 @@ class MultiIndex(Index):
                 f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
             )
 
-        if keylen == self.nlevels and self.is_unique:
+        if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
             #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
             except KeyError as err:
                 raise KeyError(key) from err
-            except TypeError:
-                # e.g. test_partial_slicing_with_multiindex partial string slicing
+            except (TypeError, ValueError):
+                # TypeError: e.g. test_partial_slicing_with_multiindex
+                #  partial string slicing
+                # ValueError: e.g. IntervalIndex level (GH#27456)
                 loc, _ = self.get_loc_level(key, range(self.nlevels))
                 return loc
 
-        # -- partial selection or non-unique index
+        # -- partial selection
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
@@ -3689,9 +3729,16 @@ class MultiIndex(Index):
         loc = np.arange(start, stop, dtype=np.intp)
 
         for i, k in enumerate(follow_key, len(lead_key)):
-            mask = self.codes[i][loc] == self._get_loc_single_level_index(
-                self.levels[i], k
-            )
+            level_idx = self._get_loc_single_level_index(self.levels[i], k)
+            if is_integer(level_idx):
+                mask = self.codes[i][loc] == level_idx
+            else:
+                # GH#27456: level_idx may be a slice or bool ndarray
+                # (e.g. overlapping IntervalIndex). Normalize to a
+                # boolean mask over the level, then map via codes.
+                level_mask = np.zeros(len(self.levels[i]), dtype=bool)
+                level_mask[level_idx] = True
+                mask = level_mask[self.codes[i][loc]]
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -3775,12 +3822,26 @@ class MultiIndex(Index):
             If level does not exist or all levels were dropped, the exception
             has to be handled outside.
             """
-            new_index = self[indexer]
+            if not levels:
+                # No levels to drop, just slice
+                return self[indexer]
 
-            for i in sorted(levels, reverse=True):
-                new_index = new_index._drop_level_numbers([i])
+            # Combine indexing and level-dropping into a single step
+            # to avoid creating an intermediate MultiIndex.
+            drop_set = set(levels)
+            kept = [i for i in range(self.nlevels) if i not in drop_set]
 
-            return new_index
+            if not kept:
+                raise ValueError(
+                    f"Cannot remove {len(levels)} levels from an index with "
+                    f"{self.nlevels} levels: at least one level must be left."
+                )
+
+            new_levels = [self.levels[i] for i in kept]
+            new_codes = [self.codes[i][indexer] for i in kept]
+            new_names = [self.names[i] for i in kept]
+
+            return droplevel_result(new_levels, new_codes, new_names)
 
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
@@ -3822,16 +3883,22 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-                if len(key) == self.nlevels and self.is_unique:
-                    # Complete key in unique index -> standard get_loc
+                if len(key) == self.nlevels:
+                    # Complete key -> standard get_loc
                     try:
-                        return (self._engine.get_loc(key), None)
+                        loc = self._engine.get_loc(key)
                     except KeyError as err:
                         raise KeyError(key) from err
-                    except TypeError:
-                        # e.g. partial string indexing
+                    except (TypeError, ValueError):
+                        # TypeError: e.g. partial string indexing
                         #  test_partial_string_timestamp_multiindex
-                        pass
+                        # ValueError: e.g. IntervalIndex level where the
+                        #  engine can't convert scalar to interval code
+                        #  (GH#27456)
+                        loc = None
+
+                    if is_integer(loc):
+                        return loc, None
 
                 # partial selection
                 indexer = self.get_loc(key)
@@ -3854,6 +3921,14 @@ class MultiIndex(Index):
                         and key[i] != slice(None, None)
                     ]
                     if len(ilevels) == self.nlevels:
+                        # GH#27456: if the indexer is a boolean mask with a
+                        # single match (e.g. scalar in overlapping
+                        # IntervalIndex level), reduce to int so callers
+                        # get scalar semantics.
+                        if isinstance(indexer, np.ndarray) and indexer.dtype == bool:
+                            (inds,) = indexer.nonzero()
+                            if len(inds) == 1:
+                                return inds[0].item(), None
                         # TODO: why?
                         ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
@@ -4000,15 +4075,31 @@ class MultiIndex(Index):
 
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
-                if isinstance(idx, slice):
-                    # test_get_loc_partial_timestamp_multiindex
-                    locs = (level_codes >= idx.start) & (level_codes < idx.stop)
-                    return locs
-
-                locs = np.asarray(level_codes == idx, dtype=bool)
+                if is_integer(idx):
+                    locs = np.asarray(level_codes == idx, dtype=bool)
+                else:
+                    # GH#27456: idx is a slice or bool ndarray
+                    # (e.g. overlapping IntervalIndex). Normalize to a
+                    # boolean mask over the level, then map to row positions.
+                    level_mask = np.zeros(len(level_index), dtype=bool)
+                    level_mask[idx] = True
+                    locs = level_mask[level_codes]
+                    locs[level_codes == -1] = False
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            if isinstance(idx, np.ndarray):
+                # GH#27456: idx is a bool ndarray (e.g. overlapping
+                # IntervalIndex); searchsorted can only handle scalars, so
+                # fall back to the mask approach.
+                level_mask = np.zeros(len(level_index), dtype=bool)
+                level_mask[idx] = True
+                locs = level_mask[level_codes]
+                locs[level_codes == -1] = False
+                if not locs.any():
                     raise KeyError(key)
                 return locs
 
@@ -4116,32 +4207,51 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-
-                    # GH#55786 Vectorized path: use the level's hashtable to
-                    # map all labels to codes at once, then use algos.isin
-                    # instead of looping with per-element _get_level_indexer.
                     if any(not is_hashable(x) for x in k):
+                        # e.g. slice
                         raise err
-                    level_codes = self.codes[i]
-                    k_codes = self.levels[i].get_indexer(k)
-                    # NaN labels are stored as code -1 and are absent
-                    # from levels, so get_indexer returns -1 for them.
-                    # Separate true missing labels from NaN labels.
-                    k_isna = isna(k if not isinstance(k, tuple) else list(k))
-                    na_count = k_isna.sum()
-                    missing_mask = k_codes == -1
-                    if na_count:
-                        if missing_mask.sum() > na_count:
+
+                    if self.levels[i]._supports_partial_string_indexing:
+                        # GH#64807 A level that supports partial indexing (e.g.
+                        #  DatetimeIndex/PeriodIndex) can map a single label to a
+                        #  *range* of positions (partial-string/partial-date
+                        #  slicing). The exact-match vectorized path below cannot
+                        #  express that, so resolve each label individually.
+                        for x in k:
+                            # GH 42351: not-founds raise KeyError (enforced in 2.0)
+                            item_indexer = self._get_level_indexer(
+                                x, level=i, indexer=indexer
+                            )
+                            if lvl_indexer is None:
+                                lvl_indexer = _to_bool_indexer(item_indexer)
+                            elif isinstance(item_indexer, slice):
+                                lvl_indexer[item_indexer] = True  # type: ignore[index]
+                            else:
+                                lvl_indexer |= item_indexer
+                    else:
+                        # GH#55786 Vectorized path: use the level's hashtable to
+                        # map all labels to codes at once, then use algos.isin
+                        # instead of looping with per-element _get_level_indexer.
+                        level_codes = self.codes[i]
+                        k_codes = self.levels[i].get_indexer(k)
+                        # NaN labels are stored as code -1 and are absent
+                        # from levels, so get_indexer returns -1 for them.
+                        # Separate true missing labels from NaN labels.
+                        k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                        na_count = k_isna.sum()
+                        missing_mask = k_codes == -1
+                        if na_count:
+                            if missing_mask.sum() > na_count:
+                                raise KeyError(k) from None
+                            # NaN is in k but must also be present in the data
+                            if not lib.has_sentinel(level_codes, -1):
+                                raise KeyError(k) from None
+                        elif missing_mask.any():
                             raise KeyError(k) from None
-                        # NaN is in k but must also be present in the data
-                        if not (level_codes == -1).any():
-                            raise KeyError(k) from None
-                    elif missing_mask.any():
-                        raise KeyError(k) from None
-                    k_codes = k_codes[~missing_mask]
-                    lvl_indexer = algos.isin(level_codes, k_codes)
-                    if na_count:
-                        lvl_indexer = lvl_indexer | (level_codes == -1)
+                        k_codes = k_codes[~missing_mask]
+                        lvl_indexer = algos.isin(level_codes, k_codes)
+                        if na_count:
+                            lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
                     # no matches we are done
@@ -4350,14 +4460,14 @@ class MultiIndex(Index):
             other_codes = other.codes[i]
             self_mask = self_codes == -1
             other_mask = other_codes == -1
-            if not np.array_equal(self_mask, other_mask):
+            if not lib.array_equivalent_bytes(self_mask, other_mask):
                 return False
             self_level = self.levels[i]
             other_level = other.levels[i]
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
-            if not np.array_equal(self_codes, new_codes):
+            if not array_equivalent(self_codes, new_codes):
                 return False
             if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64
@@ -4719,6 +4829,21 @@ class MultiIndex(Index):
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
+                # GH#20252, GH#26622 from_tuples silently gives wrong results
+                #  for elements that aren't tuple-likes of length nlevels.
+                for position, value in enumerate(values):
+                    if is_list_like(value) and len(value) == self.nlevels:
+                        continue
+                    if is_list_like(value):
+                        got = f"an element of length {len(value)}"
+                    else:
+                        got = f"a scalar ({value!r})"
+                    raise ValueError(
+                        "MultiIndex.isin expects an iterable of tuples of "
+                        f"length {self.nlevels} (the number of levels); got "
+                        f"{got} at position {position}. To match on a single "
+                        "level, pass the level= argument."
+                    )
                 values = MultiIndex.from_tuples(values)
             return values.unique().get_indexer_for(self) != -1
         else:
@@ -4875,7 +5000,7 @@ def _require_listlike(level, arr, arrname: str):
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):
-        if not is_list_like(arr) or not is_list_like(arr[0]):
+        if not is_list_like(arr) or (len(arr) > 0 and not is_list_like(arr[0])):
             raise TypeError(f"{arrname} must be list of lists-like")
     return level, arr
 

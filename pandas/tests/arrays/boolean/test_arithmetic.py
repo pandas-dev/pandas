@@ -97,12 +97,17 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    msg = (
-        "did not contain a loop with signature matching types|"
-        "BooleanArray cannot perform the operation|"
-        "not supported for the input types, and the inputs could not be safely coerced "
-        "to any supported types according to the casting rule ''safe''|"
-        "not supported for dtype"
+    msg = "|".join(
+        [
+            "did not contain a loop with signature matching types",
+            "BooleanArray cannot perform the operation",
+            (
+                "not supported for the input types, and the inputs "
+                "could not be safely coerced to any supported types "
+                "according to the casting rule ''safe''"
+            ),
+            "not supported for dtype",
+        ]
     )
     with pytest.raises(TypeError, match=msg):
         ops("foo")

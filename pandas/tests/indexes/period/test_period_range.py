@@ -165,7 +165,7 @@ class TestPeriodRange:
         start = Period("2017Q1", freq="Q")
         end = Period("2018Q1", freq="Q")
         idx = period_range(start=start, end=end, freq="Q", name="foo")
-        result = idx == idx.values
+        result = idx == np.asarray(idx, dtype=object)
         expected = np.array([True, True, True, True, True])
         tm.assert_numpy_array_equal(result, expected)
 

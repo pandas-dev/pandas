@@ -493,18 +493,16 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = Index([2.0, 1.0, np.nan], dtype=np.float64, name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index([2.0, 1.0, 3.0], dtype=np.float64, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -522,18 +520,17 @@ class TestTake:
         expected = Index([2, 1, 3], dtype=dtype, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        name = type(idx).__name__
-        msg = f"Unable to fill values because {name} cannot contain NA"
-
-        # fill_value=True
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -1]), fill_value=True)
+        # fill_value on integer Index produces object dtype to hold NA
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
+        expected = Index([2, 1, np.nan], name="xxx")
+        tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index([2, 1, 3], dtype=dtype, name="xxx")
         tm.assert_index_equal(result, expected)
 
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):

@@ -1,33 +1,31 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs import (
-    NaT,
     algos as libalgos,
     internals as libinternals,
     lib,
 )
-from pandas._libs.missing import NA
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
 )
-from pandas.core.dtypes.common import (
-    is_1d_only_ea_dtype,
-    needs_i8_conversion,
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+from pandas.core.dtypes.concat import (
+    concat_compat,
+    union_categories_compat,
 )
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 
+from pandas.core.arrays import Categorical
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.blocks import (
     ensure_block_shape,
@@ -59,7 +57,11 @@ if TYPE_CHECKING:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
+    mgrs_indexers,
+    axes: list[Index],
+    concat_axis: AxisInt,
+    copy: bool,
+    union_categories: bool = False,
 ) -> BlockManager:
     """
     Concatenate block managers into one.
@@ -70,6 +72,9 @@ def concatenate_managers(
     axes : list of Index
     concat_axis : int
     copy : bool
+    union_categories : bool, default False
+        If True, union the categories of categorical blocks being concatenated
+        rather than falling back to a non-categorical dtype.
 
     Returns
     -------
@@ -133,16 +138,23 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=0, ea_compat_axis=True)
+                values = concat_compat(
+                    vals,
+                    axis=0,
+                    ea_compat_axis=True,
+                    union_categories=union_categories,
+                )
                 values = ensure_block_shape(values, ndim=2)
             else:
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, union_categories=union_categories)
 
             values = ensure_wrapped_if_datetimelike(values)
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, copy=copy)
+            values = _concatenate_join_units(
+                join_units, copy=copy, union_categories=union_categories
+            )
             fastpath = False
 
         if fastpath:
@@ -305,76 +317,25 @@ class JoinUnit:
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.block!r})"
 
-    def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
-        """
-        Check that we are all-NA of a type/dtype that is compatible with this dtype.
-        Augments `self.is_na` with an additional check of the type of NA values.
-        """
-        if not self.is_na:
-            return False
-
-        blk = self.block
-        if blk.dtype.kind == "V":
-            return True
-
-        if blk.dtype == object:
-            values = blk.values
-            return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
-
-        na_value = blk.fill_value
-        if na_value is NaT and blk.dtype != dtype:
-            # e.g. we are dt64 and other is td64
-            # fill_values match but we should not cast blk.values to dtype
-            # TODO: this will need updating if we ever have non-nano dt64/td64
-            return False
-
-        if na_value is NA and needs_i8_conversion(dtype):
-            # FIXME: kludge; test_append_empty_frame_with_timedelta64ns_nat
-            #  e.g. blk.dtype == "Int64" and dtype is td64, we dont want
-            #  to consider these as matching
-            return False
-
-        # TODO: better to use can_hold_element?
-        return is_valid_na_for_dtype(na_value, dtype)
-
     @cache_readonly
     def is_na(self) -> bool:
-        blk = self.block
-        if blk.dtype.kind == "V":
-            return True
-        return False
+        return self.block.dtype.kind == "V"
 
     def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
-        values: ArrayLike
-
-        if upcasted_na is None and self.block.dtype.kind != "V":
-            # No upcasting is necessary
-            return self.block.values
-        else:
-            fill_value = upcasted_na
-
-            if self._is_valid_na_for(empty_dtype):
-                # note: always holds when self.block.dtype.kind == "V"
-                blk_dtype = self.block.dtype
-
-                if blk_dtype == np.dtype("object"):
-                    # we want to avoid filling with np.nan if we are
-                    # using None; we already know that we are all
-                    # nulls
-                    values = cast("np.ndarray", self.block.values)
-                    if values.size and values[0, 0] is None:
-                        fill_value = None
-
-                return make_na_array(empty_dtype, self.block.shape, fill_value)
-
-            return self.block.values
+        if self.block.dtype.kind == "V":
+            return make_na_array(empty_dtype, self.block.shape, upcasted_na)
+        return self.block.values
 
 
-def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
+def _concatenate_join_units(
+    join_units: list[JoinUnit],
+    copy: bool,
+    union_categories: bool = False,
+) -> ArrayLike:
     """
     Concatenate values from several join units along axis=1.
     """
-    empty_dtype = _get_empty_dtype(join_units)
+    empty_dtype = _get_empty_dtype(join_units, union_categories=union_categories)
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
     upcasted_na = _dtype_to_na_value(empty_dtype, has_none_blocks)
@@ -393,11 +354,15 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
             t if is_1d_only_ea_dtype(t.dtype) else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
-        concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
+        concat_values = concat_compat(
+            to_concat, axis=0, ea_compat_axis=True, union_categories=union_categories
+        )
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
-        concat_values = concat_compat(to_concat, axis=1)
+        concat_values = concat_compat(
+            to_concat, axis=1, union_categories=union_categories
+        )
 
     return concat_values
 
@@ -409,7 +374,7 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in "mM":
-        return dtype.type("NaT")
+        return dtype.type("NaT", np.datetime_data(dtype)[0])
     elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
@@ -425,7 +390,9 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     raise NotImplementedError
 
 
-def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
+def _get_empty_dtype(
+    join_units: Sequence[JoinUnit], union_categories: bool = False
+) -> DtypeObj:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -442,6 +409,14 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
 
     dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
+
+    if union_categories and has_none_blocks and dtypes:
+        if all(isinstance(dt, CategoricalDtype) for dt in dtypes):
+            # GH#14177 give the all-NA filler for missing columns the unioned
+            #  categorical dtype so that concat_compat sees all-categorical
+            #  inputs and unions instead of falling back to the common dtype.
+            empties = [Categorical([], dtype=dt) for dt in dtypes]
+            return union_categories_compat(empties).dtype
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:

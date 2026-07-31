@@ -511,6 +511,11 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
+            Note: when the caller is an :class:`Index`, its *values* are used
+            as the index for alignment, so a ``Series`` or ``DataFrame`` in
+            `others` is aligned against those values rather than positionally.
+            An ``Index`` or ``np.ndarray`` in `others` has no index of its own
+            and is always used positionally.
 
         Returns
         -------
@@ -599,6 +604,19 @@ class StringMethods(NoNewAttributesMixin):
         4    -e
         2    -c
         dtype: str
+
+        When the caller is an :class:`Index`, alignment uses the values of that
+        ``Index``, so concatenating with a ``Series`` whose index is unrelated
+        gives missing values:
+
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]))
+        Index([nan, nan, nan], dtype='object')
+
+        Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
+
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]).to_numpy())
+        Index(['ax', 'by', 'cz'], dtype='str')
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
@@ -748,12 +766,12 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.split : Split strings around given separator/delimiter.
         Series.str.rsplit : Splits string around given separator/delimiter,
             starting from the right.
         Series.str.join : Join lists contained as elements in the Series/Index
             with passed delimiter.
-        str.split : Standard library version for split.
+        re.split : Standard library version for split with ``regex=True``.
+        str.split : Standard library version for split with ``regex=False``.
         str.rsplit : Standard library version for rsplit.
 
         Notes
@@ -762,11 +780,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Use of `regex =False` with a `pat` as a compiled regex will raise an error.
 
@@ -909,7 +932,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         pat : str, optional
-            String to split on.
+            String to split on. Does not support regex.
             If not specified, split on whitespace.
         n : int, default -1 (all)
             Limit number of splits in output.
@@ -927,12 +950,12 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.split : Split strings around given separator/delimiter.
-        Series.str.rsplit : Splits string around given separator/delimiter,
-            starting from the right.
+        Series.str.split : Split strings around given separator/delimiter or
+            regular expression.
         Series.str.join : Join lists contained as elements in the Series/Index
             with passed delimiter.
-        str.split : Standard library version for split.
+        re.split : Standard library version for split with ``regex=True``.
+        str.split : Standard library version for split with ``regex=False``.
         str.rsplit : Standard library version for rsplit.
 
         Notes
@@ -941,11 +964,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Examples
         --------

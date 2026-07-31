@@ -503,6 +503,9 @@ def test_replaced_css_class_names():
         uuid_len=0,
     ).set_table_styles(css_class_names=css)
     styler_mi.index.names = ["n1", "n2"]
+    # GH#42934: index and columns no longer alias when the same Index is passed
+    # to the DataFrame constructor, so set the column names explicitly.
+    styler_mi.columns.names = ["n1", "n2"]
     styler_mi.hide(styler_mi.index[1:], axis=0)
     styler_mi.hide(styler_mi.columns[1:], axis=1)
     styler_mi.map_index(lambda v: "color: red;", axis=0)
