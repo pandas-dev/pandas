@@ -431,7 +431,13 @@ class TestTimedeltaMultiplicationDivision:
         #  instead of raising the way a Python int does.
         td = Timedelta(2**62, unit="ns")
 
-        msg = "Python int too large to convert to C long"
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
         with pytest.raises(OverflowError, match=msg):
             op(td, dtype(4))
 
