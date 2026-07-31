@@ -1290,6 +1290,16 @@ class TestParquetPyArrow(Base):
         with pytest.raises(OSError, match=msg):
             df.to_parquet(path, engine=pa)
 
+    def test_read_parquet_with_self_destruct(self, pa, temp_file):
+        # GH#66509
+        df = pd.DataFrame({0: [0.25]})
+        check_round_trip(
+            df,
+            temp_file,
+            engine=pa,
+            read_kwargs={"to_pandas_kwargs": {"self_destruct": True}},
+        )
+
     def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
         # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
         # be routed through it because pyarrow cannot fetch them

@@ -202,6 +202,7 @@ def format_array_from_datetime(
         object res
         npy_datetimestruct dts
         Py_ssize_t pos
+        str timespec = "auto"
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -247,6 +248,19 @@ def format_array_from_datetime(
         elif format == "%Y-%m-%d":
             # Default format for dates
             basic_format_day = True
+
+    else:
+        # GH#62111: detect resolution for consistent formatting
+        if format is None:
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
+            if reso_obj == Resolution.RESO_NS:
+                timespec = "nanoseconds"
+            elif reso_obj == Resolution.RESO_US:
+                timespec = "microseconds"
+            elif reso_obj == Resolution.RESO_MS:
+                timespec = "milliseconds"
+            else:
+                timespec = "seconds"
 
     if format is not None and not basic_format and not basic_format_day:
         fmt_template = _convert_strftime_format(format)
@@ -297,8 +311,8 @@ def format_array_from_datetime(
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
-                # Use datetime.str, that returns ts.isoformat(sep=' ')
-                res = str(ts)
+                # GH#62111
+                res = ts.isoformat(sep=" ", timespec=timespec)
             else:
 
                 # invalid format string

@@ -48,10 +48,7 @@ Additionally, it is recommended to install and run pandas from a virtual environ
 .. code-block:: shell
 
     conda create -c conda-forge -n name_of_my_env python pandas
-    # On Linux or MacOS
-    source activate name_of_my_env
-    # On Windows
-    activate name_of_my_env
+    conda activate name_of_my_env
 
 .. tip::
     For users that are new to Python, the easiest way to install Python, pandas, and the

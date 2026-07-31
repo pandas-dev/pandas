@@ -104,6 +104,9 @@ def test_to_csv(cleared_fs, df1):
     tm.assert_frame_equal(df2, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 def test_to_excel(cleared_fs, df1):
     pytest.importorskip("openpyxl")
     ext = "xlsx"
@@ -162,6 +165,9 @@ def test_read_table_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 def test_excel_options(fsspectest):
     pytest.importorskip("openpyxl")
     extension = "xlsx"

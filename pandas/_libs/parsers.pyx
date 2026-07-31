@@ -2402,6 +2402,13 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                     break
 
                 iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+                if iresult[i] == NPY_NAT:
+                    # GH#66510 NA rows already `continue`d above, so this is a
+                    # real value that rendered onto the NaT sentinel and would be
+                    # indistinguishable from NA. Defer to the object path like
+                    # any other date this fastpath cannot represent.
+                    fallback = True
+                    break
     except OverflowError:
         return None, 0
 
@@ -2514,6 +2521,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         Py_ssize_t total_bytes = 0
         int64_t wlen, seg
+        c_int64_t token_idx = 0
         coliter_t it
         const char *word = NULL
         ndarray[int32_t, ndim=1] offsets32
@@ -2558,7 +2566,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         for i in range(lines):
-            word = coliter_next(&it)
+            word = coliter_next_with_idx(&it, &token_idx)
 
             if na_filter and kh_get_str_starts_item(na_hashset, word):
                 na_count += 1
@@ -2569,7 +2577,9 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                     offsets32_ptr[i + 1] = <int32_t>total_bytes
                 continue
 
-            wlen = strlen(word)
+            # _token_len, not strlen: an embedded NUL is a data byte here, so
+            # strlen would truncate the field at it (GH#66277).
+            wlen = _token_len(parser, token_idx)
 
             if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
                 overflow = True

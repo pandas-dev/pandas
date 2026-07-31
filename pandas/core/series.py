@@ -2514,6 +2514,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.duplicated : Related method on Series, indicating duplicate
             Series values.
         Series.unique : Return unique values as an array.
+        Index.duplicated : Indicate duplicate index values.
 
         Examples
         --------
@@ -2559,6 +2560,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1       cow
         3    beetle
         5     hippo
+        Name: animal, dtype: str
+
+        Only the values are considered, not the index. To drop entries with a
+        duplicate index label, use :meth:`Index.duplicated` with boolean
+        indexing.
+
+        >>> s.index = ["a", "b", "b", "c", "c", "d"]
+        >>> s[~s.index.duplicated(keep="first")]
+        a     llama
+        b       cow
+        c    beetle
+        d     hippo
         Name: animal, dtype: str
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -5700,12 +5713,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 for more details.
 
         level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level. The new labels are aligned against the
-            values of that single level while the other levels are left
-            unchanged; passing a flat index with ``level`` does not form the
-            Cartesian product of the remaining levels. See
-            :ref:`advanced.advanced_reindex` for the intended use.
+            Match index values on the specified level of a MultiIndex.
+            The MultiIndex may be on either the calling object or the
+            target index; using ``level`` when both are MultiIndexes is
+            ambiguous and raises a ``TypeError``. The new labels are
+            aligned against the values of that single level while the
+            other levels are left unchanged; passing a flat index with
+            ``level`` does not form the Cartesian product of the
+            remaining levels. See :ref:`advanced.advanced_reindex` for
+            the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
