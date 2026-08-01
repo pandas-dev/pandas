@@ -779,6 +779,18 @@ class TestAddSubNaTMasking:
         )
         tm.assert_index_equal(result, exp)
 
+    def test_tdi_add_overflow_nat_sentinel(self):
+        # GH#66552 result landing exactly on INT64_MIN (NaT sentinel)
+        #  must raise instead of silently returning NaT
+        tdi = pd.to_timedelta([Timedelta.min]).as_unit("ns")
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            tdi - Timedelta(1, "ns")
+
+        dti = pd.to_datetime([Timestamp.min]).as_unit("ns")
+        with pytest.raises(OverflowError, match=msg):
+            dti - Timedelta(1, "ns")
+
 
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
