@@ -25,6 +25,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include <optional>
+#include <string_view>
 #include <system_error>
 
 #include "fast_float/fast_float.h"
@@ -2324,54 +2326,56 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
 }
 
 /* Fast path for the common case: an optional sign followed by 1-18 digits
- * filling the whole [p_item, p_item+length) span. 18 digits cannot overflow
- * int64, and a pure-digit span can contain no spaces or trailing junk — and
- * no thousands separator either, except in the degenerate (but accepted)
- * case where tsep is itself a digit, which therefore disqualifies the fast
- * path. Digit validation and parsing use fast_float's 8-digits-at-a-time
- * helpers, which inline here and skip the leading-zero and overflow
- * bookkeeping that makes the general from_chars parse slower on short
- * tokens. Returns true and stores the value in *result on success; anything
- * else returns false so the caller falls through to the general path. */
-static inline bool swar_try_parse_int64(const char *p_item, int64_t length,
-                                        char tsep, int64_t *result) {
-  if (length < 1 || isdigit_ascii(tsep)) {
-    return false;
+ * filling the whole token. 18 digits cannot overflow int64, and a pure-digit
+ * span can contain no spaces or trailing junk — and no thousands separator
+ * either, except in the degenerate (but accepted) case where tsep is itself
+ * a digit, which therefore disqualifies the fast path. Digit validation and
+ * parsing use fast_float's 8-digits-at-a-time helpers, which inline here and
+ * skip the leading-zero and overflow bookkeeping that makes the general
+ * from_chars parse slower on short tokens. Returns nullopt on any
+ * disqualifier so the caller falls through to the general path. */
+static std::optional<int64_t> swar_try_parse_int64(std::string_view item,
+                                                   char tsep) {
+  if (item.empty() || isdigit_ascii(tsep)) {
+    return std::nullopt;
   }
-  const char *p_end = p_item + length;
-  const bool neg = *p_item == '-';
-  const char *digits = p_item + (neg || *p_item == '+');
-  size_t rem = (size_t)(p_end - digits);
-  if (rem < 1 || rem > 18) {
-    return false;
+  const bool neg = item.front() == '-';
+  if (neg || item.front() == '+') {
+    item.remove_prefix(1);
+  }
+  if (item.empty() || item.size() > 18) {
+    return std::nullopt;
   }
   uint64_t acc = 0;
-  while (rem >= 8) {
-    const uint64_t block = fast_float::read8_to_u64(digits);
+  while (item.size() >= 8) {
+    const uint64_t block = fast_float::read8_to_u64(item.data());
     if (!fast_float::is_made_of_eight_digits_fast(block)) {
-      return false;
+      return std::nullopt;
     }
     acc = acc * 100000000ULL + fast_float::parse_eight_digits_unrolled(block);
-    digits += 8;
-    rem -= 8;
+    item.remove_prefix(8);
   }
-  for (; rem > 0; rem--, digits++) {
-    const unsigned char digit = (unsigned char)(*digits - '0');
+  for (const char chr : item) {
+    const unsigned char digit = static_cast<unsigned char>(chr - '0');
     if (digit > 9) {
-      return false;
+      return std::nullopt;
     }
     acc = acc * 10 + digit;
   }
-  *result = neg ? -(int64_t)acc : (int64_t)acc;
-  return true;
+  const auto magnitude = static_cast<int64_t>(acc);
+  return neg ? -magnitude : magnitude;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
-  int64_t swar_result;
-  if (swar_try_parse_int64(p_item, length, tsep, &swar_result)) {
-    *error = 0;
-    return swar_result;
+  // length < 0 means "not precomputed" (the general path strlens below); the
+  // fast path needs a known span.
+  if (length > 0) {
+    const std::string_view item{p_item, static_cast<size_t>(length)};
+    if (const auto parsed = swar_try_parse_int64(item, tsep)) {
+      *error = 0;
+      return *parsed;
+    }
   }
 
   const char *p = p_item;
