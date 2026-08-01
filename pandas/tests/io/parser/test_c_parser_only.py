@@ -872,16 +872,63 @@ def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
     assert expected["a"][0] == "x\x00y"
 
 
-@pytest.mark.parametrize("dtype", [object, "category", None])
-def test_embedded_nul_distinct_values(c_parser_only, dtype):
-    # GH#19886: the object path interned fields in a hash table keyed on the
+@pytest.mark.parametrize("dtype", [object, "str", "string", "category", None])
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (b'a\n"x\x00y"\n"x\x00z"\n"x"\n', ["x\x00y", "x\x00z", "x"]),
+        (b'a\n"x\x00y"\n"x\x00z"\n"x\x00w"\n', ["x\x00y", "x\x00z", "x\x00w"]),
+    ],
+)
+def test_embedded_nul_distinct_values(c_parser_only, dtype, data, expected):
+    # GH#66525: the object path interned fields in a hash table keyed on the
     # NUL-terminated word, so two fields differing only past an embedded NUL
-    # were silently boxed to the same value.
+    # were silently boxed to the same value.  The second fixture is all
+    # equal-length, so distinguishing it needs a comparison that reads past
+    # the NUL rather than just a key-length check.
     parser = c_parser_only
-    data = b'a\n"x\x00y"\n"x\x00z"\n"x"\n'
 
     result = parser.read_csv(BytesIO(data), dtype=dtype, keep_default_na=False)
-    assert list(result["a"]) == ["x\x00y", "x\x00z", "x"]
+    assert list(result["a"]) == expected
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b'a\n"q\x00\xff"\n',
+        b'a\n"q\xff"\n',
+        # two *distinct* undecodable fields: the table dedupes on raw bytes, so
+        # these stay separate keys but decode to one label
+        b'a\n"q\xff"\n"q\xfe"\n',
+        b'a\n"q\xff"\n"q\xfe"\n"z"\n"q\xff"\n',
+    ],
+)
+@pytest.mark.parametrize("encoding_errors", ["replace", "ignore"])
+def test_categorical_honors_encoding_errors(c_parser_only, data, encoding_errors):
+    # GH#66525: _categorical_convert decoded its category labels with strict
+    # errors regardless of encoding_errors, so an undecodable byte raised where
+    # dtype=object honored the argument.  Two keys that decode to the same label
+    # must merge, or the Categorical is built with duplicate categories.
+    parser = c_parser_only
+    kwargs = {"keep_default_na": False, "encoding_errors": encoding_errors}
+
+    result = parser.read_csv(BytesIO(data), dtype="category", **kwargs)
+    expected = parser.read_csv(BytesIO(data), dtype=object, **kwargs)
+    assert list(result["a"]) == list(expected["a"])
+
+
+def test_categorical_encoding_errors_merge_with_na(c_parser_only):
+    # GH#66525: a merged column that also contains NA exercises the sentinel
+    # guard in the code remap -- a -1 code must not be looked up in the map.
+    parser = c_parser_only
+    data = b'a,b\n"q\xff",1\n,2\n"q\xfe",3\n"z",4\n'
+
+    result = parser.read_csv(
+        BytesIO(data), dtype={"a": "category"}, encoding_errors="replace"
+    )["a"]
+
+    assert list(result.cat.categories) == ["q�", "z"]
+    assert list(result.cat.codes) == [0, -1, 0, 1]
 
 
 @pytest.mark.parametrize("value", [b"NA\x00x", b"nan\x00junk", b"null\x00z"])

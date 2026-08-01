@@ -1119,8 +1119,8 @@ def all_arithmetic_functions(request):
 
     Notes
     -----
-    This includes divmod and rdivmod, whereas all_arithmetic_operators
-    does not.
+    This does not include divmod and rdivmod, which return a tuple and so
+    cannot be used interchangeably with the other operators.
     """
     return request.param
 

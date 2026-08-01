@@ -76,8 +76,6 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     bint kh_exist_pyset(kh_pyset_t*, khiter_t)
 
-    ctypedef char* kh_cstr_t
-
     # Borrowed (pointer, length) pair; see khash_python.h. Keying on an
     # explicit length is what keeps values with embedded NUL bytes distinct.
     ctypedef struct kh_strview_t:

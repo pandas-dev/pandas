@@ -386,9 +386,9 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 // the first NUL byte, so distinct values that share a NUL-terminated prefix
 // collapse into a single entry. Python strings, CSV fields and Arrow string
 // buffers can all contain embedded NULs, which made that silently return wrong
-// results (GH#34551, GH#19886). Keying on an explicit (pointer, length) pair
-// fixes it, and additionally lets a key point at a slice of a larger buffer
-// without copying or NUL-terminating it.
+// results (GH#34551, GH#66525, GH#19886). Keying on an explicit (pointer,
+// length) pair fixes it, and additionally lets a key point at a slice of a
+// larger buffer without copying or NUL-terminating it.
 //
 // The pointed-to bytes are borrowed, exactly as for kh_cstr_t: the caller must
 // keep them alive for as long as the entry is in the table.
@@ -430,10 +430,6 @@ static inline int kh_strview_hash_equal(kh_strview_t a, kh_strview_t b) {
   return 1;
 }
 
-#define KHASH_SET_INIT_STRVIEW(name)                                           \
-  KHASH_INIT(name, kh_strview_t, char, 0, kh_strview_hash_func,                \
-             kh_strview_hash_equal)
-
 #define KHASH_MAP_INIT_STRVIEW(name, khval_t)                                  \
   KHASH_INIT(name, kh_strview_t, khval_t, 1, kh_strview_hash_func,             \
              kh_strview_hash_equal)
@@ -456,6 +452,11 @@ static inline p_kh_str_starts_t kh_init_str_starts(void) {
   return result;
 }
 
+// The length is a parameter rather than a strlen here: kh_get_str_starts_item
+// runs per token per column on the read_csv hot path, and deriving it with
+// strlen measured 4-21% on every csvbench core case. Every caller already
+// knows the exact length -- read_csv from _token_len, the na_values entries
+// from PyBytes_AsStringAndSize.
 static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
                                               const char *key, size_t len,
                                               int *ret) {
