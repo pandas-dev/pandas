@@ -414,7 +414,7 @@ Strings
 
 Interval
 ^^^^^^^^
-- Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors only validating the ``left`` endpoint's dtype, so a ``right`` endpoint that overflowed ``int64`` (and therefore had object dtype) was silently accepted, producing an array whose ``dtype.subtype`` disagreed with ``right.dtype`` (:issue:`66518`)
+- Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors allowing unsupported ``object`` dtype on the right endpoint, causing ``dtype.subtype`` to disagree with ``right.dtype`` (:issue:`66518`)
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
 

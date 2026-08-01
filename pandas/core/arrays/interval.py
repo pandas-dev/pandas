@@ -324,14 +324,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if (
             isinstance(left.dtype, CategoricalDtype)
             or is_string_dtype(left.dtype)
-            or isinstance(right.dtype, CategoricalDtype)
             or is_string_dtype(right.dtype)
         ):
-            # GH 19016, GH 66518: check both sides so that e.g. a value that
-            # overflows int64 on the right (producing an object-dtype right
-            # side) is rejected consistently with the same overflow on the
-            # left, instead of silently producing an IntervalArray whose
-            # advertised dtype.subtype disagrees with right.dtype.
+            # GH 19016, GH 66518: reject unsupported right-side dtypes too.
             msg = (
                 "category, object, and string subtypes are not supported "
                 "for IntervalArray"
