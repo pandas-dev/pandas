@@ -693,6 +693,14 @@ cdef class _Timestamp(ABCTimestamp):
             # Timedelta
             try:
                 res_value = self._value - other._value
+                if res_value == NPY_NAT:
+                    # GH#66552 int64 can hold this difference, but the value is
+                    #  the NaT sentinel, so it is not representable as a
+                    #  Timedelta. Raise like the neighbouring difference one
+                    #  step further out of bounds does.
+                    raise OutOfBoundsTimedelta(
+                        "Result is not representable as a pandas.Timedelta."
+                    )
                 return Timedelta._from_value_and_reso(res_value, self._creso)
             except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if both_timestamps:
