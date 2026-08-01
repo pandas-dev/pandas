@@ -198,3 +198,35 @@ reflect that it's a development version with a reference to the latest Git hash 
 
 
 Additionally, you can try :ref:`running the test suite <contributing.running_tests>`.
+
+.. _contributing.cross_compiling:
+
+Cross-compiling
+---------------
+
+pandas can be built for a platform other than the one you are building on -- for
+example, building for a 32-bit ARM device from an x86-64 host. Meson drives
+cross-compilation through a `cross file <https://mesonbuild.com/Cross-compilation.html>`_
+that describes the target machine and its toolchain, which you pass through to
+the build with ``-Csetup-args``:
+
+.. code-block:: bash
+
+   python -m pip install --verbose --editable . --no-build-isolation \
+       -Csetup-args="--cross-file=aarch64.txt"
+
+By default the build locates the NumPy headers by importing NumPy on the build
+machine. When cross-compiling this either fails, because the target's NumPy
+cannot be imported on the build host, or bakes in the integer widths of the
+build machine instead of the target. To avoid this, point the build at the
+target's NumPy headers -- the directory reported by ``numpy.get_include()`` in
+the target environment -- through the ``numpy-include-dir`` property in the
+``[properties]`` section of your cross file:
+
+.. code-block:: ini
+
+   [properties]
+   numpy-include-dir = '/path/to/target/numpy/include'
+
+This is the same property name SciPy reads, so a cross file that already builds
+SciPy needs no changes for pandas.
