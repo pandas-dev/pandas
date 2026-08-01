@@ -434,7 +434,11 @@ def test_internal_null_byte(c_parser_only):
 
     names = ["a", "b", "c"]
     data = "1,2,3\n4,\x00,6\n7,8,9"
-    expected = DataFrame([[1, 2.0, 3], [4, np.nan, 6], [7, 8, 9]], columns=names)
+    # GH#19886 the NUL field is a one-character value, not an na_value, so the
+    # column stays a string column rather than becoming float-with-NaN.
+    expected = DataFrame(
+        {"a": [1, 4, 7], "b": ["2", "\x00", "8"], "c": [3, 6, 9]}, columns=names
+    )
 
     result = parser.read_csv(StringIO(data), names=names)
     tm.assert_frame_equal(result, expected)
@@ -925,3 +929,73 @@ def test_categorical_encoding_errors_merge_with_na(c_parser_only):
 
     assert list(result.cat.categories) == ["q�", "z"]
     assert list(result.cat.codes) == [0, -1, 0, 1]
+
+
+@pytest.mark.parametrize("value", [b"NA\x00x", b"nan\x00junk", b"null\x00z"])
+def test_default_na_value_prefix_is_not_na(c_parser_only, value):
+    # GH#19886: a field was compared against na_values only up to its first
+    # NUL, so a value merely *starting* with a default na_value -- needing no
+    # custom na_values at all -- was read as NaN.
+    parser = c_parser_only
+    data = b'a\n"' + value + b'"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"][0] == value.decode()
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+@pytest.mark.parametrize("value", [b"\x00y", b"\x00\x00\x00", b"\x00", b"\x00 "])
+def test_leading_nul_is_not_na(c_parser_only, value):
+    # GH#19886: the na_values lookup compared the NUL-terminated word, so a
+    # field starting with a NUL byte matched the empty string -- a default
+    # na_value -- and was read as NaN.
+    parser = c_parser_only
+    data = b'a\n"' + value + b'"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    assert result["a"][0] == value.decode()
+    tm.assert_frame_equal(result, parser.read_csv(BytesIO(data), na_filter=False))
+    tm.assert_frame_equal(result, read_csv(BytesIO(data), engine="python"))
+
+
+def test_na_values_with_embedded_nul(c_parser_only):
+    # GH#19886: an na_value containing a NUL was itself truncated when added to
+    # the hashset, so it matched any field sharing its pre-NUL prefix.
+    parser = c_parser_only
+    data = b'a\n"x\x00y"\n"x\x00z"\n"x"\n'
+
+    result = parser.read_csv(BytesIO(data), na_values=["x\x00y"], keep_default_na=False)
+    assert result["a"].isna().tolist() == [True, False, False]
+    assert result["a"][1] == "x\x00z"
+    assert result["a"][2] == "x"
+
+
+def test_true_false_values_with_embedded_nul(c_parser_only):
+    # GH#19886: a true_values/false_values entry containing a NUL was truncated
+    # when added to the hashset, so it also matched a field equal to just the
+    # prefix before that NUL. The field here must be prefix-only to be
+    # load-bearing -- an exactly-matching field behaves the same either way.
+    parser = c_parser_only
+
+    result = parser.read_csv(
+        BytesIO(b"a\ny\nno\n"), true_values=["y\x00es"], false_values=["no"]
+    )
+    assert result["a"].tolist() == ["y", "no"]
+
+    matched = parser.read_csv(
+        BytesIO(b'a\n"y\x00es"\nno\n'), true_values=["y\x00es"], false_values=["no"]
+    )
+    assert matched["a"].tolist() == [True, False]
+
+
+def test_na_values_leading_nul(c_parser_only):
+    # GH#19886: exercises the first-byte prefilter for keys under '\x00' --
+    # a leading-NUL na_value must not swallow the empty field or a different
+    # leading-NUL value.
+    parser = c_parser_only
+    data = b'a\n"\x00y"\n"\x00z"\n""\n'
+
+    result = parser.read_csv(BytesIO(data), na_values=["\x00y"], keep_default_na=False)
+    assert result["a"].isna().tolist() == [True, False, False]
+    assert result["a"][1] == "\x00z"
+    assert result["a"][2] == ""
