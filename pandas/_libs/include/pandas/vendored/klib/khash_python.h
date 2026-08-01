@@ -380,10 +380,75 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pymap(h, k) (kh_exist(h, k))
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 
-KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
+// Length-aware string key.
+//
+// A bare `const char *` key (klib's kh_cstr_t) hashes and compares only up to
+// the first NUL byte, so distinct values that share a NUL-terminated prefix
+// collapse into a single entry. Python strings, CSV fields and Arrow string
+// buffers can all contain embedded NULs, which made that silently return wrong
+// results (GH#34551, GH#66525). Keying on an explicit (pointer, length) pair
+// fixes it, and additionally lets a key point at a slice of a larger buffer
+// without copying or NUL-terminating it.
+//
+// The pointed-to bytes are borrowed, exactly as for kh_cstr_t: the caller must
+// keep them alive for as long as the entry is in the table.
+typedef struct {
+  const char *ptr;
+  size_t len;
+} kh_strview_t;
+
+static inline kh_strview_t kh_strview(const char *ptr, size_t len) {
+  kh_strview_t result;
+  result.ptr = ptr;
+  result.len = len;
+  return result;
+}
+
+// X31 over exactly `len` bytes. Bit-identical to __ac_X31_hash_string for
+// NUL-free input, so bucket distribution -- and hence performance -- is
+// unchanged for the data that used to work.
+static inline khuint_t kh_strview_hash_func(kh_strview_t key) {
+  khuint_t h = 0;
+  if (key.len) {
+    h = (khuint_t)key.ptr[0];
+    for (size_t i = 1; i < key.len; ++i)
+      h = (h << 5) - h + (khuint_t)key.ptr[i];
+  }
+  return h;
+}
+
+// The length check alone settles most probes, and the byte loop is deliberate:
+// memcmp with a runtime length does not inline, and one libc call per token
+// costs ~9% on a bool column, where a hashset lookup hits on nearly every
+// token and there is little other per-token work to absorb it.
+static inline int kh_strview_hash_equal(kh_strview_t a, kh_strview_t b) {
+  if (a.len != b.len)
+    return 0;
+  for (size_t i = 0; i < a.len; ++i)
+    if (a.ptr[i] != b.ptr[i])
+      return 0;
+  return 1;
+}
+
+#define KHASH_MAP_INIT_STRVIEW(name, khval_t)                                  \
+  KHASH_INIT(name, kh_strview_t, khval_t, 1, kh_strview_hash_func,             \
+             kh_strview_hash_equal)
+
+KHASH_MAP_INIT_STRVIEW(str, size_t)
+KHASH_MAP_INIT_STRVIEW(strbox, kh_pyobject_t)
+
+// NUL-terminated keys for kh_str_starts_t only. The na/true/false-values
+// tables still hash and compare up to the first NUL -- the pre-existing
+// behavior. Giving them a length-aware key is what fixes GH#19886, and is
+// deliberately left to a follow-up because it changes user-visible NA
+// semantics (and hence dtype inference). Do not "fix" it here by deriving the
+// length with strlen: kh_get_str_starts_item runs per token per column on the
+// read_csv hot path, and that strlen alone measured 4-21% on every csvbench
+// core case.
+KHASH_MAP_INIT_STR(strz, size_t)
 
 typedef struct {
-  kh_str_t *table;
+  kh_strz_t *table;
   int starts[256];
 } kh_str_starts_t;
 
@@ -392,13 +457,13 @@ typedef kh_str_starts_t *p_kh_str_starts_t;
 static inline p_kh_str_starts_t kh_init_str_starts(void) {
   kh_str_starts_t *result =
       (kh_str_starts_t *)KHASH_CALLOC(1, sizeof(kh_str_starts_t));
-  result->table = kh_init_str();
+  result->table = kh_init_strz();
   return result;
 }
 
-static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
-                                              int *ret) {
-  khuint_t result = kh_put_str(table->table, key, ret);
+static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
+                                              const char *key, int *ret) {
+  khuint_t result = kh_put_strz(table->table, key, ret);
   if (*ret != 0) {
     table->starts[(unsigned char)key[0]] = 1;
   }
@@ -409,19 +474,19 @@ static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
                                               const char *key) {
   unsigned char ch = *key;
   if (table->starts[ch]) {
-    if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets)
+    if (ch == '\0' || kh_get_strz(table->table, key) != table->table->n_buckets)
       return 1;
   }
   return 0;
 }
 
 static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
-  kh_destroy_str(table->table);
+  kh_destroy_strz(table->table);
   KHASH_FREE(table);
 }
 
 static inline void kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
-  kh_resize_str(table->table, val);
+  kh_resize_strz(table->table, val);
 }
 
 // utility function: given the number of elements
