@@ -2558,6 +2558,40 @@ def test_sum_timedelta64_all_nat_skipna_false(axis):
     assert result.isna().all()
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_exact(axis):
+    # GH#66551: the sum used to accumulate in float64, whose 53-bit mantissa
+    #  silently rounded results above 2**53
+    arr = np.array([2**53 + 1, 0], dtype="m8[ns]")
+    df = DataFrame({"a": arr, "b": arr[::-1]})
+
+    result = df.sum(axis=axis)
+    expected = Series(
+        np.array([2**53 + 1] * 2, dtype="m8[ns]"), index=df.axes[1 - axis]
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_overflow_only_in_exempt_slice(axis):
+    # GH#66551: the check applies per reduced slice, and a slice that reduces to
+    #  NaT under skipna=False is exempt even though its entries overflow
+    df = DataFrame(
+        {
+            "a": [pd.Timedelta(1, "ns"), pd.Timedelta(2, "ns")],
+            "b": [pd.Timedelta.max, pd.NaT],
+        }
+    )
+    if axis == 1:
+        df = df.T
+
+    result = df.sum(axis=axis, skipna=False)
+    expected = Series(
+        [pd.Timedelta(3, "ns"), pd.NaT], index=df.axes[1 - axis], dtype="m8[ns]"
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
