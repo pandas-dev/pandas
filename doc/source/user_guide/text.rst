@@ -830,7 +830,7 @@ represented and behave as ``pd.NA``.
 
    pd.Series(
        ["a", "b", None, np.nan, pd.NA],
-       dtype=pd.StringDtype(storage="python", na_value=pd.NA)
+       dtype=pd.StringDtype(storage="pyarrow", na_value=pd.NA)
    )
 
 Notice that the last three values are all inferred by pandas as being NA
