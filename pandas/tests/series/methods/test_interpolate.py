@@ -545,20 +545,31 @@ class TestSeriesInterpolateData:
         res2 = ser.interpolate(method="index", limit_distance=7.0)
         assert np.isnan(res2.iloc[1])  # 8.0 > 7.0 -> Stays NaN
 
-    @pytest.mark.parametrize("limit_dist", [0, -5.0])
+    @pytest.mark.parametrize("limit_dist", [0, -5.0, np.nan])
     def test_interpolate_limit_distance_invalid_threshold(self, limit_dist):
         ser = Series([1.0, np.nan, 2.0])
         msg = "limit_distance must be greater than 0"
         with pytest.raises(ValueError, match=msg):
             ser.interpolate(method="index", limit_distance=limit_dist)
 
-    @pytest.mark.parametrize("limit_dist", [0, -5.0])
+    @pytest.mark.parametrize("limit_dist", [0, -5.0, np.nan])
     def test_interpolate_limit_distance_empty_series_raises(self, limit_dist):
         # Ensure empty Series validates limit_distance consistently with non-empty
         ser = Series([], dtype=float)
         msg = "limit_distance must be greater than 0"
         with pytest.raises(ValueError, match=msg):
             ser.interpolate(method="index", limit_distance=limit_dist)
+
+    @pytest.mark.parametrize(
+        "limit_dist", ["0s", "-5s", pd.Timedelta(seconds=-5), pd.Timedelta(0)]
+    )
+    def test_interpolate_limit_distance_empty_temporal_raises(self, limit_dist):
+        # Ensure empty temporal Series rejects invalid duration strings/Timedeltas
+        msg = "limit_distance must be greater than 0"
+        for idx in [pd.DatetimeIndex([]), pd.TimedeltaIndex([])]:
+            ser = Series([], index=idx, dtype=float)
+            with pytest.raises(ValueError, match=msg):
+                ser.interpolate(method="time", limit_distance=limit_dist)
 
     def test_interpolate_limit_distance_type_mismatch_raises(self):
         # 1. Passing time string/Timedelta to a non-temporal index
@@ -618,12 +629,14 @@ class TestSeriesInterpolateData:
                 "2026-01-01 00:00:15",  # Gap 2: 11 seconds
             ]
         )
-        ser = Series([10.0, np.nan, 20.0, np.nan, 30.0], index=times)
+        tds = pd.to_timedelta([0, 2, 4, 14, 15], unit="s")
 
-        result = ser.interpolate(method="time", limit_distance=limit_dist)
+        for idx in [times, tds]:
+            ser = Series([10.0, np.nan, 20.0, np.nan, 30.0], index=idx)
+            result = ser.interpolate(method="time", limit_distance=limit_dist)
 
-        assert not np.isnan(result.iloc[1])  # Gap 4s <= 5s -> Filled
-        assert np.isnan(result.iloc[3])  # Gap 11s > 5s -> Stays NaN
+            assert not np.isnan(result.iloc[1])  # Gap 4s <= 5s -> Filled
+            assert np.isnan(result.iloc[3])  # Gap 11s > 5s -> Stays NaN
 
     def test_interpolate_limit_distance_consecutive_nans(self):
         # Gap 1 (index 0 to 3, distance = 3.0 <= 4.0): Both NaNs should be filled

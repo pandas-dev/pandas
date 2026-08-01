@@ -1176,6 +1176,45 @@ def _interp_limit(
     return np.intersect1d(f_idx, b_idx, assume_unique=assume_unique)
 
 
+def validate_limit_distance(
+    limit_distance: float | int | str | Timedelta,
+    unit: str | None = None,
+) -> None:
+    """
+    Validate that limit_distance is positive, non-NA, and matches the index type.
+    """
+    is_temporal = unit is not None
+    is_td_or_str = isinstance(limit_distance, (str, Timedelta))
+
+    if not is_temporal and is_td_or_str:
+        raise ValueError(
+            "Cannot use a time duration string or Timedelta limit_distance "
+            "with a non-temporal index."
+        )
+    if is_temporal and not is_td_or_str:
+        raise ValueError(
+            "Cannot use a numeric limit_distance with a temporal index; "
+            "pass a Timedelta or time duration string instead."
+        )
+
+    is_invalid_na = isna(limit_distance)
+    is_invalid_numeric = (
+        isinstance(limit_distance, (int, float, np.number))
+        and not is_invalid_na
+        and limit_distance <= 0
+    )
+
+    is_invalid_timedelta = False
+    if is_td_or_str and not is_invalid_na:
+        from pandas.core.tools.timedeltas import to_timedelta
+
+        td = to_timedelta(limit_distance)
+        is_invalid_timedelta = isna(td) or td <= Timedelta(0)
+
+    if is_invalid_na or is_invalid_numeric or is_invalid_timedelta:
+        raise ValueError("limit_distance must be greater than 0")
+
+
 def _interp_limit_distance(
     indices: np.ndarray,
     invalid: npt.NDArray[np.bool_],
@@ -1206,19 +1245,7 @@ def _interp_limit_distance(
         1D array of integer positions corresponding to invalid values that
         should be preserved as NaN (excluded from interpolation).
     """
-    is_temporal = unit is not None
-    is_td_or_str = isinstance(limit_distance, (str, Timedelta))
-
-    if not is_temporal and is_td_or_str:
-        raise ValueError(
-            "Cannot use a time duration string or Timedelta limit_distance "
-            "with a non-temporal index."
-        )
-    if is_temporal and not is_td_or_str:
-        raise ValueError(
-            "Cannot use a numeric limit_distance with a temporal index; "
-            "pass a Timedelta or time duration string instead."
-        )
+    validate_limit_distance(limit_distance, unit=unit)
 
     # Normalize and validate limit_distance
     if isinstance(limit_distance, (str, Timedelta)):

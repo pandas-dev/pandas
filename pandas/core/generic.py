@@ -8243,17 +8243,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if limit_distance is not None:
-            is_invalid_numeric = (
-                isinstance(limit_distance, (int, float))
-                and limit_distance <= 0
+            target_index = self._get_axis(axis)
+            unit = getattr(target_index, "unit", None) or getattr(
+                target_index.dtype, "unit", None
             )
-            is_invalid_timedelta = (
-                isinstance(limit_distance, Timedelta)
-                and limit_distance <= Timedelta(0)
-            )
-
-            if is_invalid_numeric or is_invalid_timedelta:
-                raise ValueError("limit_distance must be greater than 0")
+            missing.validate_limit_distance(limit_distance, unit=unit)
 
         if self.empty:
             return self if inplace else self.copy()
