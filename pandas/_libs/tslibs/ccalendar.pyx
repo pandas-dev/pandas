@@ -76,8 +76,8 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) noexcept nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef long quot(long a , long b) noexcept nogil:
-    cdef long x
+cdef int64_t quot(int64_t a , int64_t b) noexcept nogil:
+    cdef int64_t x
     x = a/b
     if (a < 0):
         x -= (a % b != 0)
@@ -87,7 +87,7 @@ cdef long quot(long a , long b) noexcept nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef int dayofweek(int y, int m, int d) noexcept nogil:
+cdef int dayofweek(int64_t y, int m, int d) noexcept nogil:
     """
     Find the day of week for the date described by the Y/M/D triple y, m, d
     using Gauss' method, from wikipedia.
@@ -96,7 +96,7 @@ cdef int dayofweek(int y, int m, int d) noexcept nogil:
 
     Parameters
     ----------
-    y : int
+    y : int64_t
     m : int
     d : int
 
@@ -118,8 +118,8 @@ cdef int dayofweek(int y, int m, int d) noexcept nogil:
     # Note: this particular implementation comes from
     # http://berndt-schwerdtfeger.de/wp-content/uploads/pdf/cal.pdf
     cdef:
-        long c
-        int g
+        int64_t c
+        int64_t g
         int f
         int e
 
