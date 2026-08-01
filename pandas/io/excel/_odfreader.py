@@ -132,10 +132,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
 
             for sheet_cell in sheet_row.childNodes:
                 if hasattr(sheet_cell, "qname") and sheet_cell.qname in cell_names:
-                    if sheet_cell.qname == table_cell_name:
-                        value = self._get_cell_value(sheet_cell)
-                    else:
-                        value = self.empty_value
+                    value = self._get_cell_value(sheet_cell)
 
                     column_repeat = self._get_column_repeat(sheet_cell)
 
