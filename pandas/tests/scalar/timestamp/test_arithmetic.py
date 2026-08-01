@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
+    iNaT,
     offsets,
     to_offset,
 )
@@ -82,6 +83,26 @@ class TestTimestampArithmetic:
 
         # but we're OK for timestamp and datetime.datetime
         assert (a - b.to_pydatetime()) == (a.to_pydatetime() - b)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_sub_lands_on_nat_sentinel_raises(self, unit):
+        # GH#66552 the difference fits in int64 but equals iNaT, which cannot be
+        #  stored as a Timedelta; previously this tripped a bare assert, and with
+        #  `python -O` produced a Timedelta whose _value was iNaT
+        left = Timestamp(np.datetime64(iNaT + 1, unit))
+        right = Timestamp(np.datetime64(1, unit))
+        assert left._value - right._value == iNaT
+
+        msg = "Result is too large"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            left - right
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            left.to_datetime64() - right
+
+        # the neighbor one step further out already raised
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            left - Timestamp(np.datetime64(2, unit))
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
