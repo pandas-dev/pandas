@@ -1185,6 +1185,11 @@ def test_match_compiled_regex(any_string_dtype):
     expected = Series([True, True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
+    # GH#66138
+    result = values.str.match(re.compile("ab", flags=re.MULTILINE))
+    expected = Series([True, False, True, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
     msg = (
         "Cannot both specify 'flags' and pass a compiled "
         "regexp object with conflicting flags"
