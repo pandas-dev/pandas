@@ -447,9 +447,23 @@ timedelta-like}
                     result[i] = new_local - delta
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
+                    if delta_idx == info.ntrans:
+                        # new_local is past the last cached transition, so the
+                        #  offsets below would index deltas (length ntrans) out
+                        #  of bounds. The bisect compared a *local* time against
+                        #  info.tdata, which holds *UTC* instants, so the last
+                        #  delta can put us back before its own transition;
+                        #  walk back to the last one that does not.
+                        delta_idx = info.ntrans - 1
+                        while (
+                            delta_idx > 0
+                            and new_local - info.deltas[delta_idx]
+                            < info.tdata[delta_idx]
+                        ):
+                            delta_idx -= 1
                     # Logic similar to the precompute section. But check the current
                     # delta in case we are moving between UTC+0 and non-zero timezone
-                    if (
+                    elif (
                         (shift_forward or shift_delta > 0)
                         and info.deltas[delta_idx - 1] >= 0
                     ):
