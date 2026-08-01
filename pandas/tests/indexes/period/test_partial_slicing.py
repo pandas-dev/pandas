@@ -190,3 +190,22 @@ class TestPeriodIndex:
 
         result = ser["May 2015"]
         tm.assert_series_equal(result, expected)
+
+
+def test_periodindex_quarterly_string_no_deprecation_warning():
+    # GH#50907 PeriodIndex is the recommended replacement for quarterly-string
+    # parsing, so none of its paths may emit the deprecation warning
+    with tm.assert_produces_warning(None):
+        pidx = PeriodIndex(["2000Q1", "2000Q2", "2000Q3", "2000Q4"], freq="Q")
+
+    ser = Series(np.arange(len(pidx)), index=pidx)
+    with tm.assert_produces_warning(None):
+        result = ser["2000Q1"]
+    assert result == 0
+
+    with tm.assert_produces_warning(None):
+        result = ser.loc["2000Q1":"2000Q3"]
+    tm.assert_series_equal(result, ser.iloc[:3])
+
+    with tm.assert_produces_warning(None):
+        pidx.slice_locs("2000Q1", "2000Q3")

@@ -1885,3 +1885,19 @@ def test_get_level_values_integer_names():
     msg = r"Too many levels: Index has only 1 level"
     with pytest.raises(IndexError, match=msg):
         idx_5.get_level_values(1)
+
+
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_slice_locs_quarterly_string_bounds_no_deprecation_warning(dtype):
+    # GH#50907 slice_locs parses str bounds internally to compare UTC offsets;
+    # on a non-datetime Index nothing is being parsed as a datetime, so a
+    # quarterly-looking label must not trigger the deprecation
+    idx = Index(["2000Q1", "2000Q2", "2000Q3"], dtype=dtype)
+    ser = Series(np.arange(len(idx)), index=idx)
+
+    with tm.assert_produces_warning(None):
+        result = ser.loc["2000Q1":"2000Q2"]
+    tm.assert_series_equal(result, ser.iloc[:2])
+
+    with tm.assert_produces_warning(None):
+        assert idx.slice_locs("2000Q1", "2000Q2") == (0, 2)

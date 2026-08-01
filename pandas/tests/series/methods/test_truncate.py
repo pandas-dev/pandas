@@ -2,6 +2,8 @@ from datetime import datetime
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Series,
@@ -65,3 +67,28 @@ class TestTruncate:
         truncated = obj.truncate("2021-06-28", "2021-07-01")
 
         tm.assert_series_equal(truncated, obj)
+
+
+@pytest.mark.parametrize("freq", ["Q-DEC", "Q-FEB"])
+def test_truncate_periodindex_quarterly_string_no_deprecation_warning(freq):
+    # GH#50907 truncate parses its bounds with to_datetime internally; on a
+    # PeriodIndex the user is slicing by Period, so that must not warn
+    pi = pd.period_range("2000Q1", periods=12, freq=freq)
+    ser = Series(range(len(pi)), index=pi)
+
+    with tm.assert_produces_warning(None):
+        result = ser.truncate("2001Q1", "2001Q3")
+    assert len(result) == 3
+
+
+def test_truncate_datetimeindex_quarterly_string_still_warns():
+    # GH#50907 on a DatetimeIndex the user did write a quarterly string, so the
+    # suppression above must not reach this case
+    dti = date_range("2001-01-01", periods=500, freq="D")
+    ser = Series(range(len(dti)), index=dti)
+
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result = ser.truncate("2001Q1", "2001Q3")
+    assert len(result) == 182

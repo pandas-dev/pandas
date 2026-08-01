@@ -439,16 +439,7 @@ def parse_datetime_string_with_reso(
             reso = "quarter"
             if warn_quarter:
                 # GH#50907
-                from pandas.errors import Pandas4Warning
-
-                warnings.warn(
-                    f"Parsing '{date_string}' as a quarterly string is "
-                    f"deprecated and will be removed in a future version. "
-                    f"Use pd.Period('{date_string}') or "
-                    f"pd.PeriodIndex with to_timestamp() instead.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+                warn_quarter_deprecated(date_string, freq)
         else:
             reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
@@ -660,6 +651,35 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
         month = (quarter - 1) * 3 + 1
 
     return year, month
+
+
+cdef void warn_quarter_deprecated(str date_string, str freq):
+    """
+    Warn that parsing `date_string` as a quarterly string is deprecated.
+
+    `freq` picks the quarter anchor (see quarter_to_myear), so an anchor other
+    than December has to be spelled out in the suggested replacement, which
+    would otherwise resolve to a different timestamp.
+    """
+    cdef:
+        str rule_month, period_call
+
+    from pandas.errors import Pandas4Warning
+
+    rule_month = get_rule_month(freq) if freq is not None else "DEC"
+    if rule_month == "DEC":
+        period_call = f"pd.Period('{date_string}')"
+    else:
+        period_call = f"pd.Period('{date_string}', freq='Q-{rule_month}')"
+
+    warnings.warn(
+        f"Parsing '{date_string}' as a quarterly string is deprecated "
+        f"and will be removed in a future version. Use "
+        f"{period_call}.to_timestamp(), or a PeriodIndex for indexing, "
+        f"instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
 
 
 cdef datetime dateutil_parse(

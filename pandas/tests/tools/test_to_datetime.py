@@ -4535,3 +4535,67 @@ def test_to_datetime_offset_shifts_off_nat_sentinel(format):
     )
     assert result.asi8[0] == -(2**63) + 3600 * 10**9
     assert result[0] == Timestamp("1677-09-21 01:12:43.145224192", tz="UTC")
+
+
+@pytest.mark.parametrize("box", [list, np.array, Index, Series])
+def test_to_datetime_quarterly_string_warns_once(box):
+    # GH#50907 the deprecation is emitted once per call, not once per element
+    values = box([f"{2000 + i % 50}Q{1 + i % 4}" for i in range(200)])
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="quarterly string is deprecated",
+        raise_on_extra_warnings=False,
+    ) as record:
+        to_datetime(values)
+
+    quarter_warnings = [
+        rec for rec in record if "quarterly string is deprecated" in str(rec.message)
+    ]
+    assert len(quarter_warnings) == 1
+
+
+def test_datetime_index_quarterly_string_warns_once():
+    # GH#50907
+    values = [f"{2000 + i % 50}Q{1 + i % 4}" for i in range(200)]
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        DatetimeIndex(values)
+
+    quarter_warnings = [
+        rec for rec in record if "quarterly string is deprecated" in str(rec.message)
+    ]
+    assert len(quarter_warnings) == 1
+
+
+def test_to_datetime_quarterly_string_warns_once_tzaware():
+    # GH#50907 the tz-aware array path goes through array_to_datetime_with_tz
+    values = [f"{2000 + i % 50}Q{1 + i % 4}" for i in range(200)]
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="quarterly string is deprecated",
+        raise_on_extra_warnings=False,
+    ) as record:
+        DatetimeIndex(values, tz="US/Pacific")
+
+    quarter_warnings = [
+        rec for rec in record if "quarterly string is deprecated" in str(rec.message)
+    ]
+    assert len(quarter_warnings) == 1
+
+
+def test_to_datetime_quarterly_string_warns_once_mixed_resolution():
+    # GH#50907 mismatched resolutions re-parse the whole array; the deprecation
+    # must not be emitted again on the second pass
+    values = ["2014Q2", "2015-01-01 00:00:00.000000001"]
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="quarterly string is deprecated",
+        raise_on_extra_warnings=False,
+    ) as record:
+        to_datetime(values, cache=False)
+
+    quarter_warnings = [
+        rec for rec in record if "quarterly string is deprecated" in str(rec.message)
+    ]
+    assert len(quarter_warnings) == 1

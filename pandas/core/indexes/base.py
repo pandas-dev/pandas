@@ -7335,12 +7335,25 @@ class Index(IndexOpsMixin, PandasObject):
         # attempt to parse and check that the offsets are the same
         if isinstance(start, (str, datetime)) and isinstance(end, (str, datetime)):
             try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Parsing.*quarterly string",
-                        Pandas4Warning,
-                    )
+                if (isinstance(start, str) and ("Q" in start or "q" in start)) or (
+                    isinstance(end, str) and ("Q" in end or "q" in end)
+                ):
+                    # GH#50907: this parse is internal, so it must not emit the
+                    # quarterly-string deprecation. For a DatetimeIndex that
+                    # would duplicate the one get_slice_bound gives; for a
+                    # PeriodIndex or an object Index it would be spurious, as
+                    # neither parses the bound as a datetime at all.
+                    # catch_warnings costs ~8% of this method, so only pay it
+                    # for a bound that could be quarterly.
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            "Parsing.*quarterly string",
+                            Pandas4Warning,
+                        )
+                        ts_start = Timestamp(start)
+                        ts_end = Timestamp(end)
+                else:
                     ts_start = Timestamp(start)
                     ts_end = Timestamp(end)
             except (ValueError, TypeError):

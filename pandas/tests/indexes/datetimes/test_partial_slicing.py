@@ -552,3 +552,21 @@ def test_string_slice_vs_datetime_slice_consistency():
     dt_slice = data.loc["2013-01-01 00:00:01.000" : datetime(2013, 1, 1, 0, 0, 2)]
 
     tm.assert_frame_equal(str_slice, dt_slice)
+
+
+def test_datetimeindex_quarterly_slice_still_warns():
+    # GH#50907 slice_locs suppresses the warning for its own internal parse of
+    # the bounds; the user-facing warning from get_slice_bound must survive
+    dti = date_range("2001-01-01", periods=500, freq="D")
+    ser = Series(np.arange(len(dti)), index=dti)
+
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result = ser.loc["2001Q1":"2001Q3"]
+    assert len(result) == 273
+
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        assert dti.slice_locs("2001Q1", "2001Q3") == (0, 273)
