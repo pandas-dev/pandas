@@ -1533,11 +1533,8 @@ def test_to_parquet_uuid_supported(temp_file):
     # GH 61602
     expected = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
 
-    # Write to parquet
     expected.to_parquet(temp_file, engine="pyarrow")
 
-    # Verify it can be read back
     result = read_parquet(temp_file, engine="pyarrow")
 
-    # Strictly assert the frames are equal
     tm.assert_frame_equal(result, expected)
