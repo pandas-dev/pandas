@@ -11,7 +11,7 @@ state so PRs already in the right state cost no write request.
 
 from __future__ import annotations
 
-import os
+import argparse
 from typing import (
     TYPE_CHECKING,
     Protocol,
@@ -58,8 +58,11 @@ def reconcile_all(client: SupportsLabelReconcile) -> None:
             client.remove_label(pr["number"], label)
 
 
-def main() -> None:
-    reconcile_all(GitHubClient(os.environ["GITHUB_REPOSITORY"]))
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", required=True, help="owner/name to operate on")
+    args = parser.parse_args(argv)
+    reconcile_all(GitHubClient(args.repo))
 
 
 if __name__ == "__main__":

@@ -1,28 +1,30 @@
 """Daily issue/PR maintenance, plus the PR stale engine.
 
-Two triggers:
+Two commands:
 
-* ``schedule`` — (1) sweep open assigned issues and unassign any non-maintainer
-  assignees that are inactive (no open linked PR by an assignee, no assignee
-  comment or fresh assignment within ``STALE_ASSIGNEE_DAYS``); (2) run the PR
-  stale engine (``run_pr_stale_sweep``) that replaces ``actions/stale``: whether
-  a PR is stale is decided purely by the **author's own** activity, the
+* ``sweep`` (the ``schedule`` trigger) — (1) sweep open assigned issues and
+  unassign any non-maintainer assignees that are inactive (no open linked PR by
+  an assignee, no assignee comment or fresh assignment within
+  ``STALE_ASSIGNEE_DAYS``); (2) run the PR stale engine
+  (``run_pr_stale_sweep``) that replaces ``actions/stale``: whether a PR is
+  stale is decided purely by the **author's own** activity, the
   warning-to-close countdown by the engine's own ``Stale`` label event, with
   owners/members/collaborators exempt.
-* ``pull_request_target`` ``closed`` — when a *human* closes a ``Stale``-labeled
-  PR, free its linked issues. (Auto-closes from the engine free issues inline,
-  since a ``GITHUB_TOKEN`` close doesn't re-trigger this event.)
+* ``pr-closed`` (the ``pull_request_target`` ``closed`` trigger) — when a
+  *human* closes a ``Stale``-labeled PR, free its linked issues. (Auto-closes
+  from the engine free issues inline, since a ``GITHUB_TOKEN`` close doesn't
+  re-trigger this event.)
 """
 
 from __future__ import annotations
 
+import argparse
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 import json
-import os
 from typing import Any
 
 from scripts.issue_assignment import (
@@ -43,7 +45,7 @@ def free_linked_issues(client: GitHubClient, number: int, author: str | None) ->
 
 
 def run_sweep(client: GitHubClient) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     window = timedelta(days=core.STALE_ASSIGNEE_DAYS)
     for number in client.list_open_assigned_issue_numbers():
         activity = client.issue_activity(number)
@@ -130,7 +132,7 @@ def _stale_clock_anchor(
 
 def run_pr_stale_sweep(client: GitHubClient) -> None:
     """Mark/clear ``Stale`` and auto-close open PRs based on author inactivity."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for pr in client.iter_open_pull_requests_review_state():
         contributors = {pr["author"]} - {None}
         changes_requested_at = core.outstanding_changes_requested_at(pr["reviews"])
@@ -183,14 +185,23 @@ def run_pr_closed(client: GitHubClient, event: dict[str, Any]) -> None:
     free_linked_issues(client, pr["number"], pr["user"]["login"])
 
 
-def main() -> None:
-    repo = os.environ["GITHUB_REPOSITORY"]
-    client = GitHubClient(repo)
-    if os.environ.get("GITHUB_EVENT_NAME") == "schedule":
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=["sweep", "pr-closed"])
+    parser.add_argument("--repo", required=True, help="owner/name to operate on")
+    parser.add_argument(
+        "--event-path", help="path to the event payload (pr-closed only)"
+    )
+    args = parser.parse_args(argv)
+    if args.command == "pr-closed" and args.event_path is None:
+        parser.error("pr-closed requires --event-path")
+
+    client = GitHubClient(args.repo)
+    if args.command == "sweep":
         run_sweep(client)
         run_pr_stale_sweep(client)
         return
-    with open(os.environ["GITHUB_EVENT_PATH"]) as fh:
+    with open(args.event_path) as fh:
         event = json.load(fh)
     run_pr_closed(client, event)
 

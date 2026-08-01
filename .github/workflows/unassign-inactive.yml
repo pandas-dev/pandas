@@ -24,12 +24,24 @@ jobs:
         with:
           sparse-checkout: scripts
           persist-credentials: false
-      - name: Unassign inactive issues, free closed PRs, and sweep stale PRs
-        run: python3 -m scripts.issue_assignment.unassign_inactive
+      - name: Unassign inactive issues and sweep stale PRs
+        if: github.event_name == 'schedule'
+        run: >-
+          python3 -m scripts.issue_assignment.unassign_inactive sweep
+          --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Reconcile Awaiting Review labels
         if: github.event_name == 'schedule'
-        run: python3 -m scripts.issue_assignment.label_awaiting_review
+        run: >-
+          python3 -m scripts.issue_assignment.label_awaiting_review
+          --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Free issues linked to a closed stale PR
+        if: github.event_name != 'schedule'
+        run: >-
+          python3 -m scripts.issue_assignment.unassign_inactive pr-closed
+          --repo "$GITHUB_REPOSITORY" --event-path "$GITHUB_EVENT_PATH"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

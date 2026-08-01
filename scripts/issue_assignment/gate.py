@@ -5,8 +5,8 @@ Triggered by ``pull_request_target`` on ``opened`` / ``reopened``.
 
 from __future__ import annotations
 
+import argparse
 import json
-import os
 import time
 
 from scripts.issue_assignment import (
@@ -16,11 +16,21 @@ from scripts.issue_assignment import (
 from scripts.issue_assignment.client import GitHubClient
 
 
-def main() -> None:
-    with open(os.environ["GITHUB_EVENT_PATH"]) as fh:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", required=True, help="owner/name to operate on")
+    parser.add_argument(
+        "--event-path", required=True, help="path to the pull_request event payload"
+    )
+    parser.add_argument(
+        "--close-enabled",
+        action="store_true",
+        help="close flagged pull requests instead of only warning",
+    )
+    args = parser.parse_args(argv)
+
+    with open(args.event_path) as fh:
         event = json.load(fh)
-    repo = os.environ["GITHUB_REPOSITORY"]
-    close_enabled = os.environ.get("CLOSE_ENABLED", "false").lower() == "true"
 
     pr = event["pull_request"]
     number = pr["number"]
@@ -28,7 +38,7 @@ def main() -> None:
     author_is_bot = pr["user"].get("type") == "Bot"
     label_present = core.GATE_LABEL in [label["name"] for label in pr.get("labels", [])]
 
-    client = GitHubClient(repo)
+    client = GitHubClient(args.repo)
     # GitHub resolves closing keywords into linked issues asynchronously after
     # a PR is created, so an immediate read can come back empty; poll briefly
     # before concluding the PR really has no linked issue.
@@ -42,7 +52,7 @@ def main() -> None:
     decision = core.gate_decision(
         author, pr.get("author_association"), author_is_bot, linked_issues
     )
-    action = core.gate_action(decision, label_present, close_enabled)
+    action = core.gate_action(decision, label_present, args.close_enabled)
 
     if action == "none":
         return
