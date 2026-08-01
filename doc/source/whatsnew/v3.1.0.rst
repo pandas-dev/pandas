@@ -365,6 +365,7 @@ Datetimelike
 - Bug in :meth:`Series.dt.isocalendar` with a pyarrow-backed datetime or date dtype not preserving the original index, resetting it to a default :class:`RangeIndex` (:issue:`65894`)
 - Bug in adding a :class:`DateOffset` with a ``milliseconds`` component to a :class:`Timestamp` returning a microsecond-resolution result, inconsistent with the millisecond-resolution result of the equivalent :class:`DatetimeIndex` and :class:`Series` operations (:issue:`64806`)
 - Bug in adding non-nano :class:`DatetimeIndex` with non-vectorized offsets (e.g. :class:`CustomBusinessDay`, :class:`CustomBusinessMonthEnd`) having a sub-unit ``offset`` parameter incorrectly truncating the result or raising ``AttributeError`` (:issue:`56586`)
+- Bug in adding or subtracting a ``timedelta64`` NumPy array and a timezone-naive :class:`Timestamp` where the promotion to the finer of the two resolutions, or the addition itself, silently wrapped to an unrelated date instead of raising :class:`OutOfBoundsDatetime`, unlike the timezone-aware and scalar equivalents (:issue:`66552`)
 - Bug in subtracting :class:`BusinessHour` (or :class:`CustomBusinessHour`) from a :class:`Timestamp` giving incorrect results when the subtraction would land exactly on the business-hour opening time (:issue:`33682`)
 
 Timedelta

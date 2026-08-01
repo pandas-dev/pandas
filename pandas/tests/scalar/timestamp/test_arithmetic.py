@@ -257,6 +257,59 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
+    @pytest.mark.parametrize("subtract", [False, True])
+    def test_addsub_m8ndarray_overflow_in_cast(self, subtract):
+        # GH#66552 the promotion to the finer of the two units used to wrap
+        ts = Timestamp("2500-01-01").as_unit("s")
+        other = np.array([1], dtype="m8[ns]")
+
+        msg = "Cannot cast 2500-01-01 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts - other if subtract else ts + other
+
+        # the coarser operand is the one cast when the Timestamp is finer
+        ts = Timestamp("2000-01-01").as_unit("ns")
+        other = np.array([2**62], dtype="m8[s]")
+
+        msg = "Cannot convert 4611686018427387904 seconds to timedelta64"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            ts - other if subtract else ts + other
+
+    @pytest.mark.parametrize("subtract", [False, True])
+    def test_addsub_m8ndarray_overflow(self, subtract):
+        # GH#66552 the addition itself used to wrap
+        ts = Timestamp("2000-01-01").as_unit("ns")
+        other = np.array([9 * 10**18], dtype="m8[ns]")
+        if subtract:
+            other = -other
+
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts - other if subtract else ts + other
+
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    def test_addsub_m8ndarray_byteswapped(self, unit):
+        # GH#66552 the overflow check reads the values as int64
+        ts = Timestamp("2000-01-01").as_unit("s")
+        other = np.array([1], dtype=f">m8[{unit}]")
+
+        expected = ts.as_unit(unit).asm8 + np.array([1], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(ts + other, expected)
+
+        expected = ts.as_unit(unit).asm8 - np.array([1], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(ts - other, expected)
+
+    def test_addsub_m8ndarray_nat_operand(self):
+        # GH#66552 a NaT operand still propagates rather than raising
+        ts = Timestamp("2000-01-01").as_unit("s")
+        other = np.array([np.timedelta64("NaT", "s"), np.timedelta64(1, "s")])
+
+        expected = np.array(["NaT", "2000-01-01 00:00:01"], dtype="M8[s]")
+        tm.assert_numpy_array_equal(ts + other, expected)
+
+        expected = np.array(["NaT", "1999-12-31 23:59:59"], dtype="M8[s]")
+        tm.assert_numpy_array_equal(ts - other, expected)
+
     @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray_tzaware(self, shape):
         # GH#33296
