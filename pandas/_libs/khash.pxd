@@ -76,8 +76,6 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     bint kh_exist_pyset(kh_pyset_t*, khiter_t)
 
-    ctypedef char* kh_cstr_t
-
     # Borrowed (pointer, length) pair; see khash_python.h. Keying on an
     # explicit length is what keeps values with embedded NUL bytes distinct.
     ctypedef struct kh_strview_t:
@@ -102,10 +100,15 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     bint kh_exist_str(kh_str_t*, khiter_t) nogil
 
+    # NUL-terminated keys, deliberately: the na/true/false-values tables keep
+    # the pre-existing truncate-at-first-NUL semantics until a follow-up
+    # changes them (GH#19886); see khash_python.h.
+    ctypedef struct kh_strz_t:
+        khuint_t n_buckets, size, n_occupied, upper_bound
+
     ctypedef struct kh_str_starts_t:
-        kh_str_t *table
+        kh_strz_t *table
         int starts[256]
-        int has_empty
 
     kh_str_starts_t* kh_init_str_starts() nogil
     khuint_t kh_put_str_starts_item(kh_str_starts_t* table, const char* key,

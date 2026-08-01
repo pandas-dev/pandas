@@ -1329,7 +1329,8 @@ cdef class TextReader:
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
-                self.parser, i, start, end, na_filter, na_hashset)
+                self.parser, i, start, end, na_filter, na_hashset,
+                self.encoding_errors)
 
             # Method accepts list of strings, not encoded ones.
             true_values = [x.decode() for x in self.true_values]
@@ -2679,7 +2680,8 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
 @cython.boundscheck(False)
 cdef _categorical_convert(parser_t *parser, int64_t col,
                           int64_t line_start, int64_t line_end,
-                          bint na_filter, kh_str_starts_t *na_hashset):
+                          bint na_filter, kh_str_starts_t *na_hashset,
+                          const char *encoding_errors):
     "Convert column data into codes, categories"
     cdef:
         int na_count = 0
@@ -2697,6 +2699,11 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         kh_str_t *table
         kh_strview_t key
         khiter_t k
+
+        dict seen
+        int64_t[::1] remap_view
+        ndarray[object] result
+        Py_ssize_t n_cats
 
     lines = line_end - line_start
     codes = np.empty(lines, dtype=np.int64)
@@ -2729,13 +2736,36 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
             codes[i] = table.vals[k]
 
     # parse and box categories to python strings
-    result = np.empty(table.n_occupied, dtype=np.object_)
+    n_cats = table.n_occupied
+    result = np.empty(n_cats, dtype=np.object_)
     for k in range(table.n_buckets):
         if kh_exist_str(table, k):
             result[table.vals[k]] = PyUnicode_DecodeUTF8(
-                table.keys[k].ptr, table.keys[k].len, NULL)
+                table.keys[k].ptr, table.keys[k].len, encoding_errors)
 
     kh_destroy_str(table)
+
+    # The table dedupes on raw bytes, but a lossy encoding_errors can decode two
+    # distinct keys to the same label (b"q\xff" and b"q\xfe" both -> "q�").
+    # Merge those codes; leaving them split would build a Categorical with
+    # duplicate categories, which raises.  Strict UTF-8 decoding is injective, so
+    # the default path can never collide and must not pay for this scan.
+    if encoding_errors != b"strict":
+        seen = {}
+        remap = np.empty(n_cats, dtype=np.int64)
+        remap_view = remap
+        for i in range(n_cats):
+            remap_view[i] = seen.setdefault(result[i], len(seen))
+
+        if len(seen) != n_cats:
+            merged = np.empty(len(seen), dtype=np.object_)
+            for label, code in seen.items():
+                merged[code] = label
+            result = merged
+            for i in range(lines):
+                if codes[i] != NA:
+                    codes[i] = remap_view[codes[i]]
+
     return np.asarray(codes), result, na_count
 
 

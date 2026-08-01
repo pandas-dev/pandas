@@ -167,8 +167,11 @@ def test_unique_embedded_null(index_or_series, uvals):
     tm.assert_numpy_array_equal(codes, expected)
     assert list(uniques) == uvals
 
+    ser = pd.Series(arr, dtype=object)
+    assert ser.nunique() == len(uvals)
+
     # groupby factorizes through the same table
-    grouped = pd.DataFrame({"key": pd.Series(arr, dtype=object)}).groupby("key")
+    grouped = pd.DataFrame({"key": ser}).groupby("key")
     assert grouped.ngroups == len(uvals)
 
 
