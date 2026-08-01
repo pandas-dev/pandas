@@ -231,13 +231,11 @@ class SelectionMixin(Generic[NDFrameT]):
             if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
-
             return self._gotitem(list(key), ndim=2)
 
         else:
             if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
-
             ndim = self.obj[key].ndim
             return self._gotitem(key, ndim=ndim)
 

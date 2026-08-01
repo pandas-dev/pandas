@@ -204,9 +204,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return object.__getattribute__(self, attr)
 
-    def __getitem__(self, key):
-        return super().__getitem__(key)
-
     @final
     @property
     def _from_selection(self) -> bool:
