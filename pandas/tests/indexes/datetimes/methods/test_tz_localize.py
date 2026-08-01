@@ -10,6 +10,8 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 from pandas import (
     DatetimeIndex,
     Timestamp,
@@ -30,6 +32,18 @@ def tz(request):
 
 
 class TestTZLocalize:
+    def test_tz_localize_shift_onto_nat_sentinel(self, unit):
+        # GH#66550 Asia/Tokyo's pre-1888 LMT offset is +9:18:59, so this wall
+        #  time shifts to exactly the NaT sentinel.  _get_utc_bounds handed that
+        #  value to bisect_right_i8, which requires val >= tdata[0] (one above
+        #  the sentinel), so the following deltas lookup read out of bounds and
+        #  the result was misreported as a nonexistent time.
+        lmt = np.timedelta64(9 * 3600 + 18 * 60 + 59, "s")
+        lmt_offset = int(lmt // np.timedelta64(1, unit))
+        dti = DatetimeIndex([np.datetime64(-(2**63) + lmt_offset, unit)])
+        with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+            dti.tz_localize("Asia/Tokyo")
+
     def test_tz_localize_invalidates_freq(self):
         # we only preserve freq in unambiguous cases
 
