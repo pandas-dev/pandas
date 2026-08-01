@@ -2868,16 +2868,16 @@ cdef int _probe_int64(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
-        if na_filter and kh_get_str_starts_item(
-            na_hashset, word, <size_t>_token_len(parser, token_idx)
-        ):
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             continue
-        str_to_int64(word, _token_len(parser, token_idx),
-                     &error, parser.thousands)
+        str_to_int64(word, word_len, &error, parser.thousands)
         return error
     return 0
 
@@ -2893,16 +2893,17 @@ cdef int _probe_double(parser_t *parser, int64_t col,
         const char *word = NULL
         const char *word_end = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         char *p_end
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
-        if na_filter and kh_get_str_starts_item(
-            na_hashset, word, <size_t>_token_len(parser, token_idx)
-        ):
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             continue
-        word_end = word + _token_len(parser, token_idx)
+        word_end = word + word_len
         parser.double_converter(word, &p_end, parser.decimal,
                                 parser.sci, parser.thousands,
                                 1, &error, NULL, word_end)
