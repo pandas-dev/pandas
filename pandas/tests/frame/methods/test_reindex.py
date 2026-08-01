@@ -1042,6 +1042,18 @@ class TestDataFrameSelectReindex:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_reindex_multi_promotes_dtype_for_missing_columns(self):
+        # GH#58517 reindexing both axes at once takes the take_2d_multi
+        #  fastpath; a missing column must promote the result dtype so that
+        #  the fill value fits, even when every row label is present
+        df = DataFrame(np.arange(6).reshape(2, 3), index=[0, 1], columns=[0, 1, 2])
+
+        result = df.reindex(index=[1, 0], columns=[0, 1, 5])
+        expected = DataFrame(
+            {0: [3.0, 0.0], 1: [4.0, 1.0], 5: [np.nan, np.nan]}, index=[1, 0]
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_multi_categorical_time(self):
         # https://github.com/pandas-dev/pandas/issues/21390
         midx = MultiIndex.from_product(
