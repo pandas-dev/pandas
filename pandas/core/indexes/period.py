@@ -589,13 +589,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         .. deprecated:: 3.1.0
             ``PeriodIndex.is_full`` is deprecated and will be removed in
             a future version. Use
-            ``len(index.unique()) ==
+            ``index.empty or len(index.unique()) ==
             len(period_range(index.min(), index.max(), freq=index.freq))``
-            instead (an empty index is trivially full).
+            instead. Unlike ``is_full``, this does not raise on a
+            non-monotonic index.
         """
         warnings.warn(
             "PeriodIndex.is_full is deprecated and will be removed in a "
-            "future version. Use len(index.unique()) == "
+            "future version. Use index.empty or len(index.unique()) == "
             "len(period_range(index.min(), index.max(), freq=index.freq)) "
             "instead.",
             Pandas4Warning,
