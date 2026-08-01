@@ -1555,7 +1555,9 @@ def test_groupby_sum_timedelta_overflow():
     # groups that stay in range are unaffected
     ser = Series([pd.Timedelta.max, pd.Timedelta("1D"), pd.Timedelta("2D")])
     res = ser.groupby([0, 1, 1]).sum()
-    expected = Series([pd.Timedelta.max, pd.Timedelta("3D")], index=pd.Index([0, 1]))
+    expected = Series(
+        [pd.Timedelta.max, pd.Timedelta("3D")], index=pd.Index([0, 1], dtype=np.intp)
+    )
     tm.assert_series_equal(res, expected)
 
 
@@ -1571,7 +1573,9 @@ def test_groupby_sum_timedelta_overflow_sentinel():
     for order in ([mx, mn, mx], [mx, mx, mn], [mn, mx, mx]):
         res = Series(order).groupby([0, 0, 0]).sum()
         tm.assert_series_equal(
-            res, Series([mx + mn + mx], index=pd.Index([0])), check_dtype=False
+            res,
+            Series([mx + mn + mx], index=pd.Index([0], dtype=np.intp)),
+            check_dtype=False,
         )
 
 
@@ -1581,11 +1585,15 @@ def test_groupby_sum_timedelta_overflow_na_result():
     ser = Series([pd.Timedelta.max, pd.Timedelta.max])
 
     res = ser.groupby([0, 0]).sum(min_count=3)
-    tm.assert_series_equal(res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0])))
+    tm.assert_series_equal(
+        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+    )
 
     ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.NaT])
     res = ser.groupby([0, 0, 0]).sum(skipna=False)
-    tm.assert_series_equal(res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0])))
+    tm.assert_series_equal(
+        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+    )
 
 
 def test_groupby_sum_int64_still_wraps():
@@ -1593,7 +1601,7 @@ def test_groupby_sum_int64_still_wraps():
     #  wrapping like NumPy
     ser = Series([2**62] * 4)
     res = ser.groupby([0] * 4).sum()
-    tm.assert_series_equal(res, Series([0], index=pd.Index([0])))
+    tm.assert_series_equal(res, Series([0], index=pd.Index([0], dtype=np.intp)))
 
 
 @pytest.mark.parametrize(
