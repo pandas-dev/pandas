@@ -820,7 +820,9 @@ cdef class Parser:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef void process_byte_array_with_data(self, Py_ssize_t offset, Py_ssize_t length) except *:
+    cdef void process_byte_array_with_data(
+        self, Py_ssize_t offset, Py_ssize_t length
+    ) except *:
 
         cdef:
             Py_ssize_t j
