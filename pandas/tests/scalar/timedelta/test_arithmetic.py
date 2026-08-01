@@ -1288,3 +1288,29 @@ def test_ops_str_deprecated(box):
             item // td
         with pytest.raises(TypeError, match=floordiv_msg):
             td // item
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("factor", [-(2**63), float(-(2**63))])
+def test_td_mul_lands_on_nat_sentinel(unit, factor):
+    # GH#66551 the result is iNaT, which is not NaT but is indistinguishable
+    #  from it once stored, so it has to raise rather than be constructed.
+    #  The guard used to be a bare `assert`, which `python -O` strips.
+    td = Timedelta(1, unit).as_unit(unit)
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("op", [operator.mul, operator.truediv])
+def test_td_float_op_rounds_onto_nat_sentinel(op):
+    # GH#66551 Timedelta.min is iNaT + 1, which float64 rounds down onto iNaT
+    msg = f"Out of bounds nanosecond timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        op(Timedelta.min, 1.0)

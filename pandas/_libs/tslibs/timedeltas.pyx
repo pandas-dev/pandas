@@ -54,6 +54,7 @@ from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
     periods_per_second,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -1198,7 +1199,14 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
-    assert value != NPY_NAT
+    if value == NPY_NAT:
+        # NPY_NAT is INT64_MIN, so a computed value that lands on it is not NaT
+        #  but is indistinguishable from it: `isna` is False while the object
+        #  round-trips through a timedelta64 array as NaT. (GH#66551)
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds {npy_unit_to_attrname[reso]} timedelta: {value}"
+        )
+
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
