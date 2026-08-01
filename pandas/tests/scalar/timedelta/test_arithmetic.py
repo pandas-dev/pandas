@@ -359,6 +359,25 @@ class TestTimedeltaAdditionSubtraction:
         assert isinstance(result, Timedelta)
         assert result == 0 * td
 
+    def test_td_add_sub_landing_on_nat_sentinel_raises(self):
+        # GH-66552
+        # Operations whose result lands exactly on the NaT sentinel (int64
+        #  min) are indistinguishable from NaT once stored, so they raise
+        #  instead of silently returning NaT or wrapping.
+        td_min = Timedelta.min
+        td_max = Timedelta.max
+        td_ns1 = Timedelta(1, "ns")
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            td_min - td_ns1
+        with pytest.raises(OverflowError, match="int too big to convert"):
+            td_max + td_ns1
+
+        # one unit away from the sentinel is still representable
+        assert td_min + td_ns1 == Timedelta(Timedelta.min._value + 1, "ns")
+        assert td_max - td_ns1 == Timedelta(Timedelta.max._value - 1, "ns")
+
 
 class TestTimedeltaMultiplicationDivision:
     """
@@ -371,6 +390,29 @@ class TestTimedeltaMultiplicationDivision:
         __mod__, __rmod__,
         __divmod__, __rdivmod__
     """
+
+    def test_td_mul_div_landing_on_nat_sentinel_raises(self):
+        # GH-66552
+        # Operations whose result lands exactly on the NaT sentinel (int64
+        #  min) are indistinguishable from NaT once stored, so they raise
+        #  instead of silently returning NaT or wrapping.
+        msg = "int too big to convert"
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.min * 2
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.max * 2
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.max / 0.5
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.max // 0.5
+
+        # vectorized multiplication also raises rather than wrapping
+        msg = "Overflow in int64 multiplication"
+        other = np.array([2], dtype="i8")
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.min * other
+        with pytest.raises(OverflowError, match=msg):
+            other * Timedelta.min
 
     # ---------------------------------------------------------------
     # Timedelta.__mul__, __rmul__

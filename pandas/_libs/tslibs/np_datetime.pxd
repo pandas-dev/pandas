@@ -135,5 +135,9 @@ cdef int64_t convert_reso(
     bint round_ok,
 ) except? -1
 
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left,
+    cnp.ndarray right,
+    bint raise_on_sentinel=*,
+)
 cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right)

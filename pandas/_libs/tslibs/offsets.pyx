@@ -65,6 +65,7 @@ from pandas._libs.tslibs.dtypes cimport (
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
     c_PERIOD_TO_OFFSET_FREQSTR,
+    npy_unit_to_abbrev,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -73,6 +74,8 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    add_overflowsafe,
+    astype_overflowsafe,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -95,6 +98,51 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
+
+
+cdef extern from "pandas/portable.h":
+    int checked_add(int64_t a, int64_t b, int64_t *res) nogil
+
+
+cdef ndarray _add_timedelta_overflowsafe(
+    ndarray dtarr, int64_t delta_i8, NPY_DATETIMEUNIT delta_reso
+):
+    """
+    Add a fixed timedelta to a datetime64 ndarray in an overflow-safe way,
+    matching numpy's promotion to the finer resolution unit.
+
+    A result landing exactly on the NaT sentinel (INT64_MIN) is
+    indistinguishable from a missing value, so we raise OverflowError for it
+    (GH-66552).
+    """
+    cdef:
+        NPY_DATETIMEUNIT arr_reso = get_unit_from_dtype(dtarr.dtype)
+        object unit_name = npy_unit_to_abbrev(arr_reso)
+        int64_t arr_ppd, delta_ppd
+        object rescaled
+
+    if delta_reso > arr_reso:
+        # numpy would promote dtarr up to the finer unit, which can silently
+        #  wrap and land on the sentinel; raise instead
+        unit_name = npy_unit_to_abbrev(delta_reso)
+        dtarr = astype_overflowsafe(dtarr, np.dtype(f"M8[{unit_name}]"))
+    elif delta_reso < arr_reso:
+        # numpy converts the timedelta up to the array's unit (exact).  Do the
+        #  rescale with Python ints so the intermediate product cannot wrap
+        #  past int64 (GH-66552).
+        arr_ppd = periods_per_day(arr_reso)
+        delta_ppd = periods_per_day(delta_reso)
+        rescaled = (<object>delta_i8) * arr_ppd // delta_ppd
+        if rescaled < -2 ** 63 or rescaled > 2 ** 63 - 1:
+            raise OverflowError("Overflow in int64 addition")
+        delta_i8 = rescaled
+
+    return add_overflowsafe(
+        dtarr.view("i8"),
+        np.broadcast_to(
+            np.array([delta_i8], dtype="i8"), (<object>dtarr).shape
+        ),
+    ).view(np.dtype(f"M8[{unit_name}]"))
 
 # ---------------------------------------------------------------------
 # day_opt enum: avoids repeated string comparisons in nogil loops
@@ -1559,7 +1607,12 @@ cdef class Day(SingleConstructorOffset):
         return other + np.timedelta64(self._n, "D")
 
     def _apply_array(self, dtarr):
-        return dtarr + np.timedelta64(self._n, "D")
+        # We cannot simply defer to numpy here, which silently wraps on
+        #  overflow and treats a result landing on the NaT sentinel as NaT
+        #  (GH-66552).
+        return _add_timedelta_overflowsafe(
+            dtarr, self._n, NPY_DATETIMEUNIT.NPY_FR_D
+        )
 
     @cache_readonly
     def freqstr(self) -> str:
@@ -2068,7 +2121,14 @@ cdef class RelativeDeltaOffset(BaseOffset):
         if months:
             shifted = shift_months(dt64other.view("i8"), months, reso=reso)
             dt64other = shifted.view(dtarr.dtype)
-        return dt64other + delta
+        # We cannot simply defer to numpy here, which silently wraps on
+        #  overflow and treats a result landing on the NaT sentinel as NaT
+        #  (GH-66552).
+        return _add_timedelta_overflowsafe(
+            dt64other,
+            (<_Timedelta>delta)._value,
+            (<_Timedelta>delta)._creso,
+        )
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -2677,10 +2737,11 @@ cdef class BusinessDay(BusinessMixin):
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
-            int64_t val, res_val
+            int64_t val, res_val, delta
             int wday, days, weeks
             npy_datetimestruct dts
             int64_t DAY_PERIODS = periods_per_day(reso)
+            bint overflowed = False
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
 
         weeks = periods // 5
@@ -2697,12 +2758,24 @@ cdef class BusinessDay(BusinessMixin):
                     wday = dayofweek(dts.year, dts.month, dts.day)
 
                     days = self._adjust_ndays(wday, weeks)
-                    res_val = val + (7 * weeks + days) * DAY_PERIODS
+                    delta = (7 * <int64_t>weeks + days) * DAY_PERIODS
+                    if checked_add(val, delta, &res_val):
+                        # overflow in the shift itself (GH-66552)
+                        overflowed = True
+                        res_val = NPY_NAT
+                    elif res_val == NPY_NAT:
+                        # a shift of exactly int64.min is representable, but
+                        #  would be misinterpreted as NaT (GH-66552)
+                        overflowed = True
+                        res_val = NPY_NAT
 
                 # Analogous to: out[i] = res_val
                 (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
                 cnp.PyArray_MultiIter_NEXT(mi)
+
+        if overflowed:
+            raise OverflowError("Overflow in int64 addition")
 
         return result
 
@@ -2737,7 +2810,13 @@ cdef class BusinessDay(BusinessMixin):
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
         if self._offset:
-            res = res.view(dtarr.dtype) + Timedelta(self._offset)
+            # We cannot simply defer to numpy here, which silently wraps on
+            #  overflow and treats a result landing on the NaT sentinel as NaT
+            #  (GH-66552).
+            td = Timedelta(self._offset)
+            res = _add_timedelta_overflowsafe(
+                res.view(dtarr.dtype), td._value, td._creso
+            )
         return res
 
     @property
@@ -5204,7 +5283,14 @@ cdef class Week(SingleConstructorOffset):
             td = timedelta(days=7 * self._n)
             unit = np.datetime_data(dtarr.dtype)[0]
             td64 = np.timedelta64(td, unit)
-            return dtarr + td64
+            # We cannot simply defer to numpy here, which silently wraps on
+            #  overflow and treats a result landing on the NaT sentinel as NaT
+            #  (GH-66552).
+            return _add_timedelta_overflowsafe(
+                dtarr,
+                td64.astype("i8"),
+                get_unit_from_dtype(td64.dtype),
+            )
         else:
             reso = get_unit_from_dtype(dtarr.dtype)
             i8other = dtarr.view("i8")
@@ -5228,7 +5314,7 @@ cdef class Week(SingleConstructorOffset):
         """
         cdef:
             Py_ssize_t _, count = i8other.size
-            int64_t val, res_val
+            int64_t val, res_val, delta
             ndarray out = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
@@ -5236,6 +5322,7 @@ cdef class Week(SingleConstructorOffset):
             int wday, days, weeks, n = self._n
             int anchor_weekday = self.weekday
             int64_t DAY_PERIODS = periods_per_day(reso)
+            bint overflowed = False
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
         with nogil:
@@ -5256,12 +5343,24 @@ cdef class Week(SingleConstructorOffset):
                         if weeks > 0:
                             weeks -= 1
 
-                    res_val = val + (7 * weeks + days) * DAY_PERIODS
+                    delta = (7 * <int64_t>weeks + days) * DAY_PERIODS
+                    if checked_add(val, delta, &res_val):
+                        # overflow in the shift itself (GH-66552)
+                        overflowed = True
+                        res_val = NPY_NAT
+                    elif res_val == NPY_NAT:
+                        # a shift of exactly int64.min is representable, but
+                        #  would be misinterpreted as NaT (GH-66552)
+                        overflowed = True
+                        res_val = NPY_NAT
 
                 # Analogous to: out[i] = res_val
                 (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
                 cnp.PyArray_MultiIter_NEXT(mi)
+
+        if overflowed:
+            raise OverflowError("Overflow in int64 addition")
 
         return out
 

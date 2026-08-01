@@ -83,8 +83,11 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIME_NAT,
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    add_overflowsafe,
+    astype_overflowsafe,
     check_nat_sentinel,
     cmp_dtstructs,
     cmp_scalar,
@@ -616,6 +619,10 @@ cdef class _Timestamp(ABCTimestamp):
 
             try:
                 new_value = self._value + nanos
+                if new_value == NPY_DATETIME_NAT:
+                    # a sum of exactly int64.min is representable, but would be
+                    #  indistinguishable from NaT once stored (GH-66552)
+                    raise OverflowError
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._creso, tz=self.tzinfo
                 )
@@ -636,7 +643,30 @@ cdef class _Timestamp(ABCTimestamp):
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
-                    return self.asm8 + other
+                    # We cannot simply defer to numpy here, which silently
+                    #  wraps on overflow and on promotion to the finer unit
+                    #  (GH-66552).
+                    other_creso = get_unit_from_dtype(other.dtype)
+                    if other_creso > self._creso:
+                        # numpy would promote self to the finer unit, which
+                        #  can silently wrap; raise instead.
+                        self = (<_Timestamp>self)._as_creso(
+                            other_creso, round_ok=True
+                        )
+                    elif other_creso < self._creso:
+                        other = astype_overflowsafe(
+                            other,
+                            np.dtype(f"m8[{npy_unit_to_abbrev(self._creso)}]"),
+                        )
+                    new_values = add_overflowsafe(
+                        np.broadcast_to(
+                            np.array([self._value], dtype="i8"), other.shape
+                        ),
+                        other.view("i8"),
+                    )
+                    return new_values.view(
+                        f"M8[{npy_unit_to_abbrev(self._creso)}]"
+                    )
                 return np.asarray(
                     [self + other[n] for n in range(len(other))],
                     dtype=object,
@@ -663,7 +693,30 @@ cdef class _Timestamp(ABCTimestamp):
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
-                    return self.asm8 - other
+                    # We cannot simply defer to numpy here, which silently
+                    #  wraps on overflow and on promotion to the finer unit
+                    #  (GH-66552).
+                    other_creso = get_unit_from_dtype(other.dtype)
+                    if other_creso > self._creso:
+                        # numpy would promote self to the finer unit, which
+                        #  can silently wrap; raise instead.
+                        self = (<_Timestamp>self)._as_creso(
+                            other_creso, round_ok=True
+                        )
+                    elif other_creso < self._creso:
+                        other = astype_overflowsafe(
+                            other,
+                            np.dtype(f"m8[{npy_unit_to_abbrev(self._creso)}]"),
+                        )
+                    new_values = add_overflowsafe(
+                        np.broadcast_to(
+                            np.array([self._value], dtype="i8"), other.shape
+                        ),
+                        -other.view("i8"),
+                    )
+                    return new_values.view(
+                        f"M8[{npy_unit_to_abbrev(self._creso)}]"
+                    )
                 return np.asarray(
                     [self - other[n] for n in range(len(other))],
                     dtype=object,
