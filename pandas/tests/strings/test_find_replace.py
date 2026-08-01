@@ -1364,7 +1364,7 @@ def test_fullmatch_compiled_regex(any_string_dtype):
         tm.assert_series_equal(result, expected)
     else:
         with pytest.raises(
-            ValueError, match="cannot process flags argument with a compiled pattern"
+            ValueError, match="Cannot pass flags that do not match pat.flags"
         ):
             values.str.fullmatch(re.compile("ab"), case=False)
 
@@ -1373,7 +1373,7 @@ def test_fullmatch_compiled_regex(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     with pytest.raises(
-        ValueError, match="cannot process flags argument with a compiled pattern"
+        ValueError, match="Cannot pass flags that do not match pat.flags"
     ):
         values.str.fullmatch(re.compile("ab"), flags=re.IGNORECASE)
 
