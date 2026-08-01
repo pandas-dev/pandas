@@ -1286,11 +1286,23 @@ def _interp_limit_distance(
     right_valid_pos = valid_pos[right_idx[inside_mask]]
     left_valid_pos = valid_pos[right_idx[inside_mask] - 1]
 
-    # Calculate the physical x-axis gap across each NaN
-    gap_sizes = np.abs(indices[right_valid_pos] - indices[left_valid_pos])
+    right_vals = indices[right_valid_pos]
+    left_vals = indices[left_valid_pos]
 
-    if gap_sizes.dtype.kind in "mM":
-        gap_sizes = gap_sizes.view("i8")
+    if right_vals.dtype.kind in "mM":
+        right_vals = right_vals.view("i8")
+        left_vals = left_vals.view("i8")
+
+    if right_vals.dtype.kind in "iu":
+        # Overflow-safe unsigned subtraction for extreme endpoints
+        # (e.g. Timestamp.max - Timestamp.min > 292 years in nanoseconds)
+        larger = np.maximum(right_vals, left_vals)
+        smaller = np.minimum(right_vals, left_vals)
+        gap_sizes = larger.view(np.uint64) - smaller.view(np.uint64)
+        if isinstance(threshold, (int, np.integer)):
+            threshold = np.uint64(threshold)
+    else:
+        gap_sizes = np.abs(right_vals - left_vals)
 
     # Return only the NaN positions where the gap exceeds the threshold
     return invalid_inside[gap_sizes > threshold]

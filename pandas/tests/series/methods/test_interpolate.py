@@ -675,6 +675,18 @@ class TestSeriesInterpolateData:
         assert np.isnan(res_nan.loc[2.0, "A"])
         assert np.isnan(res_nan.loc[2.0, "B"])
 
+    def test_interpolate_limit_distance_extreme_endpoints(self):
+        # GH#66548: Ensure gap calculation does not overflow on extreme timestamps
+        idx = pd.DatetimeIndex(
+            [pd.Timestamp.min, pd.Timestamp("2000-01-01"), pd.Timestamp.max]
+        )
+        ser = Series([1.0, np.nan, 2.0], index=idx)
+
+        # Gap between Timestamp.min and Timestamp.max is ~584 years (> int64 max nanos)
+        # Should not overflow and should correctly remain NaN for a 10-day limit
+        result = ser.interpolate(method="time", limit_distance="10D")
+        assert np.isnan(result.iloc[1])
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
