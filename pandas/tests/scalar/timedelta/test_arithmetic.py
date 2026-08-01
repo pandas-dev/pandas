@@ -536,6 +536,31 @@ class TestTimedeltaMultiplicationDivision:
         assert result == Timedelta(days=2)
 
     @pytest.mark.parametrize(
+        "value, divisor, expected",
+        [
+            (Timedelta.min._value, 1, Timedelta.min._value),
+            (Timedelta.max._value, 1, Timedelta.max._value),
+            (Timedelta.min._value, -1, Timedelta.max._value),
+            (2**53 + 1, 1, 2**53 + 1),
+            # truncation toward zero, matching numpy
+            (36028797018963967, 2, 18014398509481983),
+            (-36028797018963967, 2, -18014398509481983),
+            (36028797018963967, -2, -18014398509481983),
+        ],
+    )
+    def test_td_div_integer_exact(self, value, divisor, expected):
+        # GH#66551 the quotient was computed in float64, whose 53-bit mantissa
+        #  rounds values that int64 holds exactly, so dividing by 1 gave NaT at
+        #  Timedelta.min and raised OverflowError at Timedelta.max.
+        td = Timedelta(value, unit="ns")
+
+        result = td / divisor
+        assert result._value == expected
+
+        # the vectorized path was already exact; the scalar disagreed with it
+        assert (pd.array([td]) / divisor)[0]._value == expected
+
+    @pytest.mark.parametrize(
         "nan",
         [
             np.nan,

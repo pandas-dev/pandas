@@ -2781,9 +2781,18 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
-            return Timedelta._from_value_and_reso(
-                <int64_t>(self._value/ other), self._creso
-            )
+
+            if is_integer_object(other):
+                # GH#66551 float64 carries only a 53-bit mantissa, so dividing
+                #  in floating point rounds quotients that int64 represents
+                #  exactly.  Python's // floors; truncate toward zero to match
+                #  numpy and the vectorized path.
+                value = self._value // other
+                if value < 0 and self._value % other:
+                    value += 1
+            else:
+                value = <int64_t>(self._value/ other)
+            return Timedelta._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
             if other.ndim == 0:
