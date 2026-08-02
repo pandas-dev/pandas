@@ -704,6 +704,9 @@ cdef class _Timestamp(ABCTimestamp):
 
             try:
                 new_value = self._value + nanos
+                if new_value == NPY_NAT:
+                    # GH#66549 the result would be indistinguishable from NaT
+                    raise OverflowError
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._creso, tz=self.tzinfo
                 )

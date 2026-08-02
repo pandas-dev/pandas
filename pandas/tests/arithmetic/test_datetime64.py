@@ -1690,6 +1690,17 @@ class TestDatetime64OverflowHandling:
         result = left - right
         tm.assert_equal(result, expected)
 
+    def test_dt64arr_add_td_lands_on_nat_sentinel(self, box_with_array):
+        # GH#66549 a result equal to iNaT would be indistinguishable from NaT
+        obj = tm.box_expected(DatetimeIndex([Timestamp.min]), box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, "ns")
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - Timedelta(1, "ns")
+
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
         dt = Timestamp("1700-01-31")

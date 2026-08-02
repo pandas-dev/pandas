@@ -889,6 +889,14 @@ class TestPeriodIndexArithmetic:
         result = to_offset("3ME") + pi
         tm.assert_equal(result, expected)
 
+    def test_pi_sub_lands_on_nat_sentinel(self, box_with_array):
+        # GH#66549 an ordinal equal to iNaT would be indistinguishable from NaT
+        per = Period(ordinal=pd.NaT._value + 1, freq="D")
+        obj = tm.box_expected(PeriodIndex([per]), box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj - 1
+
     # ---------------------------------------------------------------
     # __add__/__sub__ with integer arrays
 

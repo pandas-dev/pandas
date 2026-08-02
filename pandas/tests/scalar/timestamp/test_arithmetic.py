@@ -104,6 +104,15 @@ class TestTimestampArithmetic:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             left - Timestamp(np.datetime64(2, unit))
 
+    def test_add_td_lands_on_nat_sentinel_raises(self):
+        # GH#66549 a result equal to iNaT would be indistinguishable from NaT
+        msg = "Out of bounds nanosecond timestamp: -9223372036854775808"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp.min + Timedelta(-1, "ns")
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp.min - Timedelta(1, "ns")
+
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
