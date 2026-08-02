@@ -222,6 +222,8 @@ pc_html_border_doc = """
 : int
     The thickness (in pixels) of the CSS border applied to the ``<table>``
     and its cells via an inline ``style`` for the DataFrame HTML repr.
+    The border color is ``currentColor``, so it adapts to the surrounding
+    text color.
 """
 
 pc_html_use_mathjax_doc = """\

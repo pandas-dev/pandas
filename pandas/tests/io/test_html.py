@@ -1375,11 +1375,11 @@ class TestReadHtml:
 
         out_border_false = df.to_html(border=False)
 
-        assert 'style="border: 1px solid black;"' in out_border_default
+        assert 'style="border: 1px solid currentColor;"' in out_border_default
         assert out_border_true == out_border_default
         assert out_border_default == out_border_explicit_default
         assert out_border_default != out_border_nondefault
-        assert 'style="border: 2px solid black;"' in out_border_nondefault
+        assert 'style="border: 2px solid currentColor;"' in out_border_nondefault
         assert 'style="border' not in out_border_zero
         assert 'style="border' not in out_border_false
         assert out_border_zero != out_border_default

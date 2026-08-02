@@ -184,7 +184,7 @@ class HTMLFormatter:
         self, s: Any, kind: str = "td", indent: int = 0, tags: str | None = None
     ) -> None:
         if self.border is not None:
-            border_style = f"border: {self.border}px solid black;"
+            border_style = f"border: {self.border}px solid currentColor;"
             if tags is None:
                 tags = f'style="{border_style}"'
             elif 'style="' in tags:  # style already exists in tags
@@ -269,7 +269,7 @@ class HTMLFormatter:
         if self.border is None:
             border_attr = ""
         else:
-            border_attr = f' style="border: {self.border}px solid black;"'
+            border_attr = f' style="border: {self.border}px solid currentColor;"'
 
         self.write(
             f'<table{border_attr} class="{" ".join(_classes)}"{id_section}>',

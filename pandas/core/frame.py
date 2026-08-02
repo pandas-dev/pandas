@@ -3275,7 +3275,9 @@ class DataFrame(NDFrame, OpsMixin):
         border : int or bool
             When an integer value is provided, it sets the thickness (in pixels)
             of the CSS border applied to the ``<table>`` and its cells via an
-            inline ``style``. If ``False`` or ``0`` is passed, no border is added.
+            inline ``style``. The border color is ``currentColor``, so it
+            adapts to the surrounding text color. If ``False`` or ``0`` is
+            passed, no border is added.
             The default value for this parameter is governed by
             ``pd.options.display.html.border``.
         table_id : str, optional
@@ -3300,24 +3302,24 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
         >>> html_string = df.to_html()
         >>> print(html_string)
-        <table style="border: 1px solid black;" class="dataframe">
+        <table style="border: 1px solid currentColor;" class="dataframe">
           <thead>
             <tr style="text-align: right;">
-              <th style="border: 1px solid black;"></th>
-              <th style="border: 1px solid black;">col1</th>
-              <th style="border: 1px solid black;">col2</th>
+              <th style="border: 1px solid currentColor;"></th>
+              <th style="border: 1px solid currentColor;">col1</th>
+              <th style="border: 1px solid currentColor;">col2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <th style="border: 1px solid black;">0</th>
-              <td style="border: 1px solid black;">1</td>
-              <td style="border: 1px solid black;">4</td>
+              <th style="border: 1px solid currentColor;">0</th>
+              <td style="border: 1px solid currentColor;">1</td>
+              <td style="border: 1px solid currentColor;">4</td>
             </tr>
             <tr>
-              <th style="border: 1px solid black;">1</th>
-              <td style="border: 1px solid black;">2</td>
-              <td style="border: 1px solid black;">3</td>
+              <th style="border: 1px solid currentColor;">1</th>
+              <td style="border: 1px solid currentColor;">2</td>
+              <td style="border: 1px solid currentColor;">3</td>
             </tr>
           </tbody>
         </table>
@@ -3335,21 +3337,21 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
         >>> html_string = df.to_html(index=False)
         >>> print(html_string)
-        <table style="border: 1px solid black;" class="dataframe">
+        <table style="border: 1px solid currentColor;" class="dataframe">
           <thead>
             <tr style="text-align: right;">
-              <th style="border: 1px solid black;">col1</th>
-              <th style="border: 1px solid black;">col2</th>
+              <th style="border: 1px solid currentColor;">col1</th>
+              <th style="border: 1px solid currentColor;">col2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid black;">1</td>
-              <td style="border: 1px solid black;">4</td>
+              <td style="border: 1px solid currentColor;">1</td>
+              <td style="border: 1px solid currentColor;">4</td>
             </tr>
             <tr>
-              <td style="border: 1px solid black;">2</td>
-              <td style="border: 1px solid black;">3</td>
+              <td style="border: 1px solid currentColor;">2</td>
+              <td style="border: 1px solid currentColor;">3</td>
             </tr>
           </tbody>
         </table>

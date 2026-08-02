@@ -924,7 +924,9 @@ class DataFrameRenderer:
         border : int or bool
             When an integer value is provided, it sets the thickness (in pixels)
             of the CSS border applied to the ``<table>`` and its cells via an
-            inline ``style``. If ``False`` or ``0`` is passed, no border is added.
+            inline ``style``. The border color is ``currentColor``, so it
+            adapts to the surrounding text color. If ``False`` or ``0`` is
+            passed, no border is added.
             The default value for this parameter is governed by
             ``pd.options.display.html.border``.
         table_id : str, optional
