@@ -985,11 +985,8 @@ def _binary_op_method_timedeltalike(op, name):
             other = (<_Timedelta>other)._as_creso(self._creso, round_ok=True)
 
         res = op(self._value, other._value)
-        if res == NPY_NAT:
-            # e.g. test_implementation_limits
-            # TODO: more generally could do an overflowcheck in op?
-            return NaT
-
+        # A res that lands on NPY_NAT is not NaT but is indistinguishable from
+        #  it; _timedelta_from_value_and_reso raises for it. (GH#66552)
         return _timedelta_from_value_and_reso(Timedelta, res, reso=self._creso)
 
     f.__name__ = name
