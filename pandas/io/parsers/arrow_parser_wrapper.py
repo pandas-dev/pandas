@@ -466,14 +466,52 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
         convert_options = self._get_convert_options()
+        read_options = pyarrow_csv.ReadOptions(**self.read_options)
+        parse_options = pyarrow_csv.ParseOptions(**self.parse_options)
 
         try:
-            table = pyarrow_csv.read_csv(
-                self.src,
-                read_options=pyarrow_csv.ReadOptions(**self.read_options),
-                parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-                convert_options=convert_options,
-            )
+            start_position = self.src.tell()
+        except (AttributeError, OSError, ValueError):
+            start_position = None
+
+        try:
+            try:
+                table = pyarrow_csv.read_csv(
+                    self.src,
+                    read_options=read_options,
+                    parse_options=parse_options,
+                    convert_options=convert_options,
+                )
+            except pa.ArrowInvalid as err:
+                # GH#62635 pyarrow cannot infer the number of columns from a
+                # single physical line without a line terminator. When names
+                # are supplied, they provide the missing column count.
+                if (
+                    start_position is None
+                    or self.names is None
+                    or "cannot infer number of columns" not in str(err)
+                ):
+                    raise
+                try:
+                    self.src.seek(start_position)
+                except (AttributeError, OSError, ValueError):
+                    raise
+
+                retry_options = self.read_options | {
+                    "autogenerate_column_names": False,
+                    "column_names": [f"f{i}" for i in range(len(self.names))],
+                }
+                try:
+                    table = pyarrow_csv.read_csv(
+                        self.src,
+                        read_options=pyarrow_csv.ReadOptions(**retry_options),
+                        parse_options=parse_options,
+                        convert_options=convert_options,
+                    )
+                except pa.ArrowException as retry_err:
+                    # Preserve the original EmptyDataError when the supplied
+                    # names do not match the fields in the source.
+                    raise err from retry_err
         except pa.ArrowInvalid as err:
             # pyarrow reports "Empty CSV file or block" when it cannot extract
             # any columns from the source; re-raise as EmptyDataError so the

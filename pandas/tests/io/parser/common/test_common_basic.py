@@ -889,6 +889,14 @@ def test_short_multi_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_single_line_without_line_terminator(all_parsers):
+    # GH#62635
+    parser = all_parsers
+    result = parser.read_csv(StringIO("1,2,3"), names=["col1", "col2", "col3"])
+    expected = DataFrame([[1, 2, 3]], columns=["col1", "col2", "col3"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_read_seek(all_parsers, tmp_path):
     # GH48646
     parser = all_parsers
