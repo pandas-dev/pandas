@@ -952,6 +952,12 @@ class TestEnsureNumeric:
         o_values = values.astype(object)
         assert np.allclose(nanops._ensure_numeric(o_values), values)
 
+        # Test mixed-integer array
+        o_values[2] = "3"
+        msg = r"Could not convert \[1 2 '3'\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric(o_values)
+
         # Test convertible string ndarray
         s_values = np.array(["1", "2", "3"], dtype=object)
         msg = r"Could not convert \['1' '2' '3'\] to numeric"

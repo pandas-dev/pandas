@@ -1728,7 +1728,7 @@ def _ensure_numeric(x):
             x = x.astype(np.float64)
         elif x.dtype == object:
             inferred = lib.infer_dtype(x)
-            if inferred in ["string", "mixed"]:
+            if inferred in ["string", "mixed", "mixed-integer"]:
                 # GH#44008, GH#36703 avoid casting e.g. strings to numeric
                 raise TypeError(f"Could not convert {x} to numeric")
             try:
