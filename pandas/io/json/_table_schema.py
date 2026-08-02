@@ -35,7 +35,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -378,7 +381,13 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     table = ujson_loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
-    df = DataFrame(table["data"], columns=col_order)[col_order]
+    stringified_col_order = [str(column) for column in col_order]
+    if len(stringified_col_order) != len(set(stringified_col_order)):
+        raise ValueError(
+            "Table schema field names must be unique after conversion to string"
+        )
+    df = DataFrame(table["data"], columns=stringified_col_order)
+    df.columns = col_order
 
     dtypes = {
         field["name"]: convert_json_field_to_pandas_type(field)
@@ -394,8 +403,11 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
 
+    data_columns = col_order
     if "primaryKey" in table["schema"]:
-        df = df.set_index(table["schema"]["primaryKey"])
+        primary_key = table["schema"]["primaryKey"]
+        df = df.set_index(primary_key)
+        data_columns = [column for column in col_order if column not in primary_key]
         if len(df.index.names) == 1:
             if df.index.name == "index":
                 df.index.name = None
@@ -404,4 +416,5 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
                 None if x.startswith("level_") else x for x in df.index.names
             ]
 
+    df.columns = Index(data_columns)
     return df
