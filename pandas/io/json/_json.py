@@ -13,6 +13,7 @@ from typing import (
     Literal,
     Self,
     TypeVar,
+    cast,
     final,
     overload,
 )
@@ -422,7 +423,8 @@ class JSONTableWriter(FrameWriter):
             msg = "Overlapping names between the index and columns"
             raise ValueError(msg)
 
-        field_names = [str(field["name"]) for field in self.schema["fields"]]
+        fields = cast("list[dict[str, Any]]", self.schema["fields"])
+        field_names = [str(field["name"]) for field in fields]
         if len(field_names) != len(set(field_names)):
             raise ValueError(
                 "Table schema field names must be unique after conversion to string"
