@@ -565,10 +565,11 @@ class TestDataFrameAnalytics:
             assert not (result < 0).any()
 
     @pytest.mark.parametrize("meth", ["sem", "var", "std"])
-    def test_numeric_only_flag(self, meth):
+    @pytest.mark.parametrize("dtype", ["int64", "float64"])
+    def test_numeric_only_flag(self, meth, dtype):
         # GH 9201
         df1 = DataFrame(
-            np.random.default_rng(2).standard_normal((5, 3)),
+            np.random.default_rng(2).standard_normal((5, 3)).astype(dtype),
             columns=["foo", "bar", "baz"],
         )
         # Cast to object to avoid implicit cast when setting entry to "100" below
@@ -577,7 +578,7 @@ class TestDataFrameAnalytics:
         df1.loc[0, "foo"] = "100"
 
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal((5, 3)),
+            np.random.default_rng(2).standard_normal((5, 3)).astype(dtype),
             columns=["foo", "bar", "baz"],
         )
         # Cast to object to avoid implicit cast when setting entry to "a" below

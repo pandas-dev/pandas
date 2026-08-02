@@ -1768,7 +1768,7 @@ def _ensure_numeric_array(x: np.ndarray, try_complex_conversion: bool) -> np.nda
 
     if x.dtype == object:
         inferred = lib.infer_dtype(x)
-        if inferred in {"string", "mixed"}:
+        if inferred in {"string", "mixed", "mixed-integer"}:
             raise TypeError("Could not convert array to numeric")
 
         if try_complex_conversion:
