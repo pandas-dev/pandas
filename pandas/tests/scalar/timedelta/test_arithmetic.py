@@ -1333,6 +1333,27 @@ def test_td_mul_lands_on_nat_sentinel(unit, factor):
         factor * td
 
 
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_td_add_sub_lands_on_nat_sentinel(unit):
+    # GH#66552 stepping one unit past Timedelta.min lands on iNaT, which is not
+    #  NaT but is indistinguishable from it once stored, so it has to raise
+    #  rather than come back as NaT.
+    td_min = Timedelta(np.timedelta64(-(2**63) + 1, unit))
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min - Timedelta(1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + Timedelta(-1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(-1, unit) + td_min
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + np.timedelta64(-1, unit)
+
+
 @pytest.mark.parametrize("op", [operator.mul, operator.truediv])
 def test_td_float_op_rounds_onto_nat_sentinel(op):
     # GH#66551 Timedelta.min is iNaT + 1, which float64 rounds down onto iNaT
