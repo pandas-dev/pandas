@@ -75,7 +75,7 @@ def jit_user_function(func: Callable) -> Callable:
     else:
         numba = import_optional_dependency("numba")
 
-    if numba.extending.is_jitted(func):
+    if numba.extending.is_jitted(func):  # pyright: ignore[reportAttributeAccessIssue]
         # Don't jit a user passed jitted function
         numba_func = func
     elif getattr(np, func.__name__, False) is func or isinstance(
