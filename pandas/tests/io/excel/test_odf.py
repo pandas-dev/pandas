@@ -1,6 +1,13 @@
 import functools
 
 import numpy as np
+from odf.opendocument import OpenDocumentSpreadsheet
+from odf.table import (
+    CoveredTableCell,
+    Table,
+    TableCell,
+    TableRow,
+)
 import pytest
 
 import pandas as pd
@@ -68,5 +75,31 @@ def test_read_cell_annotation():
     )
 
     result = pd.read_excel("test_cell_annotation.ods")
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_covered_table_cell_value(tmp_path):
+    path = tmp_path / "covered_cell_value.ods"
+
+    doc = OpenDocumentSpreadsheet()
+    sheet = Table(name="Sheet1")
+    doc.spreadsheet.addElement(sheet)
+
+    row0 = TableRow()
+    sheet.addElement(row0)
+    row0.addElement(TableCell(valuetype="float", value="1"))
+    row0.addElement(TableCell(valuetype="float", value="100"))
+
+    row1 = TableRow()
+    sheet.addElement(row1)
+    row1.addElement(CoveredTableCell(valuetype="float", value="42"))
+    row1.addElement(TableCell(valuetype="float", value="200"))
+
+    doc.save(str(path))
+
+    result = pd.read_excel(path, header=None)
+
+    expected = pd.DataFrame([[1, 100], [42, 200]])
 
     tm.assert_frame_equal(result, expected)
