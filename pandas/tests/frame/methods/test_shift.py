@@ -818,6 +818,17 @@ class TestDataFrameShift:
         expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
         tm.assert_series_equal(result, expected)
 
+    def test_series_shift_bytes_dtype(self):
+        # GH#52373
+        ser = Series(["a", "b", "c"]).astype(bytes)
+
+        msg = "shifting with a fill value that cannot"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.shift(1)
+
+        expected = Series([np.nan, b"a", b"b"], dtype=object)
+        tm.assert_series_equal(result, expected)
+
     def test_shift_invalid_fill_value_deprecation(self):
         # GH#53802
         df = DataFrame(
