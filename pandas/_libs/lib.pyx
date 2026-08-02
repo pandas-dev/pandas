@@ -2699,15 +2699,9 @@ def maybe_convert_numeric(
                         fval = NaN
                         seen.null_ = True
                         seen.float_ = True
-                        # if convert_to_masked_nullable:
-                        #     mask[i] = 1
                         floats[i] = fval
                         continue
-                print("before")
                 floatify(val, &fval, &maybe_int)
-                print("here")
-                print(fval)
-                print(val)
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
