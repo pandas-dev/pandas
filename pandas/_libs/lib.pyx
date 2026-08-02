@@ -2249,6 +2249,28 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+def contains_strings(ndarray values) -> bool:
+    """
+    Check if an array contains any string-like element.
+    """
+    cdef:
+        Py_ssize_t _, n
+        flatiter it
+        object val
+
+    if values.dtype == object:
+        n = cnp.PyArray_SIZE(values)
+        it = PyArray_IterNew(values)
+        for _ in range(n):
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if isinstance(val, (str, bytes)):
+                return True
+    elif values.dtype.kind in ("S", "T", "U"):
+        return True
+    return False
+
+
 @cython.internal
 cdef class BytesValidator(Validator):
     cdef bint is_value_typed(self, object value) except -1:
