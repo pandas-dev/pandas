@@ -32,8 +32,10 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     OutOfBoundsDatetime,
+    Pandas4Warning,
 )
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -289,16 +291,27 @@ class Writer(ABC):
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
-        return ujson_dumps(
-            self.obj_to_write,
-            orient=self.orient,
-            double_precision=self.double_precision,
-            ensure_ascii=self.ensure_ascii,
-            date_unit=self.date_unit,
-            iso_dates=iso_dates,
-            default_handler=self.default_handler,
-            indent=self.indent,
-        )
+        try:
+            return ujson_dumps(
+                self.obj_to_write,
+                orient=self.orient,
+                double_precision=self.double_precision,
+                ensure_ascii=self.ensure_ascii,
+                date_unit=self.date_unit,
+                iso_dates=iso_dates,
+                default_handler=self.default_handler,
+                indent=self.indent,
+            )
+        except OverflowError as err:
+            # GH#36211 the C encoder recurses without bound on object types it
+            #  does not understand.
+            if "Maximum recursion level reached" not in str(err):
+                raise
+            raise ValueError(
+                "Unable to serialize object to JSON: encountered an "
+                "unsupported object type; convert the column to a supported "
+                "type (e.g. str) before calling to_json."
+            ) from err
 
     @property
     @abstractmethod
@@ -457,8 +470,9 @@ def _validate_pyarrow_engine_options(
     ignored, producing a wrong result rather than an error. Raise instead.
 
     Called from ``read_json`` before ``convert_axes`` and ``dtype`` are
-    resolved from ``None`` to ``True``, so that an explicitly-passed value is
-    distinguishable from the default.
+    resolved from ``None`` to ``True`` (and ``convert_dates`` /
+    ``keep_default_dates`` from ``lib.no_default``), so that an
+    explicitly-passed value is distinguishable from the default.
     """
 
     def raise_unsupported(argname: str) -> None:
@@ -470,9 +484,9 @@ def _validate_pyarrow_engine_options(
         raise_unsupported("typ")
     if convert_axes is not None:
         raise_unsupported("convert_axes")
-    if convert_dates is not True:
+    if convert_dates is not True and convert_dates is not lib.no_default:
         raise_unsupported("convert_dates")
-    if keep_default_dates is not True:
+    if keep_default_dates is not True and keep_default_dates is not lib.no_default:
         raise_unsupported("keep_default_dates")
     if precise_float is not False:
         raise_unsupported("precise_float")
@@ -514,8 +528,8 @@ def read_json(
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -538,8 +552,8 @@ def read_json(
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -562,8 +576,8 @@ def read_json(
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -586,8 +600,8 @@ def read_json(
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -610,8 +624,8 @@ def read_json(
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
     convert_axes: bool | None = None,
-    convert_dates: bool | list[str] = True,
-    keep_default_dates: bool = True,
+    convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
+    keep_default_dates: bool | lib.NoDefault = lib.no_default,
     precise_float: bool = False,
     date_unit: str | None = None,
     encoding: str | None = None,
@@ -708,6 +722,10 @@ def read_json(
         default datelike columns may also be converted (depending on
         keep_default_dates).
 
+        .. deprecated:: 3.1.0
+            Pass ``dtype=False`` to disable type conversion, or parse date
+            columns with :func:`~pandas.to_datetime` after reading.
+
     keep_default_dates : bool, default True
         If parsing dates (convert_dates is not False), then try to parse the
         default datelike columns.
@@ -722,6 +740,10 @@ def read_json(
         * it is ``'modified'``, or
 
         * it is ``'date'``.
+
+        .. deprecated:: 3.1.0
+            Pass ``dtype=False`` to disable type conversion, or parse date
+            columns with :func:`~pandas.to_datetime` after reading.
 
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
@@ -911,6 +933,28 @@ def read_json(
             compression=compression,
             storage_options=storage_options,
         )
+
+    if convert_dates is not lib.no_default:
+        warnings.warn(
+            "The 'convert_dates' keyword in read_json is deprecated and will be "
+            "removed in a future version. Pass dtype=False to disable type "
+            "conversion, or parse date columns with pd.to_datetime after reading.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        convert_dates = True
+
+    if keep_default_dates is not lib.no_default:
+        warnings.warn(
+            "The 'keep_default_dates' keyword in read_json is deprecated and will "
+            "be removed in a future version. Pass dtype=False to disable type "
+            "conversion, or parse date columns with pd.to_datetime after reading.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        keep_default_dates = True
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable

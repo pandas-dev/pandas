@@ -1173,7 +1173,7 @@ Parsing date components in multi-columns is faster with a format
     df = pd.DataFrame({"year": i.year, "month": i.month, "day": i.day})
     df.head()
 
-    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
+    %timeit pd.to_datetime((df.year * 10000 + df.month * 100 + df.day).astype(str), format='%Y%m%d')
     ds = df.apply(lambda x: "%04d%02d%02d" % (x["year"], x["month"], x["day"]), axis=1)
     ds.head()
     %timeit pd.to_datetime(ds)

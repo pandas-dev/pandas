@@ -16,10 +16,8 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
 )
 from pandas._libs.tslibs.ccalendar import (
-    DAYS,
     MONTH_ALIASES,
     MONTH_NUMBERS,
-    MONTHS,
     int_to_weekday,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
@@ -63,21 +61,6 @@ if TYPE_CHECKING:
     from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 # --------------------------------------------------------------------
 # Offset related functions
-
-_need_suffix = ["QS", "BQE", "BQS", "YS", "BYE", "BYS"]
-
-for _prefix in _need_suffix:
-    for _m in MONTHS:
-        key = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
-
-for _prefix in ["Y", "Q"]:
-    for _m in MONTHS:
-        _alias = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[_alias] = _alias
-
-for _d in DAYS:
-    OFFSET_TO_PERIOD_FREQSTR[f"W-{_d}"] = f"W-{_d}"
 
 
 def get_period_alias(offset_str: str) -> str | None:
@@ -358,7 +341,14 @@ class _FrequencyInferer:
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
-            mod_dict = {0: 12, 2: 11, 1: 10}
+            if quarterly_rule in ("QS", "BQS"):
+                # GH#36939 the anchor month is only known up to mod 3; use the
+                #  first-calendar-quarter representative so that to_period on
+                #  e.g. Jan/Apr/Jul/Oct starts (QS-JAN) keeps the calendar
+                #  convention Q-DEC
+                mod_dict = {1: 1, 2: 2, 0: 3}
+            else:
+                mod_dict = {0: 12, 2: 11, 1: 10}
             month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
             alias = f"{quarterly_rule}-{month}"
             return _maybe_add_count(alias, nquarters)

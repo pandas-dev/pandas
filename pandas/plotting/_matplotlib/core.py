@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -66,7 +67,6 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
-    decorate_axes,
     format_dateaxis,
     maybe_convert_index,
     prepare_ts_data,
@@ -80,7 +80,6 @@ from pandas.plotting._matplotlib.tools import (
     get_xlim,
     handle_shared_axes,
 )
-from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
     from matplotlib.artist import Artist
@@ -1354,11 +1353,8 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
-            _was_dt_like = isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex))
-            s = maybe_convert_index(ax, s)
-            if _was_dt_like and is_integer_dtype(s.index):
-                decorate_axes(ax, to_offset("B"))
-            freq, s = prepare_ts_data(s, ax, self.kwds)
+            s, index_freq = maybe_convert_index(ax, s)
+            freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
             x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
@@ -1560,24 +1556,16 @@ class LinePlot(MPLPlot):
         is_ts = self._is_ts_plot()
         if is_ts:
             ax0 = self._get_ax(0)
-            data = maybe_convert_index(ax0, self.data)
-            # For BDay, maybe_convert_index produces a plain int64 index (to
-            # avoid the deprecated Period[B]).  The int64 index carries no freq
-            # attribute, so pre-populate ax.freq via decorate_axes now; the
-            # per-column prepare_ts_data → maybe_resample calls need it.
-            if is_integer_dtype(data.index) and isinstance(
-                self.data.index, (ABCDatetimeIndex, ABCPeriodIndex)
-            ):
-                decorate_axes(ax0, to_offset("B"))
+            data, index_freq = maybe_convert_index(ax0, self.data)
 
             x = data.index  # dummy, not used
-            plotf = self._ts_plot
+            plotf = partial(self._ts_plot, index_freq=index_freq)
             it = data.items()
         else:
             x = self._get_xticks()
             # error: Incompatible types in assignment (expression has type
-            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
-            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
+            # "Callable[[Axes, Any, ndarray[tuple[Any, ...], dtype[Any]], Any,
+            # Any, Any, KwArg(Any)], Any]", variable has type "partial[Any]")
             plotf = self._plot  # type: ignore[assignment]
             # error: Incompatible types in assignment (expression has type
             # "Iterator[tuple[Hashable, ndarray[Any, Any]]]", variable has
@@ -1660,11 +1648,19 @@ class LinePlot(MPLPlot):
         return lines
 
     @final
-    def _ts_plot(self, ax: Axes, x, data: Series, style=None, **kwds):
+    def _ts_plot(
+        self,
+        ax: Axes,
+        x,
+        data: Series,
+        style=None,
+        index_freq: str | None = None,
+        **kwds,
+    ):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        _freq, data = prepare_ts_data(data, ax, kwds)
+        _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
 
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]

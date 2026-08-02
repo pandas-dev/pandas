@@ -895,6 +895,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         DatetimeIndex.tz : A timezone that has a variable offset from UTC.
         DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        Series.dt.tz : A timezone that has a variable offset from UTC.
+        Series.dt.tz_localize : Localize tz-naive Series datetimes to a given
+            time zone, or remove timezone from tz-aware Series datetimes.
 
         Examples
         --------
@@ -1087,7 +1090,7 @@ default 'raise'
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
@@ -3180,9 +3183,7 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    start = Timestamp(start)  # type: ignore[arg-type]
+    start = Timestamp(start)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if start is not NaT:  # type: ignore[comparison-overlap]
@@ -3190,9 +3191,7 @@ def _generate_range(
     else:
         start = None
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    end = Timestamp(end)  # type: ignore[arg-type]
+    end = Timestamp(end)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if end is not NaT:  # type: ignore[comparison-overlap]

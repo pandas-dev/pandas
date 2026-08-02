@@ -906,3 +906,13 @@ def test_fillna_dtype_preservation_after_apply():
     assert result["c2"].dtype == np.int64
     assert result["c3"].dtype == np.float64
     assert result["c4"].dtype == np.int64
+
+
+def test_fillna_with_duplicate_index_and_unique_fill_frame():
+    # GH#36974 filling a frame that has a duplicated index from a frame with a
+    # unique index must align by label instead of raising InvalidIndexError
+    df = DataFrame({"a": [np.nan, np.nan, 5.0]}, index=[0, 1, 0])
+    df_fillna = DataFrame({"a": [10.0, 20.0]}, index=[0, 1])
+    result = df.fillna(df_fillna)
+    expected = DataFrame({"a": [10.0, 20.0, 5.0]}, index=[0, 1, 0])
+    tm.assert_frame_equal(result, expected)

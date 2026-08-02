@@ -2,10 +2,10 @@
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
 from datetime import (
+    UTC,
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from itertools import (
     product,
@@ -1929,10 +1929,8 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
-            unit
-        )
-        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=UTC), NaT]).dt.as_unit(unit)
+        dt = datetime(2016, 8, 22, 12, tzinfo=UTC)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)

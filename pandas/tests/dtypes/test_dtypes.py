@@ -8,7 +8,11 @@ import pytest
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import Pandas4Warning
 
-from pandas.core.dtypes.base import _registry as registry
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    _registry as registry,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -1128,6 +1132,29 @@ def test_registry(dtype):
 )
 def test_registry_find(dtype, expected):
     assert registry.find(dtype) == expected
+
+
+def test_construct_from_string_no_name_gh46093():
+    # GH#46093
+    class FooType(ExtensionDtype):
+        pass
+
+    msg = (
+        "Cannot construct a 'FooType' from a string because it does not define "
+        "a string 'name' attribute"
+    )
+    with pytest.raises(TypeError, match=msg):
+        FooType.construct_from_string("foo")
+
+
+def test_register_extension_dtype_no_name_gh46093():
+    # GH#46093 registration fails fast rather than erroring later on use
+    msg = "Cannot register 'NamelessType' because it does not define a string"
+    with pytest.raises(TypeError, match=msg):
+
+        @register_extension_dtype
+        class NamelessType(ExtensionDtype):
+            pass
 
 
 @pytest.mark.parametrize(

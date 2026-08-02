@@ -42,6 +42,7 @@ from pandas.core.indexes.api import (
     _get_combined_index,
     ensure_index,
     ensure_index_from_sequences,
+    union_indexes,
 )
 from pandas.testing import assert_series_equal
 
@@ -136,7 +137,7 @@ class TestIndex:
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
         result = Index(Series(index))
-        tm.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index, check_freq=False)
 
         if has_tz:
             assert result.tz == index.tz
@@ -267,13 +268,13 @@ class TestIndex:
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
                 klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             if err:
@@ -281,20 +282,20 @@ class TestIndex:
                     DatetimeIndex(arg).astype(dtype)
             else:
                 result = DatetimeIndex(arg).astype(dtype)
-                tm.assert_index_equal(result, index)
+                tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(arg, dtype=dtype)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
                 klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             if err:
@@ -302,10 +303,10 @@ class TestIndex:
                     DatetimeIndex(list(arg)).astype(dtype)
             else:
                 result = DatetimeIndex(list(arg)).astype(dtype)
-                tm.assert_index_equal(result, index)
+                tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(list(arg), dtype=dtype)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
@@ -1402,6 +1403,30 @@ class TestIndex:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "indexes, expected, expected_all_equal",
+        [
+            (
+                [Index(["a", "b"]), Index(["a", "b"])],
+                Index(["a", "b"]),
+                True,
+            ),
+            (
+                [Index(["a", "b"]), Index(["b", "c"])],
+                Index(["a", "b", "c"]),
+                False,
+            ),
+        ],
+    )
+    def test_union_indexes_returns_all_equal(
+        self, indexes, expected, expected_all_equal
+    ):
+        # GH#65393
+        result, all_equal = union_indexes(indexes, sort=False)
+
+        tm.assert_index_equal(result, expected)
+        assert all_equal is expected_all_equal
+
 
 class TestMixedIntIndex:
     # (GH 13514) tests for mixed int/str indexes where ints and strings
@@ -1629,7 +1654,7 @@ class TestIndexUtils:
         tm.assert_index_equal(result, expected)
 
     def test_get_combined_index(self):
-        result = _get_combined_index([])
+        result, _ = _get_combined_index([])
         expected = RangeIndex(0)
         tm.assert_index_equal(result, expected)
 

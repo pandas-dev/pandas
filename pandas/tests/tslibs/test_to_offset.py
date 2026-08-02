@@ -94,6 +94,20 @@ def test_to_offset_invalid(freqstr):
         to_offset(freqstr)
 
 
+@pytest.mark.parametrize(
+    "freqstr,alias",
+    [
+        ("2.5foo", "foo"),
+        ("2.5FOO", "FOO"),
+    ],
+)
+def test_to_offset_fractional_invalid_alias(freqstr, alias):
+    msg = rf"Invalid frequency: {alias}"
+
+    with pytest.raises(ValueError, match=msg):
+        to_offset(freqstr)
+
+
 def test_to_offset_no_evaluate():
     msg = str(("", ""))
     with pytest.raises(TypeError, match=msg):
