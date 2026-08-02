@@ -657,6 +657,17 @@ class IndexOpsMixin(OpsMixin):
         datetime64[ns, tz] ndarray[object] (Timestamps)
         ================== ================================
 
+        For timezone-aware datetime data, calling ``to_numpy()`` without
+        specifying ``dtype`` produces an object-dtype array of
+        :class:`Timestamp` objects. This is significantly slower and uses
+        more memory than a native ``datetime64`` array. To avoid this,
+        pass an explicit ``dtype``:
+
+        - ``dtype="datetime64[ns]"`` converts to UTC and drops the
+          timezone, returning a native ``datetime64[ns]`` array.
+        - ``dtype=object`` explicitly requests Timestamp objects when
+          you need to preserve per-element timezone information.
+
         Examples
         --------
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
@@ -1669,6 +1680,11 @@ class IndexOpsMixin(OpsMixin):
         res_name = ops.get_op_result_name(self, other)
 
         lvalues = self._values
+        if not isinstance(lvalues, ExtensionArray) or isinstance(other, range):
+            # For EA-backed values the warning is emitted by the EA's own
+            # _arith_method; the exception is ``range``, which is converted to
+            # an ndarray below before it reaches the EA (GH#62423).
+            ops.maybe_warn_listlike(other)
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
         rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)

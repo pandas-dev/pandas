@@ -34,7 +34,8 @@ typedef struct {
   npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT,
                                                  const npy_datetimestruct *);
   int (*scaleNanosecToUnit)(int64_t *, NPY_DATETIMEUNIT);
-  char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
+  char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, int,
+                      size_t *);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
   char *(*int64ToIsoDuration)(int64_t, NPY_DATETIMEUNIT, size_t *);
@@ -53,6 +54,7 @@ typedef struct {
   int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, size_t, int,
                                 NPY_DATETIMEUNIT);
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
+  void (*set_datetimestruct_days)(npy_int64, npy_datetimestruct *);
 } PandasDateTime_CAPI;
 
 // The capsule name appears limited to module.attributename; see bpo-32414
@@ -72,8 +74,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
                                                       (npy_datetimestruct))
 #  define scaleNanosecToUnit(value, unit)                                      \
     PandasDateTimeAPI->scaleNanosecToUnit((value), (unit))
-#  define int64ToIso(value, valueUnit, base, len)                              \
-    PandasDateTimeAPI->int64ToIso((value), (valueUnit), (base), (len))
+#  define int64ToIso(value, valueUnit, base, utc, len)                         \
+    PandasDateTimeAPI->int64ToIso((value), (valueUnit), (base), (utc), (len))
 #  define NpyDateTimeToEpoch(dt, base)                                         \
     PandasDateTimeAPI->NpyDateTimeToEpoch((dt), (base))
 #  define PyDateTimeToIso(obj, base, len)                                      \
@@ -105,6 +107,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
                                               (utc), (base))
 #  define make_iso_8601_timedelta(tds, outstr, outlen)                         \
     PandasDateTimeAPI->make_iso_8601_timedelta((tds), (outstr), (outlen))
+#  define set_datetimestruct_days(days, dts)                                   \
+    PandasDateTimeAPI->set_datetimestruct_days((days), (dts))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus

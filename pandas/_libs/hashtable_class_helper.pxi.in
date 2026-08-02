@@ -3,7 +3,7 @@ Template for each `dtype` helper function for hashtable
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
-from cpython.unicode cimport PyUnicode_AsUTF8
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 
 {{py:
 
@@ -757,10 +757,11 @@ cdef class {{name}}HashTable(HashTable):
                         append_data_uint8(rmd, 1)
                         continue
 
-                k = kh_put_{{dtype}}(self.table, val, &ret)
+                k = kh_get_{{dtype}}(self.table, val)
 
-                if ret != 0:
+                if k == self.table.n_buckets:
                     # k hasn't been seen yet
+                    k = kh_put_{{dtype}}(self.table, val, &ret)
 
                     if needs_resize(ud.size, ud.capacity):
                         with gil:
@@ -898,8 +899,12 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = -1
                     continue
 
-                k = kh_put_{{dtype}}(self.table, val, &ret)
-                if ret != 0:
+                k = kh_get_{{dtype}}(self.table, val)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = idx
+                else:
+                    k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = count
 
                     if needs_resize(ud.size, ud.capacity):
@@ -908,9 +913,6 @@ cdef class {{name}}HashTable(HashTable):
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
-                else:
-                    idx = self.table.vals[k]
-                    labels[i] = idx
 
         arr_uniques = uniques.to_array()
 
@@ -962,6 +964,11 @@ cdef class {{name}}Factorizer(Factorizer):
 
 
 cdef class StringHashTable(HashTable):
+    # Keys borrow each str's cached UTF-8 buffer via PyUnicode_AsUTF8AndSize,
+    # which yields the length alongside the pointer, so keying on an explicit
+    # length costs no extra pass. The buffer lives exactly as long as the str
+    # does, so callers must keep the str alive while the key is in the table.
+
     # these by-definition *must* be strings
     # or a sentinel np.nan / None missing value
     na_string_sentinel = '__nan__'
@@ -982,8 +989,8 @@ cdef class StringHashTable(HashTable):
     def sizeof(self, deep: bool = False) -> int:
         overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
         for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
-        for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
-                                             sizeof(Py_ssize_t))   # vals
+        for_pairs =  self.table.n_buckets * (sizeof(kh_strview_t) +  # keys
+                                             sizeof(Py_ssize_t))     # vals
         return overhead + for_flags + for_pairs
 
     def get_state(self) -> dict[str, int]:
@@ -998,8 +1005,11 @@ cdef class StringHashTable(HashTable):
     cpdef get_item(self, str val):
         cdef:
             khiter_t k
-            const char *v
-        v = PyUnicode_AsUTF8(val)
+            kh_strview_t v
+            Py_ssize_t length
+            const char *ptr
+        ptr = PyUnicode_AsUTF8AndSize(val, &length)
+        v = kh_strview(ptr, length)
 
         k = kh_get_str(self.table, v)
         if k != self.table.n_buckets:
@@ -1011,9 +1021,12 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-            const char *v
+            kh_strview_t v
+            Py_ssize_t length
+            const char *ptr
 
-        v = PyUnicode_AsUTF8(key)
+        ptr = PyUnicode_AsUTF8AndSize(key, &length)
+        v = kh_strview(ptr, length)
 
         k = kh_put_str(self.table, v, &ret)
         if kh_exist_str(self.table, k):
@@ -1031,16 +1044,17 @@ cdef class StringHashTable(HashTable):
             intp_t *resbuf = <intp_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
-            const char *v
-            const char **vecs
+            kh_strview_t *vecs
+            Py_ssize_t length
+            const char *ptr
 
-        vecs = <const char **>malloc(n * sizeof(char *))
+        vecs = <kh_strview_t *>malloc(n * sizeof(kh_strview_t))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
             val = values[i]
-            v = PyUnicode_AsUTF8(val)
-            vecs[i] = v
+            ptr = PyUnicode_AsUTF8AndSize(val, &length)
+            vecs[i] = kh_strview(ptr, length)
 
         with nogil:
             for i in range(n):
@@ -1062,24 +1076,27 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            const char *v
+            kh_strview_t v
+            kh_strview_t *vecs
+            Py_ssize_t length
+            const char *ptr
             khiter_t k
             intp_t[::1] locs = np.empty(n, dtype=np.intp)
 
         # these by-definition *must* be strings
-        vecs = <const char **>malloc(n * sizeof(char *))
+        vecs = <kh_strview_t *>malloc(n * sizeof(kh_strview_t))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8 won't recognize
-                #  it as a str, even though isinstance does.
-                v = PyUnicode_AsUTF8(<str>val)
+                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8AndSize won't
+                #  recognize it as a str, even though isinstance does.
+                ptr = PyUnicode_AsUTF8AndSize(<str>val, &length)
             else:
-                v = PyUnicode_AsUTF8(self.na_string_sentinel)
-            vecs[i] = v
+                ptr = PyUnicode_AsUTF8AndSize(self.na_string_sentinel, &length)
+            vecs[i] = kh_strview(ptr, length)
 
         with nogil:
             for i in range(n):
@@ -1101,24 +1118,26 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            const char *v
-            const char **vecs
+            kh_strview_t v
+            kh_strview_t *vecs
+            Py_ssize_t length
+            const char *ptr
             khiter_t k
 
         # these by-definition *must* be strings
-        vecs = <const char **>malloc(n * sizeof(char *))
+        vecs = <kh_strview_t *>malloc(n * sizeof(kh_strview_t))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8 won't recognize
-                #  it as a str, even though isinstance does.
-                v = PyUnicode_AsUTF8(<str>val)
+                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8AndSize won't
+                #  recognize it as a str, even though isinstance does.
+                ptr = PyUnicode_AsUTF8AndSize(<str>val, &length)
             else:
-                v = PyUnicode_AsUTF8(self.na_string_sentinel)
-            vecs[i] = v
+                ptr = PyUnicode_AsUTF8AndSize(self.na_string_sentinel, &length)
+            vecs[i] = kh_strview(ptr, length)
 
         with nogil:
             for i in range(n):
@@ -1172,11 +1191,14 @@ cdef class StringHashTable(HashTable):
             int64_t[::1] uindexer
             int ret = 0
             object val
-            const char *v
-            const char **vecs
+            kh_strview_t v
+            kh_strview_t *vecs
+            Py_ssize_t length
+            const char *ptr
             khiter_t k
             bint use_na_value
             bint non_null_na_value
+            list refs = []
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
@@ -1185,7 +1207,7 @@ cdef class StringHashTable(HashTable):
         non_null_na_value = not checknull(na_value)
 
         # assign pointers and pre-filter out missing (if ignore_na)
-        vecs = <const char **>malloc(n * sizeof(char *))
+        vecs = <kh_strview_t *>malloc(n * sizeof(kh_strview_t))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
@@ -1206,10 +1228,15 @@ cdef class StringHashTable(HashTable):
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
-                    v = PyUnicode_AsUTF8(<str>val)
+                    ptr = PyUnicode_AsUTF8AndSize(<str>val, &length)
                 except UnicodeEncodeError:
-                    v = PyUnicode_AsUTF8(<str>repr(val))
-                vecs[i] = v
+                    # GH#34550 val is not utf-8 encodable (e.g. a lone
+                    #  surrogate). Retain the repr in `refs` so the buffer
+                    #  `ptr` points to outlives the nogil loop below.
+                    val = repr(val)
+                    refs.append(val)
+                    ptr = PyUnicode_AsUTF8AndSize(<str>val, &length)
+                vecs[i] = kh_strview(ptr, length)
 
         # compute
         with nogil:
@@ -1219,9 +1246,10 @@ cdef class StringHashTable(HashTable):
                     continue
 
                 v = vecs[i]
-                k = kh_put_str(self.table, v, &ret)
-                if ret != 0:
+                k = kh_get_str(self.table, v)
+                if k == self.table.n_buckets:
                     # k hasn't been seen yet
+                    k = kh_put_str(self.table, v, &ret)
                     uindexer[count] = i
                     if return_inverse:
                         self.table.vals[k] = count
@@ -1321,7 +1349,11 @@ cdef class PyObjectHashTable(HashTable):
         kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
+        cdef khiter_t index
         if self.table is not NULL:
+            for index in range(self.table.n_buckets):
+                if kh_exist_pymap(self.table, index):
+                    Py_DECREF(<object>self.table.keys[index])
             kh_destroy_pymap(self.table)
             self.table = NULL
 
@@ -1376,6 +1408,8 @@ cdef class PyObjectHashTable(HashTable):
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         if kh_exist_pymap(self.table, k):
+            if ret != 0:
+                Py_INCREF(key)
             self.table.vals[k] = val
         else:
             raise KeyError(key)
@@ -1396,6 +1430,8 @@ cdef class PyObjectHashTable(HashTable):
 
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
+            if ret != 0:
+                Py_INCREF(val)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1491,9 +1527,11 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = na_sentinel
                 continue
 
-            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-            if ret != 0:
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k == self.table.n_buckets:
                 # k hasn't been seen yet
+                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                Py_INCREF(val)
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count

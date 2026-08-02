@@ -7,9 +7,6 @@ Cookbook
 ********
 
 This is a repository for *short and sweet* examples and links for useful pandas recipes.
-We encourage users to add to this documentation.
-
-Adding interesting links and/or inline examples to this section is a great *First Pull Request*.
 
 Simplified, condensed, new-user friendly, in-line examples have been inserted where possible to
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
@@ -1176,7 +1173,7 @@ Parsing date components in multi-columns is faster with a format
     df = pd.DataFrame({"year": i.year, "month": i.month, "day": i.day})
     df.head()
 
-    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
+    %timeit pd.to_datetime((df.year * 10000 + df.month * 100 + df.day).astype(str), format='%Y%m%d')
     ds = df.apply(lambda x: "%04d%02d%02d" % (x["year"], x["month"], x["day"]), axis=1)
     ds.head()
     %timeit pd.to_datetime(ds)

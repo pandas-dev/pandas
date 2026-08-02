@@ -320,6 +320,14 @@ cdef datetime parse_datetime_string(
     except ValueError:
         pass
 
+    if date_string.lstrip().startswith("-"):
+        # GH#55954 a leading "-" indicates a BC year and is only handled by
+        # the iso8601 fast path. Falling through to dateutil would silently
+        # strip the sign and produce a positive year.
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {date_string}"
+        )
+
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
                         ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
@@ -426,6 +434,14 @@ def parse_datetime_string_with_reso(
         else:
             reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
+
+    if date_string.lstrip().startswith("-"):
+        # GH#55954 a leading "-" indicates a BC year and is only handled by
+        # the iso8601 fast path. Falling through to dateutil would silently
+        # strip the sign and produce a positive year.
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {date_string}"
+        )
 
     parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
                             dayfirst=dayfirst, yearfirst=yearfirst,

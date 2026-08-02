@@ -366,7 +366,12 @@ class TestCategoricalOps:
             ("__mul__", r"\*"),
             ("__truediv__", "/"),
         ]:
-            msg = f"Series cannot perform the operation {str_rep}|unsupported operand"
+            msg = "|".join(
+                [
+                    f"Series cannot perform the operation {str_rep}",
+                    "unsupported operand",
+                ]
+            )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)(df)
 
@@ -396,7 +401,9 @@ class TestCategoricalOps:
     def test_numeric_like_ops_series_arith(self, op, str_rep):
         # numeric ops on a Series
         s = Series(Categorical([1, 2, 3, 4]))
-        msg = f"Series cannot perform the operation {str_rep}|unsupported operand"
+        msg = "|".join(
+            [f"Series cannot perform the operation {str_rep}", "unsupported operand"]
+        )
         with pytest.raises(TypeError, match=msg):
             getattr(s, op)(2)
 

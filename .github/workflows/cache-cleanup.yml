@@ -16,6 +16,8 @@ defaults:
 jobs:
   cleanup:
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write
     if: github.repository_owner == 'pandas-dev'
     steps:
       - name: Clean closed pull request caches
@@ -24,6 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh cache delete
+          --repo pandas-dev/pandas
           --all
           --ref refs/pull/${{ github.event.pull_request.number }}/merge
           --succeed-on-no-caches
@@ -33,5 +36,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh cache delete
+          --repo pandas-dev/pandas
           --all
           --succeed-on-no-caches

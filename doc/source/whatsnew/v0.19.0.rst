@@ -762,6 +762,7 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    s["a"] = pd.Timestamp("2016-01-01")
    s["b"] = 3.0
@@ -994,6 +995,7 @@ of integers (:issue:`13988`).
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    pi = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
    pi.values

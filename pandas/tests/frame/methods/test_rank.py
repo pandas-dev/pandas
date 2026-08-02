@@ -388,7 +388,7 @@ class TestRank:
             "float64": np.nan,
             "float32": np.nan,
             "object": None,
-            "datetime64": np.datetime64("nat"),
+            "datetime64": np.datetime64("nat", "ns"),
         }
         # Insert nans at random positions if underlying dtype has missing
         # value. Then adjust the expected order by adding nans accordingly

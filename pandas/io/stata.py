@@ -27,7 +27,6 @@ from typing import (
     AnyStr,
     Final,
     Self,
-    cast,
 )
 import warnings
 
@@ -213,7 +212,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         year = stata_epoch.year + dates // 52
         days = (dates % 52) * 7
         per_y = (year - 1970).array.view("Period[Y]")
-        per_d = per_y.asfreq("D", how="S")
+        per_d = per_y.asfreq("D", how="S")  # type: ignore[union-attr]
         per_d_shifted = per_d + days._values
         per_s = per_d_shifted.asfreq("s", how="S")
         conv_dates_arr = per_s.view("M8[s]")
@@ -1448,7 +1447,6 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self._typlist):
             if typ in self.NUMPY_TYPE_MAP:
-                typ = cast("str", typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append((f"s{i}", f"{self._byteorder}{self.NUMPY_TYPE_MAP[typ]}"))
             else:
                 dtypes.append((f"s{i}", f"S{typ}"))
@@ -1808,13 +1806,11 @@ the string values returned are correct."""
                 if fmt not in self.OLD_VALID_RANGE:
                     continue
 
-                fmt = cast("str", fmt)  # only strs in OLD_VALID_RANGE
                 nmin, nmax = self.OLD_VALID_RANGE[fmt]
             else:
                 if fmt not in self.VALID_RANGE:
                     continue
 
-                fmt = cast("str", fmt)  # only strs in VALID_RANGE
                 nmin, nmax = self.VALID_RANGE[fmt]
             series = data.iloc[:, i]
 

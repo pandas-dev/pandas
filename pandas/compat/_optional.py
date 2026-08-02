@@ -16,7 +16,7 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst, actions-311-minimum_versions.yaml,
+# Update install.rst, pixi.toml,
 # deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
@@ -43,7 +43,7 @@ VERSIONS = {
     "pyreadstat": "1.2.8",
     "pytest": "8.3.4",
     "python-calamine": "0.3.0",
-    "pytz": "2024.2",
+    "pytz": "2020.1",  # keep this pinned (https://github.com/pandas-dev/pandas/pull/65133)
     "pyxlsb": "1.0.10",
     "s3fs": "2024.10.0",
     "scipy": "1.14.1",
@@ -152,7 +152,8 @@ def import_optional_dependency(
 
     msg = (
         f"`Import {install_name}` failed. {extra} "
-        f"Use pip or conda to install the {install_name} package."
+        f"Use pip, conda, or your preferred package management tool "
+        f"to install the {install_name} package."
     )
     try:
         module = importlib.import_module(name)

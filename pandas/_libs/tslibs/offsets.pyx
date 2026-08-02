@@ -1927,6 +1927,15 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
         self.__dict__.update(state)
 
+    def __reduce__(self):
+        # GH#45790: BaseOffset.__reduce__ can't be used here because
+        #  RelativeDeltaOffset has kwargs not captured by _attributes.
+        #  We need our own __reduce__ (rather than relying on __getstate__/
+        #  __setstate__) so that pickle protocol 0 also works — pytables
+        #  hardcodes protocol 0 when storing object attrs, which routes
+        #  through copyreg._reduce_ex and breaks for RelativeDeltaOffset.
+        return type(self), (), self.__getstate__()
+
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         other_nanos = 0
@@ -1952,7 +1961,21 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = localize_pydatetime(other, tzinfo)
 
-            return Timestamp(other)
+            result = Timestamp(other)
+            # GH#64806 The computation above uses Python timedelta /
+            # relativedelta, which floor sub-second components to microseconds
+            # and lose the offset's declared resolution (e.g. milliseconds).
+            # Coerce to that resolution when lossless so the scalar result
+            # matches the vectorized DatetimeIndex/Series path; apply_wraps
+            # then narrows back to ``other``'s unit where that is also lossless.
+            try:
+                offset_unit = self._pd_timedelta.unit
+            except NotImplementedError:
+                return result
+            result2 = result.as_unit(offset_unit)
+            if result == result2:
+                result = result2
+            return result
         else:
             return other + timedelta(self._n)
 
@@ -1999,6 +2022,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
                     delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
+            elif not kwds:
+                # GH#61870: bare DateOffset(n) with no keywords defaults to
+                # n days (matching the scalar path); without this branch it
+                # would incorrectly become a no-op on the vectorized path.
+                delta = Timedelta(days=1).as_unit("s")
             else:
                 delta = Timedelta(0).as_unit("s")
 
@@ -2122,15 +2150,23 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     DateOffsets can be created to move dates forward a given number of
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
-    valid date, first it is moved to a valid date.  Thus pseudo code
-    is::
+    valid date, it is first rolled forward to the next valid date, and
+    that roll counts as the first of the n increments.  For example,
+    2014-08-31 is a Sunday, so ``Timestamp("2014-08-31") + BDay(1)``
+    only rolls forward to Monday 2014-09-01, and adding ``BDay(2)``
+    gives Tuesday 2014-09-02.  Equivalently, the date is first rolled
+    back to the previous valid date, then moved n valid dates forward.
+    Thus pseudo code is::
 
         def __add__(date):
           date = rollback(date) # does nothing if date is valid
           return date + <n number of periods>
 
     When a date offset is created for a negative number of periods,
-    the date is first rolled forward.  The pseudo code is::
+    the roll is symmetric: rolling back to the previous valid date
+    counts as the first decrement; equivalently, the date is first
+    rolled forward, then moved ``abs(n)`` valid dates backward.  The
+    pseudo code is::
 
         def __add__(date):
           date = rollforward(date) # does nothing if date is valid
@@ -2141,7 +2177,10 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
 
     date + BDay(0) == BDay.rollforward(date)
 
-    Since 0 is a bit weird, we suggest avoiding its use.
+    Since 0 is a bit weird, we suggest avoiding its use.  Because the
+    roll counts as an increment, ``date + BDay(0)`` and
+    ``date + BDay(1)`` give the same result when date is not a
+    business day.
 
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
@@ -2209,6 +2248,16 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
         to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
+
+    Notes
+    -----
+    When added to a :class:`DatetimeIndex` or datetime :class:`Series`, a
+    ``DateOffset`` is applied to each entry independently. Calendar components
+    such as ``months`` and ``years`` do not represent a fixed duration, so
+    evenly spaced input dates are not guaranteed to remain evenly spaced: dates
+    that would fall on a nonexistent day are clamped to the end of the month.
+    For example, adding ``DateOffset(months=1)`` to both ``2018-01-30`` and
+    ``2018-01-31`` yields ``2018-02-28`` in each case.
 
     Examples
     --------
@@ -2624,7 +2673,7 @@ cdef class BusinessDay(BusinessMixin):
         """
         cdef:
             int periods = self._n
-            Py_ssize_t i, count = i8other.size
+            Py_ssize_t _, count = i8other.size
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
@@ -2637,7 +2686,7 @@ cdef class BusinessDay(BusinessMixin):
         weeks = periods // 5
 
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -4795,7 +4844,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         cdef:
             ndarray i8other = dtarr.view("i8")
-            Py_ssize_t i, count = dtarr.size
+            Py_ssize_t _, count = dtarr.size
             int64_t val, res_val
             ndarray out = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
@@ -4808,7 +4857,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -5178,7 +5227,7 @@ cdef class Week(SingleConstructorOffset):
         ndarray[int64_t]
         """
         cdef:
-            Py_ssize_t i, count = i8other.size
+            Py_ssize_t _, count = i8other.size
             int64_t val, res_val
             ndarray out = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
@@ -5190,7 +5239,7 @@ cdef class Week(SingleConstructorOffset):
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -7140,12 +7189,30 @@ _lite_rule_alias = {
 
 _dont_uppercase = {"min", "h", "bh", "cbh", "s", "ms", "us", "ns"}
 
+# Map tick-prefix string -> (Tick subclass, factor relative to that class's unit).
+# Used to fast-path to_offset for integer strides; matches what
+# ``delta_to_tick(Timedelta(1, unit=name))`` returns. ``D`` produces ``Hour``
+# (not ``Day``) because ``Day`` is not a ``Tick``; the ``Day`` post-processing
+# in ``to_offset`` converts back when appropriate.
+_tick_klass_factor = {
+    "D": (Hour, 24),
+    "h": (Hour, 1),
+    "min": (Minute, 1),
+    "s": (Second, 1),
+    "ms": (Milli, 1),
+    "us": (Micro, 1),
+    "ns": (Nano, 1),
+}
+
+# Precomputed set of values from c_PERIOD_AND_OFFSET_DEPR_FREQSTR so that
+# membership tests in ``_warn_about_deprecated_aliases`` don't recompute
+# ``.values()`` on every call.
+_period_and_offset_depr_freqstr_values = frozenset(
+    c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values()
+)
+
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
-
-# TODO: still needed?
-# cache of previously seen offsets
-_offset_map = {}
 
 
 deprec_to_valid_alias = {
@@ -7195,27 +7262,31 @@ def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
     raise ValueError(msg)
 
 
-def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
+cdef str _warn_about_deprecated_aliases(str name, bint is_period):
+    cdef:
+        str _name, replacement
+
     if name in _lite_rule_alias:
         return name
-    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+    replacement = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
+    if replacement is not None:
         from pandas.errors import Pandas4Warning
 
         # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"\'{replacement}\' "
             f"instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
             )
-        return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
+        return replacement
 
     for _name in (name.lower(), name.upper()):
         if name == _name:
             continue
-        if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+        if _name in _period_and_offset_depr_freqstr_values:
             from pandas.errors import Pandas4Warning
 
             # https://github.com/pandas-dev/pandas/pull/59240
@@ -7232,28 +7303,31 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     return name
 
 
-def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
+cdef _validate_to_offset_alias(str alias, bint is_period):
+    cdef:
+        str alias_upper, renamed, period_alias
+
     if not is_period:
-        if alias.upper() in c_OFFSET_RENAMED_FREQSTR:
+        if alias in deprec_to_valid_alias:
+            raise_invalid_freq(freq=alias)
+        alias_upper = alias.upper()
+        renamed = c_OFFSET_RENAMED_FREQSTR.get(alias_upper)
+        if renamed is not None:
             raise ValueError(
                 f"\'{alias}\' is no longer supported for offsets. Please "
-                f"use \'{c_OFFSET_RENAMED_FREQSTR.get(alias.upper())}\' "
-                f"instead."
+                f"use \'{renamed}\' instead."
             )
-        if (alias.upper() != alias and
+        if (alias_upper != alias and
                 alias.lower() not in {"s", "ms", "us", "ns"} and
-                alias.upper().split("-")[0].endswith(("S", "E"))):
+                alias_upper.split("-")[0].endswith(("S", "E"))):
             raise ValueError(raise_invalid_freq(freq=alias))
-    if (
-        is_period and
-        alias in c_OFFSET_TO_PERIOD_FREQSTR and
-        alias != c_OFFSET_TO_PERIOD_FREQSTR[alias]
-    ):
-        alias_msg = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
-        raise ValueError(
-            f"for Period, please use \'{alias_msg}\' "
-            f"instead of \'{alias}\'"
-        )
+    else:
+        period_alias = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
+        if period_alias is not None and period_alias != alias:
+            raise ValueError(
+                f"for Period, please use \'{period_alias}\' "
+                f"instead of \'{alias}\'"
+            )
 
 
 # TODO: better name?
@@ -7265,23 +7339,18 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name not in _offset_map:
-        try:
-            split = name.split("-")
-            klass = prefix_mapping[split[0]]
-            # handles case where there's no suffix (and will TypeError if too
-            # many '-')
-            offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError) as err:
-            # bad prefix or suffix
-            raise_invalid_freq(
-                freq=name,
-                extra_message=f"Failed to parse with error message: {repr(err)}."
-            )
-        # cache
-        _offset_map[name] = offset
-
-    return _offset_map[name]
+    try:
+        split = name.split("-")
+        klass = prefix_mapping[split[0]]
+        # handles case where there's no suffix (and will TypeError if too
+        # many '-')
+        return klass._from_name(*split[1:])
+    except (ValueError, TypeError, KeyError) as err:
+        # bad prefix or suffix
+        raise_invalid_freq(
+            freq=name,
+            extra_message=f"Failed to parse with error message: {repr(err)}."
+        )
 
 
 cpdef to_offset(freq, bint is_period=False):
@@ -7372,8 +7441,12 @@ cpdef to_offset(freq, bint is_period=False):
                 # the last element must be blank
                 raise ValueError("last element must be blank")
 
-            tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
-            for n, (sep, stride, name) in enumerate(tups):
+            # split has 4*N + 1 elements where N is the number of segments
+            n_segments = (len(split) - 1) // 4
+            for n in range(n_segments):
+                sep = split[n * 4]
+                stride = split[n * 4 + 1]
+                name = split[n * 4 + 2]
                 name = _warn_about_deprecated_aliases(name, is_period)
                 _validate_to_offset_alias(name, is_period)
                 if is_period:
@@ -7393,21 +7466,32 @@ cpdef to_offset(freq, bint is_period=False):
                 if not stride:
                     stride = 1
 
-                if name in {"D", "h", "min", "s", "ms", "us", "ns"}:
-                    # For these prefixes, we have something like "3h" or
-                    #  "2.5min", so we can construct a Timedelta with the
-                    #  matching unit and get our offset from delta_to_tick
+                tick_info = _tick_klass_factor.get(name)
+                if tick_info is None:
+                    offset = _get_offset(name)
+                if tick_info is not None and isinstance(stride, str) and \
+                        "." in stride:
+                    # For these prefixes, fractional strides like "2.5min"
+                    #  go through Tick.__mul__(float) which handles unit
+                    #  promotion to a higher-resolution Tick subclass.
                     td = Timedelta(1, unit=name)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
                     if n != 0:
-                        # If n==0, then stride_sign is already incorporated
-                        #  into the offset
+                        # If n==0, stride_sign is already in the offset
                         offset *= stride_sign
                 else:
-                    stride = int(stride)
-                    offset = _get_offset(name)
-                    offset = offset * int(np.fabs(stride) * stride_sign)
+                    int_stride = int(stride)
+                    if n != 0:
+                        # If n==0, stride_sign is already in stride
+                        int_stride *= stride_sign
+                    if tick_info is not None:
+                        # Integer-stride tick: construct directly to skip
+                        #  Timedelta + delta_to_tick + Tick.__mul__(float).
+                        klass, factor = tick_info
+                        offset = klass(int_stride * factor)
+                    else:
+                        offset *= int_stride
 
                 if result is None:
                     result = offset
@@ -7565,7 +7649,7 @@ cdef ndarray shift_quarters(
     cdef:
         Py_ssize_t count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
-        Py_ssize_t i
+        Py_ssize_t _
         int64_t val, res_val
         int months_since, n
         npy_datetimestruct dts
@@ -7573,7 +7657,7 @@ cdef ndarray shift_quarters(
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
     with nogil:
-        for i in range(count):
+        for _ in range(count):
             # Analogous to: val = dtindex[i]
             val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -7618,7 +7702,7 @@ def shift_months(
        * 'end' last day of month
     """
     cdef:
-        Py_ssize_t i
+        Py_ssize_t _
         npy_datetimestruct dts
         int count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
@@ -7631,7 +7715,7 @@ def shift_months(
     if day_opt is None:
         # TODO: can we combine this with the non-None case?
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -7653,7 +7737,7 @@ def shift_months(
     else:
         day_opt_enum = _str_to_day_opt(day_opt)
         with nogil:
-            for i in range(count):
+            for _ in range(count):
 
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]

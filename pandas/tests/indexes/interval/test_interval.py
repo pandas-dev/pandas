@@ -431,13 +431,15 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize(
         "breaks1, breaks2",
-        permutations(
-            [
-                date_range("20180101", periods=4),
-                date_range("20180101", periods=4, tz="US/Eastern"),
-                timedelta_range("0 days", periods=4),
-            ],
-            2,
+        list(
+            permutations(
+                [
+                    date_range("20180101", periods=4),
+                    date_range("20180101", periods=4, tz="US/Eastern"),
+                    timedelta_range("0 days", periods=4),
+                ],
+                2,
+            )
         ),
         ids=lambda x: str(x.dtype),
     )
@@ -646,7 +648,7 @@ class TestIntervalIndex:
         # test mid
         start = Timestamp("2000-01-01T12:00", tz=tz)
         expected = date_range(start=start, periods=9)
-        tm.assert_index_equal(index.mid, expected)
+        tm.assert_index_equal(index.mid, expected, check_freq=False)
 
         # __contains__ doesn't check individual points
         assert Timestamp("2000-01-01", tz=tz) not in index

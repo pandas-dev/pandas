@@ -42,6 +42,7 @@ from pandas.core.indexes.api import (
     _get_combined_index,
     ensure_index,
     ensure_index_from_sequences,
+    union_indexes,
 )
 from pandas.testing import assert_series_equal
 
@@ -136,7 +137,7 @@ class TestIndex:
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
         result = Index(Series(index))
-        tm.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index, check_freq=False)
 
         if has_tz:
             assert result.tz == index.tz
@@ -173,7 +174,9 @@ class TestIndex:
         # infer freq of same
         if not using_infer_string:
             # Doesn't work with arrow strings
-            freq = pd.infer_freq(df["date"])
+            msg = "A future version of pandas will return a BaseOffset"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                freq = pd.infer_freq(df["date"])
             assert freq == "MS"
 
     def test_constructor_int_dtype_nan(self):
@@ -181,6 +184,37 @@ class TestIndex:
         data = [np.nan]
         expected = Index(data, dtype=np.float64)
         result = Index(data, dtype="float")
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_scalar(self):
+        idx = Index([1, 2, 3])
+
+        result = idx.replace(2, 9)
+
+        expected = Index([1, 9, 3])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_dict(self):
+        idx = Index(["a", "b", "c"])
+
+        result = idx.replace({"b": "x"})
+
+        expected = Index(["a", "x", "c"])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_preserves_name(self):
+        idx = Index([1, 2, 3], name="test")
+
+        result = idx.replace(2, 9)
+
+        assert result.name == "test"
+
+    def test_index_replace_regex(self):
+        idx = Index(["foo", "bar", "baz"])
+        result = idx.replace("^ba", "x", regex=True)
+        expected = Index(["foo", "xr", "xz"])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -234,13 +268,13 @@ class TestIndex:
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
                 klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             if err:
@@ -248,20 +282,20 @@ class TestIndex:
                     DatetimeIndex(arg).astype(dtype)
             else:
                 result = DatetimeIndex(arg).astype(dtype)
-                tm.assert_index_equal(result, index)
+                tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(arg, dtype=dtype)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
                 klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             if err:
@@ -269,10 +303,10 @@ class TestIndex:
                     DatetimeIndex(list(arg)).astype(dtype)
             else:
                 result = DatetimeIndex(list(arg)).astype(dtype)
-                tm.assert_index_equal(result, index)
+                tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(list(arg), dtype=dtype)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
@@ -356,11 +390,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = (
-                r"Cannot change data-type for array of references\.|"
-                r"Cannot change data-type for object array\.|"
-                r"Cannot change data-type for array of strings\.|"
-            )
+            msg = "Cannot change data-type"
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -1111,20 +1141,23 @@ class TestIndex:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = index.take(np.array([1, 0, -1]), fill_value=True)
+        result = index.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = Index(["B", "A", np.nan], name="xxx")
         tm.assert_index_equal(result, expected)
 
+        # fill_value is respected (not discarded in favor of _na_value)
+        result = index.take(np.array([1, 0, -1]), fill_value="X")
+        expected = Index(["B", "A", "X"], name="xxx")
+        tm.assert_index_equal(result, expected)
+
         # allow_fill=False
-        result = index.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = index.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index(["B", "A", "C"], name="xxx")
         tm.assert_index_equal(result, expected)
 
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
 
         with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -2]), fill_value=True)
@@ -1370,6 +1403,30 @@ class TestIndex:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "indexes, expected, expected_all_equal",
+        [
+            (
+                [Index(["a", "b"]), Index(["a", "b"])],
+                Index(["a", "b"]),
+                True,
+            ),
+            (
+                [Index(["a", "b"]), Index(["b", "c"])],
+                Index(["a", "b", "c"]),
+                False,
+            ),
+        ],
+    )
+    def test_union_indexes_returns_all_equal(
+        self, indexes, expected, expected_all_equal
+    ):
+        # GH#65393
+        result, all_equal = union_indexes(indexes, sort=False)
+
+        tm.assert_index_equal(result, expected)
+        assert all_equal is expected_all_equal
+
 
 class TestMixedIntIndex:
     # (GH 13514) tests for mixed int/str indexes where ints and strings
@@ -1380,12 +1437,12 @@ class TestMixedIntIndex:
 
     def test_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             index.argsort()
 
     def test_numpy_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             np.argsort(index)
 
     def test_copy_name(self, simple_index):
@@ -1597,7 +1654,7 @@ class TestIndexUtils:
         tm.assert_index_equal(result, expected)
 
     def test_get_combined_index(self):
-        result = _get_combined_index([])
+        result, _ = _get_combined_index([])
         expected = RangeIndex(0)
         tm.assert_index_equal(result, expected)
 
@@ -1653,7 +1710,7 @@ def test_index_subclass_constructor_wrong_kwargs(klass):
 
 
 def test_deprecated_fastpath():
-    msg = "[Uu]nexpected keyword argument"
+    msg = "unexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
         Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 

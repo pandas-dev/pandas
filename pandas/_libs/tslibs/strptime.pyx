@@ -38,6 +38,7 @@ import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 import re
+import warnings
 
 import numpy as np
 
@@ -56,6 +57,7 @@ from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -64,6 +66,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_nat_sentinel,
     get_datetime64_unit,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -73,6 +76,11 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 import_pandas_datetime()
+
+
+cdef extern from "pandas/portable.h":
+    int checked_sub(int64_t a, int64_t b, int64_t *res)
+
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
@@ -84,6 +92,7 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslibs.timestamps import Timestamp
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
@@ -171,7 +180,8 @@ cdef dict _parse_code_table = {"y": 0,
                                "z": 19,
                                "G": 20,
                                "V": 21,
-                               "u": 22}
+                               "u": 22,
+                               "N": 23}
 
 
 cdef _validate_fmt(str fmt):
@@ -384,9 +394,11 @@ def array_strptime(
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit, item_reso
         int out_local = 0, out_tzoffset = 0
+        int64_t value, ival, nsecs
         bint string_to_dts_succeeded = 0
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
+        bint warned_numeric = False
 
     assert is_raise or is_coerce
 
@@ -464,6 +476,20 @@ def array_strptime(
             ):
                 iresult[i] = NPY_NAT
                 continue
+            elif is_integer_object(val) or is_float_object(val):
+                if not warned_numeric:
+                    from pandas.errors import Pandas4Warning
+                    warnings.warn(
+                        "Parsing integer or float values with a format in "
+                        "to_datetime is deprecated. In a future version these "
+                        "will be interpreted as epochs via the 'unit' keyword "
+                        "instead. Cast them to strings first to retain the "
+                        "current behavior.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    warned_numeric = True
+                val = str(val)
             else:
                 val = str(val)
 
@@ -500,14 +526,23 @@ def array_strptime(
                     nsecs = out_tzoffset * 60
                     state.out_tzoffset_vals.add(nsecs)
                     state.found_aware_str = True
-                    tz = timezone(timedelta(minutes=out_tzoffset))
-                    value = tz_localize_to_utc_single(
-                        value, tz, ambiguous="raise", nonexistent=None, creso=creso
-                    )
+                    # equiv: tz_localize_to_utc_single(
+                    #  value, timezone(timedelta(minutes=out_tzoffset)), creso=creso)
+                    # GH#65353 the shift to UTC must not wrap int64 silently
+                    if checked_sub(value, nsecs * periods_per_second(creso), &value):
+                        raise OutOfBoundsDatetime(
+                            f"Out of bounds {npy_unit_to_attrname[creso]} "
+                            f"timestamp: {val}"
+                        )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(value, &dts, creso)
                 else:
                     tz = None
                     state.out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
+                    # GH#66510 nothing shifts this value afterwards, so a
+                    #  rendering onto the sentinel is final
+                    check_nat_sentinel(value, &dts, creso)
                 iresult[i] = value
                 continue
 
@@ -549,20 +584,47 @@ def array_strptime(
 
             if tz is not None:
                 ival = iresult[i]
-                iresult[i] = tz_localize_to_utc_single(
-                    ival, tz, ambiguous="raise", nonexistent=None, creso=creso
-                )
-                nsecs = (ival - iresult[i])
-                if creso == NPY_FR_ns:
-                    nsecs = nsecs // 10**9
-                elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
-                    nsecs = nsecs // 10**6
-                elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
-                    nsecs = nsecs // 10**3
+                if type(tz) is timezone:
+                    # i.e. a fixed offset from the %z directive
+                    # equiv: tz_localize_to_utc_single(ival, tz, creso=creso)
+                    nsecs = int(tz.utcoffset(None).total_seconds())
+                    # GH#65353 the shift to UTC must not wrap int64 silently
+                    if checked_sub(ival, nsecs * periods_per_second(creso), &ival):
+                        raise OutOfBoundsDatetime(
+                            f"Out of bounds {npy_unit_to_attrname[creso]} "
+                            f"timestamp: {val}"
+                        )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(ival, &dts, creso)
+                    iresult[i] = ival
+                else:
+                    iresult[i] = tz_localize_to_utc_single(
+                        ival, tz, ambiguous="raise", nonexistent=None, creso=creso
+                    )
+                    # GH#66510 the shift must not land on the NaT sentinel.
+                    #  Only meaningful when ival was not already the sentinel:
+                    #  tz_localize_to_utc_single returns such a value untouched,
+                    #  so we would be rejecting the *wall* time, which a westward
+                    #  offset can legitimately shift into range. That leaves a
+                    #  sentinel wall time under a named zone still reading back
+                    #  as NaT, as it does today; the offset is not recoverable
+                    #  here because the localizer refuses the input.
+                    if ival != NPY_NAT:
+                        check_nat_sentinel(iresult[i], &dts, creso)
+                    nsecs = (ival - iresult[i])
+                    if creso == NPY_FR_ns:
+                        nsecs = nsecs // 10**9
+                    elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
+                        nsecs = nsecs // 10**6
+                    elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                        nsecs = nsecs // 10**3
 
                 state.out_tzoffset_vals.add(nsecs)
                 state.found_aware_str = True
             else:
+                # GH#66510 nothing shifts this value afterwards, so a
+                #  rendering onto the sentinel is final
+                check_nat_sentinel(iresult[i], &dts, creso)
                 state.found_naive_str = True
                 tz = None
                 state.out_tzoffset_vals.add("naive")
@@ -755,6 +817,13 @@ cdef tzinfo _parse_with_format(
             us = int(s)
             ns = us % 1000
             us = us // 1000
+        elif parse_code == 23:
+            # e.g. val='123456789'; fmt='%H:%M:%S.%N'
+            s = group_val
+            item_reso[0] = NPY_FR_ns
+            us = int(s)
+            ns = us % 1000
+            us = us // 1000
         elif parse_code == 11:
             # e.g val='Tuesday 24 Aug 2021 01:30:48 AM'; fmt='%A %d %b %Y %I:%M:%S %p'
             weekday = f_weekday_lookup[group_val.lower()]
@@ -859,7 +928,8 @@ class TimeRE(_TimeRE):
         super().__init__(locale_time=locale_time)
         # GH 48767: Overrides for cpython's TimeRE
         #  1) Parse up to nanos instead of micros
-        self.update({"f": r"(?P<f>[0-9]{1,9})"}),
+        self.update({"f": r"(?P<f>[0-9]{1,9})"})
+        self.update({"N": r"(?P<N>[0-9]{9})"})
 
     def __getitem__(self, key):
         if key == "Z":

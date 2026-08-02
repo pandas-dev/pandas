@@ -166,12 +166,8 @@ def test_empty_with_index_col_false(all_parsers):
         ["NotReallyUnnamed", "Unnamed: 0"],
     ],
 )
-def test_multi_index_naming(all_parsers, index_names, request):
+def test_multi_index_naming(all_parsers, index_names):
     parser = all_parsers
-
-    if parser.engine == "pyarrow" and "" in index_names:
-        mark = pytest.mark.xfail(reason="One case raises, others are wrong")
-        request.applymarker(mark)
 
     # We don't want empty index names being replaced with "Unnamed: 0"
     data = ",".join([*index_names, "col\na,c,1\na,d,2\nb,c,3\nb,d,4"])
@@ -184,7 +180,6 @@ def test_multi_index_naming(all_parsers, index_names, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_multi_index_naming_not_all_at_beginning(all_parsers):
     parser = all_parsers
     data = ",Unnamed: 2,\na,c,1\na,d,2\nb,c,3\nb,d,4"
@@ -199,7 +194,6 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_no_multi_index_level_names_empty(temp_file, all_parsers):
     # GH 10984
     parser = all_parsers
@@ -259,10 +253,16 @@ def test_index_col_large_csv(temp_file, all_parsers, monkeypatch):
     tm.assert_frame_equal(result, df.set_index("a"))
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_index_col_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(
+                StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1], index_col=0
+            )
+        return
+
     result = parser.read_csv(
         StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1], index_col=0
     )
@@ -276,7 +276,9 @@ def test_index_col_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
+# header=[0] is a singleton, so it behaves like header=0; the empty-frame
+# index dtype still differs for the pyarrow engine (float64 vs object)
+@xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_index_col_header_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -289,10 +291,14 @@ def test_index_col_header_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1])
+        return
+
     result = parser.read_csv(StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1])
     expected = DataFrame(
         [], columns=MultiIndex.from_arrays([["a0", "a1", "a2"], ["b0", "b1", "b2"]])
@@ -300,10 +306,18 @@ def test_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_index_col_with_data(all_parsers):
     # GH#38292
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(
+                StringIO("a0,a1,a2\nb0,b1,b2\ndata,data,data"),
+                header=[0, 1],
+                index_col=0,
+            )
+        return
+
     result = parser.read_csv(
         StringIO("a0,a1,a2\nb0,b1,b2\ndata,data,data"), header=[0, 1], index_col=0
     )
@@ -355,7 +369,48 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
+@pytest.mark.parametrize("dtype", [str, object])
+def test_scalar_dtype_for_index_col(all_parsers, dtype, using_infer_string, request):
+    # GH#45801 a scalar dtype applies to the index column too, like the c
+    #  engine, except when it resolves to object (dtype=object always;
+    #  dtype=str with infer_string disabled), in which case index columns
+    #  keep their inferred values
+    parser = all_parsers
+    data = "a,b\n1,x\n2,y"
+    apply_to_index = dtype is str and using_infer_string
+    if parser.engine == "python" and apply_to_index:
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="python engine does not apply scalar dtype to index_col"
+            )
+        )
+    result = parser.read_csv(StringIO(data), index_col="a", dtype=dtype)
+    if apply_to_index:
+        expected_index = Index(["1", "2"], name="a", dtype=dtype)
+    else:
+        expected_index = Index([1, 2], name="a")
+    expected = DataFrame({"b": ["x", "y"]}, index=expected_index, dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "Int64"])
+def test_scalar_numeric_dtype_for_index_col(all_parsers, dtype, request):
+    # GH#45801 a scalar dtype applies to the index column too, like the c
+    #  engine
+    parser = all_parsers
+    data = "a,b\n1,2\n3,4"
+    if parser.engine == "python":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="python engine does not apply scalar dtype to index_col"
+            )
+        )
+    result = parser.read_csv(StringIO(data), index_col="a", dtype=dtype)
+    expected = DataFrame({"b": [2, 4]}, index=Index([1, 3], name="a"), dtype=dtype)
+    expected.index = expected.index.astype(dtype)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiindex_columns_not_leading_index_col(all_parsers):
     # GH#38549
     parser = all_parsers
@@ -363,6 +418,11 @@ def test_multiindex_columns_not_leading_index_col(all_parsers):
 e,f,g,h
 x,y,1,2
 """
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), header=[0, 1], index_col=1)
+        return
+
     result = parser.read_csv(
         StringIO(data),
         header=[0, 1],
