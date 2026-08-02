@@ -247,6 +247,40 @@ cdef str dts_to_iso_string(npy_datetimestruct *dts):
             f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
 
+cdef str dts_to_iso_string_ns(npy_datetimestruct *dts):
+    """
+    Render `dts`, including its sub-second digits if it has any.
+
+    For callers where the sub-second digits are what put the value out of
+    bounds, so that truncating to seconds would name a representable value.
+    Trailing zeros are dropped so that a coarser-than-nanosecond `dts` is not
+    given precision it does not have; the digits shown are always exact.
+    """
+    cdef:
+        int64_t nanos = dts.us * 1000 + dts.ps // 1000
+        str digits
+
+    if nanos == 0:
+        return dts_to_iso_string(dts)
+    digits = f"{nanos:09d}".rstrip("0")
+    return f"{dts_to_iso_string(dts)}.{digits}"
+
+
+cdef _raise_nat_sentinel(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit):
+    """
+    Out-of-line raise for check_nat_sentinel (see np_datetime.pxd).
+
+    NPY_NAT is INT64_MIN, so a rendered or tz-shifted value that lands on it is
+    not NaT but is indistinguishable from it downstream: it reads back as NaT as
+    soon as it is stored in a datetime64 array, and wraps if converted to another
+    unit. (GH#66510)
+    """
+    attrname = npy_unit_to_attrname[unit]
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(dts)}"
+    )
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""

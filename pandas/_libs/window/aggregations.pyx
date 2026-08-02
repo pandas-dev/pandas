@@ -1,9 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport (
-    fabs,
-    signbit,
-)
+from libc.math cimport fabs
+from libcpp.cmath cimport signbit
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map
@@ -39,7 +37,6 @@ cdef extern from "pandas/skiplist.h":
         double value
         int is_nil
         int levels
-        int ref_count
 
     ctypedef struct skiplist_t:
         node_t *head
@@ -50,10 +47,11 @@ cdef extern from "pandas/skiplist.h":
 
     skiplist_t* skiplist_init(int) nogil
     void skiplist_destroy(skiplist_t*) nogil
+    void skiplist_reset(skiplist_t*) nogil
     double skiplist_get(skiplist_t*, int, int*) nogil
+    int skiplist_get_pair(skiplist_t*, int, double*, double*) nogil
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
-    int skiplist_rank(skiplist_t*, double) nogil
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
@@ -1042,7 +1040,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
         int64_t nobs = 0, N = len(start), s, e, win
-        float64_t val, res
+        float64_t val, res, vlow, vhigh
         skiplist_t *sl
         ndarray[float64_t] output
 
@@ -1071,8 +1069,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
                 if i != 0:
-                    skiplist_destroy(sl)
-                    sl = skiplist_init(<int>win)
+                    skiplist_reset(sl)
                     nobs = 0
                 # setup
                 for j in range(s, e):
@@ -1105,8 +1102,8 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                 if nobs % 2:
                     res = skiplist_get(sl, midpoint, &ret)
                 else:
-                    res = (skiplist_get(sl, midpoint, &ret) +
-                           skiplist_get(sl, (midpoint - 1), &ret)) / 2
+                    ret = skiplist_get_pair(sl, midpoint - 1, &vlow, &vhigh)
+                    res = (vlow + vhigh) / 2
                 if ret == 0:
                     res = NaN
             else:
@@ -1116,8 +1113,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
-                skiplist_destroy(sl)
-                sl = skiplist_init(<int>win)
+                skiplist_reset(sl)
 
     skiplist_destroy(sl)
     if err:
@@ -1452,8 +1448,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
                 if i != 0:
                     nobs = 0
-                    skiplist_destroy(skiplist)
-                    skiplist = skiplist_init(<int>win)
+                    skiplist_reset(skiplist)
 
                 # setup
                 for j in range(s, e):
@@ -1490,8 +1485,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                         continue
 
                     if interpolation_type == LINEAR:
-                        vlow = skiplist_get(skiplist, idx, &ret)
-                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        ret = skiplist_get_pair(skiplist, idx, &vlow, &vhigh)
                         output[i] = (vlow + (vhigh - vlow) *
                                      (idx_with_fraction - idx))
                     elif interpolation_type == LOWER:
@@ -1511,8 +1505,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                         else:
                             output[i] = skiplist_get(skiplist, idx + 1, &ret)
                     elif interpolation_type == MIDPOINT:
-                        vlow = skiplist_get(skiplist, idx, &ret)
-                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        ret = skiplist_get_pair(skiplist, idx, &vlow, &vhigh)
                         output[i] = <float64_t>(vlow + vhigh) / 2
 
                     if ret == 0:
@@ -1577,8 +1570,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
                 if i != 0:
                     nobs = 0
-                    skiplist_destroy(skiplist)
-                    skiplist = skiplist_init(<int>win)
+                    skiplist_reset(skiplist)
 
                 # setup
                 for j in range(s, e):

@@ -314,6 +314,9 @@ Look,a snake,🐍"""
     @pytest.mark.filterwarnings(
         "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
     )
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)

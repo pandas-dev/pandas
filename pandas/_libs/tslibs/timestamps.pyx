@@ -84,7 +84,12 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    NPY_FR_GENERIC,
+    NPY_FR_W,
     NPY_FR_ns,
+    add_overflowsafe,
+    astype_overflowsafe,
+    check_nat_sentinel,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -191,6 +196,58 @@ def integer_op_not_supported(obj):
         "use `n * obj.freq`"
     )
     return TypeError(int_addsub_msg)
+
+
+cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
+    """
+    Add or subtract a timedelta64 ndarray to/from a tz-naive Timestamp.
+
+    Matching numpy, the operands are cast to the finer of the two units. Unlike
+    numpy, both that cast and the addition itself raise instead of wrapping,
+    matching what the scalar and tz-aware paths already do (GH#66552).
+    """
+    cdef:
+        NPY_DATETIMEUNIT other_reso = get_unit_from_dtype(other.dtype)
+        NPY_DATETIMEUNIT reso = ts._creso
+        ndarray i8other, i8result
+
+    if other_reso == NPY_FR_GENERIC:
+        # numpy reads a generic timedelta64 in the other operand's unit
+        other_reso = reso
+    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
+        # year/month, which numpy itself refuses to add to a time unit, and
+        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+        return (ts.asm8 - other) if subtract else (ts.asm8 + other)
+
+    if reso < other_reso:
+        ts = ts._as_creso(other_reso, round_ok=True)
+        reso = other_reso
+    elif reso > other_reso:
+        other = astype_overflowsafe(
+            other, np.dtype(f"m8[{npy_unit_to_abbrev(reso)}]")
+        )
+
+    if not other.dtype.isnative:
+        # the view below would misread a byte-swapped buffer
+        other = other.astype(other.dtype.newbyteorder("="))
+
+    i8other = other.view("i8")
+    if subtract:
+        # NPY_NAT negates to itself, so NaT still propagates
+        i8other = np.negative(i8other)
+
+    try:
+        i8result = add_overflowsafe(i8other, np.array(ts._value, dtype="i8"))
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(
+            f"Out of bounds {npy_unit_to_attrname[reso]} timestamp"
+        ) from err
+
+    result = i8result.view(f"M8[{npy_unit_to_abbrev(reso)}]")
+    if result.ndim == 0:
+        # match numpy, which gives back a scalar rather than a 0-dim array
+        return result[()]
+    return result
 
 
 class MinMaxReso:
@@ -635,7 +692,7 @@ cdef class _Timestamp(ABCTimestamp):
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
-                    return self.asm8 + other
+                    return _addsub_timedelta64_array(self, other, subtract=False)
                 return np.asarray(
                     [self + other[n] for n in range(len(other))],
                     dtype=object,
@@ -662,7 +719,7 @@ cdef class _Timestamp(ABCTimestamp):
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
-                    return self.asm8 - other
+                    return _addsub_timedelta64_array(self, other, subtract=True)
                 return np.asarray(
                     [self - other[n] for n in range(len(other))],
                     dtype=object,
@@ -692,6 +749,14 @@ cdef class _Timestamp(ABCTimestamp):
             # Timedelta
             try:
                 res_value = self._value - other._value
+                if res_value == NPY_NAT:
+                    # GH#66552 int64 can hold this difference, but the value is
+                    #  the NaT sentinel, so it is not representable as a
+                    #  Timedelta. Raise like the neighbouring difference one
+                    #  step further out of bounds does.
+                    raise OutOfBoundsTimedelta(
+                        "Result is not representable as a pandas.Timedelta."
+                    )
                 return Timedelta._from_value_and_reso(res_value, self._creso)
             except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if both_timestamps:
@@ -1492,8 +1557,10 @@ cdef class _Timestamp(ABCTimestamp):
         By default, the fractional part is omitted if self.microsecond == 0
         and self._nanosecond == 0.
 
-        If self.tzinfo is not None, the UTC offset is also attached,
-        giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
+        If self.tzinfo is not None, the UTC offset is also attached, giving a
+        full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM[:SS[.ffffff]]'.
+        The ':SS' is present only if the offset is not a whole number of
+        minutes, as for a timezone in its pre-standardization era.
 
         Parameters
         ----------
@@ -1526,15 +1593,23 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self._year:04d}-" + base.split("-", 1)[1]
+        year_str = f"{self._year:04d}"
+        base = year_str + "-" + base.split("-", 1)[1]
 
         if self._nanosecond == 0 and timespec != "nanoseconds":
             return base
 
-        if self.tzinfo is not None:
-            base1, base2 = base[:-6], base[-6:]
-        else:
+        # The UTC offset is usually "+HH:MM", but grows a ":SS[.ffffff]" suffix when
+        # it is not a whole number of minutes, so find where it starts instead of
+        # assuming a fixed width.  Search past "YYYY-MM-DD" and the separator -- the
+        # year is not always 4 digits, and may be negative -- so that a date dash is
+        # never mistaken for the offset's sign.  No sign there means no offset.
+        time_start = len(year_str) + 7
+        tz_pos = max(base.rfind("+", time_start), base.rfind("-", time_start))
+        if tz_pos == -1:
             base1, base2 = base, ""
+        else:
+            base1, base2 = base[:tz_pos], base[tz_pos:]
 
         if timespec == "nanoseconds" or (timespec == "auto" and self._nanosecond):
             if self.microsecond or timespec == "nanoseconds":
@@ -3691,6 +3766,9 @@ default 'raise'
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
+            # GH#66510 the tz-aware legs below go through
+            #  convert_datetime_to_tsobject, which checks this for us
+            check_nat_sentinel(ts.value, &dts, creso)
             ts.dts = dts
             ts.creso = creso
             ts.fold = fold
