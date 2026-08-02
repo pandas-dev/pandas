@@ -47,6 +47,7 @@ import_datetime()
 
 import datetime as dt
 
+from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -81,6 +82,7 @@ from pandas._libs.tslibs.fields import (
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
+    is_dt64nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -135,6 +137,36 @@ from pandas._libs.tslibs.tzconversion cimport (
 # Constants
 _zero_time = dt_time(0, 0)
 _no_input = object()
+
+
+cdef _raise_mixed_form(
+    object year, object month, object day, object hour,
+    object minute, object second, object microsecond,
+):
+    """
+    Report the date attributes that were passed alongside a value to convert.
+
+    Modeled on Timedelta's equivalent check (GH#48898), which also lists the
+    offending arguments rather than every argument it could have rejected.
+    """
+    cdef list passed = [
+        name
+        for name, value in [
+            ("year", year),
+            ("month", month),
+            ("day", day),
+            ("hour", hour),
+            ("minute", minute),
+            ("second", second),
+            ("microsecond", microsecond),
+        ]
+        if value is not None
+    ]
+    raise ValueError(
+        "Cannot pass both a value to convert and date attributes, got "
+        f"{passed}; 'tz' is keyword-only"
+    )
+
 
 # ----------------------------------------------------------------------
 
@@ -1986,8 +2018,9 @@ class Timestamp(_Timestamp):
         Value of minute.
     second : int, optional, default 0
         Value of second.
-    microsecond : int, optional, default 0
-        Value of microsecond.
+    microsecond : int or datetime.tzinfo, optional, default 0
+        Value of microsecond. In the ``datetime.datetime``-like positional form
+        this is instead ``datetime.datetime``'s ``tzinfo``; see Notes.
     tzinfo : datetime.tzinfo, optional, default None
         Timezone info.
     nanosecond : int, optional, default 0
@@ -2014,12 +2047,33 @@ class Timestamp(_Timestamp):
 
     Notes
     -----
-    There are essentially three calling conventions for the constructor. The
-    primary form accepts four parameters. They can be passed by position or
-    keyword.
+    There are essentially three calling conventions for the constructor. In the
+    primary form the only positional parameter is the value to convert,
+    ``ts_input``; ``nanosecond``, ``tz``, ``unit`` and ``fold`` are
+    keyword-only.
 
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
+
+    In the positional ``datetime.datetime``-like form each parameter stands in
+    for the *next* ``datetime.datetime`` field, so the eighth argument --
+    whether passed positionally or as ``microsecond=`` -- is
+    ``datetime.datetime``'s ``tzinfo``. It is attached to the result as-is,
+    just as ``datetime.datetime`` does, unlike the ``tz`` and ``tzinfo``
+    keywords which localize.
+
+    Mixing a value to convert with the by-component arguments raises
+    ``ValueError``, except in two cases that cannot be detected. An ``int``
+    first argument is indistinguishable from a ``year``, so
+    ``Timestamp(2020, year=1, month=1)`` is read as ``Timestamp(2020, 1, 1)``;
+    and a keyword filling the next free positional slot is indistinguishable
+    from passing it positionally, so ``Timestamp(2020, 12, 31, day=5)`` is read
+    as ``Timestamp(2020, 12, 31, 5)``. Null-like input is exempt from the check
+    altogether: ``Timestamp(NaT, hour=5)`` and friends give ``NaT``.
+
+    ``nanosecond`` is outside the check: it is honored alongside a
+    ``datetime``/``Timestamp`` value, rejected alongside a string, and silently
+    ignored alongside a ``date``, ``numpy.datetime64``, ``int`` or ``float``.
 
     Examples
     --------
@@ -2892,14 +2946,13 @@ class Timestamp(_Timestamp):
         unit=None,
         fold=None,
     ):
-        # The parameter list folds together legacy parameter names (the first
-        # four) and positional and keyword parameter names from pydatetime.
+        # The parameter list folds together the value-to-convert form and the
+        # positional and keyword parameter names from pydatetime.
         #
         # There are three calling forms:
         #
-        # - In the legacy form, the first parameter, ts_input, is required
-        #   and may be datetime-like, str, int, or float. The second
-        #   parameter, offset, is optional and may be str or DateOffset.
+        # - In the value form, the first parameter, ts_input, is required and
+        #   may be datetime-like, str, int, or float.
         #
         # - ints in the first, second, and third arguments indicate
         #   pydatetime positional arguments. Only the first 8 arguments
@@ -2907,18 +2960,28 @@ class Timestamp(_Timestamp):
         #   microsecond, tzinfo) may be non-None. As a shortcut, we just
         #   check that the second argument is an int.
         #
-        # - Nones for the first four (legacy) arguments indicate pydatetime
-        #   keyword arguments. year, month, and day are required. As a
-        #   shortcut, we just check that the first argument was not passed.
+        # - Nones for the first four arguments indicate pydatetime keyword
+        #   arguments. year, month, and day are required. As a shortcut, we
+        #   just check that the first argument was not passed.
         #
-        # Mixing pydatetime positional and keyword arguments is forbidden!
+        # Mixing these forms is forbidden, except where it is undetectable;
+        # see the class docstring.
 
         cdef:
             _TSObject ts
             tzinfo_type tzobj
+            bint has_component
 
-        _date_attributes = [year, month, day, hour, minute, second,
-                            microsecond, nanosecond]
+        # GH#31930 a by-component argument alongside a value to convert used
+        #  to be silently dropped. nanosecond is excluded because it is honored
+        #  alongside a pydatetime value, e.g. Timestamp(dt, nanosecond=5); that
+        #  convert_to_tsobject drops it for the other value forms is a
+        #  separate bug.
+        has_component = (
+            year is not None or month is not None or day is not None
+            or hour is not None or minute is not None
+            or second is not None or microsecond is not None
+        )
 
         explicit_tz_none = tz is None
         if tz is _no_input:
@@ -2974,23 +3037,45 @@ class Timestamp(_Timestamp):
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
-        # checking verbosely, because cython doesn't optimize
-        # list comprehensions (as of cython 0.29.x)
-        if (isinstance(ts_input, _Timestamp) and
-                tz is None and unit is None and year is None and
-                month is None and day is None and hour is None and
-                minute is None and second is None and
-                microsecond is None and nanosecond is None and
+        if (isinstance(ts_input, _Timestamp) and not has_component and
+                tz is None and unit is None and nanosecond is None and
                 tzinfo is None):
             return ts_input
         elif isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
-            if any(arg is not None for arg in _date_attributes):
+            if has_component or nanosecond is not None:
                 raise ValueError(
                     "Cannot pass a date attribute keyword "
                     "argument when passing a date string; 'tz' is keyword-only"
                 )
+
+        elif PyDate_Check(ts_input):
+            # NB: PyDate_Check also matches datetime, Timestamp and NaT
+            if has_component and ts_input is not NaT:
+                # GH#31930 a by-component argument alongside a datetime-like
+                #  value can never be meant positionally, not even an integer
+                #  `year`.  Null-like input is exempt: it gives NaT for every
+                #  combination of the by-component arguments.
+                _raise_mixed_form(
+                    year, month, day, hour, minute, second, microsecond,
+                )
+
+        elif cnp.is_datetime64_object(ts_input):
+            if has_component and not is_dt64nat(ts_input):
+                # GH#31930 as above
+                _raise_mixed_form(
+                    year, month, day, hour, minute, second, microsecond,
+                )
+
+        elif checknull_with_nat_and_na(ts_input):
+            # GH#31930 None, NaN and pd.NA give NaT for every combination of
+            #  the by-component arguments.  Claiming the branch here is what
+            #  keeps an integer `year` from sending us down the by-component
+            #  branch below; convert_to_tsobject turns the value into NaT.
+            # NB `tz`, `nanosecond` and `fold` are still validated afterwards,
+            #  so those can still raise.
+            pass
 
         elif ts_input is _no_input:
             # GH 31200
@@ -3017,9 +3102,42 @@ class Timestamp(_Timestamp):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, tzinfo]]]]])
+            # Each of our parameters stands in for the *next* pydatetime
+            #  field, so a keyword argument lands one field early.  Positional
+            #  arguments fill these slots from the left, so a field set while
+            #  its predecessor is not means either a keyword was mixed in or
+            #  an earlier slot was passed an explicit None (GH#31930).
+            if (
+                (month is None and day is not None)
+                or (day is None and hour is not None)
+                or (hour is None and minute is not None)
+                or (minute is None and second is not None)
+                or (second is None and microsecond is not None)
+            ):
+                raise ValueError(
+                    "Cannot leave a gap in the positional date attributes: "
+                    "each stands in for the next datetime.datetime field, so "
+                    "a keyword argument lands one field early. Pass every "
+                    "component by keyword, or fill the earlier positions."
+                )
+
+            # NB: our `microsecond` parameter is pydatetime's `tzinfo`, which
+            #  we attach as-is; routing it through `tz` instead would localize
+            #  rather than attach.
             ts_input = datetime(ts_input, year, month, day or 0,
-                                hour or 0, minute or 0, second or 0, fold=fold or 0)
+                                hour or 0, minute or 0, second or 0, microsecond,
+                                fold=fold or 0)
             unit = None
+
+        elif is_integer_object(ts_input) or is_float_object(ts_input):
+            if has_component:
+                # GH#31930 an epoch value to convert; a by-component argument
+                #  would silently be dropped.  NB a non-None integer `year` is
+                #  caught by the branch above, where it is indistinguishable
+                #  from Timestamp(year, month, ...).
+                _raise_mixed_form(
+                    year, month, day, hour, minute, second, microsecond,
+                )
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
