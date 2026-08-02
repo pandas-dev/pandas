@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
@@ -1118,8 +1119,8 @@ def all_arithmetic_functions(request):
 
     Notes
     -----
-    This includes divmod and rdivmod, whereas all_arithmetic_operators
-    does not.
+    This does not include divmod and rdivmod, which return a tuple and so
+    cannot be used interchangeably with the other operators.
     """
     return request.param
 
@@ -1286,7 +1287,7 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    timezone.utc,
+    UTC,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
@@ -1321,7 +1322,7 @@ def tz_aware_fixture(request):
     return request.param
 
 
-_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
+_UTCS = ["utc", "dateutil/UTC", tzutc(), UTC]
 
 if pytz is not None:
     _UTCS.append(pytz.utc)

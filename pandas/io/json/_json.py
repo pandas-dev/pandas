@@ -670,7 +670,7 @@ def read_json(
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
-        The set of possible orients is:
+        When ``typ == 'frame'``, the set of possible orients is:
 
         - ``'split'`` : dict like
           ``{index -> [index], columns -> [columns], data -> [values]}``
@@ -680,6 +680,14 @@ def read_json(
         - ``'columns'`` : dict like ``{column -> {index -> value}}``
         - ``'values'`` : just the values array
         - ``'table'`` : dict like ``{'schema': {schema}, 'data': {data}}``
+
+        When ``typ == 'series'``, the shapes differ, since a Series has no
+        columns:
+
+        - ``'split'`` : dict like
+          ``{name -> name, index -> [index], data -> [values]}``
+        - ``'records'`` : list like ``[value, ... , value]``
+        - ``'index'`` : dict like ``{index -> value}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.

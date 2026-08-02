@@ -116,7 +116,7 @@ of the index is up to you:
 
 We've "sparsified" the higher levels of the indexes to make the console output a
 bit easier on the eyes. Note that how the index is displayed can be controlled using the
-``multi_sparse`` option in ``pandas.set_options()``:
+``multi_sparse`` option in ``pandas.set_option()``:
 
 .. ipython:: python
 
@@ -167,6 +167,14 @@ completely analogous way to selecting a column in a regular DataFrame:
 
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
+
+.. note::
+
+   Empty strings in a ``MultiIndex`` on the columns are treated as missing
+   level values when selecting with ``[]``. For example, with columns
+   ``pd.MultiIndex.from_tuples([("a", ""), ("b", "c")])``, selecting
+   ``df["a"]`` drops the empty level and returns a ``Series`` rather than a
+   ``DataFrame`` with a single column labeled ``""``.
 
 .. _advanced.shown_levels:
 

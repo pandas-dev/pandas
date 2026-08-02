@@ -12,7 +12,7 @@ The full license is in the LICENSE file, distributed with this software.
 #include <string.h>
 
 #if defined(_MSC_VER)
-#  define strcasecmp(s1, s2) _stricmp(s1, s2)
+#  define strncasecmp(s1, s2, n) _strnicmp(s1, s2, n)
 #endif
 
 // GH-23516 - works around locale perf issues
