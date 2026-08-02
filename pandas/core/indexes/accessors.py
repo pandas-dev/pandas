@@ -226,7 +226,16 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
     def to_pydatetime(self) -> Series:
         # GH#20306
-        return cast("ArrowExtensionArray", self._parent.array)._dt_to_pydatetime()
+        if self._orig is not None:
+            index = self._orig.index
+        else:
+            index = self._parent.index
+        result = cast("ArrowExtensionArray", self._parent.array)._dt_to_pydatetime()
+        return type(self._parent)(
+            result._values,
+            index=index,
+            name=self._parent.name,
+        ).__finalize__(self._parent)
 
     def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
