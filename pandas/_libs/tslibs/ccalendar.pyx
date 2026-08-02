@@ -52,13 +52,13 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_days_in_month(int year, Py_ssize_t month) noexcept nogil:
+cpdef int32_t get_days_in_month(int64_t year, Py_ssize_t month) noexcept nogil:
     """
     Return the number of days in the given month of the given year.
 
     Parameters
     ----------
-    year : int
+    year : int64_t
     month : int
 
     Returns
@@ -264,13 +264,13 @@ cpdef int32_t get_day_of_year(int year, int month, int day) noexcept nogil:
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int get_lastbday(int year, int month) noexcept nogil:
+cpdef int get_lastbday(int64_t year, int month) noexcept nogil:
     """
     Find the last day of the month that is a business day.
 
     Parameters
     ----------
-    year : int
+    year : int64_t
     month : int
 
     Returns
@@ -285,13 +285,13 @@ cpdef int get_lastbday(int year, int month) noexcept nogil:
     return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
 
-cpdef int get_firstbday(int year, int month) noexcept nogil:
+cpdef int get_firstbday(int64_t year, int month) noexcept nogil:
     """
     Find the first day of the month that is a business day.
 
     Parameters
     ----------
-    year : int
+    year : int64_t
     month : int
 
     Returns
