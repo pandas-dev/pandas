@@ -77,6 +77,26 @@ def test_converters_no_implicit_conv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("converter_key", [0, "Date"])
+@pytest.mark.parametrize("value", ["05.01.2021", "1.234,56"])
+def test_converter_receives_original_value_with_thousands(
+    python_parser_only, converter_key, value
+):
+    parser = python_parser_only
+    data = f"Date;Volume\n{value};20.320.945,77"
+
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        thousands=".",
+        decimal=",",
+        converters={converter_key: lambda value: value},
+    )
+
+    expected = DataFrame({"Date": [value], "Volume": [20320945.77]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_converters_euro_decimal_format(all_parsers):
     # see gh-583
     converters = {}

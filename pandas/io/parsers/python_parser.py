@@ -1328,6 +1328,12 @@ class PythonParser(ParserBase):
             no_thousands_columns = self._set_noconvert_dtype_columns(
                 self._col_indices, self.columns
             )
+        if self.columns and self.converters:
+            assert self._col_indices is not None
+            converters = self._clean_mapping(self.converters)
+            for i, col in zip(self._col_indices, self.columns, strict=True):
+                if col in converters:
+                    no_thousands_columns.add(i)
         if self.columns and self.dtype:
             assert self._col_indices is not None
             for i, col in zip(self._col_indices, self.columns, strict=True):

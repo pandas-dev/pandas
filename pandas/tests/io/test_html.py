@@ -1232,6 +1232,29 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_converter_receives_original_value_with_thousands(self, flavor_read_html):
+        # GH 39005
+        html = """<table>
+            <tr><th>Date</th><th>Amount</th><th>Volume</th></tr>
+            <tr><td>05.01.2021</td><td>1.234,56</td><td>20.320.945,77</td></tr>
+        </table>"""
+
+        result = flavor_read_html(
+            StringIO(html),
+            thousands=".",
+            decimal=",",
+            converters={"Date": lambda value: value, "Amount": lambda value: value},
+        )[0]
+
+        expected = DataFrame(
+            {
+                "Date": ["05.01.2021"],
+                "Amount": ["1.234,56"],
+                "Volume": [20320945.77],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_na_values(self, flavor_read_html):
         # GH 13461
         result = flavor_read_html(
