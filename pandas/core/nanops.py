@@ -638,7 +638,7 @@ def nansum(
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> npt.NDArray[np.floating] | float | NaTType:
+) -> np.ndarray | np.int64 | float | NaTType:
     """
     Sum the elements along an axis ignoring NaNs
 
@@ -692,12 +692,101 @@ def nansum(
         # GH#43929 float16 sum overflows easily; upcast like numpy does
         dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
     elif dtype.kind == "m":
-        dtype_sum = np.dtype(np.float64)
+        # GH#66551 float64 has a 53-bit mantissa, so accumulating i8 values there
+        #  silently rounds the result; sum in int64 instead.
+        the_sum = _sum_timedelta_i8(values, axis, mask, skipna, min_count)
+        return _maybe_null_out(
+            the_sum, axis, mask, values.shape, min_count=min_count, datetimelike=True
+        )
 
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
     return the_sum
+
+
+def _sum_timedelta_i8(
+    values: np.ndarray,
+    axis: AxisInt | None,
+    mask: npt.NDArray[np.bool_] | None,
+    skipna: bool,
+    min_count: int,
+) -> np.ndarray | np.int64:
+    """
+    Sum i8-viewed timedelta64 values exactly, raising on a result that does not
+    fit in int64.
+
+    int64 addition is modular, so an intermediate that leaves the range does not
+    corrupt the total; only the total itself has to be checked.  Values are
+    summed in blocks short enough that each block sum provably stays in range,
+    and the block sums are then combined in Python ints.
+
+    Parameters
+    ----------
+    values : ndarray[int64]
+    axis : int, optional
+    mask : ndarray[bool], optional
+    skipna : bool
+    min_count : int
+
+    Returns
+    -------
+    int64 scalar or ndarray[int64]
+
+    Raises
+    ------
+    OutOfBoundsTimedelta
+        If the exact sum is not representable as a timedelta64, i.e. it lands
+        outside (iNaT, i8max].
+    """
+    # Results that get discarded downstream are exempt from the bounds check:
+    #  positions that reduce to NaT under skipna=False, as in _wrap_results, and
+    #  positions that min_count nulls out in _maybe_null_out.
+    exempt: np.ndarray | np.bool_ = np.False_
+    if not skipna and mask is not None:
+        exempt = mask.any(axis=axis)
+    if min_count > 0:
+        if axis is not None and values.ndim > 1:
+            counts = values.shape[axis] - (0 if mask is None else mask.sum(axis))
+            exempt = exempt | (counts < min_count)
+        else:
+            exempt = exempt | check_below_min_count(values.shape, mask, min_count)
+
+    if not skipna and mask is not None and mask.any():
+        # These positions reduce to NaT regardless of what they sum to, so keep
+        #  their raw iNaT out of the accumulator.
+        values = np.where(mask, 0, values)
+
+    if values.size == 0:
+        return values.sum(axis, dtype=np.int64)
+
+    reduce_axis: AxisInt = 0
+    if axis is None:
+        values = values.ravel()
+    else:
+        reduce_axis = axis
+
+    length = values.shape[reduce_axis]
+    largest = max(abs(int(values.min())), abs(int(values.max())))
+    block = lib.i8max // largest if largest else length
+
+    if block >= length:
+        # Every partial sum is bounded by length * largest <= i8max, so the
+        #  int64 sum is exact and in range.
+        return values.sum(reduce_axis, dtype=np.int64)
+
+    starts = np.arange(0, length, block)
+    block_sums = np.add.reduceat(values, starts, axis=reduce_axis)
+    total = block_sums.sum(reduce_axis, dtype=object)
+
+    out_of_range = (total <= iNaT) | (total > lib.i8max)
+    if np.any(out_of_range & ~exempt):
+        raise OutOfBoundsTimedelta("overflow in timedelta operation")
+
+    if isinstance(total, np.ndarray):
+        # anything still out of range here is exempt, i.e. is discarded anyway
+        return np.where(out_of_range, 0, total).astype(np.int64)
+    return np.int64(0 if out_of_range else total)
 
 
 def _mask_datetimelike_result(
@@ -1671,13 +1760,13 @@ def _get_counts(
 
 
 def _maybe_null_out(
-    result: np.ndarray | float | NaTType,
+    result: np.ndarray | np.int64 | float | NaTType,
     axis: AxisInt | None,
     mask: npt.NDArray[np.bool_] | None,
     shape: tuple[int, ...],
     min_count: int = 1,
     datetimelike: bool = False,
-) -> np.ndarray | float | NaTType:
+) -> np.ndarray | np.int64 | float | NaTType:
     """
     Returns
     -------
