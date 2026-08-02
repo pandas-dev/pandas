@@ -2407,24 +2407,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 - default is 'index'
                 - allowed values are: {'split', 'records', 'index', 'table'}.
+                - the format of the JSON string:
+
+                  - 'split' : dict like {'name' -> name, 'index' -> [index],
+                    'data' -> [values]}
+                  - 'records' : list like [value, ... , value]; the index
+                    labels and the Series name are not included
+                  - 'index' : dict like {index -> value}
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
                 - default is 'columns'
                 - allowed values are: {'split', 'records', 'index', 'columns',
                   'values', 'table'}.
+                - the format of the JSON string:
 
-            * The format of the JSON string:
+                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                    'data' -> [values]}
+                  - 'records' : list like [{column -> value}, ... , {column -> value}]
+                  - 'index' : dict like {index -> {column -> value}}
+                  - 'columns' : dict like {column -> {index -> value}}
+                  - 'values' : just the values array
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
-                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}
-                - 'records' : list like [{column -> value}, ... , {column -> value}]
-                - 'index' : dict like {index -> {column -> value}}
-                - 'columns' : dict like {column -> {index -> value}}
-                - 'values' : just the values array
-                - 'table' : dict like {'schema': {schema}, 'data': {data}}
-
-                Describing the data, where data component is like ``orient='records'``.
+            For ``orient='table'``, the data component is like ``orient='records'``.
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -2566,6 +2573,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "col 2": "d"
             }
         ]
+
+        A Series with ``orient="records"`` is encoded as a JSON array of its
+        values only, without the index labels; with ``lines=True``, each
+        value is written on its own line:
+
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser.to_json(orient="records")
+        '[1,2,3]'
+        >>> ser.to_json(orient="records", lines=True)
+        '1\\n2\\n3\\n'
+
+        For a Series, the default ``orient="index"`` maps index labels to
+        values, and ``orient="split"`` has a 'name' entry in place of a
+        DataFrame's 'columns':
+
+        >>> ser.to_json()
+        '{"0":1,"1":2,"2":3}'
+        >>> ser.to_json(orient="split")
+        '{"name":null,"index":[0,1,2],"data":[1,2,3]}'
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
@@ -5358,8 +5384,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for more details.
 
         level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
+            Match index values on the specified level of a MultiIndex.
+            The MultiIndex may be on either the calling object or the
+            target index; using ``level`` when both are MultiIndexes is
+            ambiguous and raises a ``TypeError``.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -7650,6 +7678,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * When dict is used as the `to_replace` value, it is like
           key(s) in the dict are the to_replace part and
           value(s) in the dict are the value parameter.
+        * Unless `regex` is True, a key matches only if it equals the entire
+          value, not a substring of it: ``{"b": "z"}`` replaces the value ``"b"``
+          but leaves ``"a b c"`` unchanged.
+        * Dict entries are applied one after another, in insertion order. Which
+          entries apply to an element is decided up front by matching every key
+          against the original value, but each substitution is made into the
+          result of the previous ones. An entry can therefore end up a no-op if
+          an earlier one already rewrote the text it targeted: with
+          ``regex=True``, ``{"x": "1", "x y": "2"}`` turns ``"x y"`` into
+          ``"1 y"``, while ``{"x y": "2", "x": "1"}`` turns it into ``"2"``.
+          Conversely, a later entry can rewrite what an earlier one produced:
+          ``{"ab": "ba", "ba": "zz"}`` turns ``"ab ba"`` into ``"zz zz"``.
+          With overlapping keys, order the dict most-specific-first.
         * Replacement is based on equality, not identity. Since Python treats
           ``True == 1`` and ``False == 0``, replacing one will also affect
           the other when they share a dtype (e.g. ``object``).
@@ -10374,10 +10415,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
-            Alignment axis if needed. For `Series` this parameter is
-            unused and defaults to 0.
+            Alignment axis, used only when aligning `other` with the
+            calling object; it has no effect on the alignment of `cond`,
+            which is always aligned on the calling object's labels. For
+            `Series` this parameter is unused and defaults to 0.
         level : int, default None
-            Alignment level if needed.
+            Alignment level, used only when aligning `other` with the
+            calling object; it has no effect on the alignment of `cond`.
 
         Returns
         -------
@@ -10542,10 +10586,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
-            Alignment axis if needed. For `Series` this parameter is
-            unused and defaults to 0.
+            Alignment axis, used only when aligning `other` with the
+            calling object; it has no effect on the alignment of `cond`,
+            which is always aligned on the calling object's labels. For
+            `Series` this parameter is unused and defaults to 0.
         level : int, default None
-            Alignment level if needed.
+            Alignment level, used only when aligning `other` with the
+            calling object; it has no effect on the alignment of `cond`.
 
         Returns
         -------

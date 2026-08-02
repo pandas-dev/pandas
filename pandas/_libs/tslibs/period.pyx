@@ -2056,6 +2056,19 @@ cdef class _Period(PeriodMixin):
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
+    cdef _period_from_computed_ordinal(self, int64_t ordinal):
+        """
+        Build a Period from an ordinal produced by arithmetic on this one.
+
+        NPY_NAT is INT64_MIN, so an ordinal that lands on it is not NaT but is
+        indistinguishable from it once stored; the Period constructor renders it
+        as NaT.  The neighbouring result one step further out already raises
+        OverflowError, as does the vectorized path. (GH#66552)
+        """
+        if ordinal == NPY_NAT:
+            raise OverflowError("Period ordinal is out of bounds")
+        return Period(ordinal=ordinal, freq=self._freq)
+
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
             int64_t inc, ordinal
@@ -2082,7 +2095,7 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
             ordinal = self._ordinal + inc
-        return Period(ordinal=ordinal, freq=self._freq)
+        return self._period_from_computed_ordinal(ordinal)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -2092,7 +2105,7 @@ cdef class _Period(PeriodMixin):
         self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
-        return Period(ordinal=ordinal, freq=self._freq)
+        return self._period_from_computed_ordinal(ordinal)
 
     @cython.overflowcheck(True)
     def __add__(self, other):
@@ -2104,7 +2117,7 @@ cdef class _Period(PeriodMixin):
             return NaT
         elif util.is_integer_object(other):
             ordinal = self._ordinal + other * self._dtype._n
-            return Period(ordinal=ordinal, freq=self._freq)
+            return self._period_from_computed_ordinal(ordinal)
 
         elif is_period_object(other):
             # can't add datetime-like

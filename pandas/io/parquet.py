@@ -274,6 +274,12 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
+
+            df_metadata = None
+            if pa_table.schema.metadata:
+                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
+                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
+
             with catch_warnings():
                 filterwarnings(
                     "ignore",
@@ -286,10 +292,8 @@ class PyArrowImpl(BaseImpl):
                     to_pandas_kwargs=to_pandas_kwargs,
                 )
 
-            if pa_table.schema.metadata:
-                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
-                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
-                    result.attrs = json.loads(df_metadata)
+            if df_metadata is not None:
+                result.attrs = json.loads(df_metadata)
             return result
         finally:
             if handles is not None:

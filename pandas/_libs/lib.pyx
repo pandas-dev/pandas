@@ -2904,16 +2904,38 @@ def maybe_convert_objects(ndarray[object] objects,
                 break
         elif util.is_integer_object(val):
             seen.int_ = True
-            floats[i] = <float64_t>val
-            complexes[i] = <double complex>val
-            if not seen.null_ or convert_to_nullable_dtype:
-                seen.saw_int(val)
-
-                if ((seen.uint_ and seen.sint_) or
-                        val > oUINT64_MAX or val < oINT64_MIN):
+            # GH#66519 flag signedness inline rather than via seen.saw_int, so
+            #  that the out-of-range bail-outs reuse its range comparisons. The
+            #  bail-outs must also precede the casts below, which raise
+            #  OverflowError once |val| exceeds the float64 range.
+            if val < 0:
+                if val < oINT64_MIN:
                     seen.object_ = True
                     break
+                seen.sint_ = True
+            elif val > oINT64_MAX:
+                if val > oUINT64_MAX:
+                    seen.object_ = True
+                    break
+                seen.uint_ = True
+            elif isinstance(val, cnp.signedinteger):
+                seen.sint_ = True
+            elif isinstance(val, cnp.unsignedinteger):
+                seen.uint_ = True
 
+            floats[i] = <float64_t>val
+            complexes[i] = <double complex>val
+
+            if seen.uint_ and seen.sint_:
+                # GH#66519 either the values straddle INT64_MAX, so no integer
+                #  dtype holds both, or numpy scalars of both signednesses were
+                #  mixed, which GH#47294 already resolves to object. Checked
+                #  outside the null gate below so a None before either value
+                #  cannot hide the conflict.
+                seen.object_ = True
+                break
+
+            if not seen.null_ or convert_to_nullable_dtype:
                 if seen.uint_:
                     uints[i] = val
                 elif seen.sint_:

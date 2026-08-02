@@ -19,7 +19,6 @@ from typing import (
     Literal,
     Self,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -762,7 +761,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast("Union[list[int], list[str]]", list(dict.fromkeys(sheets).keys()))
+        sheets = cast("list[int] | list[str]", list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -1020,7 +1019,15 @@ class ExcelWriter(Generic[_WorkbookT]):
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
-        File mode to use (write or append). Append does not work with fsspec URLs.
+        File mode to use (write or append). Append does not work with fsspec
+        URLs.
+
+        .. warning::
+
+           In append mode the existing workbook is read and completely
+           rewritten by the engine, so any content the engine cannot
+           represent (e.g. VBA macros in ``.xlsm`` files, charts or images)
+           is silently lost and the workbook may be otherwise altered.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs

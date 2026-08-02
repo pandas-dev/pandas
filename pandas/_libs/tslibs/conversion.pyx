@@ -47,8 +47,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
+    check_nat_sentinel,
     convert_reso,
     dts_to_iso_string,
+    dts_to_iso_string_ns,
     get_conversion_factor,
     get_datetime64_unit,
     get_implementation_bounds,
@@ -492,6 +494,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                 obj.value = tz_localize_to_utc_single(
                     obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
                 )
+                # GH#66510 the shift to UTC must not land on the NaT sentinel
+                check_nat_sentinel(obj.value, &obj.dts, reso)
     elif is_integer_object(ts) or (is_float_object(ts) and ts.is_integer()):
         try:
             ts = <int64_t>ts
@@ -584,7 +588,7 @@ cdef _TSObject convert_datetime_to_tsobject(
     """
     cdef:
         _TSObject obj = _TSObject()
-        int64_t pps
+        int64_t pps, offset_val
 
     obj.creso = reso
     obj.fold = ts.fold
@@ -622,8 +626,18 @@ cdef _TSObject convert_datetime_to_tsobject(
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
         pps = periods_per_second(reso)
-        obj.value -= int(offset.total_seconds() * pps)
+        # utcoffset is bounded by +/-24h, so this cannot itself overflow
+        offset_val = int(offset.total_seconds() * pps)
+        # GH#66510 the shift to UTC must not wrap int64 silently
+        if checked_sub(obj.value, offset_val, &obj.value):
+            attrname = npy_unit_to_attrname[reso]
+            raise OutOfBoundsDatetime(
+                f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(&obj.dts)}"
+            )
 
+    # GH#66510. NB: after the shift rather than before, since a wall time that
+    #  renders onto the sentinel can still shift to a representable UTC value.
+    check_nat_sentinel(obj.value, &obj.dts, reso)
     check_overflows(obj, reso)
     return obj
 
@@ -749,6 +763,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                         raise OutOfBoundsDatetime(
                             f"Out of bounds {attrname} timestamp: {ts}"
                         )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(obj.value, &dts, reso)
                     if tz is None:
                         check_overflows(obj, reso)
                         return obj
@@ -760,6 +776,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                         ival = tz_localize_to_utc_single(
                             ival, tz, ambiguous="raise", nonexistent=None, creso=reso
                         )
+                        # GH#66510 the shift must not land on the NaT sentinel
+                        check_nat_sentinel(ival, &dts, reso)
                     obj.value = ival
                     maybe_localize_tso(obj, tz, obj.creso)
                     return obj

@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
     timezone,
@@ -149,7 +150,7 @@ def test_infer_tz_compat(infer_setup):
 
 def test_infer_tz_utc_localize(infer_setup):
     _, _, start, end, start_naive, end_naive = infer_setup
-    utc = timezone.utc
+    utc = UTC
 
     start = start_naive.astimezone(utc)
     end = end_naive.astimezone(utc)
@@ -162,7 +163,7 @@ def test_infer_tz_mismatch(infer_setup, ordered):
     eastern, _, _, _, start_naive, end_naive = infer_setup
     msg = "Inputs must both have the same timezone"
 
-    utc = timezone.utc
+    utc = UTC
     start = start_naive.astimezone(utc)
     end = conversion.localize_pydatetime(end_naive, eastern)
 
@@ -203,7 +204,7 @@ def test_maybe_get_tz_offset_only():
     # see gh-36004
 
     # timezone.utc
-    tz = timezones.maybe_get_tz(timezone.utc)
+    tz = timezones.maybe_get_tz(UTC)
     assert tz == timezone(timedelta(hours=0, minutes=0))
 
     # without UTC+- prefix
@@ -230,7 +231,7 @@ def test_zoneinfo_utc_to_local_post_2037():
 
     expected_hours = np.array(
         [
-            datetime(2040, 7, 1, hour, tzinfo=timezone.utc).astimezone(tz).hour
+            datetime(2040, 7, 1, hour, tzinfo=UTC).astimezone(tz).hour
             for hour in range(24)
         ],
         dtype=np.int32,
@@ -258,8 +259,7 @@ def test_zoneinfo_utc_to_local_post_2100(tz_name):
     local = utc_times.tz_convert(tz)
 
     expected = [
-        datetime.fromisoformat(date).replace(tzinfo=timezone.utc).astimezone(tz)
-        for date in data
+        datetime.fromisoformat(date).replace(tzinfo=UTC).astimezone(tz) for date in data
     ]
 
     tm.assert_numpy_array_equal(local.to_pydatetime(), np.array(expected))
@@ -289,8 +289,7 @@ def test_zoneinfo_negative_dst_distant_dates(tz_name):
     utc_times = to_datetime(data, utc=True)
 
     expected = [
-        datetime.fromisoformat(date).replace(tzinfo=timezone.utc).astimezone(tz)
-        for date in data
+        datetime.fromisoformat(date).replace(tzinfo=UTC).astimezone(tz) for date in data
     ]
 
     # UTC -> local matches zoneinfo and is internally consistent
@@ -314,8 +313,8 @@ def test_zoneinfo_utc_to_local_far_future_seconds_resolution():
 
     tz = zoneinfo.ZoneInfo("Europe/Brussels")
     expected = [
-        datetime(3000, 1, 1, tzinfo=timezone.utc).astimezone(tz),
-        datetime(3000, 7, 1, tzinfo=timezone.utc).astimezone(tz),
+        datetime(3000, 1, 1, tzinfo=UTC).astimezone(tz),
+        datetime(3000, 7, 1, tzinfo=UTC).astimezone(tz),
     ]
 
     assert local.dtype == "datetime64[s, Europe/Brussels]"
@@ -333,8 +332,8 @@ def test_zoneinfo_local_to_utc_far_future_seconds_resolution():
 
     tz = zoneinfo.ZoneInfo("Europe/Brussels")
     expected_utc = [
-        datetime(3000, 1, 1, tzinfo=tz).astimezone(timezone.utc),
-        datetime(3000, 7, 1, tzinfo=tz).astimezone(timezone.utc),
+        datetime(3000, 1, 1, tzinfo=tz).astimezone(UTC),
+        datetime(3000, 7, 1, tzinfo=tz).astimezone(UTC),
     ]
 
     assert result_utc.dtype == "datetime64[s, UTC]"
@@ -357,7 +356,7 @@ def test_zoneinfo_boundary_at_last_cached_transition(tz_name):
     from zoneinfo._zoneinfo import ZoneInfo
 
     trans = datetime.fromtimestamp(max(ZoneInfo(tz_name)._tz_after.transitions(2099)))
-    start = (trans - timedelta(days=1)).replace(tzinfo=timezone.utc)
+    start = (trans - timedelta(days=1)).replace(tzinfo=UTC)
     expected_utc = [(start + timedelta(minutes=30 * i)) for i in range(24 * 2 * 2)]
     expected_tz = [ts.astimezone(tz) for ts in expected_utc]
     expected_str = [str(ts) for ts in expected_tz]
@@ -437,7 +436,7 @@ def test_zoneinfo_utc_to_local_pre_first_transition(key):
     tz = zoneinfo.ZoneInfo(key)
     ts = Timestamp("1850-01-01", tz="UTC").tz_convert(tz)
 
-    expected = datetime(1850, 1, 1, tzinfo=timezone.utc).astimezone(tz)
+    expected = datetime(1850, 1, 1, tzinfo=UTC).astimezone(tz)
     assert ts.minute == expected.minute
 
 
@@ -460,7 +459,7 @@ def test_normalize_pytz_timezone():
     from pandas.io._util import _normalize_pytz_timezone
 
     for tz, expected in [
-        (pytz.UTC, timezone.utc),
+        (pytz.UTC, UTC),
         (pytz.FixedOffset(90), timezone(timedelta(minutes=90))),
         (pytz.timezone("America/New_York"), zoneinfo.ZoneInfo("America/New_York")),
         (pytz.timezone("Etc/GMT+1"), zoneinfo.ZoneInfo("Etc/GMT+1")),

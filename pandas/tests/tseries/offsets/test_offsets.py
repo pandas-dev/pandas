@@ -1314,6 +1314,60 @@ def test_dateoffset_n_vectorized_near_dst_transition(box, n):
     assert result[0] == scalar
 
 
+@pytest.mark.parametrize("box", [DatetimeIndex, Series])
+@pytest.mark.parametrize(
+    "offset",
+    [
+        offsets.MonthEnd(2**32),
+        offsets.MonthBegin(2**32),
+        offsets.SemiMonthEnd(2**32),
+        offsets.SemiMonthBegin(2**32),
+        offsets.QuarterEnd(2**32),
+        offsets.QuarterBegin(2**32),
+        offsets.HalfYearEnd(2**32),
+        offsets.YearEnd(2**32),
+        offsets.YearBegin(2**32),
+        offsets.BYearEnd(2**32),
+    ],
+)
+def test_offset_n_above_int32(box, offset):
+    # GH#66549 n was held in a C int, so a multiple of 2**32 silently truncated
+    #  to zero and the shift became a no-op
+    ts = Timestamp("2000-01-03").as_unit("s")
+    obj = box([ts])
+
+    result = box(obj + offset)
+    # 2**32 months is on the order of 3.6e8 years; a truncated n leaves us in 2000
+    assert result[0].year > 10**7
+
+    # the scalar path is a separate implementation, and truncated to zero too
+    assert result[0] == ts + offset
+
+
+def test_month_end_n_above_int32_exact():
+    # GH#66549 MonthEnd(n) shifts by n - 1 whole months when the starting day
+    #  is before the end of the month, then rolls to the end of that month
+    ts = Timestamp("2000-01-03").as_unit("s")
+
+    result = ts + offsets.MonthEnd(2**32)
+
+    months = (result.year - ts.year) * 12 + (result.month - ts.month)
+    assert months == 2**32 - 1
+    assert result.day == 30  # April
+
+
+def test_month_end_year_above_int32():
+    # GH#66549 get_days_in_month truncated the year to 32 bits, so the leap-year
+    #  determination used a wrapped year. 2147483700 is not a leap year, but
+    #  2147483700 - 2**32 is.
+    dti = DatetimeIndex(np.array(["2147483700-02-05"], dtype="M8[s]"))
+
+    assert dti[0].days_in_month == 28
+    expected = DatetimeIndex(np.array(["2147483700-02-28"], dtype="M8[s]"))
+    tm.assert_index_equal(dti + offsets.MonthEnd(1), expected)
+    assert dti[0] + offsets.MonthEnd(1) == expected[0]
+
+
 @pytest.mark.parametrize("n", [1, 2])
 @pytest.mark.parametrize(
     "unit",
