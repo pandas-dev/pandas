@@ -1045,7 +1045,16 @@ def test_embedded_nul_in_later_row(c_parser_only, good, field, na_filter):
     assert result["a"].tolist() == [good, field]
 
 
-@pytest.mark.parametrize("field", ["1\x00xyz", "18446744073709551614\x00z"])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "1\x00xyz",
+        "18446744073709551614\x00z",
+        # the pre-NUL digits exceed uint64, so this leaves str_to_uint64 by the
+        # overflow arm rather than by the end-of-token check the others take
+        "18446744073709551616\x00z",
+    ],
+)
 def test_embedded_nul_is_not_a_uint64(c_parser_only, field):
     # GH#66524: str_to_uint64 is reached only after str_to_int64 reports a
     # *clean* overflow, which a NUL-bearing token can never produce, so the
@@ -1058,6 +1067,19 @@ def test_embedded_nul_is_not_a_uint64(c_parser_only, field):
     expected = read_csv(BytesIO(data), engine="python")
     tm.assert_frame_equal(result, expected)
     assert result["a"].tolist() == ["18446744073709551615", field]
+
+
+def test_embedded_nul_int64_overflow(c_parser_only):
+    # GH#66524: the pre-NUL digits are int64max + 1, so the token leaves
+    # str_to_int64 by the overflow arm and its truncation has to be caught
+    # before the uint64 retry, where the truncated value would fit.
+    parser = c_parser_only
+    data = b'a\n1\n"9223372036854775808\x00z"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["1", "9223372036854775808\x00z"]
 
 
 def test_embedded_nul_is_not_a_python_int(c_parser_only):

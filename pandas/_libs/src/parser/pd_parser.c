@@ -61,12 +61,20 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
 
   return 0;
 
-parsingerror:
+parsingerror:;
   // Report the value through its repr rather than with "%s", which stops at an
   // embedded NUL and so would name a truncated value that parses fine
-  // (GH#66524). Reporting `str` itself rather than a decode of `data` keeps
-  // this lossless for bytes input, which no decode would be.
-  PyErr_Format(PyExc_ValueError, "Unable to parse string %R", str);
+  // (GH#66524). Rebuild an exact str/bytes rather than repr-ing `str` itself,
+  // whose subclasses carry their type into the repr (numpy scalars render as
+  // `np.str_('a')`); this stays lossless for bytes, which no decode would be.
+  PyObject *display = PyBytes_Check(str)
+                          ? PyBytes_FromStringAndSize(data, length)
+                          : PyUnicode_FromStringAndSize(data, length);
+  if (display == NULL) {
+    return -1;
+  }
+  PyErr_Format(PyExc_ValueError, "Unable to parse string %R", display);
+  Py_DECREF(display);
   return -1;
 }
 

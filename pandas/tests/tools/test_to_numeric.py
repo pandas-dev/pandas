@@ -127,6 +127,27 @@ def test_error(data, msg):
         to_numeric(ser, errors="raise")
 
 
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        # repr()-ing the value itself would carry the numpy wrapper type into
+        # the message, e.g. np.str_('apple')
+        (np.str_("apple"), "'apple'"),
+        (np.bytes_(b"apple"), "b'apple'"),
+        # decoding the bytes to name them would raise on this one
+        (b"\xff\xfe", r"b'\xff\xfe'"),
+    ],
+)
+def test_error_names_the_value_exactly(value, expected):
+    # GH#66524 - the message names the underlying value, so it is neither
+    # widened to the type of the object holding it nor narrowed by a decode.
+    ser = Series([value], dtype=object)
+
+    msg = re.escape(f"Unable to parse string {expected} at position 0")
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(ser)
+
+
 def test_ignore_error():
     ser = Series([1, -3.14, "apple"])
     result = to_numeric(ser, errors="coerce")
