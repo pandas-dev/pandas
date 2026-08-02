@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 import re
 import warnings
@@ -387,13 +387,9 @@ class TestPeriodIndex:
         # see gh-5430
         local_timezone = tz
 
-        start = datetime(
-            year=2013, month=11, day=1, hour=0, minute=0, tzinfo=timezone.utc
-        )
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=UTC)
         # 1 day later
-        end = datetime(
-            year=2013, month=11, day=2, hour=0, minute=0, tzinfo=timezone.utc
-        )
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=UTC)
 
         index = date_range(start, end, freq="h", name="idx")
 

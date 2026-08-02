@@ -23,6 +23,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     NaT,
+    Series,
     Timestamp,
     date_range,
     offsets,
@@ -481,3 +482,27 @@ def test_against_scalar_parametric(freq, dt, n):
     result = list(d.is_year_start)
     expected = [x.is_year_start for x in d]
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.iinfo(np.int64).max,  # year 292277026596
+        2**32 * 86400 * 365,
+        -(2**31) * 86400 * 400,
+        np.iinfo(np.int64).min + 1,
+    ],
+)
+def test_day_of_week_year_beyond_int32(value):
+    # GH#66549 the year was passed to ccalendar.dayofweek as a C int, so
+    #  second-resolution dates beyond year 2**31 got a truncated year
+    dti = DatetimeIndex(np.array([value], dtype="M8[s]"))
+    # 1970-01-01 was a Thursday, i.e. day_of_week 3
+    expected = (value // 86400 + 3) % 7
+
+    assert dti.day_of_week[0] == expected
+    assert dti[0].day_of_week == expected
+    assert dti[0].weekday() == expected
+    assert Series(dti).dt.day_of_week[0] == expected
+    # scalar day_name goes through the same ccalendar helper
+    assert dti[0].day_name() == calendar.day_name[expected]

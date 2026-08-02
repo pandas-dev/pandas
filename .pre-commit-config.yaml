@@ -21,10 +21,10 @@ repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.20
     hooks:
-    -   id: ruff
+    -   id: ruff-check
         args: [--exit-non-zero-on-fix]
         exclude: ^pandas/tests/frame/test_query_eval.py
-    -   id: ruff
+    -   id: ruff-check
         # TODO: remove autofix only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
@@ -70,11 +70,6 @@ repos:
     rev: 9.0.0a3
     hooks:
     -   id: isort
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-    -   id: pyupgrade
-        args: [--py311-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
