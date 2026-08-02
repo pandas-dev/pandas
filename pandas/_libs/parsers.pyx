@@ -70,7 +70,6 @@ from libc.stdlib cimport (
 from libc.string cimport (
     memcpy,
     memset,
-    strcasecmp,
     strlen,
 )
 
@@ -172,16 +171,6 @@ cdef:
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 DEFAULT_BUFFER_HEURISTIC = 2 ** 20
-
-
-cdef extern from "pandas/portable.h":
-    # I *think* this is here so that strcasecmp is defined on Windows
-    # so we don't get
-    # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
-    # in Appveyor.
-    # In a sane world, the `from libc.string cimport` above would fail
-    # loudly.
-    pass
 
 
 cdef extern from "pandas/parser/tokenizer.h":
@@ -313,6 +302,8 @@ cdef extern from "pandas/parser/tokenizer.h":
     int try_parse_plain_double(const char *start, const char *end, char decimal,
                                double *out) nogil
 
+    int infinity_sign(const char *item, int64_t length) nogil
+
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
@@ -356,7 +347,7 @@ cdef extern from "pandas/parser/pd_parser.h":
                            char sci, char tsep, int skip_trailing,
                            int *error, int *maybe_int) nogil
 
-    int to_boolean(const char *item, uint8_t *val) nogil
+    int to_boolean(const char *item, int64_t length, uint8_t *val) nogil
 
     void PandasParser_IMPORT()
 
@@ -2831,16 +2822,6 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
         data += width
 
 
-cdef:
-    char* cinf = b"inf"
-    char* cposinf = b"+inf"
-    char* cneginf = b"-inf"
-
-    char* cinfty = b"Infinity"
-    char* cposinfty = b"+Infinity"
-    char* cneginfty = b"-Infinity"
-
-
 # -> tuple[ndarray[float64_t], int]  | tuple[None, None]
 cdef void _free_malloc_capsule(object capsule) noexcept:
     free(PyCapsule_GetPointer(capsule, NULL))
@@ -2918,13 +2899,8 @@ cdef int _probe_double(parser_t *parser, int64_t col,
         parser.double_converter(word, &p_end, parser.decimal,
                                 parser.sci, parser.thousands,
                                 1, &error, NULL, word_end)
-        if error != 0 or p_end == word or p_end[0]:
-            if (strcasecmp(word, cinf) == 0 or
-                    strcasecmp(word, cposinf) == 0 or
-                    strcasecmp(word, cinfty) == 0 or
-                    strcasecmp(word, cposinfty) == 0 or
-                    strcasecmp(word, cneginf) == 0 or
-                    strcasecmp(word, cneginfty) == 0):
+        if error != 0 or p_end == word or p_end != word_end:
+            if infinity_sign(word, word_len) != 0:
                 return 0
             return 1
         return 0
@@ -2955,7 +2931,7 @@ cdef int _probe_bool_flex(parser_t *parser, int64_t col,
             return 0
         if kh_get_str_starts_item(false_hashset, word, word_len):
             return 0
-        return to_boolean(word, &tmp)
+        return to_boolean(word, <int64_t>word_len, &tmp)
     return 0
 
 
@@ -3008,7 +2984,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            float64_t NA, float64_t *data,
                            int *na_count) nogil:
     cdef:
-        int error = 0,
+        int error = 0, inf_sign
         Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -3044,15 +3020,12 @@ cdef int _try_double_nogil(parser_t *parser,
                     data[0] = double_converter(word, &p_end, parser.decimal,
                                                parser.sci, parser.thousands,
                                                1, &error, NULL, word_end)
-                    if error != 0 or p_end == word or p_end[0]:
+                    if error != 0 or p_end == word or p_end != word_end:
                         error = 0
-                        if (strcasecmp(word, cinf) == 0 or
-                                strcasecmp(word, cposinf) == 0 or
-                                strcasecmp(word, cinfty) == 0 or
-                                strcasecmp(word, cposinfty) == 0):
+                        inf_sign = infinity_sign(word, word_len)
+                        if inf_sign > 0:
                             data[0] = INF
-                        elif (strcasecmp(word, cneginf) == 0 or
-                                strcasecmp(word, cneginfty) == 0):
+                        elif inf_sign < 0:
                             data[0] = NEGINF
                         else:
                             return 1
@@ -3072,15 +3045,12 @@ cdef int _try_double_nogil(parser_t *parser,
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL, word_end)
-                if error != 0 or p_end == word or p_end[0]:
+                if error != 0 or p_end == word or p_end != word_end:
                     error = 0
-                    if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0 or
-                            strcasecmp(word, cinfty) == 0 or
-                            strcasecmp(word, cposinfty) == 0):
+                    inf_sign = infinity_sign(word, word_end - word)
+                    if inf_sign > 0:
                         data[0] = INF
-                    elif (strcasecmp(word, cneginf) == 0 or
-                            strcasecmp(word, cneginfty) == 0):
+                    elif inf_sign < 0:
                         data[0] = NEGINF
                     else:
                         return 1
@@ -3265,7 +3235,9 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
         Py_ssize_t lines
         coliter_t it
         const char *word = NULL
+        char *pend = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         ndarray[object] result
         object NA = na_values[np.object_]
 
@@ -3275,17 +3247,22 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
 
     for i in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
-        if na_filter and kh_get_str_starts_item(
-            na_hashset, word, <size_t>_token_len(parser, token_idx)
-        ):
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             # in the hash table
             na_count += 1
             result[i] = NA
             continue
 
-        py_int = PyLong_FromString(word, NULL, 10)
-        if py_int is None:
-            raise ValueError("Invalid integer ", word)
+        # PyLong_FromString is declared returning object, so a parse failure
+        # raises rather than returning None.
+        py_int = PyLong_FromString(word, &pend, 10)
+        # Require the parse to reach the end of the token: PyLong_FromString
+        # stops at an embedded NUL, so "1\0xyz" would otherwise be accepted
+        # as 1.  The caller turns this ValueError into a string column.
+        if <const char*>pend != word + word_len:
+            raise ValueError("Invalid integer ", word[:word_len])
         result[i] = py_int
 
     return result, na_count
@@ -3365,7 +3342,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                 data += 1
                 continue
 
-            error = to_boolean(word, data)
+            error = to_boolean(word, <int64_t>word_len, data)
             if error != 0:
                 return error
             data += 1
@@ -3384,7 +3361,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                 data += 1
                 continue
 
-            error = to_boolean(word, data)
+            error = to_boolean(word, <int64_t>word_len, data)
             if error != 0:
                 return error
             data += 1
@@ -3392,18 +3369,20 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
     return 0
 
 
-cdef inline int _bool_numeric_literal(const char *word) noexcept nogil:
+cdef inline int _bool_numeric_literal(const char *word,
+                                      int64_t length) noexcept nogil:
     # The numeric boolean spellings BooleanArray accepts by default:
-    # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.
-    if word[0] == ord("1"):
-        if word[1] == 0:
+    # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.  Compare against
+    # `length` rather than a NUL so a token like "1\0x" is not read as "1".
+    if length == 1:
+        if word[0] == ord("1"):
             return 1
-        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
-            return 1
-    elif word[0] == ord("0"):
-        if word[1] == 0:
+        if word[0] == ord("0"):
             return 0
-        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+    elif length == 3 and word[1] == ord(".") and word[2] == ord("0"):
+        if word[0] == ord("1"):
+            return 1
+        if word[0] == ord("0"):
             return 0
     return -1
 
@@ -3439,7 +3418,7 @@ cdef int _try_boolean_masked_nogil(parser_t *parser, int64_t col,
             data[i] = 0
             continue
 
-        numeric = _bool_numeric_literal(word)
+        numeric = _bool_numeric_literal(word, <int64_t>word_len)
         if kh_get_str_starts_item(true_hashset, word, word_len) or numeric == 1:
             data[i] = 1
         elif kh_get_str_starts_item(false_hashset, word, word_len) or numeric == 0:
