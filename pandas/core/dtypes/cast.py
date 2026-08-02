@@ -972,7 +972,10 @@ def convert_dtypes(
                 and input_array.dtype == object
                 and (isinstance(inferred_dtype, str) and inferred_dtype == "integer")
             ):
-                inferred_dtype = target_int_dtype
+                arr = input_array[notna(input_array)]
+                if len(arr) == 0 or (arr.min() >= np.iinfo(np.int64).min
+                                     and arr.max() <= np.iinfo(np.int64).max):
+                    inferred_dtype = target_int_dtype
 
         if convert_floating:
             if input_array.dtype.kind in "fb":

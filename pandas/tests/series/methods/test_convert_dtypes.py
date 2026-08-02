@@ -334,7 +334,14 @@ class TestSeriesConvertDtypes:
         tm.assert_series_equal(result, expected)
 
     def test_convert_dtypes_complex(self):
-        # GH 60129
+        # GH 66517
         ser = pd.Series([1.5 + 3.0j, 1.5 - 3.0j])
         result = ser.convert_dtypes()
         tm.assert_series_equal(result, ser)
+
+    def test_convert_dtypes_overflow_stays_object(self):
+       result = pd.Series([2**64], dtype=object).convert_dtypes()
+       assert result.dtype == object
+
+       result = pd.Series([-(2**63) - 1], dtype=object).convert_dtypes()
+       assert result.dtype == object
