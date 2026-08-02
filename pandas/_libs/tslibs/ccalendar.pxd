@@ -6,7 +6,7 @@ from numpy cimport (
 
 ctypedef (int32_t, int32_t, int32_t) iso_calendar_t
 
-cdef int dayofweek(int y, int m, int d) noexcept nogil
+cdef int dayofweek(int64_t y, int m, int d) noexcept nogil
 cdef bint is_leapyear(int64_t year) noexcept nogil
 cpdef int32_t get_days_in_month(int year, Py_ssize_t month) noexcept nogil
 cpdef int32_t get_week_of_year(int year, int month, int day) noexcept nogil

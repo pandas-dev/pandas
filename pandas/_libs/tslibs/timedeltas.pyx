@@ -54,6 +54,7 @@ from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
     periods_per_second,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -1198,7 +1199,14 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
-    assert value != NPY_NAT
+    if value == NPY_NAT:
+        # NPY_NAT is INT64_MIN, so a computed value that lands on it is not NaT
+        #  but is indistinguishable from it: `isna` is False while the object
+        #  round-trips through a timedelta64 array as NaT. (GH#66551)
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds {npy_unit_to_attrname[reso]} timedelta: {value}"
+        )
+
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -2723,6 +2731,12 @@ class Timedelta(_Timedelta):
                 # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
                 return NaT
 
+            # We want NumPy numeric scalars to behave like Python scalars
+            # post NEP 50
+            if isinstance(other, cnp.integer):
+                other = int(other)
+            if isinstance(other, cnp.floating):
+                other = float(other)
             return _timedelta_from_value_and_reso(
                 Timedelta,
                 <int64_t>(other * self._value),
@@ -2767,9 +2781,18 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
-            return Timedelta._from_value_and_reso(
-                <int64_t>(self._value/ other), self._creso
-            )
+
+            if is_integer_object(other):
+                # GH#66551 float64 carries only a 53-bit mantissa, so dividing
+                #  in floating point rounds quotients that int64 represents
+                #  exactly.  Python's // floors; truncate toward zero to match
+                #  numpy and the vectorized path.
+                value = self._value // other
+                if value < 0 and self._value % other:
+                    value += 1
+            else:
+                value = <int64_t>(self._value/ other)
+            return Timedelta._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
             if other.ndim == 0:
