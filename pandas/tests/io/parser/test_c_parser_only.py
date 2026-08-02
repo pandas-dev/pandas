@@ -873,8 +873,8 @@ def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
     value = b"x" * prefix_len + b"\x00y"
     data = b'a,b\n"' + value + b'","' + value + b'"'
     result = parser.read_csv(BytesIO(data), **kwargs)
-    # engine="python", not dtype=object: the C object path interns words by
-    # their NUL-terminated prefix, so it is not a sound reference for NUL data
+    # engine="python" shares none of the C tokenizer's length arithmetic, so it
+    # is an independent reference for what the field should decode to
     expected = read_csv(BytesIO(data), engine="python")
     assert result["a"][0] == value.decode()
     assert result["b"][0] == value.decode()
