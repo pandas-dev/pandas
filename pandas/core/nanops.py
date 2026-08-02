@@ -1727,8 +1727,7 @@ def _ensure_numeric(x):
         if x.dtype.kind in "biu":
             x = x.astype(np.float64)
         elif x.dtype == object:
-            inferred = lib.infer_dtype(x)
-            if inferred in ["string", "mixed", "mixed-integer"]:
+            if lib.contains_strings(x):
                 # GH#44008, GH#36703 avoid casting e.g. strings to numeric
                 raise TypeError(f"Could not convert {x} to numeric")
             try:
@@ -1767,17 +1766,23 @@ def _ensure_numeric_array(x: np.ndarray, try_complex_conversion: bool) -> np.nda
         return x.astype(np.float64)
 
     if x.dtype == object:
-        inferred = lib.infer_dtype(x)
-        if inferred in {"string", "mixed", "mixed-integer"}:
+        if lib.contains_strings(x):
             raise TypeError("Could not convert array to numeric")
 
         if try_complex_conversion:
-            x = x.astype(np.complex128)
+            try:
+                x = x.astype(np.complex128)
+            except (TypeError, ValueError) as err:
+                raise TypeError("Could not convert array to numeric") from err
+
             if not np.any(np.imag(x)):
                 return x.real
             return x
 
-        return x.astype(np.float64)
+        try:
+            return x.astype(np.float64)
+        except (TypeError, ValueError) as err:
+            raise TypeError("Could not convert array to numeric") from err
 
     return x
 
