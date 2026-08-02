@@ -1107,7 +1107,8 @@ class ArrowExtensionArray(
             ):
                 # GH#62157 match non-pyarrow behavior stop cross-type comparison
                 raise TypeError(
-                    f"Invalid comparison between dtype={self.dtype} and {type(other).__name__}"
+                    f"Invalid comparison between dtype={self.dtype} "
+                    f"and {type(other).__name__}"
                 )
             else:
                 try:
