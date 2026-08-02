@@ -447,9 +447,23 @@ timedelta-like}
                     result[i] = new_local - delta
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
+                    if delta_idx == info.ntrans:
+                        # new_local is past the last cached transition, so the
+                        #  offsets below would index deltas (length ntrans) out
+                        #  of bounds. The bisect compared a *local* time against
+                        #  info.tdata, which holds *UTC* instants, so the last
+                        #  delta can put us back before its own transition;
+                        #  walk back to the last one that does not.
+                        delta_idx = info.ntrans - 1
+                        while (
+                            delta_idx > 0
+                            and new_local - info.deltas[delta_idx]
+                            < info.tdata[delta_idx]
+                        ):
+                            delta_idx -= 1
                     # Logic similar to the precompute section. But check the current
                     # delta in case we are moving between UTC+0 and non-zero timezone
-                    if (
+                    elif (
                         (shift_forward or shift_delta > 0)
                         and info.deltas[delta_idx - 1] >= 0
                     ):
@@ -620,7 +634,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 isl = 0
 
         delta_l = deltas[isl]
-        if checked_sub(val, delta_l, &v_left):
+        # GH#66550 landing exactly on NPY_NAT is an underflow too: it is one
+        #  below the minimum representable value.  It also breaks
+        #  bisect_right_i8's `val >= tdata[0]` precondition (tdata[0] is
+        #  NPY_NAT+1), which would leave pos_left at -1 and read out of bounds.
+        if checked_sub(val, delta_l, &v_left) or v_left == NPY_NAT:
             status_left = BS_UNDERFLOW if delta_l > 0 else BS_OVERFLOW
         else:
             status_left = BS_OK
@@ -637,7 +655,8 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 isr = 0
 
         delta_r = deltas[isr]
-        if checked_sub(val, delta_r, &v_right):
+        # GH#66550 same guard as for v_left above
+        if checked_sub(val, delta_r, &v_right) or v_right == NPY_NAT:
             status_right = BS_UNDERFLOW if delta_r > 0 else BS_OVERFLOW
         else:
             status_right = BS_OK
