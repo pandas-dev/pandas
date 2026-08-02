@@ -737,6 +737,13 @@ class TestAddSubNaTMasking:
             else:
                 assert res[1] is NaT
 
+    def test_tdi_add_lands_on_nat_sentinel(self, box_with_array):
+        # GH#66549 a result equal to iNaT would be indistinguishable from NaT
+        obj = tm.box_expected(TimedeltaIndex([Timedelta.min]), box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj - Timedelta(1, "ns")
+
     def test_tdi_add_overflow(self):
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
