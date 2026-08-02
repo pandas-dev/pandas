@@ -614,7 +614,7 @@ class SAS7BDATReader(SASReader):
             offset + const.row_length_offset_multiplier * int_len,
             int_len,
         )
-        if not 0 <= self.row_length <= self._page_length:
+        if self.row_length > self._page_length:
             raise ValueError(
                 f"row_length ({self.row_length}) exceeds the page size "
                 f"({self._page_length}); the file is corrupt"

@@ -627,7 +627,7 @@ def test_row_length_exceeds_page_size_raises(
     data[row_length_field_offset : row_length_field_offset + int_len] = (
         bad_value.to_bytes(int_len, "little")
     )
-    with pytest.raises(ValueError, match="the file is corrupt"):
+    with pytest.raises(ValueError, match=r"row_length \(\d+\) exceeds the page size"):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
