@@ -13757,6 +13757,8 @@ class DataFrame(NDFrame, OpsMixin):
             if not isinstance(level, (tuple, list)):
                 level = [level]
             level = [self.columns._get_level_number(lev) for lev in level]
+            if len(set(level)) != len(level):
+                raise ValueError("level should contain unique values")
             result = stack_v3(self, level)
 
         return result.__finalize__(self, method="stack")
