@@ -2577,9 +2577,9 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         for i in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
 
-            # _token_len, not strlen: an embedded NUL is a data byte here, so
-            # strlen would truncate the field at it (GH#66277).
-            wlen = _token_len(parser, token_idx)
+            # Not strlen: an embedded NUL is a data byte here, so strlen would
+            # truncate the field at it (GH#66415).
+            wlen = _token_len_words(parser, token_idx, word)
 
             if na_filter and kh_get_str_starts_item(na_hashset, word,
                                                     <size_t>wlen):
@@ -3106,6 +3106,28 @@ cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nog
         return (parser.word_starts[token_idx + 1]
                 - parser.word_starts[token_idx] - 1)
     return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
+
+
+cdef inline int64_t _token_len_words(parser_t *parser, int64_t token_idx,
+                                     const char *word) noexcept nogil:
+    # Same arithmetic as _token_len, but taking the boundary from `words`
+    # rather than `word_starts`.  The tokenizer keeps the two in lockstep
+    # (words[i] == stream + word_starts[i], rebased whenever the stream
+    # reallocs), so the result is identical; what differs is which array the
+    # loop touches.  coliter_next_with_idx already loaded words[token_idx] to
+    # produce `word`, so the boundary comes off a cache line the loop has in
+    # hand instead of streaming a second metadata array alongside the first.
+    # `word` must be the unmodified coliter_next_with_idx result for
+    # `token_idx`; an adjusted pointer would silently yield a wrong length.
+    # Only the pyarrow string path uses this: rewriting _token_len itself to
+    # this form regressed long-token ints ~6% (GH#66277), so the numeric
+    # callers keep the word_starts version.
+    if token_idx < 0:
+        # missing field; word is a static "" outside the stream
+        return 0
+    if <uint64_t>(token_idx + 1) < parser.words_len:
+        return <int64_t>(parser.words[token_idx + 1] - word) - 1
+    return <int64_t>(parser.stream + parser.stream_len - word) - 1
 
 
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
