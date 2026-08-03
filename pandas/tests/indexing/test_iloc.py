@@ -1200,6 +1200,14 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_bool_column_indexer_wrong_length_raises(self):
+        # GH#66527 review: the positional conversion must not bypass
+        #  numpy's boolean-mask length validation
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = "boolean index did not match indexed array along axis 1"
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[:, [True, False]] = 9
+
     def test_iloc_setitem_bool_column_indexer_single_ea_column(self):
         # GH#66527 boolean column indexer on a single-column DataFrame with
         #  EA dtype raised NotImplementedError
