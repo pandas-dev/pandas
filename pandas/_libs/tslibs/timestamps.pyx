@@ -3723,8 +3723,10 @@ default 'raise'
             ts_input, tzobj, nanos=dts.ps // 1000, reso=creso
         )
         if ts.value == NPY_NAT:
-            # GH#66510 the value would be indistinguishable from NaT
-            fmt = dts_to_iso_string(&dts)
+            # GH#66510 the value would be indistinguishable from NaT.
+            # Include the UTC offset: dts holds the wall time, which is
+            # not itself out of bounds; the UTC instant it maps to is.
+            fmt = dts_to_iso_string(&dts) + ts_input.strftime("%z")
             raise OutOfBoundsDatetime(
                 f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
             )
