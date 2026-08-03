@@ -3,9 +3,9 @@ Tests for the Index constructor conducting inference.
 """
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 
@@ -186,7 +186,7 @@ class TestIndexConstructorInference:
         # https://github.com/pandas-dev/pandas/pull/55793/files#r1383719998
         tz = maybe_get_tz("US/Central")
         dt1 = datetime(2020, 1, 1, tzinfo=tz)
-        dt2 = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        dt2 = datetime(2020, 1, 1, tzinfo=UTC)
         result = Index([dt1, dt2])
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)

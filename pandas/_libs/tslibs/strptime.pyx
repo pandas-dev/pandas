@@ -66,6 +66,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_nat_sentinel,
     get_datetime64_unit,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -533,10 +534,15 @@ def array_strptime(
                             f"Out of bounds {npy_unit_to_attrname[creso]} "
                             f"timestamp: {val}"
                         )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(value, &dts, creso)
                 else:
                     tz = None
                     state.out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
+                    # GH#66510 nothing shifts this value afterwards, so a
+                    #  rendering onto the sentinel is final
+                    check_nat_sentinel(value, &dts, creso)
                 iresult[i] = value
                 continue
 
@@ -588,11 +594,23 @@ def array_strptime(
                             f"Out of bounds {npy_unit_to_attrname[creso]} "
                             f"timestamp: {val}"
                         )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(ival, &dts, creso)
                     iresult[i] = ival
                 else:
                     iresult[i] = tz_localize_to_utc_single(
                         ival, tz, ambiguous="raise", nonexistent=None, creso=creso
                     )
+                    # GH#66510 the shift must not land on the NaT sentinel.
+                    #  Only meaningful when ival was not already the sentinel:
+                    #  tz_localize_to_utc_single returns such a value untouched,
+                    #  so we would be rejecting the *wall* time, which a westward
+                    #  offset can legitimately shift into range. That leaves a
+                    #  sentinel wall time under a named zone still reading back
+                    #  as NaT, as it does today; the offset is not recoverable
+                    #  here because the localizer refuses the input.
+                    if ival != NPY_NAT:
+                        check_nat_sentinel(iresult[i], &dts, creso)
                     nsecs = (ival - iresult[i])
                     if creso == NPY_FR_ns:
                         nsecs = nsecs // 10**9
@@ -604,6 +622,9 @@ def array_strptime(
                 state.out_tzoffset_vals.add(nsecs)
                 state.found_aware_str = True
             else:
+                # GH#66510 nothing shifts this value afterwards, so a
+                #  rendering onto the sentinel is final
+                check_nat_sentinel(iresult[i], &dts, creso)
                 state.found_naive_str = True
                 tz = None
                 state.out_tzoffset_vals.add("naive")

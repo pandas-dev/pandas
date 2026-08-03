@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 from decimal import Decimal
 
@@ -255,7 +255,7 @@ class TestFromRecords:
         tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=timezone.utc)}
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=UTC)}
 
         # it works
         DataFrame.from_records([rec], index="begin_time")
