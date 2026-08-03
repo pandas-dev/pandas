@@ -42,8 +42,8 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     pandas object
         The original object that was pickled and then re-read.
     """
-    pd.to_pickle(obj, tmp_path)
-    return pd.read_pickle(tmp_path)
+    pd.to_pickle(obj, tmp_path)  # nosemgrep: trailofbits.python.pickles-in-pandas.pickles-in-pandas
+    return pd.read_pickle(tmp_path)  # nosemgrep: trailofbits.python.pickles-in-pandas.pickles-in-pandas
 
 
 def round_trip_pathlib(
