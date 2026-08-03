@@ -911,6 +911,9 @@ static const char *Tuple_iterGetName(JSOBJ Py_UNUSED(obj),
 static void Set_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
   GET_TC(tc)->itemValue = NULL;
   GET_TC(tc)->iterator = PyObject_GetIter(obj);
+  if (GET_TC(tc)->iterator == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
 }
 
 static int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
@@ -919,9 +922,15 @@ static int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->itemValue = NULL;
   }
 
-  PyObject *item = PyIter_Next(GET_TC(tc)->iterator);
+  if (GET_TC(tc)->iterator == NULL) {
+    return 0;
+  }
 
+  PyObject *item = PyIter_Next(GET_TC(tc)->iterator);
   if (item == NULL) {
+    if (PyErr_Occurred()) {
+      ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    }
     return 0;
   }
 
@@ -959,6 +968,11 @@ static const char *Set_iterGetName(JSOBJ Py_UNUSED(obj),
 static void Dir_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
   GET_TC(tc)->attrList = PyObject_Dir(obj);
   GET_TC(tc)->index = 0;
+  if (GET_TC(tc)->attrList == NULL) {
+    GET_TC(tc)->size = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return;
+  }
   GET_TC(tc)->size = PyList_GET_SIZE(GET_TC(tc)->attrList);
 }
 
@@ -973,7 +987,8 @@ static void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->itemName = NULL;
   }
 
-  Py_DECREF((PyObject *)GET_TC(tc)->attrList);
+  Py_XDECREF((PyObject *)GET_TC(tc)->attrList);
+  GET_TC(tc)->attrList = NULL;
 }
 
 static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
@@ -982,6 +997,10 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
   PyObject *itemName = GET_TC(tc)->itemName;
 
   if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
+    return 0;
+  }
+
+  if (GET_TC(tc)->attrList == NULL) {
     return 0;
   }
 
@@ -999,6 +1018,10 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     PyObject *attrName =
         PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
     PyObject *attr = PyUnicode_AsUTF8String(attrName);
+    if (attr == NULL) {
+      ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+      return 0;
+    }
     const char *attrStr = PyBytes_AS_STRING(attr);
 
     if (attrStr[0] == '_') {
@@ -1267,11 +1290,19 @@ static int Dict_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
   } else if (!PyBytes_Check(GET_TC(tc)->itemName)) {
     GET_TC(tc)->itemName = PyObject_Str(GET_TC(tc)->itemName);
+    if (GET_TC(tc)->itemName == NULL) {
+      ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+      return 0;
+    }
     PyObject *itemNameTmp = GET_TC(tc)->itemName;
     GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
     Py_DECREF(itemNameTmp);
   } else {
     Py_INCREF(GET_TC(tc)->itemName);
+  }
+  if (GET_TC(tc)->itemName == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return 0;
   }
   return 1;
 }
@@ -1455,6 +1486,12 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
       }
 
       cLabel = (char *)PyUnicode_AsUTF8(item);
+      if (cLabel == NULL) {
+        Py_DECREF(item);
+        NpyArr_freeLabels(ret, num);
+        ret = 0;
+        break;
+      }
       len = strlen(cLabel);
     }
 
@@ -1895,6 +1932,9 @@ ISITERABLE:
       pc->rowLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
                                           pc->rowLabelsLen, values_is_utc);
       Py_DECREF(tmpObj);
+      if (!pc->rowLabels) {
+        goto INVALID;
+      }
       tmpObj =
           (enc->outputFormat == INDEX ? PyObject_GetAttrString(obj, "columns")
                                       : PyObject_GetAttrString(obj, "index"));
