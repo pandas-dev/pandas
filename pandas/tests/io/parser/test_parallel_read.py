@@ -20,7 +20,14 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
+from pandas.compat import (
+    WASM,
+    _cpu,
+)
+from pandas.compat._cpu import (
+    _parse_cgroup_v2_quota,
+    available_cpu_count,
+)
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -36,9 +43,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.parsers import readers as _readers
 from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import (
     _can_parallelize_csv,
+    _default_n_workers,
     _find_chunk_byte_offsets,
     _find_data_start_offset,
     _read_csv_parallel,
@@ -807,14 +816,15 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     """The default worker count is capped at 4, regardless of core count."""
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
     # More cores than the cap: the default should clamp down to 4.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
+    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
+    # and this test measures the runner, not the cap.
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     workers = []
 
@@ -832,6 +842,170 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     with option_context("mode.max_threads", 8):
         read_csv(path)
     assert workers == [8]
+
+
+# ---------------------------------------------------------------------------
+# Default worker count
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "cpu_count, available, expected",
+    [
+        (2, None, 2),  # unconstrained, below the cap -> logical CPU count
+        (16, None, 4),  # cap binds
+        (16, 1, 1),  # single-CPU container
+        (16, 2, 2),  # cgroup/affinity tighter than the cap
+        (16, 8, 4),  # allocation looser than the cap -> cap still binds
+        (2, 8, 2),  # allocation looser than the machine
+    ],
+)
+def test_default_n_workers_combines_cap_and_allocation(
+    monkeypatch, cpu_count, available, expected
+):
+    # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS).
+    assert _readers._MAX_DEFAULT_WORKERS == 4
+    monkeypatch.setattr(_readers.sys, "platform", "linux")
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
+    with option_context("mode.max_threads", None):
+        assert _default_n_workers() == expected
+
+
+def test_default_n_workers_windows_is_serial(monkeypatch):
+    monkeypatch.setattr(_readers.sys, "platform", "win32")
+    with option_context("mode.max_threads", None):
+        assert _default_n_workers() == 1
+
+
+def test_default_n_workers_wasm_is_serial(monkeypatch):
+    monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+    # WASM stays serial even if a worker count is requested explicitly.
+    with option_context("mode.max_threads", 8):
+        assert _default_n_workers() == 1
+
+
+def test_default_n_workers_max_threads_exceeds_cap(monkeypatch):
+    # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default* only.
+    # The mode.max_threads docs promise an explicit setting still wins.
+    monkeypatch.setattr(_readers.sys, "platform", "linux")
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
+    with option_context("mode.max_threads", 32):
+        assert _default_n_workers() == 32
+
+
+@pytest.mark.parametrize("platform_name", ["linux", "win32"])
+def test_default_n_workers_max_threads_wins(monkeypatch, platform_name):
+    monkeypatch.setattr(_readers.sys, "platform", platform_name)
+    with option_context("mode.max_threads", 3):
+        assert _default_n_workers() == 3
+
+
+# ---------------------------------------------------------------------------
+# CPU allocation detection (pandas.compat._cpu)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("max 100000", None),  # unlimited
+        ("max", None),
+        ("400000 100000", 4.0),
+        ("150000 100000", 1.5),
+        ("100000", 1.0),  # period defaults to 100000us
+        ("0 100000", None),  # zero quota -> ignored
+        ("garbage", None),
+        ("", None),
+    ],
+)
+def test_parse_cgroup_v2_quota(text, expected):
+    assert _parse_cgroup_v2_quota(text) == expected
+
+
+@pytest.mark.parametrize(
+    "affinity, quota, expected",
+    [
+        ({0, 1, 2, 3, 4, 5, 6, 7}, None, 8),  # affinity only
+        ({0, 1, 2, 3, 4, 5, 6, 7}, 4.0, 4),  # cgroup quota tighter
+        ({0, 1, 2, 3}, 8.0, 4),  # affinity tighter
+        ({0, 1}, 1.5, 1),  # fractional quota floors, min 1
+    ],
+)
+def test_available_cpu_count(monkeypatch, affinity, quota, expected):
+    monkeypatch.setattr(
+        os, "sched_getaffinity", lambda pid: set(affinity), raising=False
+    )
+    monkeypatch.setattr(_cpu, "_cgroup_cpu_quota", lambda: quota)
+    available_cpu_count.cache_clear()
+    try:
+        assert available_cpu_count() == expected
+    finally:
+        available_cpu_count.cache_clear()
+
+
+def test_available_cpu_count_unconstrained(monkeypatch):
+    # No affinity limit and no cgroup quota -> None (do not clamp).
+
+    def raise_oserror(pid):
+        raise OSError
+
+    monkeypatch.setattr(os, "sched_getaffinity", raise_oserror, raising=False)
+    monkeypatch.setattr(_cpu, "_cgroup_cpu_quota", lambda: None)
+    available_cpu_count.cache_clear()
+    try:
+        assert available_cpu_count() is None
+    finally:
+        available_cpu_count.cache_clear()
+
+
+def test_available_cpu_count_does_not_raise():
+    # _default_n_workers calls available_cpu_count() bare, so anything escaping
+    # it escapes read_csv.  Every other test mocks both the affinity call and
+    # the cgroup reads; this one runs it against the host.
+    available_cpu_count.cache_clear()
+    try:
+        result = available_cpu_count()
+    finally:
+        available_cpu_count.cache_clear()
+    assert result is None or (isinstance(result, int) and result >= 1)
+
+
+def test_cgroup_cpu_quota_v2(monkeypatch):
+    monkeypatch.setattr(
+        _cpu,
+        "_read_sysfs_str",
+        lambda path: "400000 100000" if path == "/sys/fs/cgroup/cpu.max" else None,
+    )
+    assert _cpu._cgroup_cpu_quota() == 4.0
+
+
+def test_cgroup_cpu_quota_v1_fallback(monkeypatch):
+    ints = {
+        "/sys/fs/cgroup/cpu/cpu.cfs_quota_us": 300000,
+        "/sys/fs/cgroup/cpu/cpu.cfs_period_us": 100000,
+    }
+    monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: None)  # no cgroup v2
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: ints.get(path))
+    assert _cpu._cgroup_cpu_quota() == 3.0
+
+
+def test_cgroup_cpu_quota_unlimited(monkeypatch):
+    monkeypatch.setattr(
+        _cpu,
+        "_read_sysfs_str",
+        lambda path: "max 100000" if path == "/sys/fs/cgroup/cpu.max" else None,
+    )
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: None)
+    assert _cpu._cgroup_cpu_quota() is None
+
+
+def test_read_sysfs_str_non_utf8(tmp_path):
+    # A non-UTF-8 byte must read as "unknown", not raise out of read_csv.
+    path = tmp_path / "cpu.max"
+    path.write_bytes(b"\xff\xfe")
+    assert _cpu._read_sysfs_str(str(path)) is None
 
 
 # ---------------------------------------------------------------------------
