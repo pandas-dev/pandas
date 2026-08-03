@@ -604,6 +604,33 @@ def test_column_offset_past_row_raises(
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+@pytest.mark.parametrize(
+    "test_file, row_length_field_offset, int_len, row_length",
+    [
+        # byte offset of the row-size subheader's row_length field (it lands on
+        # page 1, not the header page, for these fixtures), the file's word
+        # size, and its known-good row length
+        ("test1.sas7bdat", 130612, 4, 816),  # 32-bit, uncompressed
+        ("test2.sas7bdat", 130612, 4, 809),  # 32-bit, RLE compressed
+        ("test7.sas7bdat", 130304, 8, 816),  # 64-bit
+    ],
+)
+def test_row_length_exceeds_page_size_raises(
+    datapath, test_file, row_length_field_offset, int_len, row_length
+):
+    # GH#66475 an inflated row_length overflowed the C `int` used in
+    # process_byte_array_with_data's offset + length bounds check in sas.pyx,
+    # causing a segfault instead of a clean error.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    bad_value = 0x7FFFFFF0
+    data[row_length_field_offset : row_length_field_offset + int_len] = (
+        bad_value.to_bytes(int_len, "little")
+    )
+    with pytest.raises(ValueError, match=r"row_length \(\d+\) exceeds the page size"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
 @pytest.mark.parametrize("bad_length", [9, 16, 4096])
 def test_numeric_column_longer_than_8_bytes_raises(datapath, bad_length):
     # GH#47339 a numeric column is widened into 8 bytes of the output buffer, so

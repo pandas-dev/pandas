@@ -971,6 +971,153 @@ def test_categorical_encoding_errors_merge_with_na(c_parser_only):
     assert list(result.cat.codes) == [0, -1, 0, 1]
 
 
+@pytest.mark.parametrize(
+    "field,other",
+    [
+        ("1\x00xyz", "2"),
+        ("-1\x00xyz", "2"),
+        ("18446744073709551615\x00xyz", "2"),
+        ("1.5\x00xyz", "2.5"),
+        ("1e3\x00xyz", "2.5"),
+        ("inf\x00xyz", "2.5"),
+        ("infinity\x00xyz", "2.5"),
+        ("True\x00xyz", "False"),
+        # not a default true_values entry, so only to_boolean can accept it
+        ("TRue\x00xyz", "False"),
+    ],
+)
+def test_embedded_nul_is_not_a_numeric_or_boolean_literal(c_parser_only, field, other):
+    # GH#66524: the numeric and boolean converters finished on a NUL rather
+    # than on the end of the token, so a field was silently accepted at its
+    # pre-NUL prefix and the trailing bytes were discarded.  `other` keeps the
+    # rest of the column parseable, so the column would convert if the bad
+    # field were accepted.
+    parser = c_parser_only
+    data = f'a\n"{field}"\n{other}\n'.encode()
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"][0] == field
+
+
+def test_embedded_nul_with_thousands_separator(c_parser_only):
+    # GH#66524: the thousands-separator path strips the separator into a scratch
+    # buffer, so it needs the same end-of-token check as the plain path.
+    parser = c_parser_only
+    data = b'a\n"1,234\x00xyz"\n2\n'
+
+    result = parser.read_csv(BytesIO(data), thousands=",")
+    expected = read_csv(BytesIO(data), engine="python", thousands=",")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"][0] == "1,234\x00xyz"
+
+
+@pytest.mark.parametrize("na_filter", [True, False])
+@pytest.mark.parametrize(
+    "good,field",
+    [
+        ("2.5", "1.5\x00xyz"),
+        ("2.5", "inf\x00xyz"),
+        # the long spelling takes a different arm of the infinity check
+        ("2.5", "-Infinity\x00x"),
+        # default spelling: covers the true/false hashset lookup, which must
+        # compare the full length rather than the pre-NUL prefix
+        ("True", "True\x00xyz"),
+        ("True", "TRue\x00xyz"),
+        # neither spelling is in the default true_values/false_values, so each
+        # reaches a different arm of to_boolean
+        ("True", "FAlse\x00xyz"),
+    ],
+)
+def test_embedded_nul_in_later_row(c_parser_only, good, field, na_filter):
+    # GH#66524: the float and boolean converters probe only the first non-NA
+    # token and bail out before their bulk loop when it rejects, so a NUL field
+    # in the first row never reaches the per-row conversion.  Put a good value
+    # first so the bulk loop is the code under test; na_filter picks between
+    # the two separate loops in each converter.
+    parser = c_parser_only
+    data = f'a\n{good}\n"{field}"\n'.encode()
+
+    result = parser.read_csv(BytesIO(data), na_filter=na_filter)
+    expected = read_csv(BytesIO(data), engine="python", na_filter=na_filter)
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == [good, field]
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "1\x00xyz",
+        "18446744073709551614\x00z",
+        # the pre-NUL digits exceed uint64, so this leaves str_to_uint64 by the
+        # overflow arm rather than by the end-of-token check the others take
+        "18446744073709551616\x00z",
+    ],
+)
+def test_embedded_nul_is_not_a_uint64(c_parser_only, field):
+    # GH#66524: str_to_uint64 is reached only after str_to_int64 reports a
+    # *clean* overflow, which a NUL-bearing token can never produce, so the
+    # leading row has to genuinely exceed int64 for the uint64 path to see the
+    # NUL-bearing field at all.
+    parser = c_parser_only
+    data = f'a\n18446744073709551615\n"{field}"\n'.encode()
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["18446744073709551615", field]
+
+
+def test_embedded_nul_int64_overflow(c_parser_only):
+    # GH#66524: the pre-NUL digits are int64max + 1, so the token leaves
+    # str_to_int64 by the overflow arm and its truncation has to be caught
+    # before the uint64 retry, where the truncated value would fit.
+    parser = c_parser_only
+    data = b'a\n1\n"9223372036854775808\x00z"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["1", "9223372036854775808\x00z"]
+
+
+def test_embedded_nul_is_not_a_python_int(c_parser_only):
+    # GH#66524: a column containing a value too large for uint64 falls back to
+    # a Python-int path built on PyLong_FromString, which also stops at a NUL.
+    parser = c_parser_only
+    data = b'a\n99999999999999999999999999\n"1\x00xyz"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["99999999999999999999999999", "1\x00xyz"]
+
+
+def test_embedded_nul_raises_for_explicit_int_dtype(c_parser_only):
+    # GH#66524: with the dtype pinned there is no string column to fall back
+    # to, so the truncated value has to raise rather than parse.
+    parser = c_parser_only
+    data = b'a\n"1\x00xyz"\n2\n'
+
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        parser.read_csv(BytesIO(data), dtype="Int64")
+
+
+@pytest.mark.parametrize(
+    "field", ["1\x00x", "0\x00x", "1.0\x00x", "0.0\x00x", "True\x00x"]
+)
+def test_embedded_nul_raises_for_boolean_dtype(c_parser_only, field):
+    # GH#66524: "1"/"1.0"/"0"/"0.0" are the numeric spellings dtype="boolean"
+    # accepts; none of these are one of them.  The "1.0"/"0.0" spellings take a
+    # separate arm of the literal check from the one-character ones.
+    parser = c_parser_only
+    data = f'a\nTrue\n"{field}"\n'.encode()
+
+    with pytest.raises(ValueError, match="cannot be cast to bool"):
+        parser.read_csv(BytesIO(data), dtype="boolean")
+
+
 @pytest.mark.parametrize("value", [b"NA\x00x", b"nan\x00junk", b"null\x00z"])
 def test_default_na_value_prefix_is_not_na(c_parser_only, value):
     # GH#19886: a field was compared against na_values only up to its first
