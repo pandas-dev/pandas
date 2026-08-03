@@ -704,6 +704,15 @@ cdef class _Timestamp(ABCTimestamp):
 
             try:
                 new_value = self._value + nanos
+                if new_value == NPY_NAT:
+                    # GH#66549 int64 can hold this sum, but the value is the
+                    #  NaT sentinel, so it is not representable as a Timestamp.
+                    #  Raise like the neighbouring sum one step further out of
+                    #  bounds does.
+                    attrname = npy_unit_to_attrname[self._creso]
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds {attrname} timestamp: {new_value}"
+                    )
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._creso, tz=self.tzinfo
                 )
