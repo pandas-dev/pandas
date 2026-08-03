@@ -1,6 +1,13 @@
 import functools
 
 import numpy as np
+import pytest
+
+import pandas as pd
+import pandas._testing as tm
+
+pytest.importorskip("odf")
+
 from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import (
     CoveredTableCell,
@@ -8,12 +15,6 @@ from odf.table import (
     TableCell,
     TableRow,
 )
-import pytest
-
-import pandas as pd
-import pandas._testing as tm
-
-pytest.importorskip("odf")
 
 
 @pytest.fixture(autouse=True)
