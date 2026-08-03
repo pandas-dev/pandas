@@ -245,7 +245,7 @@ class XportReader(SASReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         index=None,
-        encoding: str | None | lib.NoDefault = _default_encoding,
+        encoding: str | lib.NoDefault | None = _default_encoding,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
     ) -> None:

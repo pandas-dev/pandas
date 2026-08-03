@@ -167,9 +167,9 @@ class MPLPlot(ABC):
         include_bool: bool = False,
         column: IndexLabel | None = None,
         *,
-        logx: bool | None | Literal["sym"] = False,
-        logy: bool | None | Literal["sym"] = False,
-        loglog: bool | None | Literal["sym"] = False,
+        logx: bool | Literal["sym"] | None = False,
+        logy: bool | Literal["sym"] | None = False,
+        loglog: bool | Literal["sym"] | None = False,
         mark_right: bool = True,
         stacked: bool = False,
         label: Hashable | None = None,
@@ -326,8 +326,8 @@ class MPLPlot(ABC):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         if (
             value is None
             or isinstance(value, bool)
@@ -2161,8 +2161,8 @@ class PiePlot(MPLPlot):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         super()._validate_log_kwd(kwd=kwd, value=value)
         if value is not False:
             warnings.warn(

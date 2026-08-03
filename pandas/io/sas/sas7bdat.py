@@ -283,7 +283,7 @@ class SAS7BDATReader(SASReader):
         convert_dates: bool = True,
         blank_missing: bool = True,
         chunksize: int | None = None,
-        encoding: str | None | lib.NoDefault = lib.no_default,
+        encoding: str | lib.NoDefault | None = lib.no_default,
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",

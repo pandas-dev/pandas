@@ -1636,7 +1636,7 @@ class MultiIndex(Index):
         self,
         *,
         include_names: bool,
-        sparsify: bool | None | lib.NoDefault,
+        sparsify: bool | lib.NoDefault | None,
         formatter: Callable | None = None,
     ) -> list:
         if len(self) == 0:

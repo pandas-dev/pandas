@@ -185,7 +185,7 @@ def maybe_convert_usecols(usecols: None) -> None: ...
 
 def maybe_convert_usecols(
     usecols: str | list[int] | list[str] | usecols_func | None,
-) -> None | list[int] | list[str] | usecols_func:
+) -> list[int] | list[str] | usecols_func | None:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
