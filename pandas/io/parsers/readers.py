@@ -39,7 +39,10 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas.compat._cpu import available_cpu_count
+from pandas.compat._cpu import (
+    available_cpu_count,
+    physical_core_count,
+)
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -201,11 +204,13 @@ _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
 # Minimum rows per parallel chunk, bounding how finely a file is split.
 _PARALLEL_MIN_CHUNK_ROWS = 2000
 
-# Ceiling on the *default* parallel-read worker count: parallel CSV reading
-# sees diminishing returns beyond a handful of workers, and a low default
-# avoids oversubscribing the machine.  mode.max_threads overrides it in either
+# Hard ceiling on the *default* parallel-read worker count.  Not a measured
+# saturation point, and it does bind on real hardware -- 16-physical-core
+# desktops and anything larger reach it.  Its job is to stop a default read
+# from spawning dozens of threads on a big shared server that has no
+# cgroup/affinity limit set.  mode.max_threads overrides it in either
 # direction.
-_MAX_DEFAULT_WORKERS = 4
+_MAX_DEFAULT_WORKERS = 16
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -378,10 +383,15 @@ def _default_n_workers() -> int:
 
     ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
     cannot spawn threads at all).  Otherwise parallel reading is off by default
-    on Windows, and elsewhere is the smallest of the machine's logical CPU
-    count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available to the
-    process (CPU affinity / cgroup limits) -- so that an embedded or
-    containerised pandas does not oversubscribe its allocation.
+    on Windows, and elsewhere defaults to the number of physical cores
+    (:func:`~pandas.compat._cpu.physical_core_count`), efficiency cores
+    included: the work-queued parallel path keeps every core productive (a
+    slow core simply pulls fewer chunks).  SMT siblings are excluded because
+    a hyperthread adds no memory bandwidth to the bandwidth-bound parse its
+    sibling is running.  That count is then clamped to the CPUs actually
+    available to the process (CPU affinity / cgroup limits) and to
+    ``_MAX_DEFAULT_WORKERS`` -- so that an embedded or containerised pandas
+    does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
     if sys.platform == "emscripten":
@@ -397,14 +407,11 @@ def _default_n_workers() -> int:
         # benchmark numbers in the GH#64347 discussion:
         # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
         return 1
-    n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
-    # os.cpu_count() counts the machine's CPUs, not the ones this process may
-    # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
-    # single-CPU container.
+    n_workers = physical_core_count()
     available = available_cpu_count()
     if available is not None:
         n_workers = min(n_workers, available)
-    return n_workers
+    return min(n_workers, _MAX_DEFAULT_WORKERS)
 
 
 def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
