@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import PY315
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
@@ -463,6 +464,8 @@ class TestBase:
         if len(index) == 0:
             # 0 vs 0.5 in error message varies with numpy version
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
+        elif PY315:
+            msg = "slice indices must be integers or have an __index__ method"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
