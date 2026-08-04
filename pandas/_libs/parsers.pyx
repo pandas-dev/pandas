@@ -26,6 +26,7 @@ from pandas import (
 )
 from pandas.core.arrays import (
     ArrowExtensionArray,
+    ArrowStringArray,
     BooleanArray,
     DatetimeArray,
     FloatingArray,
@@ -405,7 +406,7 @@ cdef class TextReader:
         dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
-        object _pa_target  # cached _string_convert target; None = unresolved
+        str _pa_target  # cached _string_convert target; None = unresolved
         # Let the pyarrow string fast path return raw _PendingStringColumn
         # handles instead of ExtensionArrays; the c_parser_wrapper layer
         # materializes them once per column at the end of the read.
@@ -1475,15 +1476,22 @@ cdef class TextReader:
                          bint allow_pyarrow=False):
 
         cdef str target = ""
+        cdef str resolved
         if allow_pyarrow:
             # The option lookups behind the target decision are not free and
             # run under the GIL, so resolve them once per reader rather than
-            # once per column chunk (option state cannot change mid-read).
+            # once per column chunk.  This pins which path the parser takes at
+            # the first string column converted, so changing the options
+            # mid-read (possible only with chunksize / iterator=True) no longer
+            # moves one read on or off the fast path partway through.  The
+            # object path still picks its storage downstream, per chunk.
             if self._pa_target is None:
-                self._pa_target = ""
+                # resolve into a local and publish once, so no observer can
+                # see the "" placeholder while the lookups below are running
+                resolved = ""
                 if HAS_PYARROW and self.encoding_errors == b"strict":
                     if self.dtype_backend == "pyarrow":
-                        self._pa_target = "arrow"
+                        resolved = "arrow"
                     elif (
                         self.dtype_backend == "numpy"
                         and using_string_dtype()
@@ -1491,7 +1499,8 @@ cdef class TextReader:
                         # with mode.string_storage="python"
                         and StringDtype(na_value=np.nan).storage == "pyarrow"
                     ):
-                        self._pa_target = "str_nan"
+                        resolved = "str_nan"
+                self._pa_target = resolved
             target = self._pa_target
 
         if target:
@@ -2009,32 +2018,43 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     return result, na_count
 
 
+# Prebuilt at import time so that `_string_pyarrow_utf8`, which runs once per
+# (column, chunk), does no import machinery or dtype construction while holding
+# the GIL.  Populating these lazily instead would race between the threads of a
+# parallel read.  Nothing is imported here that pandas has not already imported:
+# HAS_PYARROW is only true once ``pyarrow`` is in sys.modules, and
+# ``pandas.core.arrays`` exports ArrowStringArray.
+cdef object _pa_large_string_type = None
+cdef object _pa_string_type = None
+cdef object _pa_str_nan_dtype = None
+cdef object _pa_arrow_str_dtype = None
+cdef object _pa_py_buffer = None
+cdef object _pa_foreign_buffer = None
+cdef object _pa_from_buffers = None
+cdef object _pa_chunked_array = None
+cdef object _pa_ArrowInvalid = None
+
+if HAS_PYARROW:
+    import pyarrow as pa
+
+    _pa_large_string_type = pa.large_string()
+    _pa_string_type = pa.string()
+    # storage is passed explicitly rather than left to mode.string_storage:
+    # this outlives the option, and the "str_nan" target is only ever chosen
+    # when the option resolves to "pyarrow" anyway.
+    _pa_str_nan_dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+    _pa_arrow_str_dtype = ArrowDtype(_pa_string_type)
+    # bound here too, so `_string_pyarrow_utf8` does no pyarrow attribute
+    # lookups of its own
+    _pa_py_buffer = pa.py_buffer
+    _pa_foreign_buffer = pa.foreign_buffer
+    _pa_from_buffers = pa.Array.from_buffers
+    _pa_chunked_array = pa.chunked_array
+    _pa_ArrowInvalid = pa.lib.ArrowInvalid
+
+
 cdef void _free_malloc_capsule(object capsule) noexcept:
     free(PyCapsule_GetPointer(capsule, NULL))
-
-
-# Lazily-populated cache for the pyarrow string fast path, so each call to
-# `_string_pyarrow_utf8` avoids re-running import machinery and re-building
-# dtype instances while holding the GIL.
-cdef object _pa_string_helpers = None
-
-
-cdef _get_pa_string_helpers():
-    global _pa_string_helpers
-    if _pa_string_helpers is None:
-        import pyarrow as pa
-
-        from pandas.core.arrays.string_arrow import ArrowStringArray
-
-        _pa_string_helpers = (
-            pa,
-            pa.large_string(),
-            pa.string(),
-            ArrowStringArray,
-            StringDtype(na_value=np.nan),
-            ArrowDtype(pa.string()),
-        )
-    return _pa_string_helpers
 
 
 cdef class _PendingStringColumn:
@@ -2071,8 +2091,7 @@ cdef class _PendingStringColumn:
         dtypes across chunks (see the parallel-read gather) while the
         columns are still unmaterialized.
         """
-        _, _, _, _, str_nan_dtype, arrow_str_dtype = _get_pa_string_helpers()
-        return str_nan_dtype if self.large else arrow_str_dtype
+        return _pa_str_nan_dtype if self.large else _pa_arrow_str_dtype
 
     def materialize(self):
         """
@@ -2084,34 +2103,32 @@ cdef class _PendingStringColumn:
             # A fresh instance always has a non-NULL data_ptr (malloc'd at
             # least 1 byte); NULL means the buffers were already transferred.
             raise RuntimeError("materialize() may only be called once")
-        helpers = _get_pa_string_helpers()
-        pa = helpers[0]
 
         if self.large:
             addr = <uintptr_t>self.offsets64_ptr
             capsule = PyCapsule_New(<void *>self.offsets64_ptr, NULL,
                                     _free_malloc_capsule)
             self.offsets64_ptr = NULL
-            offsets_buf = pa.foreign_buffer(
+            offsets_buf = _pa_foreign_buffer(
                 addr, (self.lines + 1) * sizeof(int64_t), capsule
             )
-            pa_type = helpers[1]
+            pa_type = _pa_large_string_type
         else:
             addr = <uintptr_t>self.offsets32_ptr
             capsule = PyCapsule_New(<void *>self.offsets32_ptr, NULL,
                                     _free_malloc_capsule)
             self.offsets32_ptr = NULL
-            offsets_buf = pa.foreign_buffer(
+            offsets_buf = _pa_foreign_buffer(
                 addr, (self.lines + 1) * sizeof(int32_t), capsule
             )
-            pa_type = helpers[2]
+            pa_type = _pa_string_type
 
         if self.na_count > 0:
             addr = <uintptr_t>self.validity_ptr
             capsule = PyCapsule_New(<void *>self.validity_ptr, NULL,
                                     _free_malloc_capsule)
             self.validity_ptr = NULL
-            validity_buf = pa.foreign_buffer(
+            validity_buf = _pa_foreign_buffer(
                 addr, (self.lines + 7) // 8, capsule
             )
         else:
@@ -2123,9 +2140,9 @@ cdef class _PendingStringColumn:
         capsule = PyCapsule_New(<void *>self.data_ptr, NULL,
                                 _free_malloc_capsule)
         self.data_ptr = NULL
-        data_buf = pa.foreign_buffer(addr, self.total_bytes, capsule)
+        data_buf = _pa_foreign_buffer(addr, self.total_bytes, capsule)
 
-        return pa.Array.from_buffers(
+        return _pa_from_buffers(
             pa_type, self.lines, [validity_buf, offsets_buf, data_buf],
             null_count=self.na_count,
         )
@@ -2828,9 +2845,6 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         # this returns).
         return pending, na_count
 
-    pa, _, _, ArrowStringArray_cls, str_nan_dtype, arrow_str_dtype = (
-        _get_pa_string_helpers()
-    )
     pa_arr = pending.materialize()
 
     # from_buffers does not validate UTF-8; fall back to the object path so
@@ -2839,20 +2853,22 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     if saw_non_ascii:
         try:
             pa_arr.validate(full=True)
-        except pa.lib.ArrowInvalid:
+        except _pa_ArrowInvalid:
             return _string_box_utf8(parser, col, line_start, line_end,
                                     na_filter, na_hashset, b"strict")
 
-    # Bypass ArrowStringArray/ArrowExtensionArray.__init__ (type checks,
-    # dtype construction) — the exact type and dtype are known by
-    # construction.
+    # Bypass ArrowStringArray/ArrowExtensionArray.__init__ (type checks, dtype
+    # construction) -- the exact type and dtype are known by construction.
+    # This is `_from_pyarrow_array` inlined; that helper re-checks the pyarrow
+    # type on every call, which we already know here.  The attribute set is
+    # pinned by test_pyarrow_string_fast_path_attrs_match_constructor.
     if target == "str_nan":
-        arr = ArrowStringArray_cls.__new__(ArrowStringArray_cls)
-        arr._dtype = str_nan_dtype
+        arr = ArrowStringArray.__new__(ArrowStringArray)
+        arr._dtype = _pa_str_nan_dtype
     else:
         arr = ArrowExtensionArray.__new__(ArrowExtensionArray)
-        arr._dtype = arrow_str_dtype
-    arr._pa_array = pa.chunked_array([pa_arr])
+        arr._dtype = _pa_arrow_str_dtype
+    arr._pa_array = _pa_chunked_array([pa_arr])
     arr._cache = {}
     return arr, na_count
 

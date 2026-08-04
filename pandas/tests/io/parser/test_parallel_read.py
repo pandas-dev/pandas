@@ -36,9 +36,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.parsers import readers as _readers
 from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import (
     _can_parallelize_csv,
+    _default_n_workers,
     _find_chunk_byte_offsets,
     _find_data_start_offset,
     _read_csv_parallel,
@@ -88,8 +90,6 @@ class TestCanParallelizeCsv:
         return base
 
     def test_eligible_large_file(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "big.csv"
         _make_large_csv(path)
         # Lower the threshold so the test file qualifies regardless of its size.
@@ -98,8 +98,6 @@ class TestCanParallelizeCsv:
 
     def test_accepts_default_engine(self, tmp_path, monkeypatch):
         """engine=None (the default) should be treated the same as engine='c'."""
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -156,8 +154,6 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(engine="pyarrow"))
 
     def test_rejects_custom_lineterminator(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         # The chunk splitter always scans for \n; a different lineterminator
@@ -176,8 +172,6 @@ class TestCanParallelizeCsv:
         # UTF-16/32 encode \n as a multi-byte sequence (e.g. b"\x0a\x00" in
         # UTF-16LE).  Splitting on raw \n bytes would misalign chunks and
         # silently corrupt data.
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -189,8 +183,6 @@ class TestCanParallelizeCsv:
         # words as UTF-8; only UTF-8-compatible encodings are byte-safe.  "ascii"
         # is excluded too: the workers would decode a non-ASCII byte as UTF-8 and
         # succeed, masking the UnicodeDecodeError serial raises (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -202,8 +194,6 @@ class TestCanParallelizeCsv:
     def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
         # Multi-char/regex seps (other than r"\s+") and sep=None force the
         # python engine inside TextFileReader (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -212,16 +202,12 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(delimiter=r"\s+"))
 
     def test_rejects_comment(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(comment="#"))
 
     def test_rejects_escapechar(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -231,16 +217,12 @@ class TestCanParallelizeCsv:
         # dialect is merged into the kwds inside TextFileReader, i.e. after
         # this check runs; a dialect-specified escapechar would otherwise
         # bypass the escapechar check above (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(dialect="excel"))
 
     def test_rejects_parse_dates(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -254,8 +236,6 @@ class TestCanParallelizeCsv:
         # per-chunk parallel path cannot honour; low_memory=True (and the unset
         # default) document per-chunk divergence, so they stay eligible
         # (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -275,8 +255,6 @@ class TestCanParallelizeCsv:
     def test_rejects_on_bad_lines_warn(self, tmp_path, monkeypatch):
         # "warn" includes line numbers in its warnings; chunk workers would
         # report chunk-relative (i.e. wrong) ones (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -288,8 +266,6 @@ class TestCanParallelizeCsv:
     def test_rejects_blank_line_in_preamble(self, tmp_path, monkeypatch):
         # A blank line before the header shifts where pandas locates the
         # header relative to the physical line count (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("\na,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -734,8 +710,6 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     read_csv() transparently uses the parallel path for large local files.
     Result must match the serial read obtained via engine='python'.
     """
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     # Lower the threshold so any file triggers the parallel path.
@@ -754,8 +728,6 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     For a file that exceeds the threshold, the parallel result equals the
     result from a direct serial C-engine read (with parallelism forced off).
     """
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     # Lower the threshold so any file triggers the parallel path.
@@ -776,14 +748,14 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     warm in the OS cache, so the default is serial there; users opt in via
     ``mode.max_threads`` (which is honoured on every platform).
     """
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     # Pin the non-Windows default so the test does not depend on the host's
-    # actual core count.
+    # actual core count, or on how many CPUs a container/affinity mask leaves
+    # the runner -- one usable CPU would make the default serial everywhere.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     # Stub the parallel reader so this exercises only the platform-gating
     # decision.  Calling the real one would start threads, which fails on
@@ -807,14 +779,15 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     """The default worker count is capped at 4, regardless of core count."""
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
     # More cores than the cap: the default should clamp down to 4.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
+    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
+    # and this test measures the runner, not the cap.
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     workers = []
 
@@ -832,6 +805,64 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     with option_context("mode.max_threads", 8):
         read_csv(path)
     assert workers == [8]
+
+
+# ---------------------------------------------------------------------------
+# _default_n_workers
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultNWorkers:
+    """Unit tests for the default worker count."""
+
+    @pytest.mark.parametrize(
+        "cpu_count, available, expected",
+        [
+            (2, None, 2),  # unconstrained, below the cap -> logical CPU count
+            (16, None, 4),  # cap binds
+            (16, 1, 1),  # single-CPU container
+            (16, 2, 2),  # cgroup/affinity tighter than the cap
+            (16, 8, 4),  # allocation looser than the cap -> cap still binds
+            (2, 8, 2),  # allocation looser than the machine
+        ],
+    )
+    def test_combines_cap_and_allocation(
+        self, monkeypatch, cpu_count, available, expected
+    ):
+        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS).
+        assert _readers._MAX_DEFAULT_WORKERS == 4
+        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
+        monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
+        with option_context("mode.max_threads", None):
+            assert _default_n_workers() == expected
+
+    def test_windows_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_readers.sys, "platform", "win32")
+        with option_context("mode.max_threads", None):
+            assert _default_n_workers() == 1
+
+    def test_wasm_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+        # WASM stays serial even if a worker count is requested explicitly.
+        with option_context("mode.max_threads", 8):
+            assert _default_n_workers() == 1
+
+    def test_max_threads_exceeds_cap(self, monkeypatch):
+        # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default*
+        # only.  The mode.max_threads docs promise an explicit setting still
+        # wins.
+        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
+        monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
+        with option_context("mode.max_threads", 32):
+            assert _default_n_workers() == 32
+
+    @pytest.mark.parametrize("platform_name", ["linux", "win32"])
+    def test_max_threads_wins(self, monkeypatch, platform_name):
+        monkeypatch.setattr(_readers.sys, "platform", platform_name)
+        with option_context("mode.max_threads", 3):
+            assert _default_n_workers() == 3
 
 
 # ---------------------------------------------------------------------------

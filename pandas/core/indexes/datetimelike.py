@@ -21,8 +21,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_infer_freq_offset
-
 from pandas._libs import (
     NaT,
     lib,
@@ -87,6 +85,8 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
+
+from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -1137,24 +1137,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        result = self._inferred_freq_str
-        if result is not None:
-            opt = using_infer_freq_offset()
-            if opt is True:
-                return to_offset(result)
-            if opt is None:
-                warnings.warn(
-                    "A future version of pandas will return a BaseOffset "
-                    "object instead of a string from inferred_freq. "
-                    "Use pd.set_option("
-                    "'future.infer_freq_returns_offset', True) "
-                    "to get the future behavior, or set to False to keep the "
-                    "old behavior and silence this warning. To preserve the "
-                    "string representation, use ``inferred_freq.freqstr``.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
-        return result
+        return frequencies.maybe_convert_inferred_freq(
+            self._inferred_freq_str, "inferred_freq"
+        )
 
     # --------------------------------------------------------------------
     # Set Operation Methods
