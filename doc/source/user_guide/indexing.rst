@@ -1289,6 +1289,17 @@ Pretty close to how you might write it on paper:
 
    df.query('a < b < c')
 
+The ``query()`` method can also be useful when filtering rows based on string values.
+
+.. ipython:: python
+
+   employees = pd.DataFrame({
+       "Name": ["Alice", "Bob", "Charlie"],
+       "Department": ["HR", "IT", "HR"]
+   })
+
+   employees.query('Department == "HR"')
+
 The ``in`` and ``not in`` operators
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
