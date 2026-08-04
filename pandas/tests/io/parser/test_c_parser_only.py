@@ -861,7 +861,7 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_mutable(c_parser_only, kwargs):
-    # GH#66614: the fast path builds its result without going through the
+    # GH#66619: the fast path builds its result without going through the
     # ExtensionArray constructor, so it must set every attribute the
     # constructor does; omitting _cache made mutating the result raise
     # AttributeError.  low_memory=False keeps the array out of the
