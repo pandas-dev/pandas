@@ -463,11 +463,11 @@ max_threads_doc = """
     Maximum number of worker threads for parallel operations (e.g. ``read_csv``
     for large files).  ``None`` (the default) uses the machine's physical core
     count (SMT siblings excluded), limited to the CPUs available to the process
-    (CPU affinity and cgroup limits) and to at most 16; on Windows and WASM the
-    default is ``1``, as parallel reading is disabled there.  Set to ``1`` to
-    disable parallel execution, or to a fixed number to raise or lower the
-    worker count, e.g. to limit thread usage when pandas is embedded in a
-    larger parallel workflow.
+    (CPU affinity and cgroup limits) and to at most 16; on Windows the default
+    is ``1``, as parallel reading is not faster there.  Set to ``1`` to disable
+    parallel execution, or to a fixed number to raise or lower the worker count,
+    e.g. to limit thread usage when pandas is embedded in a larger parallel
+    workflow.  Ignored on Emscripten/Pyodide, which cannot spawn threads.
 """
 
 

@@ -1,8 +1,6 @@
 """
-_cpu
-====
-
-Detection of a CPU's physical core count.
+Detection of a CPU's physical core count, and of the CPU allocation actually
+available to this process.
 
 Used to pick the default worker count for parallel I/O.  The target is the
 number of *physical cores*, efficiency cores included: with the work-queued
@@ -10,6 +8,12 @@ parallel read path, efficiency cores contribute real throughput (a slow chunk
 just means that worker pulls fewer chunks from the queue).  SMT siblings are
 excluded because a hyperthread does not add memory bandwidth to the
 bandwidth-bound parsing work its sibling is already doing.
+
+That count is then bounded by the allocation this process actually has, so
+that a default :func:`~pandas.read_csv` does not oversubscribe a machine on
+which the process has been given only a slice of the CPUs -- a CPU affinity
+mask, or a cgroup CPU quota as set by ``docker --cpus`` and Kubernetes CPU
+limits.
 """
 
 from __future__ import annotations
@@ -113,10 +117,10 @@ def _read_sysfs_int(path: str) -> int | None:
 
 
 def _read_sysfs_str(path: str) -> str | None:
-    # ValueError as well as OSError, matching _read_sysfs_int: a non-UTF-8
-    # byte raises UnicodeDecodeError, and this feeds available_cpu_count(),
-    # which _default_n_workers calls unguarded -- so it would surface out of
-    # read_csv rather than falling back.
+    # ValueError as well as OSError, matching _read_sysfs_int: a non-UTF-8 byte
+    # raises UnicodeDecodeError, and this feeds available_cpu_count(), which
+    # _default_n_workers calls unguarded -- so it would surface out of read_csv
+    # rather than falling back.
     try:
         with open(path, encoding="utf-8") as fh:
             return fh.read().strip()
@@ -249,9 +253,10 @@ def available_cpu_count() -> int | None:
     On Linux ``sched_getaffinity`` always succeeds, so an unconstrained box
     reports its full logical CPU count rather than ``None``.
 
-    Cached for the process lifetime: the CPU allocation is effectively static
-    (cgroup limits do not change at runtime and affinity is normally set once at
-    startup), and this is on the ``read_csv`` hot path.
+    Cached for the process lifetime: the CPU allocation is static in practice
+    (affinity is normally set once at startup, and a live quota change via
+    ``docker update`` or an in-place pod resize is rare), and this is on the
+    ``read_csv`` hot path.
     """
     limits = []
     if hasattr(os, "sched_getaffinity"):

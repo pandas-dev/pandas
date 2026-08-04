@@ -381,16 +381,17 @@ def _default_n_workers() -> int:
     """
     Default worker count for a parallel ``read_csv``.
 
-    ``mode.max_threads`` wins whenever it is set (except on WASM, which cannot
-    spawn threads at all).  Otherwise parallel reading is off by default on
-    Windows, and elsewhere defaults to the number of physical cores
+    ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
+    cannot spawn threads at all).  Otherwise parallel reading is off by default
+    on Windows, and elsewhere defaults to the number of physical cores
     (:func:`~pandas.compat._cpu.physical_core_count`), efficiency cores
     included: the work-queued parallel path keeps every core productive (a
     slow core simply pulls fewer chunks).  SMT siblings are excluded because
     a hyperthread adds no memory bandwidth to the bandwidth-bound parse its
     sibling is running.  That count is then clamped to the CPUs actually
     available to the process (CPU affinity / cgroup limits) and to
-    ``_MAX_DEFAULT_WORKERS``.
+    ``_MAX_DEFAULT_WORKERS`` -- so that an embedded or containerised pandas
+    does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
     if sys.platform == "emscripten":
@@ -453,7 +454,8 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       path, and that error must not be masked.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
       chunk-relative (i.e. wrong) line numbers.
-    * The file is at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
+    * Both the file and its data section (i.e. excluding the header preamble)
+      are at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
 
     Note that a chunk boundary landing on a newline embedded inside a quoted
     field leaves that chunk's parser inside an open quote at EOF, which raises
