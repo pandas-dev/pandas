@@ -7,3 +7,40 @@
     {% endif %}
   </div>
 </nav>
+<script>
+(function () {
+  const storageKey = "pandas-docs-sidebar-scroll";
+
+  function getSidebar() {
+    return document.getElementById("bd-docs-nav");
+  }
+
+  function restoreScroll() {
+    const sidebar = getSidebar();
+    if (!sidebar) {
+      return;
+    }
+
+    const position = sessionStorage.getItem(`${storageKey}:${location.pathname}`);
+    if (position !== null) {
+      sidebar.scrollTop = Number(position);
+    }
+  }
+
+  function saveScroll() {
+    const sidebar = getSidebar();
+    if (!sidebar) {
+      return;
+    }
+
+    sessionStorage.setItem(
+      `${storageKey}:${location.pathname}`,
+      String(sidebar.scrollTop),
+    );
+  }
+
+  document.addEventListener("DOMContentLoaded", restoreScroll);
+  window.addEventListener("scroll", saveScroll, { passive: true });
+  window.addEventListener("pagehide", saveScroll);
+})();
+</script>
