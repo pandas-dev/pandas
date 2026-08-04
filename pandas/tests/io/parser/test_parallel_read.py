@@ -808,61 +808,61 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Default worker count
+# _default_n_workers
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "cpu_count, available, expected",
-    [
-        (2, None, 2),  # unconstrained, below the cap -> logical CPU count
-        (16, None, 4),  # cap binds
-        (16, 1, 1),  # single-CPU container
-        (16, 2, 2),  # cgroup/affinity tighter than the cap
-        (16, 8, 4),  # allocation looser than the cap -> cap still binds
-        (2, 8, 2),  # allocation looser than the machine
-    ],
-)
-def test_default_n_workers_combines_cap_and_allocation(
-    monkeypatch, cpu_count, available, expected
-):
-    # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS).
-    assert _readers._MAX_DEFAULT_WORKERS == 4
-    monkeypatch.setattr(_readers.sys, "platform", "linux")
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
-    monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
-    with option_context("mode.max_threads", None):
-        assert _default_n_workers() == expected
+class TestDefaultNWorkers:
+    """Unit tests for the default worker count."""
 
+    @pytest.mark.parametrize(
+        "cpu_count, available, expected",
+        [
+            (2, None, 2),  # unconstrained, below the cap -> logical CPU count
+            (16, None, 4),  # cap binds
+            (16, 1, 1),  # single-CPU container
+            (16, 2, 2),  # cgroup/affinity tighter than the cap
+            (16, 8, 4),  # allocation looser than the cap -> cap still binds
+            (2, 8, 2),  # allocation looser than the machine
+        ],
+    )
+    def test_combines_cap_and_allocation(
+        self, monkeypatch, cpu_count, available, expected
+    ):
+        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS).
+        assert _readers._MAX_DEFAULT_WORKERS == 4
+        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
+        monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
+        with option_context("mode.max_threads", None):
+            assert _default_n_workers() == expected
 
-def test_default_n_workers_windows_is_serial(monkeypatch):
-    monkeypatch.setattr(_readers.sys, "platform", "win32")
-    with option_context("mode.max_threads", None):
-        assert _default_n_workers() == 1
+    def test_windows_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_readers.sys, "platform", "win32")
+        with option_context("mode.max_threads", None):
+            assert _default_n_workers() == 1
 
+    def test_wasm_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+        # WASM stays serial even if a worker count is requested explicitly.
+        with option_context("mode.max_threads", 8):
+            assert _default_n_workers() == 1
 
-def test_default_n_workers_wasm_is_serial(monkeypatch):
-    monkeypatch.setattr(_readers.sys, "platform", "emscripten")
-    # WASM stays serial even if a worker count is requested explicitly.
-    with option_context("mode.max_threads", 8):
-        assert _default_n_workers() == 1
+    def test_max_threads_exceeds_cap(self, monkeypatch):
+        # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default*
+        # only.  The mode.max_threads docs promise an explicit setting still
+        # wins.
+        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
+        monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
+        with option_context("mode.max_threads", 32):
+            assert _default_n_workers() == 32
 
-
-def test_default_n_workers_max_threads_exceeds_cap(monkeypatch):
-    # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default* only.
-    # The mode.max_threads docs promise an explicit setting still wins.
-    monkeypatch.setattr(_readers.sys, "platform", "linux")
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
-    monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
-    with option_context("mode.max_threads", 32):
-        assert _default_n_workers() == 32
-
-
-@pytest.mark.parametrize("platform_name", ["linux", "win32"])
-def test_default_n_workers_max_threads_wins(monkeypatch, platform_name):
-    monkeypatch.setattr(_readers.sys, "platform", platform_name)
-    with option_context("mode.max_threads", 3):
-        assert _default_n_workers() == 3
+    @pytest.mark.parametrize("platform_name", ["linux", "win32"])
+    def test_max_threads_wins(self, monkeypatch, platform_name):
+        monkeypatch.setattr(_readers.sys, "platform", platform_name)
+        with option_context("mode.max_threads", 3):
+            assert _default_n_workers() == 3
 
 
 # ---------------------------------------------------------------------------

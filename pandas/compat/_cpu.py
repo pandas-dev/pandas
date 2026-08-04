@@ -1,7 +1,4 @@
 """
-_cpu
-====
-
 Detection of the CPU allocation actually available to this process.
 
 Used to bound the default worker count for parallel I/O, so that a default
