@@ -4,6 +4,7 @@ from functools import partial
 import math
 import operator
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -1817,6 +1818,22 @@ def test_index_comparison_different_string_dtype(string_dtype_no_object):
     result = s_str > s_obj
     expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
+
+
+def test_memory_usage_counts_engine_object_copy():
+    # GH#66593 for arrow-backed strings the engine holds an object-dtype copy
+    #  of the whole Index that memory_usage did not account for
+    pytest.importorskip("pyarrow")
+    dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan)
+    idx = Index([f"{i:040d}" for i in range(100)], dtype=dtype)
+
+    before = idx.memory_usage(deep=True)
+    idx.get_loc(idx[0])  # builds and caches the engine
+    growth = idx.memory_usage(deep=True) - before
+
+    held = idx._engine.values
+    boxed = held.nbytes + sum(sys.getsizeof(s) for s in held)
+    assert growth == idx._engine.sizeof(deep=True) + boxed
 
 
 def test_get_level_values_boolean_names():
