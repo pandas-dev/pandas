@@ -1002,7 +1002,7 @@ def group_var(
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] <= ddof:
+                if nobs[i, j] <= ddof or nobs[i, j] == 0:
                     if uses_mask:
                         result_mask[i, j] = True
                     else:
