@@ -105,6 +105,12 @@ class TestNonNano:
                 assert res.dtype == "m8[ms]"
             elif unit == NpyDatetimeUnit.NPY_FR_us.value:
                 assert res.dtype == "m8[us]"
+                
+    def test_view(self):
+        td = Timedelta(seconds=1)
+        with tm.assert_produces_warning(None):
+            res = td.view(np.int64)
+        assert res == td._value
 
     def test_truediv_timedeltalike(self, td):
         assert td / td == 1
