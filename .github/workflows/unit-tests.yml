@@ -325,7 +325,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false
+    # if: false
     permissions:
       contents: read
     defaults:
@@ -365,8 +365,11 @@ jobs:
           python --version
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
-          python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 "pytest>=8.3.4,<9.1" pytest-xdist>=3.6.1 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
+          python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps \
+            -Csetup-args="--werror" \
+            ${{ matrix.os != 'windows-2025' && '-Csetup-args=-Dcpp_args="-Wno-missing-field-initializers"' || '' }} \
+            ${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv"' || '' }}
           python -m pip list
 
       - name: Run Tests
