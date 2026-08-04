@@ -1307,7 +1307,13 @@ def test_dti_freq_validation_wall_time_dst():
 
     msg = "does not conform to passed frequency"
     with pytest.raises(ValueError, match=msg):
+        # Tick freq, so still validated against the UTC values
         DatetimeIndex(vals, freq="h")
+
+    # non-Tick freq that does not conform in wall time still raises
+    naive = DatetimeIndex(["2020-10-31 01:30", "2020-11-01 02:30"])
+    with pytest.raises(ValueError, match=msg):
+        DatetimeIndex(naive.tz_localize("America/New_York"), freq="D")
 
 
 @pytest.mark.parametrize("tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")])

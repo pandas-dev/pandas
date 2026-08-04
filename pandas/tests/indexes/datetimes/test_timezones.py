@@ -18,7 +18,6 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -80,9 +79,8 @@ class TestDatetimeIndexTimezones:
         index = date_range(start=start, end=end, freq=freq, unit="ns")
 
         is_dst = [True] * 7 + [False] * 5
-        msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = DatetimeIndex(
+        expected = (
+            DatetimeIndex(
                 [
                     "201710290115",
                     "201710290130",
@@ -97,10 +95,11 @@ class TestDatetimeIndexTimezones:
                     "201710290245",
                     "201710290300",
                 ],
-                dtype="M8[ns, Europe/Brussels]",
-                freq=freq,
-                ambiguous=is_dst,
             )
+            .tz_localize(tz, ambiguous=is_dst)
+            .as_unit("ns")
+        )
+        expected.freq = freq
         result = index.drop(index[0])
         tm.assert_index_equal(result, expected)
 

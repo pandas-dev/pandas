@@ -905,7 +905,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             dayfirst = False
         else:
             warnings.warn(
-                f"The 'dayfirst' keyword in {cls.__name__} is deprecated. "
+                f"The 'dayfirst' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
                 "Use pd.to_datetime instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
@@ -914,7 +915,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             yearfirst = False
         else:
             warnings.warn(
-                f"The 'yearfirst' keyword in {cls.__name__} is deprecated. "
+                f"The 'yearfirst' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
                 "Use pd.to_datetime instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
@@ -923,7 +925,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             ambiguous = "raise"
         else:
             warnings.warn(
-                f"The 'ambiguous' keyword in {cls.__name__} is deprecated. "
+                f"The 'ambiguous' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
                 f"Use {cls.__name__}.tz_localize instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
@@ -965,7 +968,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
-        subarr._pin_freq(freq, inferred_freq, {})
+        subarr._pin_freq(freq, inferred_freq)
         return subarr
 
     # --------------------------------------------------------------------
