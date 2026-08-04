@@ -334,7 +334,6 @@ cdef void add_var(
     int64_t *nobs,
     float64_t *mean_x,
     float64_t *ssqdm_x,
-    float64_t *compensation,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ add a value from the var calc """
@@ -355,12 +354,11 @@ cdef void remove_var(
     int64_t *nobs,
     float64_t *mean_x,
     float64_t *ssqdm_x,
-    float64_t *compensation,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ remove a value from the var calc """
     cdef:
-        float64_t delta, prev_mean, y, t
+        float64_t delta, prev_mean
         float64_t prev_m2 = ssqdm_x[0]
     if val == val:
         nobs[0] = nobs[0] - 1
@@ -368,11 +366,8 @@ cdef void remove_var(
             # Welford's method for the online variance-calculation
             # using Kahan summation
             # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-            prev_mean = mean_x[0] - compensation[0]
-            y = val - compensation[0]
-            t = y - mean_x[0]
-            compensation[0] = t + mean_x[0] - y
-            delta = t
+            prev_mean = mean_x[0]
+            delta = val - mean_x[0]
             mean_x[0] = mean_x[0] - delta / nobs[0]
             ssqdm_x[0] = ssqdm_x[0] - (val - prev_mean) * (val - mean_x[0])
 
@@ -392,8 +387,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         int64_t nobs
-        float64_t mean_x, ssqdm_x, compensation_add,
-        float64_t compensation_remove
+        float64_t mean_x, ssqdm_x
         int64_t s, e
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
@@ -428,19 +422,17 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
-                               &compensation_remove, &numerically_unstable)
+                               &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &numerically_unstable)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
 
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
                 for j in range(s, e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &numerically_unstable)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &numerically_unstable)
                 numerically_unstable = False
 
             output[i] = NaN if nobs < minp else calc_var(nobs, ssqdm_x, ddof)
