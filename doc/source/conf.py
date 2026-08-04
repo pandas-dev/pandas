@@ -9,10 +9,7 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
 import doctest
 import importlib
 import inspect
@@ -117,6 +114,7 @@ sys.setrecursionlimit(5000)
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath("../sphinxext"))
 sys.path.extend(
     [
@@ -124,6 +122,7 @@ sys.path.extend(
         os.path.join(os.path.dirname(__file__), "..", "../..", "sphinxext")
     ]
 )
+from signature_overrides import apply_signature_overrides
 
 # -- General configuration -----------------------------------------------
 
@@ -1066,59 +1065,7 @@ _BUSINED_ALIASES = [
     ]
 ]
 
-_OFFSET_PARAMETERS = {
-    "n": inspect.Parameter(
-        "n",
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        default=1,
-    ),
-    "normalize": inspect.Parameter(
-        "normalize",
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        default=False,
-    ),
-    "weekmask": inspect.Parameter(
-        "weekmask",
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        default="Mon Tue Wed Thu Fri",
-    ),
-    "holidays": inspect.Parameter(
-        "holidays",
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        default=None,
-    ),
-    "calendar": inspect.Parameter(
-        "calendar",
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        default=None,
-    ),
-    "offset": inspect.Parameter(
-        "offset",
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        default=timedelta(0),
-    ),
-}
-
-_OFFSET_SIGNATURES = {
-    pandas.tseries.offsets.BusinessDay: (
-        "n",
-        "normalize",
-        "offset",
-    ),
-    pandas.tseries.offsets.CustomBusinessDay: (
-        "n",
-        "normalize",
-        "weekmask",
-        "holidays",
-        "calendar",
-        "offset",
-    ),
-}
-
-for offset_class, parameter_names in _OFFSET_SIGNATURES.items():
-    offset_class.__signature__ = inspect.Signature(
-        parameters=[_OFFSET_PARAMETERS[name] for name in parameter_names]
-    )
+apply_signature_overrides()
 
 
 def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
