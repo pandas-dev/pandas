@@ -3436,41 +3436,61 @@ class ArrowExtensionArray(
             )
             result_values = pc.if_else(below_min_count, None, result_values)
 
-        # Scatter results into an output array ordered by group id.
-        default_py = default_value.as_py()
-
-        if not pa_version_under23p0:
-            # pc.scatter gained max_index in PyArrow 23, which is what sizes the
-            # output by ngroups; earlier versions pin it to the number of
-            # observed groups, and before PyArrow 20 there is no pc.scatter at
-            # all, so those fall through to the NumPy scatter below.
-            if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
-                try:
-                    # A decimal aggregate can hold more digits than its declared
-                    # type, and unlike building an array from NumPy, scattering
-                    # carries that invalid state through silently.
-                    result_values.validate(full=True)
-                except pa.ArrowInvalid:
-                    return None
-            pa_result = pc.scatter(
-                result_values, result_group_ids, max_index=ngroups - 1
+        # Place the group results into an output ordered by group id
+        if pa_version_under23p0:
+            return self._groupby_scatter_numpy(
+                result_values,
+                result_group_ids,
+                default_value=default_value,
+                min_count=min_count,
+                ngroups=ngroups,
             )
-            if default_py is not None and min_count == 0:
-                if result_values.null_count == 0:
-                    # Every null is a group with no rows, so fill them all
-                    pa_result = _safe_fill_null(pa_result, default_value)
-                else:
-                    # skipna=False left nulls that have to survive, so fill only
-                    # the positions no group id scattered into
-                    seen = pc.scatter(
-                        pa.array(np.ones(len(result_values), dtype=bool)),
-                        result_group_ids,
-                        max_index=ngroups - 1,
-                    )
-                    pa_result = pc.if_else(pc.is_null(seen), default_value, pa_result)
-            return self._from_pyarrow_array(pa_result)
 
-        # Fall back to NumPy where pc.scatter cannot size its own output.
+        if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
+            try:
+                # A decimal aggregate can hold more digits than its declared
+                # type, and scattering carries that invalid state through
+                # silently rather than raising.
+                result_values.validate(full=True)
+            except pa.ArrowInvalid:
+                # No Arrow type can hold the result; fall back to a wider one.
+                return None
+
+        pa_result = pc.scatter(result_values, result_group_ids, max_index=ngroups - 1)
+        if default_value.as_py() is not None and min_count == 0:
+            if result_values.null_count == 0:
+                # Every null is a group with no rows, so fill them all
+                pa_result = _safe_fill_null(pa_result, default_value)
+            else:
+                # skipna=False left nulls that have to survive, so fill only the
+                # positions no group id scattered into
+                seen = pc.scatter(
+                    pa.array(np.ones(len(result_values), dtype=bool)),
+                    result_group_ids,
+                    max_index=ngroups - 1,
+                )
+                pa_result = pc.if_else(pc.is_null(seen), default_value, pa_result)
+        return self._from_pyarrow_array(pa_result)
+
+    def _groupby_scatter_numpy(
+        self,
+        result_values: pa.ChunkedArray,
+        result_group_ids: pa.ChunkedArray,
+        *,
+        default_value: pa.Scalar,
+        min_count: int,
+        ngroups: int,
+    ) -> Self | None:
+        """
+        Place group results into an output ordered by group id, using NumPy.
+
+        Only for pyarrow < 23, where ``pc.scatter`` cannot size its own output:
+        it has no ``max_index``, so the output is pinned to the number of
+        observed groups, and before pyarrow 20 the function does not exist at
+        all. Delete this method and its caller once the minimum pyarrow is 23.
+        """
+        output_type = result_values.type
+        default_py = default_value.as_py()
         result_group_ids_np = result_group_ids.to_numpy(zero_copy_only=False).astype(
             np.int64, copy=False
         )
