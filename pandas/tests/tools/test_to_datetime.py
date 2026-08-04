@@ -562,6 +562,12 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_invalid_errors(self):
+        # GH#66542
+        msg = "errors must be one of"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(["2024-01-01"], errors="never")
+
     def test_to_datetime_mixed_string_resos(self):
         # GH#62801
         vals = [

@@ -3,6 +3,7 @@ import re
 import zoneinfo
 
 from dateutil.tz import gettz
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
@@ -50,6 +51,19 @@ class TestTimestampTZLocalize:
         tokyo.tz_convert("US/Pacific")  # tz_convert doesn't change value
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.tz_localize(pytz.timezone("US/Pacific"))
+
+    def test_tz_localize_shift_onto_nat_sentinel(self, unit):
+        # GH#66550 Asia/Tokyo's pre-1888 LMT offset is +9:18:59, so this wall
+        #  time shifts to exactly the NaT sentinel.  That is one below the
+        #  minimum representable value, so it underflows; previously it was
+        #  misreported as a nonexistent time.
+        lmt = np.timedelta64(9 * 3600 + 18 * 60 + 59, "s")
+        lmt_offset = int(lmt // np.timedelta64(1, unit))
+        ts = Timestamp(np.datetime64(-(2**63) + lmt_offset, unit))
+        with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+            ts.tz_localize("Asia/Tokyo")
+        with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+            Timestamp(ts.to_datetime64(), tz="Asia/Tokyo")
 
     @pytest.mark.parametrize(
         "tz",

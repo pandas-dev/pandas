@@ -3183,9 +3183,7 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    start = Timestamp(start)  # type: ignore[arg-type]
+    start = Timestamp(start)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if start is not NaT:  # type: ignore[comparison-overlap]
@@ -3193,9 +3191,7 @@ def _generate_range(
     else:
         start = None
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    end = Timestamp(end)  # type: ignore[arg-type]
+    end = Timestamp(end)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if end is not NaT:  # type: ignore[comparison-overlap]

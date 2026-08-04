@@ -1538,6 +1538,72 @@ def test_groupby_sum_timedelta_with_nat():
     tm.assert_series_equal(res, expected)
 
 
+def test_groupby_sum_timedelta_overflow():
+    # GH#66551: a running total that leaves the int64 range used to wrap
+    #  silently; Series.sum on the same group already raised
+    msg = "overflow in timedelta operation"
+    ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.Timedelta("1D")])
+
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        ser.groupby([0, 0, 1]).sum()
+
+    # the group that does not overflow is not enough to make the whole
+    #  aggregation succeed, matching DataFrame.sum
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        DataFrame({"a": ser}).groupby([0, 0, 1]).sum()
+
+    # groups that stay in range are unaffected
+    ser = Series([pd.Timedelta.max, pd.Timedelta("1D"), pd.Timedelta("2D")])
+    res = ser.groupby([0, 1, 1]).sum()
+    expected = Series(
+        [pd.Timedelta.max, pd.Timedelta("3D")], index=pd.Index([0, 1], dtype=np.intp)
+    )
+    tm.assert_series_equal(res, expected)
+
+
+def test_groupby_sum_timedelta_overflow_sentinel():
+    # GH#66551: a total landing exactly on iNaT is not a missing value
+    mx, mn = pd.Timedelta.max, pd.Timedelta.min
+    ser = Series([mn, pd.Timedelta(-1, "ns")])
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
+        ser.groupby([0, 0]).sum()
+
+    # ... but an intermediate that merely passes through the sentinel is fine,
+    #  so the result must not depend on the order values arrive in
+    for order in ([mx, mn, mx], [mx, mx, mn], [mn, mx, mx]):
+        res = Series(order).groupby([0, 0, 0]).sum()
+        tm.assert_series_equal(
+            res,
+            Series([mx + mn + mx], index=pd.Index([0], dtype=np.intp)),
+            check_dtype=False,
+        )
+
+
+def test_groupby_sum_timedelta_overflow_na_result():
+    # GH#66551: a group whose result is NA anyway must not raise, matching
+    #  Series.sum
+    ser = Series([pd.Timedelta.max, pd.Timedelta.max])
+
+    res = ser.groupby([0, 0]).sum(min_count=3)
+    tm.assert_series_equal(
+        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+    )
+
+    ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.NaT])
+    res = ser.groupby([0, 0, 0]).sum(skipna=False)
+    tm.assert_series_equal(
+        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+    )
+
+
+def test_groupby_sum_int64_still_wraps():
+    # GH#66551: only the datetimelike path is checked; plain int64 keeps
+    #  wrapping like NumPy
+    ser = Series([2**62] * 4)
+    res = ser.groupby([0] * 4).sum()
+    tm.assert_series_equal(res, Series([0], index=pd.Index([0], dtype=np.intp)))
+
+
 @pytest.mark.parametrize(
     "dtype", ["int8", "int16", "int32", "int64", "float32", "float64", "uint64"]
 )

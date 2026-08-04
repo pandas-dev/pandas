@@ -1232,3 +1232,18 @@ def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
     with option_context("mode.max_threads", 4):
         result = read_csv(path, on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_embedded_nul_boolean_column(tmp_path, monkeypatch):
+    # GH#66524: a NUL-bearing field must not match a true/false value on its
+    # pre-NUL prefix in the parallel path either, which feeds the tokenizer
+    # through load_buffer() rather than parser_buffer_bytes().
+    path = tmp_path / "nul_bool.csv"
+    path.write_bytes(b"a\n" + b"True\n" * 200 + b'"True\x00xyz"\n' + b"False\n" * 200)
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    expected = read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"][200] == "True\x00xyz"

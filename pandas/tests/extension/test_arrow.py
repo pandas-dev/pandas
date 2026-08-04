@@ -439,20 +439,32 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name == "kurt" or (pa_version_under20p0 and op_name == "skew"):
+        if pa_version_under20p0 and op_name in ("skew", "kurt"):
             return False
 
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod", "skew"]:
+        if pa.types.is_temporal(pa_dtype) and op_name in [
+            "sum",
+            "var",
+            "prod",
+            "skew",
+            "kurt",
+        ]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew", "any", "all"]:
+        elif pa.types.is_binary(pa_dtype) and op_name in [
+            "sum",
+            "skew",
+            "kurt",
+            "any",
+            "all",
+        ]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
@@ -464,6 +476,7 @@ class TestArrowArray(base.ExtensionTests):
             "sem",
             "var",
             "skew",
+            "kurt",
             "any",
             "all",
         ]:
@@ -533,11 +546,11 @@ class TestArrowArray(base.ExtensionTests):
             if op_name == "sum" and not pa_version_under21p0:
                 # https://github.com/apache/arrow/pull/44184
                 cmp_dtype = ArrowDtype(pa.decimal128(38, 3))
-            elif op_name not in ["median", "var", "std", "sem", "skew"]:
+            elif op_name not in ["median", "var", "std", "sem", "skew", "kurt"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
-        elif op_name in ["median", "var", "std", "mean", "skew", "sem"]:
+        elif op_name in ["median", "var", "std", "mean", "skew", "kurt", "sem"]:
             cmp_dtype = "float64[pyarrow]"
         elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
             cmp_dtype = "uint64[pyarrow]"
@@ -553,29 +566,15 @@ class TestArrowArray(base.ExtensionTests):
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        if (
-            not pa_version_under20p0
-            and skipna
-            and all_numeric_reductions == "skew"
-            and (
-                pa.types.is_integer(data.dtype.pyarrow_dtype)
-                or pa.types.is_floating(data.dtype.pyarrow_dtype)
-            )
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="https://github.com/apache/arrow/issues/45733",
-                )
-            )
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
-        if op_name == "skew" and pa_version_under20p0:
+        if op_name in ("skew", "kurt") and pa_version_under20p0:
             if data.dtype._is_numeric:
-                mark = pytest.mark.xfail(reason="skew not implemented")
+                mark = pytest.mark.xfail(reason=f"{op_name} not implemented")
                 request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 

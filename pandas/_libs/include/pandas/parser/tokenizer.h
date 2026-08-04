@@ -242,4 +242,16 @@ double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
 // return *out may still have been clobbered.
 int try_parse_plain_double(const char *start, const char *end, char decimal,
                            double *out);
-int to_boolean(const char *item, uint8_t *val);
+int to_boolean(const char *item, int64_t length, uint8_t *val);
+// Recognize the infinity spellings pandas accepts outside the numeric
+// converters, for both read_csv and lib.maybe_convert_numeric.
+//
+// item  : the token; exactly `length` bytes are examined, so it need not be
+//         NUL-terminated and may contain an embedded NUL
+// length: byte length of item
+//
+// Returns 1 for "inf"/"+inf"/"infinity"/"+infinity", -1 for the negative
+// spellings and 0 for anything else, all case-insensitively. Note this is the
+// opposite sense from to_boolean above, which returns 0 on a match: the return
+// value here is a sign, not a status.
+int infinity_sign(const char *item, int64_t length);
