@@ -2,9 +2,9 @@
 
 import calendar
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 import locale
 import re
@@ -287,9 +287,9 @@ class TestTimestamp:
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert Timestamp.utcnow().tz is timezone.utc
-        assert Timestamp.now("UTC").tz is timezone.utc
-        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+            assert Timestamp.utcnow().tz is UTC
+        assert Timestamp.now("UTC").tz is UTC
+        assert Timestamp("2016-01-01", tz="UTC").tz is UTC
 
     def test_tz(self):
         tstr = "2014-02-01 09:00"
@@ -311,7 +311,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is UTC
 
     def test_asm8(self):
         ns = [Timestamp.min._value, Timestamp.max._value, 1000]
@@ -328,11 +328,11 @@ class TestTimestamp:
             assert int((Timestamp(x)._value - Timestamp(y)._value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone.utc))
+        compare(Timestamp.now("UTC"), datetime.now(UTC))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            compare(Timestamp.utcnow(), datetime.now(timezone.utc))
+            compare(Timestamp.utcnow(), datetime.now(UTC))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
@@ -346,15 +346,15 @@ class TestTimestamp:
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, "UTC"),
-            datetime.fromtimestamp(current_time, timezone.utc),
+            datetime.fromtimestamp(current_time, UTC),
         )
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, tz="UTC"),
-            datetime.fromtimestamp(current_time, timezone.utc),
+            datetime.fromtimestamp(current_time, UTC),
         )
 
-        date_component = datetime.now(timezone.utc)
+        date_component = datetime.now(UTC)
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             Timestamp.combine(date_component, time_component),
@@ -612,7 +612,7 @@ class TestNonNano:
         assert ts.month_name() == alt.month_name()
 
     def test_tz_convert(self, ts):
-        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, timezone.utc)
+        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, UTC)
 
         tz = zoneinfo.ZoneInfo("US/Pacific")
         result = ts.tz_convert(tz)

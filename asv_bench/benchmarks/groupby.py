@@ -263,6 +263,25 @@ class Int64:
         self.df.groupby(self.cols).max()
 
 
+class SortHighCardinality:
+    # with many unique keys, sorting the uniques (safe_sort) dominates
+    # the sort=True groupby
+    param_names = ["sort"]
+    params = [True, False]
+
+    def setup(self, sort):
+        N = 10**6
+        self.df = DataFrame(
+            {
+                "key": np.random.randint(0, 2 * N, size=N),
+                "value": np.random.randn(N),
+            }
+        )
+
+    def time_sum(self, sort):
+        self.df.groupby("key", sort=sort)["value"].sum()
+
+
 class CountMultiDtype:
     def setup_cache(self):
         n = 10000

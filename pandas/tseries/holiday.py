@@ -631,7 +631,8 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         # If we don't have a cache or the dates are outside the prior cache, we
         # get them again
-        if self._cache is None or start < self._cache[0] or end > self._cache[1]:
+        cache = self._cache
+        if cache is None or start < cache[0] or end > cache[1]:
             pre_holidays = [
                 rule.dates(start, end, return_name=True) for rule in self.rules
             ]
@@ -640,9 +641,10 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             else:
                 holidays = Series(index=DatetimeIndex([]), dtype=object)
 
-            self._cache = (start, end, holidays.sort_index())
+            cache = (start, end, holidays.sort_index())
+            self._cache = cache
 
-        holidays = self._cache[2]
+        holidays = cache[2]
         holidays = holidays[start:end]
 
         if return_name:

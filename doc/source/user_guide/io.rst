@@ -6355,6 +6355,10 @@ objects (``XportReader`` or ``SAS7BDATReader``) for incrementally
 reading the file.  The reader objects also have attributes that
 contain additional information about the file and its variables.
 
+Text is returned as raw bytes unless an ``encoding`` is given.  Pass
+``encoding="infer"`` to decode using the encoding recorded in the file
+header; this will become the default in a future version.
+
 Read a SAS7BDAT file:
 
 .. code-block:: python
