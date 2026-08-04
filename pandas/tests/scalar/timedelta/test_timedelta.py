@@ -621,8 +621,10 @@ class TestTimedeltas:
         assert min_td._value == iNaT + 1
         assert max_td._value == lib.i8max
 
-        # Beyond lower limit, a NAT before the Overflow
-        assert (min_td - Timedelta(1, "ns")) is NaT
+        # GH#66552 landing exactly on the NaT sentinel is out of bounds, not NaT
+        msg2 = "Out of bounds nanosecond timedelta: -9223372036854775808"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg2):
+            min_td - Timedelta(1, "ns")
 
         msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):

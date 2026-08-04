@@ -1,4 +1,5 @@
 import calendar
+import copy
 from datetime import (
     UTC,
     date,
@@ -19,7 +20,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import PY314
+from pandas.compat import (
+    PY313,
+    PY314,
+)
 from pandas.errors import (
     OutOfBoundsDatetime,
     Pandas4Warning,
@@ -319,6 +323,127 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp("2010-10-10 12:59:59.999999999", **kwarg)
 
+    @pytest.mark.parametrize(
+        "value",
+        [
+            datetime(2020, 12, 31),
+            date(2020, 12, 31),
+            Timestamp("2020-12-31"),
+            np.datetime64("2020-12-31", "ns"),
+            1609372800,
+            1609372800.0,
+        ],
+    )
+    @pytest.mark.parametrize(
+        "arg", ["month", "day", "hour", "minute", "second", "microsecond"]
+    )
+    def test_invalid_date_kwarg_with_value_input(self, value, arg):
+        # GH#31930 these used to be silently dropped
+        msg = "Cannot pass both a value to convert and date attributes"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(value, **{arg: 1})
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            datetime(2020, 12, 31),
+            date(2020, 12, 31),
+            Timestamp("2020-12-31"),
+            np.datetime64("2020-12-31", "ns"),
+        ],
+    )
+    @pytest.mark.parametrize("year", [2020, np.int64(2020), np.uint32(2020)])
+    def test_invalid_year_kwarg_with_value_input(self, value, year):
+        # GH#31930 an integer `year` alongside a datetime-like value is the
+        #  by-component form misfiring, not Timestamp(year, month, ...)
+        msg = "Cannot pass both a value to convert and date attributes"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(value, year=year)
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(value, year)
+
+    def test_invalid_date_kwarg_names_the_offending_arguments(self):
+        # GH#31930 the message lists what was actually passed, as Timedelta's
+        #  equivalent check does
+        msg = re.escape(
+            "Cannot pass both a value to convert and date attributes, got "
+            "['hour', 'minute']; 'tz' is keyword-only"
+        )
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(datetime(2020, 12, 31), hour=5, minute=3)
+
+    @pytest.mark.parametrize("value", [datetime(2012, 1, 1), 1609372800])
+    def test_tz_passed_positionally(self, value):
+        # GH#31930, GH#5168 a tz passed as an arg rather than a kwarg lands on
+        #  `year`; this is what the "'tz' is keyword-only" hint is for
+        msg = re.escape(
+            "Cannot pass both a value to convert and date attributes, got "
+            "['year']; 'tz' is keyword-only"
+        )
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(value, "UTC")
+
+    def test_components_without_year_report_value_form(self):
+        # GH#31930 `2020` sits in the ts_input slot and is indistinguishable
+        #  from an epoch value, so this reports the value-form error
+        msg = re.escape(
+            "Cannot pass both a value to convert and date attributes, got "
+            "['month', 'day']; 'tz' is keyword-only"
+        )
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(2020, month=12, day=31)
+
+    @pytest.mark.parametrize(
+        "value", [[1, 2], b"2020-12-31", np.timedelta64(1, "s"), slice(2)]
+    )
+    def test_invalid_date_kwarg_with_unconvertible_input(self, value):
+        # GH#31930 an input we cannot convert keeps complaining about the type
+        msg = "Cannot convert input"
+        with pytest.raises(TypeError, match=msg):
+            Timestamp(value, hour=5)
+
+    def test_float_year_positional_raises(self):
+        # GH#31930 this is the by-component form with a bad year, not a value
+        #  mixed with components
+        msg = "'float' object cannot be interpreted as an integer"
+        with pytest.raises(TypeError, match=msg):
+            Timestamp(2020.0, 12, 31)
+
+    @pytest.mark.parametrize(
+        "value, msg",
+        [
+            (1609372800, "'NoneType' object cannot be interpreted as an integer"),
+            (1609372800.0, "'float' object cannot be interpreted as an integer"),
+        ],
+    )
+    def test_year_with_numeric_value_undetectable(self, value, msg):
+        # GH#31930 Timestamp(epoch, year=2020) is read as the by-component
+        #  form with month and day left out, so it fails the way
+        #  Timestamp(2020, ...) does rather than reporting a mixed call
+        with pytest.raises(TypeError, match=msg):
+            Timestamp(value, year=2020)
+
+    def test_int_value_with_year_kwarg_reads_as_components(self):
+        # GH#31930 an int first argument is indistinguishable from a year, so
+        #  this documented case is silently read as the by-component form
+        assert Timestamp(2020, year=1, month=1) == Timestamp(2020, 1, 1)
+
+    @pytest.mark.parametrize("value", [datetime(2020, 12, 31), Timestamp("2020-12-31")])
+    def test_nanosecond_kwarg_allowed_with_pydatetime_input(self, value):
+        # GH#31930 nanosecond is honored rather than dropped for pydatetime
+        #  input, so it is not part of the ban
+        result = Timestamp(value, nanosecond=5)
+        assert result.nanosecond == 5
+
+    @pytest.mark.parametrize(
+        "value", [date(2020, 1, 1), np.datetime64("2020-01-01", "ns"), 1609372800000]
+    )
+    def test_nanosecond_kwarg_still_dropped_for_other_value_forms(self, value):
+        # GH#31930 convert_to_tsobject only applies nanos on the pydatetime
+        #  path, so nanosecond is silently ignored here.  Pinning the
+        #  limitation the docstring and whatsnew call out; a separate bug.
+        assert Timestamp(value, nanosecond=5).nanosecond == 0
+
     @pytest.mark.parametrize("kwargs", [{}, {"year": 2020}, {"year": 2020, "month": 1}])
     def test_constructor_missing_keyword(self, kwargs):
         # GH#31200
@@ -337,22 +462,130 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         expected = Timestamp("2020-12-31", tzinfo=UTC)
         assert ts == expected
 
-    @pytest.mark.parametrize("kwd", ["nanosecond", "microsecond", "second", "minute"])
-    def test_constructor_positional_keyword_mixed_with_tzinfo(self, kwd, request):
-        # TODO: if we passed microsecond with a keyword we would mess up
-        #  xref GH#45307
-        if kwd != "nanosecond":
-            # nanosecond is keyword-only as of 2.0, others are not
-            mark = pytest.mark.xfail(reason="GH#45307")
-            request.applymarker(mark)
-
-        kwargs = {kwd: 4}
-        ts = Timestamp(2020, 12, 31, tzinfo=UTC, **kwargs)
-
-        td_kwargs = {kwd + "s": 4}
-        td = Timedelta(**td_kwargs)
-        expected = Timestamp("2020-12-31", tz=UTC) + td
+    def test_constructor_positional_keyword_mixed_with_tzinfo(self):
+        # GH#45307, GH#31930 nanosecond is keyword-only, so it does not
+        #  compete for a positional slot
+        ts = Timestamp(2020, 12, 31, tzinfo=UTC, nanosecond=4)
+        expected = Timestamp("2020-12-31", tz=UTC) + Timedelta(nanoseconds=4)
         assert ts == expected
+
+    @pytest.mark.parametrize("kwd", ["hour", "minute", "second", "microsecond"])
+    def test_constructor_positional_keyword_gap_raises(self, kwd):
+        # GH#31930 each parameter stands in for the *next* pydatetime field,
+        #  so a keyword lands one field early; the gap it leaves in the
+        #  positional arguments gives it away
+        msg = "Cannot leave a gap in the positional date attributes"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(2020, 12, 31, **{kwd: 4})
+
+    def test_constructor_positional_keyword_gap_raises_at_day(self):
+        # GH#31930 the earliest gap, with `month` left unfilled
+        msg = "Cannot leave a gap in the positional date attributes"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(2020, 12, day=5)
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            (2020, 1, 2, None, 5),
+            (2020, 1, 2, None, None, None, None, UTC),
+        ],
+    )
+    def test_constructor_positional_explicit_none_gap_raises(self, args):
+        # GH#31930 an explicit None leaves the same gap a keyword would; these
+        #  used to build a Timestamp with the later arguments dropped
+        msg = "Cannot leave a gap in the positional date attributes"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(*args)
+
+    def test_constructor_positional_keyword_no_gap(self):
+        # GH#31930 a keyword that exactly fills the next free positional slot
+        #  is indistinguishable from passing it positionally
+        assert Timestamp(2020, 12, 31, day=5) == Timestamp(2020, 12, 31, 5)
+
+    def test_constructor_positional_tzinfo_slot(self):
+        # GH#31930 the 8th positional argument is pydatetime's tzinfo and is
+        #  attached, not localized, just like datetime does it
+        tz = zoneinfo.ZoneInfo("US/Eastern")
+        result = Timestamp(2000, 1, 2, 3, 4, 5, 6, tz)
+        assert result == Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6, tz))
+        assert result.tzinfo is tz
+
+        # the 8th slot is `microsecond`, so the keyword spelling lands there too
+        assert Timestamp(2000, 1, 2, 3, 4, 5, 6, microsecond=tz) == result
+
+    def test_constructor_positional_tzinfo_slot_pytz(self):
+        # GH#31930 attaching a pytz timezone gives LMT, matching pydatetime;
+        #  localizing via tz=/tzinfo= would not
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
+
+        result = Timestamp(2000, 1, 2, 3, 4, 5, 6, tz)
+        expected = datetime(2000, 1, 2, 3, 4, 5, 6, tz)
+        assert result == expected
+        assert result.utcoffset() == expected.utcoffset()
+
+    def test_constructor_positional_tzinfo_slot_invalid(self):
+        # GH#31930 same error as pydatetime gives for a non-tzinfo
+        msg = "tzinfo argument must be None or of a tzinfo subclass"
+        with pytest.raises(TypeError, match=msg):
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, 7)
+
+    def test_constructor_positional_tzinfo_slot_with_tz_keyword(self):
+        # GH#31930 the attached tzinfo conflicts with tz= just like it would
+        #  for a tz-aware datetime
+        msg = "Cannot pass a datetime or Timestamp with tzinfo with the tz parameter"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, UTC, tz="UTC")
+
+    def test_datetime_reconstruction_keeps_tzinfo(self):
+        # GH#31930 CPython reconstructs datetime subclasses through the
+        #  8-positional-argument form, e.g. in datetime.__replace__.
+        #  Use a sub-microsecond, non-us-unit input so the assertions below
+        #  pin the timezone rather than passing for unrelated reasons.
+        tz = zoneinfo.ZoneInfo("US/Eastern")
+        ts = Timestamp("2020-07-01 12:00:00.000000123", tz=tz)
+        assert ts.unit == "ns"
+
+        result = type(ts)(
+            ts.year,
+            ts.month,
+            ts.day,
+            ts.hour,
+            ts.minute,
+            ts.second,
+            ts.microsecond,
+            ts.tzinfo,
+        )
+        assert result.tz is tz
+        assert result == ts.floor("us")
+
+    @pytest.mark.skipif(not PY313, reason="copy.replace requires 3.13")
+    def test_copy_replace_keeps_tzinfo(self):
+        # GH#31930 copy.replace goes through datetime.__replace__, which
+        #  reconstructs through the 8-argument form.  NB _Timestamp does not
+        #  override __replace__, so the nanoseconds are still lost.
+        tz = zoneinfo.ZoneInfo("US/Eastern")
+        ts = Timestamp("2020-07-01 12:00:00.000000123", tz=tz)
+
+        replaced = copy.replace(ts, day=2)
+        assert replaced.tz is tz
+        assert replaced == Timestamp("2020-07-02 12:00", tz=tz)
+        assert replaced.nanosecond == 0
+
+    @pytest.mark.skipif(not PY313, reason="copy.replace requires 3.13")
+    def test_datetime_reconstruction_still_rejects_fold(self):
+        # GH#31930 datetime.__replace__ passes fold alongside the 8 positional
+        #  arguments, which the fold guard rejects for a non-datetime ts_input.
+        #  Pinning the limitation the whatsnew calls out.
+        ts = Timestamp(datetime(2020, 11, 1, 1, 30)).tz_localize(
+            "US/Eastern", ambiguous=False
+        )
+        assert ts.fold == 1
+
+        msg = "Cannot pass fold with possibly unambiguous input"
+        with pytest.raises(ValueError, match=msg):
+            copy.replace(ts, day=2)
 
 
 class TestTimestampClassMethodConstructors:
@@ -1184,6 +1417,43 @@ def test_timestamp_constructor_na_value(na_value):
     result = Timestamp(na_value)
     expected = NaT
     assert result is expected
+
+
+@pytest.mark.parametrize(
+    "na_value", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"year": 2020},
+        {"month": 12},
+        {"day": 31},
+        {"hour": 5},
+        {"minute": 5},
+        {"second": 5},
+        {"microsecond": 5},
+        {"nanosecond": 5},
+        {"tz": "UTC"},
+        {"year": 2020, "month": 12, "day": 31, "hour": 5},
+    ],
+)
+def test_timestamp_constructor_na_value_with_components(na_value, kwargs):
+    # GH#31930 null-like input is NaT for every combination of the remaining
+    #  arguments; in particular `year` must not divert to the positional form
+    assert Timestamp(na_value, **kwargs) is NaT
+
+
+@pytest.mark.parametrize(
+    "na_value", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+)
+def test_timestamp_constructor_na_value_still_validates(na_value):
+    # GH#31930 returning NaT for null-like input must not swallow arguments
+    #  that are invalid on their own
+    with pytest.raises(ValueError, match="nanosecond must be in 0..999"):
+        Timestamp(na_value, nanosecond=5000)
+
+    with pytest.raises(zoneinfo.ZoneInfoNotFoundError, match="Not/AZone"):
+        Timestamp(na_value, tz="Not/AZone")
 
 
 @pytest.mark.parametrize("tz", [None, "UTC"])

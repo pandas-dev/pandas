@@ -536,6 +536,31 @@ class TestTimedeltaMultiplicationDivision:
         assert result == Timedelta(days=2)
 
     @pytest.mark.parametrize(
+        "value, divisor, expected",
+        [
+            (Timedelta.min._value, 1, Timedelta.min._value),
+            (Timedelta.max._value, 1, Timedelta.max._value),
+            (Timedelta.min._value, -1, Timedelta.max._value),
+            (2**53 + 1, 1, 2**53 + 1),
+            # truncation toward zero, matching numpy
+            (36028797018963967, 2, 18014398509481983),
+            (-36028797018963967, 2, -18014398509481983),
+            (36028797018963967, -2, -18014398509481983),
+        ],
+    )
+    def test_td_div_integer_exact(self, value, divisor, expected):
+        # GH#66551 the quotient was computed in float64, whose 53-bit mantissa
+        #  rounds values that int64 holds exactly, so dividing by 1 gave NaT at
+        #  Timedelta.min and raised OverflowError at Timedelta.max.
+        td = Timedelta(value, unit="ns")
+
+        result = td / divisor
+        assert result._value == expected
+
+        # the vectorized path was already exact; the scalar disagreed with it
+        assert (pd.array([td]) / divisor)[0]._value == expected
+
+    @pytest.mark.parametrize(
         "nan",
         [
             np.nan,
@@ -1288,3 +1313,50 @@ def test_ops_str_deprecated(box):
             item // td
         with pytest.raises(TypeError, match=floordiv_msg):
             td // item
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("factor", [-(2**63), float(-(2**63))])
+def test_td_mul_lands_on_nat_sentinel(unit, factor):
+    # GH#66551 the result is iNaT, which is not NaT but is indistinguishable
+    #  from it once stored, so it has to raise rather than be constructed.
+    #  The guard used to be a bare `assert`, which `python -O` strips.
+    td = Timedelta(1, unit).as_unit(unit)
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_td_add_sub_lands_on_nat_sentinel(unit):
+    # GH#66552 stepping one unit past Timedelta.min lands on iNaT, which is not
+    #  NaT but is indistinguishable from it once stored, so it has to raise
+    #  rather than come back as NaT.
+    td_min = Timedelta(np.timedelta64(-(2**63) + 1, unit))
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min - Timedelta(1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + Timedelta(-1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(-1, unit) + td_min
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + np.timedelta64(-1, unit)
+
+
+@pytest.mark.parametrize("op", [operator.mul, operator.truediv])
+def test_td_float_op_rounds_onto_nat_sentinel(op):
+    # GH#66551 Timedelta.min is iNaT + 1, which float64 rounds down onto iNaT
+    msg = f"Out of bounds nanosecond timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        op(Timedelta.min, 1.0)

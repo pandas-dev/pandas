@@ -15,6 +15,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 
@@ -1689,6 +1690,25 @@ class TestDatetime64OverflowHandling:
 
         result = left - right
         tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_dt64arr_add_td_lands_on_nat_sentinel(self, unit, box_with_array):
+        # GH#66549 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        dti = DatetimeIndex(np.array([iNaT + 1], dtype=f"M8[{unit}]"))
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, unit)
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - Timedelta(1, unit)
+
+        # the tz-aware path shares the same int64 arithmetic
+        obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, unit)
 
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
