@@ -1028,7 +1028,10 @@ def nanvar(
     >>> nanops.nanvar(s.values)
     1.0
     """
-    values = _ensure_numeric_array(values, try_complex_conversion=True)
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
+    values = _ensure_numeric_array(
+        values, try_complex_conversion=True, preferred_order=preferred_order
+    )
     dtype = values.dtype
     if dtype.kind == "c":
         if mask is None:
@@ -1042,7 +1045,9 @@ def nanvar(
             values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
         ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
+
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
         order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
@@ -1102,9 +1107,12 @@ def nansem(
     >>> nanops.nansem(s.values)
      np.float64(0.5773502691896258)
     """
-    mask = _maybe_get_mask(values, skipna, mask)
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     # Convert to bottleneck return a float
-    values = _ensure_numeric_array(values, try_complex_conversion=True)
+    values = _ensure_numeric_array(
+        values, try_complex_conversion=True, preferred_order=preferred_order
+    )
+    mask = _maybe_get_mask(values, skipna, mask)
 
     dtype_count = np.dtype(np.float64)
     if values.dtype.kind == "f":
@@ -1757,13 +1765,17 @@ def _ensure_numeric(x):
     return x
 
 
-def _ensure_numeric_array(x: np.ndarray, try_complex_conversion: bool) -> np.ndarray:
+def _ensure_numeric_array(
+    x: np.ndarray,
+    try_complex_conversion: bool,
+    preferred_order: Literal["C", "F", "K"],
+) -> np.ndarray:
     # This is a copy of `_ensure_numeric` specific to arrays.
     # It doesn't print the full array on error.
     # The main purpose of this function is
     # to avoid the conversion performed by numpy on numeric strings.
     if x.dtype.kind in "biu":
-        return x.astype(np.float64)
+        return x.astype(np.float64, order=preferred_order)
 
     if x.dtype == object:
         if lib.contains_strings(x):
@@ -1771,7 +1783,7 @@ def _ensure_numeric_array(x: np.ndarray, try_complex_conversion: bool) -> np.nda
 
         if try_complex_conversion:
             try:
-                x = x.astype(np.complex128)
+                x = x.astype(np.complex128, order=preferred_order)
             except (TypeError, ValueError) as err:
                 raise TypeError("Could not convert array to numeric") from err
 
@@ -1780,7 +1792,7 @@ def _ensure_numeric_array(x: np.ndarray, try_complex_conversion: bool) -> np.nda
             return x
 
         try:
-            return x.astype(np.float64)
+            return x.astype(np.float64, order=preferred_order)
         except (TypeError, ValueError) as err:
             raise TypeError("Could not convert array to numeric") from err
 
