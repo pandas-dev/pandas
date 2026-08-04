@@ -404,6 +404,7 @@ cdef class TextReader:
         dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
+        object _pa_target  # cached _string_convert target; None = unresolved
 
     cdef public:
         int64_t leading_cols, table_width
@@ -560,6 +561,7 @@ cdef class TextReader:
         self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
+        self._pa_target = None
         self.trim_after_read = True
 
         if float_precision in ("round_trip", "legacy", "high", None):
@@ -1467,21 +1469,27 @@ cdef class TextReader:
                          bint allow_pyarrow=False):
 
         cdef str target = ""
-        if (
-            allow_pyarrow
-            and HAS_PYARROW
-            and self.encoding_errors == b"strict"
-        ):
-            if self.dtype_backend == "pyarrow":
-                target = "arrow"
-            elif (
-                self.dtype_backend == "numpy"
-                and using_string_dtype()
-                # an ArrowStringArray result would be inconsistent with
-                # mode.string_storage="python"
-                and StringDtype(na_value=np.nan).storage == "pyarrow"
-            ):
-                target = "str_nan"
+        if allow_pyarrow:
+            # The option lookups behind the target decision are not free and
+            # run under the GIL, so resolve them once per reader rather than
+            # once per column chunk.  A reader parses under the option state
+            # it was constructed with; changing the options mid-read (possible
+            # only with chunksize / iterator=True) would otherwise change the
+            # dtype partway through a single read.
+            if self._pa_target is None:
+                self._pa_target = ""
+                if HAS_PYARROW and self.encoding_errors == b"strict":
+                    if self.dtype_backend == "pyarrow":
+                        self._pa_target = "arrow"
+                    elif (
+                        self.dtype_backend == "numpy"
+                        and using_string_dtype()
+                        # an ArrowStringArray result would be inconsistent
+                        # with mode.string_storage="python"
+                        and StringDtype(na_value=np.nan).storage == "pyarrow"
+                    ):
+                        self._pa_target = "str_nan"
+            target = self._pa_target
 
         if target:
             try:
@@ -1990,6 +1998,30 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     kh_destroy_strbox(table)
 
     return result, na_count
+
+
+# Lazily-populated cache for the pyarrow string fast path, so each call to
+# `_string_pyarrow_utf8` avoids re-running import machinery and re-building
+# dtype instances while holding the GIL.
+cdef object _pa_string_helpers = None
+
+
+cdef _get_pa_string_helpers():
+    global _pa_string_helpers
+    if _pa_string_helpers is None:
+        import pyarrow as pa
+
+        from pandas.core.arrays.string_arrow import ArrowStringArray
+
+        _pa_string_helpers = (
+            pa,
+            pa.large_string(),
+            pa.string(),
+            ArrowStringArray,
+            StringDtype(na_value=np.nan),
+            ArrowDtype(pa.string()),
+        )
+    return _pa_string_helpers
 
 
 cdef int _days_per_month_array[12]
@@ -2522,9 +2554,8 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     offsets) to match the dtype_backend="pyarrow" convention; raises
     OverflowError if the column exceeds 2GiB.
     """
-    import pyarrow as pa
-
-    from pandas.core.arrays.string_arrow import ArrowStringArray
+    pa, large_string_type, string_type, ArrowStringArray_cls, \
+        str_nan_dtype, arrow_str_dtype = _get_pa_string_helpers()
     cdef:
         int na_count = 0
         Py_ssize_t i, lines
@@ -2651,10 +2682,10 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
 
     if large:
         offsets_buf = pa.py_buffer(offsets64)
-        pa_type = pa.large_string()
+        pa_type = large_string_type
     else:
         offsets_buf = pa.py_buffer(offsets32)
-        pa_type = pa.string()
+        pa_type = string_type
     data_buf = pa.py_buffer(data_arr)
     if na_count > 0:
         validity_buf = pa.py_buffer(validity_arr)
@@ -2678,12 +2709,17 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
             return _string_box_utf8(parser, col, line_start, line_end,
                                     na_filter, na_hashset, b"strict")
 
+    # Bypass ArrowStringArray/ArrowExtensionArray.__init__ (type checks, dtype
+    # construction) -- the exact type and dtype are known by construction.
     if target == "str_nan":
-        return (
-            ArrowStringArray(pa_arr, dtype=StringDtype(na_value=np.nan)),
-            na_count,
-        )
-    return ArrowExtensionArray(pa_arr), na_count
+        arr = ArrowStringArray_cls.__new__(ArrowStringArray_cls)
+        arr._dtype = str_nan_dtype
+    else:
+        arr = ArrowExtensionArray.__new__(ArrowExtensionArray)
+        arr._dtype = arrow_str_dtype
+    arr._pa_array = pa.chunked_array([pa_arr])
+    arr._cache = {}
+    return arr, na_count
 
 
 @cython.wraparound(False)

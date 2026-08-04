@@ -860,6 +860,22 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_mutable(c_parser_only, kwargs):
+    # GH#66614: the fast path builds its result without going through the
+    # ExtensionArray constructor, so it must set every attribute the
+    # constructor does; omitting _cache made mutating the result raise
+    # AttributeError.  low_memory=False keeps the array out of the
+    # intermediate concat, so it reaches the frame as the fast path built it.
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    result = parser.read_csv(StringIO("a\nfoo\nbar\n"), low_memory=False, **kwargs)
+    arr = result["a"].array
+    arr[0] = "zzz"
+    arr.sort()
+    assert list(arr) == ["bar", "zzz"]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("prefix_len", [1, 200])
 def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
     # GH#66415: the pyarrow string fast path computed token lengths with
