@@ -9,7 +9,11 @@
     "matrix": {
         "pip+build": [],
         "versioneer[toml]": [],
-        "Cython": [],
+        // TEMPORARY (GH-66152), revert with the benchmark: unpinned resolves to
+        // Cython 3.2.9, whose shared-utility mode builds a pandas that fails to
+        // import ("_cyutility does not export expected C function
+        // slice_memviewslice"), so `asv continuous` dies before running anything.
+        "Cython": ["3.2.4"],
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
