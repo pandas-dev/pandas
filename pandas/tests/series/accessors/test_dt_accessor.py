@@ -960,3 +960,18 @@ def test_day_attribute_non_nano_beyond_int32():
     result = ser.dt.days
     expected = Series([1579371003, 1559453522, 2839645203, 2586, 27, 42066, 0])
     tm.assert_series_equal(result, expected)
+
+
+def test_to_pydatetime_index_preservation():
+    # GH#66443
+    from datetime import datetime
+
+    idx = Index([10, 11, 12])
+    ser = Series(pd.to_datetime(['2026-01-01', '2026-02-01', '2026-03-01']), index=idx)
+    result = ser.dt.to_pydatetime()
+    expected = Series(
+        [datetime(2026, 1, 1), datetime(2026, 2, 1), datetime(2026, 3, 1)],
+        index=idx,
+        dtype=object,
+    )
+    tm.assert_series_equal(result, expected)
