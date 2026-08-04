@@ -86,9 +86,10 @@ def available_cpu_count() -> int | None:
     On Linux ``sched_getaffinity`` always succeeds, so an unconstrained box
     reports its full logical CPU count rather than ``None``.
 
-    Cached for the process lifetime: the CPU allocation is effectively static
-    (cgroup limits do not change at runtime and affinity is normally set once at
-    startup), and this is on the ``read_csv`` hot path.
+    Cached for the process lifetime: the CPU allocation is static in practice
+    (affinity is normally set once at startup, and a live quota change via
+    ``docker update`` or an in-place pod resize is rare), and this is on the
+    ``read_csv`` hot path.
     """
     limits = []
     if hasattr(os, "sched_getaffinity"):

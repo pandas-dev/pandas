@@ -1535,7 +1535,9 @@ considerably. This happens automatically when all of the following hold:
 
 * ``filepath_or_buffer`` is a local, uncompressed file path
 * the C engine is used (the default)
-* the file is at least 5 MB
+* the file's data rows total at least 5 MB, excluding any header preamble
+* more than one thread is in use -- see ``mode.max_threads`` below, which
+  defaults to ``1`` on Windows and when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
   ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
   ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
