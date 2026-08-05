@@ -328,6 +328,26 @@ class I8Merge:
         merge(self.left, self.right, how=how)
 
 
+class MultiIntKeyMerge:
+    params = [["inner", "left", "outer"], [True, False]]
+    param_names = ["how", "sort"]
+
+    def setup(self, how, sort):
+        N = 1_000_000
+        self.left = DataFrame(
+            {
+                "k1": np.random.randint(0, 1000, N),
+                "k2": np.random.randint(0, 100, N),
+                "value": np.random.randn(N),
+            }
+        )
+        self.right = self.left[["k1", "k2"]].drop_duplicates().reset_index(drop=True)
+        self.right["value2"] = np.random.randn(len(self.right))
+
+    def time_merge_multi_int(self, how, sort):
+        merge(self.left, self.right, on=["k1", "k2"], how=how, sort=sort)
+
+
 class UniqueMerge:
     params = [4_000_000, 1_000_000]
     param_names = ["unique_elements"]
