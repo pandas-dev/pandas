@@ -149,13 +149,6 @@ class TestEval:
     @pytest.mark.parametrize("cmp2", [">", "<"], ids=["gt", "lt"])
     @pytest.mark.parametrize("binop", expr.BOOL_OPS_SYMS)
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs, engine, parser):
-        if parser == "python" and binop in ["and", "or"]:
-            msg = "'BoolOp' nodes are not implemented"
-            ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(ex, engine=engine, parser=parser)
-            return
-
         lhs_new = _eval_single_bin(lhs, cmp1, rhs, engine)
         rhs_new = _eval_single_bin(lhs, cmp2, rhs, engine)
         expected = _eval_single_bin(lhs_new, binop, rhs_new, engine)
@@ -168,13 +161,6 @@ class TestEval:
     def test_simple_cmp_ops(self, cmp_op, lhs, rhs, engine, parser):
         lhs = lhs < 0
         rhs = rhs < 0
-
-        if parser == "python" and cmp_op in ["in", "not in"]:
-            msg = "'(In|NotIn)' nodes are not implemented"
-            ex = f"lhs {cmp_op} rhs"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(ex, engine=engine, parser=parser)
-            return
 
         ex = f"lhs {cmp_op} rhs"
         msg = "|".join(
@@ -200,19 +186,11 @@ class TestEval:
 
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
-        if parser == "python" and op in ["in", "not in"]:
-            msg = "'(In|NotIn)' nodes are not implemented"
-            ex = f"~(lhs {op} rhs)"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(ex, engine=engine, parser=parser)
-            return
-
         if (
             is_float(lhs)
             and not is_float(rhs)
             and op in ["in", "not in"]
             and engine == "python"
-            and parser == "pandas"
         ):
             mark = pytest.mark.xfail(
                 reason="Looks like expected is negative, unclear whether "
@@ -254,13 +232,6 @@ class TestEval:
     @pytest.mark.parametrize("cmp2", ["<", ">"])
     def test_chained_cmp_op(self, cmp1, cmp2, lhs, midhs, rhs, engine, parser):
         mid = midhs
-        if parser == "python":
-            ex1 = f"lhs {cmp1} mid {cmp2} rhs"
-            msg = "'BoolOp' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(ex1, engine=engine, parser=parser)
-            return
-
         lhs_new = _eval_single_bin(lhs, cmp1, mid, engine)
         rhs_new = _eval_single_bin(mid, cmp2, rhs, engine)
 
@@ -1126,12 +1097,6 @@ class TestOperations:
     def test_simple_bool_ops(self, rhs, lhs, op):
         ex = f"{lhs} {op} {rhs}"
 
-        if parser == "python" and op in ["and", "or"]:
-            msg = "'BoolOp' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                self.eval(ex)
-            return
-
         res = self.eval(ex)
         exp = eval(ex)
         assert res == exp
@@ -1141,12 +1106,6 @@ class TestOperations:
     @pytest.mark.parametrize("op", expr.BOOL_OPS_SYMS)
     def test_bool_ops_with_constants(self, rhs, lhs, op):
         ex = f"{lhs} {op} {rhs}"
-
-        if parser == "python" and op in ["and", "or"]:
-            msg = "'BoolOp' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                self.eval(ex)
-            return
 
         res = self.eval(ex)
         exp = eval(ex)
@@ -1530,51 +1489,35 @@ class TestOperations:
         tm.assert_series_equal(res, expec)
 
     def test_simple_in_ops(self, engine, parser):
-        if parser != "python":
-            res = pd.eval("1 in [1, 2]", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("1 in [1, 2]", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("2 in (1, 2)", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("2 in (1, 2)", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("3 in (1, 2)", engine=engine, parser=parser)
-            assert not res
+        res = pd.eval("3 in (1, 2)", engine=engine, parser=parser)
+        assert not res
 
-            res = pd.eval("3 not in (1, 2)", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("3 not in (1, 2)", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("[3] not in (1, 2)", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("[3] not in (1, 2)", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("[3] in ([3], 2)", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("[3] in ([3], 2)", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("[[3]] in [[[3]], 2]", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("[[3]] in [[[3]], 2]", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("(3,) in [(3,), 2]", engine=engine, parser=parser)
-            assert res
+        res = pd.eval("(3,) in [(3,), 2]", engine=engine, parser=parser)
+        assert res
 
-            res = pd.eval("(3,) not in [(3,), 2]", engine=engine, parser=parser)
-            assert not res
+        res = pd.eval("(3,) not in [(3,), 2]", engine=engine, parser=parser)
+        assert not res
 
-            res = pd.eval("[(3,)] in [[(3,)], 2]", engine=engine, parser=parser)
-            assert res
-        else:
-            msg = "'In' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval("1 in [1, 2]", engine=engine, parser=parser)
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval("2 in (1, 2)", engine=engine, parser=parser)
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval("3 in (1, 2)", engine=engine, parser=parser)
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval("[(3,)] in (1, 2, [(3,)])", engine=engine, parser=parser)
-            msg = "'NotIn' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval("3 not in (1, 2)", engine=engine, parser=parser)
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval("[3] not in (1, 2, [[3]])", engine=engine, parser=parser)
+        res = pd.eval("[(3,)] in [[(3,)], 2]", engine=engine, parser=parser)
+        assert res
 
     def test_check_many_exprs(self, engine, parser):
         a = 1  # noqa: F841
@@ -1593,12 +1536,11 @@ class TestOperations:
     )
     def test_fails_and_or_not(self, expr, engine, parser):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        if parser == "python":
-            msg = "'BoolOp' nodes are not implemented"
-            if "not" in expr:
-                msg = "'Not' nodes are not implemented"
-
-            with pytest.raises(NotImplementedError, match=msg):
+        if parser == "python" and "not" in expr:
+            # 'not' is still unimplemented for the python parser
+            with pytest.raises(
+                NotImplementedError, match="'Not' nodes are not implemented"
+            ):
                 pd.eval(
                     expr,
                     local_dict={"df": df},

@@ -794,7 +794,10 @@ class PandasExprVisitor(BaseExprVisitor):
         super().__init__(env, engine, parser, preparser)
 
 
-@disallow(_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
+@disallow(
+    (_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
+    - frozenset(["BoolOp", "In", "NotIn"])
+)
 class PythonExprVisitor(BaseExprVisitor):
     def __init__(
         self, env, engine, parser, preparser=lambda source, f=None: source
