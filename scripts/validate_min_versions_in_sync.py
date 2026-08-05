@@ -85,7 +85,9 @@ def get_toml_map_from(toml_dic: dict[str, Any]) -> dict[str, str]:
 
 
 def get_operator_from(dependency: str) -> str | None:
-    if "<=" in dependency:
+    if "!=" in dependency:
+        operator = "!="
+    elif "<=" in dependency:
         operator = "<="
     elif ">=" in dependency:
         operator = ">="
@@ -133,6 +135,8 @@ def clean_version_list(
         yaml_version = yaml_versions[i].strip()
         operator = get_operator_from(yaml_version)
         assert operator is not None
+        if operator == "!=":
+            continue
         if "<=" in operator or ">=" in operator:
             yaml_version = yaml_version[2:]
         else:
