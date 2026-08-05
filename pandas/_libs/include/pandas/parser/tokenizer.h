@@ -20,6 +20,10 @@ See LICENSE for the license
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
@@ -255,3 +259,7 @@ int to_boolean(const char *item, int64_t length, uint8_t *val);
 // opposite sense from to_boolean above, which returns 0 on a match: the return
 // value here is a sign, not a status.
 int infinity_sign(const char *item, int64_t length);
+
+#ifdef __cplusplus
+}
+#endif

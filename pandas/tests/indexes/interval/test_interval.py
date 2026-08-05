@@ -900,6 +900,24 @@ def test_from_arrays_mismatched_signedness_raises():
         IntervalIndex.from_arrays(left, right)
 
 
+@pytest.mark.parametrize(
+    "left, right",
+    [
+        # right overflows int64 -> right.dtype becomes object
+        pytest.param([0], [2**64], id="right-overflows"),
+        # left overflows int64 -> left.dtype becomes object (mirror case,
+        # already raised before this fix; kept here so both sides are
+        # covered by the same parametrization)
+        pytest.param([-(2**64)], [0], id="left-overflows"),
+    ],
+)
+def test_interval_index_endpoint_dtype_mismatch_raises(left, right):
+    # GH 66518
+    msg = "category, object, and string subtypes are not supported for IntervalIndex"
+    with pytest.raises(TypeError, match=msg):
+        IntervalIndex.from_arrays(left, right)
+
+
 def test_dir():
     # GH#27571 dir(interval_index) should not raise
     index = IntervalIndex.from_arrays([0, 1], [1, 2])

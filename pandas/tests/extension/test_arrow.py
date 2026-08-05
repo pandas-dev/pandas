@@ -439,20 +439,32 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name == "kurt" or (pa_version_under20p0 and op_name == "skew"):
+        if pa_version_under20p0 and op_name in ("skew", "kurt"):
             return False
 
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod", "skew"]:
+        if pa.types.is_temporal(pa_dtype) and op_name in [
+            "sum",
+            "var",
+            "prod",
+            "skew",
+            "kurt",
+        ]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew", "any", "all"]:
+        elif pa.types.is_binary(pa_dtype) and op_name in [
+            "sum",
+            "skew",
+            "kurt",
+            "any",
+            "all",
+        ]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
@@ -464,6 +476,7 @@ class TestArrowArray(base.ExtensionTests):
             "sem",
             "var",
             "skew",
+            "kurt",
             "any",
             "all",
         ]:
@@ -533,11 +546,11 @@ class TestArrowArray(base.ExtensionTests):
             if op_name == "sum" and not pa_version_under21p0:
                 # https://github.com/apache/arrow/pull/44184
                 cmp_dtype = ArrowDtype(pa.decimal128(38, 3))
-            elif op_name not in ["median", "var", "std", "sem", "skew"]:
+            elif op_name not in ["median", "var", "std", "sem", "skew", "kurt"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
-        elif op_name in ["median", "var", "std", "mean", "skew", "sem"]:
+        elif op_name in ["median", "var", "std", "mean", "skew", "kurt", "sem"]:
             cmp_dtype = "float64[pyarrow]"
         elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
             cmp_dtype = "uint64[pyarrow]"
@@ -553,29 +566,15 @@ class TestArrowArray(base.ExtensionTests):
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        if (
-            not pa_version_under20p0
-            and skipna
-            and all_numeric_reductions == "skew"
-            and (
-                pa.types.is_integer(data.dtype.pyarrow_dtype)
-                or pa.types.is_floating(data.dtype.pyarrow_dtype)
-            )
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="https://github.com/apache/arrow/issues/45733",
-                )
-            )
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
-        if op_name == "skew" and pa_version_under20p0:
+        if op_name in ("skew", "kurt") and pa_version_under20p0:
             if data.dtype._is_numeric:
-                mark = pytest.mark.xfail(reason="skew not implemented")
+                mark = pytest.mark.xfail(reason=f"{op_name} not implemented")
                 request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
@@ -3834,6 +3833,439 @@ def test_groupby_count_return_arrow_dtype(data_missing):
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+class TestGroupbyAggPyArrowNative:
+    """Tests for PyArrow-native groupby aggregations on decimal and string types."""
+
+    @pytest.mark.parametrize(
+        "agg_func, expected",
+        [
+            ("sum", [Decimal("1"), Decimal("5"), Decimal("4")]),
+            ("prod", [Decimal("0"), Decimal("6"), Decimal("4")]),
+            ("min", [Decimal("0"), Decimal("2"), Decimal("4")]),
+            ("max", [Decimal("1"), Decimal("3"), Decimal("4")]),
+            ("mean", [Decimal("0.5"), Decimal("2.5"), Decimal("4")]),
+            ("count", [2, 2, 1]),
+        ],
+    )
+    def test_groupby_decimal_aggregations(self, agg_func, expected):
+        # PyArrow-native decimal groupby returns the correct values.
+        values = [Decimal(str(i)) for i in range(5)]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        # groups: 1 -> [0, 1], 2 -> [2, 3], 3 -> [4]
+        result = ser.groupby([1, 1, 2, 2, 3]).agg(agg_func)
+        assert result.index.tolist() == [1, 2, 3]
+        assert isinstance(result.dtype, ArrowDtype)
+        # Decimal equality is scale-insensitive (Decimal("1") == Decimal("1.00"))
+        assert result.tolist() == expected
+
+    @pytest.mark.parametrize(
+        "agg_func, expected",
+        [
+            ("var", 0.5),
+            ("std", 0.5**0.5),
+            ("sem", 0.5),
+        ],
+    )
+    def test_groupby_decimal_variance_aggregations(self, agg_func, expected):
+        # std/var/sem on decimal return float64; a single-element group is NA.
+        values = [Decimal(str(i)) for i in range(5)]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        # groups: 1 -> [0, 1], 2 -> [2, 3], 3 -> [4] (single element -> NA)
+        result = ser.groupby([1, 1, 2, 2, 3]).agg(agg_func)
+        assert result.dtype == ArrowDtype(pa.float64())
+        assert result.iloc[0] == pytest.approx(expected)
+        assert result.iloc[1] == pytest.approx(expected)
+        assert pd.isna(result.iloc[2])
+
+    @pytest.mark.parametrize(
+        "agg_func, expected",
+        [
+            ("min", ["a", "c", "e"]),
+            ("max", ["b", "d", "e"]),
+            ("count", [2, 2, 1]),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [pa.string(), pa.large_string()])
+    def test_groupby_string_aggregations(self, dtype, agg_func, expected):
+        # PyArrow-native string groupby returns the correct values.
+        ser = pd.Series(list("abcde"), dtype=ArrowDtype(dtype))
+        # groups: 1 -> [a, b], 2 -> [c, d], 3 -> [e]
+        result = ser.groupby([1, 1, 2, 2, 3]).agg(agg_func)
+        assert result.index.tolist() == [1, 2, 3]
+        assert isinstance(result.dtype, ArrowDtype)
+        assert result.tolist() == expected
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+            ArrowDtype(pa.large_string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype", "ArrowDtype_large"],
+    )
+    def test_groupby_string_dtypes_min_max(self, dtype, how):
+        # GH#63416 every PyArrow-backed string dtype takes the same path
+        ser = pd.Series(["b", "a", "d", "c"], dtype=dtype)
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)()
+        expected = ["a", "c"] if how == "min" else ["b", "d"]
+        assert result.dtype == ser.dtype
+        assert result.tolist() == expected
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+            ArrowDtype(pa.large_string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype", "ArrowDtype_large"],
+    )
+    def test_groupby_string_dtypes_skipna_false(self, dtype, how):
+        # GH#63416 a group containing NA used to aggregate to a value, so the
+        # NA was silently ignored; masked dtypes already returned NA here
+        ser = pd.Series(["b", None, "d", "c"], dtype=dtype)
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)(skipna=False)
+        assert result.dtype == ser.dtype
+        assert pd.isna(result.iloc[0])
+        assert result.iloc[1] == ("c" if how == "min" else "d")
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+            ArrowDtype(pa.large_string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype", "ArrowDtype_large"],
+    )
+    def test_groupby_string_dtypes_min_count(self, dtype, how):
+        # GH#63416 min_count used to be ignored, so a group with fewer non-NA
+        # values than min_count still got a value
+        ser = pd.Series(["b", None, "d", "c"], dtype=dtype)
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)(min_count=2)
+        assert result.dtype == ser.dtype
+        assert pd.isna(result.iloc[0])
+        assert result.iloc[1] == ("c" if how == "min" else "d")
+
+    @pytest.mark.parametrize(
+        "dtype,values,expected,agg_func",
+        [
+            (
+                pa.decimal128(10, 2),
+                [Decimal("1.0"), None, Decimal("3.0"), None],
+                [Decimal("1.0"), Decimal("3.0")],
+                "min",
+            ),
+            (pa.string(), ["a", None, "c", None], ["a", "c"], "min"),
+            (pa.string(), ["a", None, "c", None], ["a", "c"], "max"),
+        ],
+    )
+    def test_groupby_with_nulls(self, dtype, values, expected, agg_func):
+        # Test groupby with null values.
+        ser = pd.Series(values, dtype=ArrowDtype(dtype))
+        result = ser.groupby([1, 1, 2, 2]).agg(agg_func)
+        assert len(result) == 2
+        assert result.iloc[0] == expected[0]
+        assert result.iloc[1] == expected[1]
+
+    @pytest.mark.parametrize(
+        "values,keys,expected_na",
+        [
+            # Multiple values per group - sem is computable
+            ([0, 1, 2, 3], [1, 1, 2, 2], [False, False]),
+            # Single value per group - sem is NA (stddev undefined)
+            ([1, 2], [1, 2], [True, True]),
+            # All nulls in group 2 - sem is NA for that group
+            ([1, 2, None, None], [1, 1, 2, 2], [False, True]),
+        ],
+    )
+    def test_groupby_sem(self, values, keys, expected_na):
+        # Test that sem returns float64 and handles edge cases correctly.
+        ser = pd.Series(
+            [Decimal(str(v)) if v is not None else None for v in values],
+            dtype=ArrowDtype(pa.decimal128(10, 2)),
+        )
+        result = ser.groupby(keys).sem()
+        assert result.dtype == ArrowDtype(pa.float64())
+        assert pd.isna(result).tolist() == expected_na
+
+    @pytest.mark.parametrize(
+        "values,keys,expected_na",
+        [
+            # Group 1 has 2 values >= min_count, Group 2 has 1 < min_count
+            ([0, 1, 2], [1, 1, 2], [False, True]),
+            # With nulls: min_count uses non-null count, not group size
+            # Group 1: 1 non-null < min_count=2, Group 2: 2 non-null >= min_count
+            ([1, None, 2, 3, None], [1, 1, 2, 2, 2], [True, False]),
+        ],
+    )
+    @pytest.mark.parametrize("agg_func", ["sum", "prod", "min", "max"])
+    def test_groupby_min_count(self, agg_func, values, keys, expected_na):
+        # Test min_count parameter with and without nulls.
+        ser = pd.Series(
+            [Decimal(str(v)) if v is not None else None for v in values],
+            dtype=ArrowDtype(pa.decimal128(10, 2)),
+        )
+        result = ser.groupby(keys).agg(agg_func, min_count=2)
+        assert pd.isna(result).tolist() == expected_na
+
+    @pytest.mark.parametrize(
+        "agg_func,default_value",
+        [
+            ("sum", 0),
+            ("prod", 1),
+        ],
+    )
+    def test_groupby_missing_groups(self, agg_func, default_value):
+        # Test that missing groups get identity values.
+        values = [Decimal(str(i)) for i in range(4)]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        keys = pd.Categorical([0, 0, 2, 2], categories=[0, 1, 2])
+        result = ser.groupby(keys, observed=False).agg(agg_func)
+        assert len(result) == 3
+        assert result.iloc[1] == Decimal(str(default_value))
+
+    @pytest.mark.parametrize("agg_func", ["min", "max"])
+    @pytest.mark.parametrize(
+        "values, dtype",
+        [
+            # ordered like "badc" so the assertions below hold for both types
+            (
+                [Decimal("1"), Decimal("0"), Decimal("3"), Decimal("2")],
+                ArrowDtype(pa.decimal128(10, 2)),
+            ),
+            (list("badc"), ArrowDtype(pa.string())),
+            (list("badc"), pd.StringDtype("pyarrow", na_value=np.nan)),
+        ],
+        ids=["decimal", "ArrowDtype", "str[pyarrow]"],
+    )
+    def test_groupby_missing_groups_min_max(self, values, dtype, agg_func):
+        # GH#63416 min and max have no identity element, so an unobserved
+        # group is NA rather than filled
+        ser = pd.Series(values, dtype=dtype)
+        keys = pd.Categorical([0, 0, 2, 2], categories=[0, 1, 2])
+        result = getattr(ser.groupby(keys, observed=False), agg_func)()
+        assert len(result) == 3
+        assert pd.isna(result.iloc[1])
+        assert result.iloc[0] == (values[0] if agg_func == "max" else values[1])
+        assert result.iloc[2] == (values[2] if agg_func == "max" else values[3])
+
+    @pytest.mark.parametrize(
+        "dropna, expected_len",
+        [
+            (True, 2),
+            (False, 3),
+        ],
+    )
+    def test_groupby_dropna(self, dropna, expected_len):
+        # Test that NA keys are excluded when dropna=True.
+        values = [Decimal(str(i)) for i in range(6)]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        result = ser.groupby([1, 1, None, 2, 2, None], dropna=dropna).sum()
+        assert len(result) == expected_len
+        assert result.iloc[0] == Decimal("1.0")  # 0 + 1
+        assert result.iloc[1] == Decimal("7.0")  # 3 + 4
+        if not dropna:
+            assert result.iloc[2] == Decimal("7.0")  # 2 + 5 (NA group)
+
+    # with dropna=False the NA key sorts between the 1 and 2 groups
+    @pytest.mark.parametrize(
+        "dropna, expected", [(True, ["a", "d"]), (False, ["a", "c", "d"])]
+    )
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype"],
+    )
+    def test_groupby_string_dropna(self, dtype, dropna, expected):
+        # GH#63416 rows with an NA key are dropped before aggregating unless
+        # they form their own group
+        ser = pd.Series(list("baedc"), dtype=dtype)
+        result = ser.groupby([1, 1, None, 2, None], dropna=dropna).min()
+        assert result.dtype == ser.dtype
+        assert result.tolist() == expected
+
+    @pytest.mark.parametrize(
+        "how", ["sum", "prod", "min", "max", "mean", "std", "var", "sem"]
+    )
+    def test_groupby_skipna_false(self, how):
+        # GH#63416 with skipna=False, a group containing a null aggregates to NA
+        values = [Decimal("1"), None, Decimal("3"), Decimal("4")]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)(skipna=False)
+        # group 1 contains a null -> NA; group 2 has no nulls -> a real value
+        assert result.iloc[0] is pd.NA
+        assert result.iloc[1] is not pd.NA
+
+    @pytest.mark.parametrize("agg_func", ["sum", "prod"])
+    @pytest.mark.parametrize(
+        "pa_type", [pa.decimal128(10, 2), pa.decimal256(40, 2)], ids=str
+    )
+    def test_groupby_sum_prod_widen_decimal_precision(self, pa_type, agg_func):
+        # GH#63416 sum and prod widen to the maximum precision, matching
+        # Series.sum and Series.prod, so a group result that needs more digits
+        # than the input precision does not overflow
+        ser = pd.Series(
+            [Decimal("1"), Decimal("2"), Decimal("3")], dtype=ArrowDtype(pa_type)
+        )
+        result = getattr(ser.groupby([1, 1, 2]), agg_func)()
+        if pa.types.is_decimal128(pa_type):
+            expected_type = pa.decimal128(38, pa_type.scale)
+        else:
+            expected_type = pa.decimal256(76, pa_type.scale)
+        assert result.dtype.pyarrow_dtype == expected_type
+        # other reductions keep the input type
+        assert ser.groupby([1, 1, 2]).min().dtype == ser.dtype
+
+    @pytest.mark.parametrize(
+        "agg_func, expected", [("sum", Decimal("1998")), ("prod", Decimal("998001"))]
+    )
+    def test_groupby_sum_prod_no_precision_overflow(self, agg_func, expected):
+        # GH#63416 the group result no longer has to fit the input precision
+        ser = pd.Series(
+            [Decimal("999"), Decimal("999")], dtype=ArrowDtype(pa.decimal128(3, 0))
+        )
+        result = getattr(ser.groupby([1, 1]), agg_func)()
+        assert result.iloc[0] == expected
+        assert result.iloc[0] == getattr(ser, agg_func)()
+
+    @pytest.mark.parametrize(
+        "how, pa_type, values, expected",
+        [
+            # product needs 39 digits, one more than decimal128 can hold
+            (
+                "prod",
+                pa.decimal128(20, 0),
+                [Decimal(10**19), Decimal(12 * 10**18)],
+                Decimal(12 * 10**37),
+            ),
+            # sum needs 39 digits, one more than decimal128 can hold
+            (
+                "sum",
+                pa.decimal128(38, 0),
+                [Decimal(3 * 10**37)] * 5,
+                Decimal(15 * 10**37),
+            ),
+        ],
+    )
+    def test_groupby_sum_prod_exceeds_max_precision(
+        self, how, pa_type, values, expected
+    ):
+        # GH#63416 a group result that does not fit the maximum decimal
+        # precision falls back to a wider type inferred from the values
+        # instead of raising
+        ser = pd.Series(values, dtype=ArrowDtype(pa_type))
+        result = getattr(ser.groupby([1] * len(values)), how)()
+        assert result.dtype == ArrowDtype(pa.decimal256(39, 0))
+        assert result.iloc[0] == expected
+
+    @pytest.mark.xfail(
+        reason="PyArrow's product wraps silently once the result exceeds int256, "
+        "so the group result is a wrong (negative) value; this predates the "
+        "PyArrow-native path and is unchanged by it"
+    )
+    def test_groupby_prod_exceeds_int256(self):
+        # GH#63416 a product that does not fit int256 cannot be represented by
+        # any decimal type, and PyArrow reports no error for the overflow
+        ser = pd.Series(
+            [Decimal(10**39), Decimal(10**39)], dtype=ArrowDtype(pa.decimal256(40, 0))
+        )
+        result = ser.groupby([1, 1]).prod()
+        assert result.iloc[0] == Decimal(10**78)
+
+    @pytest.mark.parametrize("how", ["std", "sem"])
+    def test_groupby_std_sem_supported(self, how):
+        # GH#63416 these used to raise NotImplementedError on decimal
+        ser = pd.Series(
+            [Decimal("1"), Decimal("2"), Decimal("3"), Decimal("5")],
+            dtype=ArrowDtype(pa.decimal128(10, 2)),
+        )
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)()
+        expected = getattr(pd.Series([1.0, 2.0, 3.0, 5.0]).groupby([1, 1, 2, 2]), how)()
+        tm.assert_series_equal(result.astype("float64"), expected)
+
+    @pytest.mark.parametrize("how", ["var", "std", "sem"])
+    @pytest.mark.parametrize("ddof", [0, 1, 2])
+    def test_groupby_decimal_ddof(self, how, ddof):
+        # GH#63416 ddof is forwarded to PyArrow; ddof >= the group size is NA
+        values = [Decimal("1"), Decimal("2"), Decimal("3"), Decimal("5")]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        result = getattr(ser.groupby([1, 1, 2, 2]), how)(ddof=ddof)
+        expected = getattr(pd.Series([1.0, 2.0, 3.0, 5.0]).groupby([1, 1, 2, 2]), how)(
+            ddof=ddof
+        )
+        tm.assert_series_equal(result.astype("float64"), expected)
+
+    @pytest.mark.parametrize("how", ["sum", "min", "max"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            ArrowDtype(pa.decimal128(10, 2)),
+            ArrowDtype(pa.string()),
+            pd.StringDtype("pyarrow", na_value=np.nan),
+        ],
+        ids=["decimal", "ArrowDtype", "str[pyarrow]"],
+    )
+    def test_groupby_empty(self, dtype, how):
+        # GH#63416 an empty input has no groups to scatter into
+        ser = pd.Series([], dtype=dtype)
+        result = getattr(ser.groupby([]), how)()
+        assert len(result) == 0
+
+    def test_groupby_dataframe_decimal_and_string(self):
+        # GH#63416 both column types take the native path in one aggregation
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, 2, 2],
+                "dec": pd.array(
+                    [Decimal(str(i)) for i in range(4)],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+                "string": pd.array(list("badc"), dtype=ArrowDtype(pa.string())),
+            }
+        )
+        result = df.groupby("key").min()
+        assert result["dec"].dtype == df["dec"].dtype
+        assert result["string"].dtype == df["string"].dtype
+        assert result["dec"].tolist() == [Decimal("0"), Decimal("2")]
+        assert result["string"].tolist() == ["a", "c"]
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype"],
+    )
+    def test_groupby_string_sum_falls_back(self, dtype):
+        # GH#63416 PyArrow has no string sum, so it goes to the fallback path
+        # and concatenates
+        ser = pd.Series(["b", "a", "d", "c"], dtype=dtype)
+        result = ser.groupby([1, 1, 2, 2]).sum()
+        assert result.dtype == ser.dtype
+        assert result.tolist() == ["ba", "dc"]
+
+    @pytest.mark.parametrize("how", ["mean", "std", "var", "sem", "prod"])
+    def test_groupby_string_unsupported_ops_raise(self, how):
+        # GH#63416 the native path must not make these ops start working
+        ser = pd.Series(["b", "a", "d", "c"], dtype="string[pyarrow]")
+        with pytest.raises(TypeError, match=f"does not support operation '{how}'"):
+            getattr(ser.groupby([1, 1, 2, 2]), how)()
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])

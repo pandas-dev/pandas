@@ -17,7 +17,6 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
 #include "pandas/parser/tokenizer.h"
-#include "pandas/parser/pd_strtoi.h"
 #include "pandas/portable.h"
 
 #include <ctype.h>
@@ -25,6 +24,12 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include <optional>
+#include <string_view>
+#include <system_error>
+
+#include "fast_float/fast_float.h"
 
 // Arch selection comes from the build-time SIMD config (pandas/_libs/simd),
 // which sets exactly one of PANDAS_HAVE_NEON / PANDAS_HAVE_SSE2 /
@@ -178,11 +183,11 @@ void parser_set_default_options(parser_t *self) {
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 static void parser_clear_data_buffers(parser_t *self) {
-  free_if_not_null((void *)&self->stream);
-  free_if_not_null((void *)&self->words);
-  free_if_not_null((void *)&self->word_starts);
-  free_if_not_null((void *)&self->line_start);
-  free_if_not_null((void *)&self->line_fields);
+  free_if_not_null((void **)&self->stream);
+  free_if_not_null((void **)&self->words);
+  free_if_not_null((void **)&self->word_starts);
+  free_if_not_null((void **)&self->line_start);
+  free_if_not_null((void **)&self->line_fields);
 }
 
 static void parser_cleanup(parser_t *self) {
@@ -193,8 +198,8 @@ static void parser_cleanup(parser_t *self) {
   }
 
   // XXX where to put this
-  free_if_not_null((void *)&self->error_msg);
-  free_if_not_null((void *)&self->warn_msg);
+  free_if_not_null((void **)&self->error_msg);
+  free_if_not_null((void **)&self->warn_msg);
 
   if (self->skipset != NULL) {
     kh_destroy_int64((kh_int64_t *)self->skipset);
@@ -222,7 +227,7 @@ int parser_init(parser_t *self) {
   self->warn_msg = NULL;
 
   // token stream
-  self->stream = malloc(STREAM_INIT_SIZE);
+  self->stream = (char *)malloc(STREAM_INIT_SIZE);
   if (self->stream == NULL) {
     parser_cleanup(self);
     return PARSER_OUT_OF_MEMORY;
@@ -231,19 +236,19 @@ int parser_init(parser_t *self) {
   self->stream_len = 0;
 
   // word pointers and metadata
-  _Static_assert(STREAM_INIT_SIZE / 10 > 0,
-                 "STREAM_INIT_SIZE must be defined and >= 10");
+  static_assert(STREAM_INIT_SIZE / 10 > 0,
+                "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
-  self->words = malloc(sz * sizeof(char *));
-  self->word_starts = malloc(sz * sizeof(int64_t));
+  self->words = (char **)malloc(sz * sizeof(char *));
+  self->word_starts = (int64_t *)malloc(sz * sizeof(int64_t));
   self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
 
   // line pointers and metadata
-  self->line_start = malloc(sz * sizeof(int64_t));
+  self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
 
-  self->line_fields = malloc(sz * sizeof(int64_t));
+  self->line_fields = (int64_t *)malloc(sz * sizeof(int64_t));
 
   self->lines_cap = sz;
   self->lines = 0;
@@ -292,7 +297,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
   */
 
   int status;
-  char *orig_ptr = (void *)self->stream;
+  char *orig_ptr = self->stream;
   self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
                                      &self->stream_cap, nbytes * 2, 1, &status);
 
@@ -374,7 +379,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 static int push_char(parser_t *self, char c) {
   if (self->stream_len >= self->stream_cap) {
     const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
     snprintf(self->error_msg, bufsize,
              "Buffer overflow caught - possible malformed input file.\n");
     return PARSER_OUT_OF_MEMORY;
@@ -387,7 +392,7 @@ static inline int end_field(parser_t *self) {
   // XXX cruft
   if (self->words_len >= self->words_cap) {
     const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
     snprintf(self->error_msg, bufsize,
              "Buffer overflow caught - possible malformed input file.\n");
     return PARSER_OUT_OF_MEMORY;
@@ -415,7 +420,7 @@ static void append_warning(parser_t *self, const char *msg) {
   const int64_t length = strlen(msg);
 
   if (self->warn_msg == NULL) {
-    self->warn_msg = malloc(length + 1);
+    self->warn_msg = (char *)malloc(length + 1);
     snprintf(self->warn_msg, length + 1, "%s", msg);
   } else {
     const int64_t ex_length = strlen(self->warn_msg);
@@ -472,7 +477,7 @@ static int end_line(parser_t *self) {
     // file_lines is now the actual file line number (starting at 1)
     if (self->on_bad_lines == BLHM_ERROR) {
       const size_t bufsize = 100;
-      self->error_msg = malloc(bufsize);
+      self->error_msg = (char *)malloc(bufsize);
       snprintf(self->error_msg, bufsize,
                "Expected %" PRId64 " fields in line %" PRIu64 ", saw %" PRId64
                "\n",
@@ -498,7 +503,7 @@ static int end_line(parser_t *self) {
       // might overrun the buffer when closing fields
       if (make_stream_space(self, ex_fields - fields) < 0) {
         const size_t bufsize = 100;
-        self->error_msg = malloc(bufsize);
+        self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize, "out of memory");
         return -1;
       }
@@ -516,7 +521,7 @@ static int end_line(parser_t *self) {
     // good line, set new start point
     if (self->lines >= self->lines_cap) {
       const size_t bufsize = 100;
-      self->error_msg = malloc(bufsize);
+      self->error_msg = (char *)malloc(bufsize);
       snprintf(self->error_msg, bufsize,
                "Buffer overflow caught - "
                "possible malformed input file.\n");
@@ -568,7 +573,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
   if (status != REACHED_EOF && self->data == NULL) {
     const size_t bufsize = 200;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
 
     if (status == CALLING_READ_FAILED) {
       snprintf(self->error_msg, bufsize,
@@ -591,7 +596,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 #define PUSH_CHAR(c)                                                           \
   if (slen >= self->stream_cap) {                                              \
     const size_t bufsize = 100;                                                \
-    self->error_msg = malloc(bufsize);                                         \
+    self->error_msg = (char *)malloc(bufsize);                                 \
     snprintf(self->error_msg, bufsize,                                         \
              "Buffer overflow caught - possible malformed input file.\n");     \
     return PARSER_OUT_OF_MEMORY;                                               \
@@ -1226,7 +1231,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
+    self->error_msg = (char *)malloc(bufsize);
     snprintf(self->error_msg, bufsize, "out of memory");
     return -1;
   }
@@ -1863,11 +1868,12 @@ int parser_trim_buffers(parser_t *self) {
   /* trim words, word_starts */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
-    self->words = realloc(self->words, new_cap * sizeof(char *));
+    self->words = (char **)realloc(self->words, new_cap * sizeof(char *));
     if (self->words == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
-    self->word_starts = realloc(self->word_starts, new_cap * sizeof(int64_t));
+    self->word_starts =
+        (int64_t *)realloc(self->word_starts, new_cap * sizeof(int64_t));
     if (self->word_starts == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
@@ -1894,7 +1900,7 @@ int parser_trim_buffers(parser_t *self) {
         }
       }
 
-      self->stream = newptr;
+      self->stream = (char *)newptr;
       self->stream_cap = new_cap;
     }
   }
@@ -1906,13 +1912,13 @@ int parser_trim_buffers(parser_t *self) {
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      self->line_start = newptr;
+      self->line_start = (int64_t *)newptr;
     }
     newptr = realloc(self->line_fields, new_cap * sizeof(int64_t));
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      self->line_fields = newptr;
+      self->line_fields = (int64_t *)newptr;
       self->lines_cap = new_cap;
     }
   }
@@ -2066,8 +2072,9 @@ int infinity_sign(const char *item, int64_t length) {
 
 // Defined in fast_float_wrappers.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
-int fast_float_strtod(const char *start, const char *end, double *value,
-                      const char **endptr, char decimal);
+extern "C" int fast_float_strtod(const char *start, const char *end,
+                                 double *value, const char **endptr,
+                                 char decimal);
 
 double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
                                 char sci, char tsep, int skip_trailing,
@@ -2336,16 +2343,67 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
+/* Fast path for the common case: an optional sign followed by 1-18 digits
+ * filling the whole token. 18 digits cannot overflow int64, and a pure-digit
+ * span can contain no spaces or trailing junk — and no thousands separator
+ * either, except in the degenerate (but accepted) case where tsep is itself
+ * a digit, which therefore disqualifies the fast path. Digit validation and
+ * parsing use fast_float's 8-digits-at-a-time helpers, which inline here and
+ * skip the leading-zero and overflow bookkeeping that makes the general
+ * from_chars parse slower on short tokens. Returns nullopt on any
+ * disqualifier so the caller falls through to the general path. */
+static std::optional<int64_t> swar_try_parse_int64(std::string_view item,
+                                                   char tsep) {
+  if (item.empty() || isdigit_ascii(tsep)) {
+    return std::nullopt;
+  }
+  const bool neg = item.front() == '-';
+  if (neg || item.front() == '+') {
+    item.remove_prefix(1);
+  }
+  if (item.empty() || item.size() > 18) {
+    return std::nullopt;
+  }
+  uint64_t acc = 0;
+  while (item.size() >= 8) {
+    const uint64_t block = fast_float::read8_to_u64(item.data());
+    if (!fast_float::is_made_of_eight_digits_fast(block)) {
+      return std::nullopt;
+    }
+    acc = acc * 100000000ULL + fast_float::parse_eight_digits_unrolled(block);
+    item.remove_prefix(8);
+  }
+  for (const char chr : item) {
+    const unsigned char digit = static_cast<unsigned char>(chr - '0');
+    if (digit > 9) {
+      return std::nullopt;
+    }
+    acc = acc * 10 + digit;
+  }
+  const auto magnitude = static_cast<int64_t>(acc);
+  return neg ? -magnitude : magnitude;
+}
+
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
+  // length < 0 means "not precomputed" (the general path strlens below); the
+  // fast path needs a known span.
+  if (length > 0) {
+    const std::string_view item{p_item, static_cast<size_t>(length)};
+    if (const auto parsed = swar_try_parse_int64(item, tsep)) {
+      *error = 0;
+      return *parsed;
+    }
+  }
+
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
   }
 
-  // Handle sign. std::from_chars accepts '-' but rejects '+', so strip '+'
-  // after verifying the following char is a digit (not another sign).
+  // Handle sign. fast_float::from_chars accepts '-' but rejects '+', so strip
+  // '+' after verifying the following char is a digit (not another sign).
   const bool has_sign = *p == '-' || *p == '+';
   const char *digit_start = has_sign ? p + 1 : p;
   if (!isdigit_ascii(*digit_start)) {
@@ -2378,22 +2436,24 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error,
   }
 
   int64_t number;
-  const char *endptr;
-  const pd_strtoi_status status = pd_strtoll(p, p + str_len, &number, &endptr);
+  // On result_out_of_range, from_chars still leaves ptr past the final digit,
+  // so the caller can tell a pure overflow from one with trailing junk.
+  const auto result = fast_float::from_chars(p, p + str_len, number, 10);
+  const char *endptr = result.ptr;
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input that
     // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=','). Its
     // endptr indexes the original token, so it shares token_end.
     endptr = number_end;
   }
-  if (status == PD_STRTOI_OVERFLOW) {
+  if (result.ec == std::errc::result_out_of_range) {
     // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
     // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
     // at the end) → OVERFLOW (caller retries as uint64).
     *error = endptr != token_end ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
-  if (status == PD_STRTOI_INVALID) {
+  if (result.ec != std::errc()) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
@@ -2457,17 +2517,17 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
   }
 
   uint64_t number;
-  const char *endptr;
-  const pd_strtoi_status status = pd_strtoull(p, p + str_len, &number, &endptr);
+  const auto result = fast_float::from_chars(p, p + str_len, number, 10);
+  const char *endptr = result.ptr;
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input.
     endptr = number_end;
   }
-  if (status == PD_STRTOI_OVERFLOW) {
+  if (result.ec == std::errc::result_out_of_range) {
     *error = endptr != token_end ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
-  if (status == PD_STRTOI_INVALID) {
+  if (result.ec != std::errc()) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
