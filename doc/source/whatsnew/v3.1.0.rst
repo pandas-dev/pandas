@@ -202,7 +202,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.str.replace` with ``regex=True`` and the pyarrow-backed string dtypes giving different results from the Python engine for patterns that can match a zero-length string (:issue:`64872`)
 -
 
 Interval

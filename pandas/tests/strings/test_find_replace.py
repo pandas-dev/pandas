@@ -1039,6 +1039,15 @@ def test_replace_regex_zero_length_match_consistency(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("data", [[None, None], []])
+def test_replace_regex_zero_length_match_preserves_dtype(any_string_dtype, data):
+    # GH#64872 - the elementwise fallback must keep the original arrow type,
+    # which cannot be inferred when there is no non-null value to infer from
+    ser = Series(data, dtype=any_string_dtype)
+    result = ser.str.replace("F?H?", "_", regex=True)
+    tm.assert_series_equal(result, ser)
+
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------

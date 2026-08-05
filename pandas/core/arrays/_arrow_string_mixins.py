@@ -255,7 +255,9 @@ class ArrowStringArrayMixin:
             result = self._apply_elementwise(
                 lambda val: compiled.sub(repl=repl, string=val, count=count)
             )
-            return self._from_pyarrow_array(pa.chunked_array(result))
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
