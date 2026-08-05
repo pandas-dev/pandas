@@ -1892,6 +1892,12 @@ class BarPlot(MPLPlot):
 
         MPLPlot.__init__(self, data, **kwargs)
 
+        # GH#55508: save xticks/yticks before _adorn_subplots sets raw positions
+        self._bar_xticks = self.xticks
+        self.xticks = None
+        self._bar_yticks = self.yticks
+        self.yticks = None
+
         if self._is_ts_plot():
             self.tick_pos = np.array(
                 PeriodConverter.convert_from_freq(
@@ -2081,8 +2087,18 @@ class BarPlot(MPLPlot):
     ) -> None:
         ax.set_xlim((start_edge, end_edge))
 
-        if self.xticks is not None:
-            ax.set_xticks(np.array(self.xticks))
+        if self._bar_xticks is not None:
+            # GH#55508: map xtick values to internal bar positions
+            xtick_arr = np.array(self._bar_xticks)
+            index = self.data.index
+            mask = index.isin(xtick_arr)
+            if mask.any():
+                ticks = self.tick_pos[mask]
+                labels = [ticklabels[i] for i, m in enumerate(mask) if m]
+                ax.set_xticks(ticks)
+                ax.set_xticklabels(labels)
+            else:
+                ax.set_xticks(xtick_arr)
         else:
             ax.set_xticks(self.tick_pos)
             ax.set_xticklabels(ticklabels)
@@ -2133,8 +2149,23 @@ class BarhPlot(BarPlot):
     ) -> None:
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
-        ax.set_yticks(self.tick_pos)
-        ax.set_yticklabels(ticklabels)
+
+        if self._bar_yticks is not None:
+            # GH#55508: same as BarPlot._decorate_ticks above, for yticks
+            ytick_arr = np.array(self._bar_yticks)
+            index = self.data.index
+            mask = index.isin(ytick_arr)
+            if mask.any():
+                ticks = self.tick_pos[mask]
+                labels = [ticklabels[i] for i, m in enumerate(mask) if m]
+                ax.set_yticks(ticks)
+                ax.set_yticklabels(labels)
+            else:
+                ax.set_yticks(ytick_arr)
+        else:
+            ax.set_yticks(self.tick_pos)
+            ax.set_yticklabels(ticklabels)
+
         if name is not None and self.use_index:
             ax.set_ylabel(name)
         # error: Argument 1 to "set_xlabel" of "_AxesBase" has incompatible type
