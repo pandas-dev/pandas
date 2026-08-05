@@ -819,6 +819,23 @@ def test_block_lane_chunked_reads_match(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "conversion", [{"dtype": {"a": int}}, {"converters": {"a": int}}]
+)
+def test_chunk_conversion_error_makes_reader_unusable(c_parser_only, conversion):
+    parser = c_parser_only
+    values = [*range(5), "oops", *range(6, 15)]
+    data = "a\n" + "\n".join(map(str, values))
+    with parser.read_csv(StringIO(data), chunksize=10, **conversion) as reader:
+        msg = "invalid literal for int\\(\\) with base 10: 'oops'"
+        with pytest.raises(ValueError, match=msg):
+            next(reader)
+        with pytest.raises(
+            ValueError, match="C parser cannot continue after a conversion error"
+        ):
+            next(reader)
+
+
 def test_block_lane_crlf_pairs_at_block_edges(c_parser_only):
     # \r\n pairs are consumed in-lane; pairs split across a 16-byte block
     # boundary or bare \r must defer to the state machine.  Vary field

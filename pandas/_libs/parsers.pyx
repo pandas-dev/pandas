@@ -388,6 +388,7 @@ cdef class TextReader:
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
         bint allow_leading_cols
+        bint conversion_error
         # Trim the parser's buffers after a whole-file read.  The parallel
         # reader turns this off on its workers, whose buffers are reused
         # across chunks and freed at close.
@@ -564,6 +565,7 @@ cdef class TextReader:
         self.na_filter = na_filter
         self._pa_target = None
         self.trim_after_read = True
+        self.conversion_error = False
 
         if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
@@ -1044,6 +1046,9 @@ cdef class TextReader:
             int64_t buffered_lines
             int64_t irows
 
+        if self.conversion_error:
+            raise ValueError("C parser cannot continue after a conversion error")
+
         if rows is not None:
             irows = rows
             buffered_lines = self.parser.lines - self.parser_start
@@ -1062,7 +1067,11 @@ cdef class TextReader:
         if self.parser_start >= self.parser.lines:
             raise StopIteration
 
-        columns = self._convert_column_data(rows)
+        try:
+            columns = self._convert_column_data(rows)
+        except BaseException:
+            self.conversion_error = True
+            raise
         if len(columns) > 0:
             rows_read = len(list(columns.values())[0])
             # trim
