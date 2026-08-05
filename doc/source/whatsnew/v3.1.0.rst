@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`ExtensionScalarOpsMixin` no longer overwrites operator methods already defined on a subclass, allowing custom and fallback operators to coexist (:issue:`50767`)
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
 - :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
