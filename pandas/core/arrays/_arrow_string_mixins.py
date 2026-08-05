@@ -475,73 +475,64 @@ class ArrowStringArrayMixin:
         result = result.cast(pa.int64())
         return self._convert_int_result(result)
 
-    def _str_partition(self, sep: str, expand: bool):
+    def _str_partition_expand(self, sep: str):
         """
-        Partition each string around the first occurrence of sep.
+        Split each string on the first occurrence of ``sep``.
 
-        Optimized implementation for expand=True using PyArrow compute functions.
-        For expand=False, falls back to element-wise processing.
+        Returns a ``list<string>`` array holding one three-element list per row
+        -- the part before the separator, the separator, and the part after --
+        which ``StringMethods._wrap_result`` expands into three columns. Rows
+        without ``sep`` get two empty strings, matching ``str.partition``.
         """
-        if not expand or pa_version_under21p0:
-            predicate = lambda val: val.partition(sep)
-            result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
-
-        from pandas import DataFrame
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
-        pa_array = self._pa_array
+        if not sep:
+            # pyarrow reports this as "Empty separator"; keep str.partition's
+            #  wording so every dtype raises the same way
+            raise ValueError("empty separator")
 
-        # Handle empty array case
-        if len(pa_array) == 0:
-            return DataFrame()
+        str_type = self._pa_array.type
+        chunks = [
+            self._partition_chunk(chunk, sep, str_type)
+            for chunk in self._pa_array.chunks
+        ]
+        return ArrowExtensionArray(pa.chunked_array(chunks, type=pa.list_(str_type)))
 
-        str_type = pa_array.type
+    @staticmethod
+    def _partition_chunk(chunk: pa.Array, sep: str, str_type: pa.DataType) -> pa.Array:
+        """
+        Build the ``list<string>`` rows for one chunk of :meth:`_str_partition_expand`.
 
-        # Split on first occurrence
-        split = pc.split_pattern(pa_array, sep, max_splits=1)
+        Working a chunk at a time keeps the concatenation below within the
+        offset width of ``str_type``, which matters for columns near the 2 GiB
+        limit of 32-bit ``string``.
+        """
+        # max_splits=1 gives [before] when sep is absent, else [before, after]
+        split = pc.split_pattern(chunk, sep, max_splits=1)
+        found = pc.fill_null(pc.equal(pc.list_value_length(split), 2), False)
+        found_np = np.asarray(found)
 
-        # Determine which rows found the separator
-        lengths = pc.list_value_length(split)
-        found = pc.greater(lengths, 1)
-
-        # Extract before part (always first element)
         before = pc.list_element(split, 0)
+        # flattening drops the rows that have no tail, so the tail of row i is
+        #  at position rank[i]; rows without one take a null and become ""
+        tails = pc.list_flatten(pc.list_slice(split, 1))
+        rank = np.cumsum(found_np) - 1
+        after = tails.take(pa.array(rank, mask=~found_np))
+        after = pc.fill_null(after, pa.scalar("", type=str_type))
+        middle = pc.if_else(
+            found, pa.scalar(sep, type=str_type), pa.scalar("", type=str_type)
+        )
 
-        # Extract after part (join remaining elements after separator)
-        after_list = pc.list_slice(split, 1)
-        if pa.types.is_large_string(str_type):
-            after_list = pc.cast(after_list, pa.list_(pa.string()))
-        after = pc.binary_join(after_list, "")
-        if pa.types.is_large_string(str_type):
-            after = pc.cast(after, pa.large_string())
-
-        # Create separator column (sep if found, empty string otherwise)
-        sep_scalar = pa.scalar(sep, type=str_type)
-        empty_scalar = pa.scalar("", type=str_type)
-        sep_col = pc.if_else(found, sep_scalar, empty_scalar)
-
-        # Combine into flat array then interleave
-        before_arr = before.combine_chunks()
-        sep_arr = sep_col.combine_chunks()
-        after_arr = after.combine_chunks()
-
-        n = len(before_arr)
-
-        # Interleave arrays: [before[0], sep[0], after[0], before[1], ...]
-        interleaved = pa.concat_arrays([before_arr, sep_arr, after_arr])
-
-        # Create interleave indices: [0, n, 2n, 1, n+1, 2n+1, ...]
-        # Using formula: indices[i] = (i // 3) + (i % 3) * n
-        all_idx = pa.arange(0, n * 3)
-        row_part = pc.divide(all_idx, 3)
-        col_part = pc.subtract(all_idx, pc.multiply(row_part, 3))
-        indices = pc.add(row_part, pc.multiply(col_part, n))
-        values = pc.take(interleaved, indices)
-
-        # Create list array with fixed size 3
-        offsets = pa.arange(0, n * 3 + 1, 3)
-        result = pa.ListArray.from_arrays(offsets, values)
-
-        # Return ArrowExtensionArray (result is list<string>, not string type)
-        return ArrowExtensionArray(result)
+        n = len(chunk)
+        # Interleave the three columns into [before[0], sep[0], after[0],
+        # before[1], ...]; taking from the concatenation is cheaper than
+        # building the rows one at a time.
+        values = pa.concat_arrays([before, middle, after])
+        indices = np.arange(3 * n, dtype=np.int64).reshape(3, n).T.reshape(-1)
+        values = values.take(pa.array(indices))
+        # int32 rather than int64 offsets, but built wide so that a chunk with
+        #  more than 2**31 / 3 rows raises instead of wrapping around
+        offsets = pa.array(np.arange(0, 3 * n + 1, 3, dtype=np.int64), type=pa.int32())
+        # a null string partitions to a null row, not to a row of nulls
+        mask = pc.is_null(before) if before.null_count else None
+        return pa.ListArray.from_arrays(offsets, values, mask=mask)

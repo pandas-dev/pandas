@@ -555,11 +555,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_partition(self, sep: str, expand: bool):
         if expand:
-            return ArrowStringArrayMixin._str_partition(self, sep, expand)
-        else:
-            # Use the object-based implementation for expand=False
-            # as it's faster for returning tuples
-            return ObjectStringArrayMixin._str_partition(self, sep, expand)
+            return ArrowStringArrayMixin._str_partition_expand(self, sep)
+        # expand=False wants tuples, which the object path produces directly
+        return ObjectStringArrayMixin._str_partition(self, sep, expand)
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
