@@ -2956,6 +2956,21 @@ def test_merge_how_left_right_key_dtype_symmetry():
     assert left_result2["key"].dtype == "float64"
 
 
+def test_merge_how_right_key_dtype_with_duplicate_keys():
+    # GH#56454
+    # Duplicate join keys still produce real (non-None) indexers even when
+    # every row matches. Right joins must keep the right frame's key dtype
+    # in that case too, not only when both indexers are None.
+    left = DataFrame({"key": Series([1, 1, 2], dtype="int64"), "a": [10, 11, 20]})
+    right = DataFrame({"key": Series([1.0, 2.0], dtype="float64"), "b": [100, 200]})
+
+    right_result = left.merge(right, on="key", how="right")
+    left_result = right.merge(left, on="key", how="left")
+
+    tm.assert_series_equal(right_result["key"], left_result["key"])
+    assert right_result["key"].dtype == "float64"
+
+
 def test_merge_how_right_key_dtype_with_unmatched_rows():
     # GH#56454
     # A right join keeps every right-frame row, so the shared key column

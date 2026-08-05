@@ -1287,22 +1287,37 @@ class _MergeOperation:
 
             take_left, take_right = None, None
 
-            # GH#56454 When every row already lines up 1:1 (both indexers
-            # are None, i.e. nothing needs reindexing/filling), a left join
-            # trivially keeps self.left's own key dtype since that's simply
-            # what's already in `result`. A right join should be symmetric
-            # and keep self.right's key dtype, but the shared join-key
-            # column is only ever physically retained from self.left
-            # upstream (see _get_merge_keys), so without this check the
-            # right frame's original dtype is silently lost even though
-            # there's no missing data requiring any real reconciliation.
-            no_reindex_needed = left_indexer is None and right_indexer is None
+            # GH#56454 A left join keeps self.left's key dtype when there is
+            # nothing to fill. A right join should be symmetric and keep
+            # self.right's, but the shared join-key column is only retained
+            # from self.left upstream (see _get_merge_keys). Indexers can
+            # still be non-None when join keys are duplicated even though
+            # every row matches, so gate on missing-data flags rather than
+            # indexer identity. The three use_right_key_dtype sites below
+            # (enter reconciliation, take right values, assign right dtype)
+            # must stay in lockstep.
+            if self.how == "right":
+                if left_has_missing is None:
+                    left_has_missing = (
+                        False
+                        if left_indexer is None
+                        else lib.has_sentinel(left_indexer, -1)
+                    )
+                if right_has_missing is None:
+                    right_has_missing = (
+                        False
+                        if right_indexer is None
+                        else lib.has_sentinel(right_indexer, -1)
+                    )
+                use_right_key_dtype = not left_has_missing and not right_has_missing
+            else:
+                use_right_key_dtype = False
 
             if name in result:
                 if (
                     left_indexer is not None
                     or right_indexer is not None
-                    or (self.how == "right" and no_reindex_needed)
+                    or use_right_key_dtype
                 ):
                     if name in self.left:
                         if left_has_missing is None:
@@ -1312,9 +1327,7 @@ class _MergeOperation:
                                 else lib.has_sentinel(left_indexer, -1)
                             )
 
-                        if left_has_missing or (
-                            self.how == "right" and no_reindex_needed
-                        ):
+                        if left_has_missing or use_right_key_dtype:
                             take_right = self.right_join_keys[i]
 
                             if result[name].dtype != self.left[name].dtype:
@@ -1369,7 +1382,7 @@ class _MergeOperation:
                 elif right_indexer is not None and (right_indexer == -1).all():
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     result_dtype = lvals.dtype
-                elif self.how == "right" and no_reindex_needed:
+                elif use_right_key_dtype:
                     key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     result_dtype = rvals.dtype
                 else:
