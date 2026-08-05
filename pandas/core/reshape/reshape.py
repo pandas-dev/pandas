@@ -207,6 +207,10 @@ class _Unstacker:
     def sorted_labels(self) -> list[np.ndarray]:
         indexer, to_sort = self._indexer_and_to_sort
         if self.sort:
+            # When the indexer is the identity permutation the codes are already
+            # in the right order — avoid the redundant O(N) take() copies.
+            if self._indexer_is_identity:
+                return list(to_sort)
             return [line.take(indexer) for line in to_sort]
         return to_sort
 

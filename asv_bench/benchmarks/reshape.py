@@ -145,6 +145,26 @@ class Unstack:
         self.df2.unstack()
 
 
+class UnstackCartesian:
+    """Series.unstack on a fully-populated Cartesian-product MultiIndex."""
+
+    params = [
+        [(5, 4), (100, 90), (200, 92), (10, 10_000), (10, 10, 10), (30, 30, 30)],
+    ]
+    param_names = ["shape"]
+
+    def setup(self, shape):
+        idx = MultiIndex.from_product(
+            [np.arange(n) for n in shape],
+            names=[f"x{i}" for i in range(len(shape))],
+        )
+        self._last_level = f"x{len(shape) - 1}"
+        self.s = pd.Series(np.random.rand(len(idx)), index=idx)
+
+    def time_unstack(self, shape):
+        self.s.unstack(self._last_level)
+
+
 class SparseIndex:
     def setup(self):
         NUM_ROWS = 1000
