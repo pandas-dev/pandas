@@ -3448,22 +3448,18 @@ class ArrowExtensionArray(
 
         if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
             try:
-                # A decimal aggregate can hold more digits than its declared
-                # type, and scattering carries that invalid state through
-                # silently rather than raising.
+                # scatter carries an out-of-precision decimal through silently
                 result_values.validate(full=True)
             except pa.ArrowInvalid:
-                # No Arrow type can hold the result; fall back to a wider one.
                 return None
 
         pa_result = pc.scatter(result_values, result_group_ids, max_index=ngroups - 1)
         if default_value.as_py() is not None and min_count == 0:
             if result_values.null_count == 0:
-                # Every null is a group with no rows, so fill them all
+                # every null is a group with no rows
                 pa_result = _safe_fill_null(pa_result, default_value)
             else:
-                # skipna=False left nulls that have to survive, so fill only the
-                # positions no group id scattered into
+                # keep the skipna=False nulls, fill only the empty groups
                 seen = pc.scatter(
                     pa.array(np.ones(len(result_values), dtype=bool)),
                     result_group_ids,
@@ -3484,10 +3480,9 @@ class ArrowExtensionArray(
         """
         Place group results into an output ordered by group id, using NumPy.
 
-        Only for pyarrow < 23, where ``pc.scatter`` cannot size its own output:
-        it has no ``max_index``, so the output is pinned to the number of
-        observed groups, and before pyarrow 20 the function does not exist at
-        all. Delete this method and its caller once the minimum pyarrow is 23.
+        Only for pyarrow < 23, whose ``pc.scatter`` has no ``max_index`` and so
+        cannot size its output by ``ngroups``. Delete this method and its caller
+        once the minimum pyarrow is 23.
         """
         output_type = result_values.type
         default_py = default_value.as_py()
