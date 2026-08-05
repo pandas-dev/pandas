@@ -1,8 +1,8 @@
 from collections import deque
 from datetime import (
+    UTC,
     date,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 from enum import (
@@ -864,7 +864,7 @@ class TestTimeSeriesArithmetic:
         # sort since input indexes are not equal
         expected = expected.sort_index()
 
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):

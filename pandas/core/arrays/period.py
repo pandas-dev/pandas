@@ -1488,9 +1488,9 @@ def dt64arr_to_periodarr(
         if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
-            # freq is always None for DatetimeArray inside a Series;
-            # data.dt.freq uses inferred_freq, which we are deprecating.
-            inferred_freq = data.dt.freq
+            # freq is always None for DatetimeArray inside a Series, so we
+            #  fall back to the inferred freq.
+            inferred_freq = data._values._inferred_freq_str
             if inferred_freq is not None:
                 warnings.warn(
                     "Constructing PeriodArray from a Series of datetime64 data "

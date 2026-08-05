@@ -17,6 +17,7 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
+from libc.math cimport nextafter
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
@@ -53,6 +54,8 @@ from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -982,11 +985,8 @@ def _binary_op_method_timedeltalike(op, name):
             other = (<_Timedelta>other)._as_creso(self._creso, round_ok=True)
 
         res = op(self._value, other._value)
-        if res == NPY_NAT:
-            # e.g. test_implementation_limits
-            # TODO: more generally could do an overflowcheck in op?
-            return NaT
-
+        # A res that lands on NPY_NAT is not NaT but is indistinguishable from
+        #  it; _timedelta_from_value_and_reso raises for it. (GH#66552)
         return _timedelta_from_value_and_reso(Timedelta, res, reso=self._creso)
 
     f.__name__ = name
@@ -1196,7 +1196,14 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
-    assert value != NPY_NAT
+    if value == NPY_NAT:
+        # NPY_NAT is INT64_MIN, so a computed value that lands on it is not NaT
+        #  but is indistinguishable from it: `isna` is False while the object
+        #  round-trips through a timedelta64 array as NaT. (GH#66551)
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds {npy_unit_to_attrname[reso]} timedelta: {value}"
+        )
+
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -1524,7 +1531,8 @@ cdef class _Timedelta(timedelta):
         Total seconds in the duration.
 
         This method calculates the total duration in seconds by combining
-        the days, seconds, and microseconds of the `Timedelta` object.
+        the days, seconds, microseconds, and nanoseconds of the `Timedelta`
+        object.
 
         See Also
         --------
@@ -1542,13 +1550,30 @@ cdef class _Timedelta(timedelta):
         60.0
         """
         # We need to override bc we overrode days/seconds/microseconds
-        # TODO: add nanos/1e9?
-        self._ensure_components()
-        return (
-            self._d * 86400
-            + self._h * 3600 + self._m * 60 + self._s
-            + (self._ms * 1000 + self._us) / 1_000_000
-        )
+        cdef:
+            int64_t pps = periods_per_second(self._creso)
+            # Python floor semantics: residual is non-negative, so a nonzero
+            # residual puts the true value above int_seconds at any sign.
+            # Reconstructing int_seconds from self._d * 86400 + ... instead
+            # would overflow int64 in the intermediate products near the
+            # boundaries of the s-reso range.
+            int64_t int_seconds = self._value // pps
+            int64_t residual = self._value % pps
+            double result
+        if residual == 0:
+            return <double>int_seconds
+        result = int_seconds + residual / <double>pps
+        # residual puts the true value strictly inside (int_seconds, int_seconds + 1),
+        # so guard against float rounding collapsing onto the boundary; otherwise
+        # bisect-style lookups treat us as exactly on a transition. Beyond 2**52
+        # seconds float64s are spaced >= 1 second apart, so every representable
+        # value sits on a boundary and nudging would only add error.
+        if -4_503_599_627_370_496 < int_seconds < 4_503_599_627_370_496:  # 2**52
+            if result == int_seconds + 1:
+                result = nextafter(result, <double>int_seconds)
+            elif result == int_seconds:
+                result = nextafter(result, <double>(int_seconds + 1))
+        return result
 
     @property
     def unit(self) -> str:
@@ -2703,6 +2728,12 @@ class Timedelta(_Timedelta):
                 # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
                 return NaT
 
+            # We want NumPy numeric scalars to behave like Python scalars
+            # post NEP 50
+            if isinstance(other, cnp.integer):
+                other = int(other)
+            if isinstance(other, cnp.floating):
+                other = float(other)
             return _timedelta_from_value_and_reso(
                 Timedelta,
                 <int64_t>(other * self._value),
@@ -2747,9 +2778,18 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
-            return Timedelta._from_value_and_reso(
-                <int64_t>(self._value/ other), self._creso
-            )
+
+            if is_integer_object(other):
+                # GH#66551 float64 carries only a 53-bit mantissa, so dividing
+                #  in floating point rounds quotients that int64 represents
+                #  exactly.  Python's // floors; truncate toward zero to match
+                #  numpy and the vectorized path.
+                value = self._value // other
+                if value < 0 and self._value % other:
+                    value += 1
+            else:
+                value = <int64_t>(self._value/ other)
+            return Timedelta._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
             if other.ndim == 0:

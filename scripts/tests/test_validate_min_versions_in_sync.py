@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from scripts.validate_min_versions_in_sync import (
+    get_operator_from,
     get_toml_map_from,
     get_versions_from_ci,
     get_yaml_map_from,
@@ -58,6 +59,11 @@ def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml) -> Non
     with open(expected_yaml, encoding="utf-8") as yaml_f:
         dummy_yaml_expected_file_1 = yaml_f.read()
     assert result_yaml_file == dummy_yaml_expected_file_1
+
+
+def test_get_operator_from_excluded_version() -> None:
+    result = get_operator_from("!=24.*")
+    assert result == "!="
 
 
 def test_get_versions_from_ci_parses_pixi_toml() -> None:

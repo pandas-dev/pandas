@@ -8,7 +8,10 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    iNaT,
+    timezones,
+)
 from pandas.compat import WASM
 from pandas.errors import (
     OutOfBoundsDatetime,
@@ -353,11 +356,13 @@ class TestTimedelta64ArithmeticUnsorted:
             td - dti
 
         result = dt - dti
-        expected = TimedeltaIndex(["0 days", "-1 days", "-2 days"], name="bar")
+        expected = TimedeltaIndex(
+            ["0 days", "-1 days", "-2 days"], name="bar", freq="-1D"
+        )
         tm.assert_index_equal(result, expected)
 
         result = dti - dt
-        expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar")
+        expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar", freq="D")
         tm.assert_index_equal(result, expected)
 
         result = tdi - td
@@ -776,6 +781,20 @@ class TestAddSubNaTMasking:
             ["7 seconds", NaT, "4 hours"]
         )
         tm.assert_index_equal(result, exp)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_tdi_sub_lands_on_nat_sentinel(self, unit, box_with_array):
+        # GH#66549 the difference fits in int64 but equals iNaT, so the result
+        #  used to come back as NaT instead of being reported as out of bounds
+        tdi = TimedeltaIndex(np.array([iNaT + 1], dtype=f"m8[{unit}]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            tdi - Timedelta(1, unit)
+
+        with pytest.raises(OverflowError, match=msg):
+            tdi + Timedelta(-1, unit)
 
 
 class TestTimedeltaArraylikeAddSubOps:

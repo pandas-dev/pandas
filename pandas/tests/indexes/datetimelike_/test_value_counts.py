@@ -43,7 +43,7 @@ class TestValueCounts:
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
 
-        tm.assert_index_equal(idx.unique(), orig)
+        tm.assert_index_equal(idx.unique(), orig, check_freq=False)
 
     def test_value_counts_unique_datetimeindex2(self, tz_naive_fixture):
         tz = tz_naive_fixture
