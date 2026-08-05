@@ -1766,7 +1766,7 @@ def test_validate_1d_input(dtype):
             PeriodIndex,
             {"freq": "Y"},
             marks=pytest.mark.filterwarnings(
-                "ignore:Passing integer-dtype data:pandas.errors.Pandas4Warning"
+                "ignore:Passing integer data:pandas.errors.Pandas4Warning"
             ),
         ),
     ],

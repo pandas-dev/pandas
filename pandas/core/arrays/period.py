@@ -47,6 +47,7 @@ from pandas._libs.tslibs.offsets import (
 )
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
+    INT_TO_PERIOD_DEPR_MSG,
     IncompatibleFrequency,
     Period,
     get_period_field_arr,
@@ -311,12 +312,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         elif arrdata.dtype.kind in "iu":
             warnings.warn(
-                "Passing integer-dtype data to PeriodArray/PeriodIndex is "
-                "deprecated. In a future version, integer data will be treated "
-                "as period ordinals instead of year values. To retain the "
-                "current behavior, use "
-                "PeriodIndex(data.astype(str), freq=...) or explicitly "
-                "construct Period objects.",
+                INT_TO_PERIOD_DEPR_MSG,
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )

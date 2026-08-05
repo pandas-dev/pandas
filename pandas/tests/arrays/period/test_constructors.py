@@ -131,11 +131,13 @@ def test_from_sequence_int_deprecation():
     arr = period_array(["1975", "1976"], dtype="period[D]")
 
     # During deprecation, integer inputs are still treated as year values
-    expected_years = pd.PeriodIndex(
-        [pd.Period(x, freq=arr.freq) for x in arr.asi8]
-    ).array
+    scalar_msg = "Passing an integer to Period is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=scalar_msg):
+        expected_years = pd.PeriodIndex(
+            [pd.Period(x, freq=arr.freq) for x in arr.asi8]
+        ).array
 
-    msg = "Passing integer-dtype data to PeriodArray/PeriodIndex is deprecated"
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -150,21 +152,23 @@ def test_from_sequence_int_deprecation():
     tm.assert_period_array_equal(result3, expected_years)
     tm.assert_period_array_equal(result5, expected_years)
 
-    # The object-dtype path also treats integers as year values, but is not
-    #  covered by the deprecation
-    result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
+    # The object-dtype path treats integers as year values too, and is
+    #  deprecated on the same timeline so the two stay in step
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
     tm.assert_period_array_equal(result4, expected_years)
 
 
 def test_from_sequence_integers_with_na_consistent():
     # GH#64227 an int is interpreted as a calendar year regardless of whether
     #  an NA is present; previously a None flipped ints to raw-ordinal values
-    msg = "Passing integer-dtype data to PeriodArray/PeriodIndex is deprecated"
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = PeriodArray._from_sequence([2000, 2001], dtype="period[D]")
     assert expected.tolist() == [pd.Period("2000", "D"), pd.Period("2001", "D")]
 
-    result = PeriodArray._from_sequence([2000, None], dtype="period[D]")
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence([2000, None], dtype="period[D]")
     tm.assert_period_array_equal(result[:1], expected[:1])
     assert result[1] is pd.NaT
 
@@ -182,10 +186,37 @@ def test_from_sequence_masked_arrow_integers_with_na(dtype):
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")
     values = pd.array([2000, None], dtype=dtype)
-    result = PeriodArray._from_sequence(values, dtype="period[D]")
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence(values, dtype="period[D]")
 
     expected = PeriodArray._from_sequence(
         [pd.Period("2000", "D"), None], dtype="period[D]"
+    )
+    tm.assert_period_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([2000, 2001], dtype=np.int64),
+        np.array([2000, 2001], dtype=np.uint32),
+        np.array([2000, 2001], dtype=object),
+        [2000, 2001],
+        pd.array([2000, 2001], dtype="Int64"),
+        pd.Series([2000, 2001]),
+        pd.Index([2000, 2001]),
+    ],
+)
+def test_int_deprecation_warns_once_all_dtypes(values):
+    # GH#64227 every integer input warns exactly once, whatever container or
+    #  integer dtype it arrives in
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence(values, dtype="period[D]")
+
+    expected = PeriodArray._from_sequence(
+        [pd.Period("2000", "D"), pd.Period("2001", "D")], dtype="period[D]"
     )
     tm.assert_period_array_equal(result, expected)
 

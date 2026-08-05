@@ -332,7 +332,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(PeriodIndex(list(vals)), idx)
 
         msg = "freq not specified and cannot be inferred"
-        depr_msg = "Passing integer-dtype data"
+        depr_msg = "Passing integer data"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             with pytest.raises(ValueError, match=msg):
                 PeriodIndex(idx.asi8)
@@ -399,7 +399,7 @@ class TestPeriodIndex:
         #  values used to silently wrap instead of raising like Period(int)
         arr = np.array([2**32 + 1985], dtype=np.int64)
         msg = "Out of bounds year: 4294969281"
-        depr_msg = "Passing integer-dtype data"
+        depr_msg = "Passing integer data"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             with pytest.raises(OutOfBoundsDatetime, match=msg):
                 PeriodIndex(arr, freq="Y")

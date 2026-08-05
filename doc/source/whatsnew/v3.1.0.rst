@@ -179,7 +179,7 @@ Deprecations
   :meth:`DataFrame.var`, :meth:`DataFrame.sem`, :meth:`DataFrame.sum`,
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
-- Deprecated passing integer-dtype data to :class:`PeriodIndex`, :func:`period_array`, and :meth:`PeriodArray._from_sequence`. In a future version, integers will be treated as period ordinals instead of year values. Use strings instead, e.g. ``PeriodIndex(["2020", "2021"], freq="Y")`` (:issue:`64227`)
+- Deprecated passing integers to :class:`Period`, :class:`PeriodIndex`, :func:`period_range`, :func:`period_array`, and :meth:`PeriodArray._from_sequence`. In a future version, integers will be treated as period ordinals instead of calendar years. To keep the current behavior, pass strings, e.g. ``PeriodIndex(["2020", "2021"], freq="Y")``; to get the future behavior now, use ``Period(ordinal=...)`` or :meth:`PeriodIndex.from_ordinals` (:issue:`64227`)
 - Deprecated ``inplace`` keyword for :meth:`DataFrame.rename` and :meth:`DataFrame.drop`. This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
 
 .. ---------------------------------------------------------------------------
