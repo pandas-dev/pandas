@@ -6,7 +6,7 @@ from io import StringIO
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.util._decorators import set_module
@@ -90,9 +90,7 @@ def read_clipboard(
 
     # Try to decode (if needed, as "text" might already be a string here).
     try:
-        text = text.decode(
-            kwargs.get("encoding") or _global_config["display"]["encoding"]
-        )
+        text = text.decode(kwargs.get("encoding") or config["display"]["encoding"])
     except AttributeError:
         pass
 

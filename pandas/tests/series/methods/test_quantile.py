@@ -35,7 +35,7 @@ class TestSeriesQuantile:
         assert q == pd.to_timedelta("24:00:00")
 
         # GH7661
-        result = Series([np.timedelta64("NaT")]).sum()
+        result = Series([np.timedelta64("NaT", "ns")]).sum()
         assert result == pd.Timedelta(0)
 
         msg = "percentiles should all be in the interval \\[0, 1\\]"
@@ -102,6 +102,13 @@ class TestSeriesQuantile:
         q = Series([1, 3, 4]).quantile(0.5, interpolation="higher")
         assert q == np.percentile(np.array([1, 3, 4]), 50)
         assert is_integer(q)
+
+    def test_quantile_object_dtype_preserves_numpy_scalars(self):
+        # GH#64266
+        ser = Series([np.int8(1), np.int8(3)], dtype=object)
+        result = ser.quantile(0.5, interpolation="lower")
+        assert result == 1
+        assert type(result) is np.int8
 
     def test_quantile_nan(self):
         # GH 13098

@@ -78,7 +78,7 @@ are homogeneously-typed.
 .. note::
 
    :func:`~pandas.pivot` can only handle unique rows specified by ``index`` and ``columns``.
-   If you data contains duplicates, use :func:`~pandas.pivot_table`.
+   If your data contains duplicates, use :func:`~pandas.pivot_table`.
 
 
 .. _reshaping.pivot:
@@ -236,9 +236,12 @@ the level numbers:
 
 .. image:: ../_static/reshaping_unstack_0.png
 
-Notice that the :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods implicitly sort the index
-levels involved. Hence a call to :meth:`~DataFrame.stack` and then :meth:`~DataFrame.unstack`, or vice versa,
-will result in a **sorted** copy of the original :class:`DataFrame` or :class:`Series`:
+Notice that the :meth:`~DataFrame.unstack` method implicitly sorts the index levels involved,
+while :meth:`~DataFrame.stack` preserves the order of the stacked column level. Because
+:meth:`~DataFrame.unstack` sorts, a call to :meth:`~DataFrame.stack` and then
+:meth:`~DataFrame.unstack`, or vice versa, will result in a **sorted** copy of the original
+:class:`DataFrame` or :class:`Series`. Here "sorted" is with respect to the order of the
+:attr:`MultiIndex.levels`, which for a typical :class:`MultiIndex` matches sorting by value:
 
 .. ipython:: python
 

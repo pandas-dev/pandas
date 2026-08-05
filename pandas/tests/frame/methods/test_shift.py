@@ -568,6 +568,18 @@ class TestDataFrameShift:
         with pytest.raises(ValueError, match=msg):
             ps.shift(freq="M")
 
+    def test_shift_freq_infer_after_float_to_datetime(self):
+        # GH#40799 - shift(freq="infer") should work on DatetimeIndex
+        # created from float seconds via to_datetime(unit="s")
+        idx = pd.to_datetime(
+            np.array([f"{x:0.3f}" for x in np.arange(0, 10.1, 0.1)], dtype="float64"),
+            unit="s",
+        )
+        ser = Series(range(len(idx)), index=idx)
+        result = ser.shift(1, freq="infer")
+        expected = ser.shift(1, freq="100ms")
+        tm.assert_series_equal(result, expected)
+
     def test_datetime_frame_shift_with_freq_error(
         self, datetime_frame, frame_or_series
     ):

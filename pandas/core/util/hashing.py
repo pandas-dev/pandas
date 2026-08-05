@@ -99,7 +99,10 @@ def hash_pandas_object(
     obj : Index, Series, or DataFrame
         The pandas object to hash.
     index : bool, default True
-        Include the index in the hash (if Series/DataFrame).
+        Include the index in the hash (if Series/DataFrame). When True,
+        the hash for each row depends on both the value and the index label,
+        so the same value at a different index position will produce a
+        different hash.
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -124,6 +127,36 @@ def hash_pandas_object(
     0    14639053686158035780
     1     3869563279212530728
     2      393322362522515241
+    dtype: uint64
+
+    By default, the hash includes the index, so the same value at a
+    different index position will produce a different hash:
+
+    >>> df1 = pd.DataFrame({"a": ["a", "b", "c"]})
+    >>> df2 = pd.DataFrame({"a": ["b", "a", "c"]})
+    >>> pd.util.hash_pandas_object(df1)
+    0     4578374827886788867
+    1    17338122309987883691
+    2     5473791562133574857
+    dtype: uint64
+    >>> pd.util.hash_pandas_object(df2)
+    0     8168238220198793318
+    1    14044658390916132862
+    2     5473791562133574857
+    dtype: uint64
+
+    Set ``index=False`` to hash only the values. In this case, the same
+    value always produces the same hash regardless of its position:
+
+    >>> pd.util.hash_pandas_object(df1, index=False)
+    0     5694802365760992243
+    1     2797248057711234736
+    2    18202460376300699891
+    dtype: uint64
+    >>> pd.util.hash_pandas_object(df2, index=False)
+    0     2797248057711234736
+    1     5694802365760992243
+    2    18202460376300699891
     dtype: uint64
     """
     from pandas import Series

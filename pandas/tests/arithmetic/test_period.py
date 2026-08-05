@@ -209,11 +209,12 @@ class TestPeriodIndexComparisons:
         per = idx[10]
 
         result = idx < per
-        exp = idx.values < idx.values[10]
+        idx_vals = np.asarray(idx, dtype=object)
+        exp = idx_vals < idx_vals[10]
         tm.assert_numpy_array_equal(result, exp)
 
         # Tests Period.__richcmp__ against ndarray[object, ndim=2]
-        result = idx.values.reshape(10, 2) < per
+        result = idx_vals.reshape(10, 2) < per
         tm.assert_numpy_array_equal(result, exp.reshape(10, 2))
 
         # Tests Period.__richcmp__ against ndarray[object, ndim=0]
@@ -1128,7 +1129,7 @@ class TestPeriodIndexArithmetic:
     def test_parr_add_sub_td64_nat(self, box_with_array, transpose):
         # GH#23320 special handling for timedelta64("NaT")
         pi = period_range("1994-04-01", periods=9, freq="19D")
-        other = np.timedelta64("NaT")
+        other = np.timedelta64("NaT", "ns")
         expected = PeriodIndex(["NaT"] * 9, freq="19D")
 
         obj = tm.box_expected(pi, box_with_array, transpose=transpose)
@@ -1228,7 +1229,6 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
-
         msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
@@ -1239,16 +1239,9 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             pd.Index([ts]) + arr
 
-        if box_with_array is pd.DataFrame:
-            msg = "cannot add PeriodArray and DatetimeArray"
-        else:
-            msg = r"unsupported operand type\(s\) for \+: 'Period' and 'DatetimeArray"
+        msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + pd.DataFrame([ts])
-        if box_with_array is pd.DataFrame:
-            msg = "cannot add PeriodArray and DatetimeArray"
-        else:
-            msg = r"unsupported operand type\(s\) for \+: 'DatetimeArray' and 'Period'"
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame([ts]) + arr
 

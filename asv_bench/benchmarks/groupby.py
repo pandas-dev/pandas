@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas import (
     NA,
+    ArrowDtype,
     Categorical,
     DataFrame,
     Index,
@@ -263,13 +264,32 @@ class Int64:
         self.df.groupby(self.cols).max()
 
 
+class SortHighCardinality:
+    # with many unique keys, sorting the uniques (safe_sort) dominates
+    # the sort=True groupby
+    param_names = ["sort"]
+    params = [True, False]
+
+    def setup(self, sort):
+        N = 10**6
+        self.df = DataFrame(
+            {
+                "key": np.random.randint(0, 2 * N, size=N),
+                "value": np.random.randn(N),
+            }
+        )
+
+    def time_sum(self, sort):
+        self.df.groupby("key", sort=sort)["value"].sum()
+
+
 class CountMultiDtype:
     def setup_cache(self):
         n = 10000
         offsets = np.random.randint(n, size=n).astype("timedelta64[ns]")
         dates = np.datetime64("now") + offsets
         dates[np.random.rand(n) > 0.5] = np.datetime64("nat")
-        offsets[np.random.rand(n) > 0.5] = np.timedelta64("nat")
+        offsets[np.random.rand(n) > 0.5] = np.timedelta64("NaT", "ns")
         value2 = np.random.randn(n)
         value2[np.random.rand(n) > 0.5] = np.nan
         obj = np.random.choice(list("ab"), size=n).astype(object)
@@ -1150,6 +1170,56 @@ class Resample:
         self.df_multiindex.groupby(level="groups").resample(
             "10s", level="timedeltas"
         ).mean()
+
+
+class GroupByAggregateArrowDtypes:
+    param_names = ["dtype", "method"]
+    params = [
+        [
+            "int32[pyarrow]",
+            "int64[pyarrow]",
+            "float32[pyarrow]",
+            "float64[pyarrow]",
+            "decimal128",
+            "string[pyarrow]",
+        ],
+        ["sum", "prod", "min", "max", "mean", "std", "var", "count"],
+    ]
+
+    # String types only support min, max, count
+    _string_unsupported = {"sum", "prod", "mean", "std", "var"}
+
+    def setup(self, dtype, method):
+        import pyarrow as pa
+
+        from pandas.api.types import is_string_dtype
+
+        if dtype == "string[pyarrow]" and method in self._string_unsupported:
+            raise NotImplementedError("skipped")
+
+        size = 100_000
+        ngroups = 1000
+
+        if dtype in ("int32[pyarrow]", "int64[pyarrow]"):
+            data = np.random.randint(0, 10_000, size)
+        elif dtype in ("float32[pyarrow]", "float64[pyarrow]"):
+            data = np.random.randn(size)
+        elif dtype == "decimal128":
+            from decimal import Decimal
+
+            data = [Decimal(str(round(x, 3))) for x in np.random.randn(size)]
+            dtype = ArrowDtype(pa.decimal128(10, 3))
+        elif dtype == "string[pyarrow]":
+            data = np.random.choice(list(ascii_letters), size)
+
+        ser = Series(data, dtype=dtype)
+        if not is_string_dtype(ser.dtype):
+            ser.iloc[::10] = NA
+        self.ser = ser
+        self.key = np.random.randint(0, ngroups, size)
+
+    def time_series_agg(self, dtype, method):
+        self.ser.groupby(self.key).agg(method)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

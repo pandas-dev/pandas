@@ -47,7 +47,7 @@ class TestLogicalOps(BaseOpsUtil):
         tm.assert_extension_array_equal(a, result)
 
     @pytest.mark.parametrize(
-        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4)]
+        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4, "ns")]
     )
     def test_eq_mismatched_type(self, other):
         # GH-44499

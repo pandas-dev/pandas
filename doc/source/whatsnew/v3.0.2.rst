@@ -33,7 +33,7 @@ Fixed regressions
 .. _whatsnew_302.bug_fixes:
 
 Bug fixes
-^^^^^^^^^
+~~~~~~~~~
 - Fixed a bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
 - Fixed a bug in :meth:`Series.var` computing the variance of complex numbers incorrectly (:issue:`62421`)
 - Fixed a bug in :meth:`~DataFrame.to_hdf` with string columns raising an error when using compression (:issue:`64180`)
@@ -49,4 +49,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v3.0.1..v3.0.2|HEAD
+.. contributors:: v3.0.1..v3.0.2

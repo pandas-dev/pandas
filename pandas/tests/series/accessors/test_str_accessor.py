@@ -19,6 +19,7 @@ class TestStrAccessor:
         with pytest.raises(AttributeError, match=msg):
             ser.str.repeat(2)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_str_accessor_updates_on_inplace(self):
         ser = Series(list("abc"))
         return_value = ser.drop([0], inplace=True)

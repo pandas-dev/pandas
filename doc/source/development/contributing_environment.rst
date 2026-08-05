@@ -12,9 +12,6 @@ changes, you can skip to :ref:`contributing to the documentation <contributing_d
 creating the development environment you won't be able to build the documentation
 locally before pushing your changes. It's recommended to also install the :ref:`pre-commit hooks <contributing.pre-commit>`.
 
-.. toctree::
-    :maxdepth: 2
-    :hidden:
 
 
 Step 1: install a C compiler
@@ -32,6 +29,10 @@ You will need `Build Tools for Visual Studio 2026
    If you encounter an error indicating ``cl.exe``,
    reopen the installer and also select the optional component
    **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
+   If that does not resolve the issue, try installing
+   **MSVC v143 - VS 2022 C++ x64/x86 build tools** instead.
+   Note that Build Tools for Visual Studio 2022 may also be
+   distributed as Visual Studio Build Tools 2026.
 
 Alternatively, you can install the necessary components on the commandline using
 `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
@@ -126,7 +127,7 @@ Consult the `docs <https://github.com/pyenv/pyenv>`_ for setting up pyenv.
 .. code-block:: bash
 
    # Create a virtual environment
-   # Use an ENV_DIR of your choice. We'll use ~/Users/<yourname>/.pyenv/versions/pandas-dev
+   # Use an ENV_DIR of your choice. We'll use ~/.pyenv/versions/pandas-dev
    pyenv virtualenv 3.11 pandas-dev
 
    # Activate the virtualenv

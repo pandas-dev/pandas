@@ -404,6 +404,10 @@ IgnoreRaise: TypeAlias = Literal["ignore", "raise"]
 # Windowing rank methods
 WindowingRankType: TypeAlias = Literal["average", "min", "max"]
 
+# rank tie-breaking methods (Series.rank / DataFrame.rank / GroupBy.rank)
+RankMethod: TypeAlias = Literal["average", "min", "max", "first", "dense"]
+RankNaOption: TypeAlias = Literal["keep", "top", "bottom"]
+
 # read_csv engines
 CSVEngine: TypeAlias = Literal["c", "python", "pyarrow", "python-fwf"]
 

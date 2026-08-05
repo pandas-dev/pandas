@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import CategoricalIndex
 import pandas._testing as tm
 
@@ -38,6 +39,18 @@ class TestFillNA:
         assert result._ndarray is not cat._ndarray
         assert result._ndarray.base is None
         assert not tm.shares_memory(result, cat)
+
+    def test_fillna_tuple_category(self):
+        # GH#37681 fillna with a tuple that is a valid category
+        ci = CategoricalIndex([(0, 1), (1, 2), pd.NA])
+        result = ci.fillna((0, 1))
+        expected = CategoricalIndex([(0, 1), (1, 2), (0, 1)])
+        tm.assert_index_equal(result, expected)
+
+        # tuple not in categories -> casts to object, same as scalar behavior
+        result = ci.fillna((9, 9))
+        expected = pd.Index([(0, 1), (1, 2), (9, 9)], tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
 
     def test_fillna_validates_with_no_nas(self):
         # We validate the fill value even if fillna is a no-op

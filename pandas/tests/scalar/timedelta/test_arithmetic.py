@@ -11,6 +11,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import PY313
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -196,7 +197,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_sub_td64_nat(self):
         td = Timedelta(10, unit="D")
-        td_nat = np.timedelta64("NaT")
+        td_nat = np.timedelta64("NaT", "ns")
 
         result = td - td_nat
         assert result is NaT
@@ -256,7 +257,7 @@ class TestTimedeltaAdditionSubtraction:
         result = NaT - td
         assert result is NaT
 
-        result = np.datetime64("NaT") - td
+        result = np.datetime64("NaT", "ns") - td
         assert result is NaT
 
     def test_td_rsub_offset(self):
@@ -374,9 +375,7 @@ class TestTimedeltaMultiplicationDivision:
     # ---------------------------------------------------------------
     # Timedelta.__mul__, __rmul__
 
-    @pytest.mark.parametrize(
-        "td_nat", [NaT, np.timedelta64("NaT", "ns"), np.timedelta64("NaT")]
-    )
+    @pytest.mark.parametrize("td_nat", [NaT, np.timedelta64("NaT", "ns")])
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
     def test_td_mul_nat(self, op, td_nat):
         # GH#19819
@@ -423,6 +422,34 @@ class TestTimedeltaMultiplicationDivision:
         with pytest.raises(TypeError, match=msg):
             # invalid multiply with another timedelta
             op(td, td)
+
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.int32, np.int8])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_integer_overflow(self, op, dtype):
+        # GH#66551 numpy integer scalars used to keep the multiply in the
+        #  operand's own dtype, so an out-of-bounds product wrapped silently
+        #  instead of raising the way a Python int does.
+        td = Timedelta(2**62, unit="ns")
+
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            op(td, dtype(4))
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_float_precision(self, op, dtype):
+        # GH#66551 a float32 multiplier used to drag the product down to
+        #  float32 precision, losing 16 seconds here.
+        td = Timedelta(10**18, unit="ns")
+
+        result = op(td, dtype(1.0))
+        assert result == td
 
     def test_td_mul_numeric_ndarray(self):
         td = Timedelta("1 day")
@@ -509,6 +536,31 @@ class TestTimedeltaMultiplicationDivision:
         assert result == Timedelta(days=2)
 
     @pytest.mark.parametrize(
+        "value, divisor, expected",
+        [
+            (Timedelta.min._value, 1, Timedelta.min._value),
+            (Timedelta.max._value, 1, Timedelta.max._value),
+            (Timedelta.min._value, -1, Timedelta.max._value),
+            (2**53 + 1, 1, 2**53 + 1),
+            # truncation toward zero, matching numpy
+            (36028797018963967, 2, 18014398509481983),
+            (-36028797018963967, 2, -18014398509481983),
+            (36028797018963967, -2, -18014398509481983),
+        ],
+    )
+    def test_td_div_integer_exact(self, value, divisor, expected):
+        # GH#66551 the quotient was computed in float64, whose 53-bit mantissa
+        #  rounds values that int64 holds exactly, so dividing by 1 gave NaT at
+        #  Timedelta.min and raised OverflowError at Timedelta.max.
+        td = Timedelta(value, unit="ns")
+
+        result = td / divisor
+        assert result._value == expected
+
+        # the vectorized path was already exact; the scalar disagreed with it
+        assert (pd.array([td]) / divisor)[0]._value == expected
+
+    @pytest.mark.parametrize(
         "nan",
         [
             np.nan,
@@ -566,12 +618,12 @@ class TestTimedeltaMultiplicationDivision:
         result = None / td
         assert np.isnan(result)
 
-        result = np.timedelta64("NaT") / td
+        result = np.timedelta64("NaT", "ns") / td
         assert np.isnan(result)
 
         msg = r"unsupported operand type\(s\) for /: 'numpy.datetime64' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
-            np.datetime64("NaT") / td
+            np.datetime64("NaT", "ns") / td
 
         msg = r"unsupported operand type\(s\) for /: 'float' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
@@ -625,7 +677,7 @@ class TestTimedeltaMultiplicationDivision:
 
         assert td // np.nan is NaT
         assert np.isnan(td // NaT)
-        assert np.isnan(td // np.timedelta64("NaT"))
+        assert np.isnan(td // np.timedelta64("NaT", "ns"))
 
     def test_td_floordiv_offsets(self):
         # GH#19738
@@ -637,14 +689,18 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
 
-        msg = "|".join(
-            [
-                r"Invalid dtype datetime64\[D\] for __floordiv__",
-                "'dtype' is an invalid keyword argument for this function",
-                "this function got an unexpected keyword argument 'dtype'",
-                r"ufunc '?floor_divide'? cannot use operands with types",
-            ]
-        )
+        # CPython 3.13 reworded the invalid-keyword error raised by the
+        # np.datetime64 constructor (boundary confirmed on CI: 3.12 old,
+        # 3.13 new; independent of NumPy version).
+        if PY313:
+            msg = "this function got an unexpected keyword argument 'dtype'"
+        else:
+            msg = "|".join(
+                [
+                    "'dtype' is an invalid keyword argument for this function",
+                    r"ufunc '?floor_divide'? cannot use operands with types",
+                ]
+            )
         with pytest.raises(TypeError, match=msg):
             td // np.datetime64("2016-01-01", dtype="datetime64[us]")
 
@@ -671,7 +727,9 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
-        res = (10 * td) // np.array([scalar.to_timedelta64(), np.timedelta64("NaT")])
+        res = (10 * td) // np.array(
+            [scalar.to_timedelta64(), np.timedelta64("NaT", "ns")]
+        )
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
 
@@ -705,7 +763,7 @@ class TestTimedeltaMultiplicationDivision:
         td = Timedelta(hours=3, minutes=3)
 
         assert np.isnan(td.__rfloordiv__(NaT))
-        assert np.isnan(td.__rfloordiv__(np.timedelta64("NaT")))
+        assert np.isnan(td.__rfloordiv__(np.timedelta64("NaT", "ns")))
 
     def test_td_rfloordiv_offsets(self):
         # GH#19738
@@ -757,7 +815,7 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
-        arr = np.array([(10 * scalar).to_timedelta64(), np.timedelta64("NaT")])
+        arr = np.array([(10 * scalar).to_timedelta64(), np.timedelta64("NaT", "ns")])
         res = td.__rfloordiv__(arr)
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
@@ -981,7 +1039,7 @@ class TestTimedeltaMultiplicationDivision:
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         arr = np.array(arr)
-        msg = "unsupported operand type|cannot use operands with types"
+        msg = "|".join(["unsupported operand type", "cannot use operands with types"])
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
@@ -1235,17 +1293,70 @@ def test_ops_str_deprecated(box):
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             td // item
     else:
-        msg = "|".join(
+        # true division dispatches to NumPy; older NumPy raised via the ufunc
+        div_msg = "|".join(
             [
-                "ufunc 'divide' cannot use operands",
-                "Invalid dtype object for __floordiv__",
-                r"unsupported operand type\(s\) for /: 'int' and 'str'",
                 r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
+                "ufunc 'divide' cannot use operands",  # older NumPy
             ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=div_msg):
             td / item
-        with pytest.raises(TypeError, match=msg):
+        # floor division (either operand order) raises on the object dtype
+        floordiv_msg = "|".join(
+            [
+                "Invalid dtype object for __floordiv__",
+                r"unsupported operand type\(s\) for /: 'int' and 'str'",  # older NumPy
+            ]
+        )
+        with pytest.raises(TypeError, match=floordiv_msg):
             item // td
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=floordiv_msg):
             td // item
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("factor", [-(2**63), float(-(2**63))])
+def test_td_mul_lands_on_nat_sentinel(unit, factor):
+    # GH#66551 the result is iNaT, which is not NaT but is indistinguishable
+    #  from it once stored, so it has to raise rather than be constructed.
+    #  The guard used to be a bare `assert`, which `python -O` strips.
+    td = Timedelta(1, unit).as_unit(unit)
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_td_add_sub_lands_on_nat_sentinel(unit):
+    # GH#66552 stepping one unit past Timedelta.min lands on iNaT, which is not
+    #  NaT but is indistinguishable from it once stored, so it has to raise
+    #  rather than come back as NaT.
+    td_min = Timedelta(np.timedelta64(-(2**63) + 1, unit))
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min - Timedelta(1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + Timedelta(-1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(-1, unit) + td_min
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + np.timedelta64(-1, unit)
+
+
+@pytest.mark.parametrize("op", [operator.mul, operator.truediv])
+def test_td_float_op_rounds_onto_nat_sentinel(op):
+    # GH#66551 Timedelta.min is iNaT + 1, which float64 rounds down onto iNaT
+    msg = f"Out of bounds nanosecond timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        op(Timedelta.min, 1.0)

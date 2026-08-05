@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import np_long
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -70,7 +71,9 @@ class TestDatetimeIndex:
 
     def assert_index_parameters(self, index):
         assert index.freq == "40960ns"
-        assert index.inferred_freq == "40960ns"
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400
@@ -141,3 +144,15 @@ class TestDatetimeIndex:
 
         with pytest.raises(ValueError, match=msg):
             date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+
+    @pytest.mark.parametrize("pa_type", ["date32", "date64"])
+    def test_get_indexer_arrow_date_types(self, pa_type):
+        # GH#62051 - should not raise AttributeError
+        pa = pytest.importorskip("pyarrow")
+        from pandas import ArrowDtype
+
+        dti = DatetimeIndex(["2017-01-01", "2018-01-01"])
+        other = Index(dti, dtype=ArrowDtype(getattr(pa, pa_type)()))
+        result = dti.get_indexer(other)
+        expected = np.array([-1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)

@@ -3,9 +3,9 @@ test with the TimeGrouper / grouping with datetimes
 """
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 
 import numpy as np
@@ -390,7 +390,7 @@ class TestGroupBy:
         expected = (
             df.groupby("user_id")["whole_cost"]
             .resample(freq)
-            .sum(min_count=1)  # XXX
+            .sum(min_count=1)  # TODO: can we drop min_count=1 + dropna() below?
             .dropna()
             .reorder_levels(["date", "user_id"])
             .sort_index()
@@ -772,7 +772,7 @@ class TestGroupBy:
     def test_timezone_info(self):
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
-        utc = timezone.utc
+        utc = UTC
         df = DataFrame({"a": [1], "b": [datetime.now(utc)]})
         assert df["b"][0].tzinfo == utc
         df = DataFrame({"a": [1, 2, 3]})
@@ -889,7 +889,7 @@ class TestGroupBy:
         dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date", unit=unit)
         mi = MultiIndex.from_arrays([dti, ["foo"] * len(dti)])
         expected = Series([3, 0, 0, 0, 0, 0, 2], index=mi, name="Quantity")
-        tm.assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected, check_freq=False)
 
     def test_groupby_apply_timegrouper_with_nat_scalar_returns(
         self, groupby_with_truncated_bingrouper
@@ -958,6 +958,17 @@ class TestGroupBy:
         )
         expected_df = gb[["Quantity"]].aggregate("mean")
         tm.assert_frame_equal(result_df, expected_df)
+
+    def test_groupby_all_nat_timegrouper(self):
+        # GH#43486
+        df = DataFrame({"date": [pd.NaT, pd.NaT], "value": [1, 2]})
+        gb = df.groupby(Grouper(freq="ME", key="date"))
+        result = gb.sum()
+        expected = DataFrame(
+            {"value": np.array([], dtype="int64")},
+            index=DatetimeIndex([], dtype="datetime64[s]", name="date"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no("pyarrow")
     def test_pyarrow_index_retention(self):

@@ -3,6 +3,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas import (
@@ -34,6 +35,28 @@ class TestPeriodArithmetic:
             per + Timedelta(1)
         with pytest.raises(OverflowError, match=msg):
             per + offsets.Nano(1)
+
+    def test_add_sub_nat_sentinel_raises(self):
+        # GH#66552: an ordinal that lands exactly on the NaT sentinel is not
+        #  NaT, but was rendered as NaT instead of raising like the step one
+        #  further out already does
+        msg = "Period ordinal is out of bounds"
+        per = Timestamp.min.to_period("ns")
+
+        with pytest.raises(OverflowError, match=msg):
+            per - 1
+        with pytest.raises(OverflowError, match=msg):
+            per - Timedelta(1)
+        with pytest.raises(OverflowError, match=msg):
+            per + offsets.Nano(-1)
+
+        # non-tick offsets take a separate branch
+        per = Period(ordinal=iNaT + 1, freq="M")
+
+        with pytest.raises(OverflowError, match=msg):
+            per - 1
+        with pytest.raises(OverflowError, match=msg):
+            per + offsets.MonthEnd(-1)
 
     def test_period_add_integer(self):
         per1 = Period(freq="D", year=2008, month=1, day=1)
@@ -131,7 +154,9 @@ class TestPeriodArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
+                msg = "|".join(
+                    ["Input has different freq", "Input cannot be converted to Period"]
+                )
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     per + off
                 with pytest.raises(IncompatibleFrequency, match=msg):

@@ -3,10 +3,32 @@
 {{ header }}
 
 *******************
-Community tutorials
+Tutorials and Books
 *******************
 
-This is a guide to many pandas tutorials by the community, geared mainly for new users.
+This is a guide to many pandas tutorials and books by the community, geared mainly for new users.
+
+Pandas Workout by Reuven Lerner
+-------------------------------
+
+https://www.manning.com/books/pandas-workout
+
+This book provides 200 exercises with pandas. From the description:
+
+   Pandas Workout hones your pandas skills to a professional-level through two hundred
+   exercises, each designed to strengthen your pandas skills. You’ll test your abilities
+   against common pandas challenges such as importing and exporting, data cleaning,
+   visualization, and performance optimization. Each exercise utilizes a real-world
+   scenario based on real-world data, from tracking the parking tickets in New York City,
+   to working out which country makes the best wines. You’ll soon find your pandas skills
+   becoming second nature—no more trips to StackOverflow for what is now a natural part
+   of your skillset.
+
+Bamboo Weekly by Reuven Lerner
+------------------------------
+
+`Bamboo Weekly <https://www.bambooweekly.com>`_ is a mailing list that provides weekly,
+hands on data analysis exercises to practice using pandas.
 
 pandas cookbook by Julia Evans
 ------------------------------
@@ -17,19 +39,6 @@ are examples with real-world data, and all the bugs and weirdness that
 entails.
 For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
-
-pandas workshop by Stefanie Molin
----------------------------------
-
-An introductory workshop by `Stefanie Molin <https://github.com/stefmolin>`_
-designed to quickly get you up to speed with pandas using real-world datasets.
-It covers getting started with pandas, data wrangling, and data visualization
-(with some exposure to matplotlib and seaborn). The
-`pandas-workshop GitHub repository <https://github.com/stefmolin/pandas-workshop>`_
-features detailed environment setup instructions (including a Binder environment),
-slides and notebooks for following along, and exercises to practice the concepts.
-There is also a lab with new exercises on a dataset not covered in the workshop for
-additional practice.
 
 Learn pandas by Hernan Rojas
 ----------------------------
@@ -70,11 +79,6 @@ The source may be found in the GitHub repository
 * `Visualization <https://tomaugspurger.github.io/modern-6-visualization.html>`_
 * `Timeseries <https://tomaugspurger.github.io/modern-7-timeseries.html>`_
 
-Excel charts with pandas, vincent and xlsxwriter
-------------------------------------------------
-
-*  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
-
 Joyful pandas
 -------------
 
@@ -88,12 +92,6 @@ All the datasets and related materials can be found in the GitHub repository
 Video tutorials
 ---------------
 
-* `Pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_
-  (2015) (2:24)
-  `GitHub repo <https://github.com/brandon-rhodes/pycon-pandas-tutorial>`__
-* `Introduction Into Pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_
-  (2016) (1:28)
-  `GitHub repo <https://github.com/chendaniely/2016-pydata-carolinas-pandas>`__
 * `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
   (2016) (1:26)
   `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
@@ -111,10 +109,6 @@ Various tutorials
 -----------------
 
 * `Wes McKinney's (pandas BDFL) blog <https://wesmckinney.com/archives.html>`_
-* `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
-* `Statistical Data Analysis in Python, tutorial by Christopher Fonnesbeck from SciPy 2013 <https://github.com/fonnesbeck/statistical-analysis-python-tutorial>`_
-* `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
-* `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
 * `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
 * `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1/>`_
 * `430+ Searchable Pandas recipes by Isshin Inada <https://skytowner.com/explore/pandas_recipes_reference>`_

@@ -147,24 +147,23 @@ class TestSliceLocs:
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
-            # error: Slice index must be an integer or None
             (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["b"::-1], "b"),  # type: ignore[misc]
-            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore[misc]
-            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore[misc]
+            (pd.IndexSlice["b":"y":-1], ""),
+            (pd.IndexSlice["b"::-1], "b"),
+            (pd.IndexSlice[:"b":-1], "yxdcb"),
+            (pd.IndexSlice[:"y":-1], "y"),
+            (pd.IndexSlice["y"::-1], "yxdcb"),
+            (pd.IndexSlice["y"::-4], "yb"),
             # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore[misc]
-            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore[misc]
-            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore[misc]
-            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice[:"a":-1], "yxdcb"),
+            (pd.IndexSlice[:"a":-2], "ydb"),
+            (pd.IndexSlice["z"::-1], "yxdcb"),
+            (pd.IndexSlice["z"::-3], "yc"),
+            (pd.IndexSlice["m"::-1], "dcb"),
+            (pd.IndexSlice[:"m":-1], "yx"),
+            (pd.IndexSlice["a":"a":-1], ""),
+            (pd.IndexSlice["z":"z":-1], ""),
+            (pd.IndexSlice["m":"m":-1], ""),
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected, any_string_dtype):

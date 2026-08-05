@@ -122,16 +122,16 @@ Here's a typical workflow for triaging a newly opened issue.
 
 7. **What labels and milestones should I add?**
 
-   Apply the relevant labels. This is a bit of an art, and comes with experience.
-   Look at similar issues to get a feel for how things are labeled.
+   Apply the relevant `labels <https://github.com/pandas-dev/pandas/labels>`_ that would help
+   other users and maintainers find this issue. Generally labels fall into:
 
-   If the issue is clearly defined and the fix seems relatively straightforward,
-   label the issue as "Good first issue".
+   * Project topics (e.g. "CI", "Web", "Community")
+   * Specific topic or API in the pandas library (e.g. "Sorting", "Index")
 
    If the issue is a regression report, add the "Regression" label and the next patch
    release milestone.
 
-   Once you have completed the above, make sure to remove the "Needs Triage" label.
+   Once you have triaged and validated the issue, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
@@ -250,7 +250,7 @@ and that's best done by ensuring that the quality of our open issues is high.
 
 Occasionally, bugs are fixed but the issue isn't linked to in the Pull Request.
 In these cases, comment that "This has been fixed, but could use a test." and
-label the issue as "Good First Issue" and "Needs Test".
+label the issue as "Needs Test".
 
 If an older issue doesn't follow our issue template, edit the original post to
 include a minimal example, the actual output, and the expected output. Uniformity
@@ -274,8 +274,7 @@ so passes with no response, thank them for their work and then either:
   across the line, or for fixing a small merge conflict.
 
 If closing the pull request, then please comment on the original issue that
-"There's a stalled PR at #1234 that may be helpful.", and perhaps label the issue
-as "Good first issue" if the PR was relatively close to being accepted.
+"There's a stalled PR at #1234 that may be helpful."
 
 Becoming a pandas maintainer
 ----------------------------

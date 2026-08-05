@@ -18,6 +18,7 @@ from pandas.core.ops.array_ops import (
 from pandas.core.ops.common import (
     get_op_result_name,
     has_castable_attr,
+    maybe_warn_listlike,
     unpack_zerodim_and_defer,
 )
 from pandas.core.ops.invalid import invalid_comparison
@@ -78,6 +79,7 @@ __all__ = [
     "kleene_xor",
     "logical_op",
     "maybe_prepare_scalar_for_op",
+    "maybe_warn_listlike",
     "radd",
     "rand_",
     "rdiv",

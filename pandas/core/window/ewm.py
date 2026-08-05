@@ -521,6 +521,14 @@ class ExponentialMovingWindow(BaseWindow):
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
         """
+        if callable(func):
+            # GH#41700 BaseWindow.aggregate falls back to ``self.apply(...)``,
+            #  which ExponentialMovingWindow does not implement.
+            raise NotImplementedError(
+                f"{type(self).__name__}.aggregate does not support arbitrary "
+                "callables; supported aggregations are mean, sum, std, var, "
+                "cov, corr."
+            )
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
@@ -1189,7 +1197,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
             update_deltas,
-            self.min_periods,
+            self.min_periods,  # type: ignore[arg-type]
             ewma_func,
         )
         if not is_frame:

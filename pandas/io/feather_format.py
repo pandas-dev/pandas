@@ -8,18 +8,12 @@ from typing import (
 )
 import warnings
 
-import numpy as np
-
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
-from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import get_handle
@@ -74,7 +68,15 @@ def to_feather(
     with get_handle(
         path, "wb", storage_options=storage_options, is_text=False
     ) as handles:
-        feather.write_feather(df, handles.handle, **kwargs)
+        # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66169)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.write_feather is deprecated",
+                FutureWarning,
+            )
+            feather.write_feather(df, handles.handle, **kwargs)
 
 
 @set_module("pandas")
@@ -87,6 +89,9 @@ def read_feather(
 ) -> DataFrame:
     """
     Load a feather-format object from the file path.
+
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
 
     Feather is particularly useful for scenarios that require efficient
     serialization and deserialization of tabular data. It supports
@@ -103,6 +108,10 @@ def read_feather(
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, gs and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.feather``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     columns : sequence, default None
         If not provided, all columns are read.
     use_threads : bool, default True
@@ -157,25 +166,15 @@ def read_feather(
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
-        if dtype_backend is lib.no_default and not using_string_dtype():
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "make_block is deprecated",
-                    Pandas4Warning,
-                )
-
-                df = feather.read_feather(
-                    handles.handle, columns=columns, use_threads=bool(use_threads)
-                )
-                # Convert any StringDtype columns to object dtype (pyarrow always
-                # uses string dtype even when the infer_string option is False)
-                for col, dtype in zip(df.columns, df.dtypes, strict=True):
-                    if isinstance(dtype, StringDtype) and dtype.na_value is np.nan:
-                        df[col] = df[col].astype("object")
-                return df
-
-        pa_table = feather.read_table(
-            handles.handle, columns=columns, use_threads=bool(use_threads)
-        )
+        # pyarrow>=24 deprecates feather.read_table in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66169)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.read_table is deprecated",
+                FutureWarning,
+            )
+            pa_table = feather.read_table(
+                handles.handle, columns=columns, use_threads=bool(use_threads)
+            )
         return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)

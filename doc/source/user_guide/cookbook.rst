@@ -7,9 +7,6 @@ Cookbook
 ********
 
 This is a repository for *short and sweet* examples and links for useful pandas recipes.
-We encourage users to add to this documentation.
-
-Adding interesting links and/or inline examples to this section is a great *First Pull Request*.
 
 Simplified, condensed, new-user friendly, in-line examples have been inserted where possible to
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
@@ -419,8 +416,49 @@ Levels
 `Prepending a level to a multiindex
 <https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {"A": ["a1", "a1", "a2", "a3"], "B": ["b1", "b2", "b3", "b4"], "Vals": np.random.randn(4)}
+   ).groupby(["A", "B"]).sum()
+   df
+
+Prepend a constant label to the existing row MultiIndex using ``pd.concat`` with the ``keys`` argument:
+
+.. ipython:: python
+
+   df = pd.concat([df], keys=["Foo"], names=["FirstLevel"])
+   df
+
 `Flatten Hierarchical columns
 <https://stackoverflow.com/q/14507794>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "USAF": ["702730"] * 4,
+           "WBAN": [26451] * 4,
+           "day": [1, 2, 3, 4],
+           "s_PC": [1, 0, 1, 3],
+           "s_CL": [0, 0, 10, 0],
+           "tempf": [30.92, 32.00, 23.00, 10.04],
+       }
+   )
+   df = df.groupby(["USAF", "WBAN", "day"]).agg(
+       {"s_PC": "sum", "s_CL": "sum", "tempf": ["max", "min"]}
+   ).reset_index()
+   df
+
+Use a generator expression to drop the empty-string second levels before joining, so
+``("USAF", "")`` becomes ``"USAF"`` rather than ``"USAF_"``. Columns with a real
+aggregation label are joined normally, so ``("tempf", "max")`` becomes ``"tempf_max"``
+and ``("s_PC", "sum")`` becomes ``"s_PC_sum"``:
+
+.. ipython:: python
+
+   df.columns = ["_".join(c for c in col if c) for col in df.columns]
+   df
 
 .. _cookbook.missing_data:
 
@@ -1176,7 +1214,7 @@ Parsing date components in multi-columns is faster with a format
     df = pd.DataFrame({"year": i.year, "month": i.month, "day": i.day})
     df.head()
 
-    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
+    %timeit pd.to_datetime((df.year * 10000 + df.month * 100 + df.day).astype(str), format='%Y%m%d')
     ds = df.apply(lambda x: "%04d%02d%02d" % (x["year"], x["month"], x["day"]), axis=1)
     ds.head()
     %timeit pd.to_datetime(ds)
@@ -1331,7 +1369,7 @@ Storing Attributes to a group node
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore("test.h5")
-   store.put("df", df)
+   store["df"] = df
 
    # you can store an arbitrary Python object via pickle
    store.get_storer("df").attrs.my_attribute = {"A": 10}

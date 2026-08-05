@@ -247,7 +247,9 @@ def test_vmin_vmax_widening(df_pos, df_neg, df_mix, values, vmin, vmax, nullify,
     vmin = None if nullify == "vmin" else vmin
     vmax = None if nullify == "vmax" else vmax
 
-    expand_df = df.copy()
+    # cast to float64 up front so appending float vmin/vmax does not
+    #  change the dtype (GH#62369 deprecation)
+    expand_df = df.copy().astype(np.float64)
     expand_df.loc[3, :], expand_df.loc[4, :] = vmin, vmax
 
     result = (
@@ -260,7 +262,7 @@ def test_vmin_vmax_widening(df_pos, df_neg, df_mix, values, vmin, vmax, nullify,
 
 
 def test_numerics():
-    # test data is pre-selected for numeric values
+    # test data is preselected for numeric values
     data = DataFrame([[1, "a"], [2, "b"]])
     result = data.style.bar()._compute().ctx
     assert (0, 1) not in result

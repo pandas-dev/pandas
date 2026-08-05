@@ -240,7 +240,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_on_missing_values(self):
         # GH5438
-        timedelta_NaT = np.timedelta64("NaT")
+        timedelta_NaT = np.timedelta64("NaT", "ns")
 
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
@@ -256,12 +256,12 @@ class TestTimedeltas:
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
-        assert actual._value == np.timedelta64("NaT").astype("int64")
+        assert actual._value == np.timedelta64("NaT", "ns").astype("int64")
 
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_list(self, val):
         actual = to_timedelta([val])
-        assert actual[0]._value == np.timedelta64("NaT").astype("int64")
+        assert actual[0]._value == np.timedelta64("NaT", "ns").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
@@ -354,6 +354,32 @@ class TestTimedeltas:
         result2 = to_timedelta(arr2, unit="s")
         assert result2.unit == "ns"
 
+    @pytest.mark.parametrize("val", [np.inf, -np.inf])
+    def test_to_timedelta_object_inf(self, val):
+        # GH#63275 non-finite floats in an object array used to raise a bare
+        #  OverflowError from int(item); coerce should give NaT and the
+        #  default should raise OutOfBoundsTimedelta.
+        arr = np.array([1.0, val, 3.0], dtype=object)
+
+        result = to_timedelta(arr, errors="coerce")
+        expected = TimedeltaIndex([1, "NaT", 3])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+            to_timedelta(arr)
+
+    def test_to_timedelta_unit_mixed_round_and_non_round_floats(self):
+        # GH#65150 - round floats mixed with non-round floats should
+        # respect the unit for all values
+        expected = to_timedelta(["0 days 00:00:01", "0 days 00:00:01.01"]).as_unit("ns")
+
+        result = to_timedelta([1.0, 1.01], unit="s")
+        tm.assert_index_equal(result, expected)
+
+        # Also test integers mixed with non-round floats
+        result2 = to_timedelta([1, 1.01], unit="s")
+        tm.assert_index_equal(result2, expected)
+
     def test_float_to_timedelta_raise_near_bounds(self):
         # GH#57366
         oneday_in_ns = 1e9 * 60 * 60 * 24
@@ -380,6 +406,21 @@ class TestTimedeltas:
         with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg2):
             pd.Timedelta(should_fail2[1], unit="D")
 
+    def test_float_to_timedelta_near_int64_boundary(self):
+        # GH#57366 within a few ULP of +/-2**63 ns the float bound check must be
+        # exact. A negative float whose ns value lands just past int64 min must
+        # raise instead of silently wrapping to a large positive timedelta...
+        wrapped = np.array([-(2**63 + 200) / 1e9], dtype="float64")
+        with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input"):
+            to_timedelta(wrapped, unit="s")
+
+        # ...and an in-bounds float just shy of int64 max must not spuriously
+        # raise (it did for units D/W, diverging from the scalar path).
+        oneday_in_ns = 1e9 * 60 * 60 * 24
+        val = (2**63 - 1 - 100) / oneday_in_ns
+        arr = np.array([val], dtype="float64")
+        assert to_timedelta(arr, unit="D")[0] == pd.Timedelta(val, unit="D")
+
     def test_to_timedelta_day_offset(self):
         # GH#64240
         result = to_timedelta(to_offset("D"))
@@ -393,6 +434,15 @@ class TestTimedeltas:
         result = to_timedelta(offsets)
         expected = to_timedelta(["1D", "2D"]).as_unit("s")
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("finer", ["ms", "us", "ns"])
+    def test_to_timedelta_day_offset_mixed_reso(self, finer):
+        # GH#64306 a Day offset mixed with a finer-resolution element must be
+        #  rescaled to the array's resolution, not stored as a raw seconds value
+        result = to_timedelta([to_offset("2D"), pd.Timedelta(1, unit=finer)])
+        expected = to_timedelta(["2D", f"1{finer}"]).as_unit(finer)
+        tm.assert_index_equal(result, expected)
+        assert result[0] == pd.Timedelta(2, unit="D")
 
     def test_float_to_timedelta_raise_oob_ns(self):
         value = np.float64(2**63)
@@ -438,7 +488,7 @@ class TestTimedeltas:
         arr = np.array([uint64_max], dtype=np.uint64)
 
         result = to_timedelta(arr, unit="ns", errors="coerce")
-        expected = TimedeltaIndex([pd.NaT])
+        expected = TimedeltaIndex([pd.NaT], dtype="m8[ns]")
         tm.assert_index_equal(result, expected)
 
         # scalar
@@ -472,6 +522,29 @@ def test_to_timedelta_np_str():
     result = to_timedelta(np.array(["P1DT1H", "P2D"], dtype=np.str_))
     expected = TimedeltaIndex(["1 days 01:00:00", "2 days"])
     tm.assert_index_equal(result, expected)
+
+
+def test_to_timedelta_scalar_np_str():
+    # GH#48974 scalar np.str_ should also not break timedelta parsing
+    scalar = np.array(["1 day"])[0]
+    assert isinstance(scalar, np.str_)
+
+    expected = pd.Timedelta("1 day")
+    assert to_timedelta(scalar) == expected
+    assert pd.Timedelta(scalar) == expected
+
+    # ISO format
+    assert pd.Timedelta(np.str_("P1DT1H")) == pd.Timedelta("1 days 01:00:00")
+
+
+@pytest.mark.parametrize("dtype", [np.int16, np.int32, np.uint32, np.int64])
+def test_to_timedelta_subint64_with_unit(dtype):
+    # GH#56996 NumPy 2 / NEP 50 made `np.int32(x) - py_int` return np.int32,
+    # which then overflowed when multiplied by a unit factor that exceeds
+    # the dtype's range (e.g. 86_400_000_000_000 ns/day for int32).
+    assert to_timedelta(dtype(0), unit="D") == pd.Timedelta(0, unit="D")
+    assert to_timedelta(dtype(1), unit="D") == pd.Timedelta(1, unit="D")
+    assert pd.Timedelta(dtype(1), unit="D") == pd.Timedelta(1, unit="D")
 
 
 @pytest.mark.parametrize("unit", ["ns", "ms"])

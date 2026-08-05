@@ -342,44 +342,53 @@ class _XMLFrameParser:
             set(self.iterparse[row_node])
         )
 
-        for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
-            curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
+        parser = iterparse(self.path_or_buffer, events=("start", "end"))
+        try:
+            for event, elem in parser:
+                curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
-            if event == "start":
-                if curr_elem == row_node:
-                    row = {}
+                if event == "start":
+                    if curr_elem == row_node:
+                        row = {}
 
-            if row is not None:
-                if self.names and iterparse_repeats:
-                    for col, nm in zip(
-                        self.iterparse[row_node], self.names, strict=True
-                    ):
-                        if curr_elem == col:
-                            elem_val = elem.text if elem.text else None
-                            if elem_val not in row.values() and nm not in row:
-                                row[nm] = elem_val
+                if row is not None:
+                    if self.names and iterparse_repeats:
+                        for col, nm in zip(
+                            self.iterparse[row_node], self.names, strict=True
+                        ):
+                            if curr_elem == col:
+                                elem_val = elem.text if elem.text else None
+                                if elem_val not in row.values() and nm not in row:
+                                    row[nm] = elem_val
 
-                        if col in elem.attrib:
-                            if elem.attrib[col] not in row.values() and nm not in row:
-                                row[nm] = elem.attrib[col]
-                else:
-                    for col in self.iterparse[row_node]:
-                        if curr_elem == col:
-                            row[col] = elem.text if elem.text else None
-                        if col in elem.attrib:
-                            row[col] = elem.attrib[col]
+                            if col in elem.attrib:
+                                if (
+                                    elem.attrib[col] not in row.values()
+                                    and nm not in row
+                                ):
+                                    row[nm] = elem.attrib[col]
+                    else:
+                        for col in self.iterparse[row_node]:
+                            if curr_elem == col:
+                                row[col] = elem.text if elem.text else None
+                            if col in elem.attrib:
+                                row[col] = elem.attrib[col]
 
-            if event == "end":
-                if curr_elem == row_node and row is not None:
-                    dicts.append(row)
-                    row = None
+                if event == "end":
+                    if curr_elem == row_node and row is not None:
+                        dicts.append(row)
+                        row = None
 
-                elem.clear()
-                if hasattr(elem, "getprevious"):
-                    while (
-                        elem.getprevious() is not None and elem.getparent() is not None
-                    ):
-                        del elem.getparent()[0]
+                    elem.clear()
+                    if hasattr(elem, "getprevious"):
+                        while (
+                            elem.getprevious() is not None
+                            and elem.getparent() is not None
+                        ):
+                            del elem.getparent()[0]
+        finally:
+            if hasattr(parser, "close"):
+                parser.close()
 
         if dicts == []:
             raise ParserError("No result from selected items in iterparse.")
@@ -504,7 +513,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "undeclared namespace prefix."
             ) from err
 
-        return elems
+        return elems  # pyright: ignore[reportReturnType]
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -884,6 +893,10 @@ def read_xml(
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
         :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements
@@ -916,8 +929,7 @@ def read_xml(
     dtype : Type name or dict of column -> type, optional
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32,
         'c': 'Int64'}
-        Use `str` or `object` together with suitable `na_values` settings
-        to preserve and not interpret dtype.
+        Use ``str`` or ``object`` to preserve and not interpret dtype.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 

@@ -29,9 +29,6 @@ class TestDataFrameRepr:
     def test_repr_should_return_str(self):
         # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # "...The return value must be a string object."
-
-        # (str on py2.x, str (unicode) on py3)
-
         data = [8, 5, 3, 5]
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
@@ -342,14 +339,17 @@ NaT   4"""
         df2 = DataFrame({"dt": Categorical(dt), "p": Categorical(p)})
         assert repr(df2) == exp
 
-    @pytest.mark.parametrize("arg", [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize(
+        "nat",
+        [np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")],
+    )
     @pytest.mark.parametrize(
         "box, expected",
         [[Series, "0    NaT\ndtype: object"], [DataFrame, "     0\n0  NaT"]],
     )
-    def test_repr_np_nat_with_object(self, arg, box, expected):
+    def test_repr_np_nat_with_object(self, nat, box, expected):
         # GH 25445
-        result = repr(box([arg("NaT")], dtype=object))
+        result = repr(box([nat], dtype=object))
         assert result == expected
 
     def test_frame_datetime64_pre1900_repr(self):
@@ -436,6 +436,17 @@ NaT   4"""
         result = repr(df)
         assert result == expected
 
+    def test_from_records_with_nested_structured_dtype_repr(self):
+        # GH#55011 structured ndarray (not np.rec.recarray) with a nested
+        # field-of-fields dtype
+        ar = np.array(
+            [((255, 0),), ((255, 1),), ((255, 2),)],
+            dtype=[("x", [("null", "u1"), ("val", "<i8")])],
+        )
+        df = DataFrame.from_records(ar)
+        expected = "          x\n0  (255, 0)\n1  (255, 1)\n2  (255, 2)"
+        assert repr(df) == expected
+
     def test_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(
@@ -496,3 +507,13 @@ def test_repr_with_complex_nans(data, output, as_frame):
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
     assert str(obj) == expected, f"\n{obj!s}\n\n{expected}"
+
+
+@pytest.mark.parametrize("nrows", [60, 61])
+def test_repr_truncated_na_shows_na_not_nan(nrows):
+    # GH#33065 pd.NA in an object column must render as <NA>, not NaN, even
+    # when the repr is truncated (nrows above the display limit)
+    df = DataFrame(np.full((nrows, 1), NA))
+    result = repr(df)
+    assert "<NA>" in result
+    assert "NaN" not in result

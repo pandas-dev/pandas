@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     NamedTuple,
 )
@@ -452,7 +453,8 @@ def boxplot(
             raise ValueError("The 'layout' keyword is not supported when 'by' is None")
 
         if ax is None:
-            rc = {"figure.figsize": figsize} if figsize is not None else {}
+            # Any: rc_context's accepted key type narrowed in matplotlib 3.11
+            rc: Any = {"figure.figsize": figsize} if figsize is not None else {}
             with mpl.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()

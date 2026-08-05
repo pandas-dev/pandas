@@ -379,7 +379,8 @@ cdef class IndexEngine:
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -427,15 +428,40 @@ cdef class IndexEngine:
             object val
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, max_alloc, start, end
-            bint check_na_values = False
+            bint check_na_values = False, use_searchsorted
 
         values = self.values
+
+        n = len(values)
+        n_t = len(targets)
+        if n == 0:
+            # GH#54746 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
+
+        dtype = values.dtype
+        if (
+            dtype == targets.dtype
+            and dtype.isnative
+            and (dtype.kind in "iu" or dtype.char in "fd")
+        ):
+            # Hash the target values themselves instead of boxing every
+            # element into a Python object.  khash matches float NaNs
+            # to each other, like the is_matching_na machinery below.
+            # char "fd" excludes float16/longdouble, which have no
+            # specialization in _hash.get_indexer_non_unique.
+            # With few targets on a monotonic index, binary search per unique
+            # target beats a full scan (same heuristic as the path below).
+            use_searchsorted = (
+                n_t < (n / (2 * n.bit_length())) and self.is_monotonic_increasing
+            )
+            return _hash.get_indexer_non_unique(values, targets, use_searchsorted)
+
         stargets = set(targets)
 
         na_in_stargets = any(checknull(t) for t in stargets)
 
-        n = len(values)
-        n_t = len(targets)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
@@ -548,28 +574,16 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # This is equivalent to the stdlib's bisect.bisect_left
 
     cdef:
-        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
-        object pval
-
-    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
-        return len(values)
+        Py_ssize_t mid, lo = 0, hi = len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = PySequence_GetItem(values, mid)
-        if val < pval:
-            hi = mid
-        elif val > pval:
+        if PySequence_GetItem(values, mid) < val:
             lo = mid + 1
         else:
-            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
-                mid -= 1
-            return mid
+            hi = mid
 
-    if val <= PySequence_GetItem(values, mid):
-        return mid
-    else:
-        return mid + 1
+    return lo
 
 
 cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
@@ -1262,7 +1276,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -1309,6 +1324,7 @@ cdef class MaskedIndexEngine(IndexEngine):
             object val
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, max_alloc, start, end, na_idx
+            bint use_searchsorted
 
         target_vals = self._get_data(targets)
         target_mask = self._get_mask(targets)
@@ -1317,10 +1333,32 @@ cdef class MaskedIndexEngine(IndexEngine):
         assert not values.dtype == object  # go through object path instead
 
         mask = self.mask
-        stargets = set(target_vals[~target_mask])
 
         n = len(values)
         n_t = len(target_vals)
+        if n == 0:
+            # GH#64674 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
+
+        dtype = values.dtype
+        if (
+            dtype == target_vals.dtype
+            and dtype.isnative
+            and (dtype.kind in "iu" or dtype.char in "fd")
+            and not np.any(mask)
+            and not np.any(target_mask)
+        ):
+            # No NAs on either side, so the masks are irrelevant and we can
+            # use the same typed fastpath as IndexEngine
+            use_searchsorted = (
+                n_t < (n / (2 * n.bit_length())) and self.is_monotonic_increasing
+            )
+            return _hash.get_indexer_non_unique(values, target_vals, use_searchsorted)
+
+        stargets = set(target_vals[~target_mask])
+
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
