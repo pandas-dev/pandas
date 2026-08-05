@@ -3894,21 +3894,36 @@ class ArrowExtensionArray(
         """
         Return all duration components.
 
-        The day remainder is computed once (and cached on ``_dt_day_remainder``),
-        so every sub-day component below reuses it. Note that the per-field
-        semantics differ from the like-named accessors: ``seconds`` here is the
-        0-59 seconds field (not the 0-86399 total) and ``microseconds`` is the
-        0-999 field (not the 0-999999 total).
+        The sub-day fields are extracted by cascading a running remainder
+        (``_dt_day_remainder``, always non-negative) from the coarsest unit
+        downward: each field is ``remainder // divisor``, and that field is then
+        subtracted off before moving to the next finer unit. Because every
+        intermediate remainder is already smaller than its parent unit, no
+        modulo is needed, which avoids the divide/multiply/subtract that PyArrow
+        otherwise requires to emulate ``%`` (it has no modulo kernel). ``seconds``
+        here is the 0-59 field (not the 0-86399 total) and ``microseconds`` is
+        the 0-999 field (not the 0-999999 total).
         """
-        return {
-            "days": self._dt_days,
-            "hours": self._dt_hours,
-            "minutes": self._dt_minutes,
-            "seconds": self._dt_subday_component("second", modulo=60),
-            "milliseconds": self._dt_milliseconds,
-            "microseconds": self._dt_subday_component("microsecond", modulo=1000),
-            "nanoseconds": self._dt_nanoseconds,
-        }
+        unit = self._duration_unit
+        components: dict[str, ArrowExtensionArray] = {"days": self._dt_days}
+        remainder = self._dt_day_remainder
+        for name, component in (
+            ("hours", "hour"),
+            ("minutes", "minute"),
+            ("seconds", "second"),
+            ("milliseconds", "millisecond"),
+            ("microseconds", "microsecond"),
+            ("nanoseconds", "nanosecond"),
+        ):
+            divisor = _DURATION_DIVISORS[component].get(unit)
+            if divisor is None:
+                # array resolution is coarser than this component -> always 0
+                components[name] = self._dt_zero_or_null_int32()
+                continue
+            value = pc.divide(remainder, divisor)
+            components[name] = self._from_pyarrow_array(value.cast(pa.int32()))
+            remainder = pc.subtract(remainder, pc.multiply(value, divisor))
+        return components
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
         data = self._pa_array.to_pylist()
