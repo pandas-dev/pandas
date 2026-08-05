@@ -117,12 +117,27 @@ def test_categorical_dtype_missing(all_parsers):
 
 def test_categorical_dtype_numeric_duplicates(all_parsers):
     # GH#56044 distinct strings that convert to the same number should be
-    #  merged into a single category
+    #  merged into a single category.  The NA rows make the codes carry -1
+    #  while the merge recodes the rest, exercising both together.
     parser = all_parsers
-    data = "a\n1\n1.0\n2"
-    expected = DataFrame({"a": Categorical([1.0, 1.0, 2.0])})
+    data = "a,b\n1,x\n,x\n1.0,x\n2,x\n,x"
+    expected = DataFrame(
+        {
+            "a": Categorical([1.0, None, 1.0, 2.0, None]),
+            "b": Categorical(["x"] * 5),
+        }
+    )
     actual = parser.read_csv(StringIO(data), dtype="category")
     tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_signed_zero(all_parsers):
+    # GH#56044 "0.0" and "-0.0" converge on one category; which one survives
+    #  must not depend on the engine or on low_memory chunking
+    parser = all_parsers
+    data = "a\n0.0\n-0.0"
+    result = parser.read_csv(StringIO(data), dtype="category")
+    assert not np.signbit(result["a"].cat.categories).any()
 
 
 @pytest.mark.parametrize(
@@ -189,12 +204,20 @@ def test_categorical_dtype_decimal(all_parsers):
 
 
 @xfail_pyarrow  # pyarrow casts to float64, losing precision
-def test_categorical_dtype_large_integers(all_parsers):
+@pytest.mark.parametrize(
+    "huge",
+    [
+        99999999999999999999999999,
+        # beyond the float64 range, which the inference used to choke on
+        #  depending on where the value appeared in the column (GH#66519)
+        int("1" * 400),
+    ],
+)
+def test_categorical_dtype_large_integers(all_parsers, huge):
     # GH#56044 integers too large for int64/uint64 give object categories
     parser = all_parsers
-    data = "a\n99999999999999999999999999\n1"
-    expected = DataFrame({"a": Categorical([99999999999999999999999999, 1])})
-    actual = parser.read_csv(StringIO(data), dtype="category")
+    expected = DataFrame({"a": Categorical([huge, 1])})
+    actual = parser.read_csv(StringIO(f"a\n{huge}\n1"), dtype="category")
     tm.assert_frame_equal(actual, expected)
 
 
@@ -350,6 +373,11 @@ def test_categorical_dtype_low_memory_all_na_chunk(all_parsers, monkeypatch):
             [*["True"] * 25, *["TRUE"] * 25, *["False"] * 25],
             [*[True] * 50, *[False] * 25],
         ),
+        # NA rows so the merge recodes alongside -1 codes
+        (
+            [*(row for i in range(40) for row in (str(i), f"{i}.0", "nan"))],
+            [*(val for i in range(40) for val in (float(i), float(i), None))],
+        ),
     ],
 )
 def test_categorical_dtype_low_memory_duplicate_chunks(
@@ -430,19 +458,6 @@ def test_categorical_dtype_boolean_with_missing(all_parsers):
     assert result["a"].cat.categories.dtype == np.dtype("bool")
 
 
-def test_categorical_dtype_huge_integer_no_overflow(all_parsers):
-    # GH#56044 numeric inference must not propagate the OverflowError raised
-    #  for integers too large to represent as float64.  The resulting category
-    #  dtype is deliberately not pinned: to_numeric only raises when such an
-    #  integer is the first one it sees, so low_memory=True (which sorts the
-    #  categories first) keeps object categories where the other paths fall
-    #  back to strings.
-    parser = all_parsers
-    data = "a\n" + "1" * 400 + "\n1"
-    result = parser.read_csv(StringIO(data), dtype="category")
-    assert len(result["a"].cat.categories) == 2
-
-
 @xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 def test_categorical_dtype_quote_nonnumeric_large_integers(all_parsers):
     # GH#56044 QUOTE_NONNUMERIC converts integers too large for int64/uint64
@@ -473,23 +488,20 @@ def test_categorical_dtype_empty_string_dtype_backend(all_parsers, dtype_backend
     assert list(result["a"].cat.categories) == ["", "2"]
 
 
-@xfail_pyarrow  # pyarrow treats "" as null regardless of na_filter
-def test_categorical_dtype_empty_string_na_filter_false(all_parsers):
+@pytest.mark.parametrize("kwargs", [{"na_filter": False}, {"keep_default_na": False}])
+def test_categorical_dtype_empty_string(all_parsers, kwargs, request):
     # GH#56044 to_numeric converts "" to NaN, which cannot be a category;
     #  keep string categories
     parser = all_parsers
+    if parser.engine == "pyarrow" and "na_filter" in kwargs:
+        mark = pytest.mark.xfail(
+            reason="pyarrow treats '' as null regardless of na_filter",
+        )
+        request.applymarker(mark)
+
     data = "a,b\n,1\n2,3"
     expected = DataFrame({"a": Categorical(["", "2"]), "b": Categorical([1, 3])})
-    actual = parser.read_csv(StringIO(data), dtype="category", na_filter=False)
-    tm.assert_frame_equal(actual, expected)
-
-
-def test_categorical_dtype_empty_string_keep_default_na(all_parsers):
-    # GH#56044 as above, with "" surviving via keep_default_na=False
-    parser = all_parsers
-    data = "a,b\n,1\n2,3"
-    expected = DataFrame({"a": Categorical(["", "2"]), "b": Categorical([1, 3])})
-    actual = parser.read_csv(StringIO(data), dtype="category", keep_default_na=False)
+    actual = parser.read_csv(StringIO(data), dtype="category", **kwargs)
     tm.assert_frame_equal(actual, expected)
 
 

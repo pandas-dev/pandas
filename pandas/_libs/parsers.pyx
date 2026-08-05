@@ -22,6 +22,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas import (
     ArrowDtype,
+    Index,
     StringDtype,
 )
 from pandas.core.arrays import (
@@ -1018,6 +1019,22 @@ cdef class TextReader:
                     )
                 chunks[chunk_idx][col] = strs
 
+    cdef tuple _categorical_convert_options(self):
+        """
+        Parser options feeding category inference, shared by the deferred
+        low-memory path and the per-column one so they cannot drift.
+
+        Returns (true_values, false_values, convert_numeric, float_only).
+        ``to_numeric`` is unaware of the thousands/decimal options, so columns
+        read with those set keep string categories rather than mis-parsing.
+        """
+        return (
+            [x.decode() for x in self.true_values],
+            [x.decode() for x in self.false_values],
+            self.parser.thousands == b"\0" and self.parser.decimal == b".",
+            self.parser.quoting == QUOTE_NONNUMERIC,
+        )
+
     def _maybe_infer_categoricals(self, data: dict) -> None:
         """
         Apply category-dtype inference deferred by read_low_memory.
@@ -1026,14 +1043,9 @@ cdef class TextReader:
         breaking union_categoricals, so _convert_with_dtype defers it during
         low-memory reads. Modifies the concatenated ``data`` in place.
         """
-        true_values = [x.decode() for x in self.true_values]
-        false_values = [x.decode() for x in self.false_values]
-        # to_numeric inference is unaware of the thousands/decimal
-        #  options, so keep string categories when those are set
-        convert_numeric = (
-            self.parser.thousands == b"\0" and self.parser.decimal == b"."
+        true_values, false_values, convert_numeric, float_only = (
+            self._categorical_convert_options()
         )
-        float_only = self.parser.quoting == QUOTE_NONNUMERIC
         for i, dtype in self.deferred_cat_cols.items():
             cat = data[i]
             array_type = dtype.construct_array_type()
@@ -1373,25 +1385,31 @@ cdef class TextReader:
                 #  _maybe_infer_categoricals on the concatenated result.  dtype
                 #  is dropped for the per-chunk call along with it, since
                 #  union_categoricals rejects ordered inputs whose categories
-                #  differ.
+                #  differ.  Sorting is deferred too, so the concatenated
+                #  categories arrive in the observation order the non-chunked
+                #  path sees, rather than a per-chunk sorted one.
                 self.deferred_cat_cols[i] = dtype
-                cat = array_type._from_inferred_categories(cats, codes, None)
+                cat = array_type._from_inferred_categories(
+                    cats, codes, None, sort_categories=False)
                 return cat, na_count
 
-            # Method accepts list of strings, not encoded ones.
-            true_values = [x.decode() for x in self.true_values]
-            false_values = [x.decode() for x in self.false_values]
-
-            # to_numeric inference is unaware of the thousands/decimal
-            #  options, so keep string categories when those are set
-            convert_numeric = (
-                self.parser.thousands == b"\0" and self.parser.decimal == b"."
+            true_values, false_values, convert_numeric, float_only = (
+                self._categorical_convert_options()
             )
-            cat = array_type._from_inferred_categories(
-                cats, codes, dtype, true_values=true_values,
-                false_values=false_values, convert_numeric=convert_numeric,
-                convert_bool=True,
-                float_only=self.parser.quoting == QUOTE_NONNUMERIC)
+            if dtype.categories is None:
+                # GH#56044 mirror the type inference performed on ordinary
+                #  (non-categorical) columns so that all engines agree
+                cats = Index(cats, copy=False)
+                converted = array_type._maybe_convert_categories(
+                    cats, true_values=true_values, false_values=false_values,
+                    convert_numeric=convert_numeric, convert_bool=True,
+                    float_only=float_only)
+                cat = array_type._from_converted_categories(
+                    cats if converted is None else converted, codes,
+                    ordered=dtype.ordered)
+            else:
+                cat = array_type._from_inferred_categories(
+                    cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
         elif isinstance(dtype, ExtensionDtype):

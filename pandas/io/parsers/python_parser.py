@@ -502,20 +502,32 @@ class PythonParser(ParserBase):
         """
         if isinstance(cast_type, CategoricalDtype):
             cats = Index(values, copy=False).unique().dropna()
-            # to_numeric inference is unaware of the thousands/decimal
-            #  options, so keep string categories when those are set
-            convert_numeric = (
-                self.thousands is None and self.decimal == parser_defaults["decimal"]
-            )
-            values = Categorical._from_inferred_categories(
-                cats,
-                cats.get_indexer(values),
-                cast_type,
-                true_values=self.true_values,
-                false_values=self.false_values,
-                convert_numeric=convert_numeric,
-                convert_bool=True,
-            )
+            codes = cats.get_indexer(values)
+            if cast_type.categories is None:
+                # GH#56044 mirror the type inference performed on ordinary
+                #  (non-categorical) columns so that all engines agree.
+                #  to_numeric is unaware of the thousands/decimal options, so
+                #  keep string categories when those are set.
+                convert_numeric = (
+                    self.thousands is None
+                    and self.decimal == parser_defaults["decimal"]
+                )
+                converted = Categorical._maybe_convert_categories(
+                    cats,
+                    true_values=self.true_values,
+                    false_values=self.false_values,
+                    convert_numeric=convert_numeric,
+                    convert_bool=True,
+                )
+                values = Categorical._from_converted_categories(
+                    cats if converted is None else converted,
+                    codes,
+                    ordered=cast_type.ordered,
+                )
+            else:
+                values = Categorical._from_inferred_categories(
+                    cats, codes, cast_type, true_values=self.true_values
+                )
 
         # use the EA's implementation of casting
         elif isinstance(cast_type, ExtensionDtype):

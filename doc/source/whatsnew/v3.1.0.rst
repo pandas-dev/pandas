@@ -98,18 +98,23 @@ infer numeric and boolean categories under the default ``dtype_backend``
     data = "a\nTrue\nFalse\nTrue"
     pd.read_csv(StringIO(data), dtype="category")["a"].dtype
 
-Columns whose values do not all parse as numeric or boolean, and columns read
-with non-default ``thousands`` or ``decimal`` options, retain string categories.
-Datetime-like columns are not inferred: the ``c`` and ``python`` engines keep
-string categories, while the ``pyarrow`` engine gives ``datetime64`` categories
-for timestamps and ``object`` categories of :class:`datetime.date` for
-date-only columns. An integer or boolean column containing missing values gets
-integer or boolean categories rather than the ``float64`` or ``object`` the same
-column receives without ``dtype="category"``, since the codes already carry the
-missing values. Under a
-non-default ``dtype_backend`` the ``c`` engine still gives numpy-backed
-categories, as does the ``python`` engine with ``dtype_backend="numpy_nullable"``
-(:issue:`66382`).
+Some columns keep string categories:
+
+* those whose values do not all parse as numeric or boolean;
+* those read with non-default ``thousands`` or ``decimal`` options;
+* datetime-like columns on the ``c`` and ``python`` engines, where the
+  ``pyarrow`` engine instead gives ``datetime64`` categories for timestamps and
+  ``object`` categories of :class:`datetime.date` for date-only columns.
+
+Two cases differ from what the same column receives without
+``dtype="category"``:
+
+* an integer or boolean column containing missing values gets integer or
+  boolean categories rather than ``float64`` or ``object``, since the codes
+  already carry the missing values;
+* under a non-default ``dtype_backend`` the ``c`` engine still gives
+  numpy-backed categories, as does the ``python`` engine with
+  ``dtype_backend="numpy_nullable"`` (:issue:`66382`).
 
 The same inference now applies to the other readers built on the shared text
 parser, including :func:`read_table`, :func:`read_fwf` and :func:`read_excel`,
@@ -120,11 +125,11 @@ The ``pyarrow`` engine gave nullable ``Int64`` categories for integer columns
 under the default ``dtype_backend``; it now gives numpy ``int64`` like the other
 engines.
 
-Two further inconsistencies in the ``c`` and ``python`` engines are fixed. A
-:class:`CategoricalDtype` that specifies ``ordered=True`` without specifying
-``categories`` no longer discards ``ordered``, and ``low_memory=True`` (the
-default for the ``c`` engine) no longer leaves string categories in the order
-the file's buffer chunks happened to produce them:
+Two further inconsistencies in the ``c`` and ``python`` engines are fixed.
+``low_memory=True`` (the default for the ``c`` engine) no longer leaves string
+categories in the order the file's buffer chunks happened to produce them, and
+a :class:`CategoricalDtype` that specifies ``ordered=True`` without specifying
+``categories`` no longer discards ``ordered``:
 
 .. ipython:: python
 

@@ -655,9 +655,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    @classmethod
+    @staticmethod
     def _maybe_convert_categories(
-        cls,
         cats: Index,
         true_values=None,
         false_values=None,
@@ -705,8 +704,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if convert_numeric:
             try:
                 converted = Index(to_numeric(cats, errors="raise"), copy=False)
-            except (ValueError, TypeError, OverflowError):
-                # OverflowError: an integer too large to represent as float64
+            except (ValueError, TypeError):
                 pass
             else:
                 # test the values rather than Index.hasnans: arrow-backed
@@ -762,17 +760,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inferred_codes,
         dtype,
         true_values=None,
-        false_values=None,
-        convert_numeric: bool = False,
-        convert_bool: bool = False,
-        float_only: bool = False,
+        sort_categories: bool = True,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
 
-        For inferred categories (`dtype` is None) the categories are sorted.
-        For explicit `dtype`, the `inferred_categories` are cast to the
-        appropriate type.
+        For inferred categories (`dtype` is None) the categories are sorted
+        unless `sort_categories` is False.  For explicit `dtype`, the
+        `inferred_categories` are cast to the appropriate type.
+
+        Callers that want read_csv's numeric/boolean inference for categories
+        not supplied by `dtype` should call ``_maybe_convert_categories`` and
+        ``_from_converted_categories`` themselves.
 
         Parameters
         ----------
@@ -780,20 +779,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inferred_codes : Index
         dtype : CategoricalDtype or 'category'
         true_values : list, optional
-            If none are provided, the default ones are
+            Strings recognized as True when `dtype` provides boolean
+            categories.  If none are provided, the default ones are
             "True", "TRUE", and "true."
-        false_values : list, optional
-            If none are provided, the default ones are
-            "False", "FALSE", and "false."
-        convert_numeric : bool, default False
-            Whether to convert string categories to numeric when `dtype` does
-            not provide categories. See ``_maybe_convert_categories``.
-        convert_bool : bool, default False
-            Whether to convert string categories to boolean when `dtype` does
-            not provide categories. See ``_maybe_convert_categories``.
-        float_only : bool, default False
-            Whether numeric conversion must produce floats. See
-            ``_maybe_convert_categories``.
+        sort_categories : bool, default True
+            Whether to sort inferred categories.  The deferred low-memory path
+            passes False so that every chunk keeps observation order, matching
+            what the non-chunked path sees; it sorts once after concatenation.
 
         Returns
         -------
@@ -811,22 +803,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
         ordered = dtype.ordered if isinstance(dtype, CategoricalDtype) else False
-
-        if not known_categories:
-            # GH#56044 mirror the type inference performed on ordinary
-            #  (non-categorical) columns so that all engines agree
-            converted = cls._maybe_convert_categories(
-                cats,
-                true_values=true_values,
-                false_values=false_values,
-                convert_numeric=convert_numeric,
-                convert_bool=convert_bool,
-                float_only=float_only,
-            )
-            if converted is not None:
-                return cls._from_converted_categories(
-                    converted, inferred_codes, ordered=ordered
-                )
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
@@ -850,7 +826,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = recode_for_categories(
                 inferred_codes, cats, categories, copy=False, warn=True
             )
-        elif not cats.is_monotonic_increasing:
+        elif sort_categories and not cats.is_monotonic_increasing:
             # Sort categories and recode for unknown categories.
             unsorted = cats.copy()
             categories = cats.sort_values()

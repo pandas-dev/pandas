@@ -511,10 +511,15 @@ among the specified categories will raise.
       df.dtypes
       df["col3"]
 
-   Columns whose values do not all parse as numeric or boolean, and columns
-   read with non-default ``thousands`` or ``decimal`` options, retain string
-   categories. Those can be converted using the :func:`to_numeric` function,
-   or as appropriate, another converter such as :func:`to_datetime`.
+   Columns whose values do not all parse as numeric or boolean retain string
+   categories, and can be converted using the :func:`to_numeric` function, or
+   as appropriate, another converter such as :func:`to_datetime`.
+
+   Columns read with non-default ``thousands`` or ``decimal`` options also
+   retain string categories, because the inference is unaware of those
+   options. Strip the separators before converting those: with
+   ``thousands="."``, :func:`to_numeric` reads ``"1.000"`` as ``1.0`` rather
+   than ``1000``.
 
    When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
    all numeric, all datetimes, etc.), the conversion is done automatically.
