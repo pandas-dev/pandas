@@ -127,7 +127,7 @@ if TYPE_CHECKING:
         DtypeBackend,
         DtypeObj,
         FillnaOptions,
-        IgnoreRaise,
+        IgnoreRaiseCoerce,
         InterpolateOptions,
         QuantileInterpolation,
         Shape,
@@ -594,7 +594,7 @@ class Block(PandasObject, libinternals.Block):
     def astype(
         self,
         dtype: DtypeObj,
-        errors: IgnoreRaise = "raise",
+        errors: IgnoreRaiseCoerce = "raise",
         squeeze: bool = False,
     ) -> Block:
         """
