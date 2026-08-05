@@ -14,6 +14,7 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
+    is_integer_object,
     is_real_number_object,
 )
 
@@ -191,22 +192,39 @@ cpdef assert_almost_equal(a, b,
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")
 
+    
     if a == b:
         # object comparison
+        return True
+
+    if is_integer_object(a) and is_integer_object(b):
+        if abs(a - b) > atol + rtol * abs(b):
+            fa = float(a)
+            fb = float(b)
+            assert False, (
+                f"expected {fb:.5f} but got {fa:.5f}, "
+                f"with rtol={rtol}, atol={atol}"
+            )
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
         fa, fb = a, b
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
-            assert False, (f"expected {fb:.5f} but got {fa:.5f}, "
-                           f"with rtol={rtol}, atol={atol}")
+            assert False, (
+                f"expected {fb:.5f} but got {fa:.5f}, "
+                f"with rtol={rtol}, atol={atol}"
+            )
         return True
 
     if is_complex_object(a) and is_complex_object(b):
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
-            assert False, (f"expected {b:.5f} but got {a:.5f}, "
-                           f"with rtol={rtol}, atol={atol}")
+            assert False, (
+                f"expected {b:.5f} but got {a:.5f}, "
+                f"with rtol={rtol}, atol={atol}"
+            )
         return True
 
     raise AssertionError(f"{a} != {b}")
+
+   
