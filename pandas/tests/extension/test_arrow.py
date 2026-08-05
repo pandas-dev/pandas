@@ -4210,7 +4210,7 @@ class TestGroupbyAggPyArrowNative:
     def test_groupby_scatter_error_falls_back(
         self, monkeypatch, dtype, values, how, error
     ):
-        # GH#XXXXX a scatter that cannot take the values, e.g. string_view,
+        # GH#66625 a scatter that cannot take the values, e.g. string_view,
         # which has no kernel, falls back instead of raising. No routed type
         # reaches that today, so make scatter report the failure itself.
         # ArrowNotImplementedError is a NotImplementedError, which groupby
@@ -4232,7 +4232,7 @@ class TestGroupbyAggPyArrowNative:
         pa_version_under23p0, reason="the NumPy placement does not call scatter"
     )
     def test_groupby_scatter_other_error_raises(self, monkeypatch):
-        # GH#XXXXX only the failures that have a fallback are swallowed, so an
+        # GH#66625 only the failures that have a fallback are swallowed, so an
         # unrelated Arrow error still reaches the caller
         ser = pd.Series(
             [Decimal("1"), Decimal("2"), Decimal("3")],
