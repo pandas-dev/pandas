@@ -12293,12 +12293,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         com : float, optional
             Specify decay in terms of center of mass
 
-            :math:`\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
+            :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
 
         span : float, optional
             Specify decay in terms of span
 
-            :math:`\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
+            :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
 
         halflife : float, str, timedelta, optional
             Specify decay in terms of half-life
@@ -12313,7 +12313,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         alpha : float, optional
             Specify smoothing factor :math:`\alpha` directly
 
-            :math:`0 < \alpha \\leq 1`.
+            :math:`0 < \alpha \leq 1`.
 
         min_periods : int, default 0
             Minimum number of observations in window required to have a value;
@@ -12340,7 +12340,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 \begin{split}
                     y_0 &= x_0\\
                     y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
-                \\end{split}
+                \end{split}
 
         ignore_na : bool, default False
             Ignore missing values when calculating weights.
