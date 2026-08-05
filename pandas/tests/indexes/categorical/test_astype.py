@@ -93,3 +93,12 @@ class TestAstype:
         rtrip = cat.astype(object)
         assert rtrip.dtype == object
         assert type(rtrip[0]) is date
+
+    def test_astype_bytes(self):
+        # GH 57925
+        idx = Index([b"fdhijklm", b"fdhijklm", b"fdaijklm"], dtype=object)
+        cat_idx = idx.astype("category")
+
+        result = cat_idx.categories.astype(bytes)
+        expected = Index([b"fdaijklm", b"fdhijklm"], dtype=bytes)
+        tm.assert_index_equal(result, expected)
