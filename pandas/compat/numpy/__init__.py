@@ -13,6 +13,7 @@ np_version_gt2 = _nlv >= Version("2.0.0")
 np_version_gt2_2 = _nlv >= Version("2.2.0")
 np_version_gt2_3 = _nlv >= Version("2.3.0")
 np_version_gt2_5 = _nlv >= Version("2.5.0")
+np_version_gt2_6 = _nlv >= Version("2.6.0.dev0")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.26.0"
 

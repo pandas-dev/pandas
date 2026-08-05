@@ -4,7 +4,6 @@ import mmap
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 
 import numpy as np
@@ -518,7 +517,6 @@ class OpenpyxlWriter(ExcelWriter):
         from openpyxl.utils import get_column_letter
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast("tuple[int, int]", freeze_panes)
             col_letter = get_column_letter(freeze_panes[1] + 1)
             wks.freeze_panes = f"{col_letter}{freeze_panes[0] + 1}"
 
@@ -595,7 +593,6 @@ class OpenpyxlWriter(ExcelWriter):
         _style_cache: dict[str, dict[str, Serialisable]],
     ) -> None:
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast("tuple[int, int]", freeze_panes)
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
@@ -734,21 +731,31 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
+        saved_dimensions: tuple[int | None, int | None] | None = None
         if self.book.read_only:
+            # Declared sheet dimensions can be incorrect, so have openpyxl
+            # infer the real extent while iterating (GH 39486); save them to
+            # restore the user's worksheet handle afterwards (GH 63010)
+            saved_dimensions = (sheet.max_row, sheet.max_column)
             sheet.reset_dimensions()
 
         data: list[list[Scalar]] = []
         last_row_with_data = -1
-        for row_number, row in enumerate(sheet.rows):
-            converted_row = [self._convert_cell(cell) for cell in row]
-            while converted_row and converted_row[-1] == "":
-                # trim trailing empty elements
-                converted_row.pop()
-            if converted_row:
-                last_row_with_data = row_number
-            data.append(converted_row)
-            if file_rows_needed is not None and len(data) >= file_rows_needed:
-                break
+        try:
+            for row_number, row in enumerate(sheet.rows):
+                converted_row = [self._convert_cell(cell) for cell in row]
+                while converted_row and converted_row[-1] == "":
+                    # trim trailing empty elements
+                    converted_row.pop()
+                if converted_row:
+                    last_row_with_data = row_number
+                data.append(converted_row)
+                if file_rows_needed is not None and len(data) >= file_rows_needed:
+                    break
+        finally:
+            if saved_dimensions is not None:
+                # max_row/max_column of a read-only worksheet have no setters
+                sheet._max_row, sheet._max_column = saved_dimensions
 
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]

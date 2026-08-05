@@ -1957,7 +1957,7 @@ The repeated labels are:\n-+\nwolof
             "'ascii' codec can't decode byte 0xef in position 14: "
             r"ordinal not in range\(128\)"
         )
-        with pytest.raises(UnicodeEncodeError, match=f"{msg1}|{msg2}"):
+        with pytest.raises(UnicodeEncodeError, match="|".join([msg1, msg2])):
             df.to_stata(temp_file)
 
     def test_strl_latin1(self, temp_file):

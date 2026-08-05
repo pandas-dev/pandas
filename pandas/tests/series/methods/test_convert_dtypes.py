@@ -173,7 +173,7 @@ class TestSeriesConvertDtypes:
             ),
         ],
     )
-    @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
+    @pytest.mark.parametrize("params", list(product(*[(True, False)] * 5)))
     def test_convert_dtypes(
         self,
         data,

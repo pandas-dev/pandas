@@ -123,6 +123,17 @@ class TestReductions:
         out = SparseArray(data, fill_value=np.nan).sum()
         assert out == 40.0
 
+    def test_sum_skipna(self):
+        # GH#65478 sum honors skipna for SparseArray-backed reductions
+        arr = SparseArray([1.0, np.nan, 3.0], fill_value=np.nan)
+        assert arr.sum(skipna=True) == 4.0
+        assert isna(arr.sum(skipna=False))
+
+        # a non-null fill value is not a missing value, so skipna=False
+        # still returns the full sum
+        arr = SparseArray([1, 2, 0, 3], fill_value=0)
+        assert arr.sum(skipna=False) == 6
+
     @pytest.mark.parametrize(
         "arr",
         [[0, 1, np.nan, 1], [0, 1, 1]],
@@ -173,6 +184,27 @@ class TestReductions:
         data[5] = np.nan
         out = SparseArray(data).mean()
         assert out == 40.0 / 9
+
+        out = SparseArray(data).mean(skipna=True)
+        assert out == 40.0 / 9
+
+        out = SparseArray(data).mean(skipna=False)
+        assert isna(out)
+
+        arr = SparseArray([1.0, np.nan, 3.0], fill_value=np.nan)
+        out = arr.mean(skipna=True)
+        assert out == 2.0
+
+        out = arr.mean(skipna=False)
+        assert isna(out)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_mean_raises_for_unsupported_object_dtype_with_na(self, skipna):
+        arr = SparseArray(["a", np.nan], dtype=SparseDtype(object))
+
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
+            arr.mean(skipna=skipna)
 
     def test_numpy_mean(self):
         data = np.arange(10).astype(float)
@@ -235,6 +267,17 @@ class TestMinMax:
 
         min_result = arr.min()
         assert min_result == min_expected
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    @pytest.mark.parametrize("values", [[np.nan, 0, 1, 0], [np.nan, 0, 0]])
+    def test_min_max_skipna_false_with_nonnull_fill_value(self, method, values):
+        # GH#65478 skipna=False should see explicit NA values, even when
+        # non-null fill-value gaps are also present.
+        arr = SparseArray(values, fill_value=0)
+
+        result = getattr(arr, method)(skipna=False)
+
+        assert isna(result)
 
     def test_only_fill_value(self):
         fv = 100

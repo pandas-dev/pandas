@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -66,7 +67,6 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
-    decorate_axes,
     format_dateaxis,
     maybe_convert_index,
     prepare_ts_data,
@@ -80,7 +80,6 @@ from pandas.plotting._matplotlib.tools import (
     get_xlim,
     handle_shared_axes,
 )
-from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
     from matplotlib.artist import Artist
@@ -496,7 +495,7 @@ class MPLPlot(ABC):
             # This was originally written to use values.values before EAs
             #  were implemented; adding np.asarray(...) to keep consistent
             #  typing.
-            yield col, np.asarray(values.values)
+            yield col, np.asarray(values._values)
 
     def _get_nseries(self, data: Series | DataFrame) -> int:
         # When `by` is explicitly assigned, grouped data size will be defined, and
@@ -1164,7 +1163,7 @@ class MPLPlot(ABC):
 
         # errors are a column in the dataframe
         elif isinstance(err, str):
-            evalues = data[err].values
+            evalues = data[err]._values
             data = data[data.columns.drop(err)]
             err = np.atleast_2d(evalues)
             err = np.tile(err, (nseries, 1))
@@ -1354,11 +1353,8 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
-            _was_dt_like = isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex))
-            s = maybe_convert_index(ax, s)
-            if _was_dt_like and is_integer_dtype(s.index):
-                decorate_axes(ax, to_offset("B"))
-            freq, s = prepare_ts_data(s, ax, self.kwds)
+            s, index_freq = maybe_convert_index(ax, s)
+            freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
             x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
@@ -1393,8 +1389,8 @@ class ScatterPlot(PlanePlot):
             )
 
         scatter = ax.scatter(
-            x_data.values,
-            data[y].values,
+            x_data._values,
+            data[y]._values,
             c=c_values,
             label=label,
             cmap=cmap,
@@ -1424,7 +1420,7 @@ class ScatterPlot(PlanePlot):
         if len(errors_x) > 0 or len(errors_y) > 0:
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
-            ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+            ax.errorbar(data[x]._values, data[y]._values, linestyle="none", **err_kwds)
 
     def _get_c_values(self, color, color_by_categorical: bool, c_is_column: bool):
         c = self.c
@@ -1437,7 +1433,7 @@ class ScatterPlot(PlanePlot):
         elif color_by_categorical:
             c_values = self.data[c].cat.codes
         elif c_is_column:
-            c_values = self.data[c].values
+            c_values = self.data[c]._values
         else:
             c_values = c
         return c_values
@@ -1530,9 +1526,9 @@ class HexBinPlot(PlanePlot):
         if C is None:
             c_values = None
         else:
-            c_values = data[C].values
+            c_values = data[C]._values
 
-        ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap, **self.kwds)
+        ax.hexbin(data[x]._values, data[y]._values, C=c_values, cmap=cmap, **self.kwds)
         if cb:
             self._plot_colorbar(ax, fig=fig)
 
@@ -1557,26 +1553,19 @@ class LinePlot(MPLPlot):
             self.data = self.data.fillna(value=0)
 
     def _make_plot(self, fig: Figure) -> None:
-        if self._is_ts_plot():
+        is_ts = self._is_ts_plot()
+        if is_ts:
             ax0 = self._get_ax(0)
-            data = maybe_convert_index(ax0, self.data)
-            # For BDay, maybe_convert_index produces a plain int64 index (to
-            # avoid the deprecated Period[B]).  The int64 index carries no freq
-            # attribute, so pre-populate ax.freq via decorate_axes now; the
-            # per-column prepare_ts_data → maybe_resample calls need it.
-            if is_integer_dtype(data.index) and isinstance(
-                self.data.index, (ABCDatetimeIndex, ABCPeriodIndex)
-            ):
-                decorate_axes(ax0, to_offset("B"))
+            data, index_freq = maybe_convert_index(ax0, self.data)
 
             x = data.index  # dummy, not used
-            plotf = self._ts_plot
+            plotf = partial(self._ts_plot, index_freq=index_freq)
             it = data.items()
         else:
             x = self._get_xticks()
             # error: Incompatible types in assignment (expression has type
-            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
-            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
+            # "Callable[[Axes, Any, ndarray[tuple[Any, ...], dtype[Any]], Any,
+            # Any, Any, KwArg(Any)], Any]", variable has type "partial[Any]")
             plotf = self._plot  # type: ignore[assignment]
             # error: Incompatible types in assignment (expression has type
             # "Iterator[tuple[Hashable, ndarray[Any, Any]]]", variable has
@@ -1587,6 +1576,10 @@ class LinePlot(MPLPlot):
         is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
+        # Collect unique ts axes so date-axis formatting + xlim run once per
+        # axis at the end, not once per column (GH#61398).
+        ts_axes: list[Axes] = []
+        seen_ax_ids: set[int] = set()
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1620,9 +1613,15 @@ class LinePlot(MPLPlot):
             )
             self._append_legend_handles_labels(newlines[0], label)
 
-            if self._is_ts_plot():
-                # reset of xlim should be used for ts data
-                # TODO: GH28021, should find a way to change view limit on xaxis
+            if is_ts and id(ax) not in seen_ax_ids:
+                ts_axes.append(ax)
+                seen_ax_ids.add(id(ax))
+
+        if is_ts:
+            # TODO: GH28021, should find a way to change view limit on xaxis
+            for ax in ts_axes:
+                # TODO #54485
+                format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
@@ -1649,19 +1648,25 @@ class LinePlot(MPLPlot):
         return lines
 
     @final
-    def _ts_plot(self, ax: Axes, x, data: Series, style=None, **kwds):
+    def _ts_plot(
+        self,
+        ax: Axes,
+        x,
+        data: Series,
+        style=None,
+        index_freq: str | None = None,
+        **kwds,
+    ):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = prepare_ts_data(data, ax, kwds)
+        _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
 
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
-        # set date formatter, locators and rescale limits
-        # TODO #54485
-        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+        # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
     @final
@@ -2198,14 +2203,14 @@ class PiePlot(MPLPlot):
                 ]
             else:
                 blabels = None
-            results = ax.pie(y, labels=blabels, **kwds)
+            # Any: pie returns a 2- or 3-tuple and matplotlib's return type
+            # for it differs across versions
+            results: Any = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
-                # error: Need more than 2 values to unpack (3 expected)
-                patches, texts, autotexts = results  # type: ignore[misc]
+                patches, texts, autotexts = results
             else:
-                # error: Too many values to unpack (2 expected, 3 provided)
-                patches, texts = results  # type: ignore[misc]
+                patches, texts = results
                 autotexts = []
 
             if self.fontsize is not None:

@@ -53,6 +53,112 @@ def test_select_columns_in_where(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("s", where="columns=['A']"), s)
 
 
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 3}, {"iterator": True}])
+@pytest.mark.parametrize(
+    "where",
+    ["columns=['A']", "columns!=['A']", "A>0 & columns=['A', 'B']"],
+)
+def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwargs):
+    # GH#12953 a column selection in the `where` argument is a projection, not a
+    # row filter, so it cannot be applied per-chunk; raise a clear error
+    # pointing to the `columns` argument instead of a cryptic KeyError.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    msg = "is a column projection, not a row filter"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where=where, **iter_kwargs)
+
+    # a plain row filter must keep working
+    result = concat(list(temp_hdfstore.select("df", where="A>0", **iter_kwargs)))
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", where="A>0"))
+
+
+def test_select_as_coordinates_columns_in_where_raises(temp_hdfstore):
+    # GH#12953 a column selection in the `where` argument is a projection, not a
+    # row filter, so it cannot be expressed as row coordinates. Every
+    # coordinate-based read -- select_as_coordinates and select_as_multiple --
+    # raises the same clear error as the iterator path, rather than the cryptic
+    # KeyError that read_coordinates used to produce.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df1", df, data_columns=True)
+    temp_hdfstore.append("df2", df.rename(columns="{}_2".format), data_columns=True)
+
+    msg = "is a column projection, not a row filter"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select_as_coordinates("df1", where="columns=['A']")
+
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select_as_multiple(
+            ["df1", "df2"], where="columns=['A']", selector="df1"
+        )
+
+    # a plain row filter must keep returning coordinates
+    coords = temp_hdfstore.select_as_coordinates("df1", where="A>0")
+    assert len(coords) == (df["A"] > 0).sum()
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 50}, {"iterator": True}])
+def test_select_iterator_condition_and_big_selector(temp_hdfstore, iter_kwargs):
+    # GH#12953 a `where` that combines a numexpr row condition with a big-list
+    # (>31 selectors) data-column filter is realized as a numexpr condition plus
+    # a post-read filter. The chunked/iterator path reads by row coordinates, so
+    # the filter must be applied when computing those coordinates -- otherwise it
+    # is silently dropped and extra rows leak through.
+    df = DataFrame(
+        {
+            "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
+            "users": ["a"] * 50
+            + ["b"] * 50
+            + ["c"] * 100
+            + [f"a{i:03d}" for i in range(100)],
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=["ts", "users"])
+
+    selector = ["a", "b", "c"] + [f"a{i:03d}" for i in range(60)]
+    where = "ts>=Timestamp('2012-02-01') and users=selector"
+
+    expected = df[(df["ts"] >= Timestamp("2012-02-01")) & df["users"].isin(selector)]
+    result = concat(list(temp_hdfstore.select("df", where=where, **iter_kwargs)))
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", where=where))
+
+
+@pytest.mark.parametrize("op", ["==", "!="])
+def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
+    # GH#12953 a big-list (>31 selectors) ==/!= filter on a datetimetz data
+    # column is realized as a post-read filter (process_axes). The filter was
+    # applied to the column's tz-naive .values, which never matched the
+    # tz-aware selector, so a plain read silently returned the wrong rows
+    # (nothing for ==, everything for !=) while the coordinate/iterator path
+    # returned the right rows.
+    ts = date_range("2020-01-01", periods=300, freq="h", tz="US/Eastern", unit="ns")
+    df = DataFrame({"ts": ts, "other": np.arange(300)})
+    temp_hdfstore.append("df", df, data_columns=["ts", "other"])
+
+    selector = list(ts[:60])
+    where = f"ts {op} selector"
+
+    isin = df["ts"].isin(selector)
+    expected = df[isin if op == "==" else ~isin]
+
+    result = temp_hdfstore.select("df", where=where)
+    tm.assert_frame_equal(result, expected)
+
+    # a plain read must match the iterator/coordinate path
+    iter_result = concat(list(temp_hdfstore.select("df", where=where, chunksize=50)))
+    tm.assert_frame_equal(result, iter_result)
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = DataFrame(
@@ -64,11 +170,11 @@ def test_select_with_dups(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=df.columns)
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=["A"])
     expected = df.loc[:, ["A"]]
@@ -95,19 +201,19 @@ def test_select_with_dups_across_dtypes(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=df.columns)
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     expected = df.loc[:, ["A"]]
     result = temp_hdfstore.select("df", columns=["A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     expected = df.loc[:, ["B", "A"]]
     result = temp_hdfstore.select("df", columns=["B", "A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_select_with_dups_across_index_and_columns(temp_hdfstore):
@@ -131,7 +237,7 @@ def test_select_with_dups_across_index_and_columns(temp_hdfstore):
     expected = df.loc[:, ["B", "A"]]
     expected = concat([expected, expected])
     result = temp_hdfstore.select("df", columns=["B", "A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_select(temp_hdfstore):
@@ -281,6 +387,27 @@ def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore):
     np_zero = np.float64(0)  # noqa: F841
     result = temp_hdfstore.select("df", where=["A>np_zero"])
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize(
+    "where",
+    [
+        "(A % 3) == 0",
+        "A % 3 == 0",
+        "(A * 2) > 10",
+        "(A + B) < 25",
+        "A + 1",
+    ],
+)
+def test_select_arithmetic_where_not_supported(temp_hdfstore, where):
+    # GH#41100 arithmetic operators inside a where clause are not supported;
+    # raise an informative error instead of an opaque PyTables one
+    df = DataFrame({"A": np.arange(0, 10), "B": np.arange(10, 20)})
+    temp_hdfstore.append("df", df, data_columns=["A", "B"])
+
+    msg = "arithmetic operations are not supported"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where=[where])
 
 
 def test_select_with_many_inputs(temp_hdfstore):
@@ -1058,3 +1185,64 @@ def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit)
     )
     expected = df[(df.index >= "2020-01-02") & (df.index <= "2020-01-03")]
     tm.assert_frame_equal(result, expected)
+
+
+def _multichunk_indexed_frame(n=200):
+    # wide "pad" column forces the table to span more than one chunk (row group),
+    # a precondition for the PyTables bug in GH#50598. PyTables picks chunkshape
+    # heuristically, so pad generously to keep rows-per-chunk well below n across
+    # PyTables versions/platforms (the same string object is reused, so it's cheap)
+    return DataFrame(
+        {
+            "a": np.arange(n) % 5,
+            "b": np.arange(n) % 7,
+            "pad": ["x" * 20000] * n,
+        }
+    )
+
+
+def test_select_nested_or_query_warns(temp_hdfstore):
+    # GH#50598 nested queries that OR together AND-ed conditions over indexed
+    # columns on a multi-chunk table can return incorrect results due to an
+    # upstream PyTables bug, so warn the user.
+    n = 200
+    df = _multichunk_indexed_frame(n)
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    # sanity check: the table really does span more than one chunk
+    assert temp_hdfstore.get_storer("df").table.chunkshape[0] < n
+
+    # both the symmetric and asymmetric shapes can hit the bug, so both warn
+    for where in [
+        "(a >= 0 & b <= 3) | (a <= 4 & b >= 2)",  # (A & B) | (C & D)
+        "(a >= 0 & b <= 3) | b >= 2",  # (A & B) | C
+    ]:
+        with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+            temp_hdfstore.select("df", where=where)
+
+    # query shapes not affected by the bug must NOT warn
+    for where in [
+        "a <= 4 & b >= 2",  # single AND, no OR
+        "b <= 3 | b >= 5",  # single-column OR
+        "a <= 4 | b >= 2",  # OR of two single-column conditions
+    ]:
+        with tm.assert_produces_warning(None):
+            temp_hdfstore.select("df", where=where)
+
+
+def test_select_nested_or_query_no_warn_without_index(temp_hdfstore):
+    # GH#50598 the bug requires column indexes; writing with index=False is the
+    # recommended workaround and must not trigger the warning
+    n = 200
+    df = _multichunk_indexed_frame(n)
+    temp_hdfstore.put(
+        "df",
+        df,
+        format="table",
+        data_columns=["a", "b"],
+        index=False,
+        track_times=False,
+    )
+    with tm.assert_produces_warning(None):
+        temp_hdfstore.select("df", where="(a >= 0 & b <= 3) | (a <= 4 & b >= 2)")

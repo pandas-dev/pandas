@@ -52,7 +52,7 @@ def test_map_identity_mapping(index, request, using_infer_string):
         assert (index == result).all()
         # TODO: could work that into the 'exact="equiv"'?
         return  # FIXME: doesn't belong in this file anymore!
-    tm.assert_index_equal(result, index, exact="equiv")
+    tm.assert_index_equal(result, index, exact="equiv", check_freq=False)
 
 
 def test_wrong_number_names(index):
@@ -76,7 +76,7 @@ class TestConversion:
         # assert that we are creating a copy of the index
 
         ser = index.to_series()
-        assert ser.values is not index.values
+        assert ser._values is not index._values
         assert ser.index is not index
         assert ser.name == index.name
 
@@ -86,14 +86,14 @@ class TestConversion:
         # index kwarg
         ser = index.to_series(index=index)
 
-        assert ser.values is not index.values
+        assert ser._values is not index._values
         assert ser.index is index
         assert ser.name == index.name
 
         # name kwarg
         ser = index.to_series(name="__test")
 
-        assert ser.values is not index.values
+        assert ser._values is not index._values
         assert ser.index is not index
         assert ser.name != index.name
 

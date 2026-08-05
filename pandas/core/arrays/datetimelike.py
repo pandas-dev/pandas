@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Self,
     TypeAlias,
-    Union,
     cast,
     final,
     overload,
@@ -21,10 +20,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    using_infer_freq_offset,
-    using_string_dtype,
-)
+from pandas._config import using_string_dtype
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
@@ -49,7 +45,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
-    to_offset,
 )
 from pandas._libs.tslibs.fields import (
     RoundTo,
@@ -382,7 +377,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast("Self | DTScalarOrNaT", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
@@ -498,7 +493,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # error: Argument 1 to "Timestamp" has incompatible type "object";
+            # expected "integer[Any] | float | str | date | datetime |
+            # datetime64[date | int | None]"  [arg-type]
+            other = self._scalar_type(other)  # type: ignore[arg-type]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -917,24 +915,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        result = self._inferred_freq_str
-        if result is not None:
-            opt = using_infer_freq_offset()
-            if opt is True:
-                return to_offset(result)
-            if opt is None:
-                warnings.warn(
-                    "A future version of pandas will return a BaseOffset "
-                    "object instead of a string from inferred_freq. "
-                    "Use pd.set_option("
-                    "'future.infer_freq_returns_offset', True) "
-                    "to get the future behavior, or set to False to keep the "
-                    "old behavior and silence this warning. To preserve the "
-                    "string representation, use ``inferred_freq.freqstr``.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
-        return result
+        return frequencies.maybe_convert_inferred_freq(
+            self._inferred_freq_str, "inferred_freq"
+        )
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
@@ -1744,7 +1727,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
-        out = out.astype("i8").view(self._ndarray.dtype)
+        # All-NA groups come back as NaN; casting NaN to i8 is platform
+        # dependent (0 on some architectures), so map them to iNaT explicitly.
+        na_mask = np.isnan(out)
+        out[na_mask] = 0
+        out = out.astype("i8")
+        out[na_mask] = iNaT
+        out = out.view(self._ndarray.dtype)
         return self._from_backing_data(out)
 
 
@@ -2026,7 +2015,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
-    def round(
+    def round(  # type: ignore[override]
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",

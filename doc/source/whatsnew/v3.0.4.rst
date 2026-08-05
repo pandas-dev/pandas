@@ -1,7 +1,7 @@
 .. _whatsnew_304:
 
-What's new in 3.0.4 (June XX 2026)
-----------------------------------
+What's new in 3.0.4 (June 28, 2026)
+-----------------------------------
 
 These are the changes in pandas 3.0.4. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -14,6 +14,11 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed a performance regression in :meth:`Series.searchsorted` and :meth:`Index.searchsorted` with the string dtype, where a full ``O(n)`` NA scan made the operation much slower than the binary search itself (:issue:`65837`)
+- Fixed a regression in :meth:`~Series.isin` raising an error when checking for ``pd.NA`` with ``ArrowDtype``, which also affected :meth:`DataFrame.drop` with ``ArrowDtype``-backed indexes (:issue:`63304`)
+- Fixed a regression in arithmetic operations involving :class:`StringDtype` and custom Python objects incorrectly raising instead of returning object-dtype results (:issue:`64107`)
+- Fixed a regression in localizing timestamps beyond the year 2100 when using ``zoneinfo`` timezones (:issue:`65733`)
+- Fixed a regression in setting into a DataFrame with MultiIndex columns and mixed-dtype level silently doing nothing (:issue:`65118`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_304.bug_fixes:
@@ -21,6 +26,12 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Fixed a bug in :meth:`DataFrame.iloc` silently ignoring the assignment when setting values with an unordered or duplicated column indexer on a :class:`DataFrame` whose values are referenced by another object (:issue:`65446`)
+- Fixed a bug in :meth:`DataFrame.to_sql` and :func:`read_sql_table` when using an ADBC engine where table and schema names were not quoted as SQL identifiers, causing failures for identifiers containing spaces or reserved words, and making it vulnerable to SQL injection (:issue:`65065`)
+- Fixed a bug in :meth:`Series.str.__getitem__` raising ``AttributeError`` when underlying array is :class:`ArrowExtensionArray` (:issue:`65112`)
+- Fixed a bug in :meth:`Series.str.match` and :meth:`Index.str.match` with PyArrow-backed string dtypes where a leading ``^`` only anchored the first branch of an alternation pattern (e.g. ``r"^foo|bar"``) (:issue:`66069`)
+- Fixed a bug in :meth:`~DataFrame.eval` not honoring Copy-on-Write with the Python engine when columns were reused in the expression, causing unexpected mutation of the original :class:`DataFrame` (:issue:`65664`)
+- Fixed a bug in arithmetic adding or subtracting a non-tick :class:`DateOffset` (e.g. :class:`offsets.MonthEnd`, :class:`offsets.QuarterEnd`) to datetime data that could cause a segmentation fault when another thread was running concurrently, e.g. under ``pytest-xdist`` (:issue:`66031`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_304.contributors:

@@ -496,9 +496,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        arr = self._data.normalize()
+        data = self._data
+        # Inferring frequency from naive normalization is significantly
+        # cheaper than tz-aware.
+        naive = data._normalize_naive()
+        freq = to_offset(naive._inferred_freq_str)
+        arr = naive.tz_localize(data.tz) if data.tz is not None else naive
         result = type(self)._simple_new(arr, name=self.name)
-        result._freq = to_offset(arr._inferred_freq_str)
+        result._freq = freq
         return result
 
     def tz_convert(self, tz) -> Self:
@@ -717,7 +722,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))

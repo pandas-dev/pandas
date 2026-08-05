@@ -64,6 +64,20 @@ class TestDataFrameToStringFormatters:
         )
         assert result == expected
 
+    def test_to_string_object_dtype_with_formatter(self):
+        # GH#39850 formatter applied to floats stored in an object-dtype column
+        df = DataFrame([0.123456789, 1.123456789, 2.123456789], columns=["value"])
+        df = df.astype({"value": "object"})
+        result = df.to_string(formatters=["{:.2f}".format])
+        expected = dedent(
+            """\
+              value
+            0  0.12
+            1  1.12
+            2  2.12"""
+        )
+        assert result == expected
+
     def test_to_string_with_formatters(self):
         df = DataFrame(
             {

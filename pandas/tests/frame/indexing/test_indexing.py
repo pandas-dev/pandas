@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.compat import PY315
 
 from pandas.core.dtypes.common import is_integer
 
@@ -29,7 +30,10 @@ from pandas import (
 import pandas._testing as tm
 
 # We pass through a TypeError raised by numpy
-_slice_msg = "slice indices must be integers or None or have an __index__ method"
+if PY315:
+    _slice_msg = "slice indices must be integers or have an __index__ method"
+else:
+    _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
 class TestDataFrameIndexing:
@@ -1183,7 +1187,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df2, expected)
 
         df["foo"] = "test"
-        msg = "not supported between instances|unorderable types|Invalid comparison"
+        msg = "|".join(
+            [
+                "not supported between instances",
+                "unorderable types",
+                "Invalid comparison",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1

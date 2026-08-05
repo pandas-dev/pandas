@@ -18,7 +18,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
-from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.generic import ABCNDFrame
 
 from pandas.core import roperator
@@ -72,26 +71,44 @@ class OpsMixin:
 
     @unpack_zerodim_and_defer("__and__")
     def __and__(self, other) -> Self:
+        """
+        Return elementwise ``self & other``.
+
+        Logical AND for boolean operands, bitwise AND for integer operands.
+        """
         return self._logical_method(other, operator.and_)
 
     @unpack_zerodim_and_defer("__rand__")
     def __rand__(self, other) -> Self:
+        """Return elementwise ``other & self``."""
         return self._logical_method(other, roperator.rand_)
 
     @unpack_zerodim_and_defer("__or__")
     def __or__(self, other) -> Self:
+        """
+        Return elementwise ``self | other``.
+
+        Logical OR for boolean operands, bitwise OR for integer operands.
+        """
         return self._logical_method(other, operator.or_)
 
     @unpack_zerodim_and_defer("__ror__")
     def __ror__(self, other) -> Self:
+        """Return elementwise ``other | self``."""
         return self._logical_method(other, roperator.ror_)
 
     @unpack_zerodim_and_defer("__xor__")
     def __xor__(self, other) -> Self:
+        """
+        Return elementwise ``self ^ other``.
+
+        Logical XOR for boolean operands, bitwise XOR for integer operands.
+        """
         return self._logical_method(other, operator.xor)
 
     @unpack_zerodim_and_defer("__rxor__")
     def __rxor__(self, other) -> Self:
+        """Return elementwise ``other ^ self``."""
         return self._logical_method(other, roperator.rxor)
 
     # -------------------------------------------------------------
@@ -532,6 +549,4 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    result = getattr(self, method_name)(skipna=False, **kwargs)
-    result = maybe_unbox_numpy_scalar(result)
-    return result
+    return getattr(self, method_name)(skipna=False, **kwargs)
