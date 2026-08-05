@@ -733,12 +733,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> df["Even Numbers"].name
         'Even Numbers'
         """
+        if self._groupby_pinned_name is not lib.no_default:
+            # GH#41090 - deprecated group-key pinning in groupby UDFs
+            self._maybe_warn_pinned_group_name()
         return self._name
 
     @name.setter
     def name(self, value: Hashable) -> None:
         validate_all_hashable(value, error_name=f"{type(self).__name__}.name")
         object.__setattr__(self, "_name", value)
+        if self._groupby_pinned_name is not lib.no_default:
+            # explicitly-set name is no longer the deprecated pinned group key
+            object.__setattr__(self, "_groupby_pinned_name", lib.no_default)
 
     @property
     def values(self):

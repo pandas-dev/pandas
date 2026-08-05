@@ -142,7 +142,7 @@ class TestDataFrameGroupByPlots:
 
     def test_groupby_plot_series_with_legend(self):
         # GH#41090 - legend labels are the group keys, with no reliance on
-        #  the name attribute being pinned to the group key as a side effect
+        #  the deprecated pinning of the key to the name attribute
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
