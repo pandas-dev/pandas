@@ -382,7 +382,7 @@ class MultiIndex(Index):
             Codes to check for validity. Defaults to current codes.
         levels : optional list
             Levels to check for validity. Defaults to current levels.
-        levels_to_validate: optional list
+        levels_to_verify: optional list
             Specifies the levels to verify.
 
         Raises
@@ -1707,7 +1707,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        values : str or sequence
+        names : str or sequence
             name(s) to set
         level : int, level name, or sequence of int/level names (default None)
             If the index is a MultiIndex (hierarchical), level(s) to set (None

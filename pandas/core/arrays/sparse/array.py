@@ -2100,7 +2100,6 @@ def _make_sparse(
     kind : {'block', 'integer'}
     fill_value : NaN or another value
     dtype : np.dtype, optional
-    copy : bool, default False
 
     Returns
     -------

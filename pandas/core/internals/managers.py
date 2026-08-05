@@ -114,7 +114,7 @@ def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
 
     Parameters
     ----------
-    blocks : List[DtypeObj]
+    dtypes : List[DtypeObj]
 
     Returns
     -------
