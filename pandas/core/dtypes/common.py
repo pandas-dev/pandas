@@ -21,12 +21,14 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -1301,6 +1303,33 @@ def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     if isinstance(dtype, np.dtype):
         return dtype.kind in "mM"
     return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
+
+
+def is_arrow_temporal_dtype(dtype: DtypeObj | None) -> bool:
+    """
+    Check whether the dtype is an ArrowDtype holding timestamps or durations.
+
+    These are not covered by :func:`needs_i8_conversion`, so callers that gate
+    datetime-like behavior on it need this check as well.
+
+    ``dtype.kind`` is not specific enough here: ``date32``/``date64`` also
+    report kind "M" but are not backed by a DatetimeArray, so they are
+    excluded.
+
+    Parameters
+    ----------
+    dtype : np.dtype, ExtensionDtype, or None
+
+    Returns
+    -------
+    boolean
+        Whether or not the dtype is an ArrowDtype timestamp or duration.
+    """
+    if not isinstance(dtype, ArrowDtype):
+        return False
+    pa = import_optional_dependency("pyarrow")
+    pa_type = dtype.pyarrow_dtype
+    return pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type)
 
 
 @set_module("pandas.api.types")

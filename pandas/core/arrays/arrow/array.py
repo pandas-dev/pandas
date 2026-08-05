@@ -56,6 +56,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_array_like_deprecate_non_pandas,
+    is_arrow_temporal_dtype,
     is_bool_dtype,
     is_float_dtype,
     is_integer,
@@ -1991,14 +1992,13 @@ class ArrowExtensionArray(
             value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.
         dtype = None
-        if isinstance(self.dtype, ArrowDtype):
-            pa_dtype = self.dtype.pyarrow_dtype
-            if (
-                pa.types.is_timestamp(pa_dtype) or pa.types.is_duration(pa_dtype)
-            ) and pa_dtype.unit == "ns":
-                # np.array[datetime/timedelta].searchsorted(datetime/timedelta)
-                # erroneously fails when numpy type resolution is nanoseconds
-                dtype = object
+        if (
+            is_arrow_temporal_dtype(self.dtype)
+            and self.dtype.pyarrow_dtype.unit == "ns"
+        ):
+            # np.array[datetime/timedelta].searchsorted(datetime/timedelta)
+            # erroneously fails when numpy type resolution is nanoseconds
+            dtype = object
         return self.to_numpy(dtype=dtype).searchsorted(value, side=side, sorter=sorter)
 
     def take(
@@ -2171,7 +2171,7 @@ class ArrowExtensionArray(
             data = self.fillna(na_value)
             copy = False
 
-        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+        if is_arrow_temporal_dtype(self.dtype):
             # GH 55997
             if dtype != object and na_value is self.dtype.na_value:
                 na_value = lib.no_default
