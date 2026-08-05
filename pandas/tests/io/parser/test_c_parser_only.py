@@ -860,16 +860,82 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
-def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
-    # GH#66277: the pyarrow string fast path computed token lengths with
+def test_pyarrow_string_fast_path_mutable(kwargs):
+    # GH#66619: the fast path builds its result without going through the
+    # ExtensionArray constructor, so it must set every attribute the
+    # constructor does; omitting _cache made mutating the result raise
+    # AttributeError.  low_memory=False is required, not incidental: the
+    # low-memory path concatenates its chunks, which rebuilds the array and
+    # would hide the omission.
+    pytest.importorskip("pyarrow")
+    # pinned rather than inherited: the default-kwargs case would otherwise get
+    # an object-dtype column, and stop exercising the fast path at all, in the
+    # PANDAS_FUTURE_INFER_STRING=0 build.
+    with option_context("future.infer_string", True):
+        result = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
+    arr = result["a"].array
+    arr[0] = "zzz"
+    arr.sort()
+    assert list(arr) == ["bar", "zzz"]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
+    # GH#66619: the fast path sets the instance attributes itself instead of
+    # calling __init__, so it has to track whatever set the constructor
+    # establishes.  Adding an attribute to ArrowStringArray.__init__ or
+    # ArrowExtensionArray.__init__ without teaching parsers.pyx about it should
+    # fail here rather than silently producing a half-built array.
+    pytest.importorskip("pyarrow")
+    with option_context("future.infer_string", True):
+        result = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
+    arr = result["a"].array
+    expected = type(arr)(arr._pa_array)
+    assert vars(arr).keys() == vars(expected).keys()
+
+
+def test_pyarrow_string_iterator_dtype_stable_across_chunks():
+    # GH#66619: a reader resolves its pyarrow target once, when it converts its
+    # first string column, so every chunk of one read gets the same dtype even
+    # if the options change mid-iteration.  Previously the target was looked up
+    # per chunk and the second chunk here came back object-dtype.
+    pytest.importorskip("pyarrow")
+    with option_context("future.infer_string", True):
+        reader = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", chunksize=1, iterator=True
+        )
+        first = next(reader)
+    with option_context("future.infer_string", False):
+        second = next(reader)
+    assert first["a"].dtype == StringDtype(na_value=np.nan)
+    assert second["a"].dtype == first["a"].dtype
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("prefix_len", [1, 200])
+def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
+    # GH#66415: the pyarrow string fast path computed token lengths with
     # strlen, so a quoted field with an embedded NUL byte was truncated at the
-    # NUL instead of matching the object path
+    # NUL.  Column "a" takes its length from the next token's start and column
+    # "b", last in the stream, from the stream end, covering both branches of
+    # the length helper; the two prefix_len values keep a length-capped scan
+    # from passing by accident.
     pytest.importorskip("pyarrow")
     parser = c_parser_only
-    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), **kwargs)
-    expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
-    assert result["a"][0] == "x\x00y"
-    assert expected["a"][0] == "x\x00y"
+    value = b"x" * prefix_len + b"\x00y"
+    data = b'a,b\n"' + value + b'","' + value + b'"'
+    result = parser.read_csv(BytesIO(data), **kwargs)
+    # engine="python" shares none of the C tokenizer's length arithmetic, so it
+    # is an independent reference for what the field should decode to
+    expected = read_csv(BytesIO(data), engine="python")
+    assert result["a"][0] == value.decode()
+    assert result["b"][0] == value.decode()
+    assert expected["a"][0] == value.decode()
+    assert expected["b"][0] == value.decode()
 
 
 def test_embedded_nul_fixed_width_bytes(c_parser_only):

@@ -20,6 +20,10 @@ See LICENSE for the license
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
@@ -203,8 +207,6 @@ int parser_consume_rows(parser_t *self, uint64_t nrows);
 
 int parser_trim_buffers(parser_t *self);
 
-void parser_clear_data_buffers(parser_t *self);
-
 int parser_add_skiprow(parser_t *self, int64_t row);
 
 void parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
@@ -265,3 +267,7 @@ int to_boolean(const char *item, int64_t length, uint8_t *val);
 // opposite sense from to_boolean above, which returns 0 on a match: the return
 // value here is a sign, not a status.
 int infinity_sign(const char *item, int64_t length);
+
+#ifdef __cplusplus
+}
+#endif
