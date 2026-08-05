@@ -100,21 +100,16 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     bint kh_exist_str(kh_str_t*, khiter_t) nogil
 
-    # NUL-terminated keys, deliberately: the na/true/false-values tables keep
-    # the pre-existing truncate-at-first-NUL semantics until a follow-up
-    # changes them (GH#19886); see khash_python.h.
-    ctypedef struct kh_strz_t:
-        khuint_t n_buckets, size, n_occupied, upper_bound
-
     ctypedef struct kh_str_starts_t:
-        kh_strz_t *table
+        kh_str_t *table
         int starts[256]
+        int has_empty
 
     kh_str_starts_t* kh_init_str_starts() nogil
     khuint_t kh_put_str_starts_item(kh_str_starts_t* table, const char* key,
-                                    int* ret) nogil
+                                    size_t length, int* ret) nogil
     khuint_t kh_get_str_starts_item(const kh_str_starts_t* table,
-                                    const char* key) nogil
+                                    const char* key, size_t length) nogil
     void kh_destroy_str_starts(kh_str_starts_t*) nogil
     void kh_resize_str_starts(kh_str_starts_t*, khuint_t) nogil
 

@@ -26,6 +26,7 @@ from pandas import (
 )
 from pandas.core.arrays import (
     ArrowExtensionArray,
+    ArrowStringArray,
     BooleanArray,
     DatetimeArray,
     FloatingArray,
@@ -35,6 +36,7 @@ from pandas.core.arrays import (
 cimport cython
 from cpython.bytes cimport (
     PyBytes_AsString,
+    PyBytes_AsStringAndSize,
     PyBytes_FromStringAndSize,
 )
 from cpython.exc cimport (
@@ -54,7 +56,6 @@ from cpython.ref cimport (
 from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_DecodeUTF8,
-    PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
 from libc.stdint cimport (
@@ -70,9 +71,7 @@ from libc.stdlib cimport (
 from libc.string cimport (
     memcpy,
     memset,
-    strcasecmp,
     strlen,
-    strncpy,
 )
 
 import numpy as np
@@ -173,16 +172,6 @@ cdef:
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 DEFAULT_BUFFER_HEURISTIC = 2 ** 20
-
-
-cdef extern from "pandas/portable.h":
-    # I *think* this is here so that strcasecmp is defined on Windows
-    # so we don't get
-    # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
-    # in Appveyor.
-    # In a sane world, the `from libc.string cimport` above would fail
-    # loudly.
-    pass
 
 
 cdef extern from "pandas/parser/tokenizer.h":
@@ -314,6 +303,8 @@ cdef extern from "pandas/parser/tokenizer.h":
     int try_parse_plain_double(const char *start, const char *end, char decimal,
                                double *out) nogil
 
+    int infinity_sign(const char *item, int64_t length) nogil
+
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
@@ -357,7 +348,7 @@ cdef extern from "pandas/parser/pd_parser.h":
                            char sci, char tsep, int skip_trailing,
                            int *error, int *maybe_int) nogil
 
-    int to_boolean(const char *item, uint8_t *val) nogil
+    int to_boolean(const char *item, int64_t length, uint8_t *val) nogil
 
     void PandasParser_IMPORT()
 
@@ -414,6 +405,7 @@ cdef class TextReader:
         dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
+        str _pa_target  # cached _string_convert target; None = unresolved
 
     cdef public:
         int64_t leading_cols, table_width
@@ -570,6 +562,7 @@ cdef class TextReader:
         self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
+        self._pa_target = None
         self.trim_after_read = True
 
         if float_precision in ("round_trip", "legacy", "high", None):
@@ -662,7 +655,7 @@ cdef class TextReader:
 
         After this call the tokeniser reads directly from the supplied *data*
         buffer rather than calling back into Python via the ``cb_io``
-        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.c`` checks
+        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.cpp`` checks
         ``self->source == NULL`` before invoking ``parser_buffer_bytes``, the
         GIL is **never** re-acquired during tokenisation — enabling true CPU
         parallelism across threads.
@@ -697,7 +690,7 @@ cdef class TextReader:
         self.parser.datalen = data.shape[0]
         self.parser.datapos = 0
 
-        # Disable the header/first-line special cases in tokenizer.c: the
+        # Disable the header/first-line special cases in tokenizer.cpp: the
         # buffer holds plain data rows, so its first line must get regular
         # bad-line handling and no BOM stripping (see parser_t.preloaded).
         self.parser.preloaded = 1
@@ -806,8 +799,11 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    name = PyUnicode_DecodeUTF8(word, strlen(word),
-                                                self.encoding_errors)
+                    # _token_len, not strlen: a column name containing an
+                    # embedded NUL must not be truncated at it.
+                    name = PyUnicode_DecodeUTF8(
+                        word, _token_len(self.parser, start + i),
+                        self.encoding_errors)
 
                     if name == "":
                         if self.has_mi_columns:
@@ -1474,21 +1470,32 @@ cdef class TextReader:
                          bint allow_pyarrow=False):
 
         cdef str target = ""
-        if (
-            allow_pyarrow
-            and HAS_PYARROW
-            and self.encoding_errors == b"strict"
-        ):
-            if self.dtype_backend == "pyarrow":
-                target = "arrow"
-            elif (
-                self.dtype_backend == "numpy"
-                and using_string_dtype()
-                # an ArrowStringArray result would be inconsistent with
-                # mode.string_storage="python"
-                and StringDtype(na_value=np.nan).storage == "pyarrow"
-            ):
-                target = "str_nan"
+        cdef str resolved
+        if allow_pyarrow:
+            # The option lookups behind the target decision are not free and
+            # run under the GIL, so resolve them once per reader rather than
+            # once per column chunk.  This pins which path the parser takes at
+            # the first string column converted, so changing the options
+            # mid-read (possible only with chunksize / iterator=True) no longer
+            # moves one read on or off the fast path partway through.  The
+            # object path still picks its storage downstream, per chunk.
+            if self._pa_target is None:
+                # resolve into a local and publish once, so no observer can
+                # see the "" placeholder while the lookups below are running
+                resolved = ""
+                if HAS_PYARROW and self.encoding_errors == b"strict":
+                    if self.dtype_backend == "pyarrow":
+                        resolved = "arrow"
+                    elif (
+                        self.dtype_backend == "numpy"
+                        and using_string_dtype()
+                        # an ArrowStringArray result would be inconsistent
+                        # with mode.string_storage="python"
+                        and StringDtype(na_value=np.nan).storage == "pyarrow"
+                    ):
+                        resolved = "str_nan"
+                self._pa_target = resolved
+            target = self._pa_target
 
         if target:
             try:
@@ -1614,6 +1621,7 @@ cdef class TextReader:
             Py_ssize_t j, lines = end - start
             coliter_t it
             const char *word = NULL
+            c_int64_t token_idx = 0
             ndarray[uint8_t, cast=True] mask = np.zeros(lines, dtype=bool)
             uint8_t *mptr = <uint8_t *>mask.data
 
@@ -1621,8 +1629,11 @@ cdef class TextReader:
             coliter_setup(&it, self.parser, i, start)
             with nogil:
                 for j in range(lines):
-                    word = coliter_next(&it)
-                    if kh_get_str_starts_item(na_hashset, word):
+                    word = coliter_next_with_idx(&it, &token_idx)
+                    if kh_get_str_starts_item(
+                        na_hashset, word,
+                        <size_t>_token_len(self.parser, token_idx)
+                    ):
                         mptr[j] = 1
         return mask
 
@@ -1968,7 +1979,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         word_len = _token_len(parser, token_idx)
 
         if na_filter:
-            if kh_get_str_starts_item(na_hashset, word):
+            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
                 # in the hash table
                 na_count += 1
                 result[i] = NA
@@ -1993,6 +2004,39 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     kh_destroy_strbox(table)
 
     return result, na_count
+
+
+# Prebuilt at import time so that `_string_pyarrow_utf8`, which runs once per
+# (column, chunk), does no import machinery or dtype construction while holding
+# the GIL.  Populating these lazily instead would race between the threads of a
+# parallel read.  Nothing is imported here that pandas has not already imported:
+# HAS_PYARROW is only true once ``pyarrow`` is in sys.modules, and
+# ``pandas.core.arrays`` exports ArrowStringArray.
+cdef object _pa_large_string_type = None
+cdef object _pa_string_type = None
+cdef object _pa_str_nan_dtype = None
+cdef object _pa_arrow_str_dtype = None
+cdef object _pa_py_buffer = None
+cdef object _pa_from_buffers = None
+cdef object _pa_chunked_array = None
+cdef object _pa_ArrowInvalid = None
+
+if HAS_PYARROW:
+    import pyarrow as pa
+
+    _pa_large_string_type = pa.large_string()
+    _pa_string_type = pa.string()
+    # storage is passed explicitly rather than left to mode.string_storage:
+    # this outlives the option, and the "str_nan" target is only ever chosen
+    # when the option resolves to "pyarrow" anyway.
+    _pa_str_nan_dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+    _pa_arrow_str_dtype = ArrowDtype(_pa_string_type)
+    # bound here too, so `_string_pyarrow_utf8` does no pyarrow attribute
+    # lookups of its own
+    _pa_py_buffer = pa.py_buffer
+    _pa_from_buffers = pa.Array.from_buffers
+    _pa_chunked_array = pa.chunked_array
+    _pa_ArrowInvalid = pa.lib.ArrowInvalid
 
 
 cdef int _days_per_month_array[12]
@@ -2169,13 +2213,14 @@ cdef _collect_arena(parser_t *parser, int64_t col,
     have produced.
 
     Only reached for chunks whose every non-NA word ISO-parsed at its full
-    `_token_len`, so words contain no embedded NULs and strlen is exact here
-    and in `_box_arena_utf8`.
+    `_token_len`, so words contain no embedded NULs and NUL-terminated storage
+    round-trips exactly here and in `_box_arena_utf8`.
     """
     cdef:
         Py_ssize_t i, lines, word_len, pos = 0
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
         bytes arena = PyBytes_FromStringAndSize(NULL, arena_size)
         char *buf = PyBytes_AsString(arena)
         ndarray[int64_t] offsets
@@ -2185,11 +2230,13 @@ cdef _collect_arena(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        word = coliter_next(&it)
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             offsets[i] = -1
             continue
-        word_len = strlen(word) + 1  # include the NUL
+        word_len += 1  # include the NUL
         memcpy(buf + pos, word, word_len)
         offsets[i] = pos
         pos += word_len
@@ -2330,14 +2377,16 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
             for i in range(lines):
                 word = coliter_next_with_idx(&it, &token_idx)
 
-                if na_filter and kh_get_str_starts_item(na_hashset, word):
+                # _token_len, not strlen: an embedded NUL must reach the ISO
+                # parser and fail, so the column falls back like the object path.
+                word_len = _token_len(parser, token_idx)
+
+                if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                        <size_t>word_len):
                     na_count += 1
                     iresult[i] = NPY_NAT
                     continue
 
-                # _token_len, not strlen: an embedded NUL must reach the ISO
-                # parser and fail, so the column falls back like the object path.
-                word_len = _token_len(parser, token_idx)
                 arena_size += word_len + 1
                 if word_len == 0:
                     na_count += 1
@@ -2520,9 +2569,6 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     offsets) to match the dtype_backend="pyarrow" convention; raises
     OverflowError if the column exceeds 2GiB.
     """
-    import pyarrow as pa
-
-    from pandas.core.arrays.string_arrow import ArrowStringArray
     cdef:
         int na_count = 0
         Py_ssize_t i, lines
@@ -2575,7 +2621,12 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         for i in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
 
-            if na_filter and kh_get_str_starts_item(na_hashset, word):
+            # Not strlen: an embedded NUL is a data byte here, so strlen would
+            # truncate the field at it (GH#66415).
+            wlen = _token_len_words(parser, token_idx, word)
+
+            if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                    <size_t>wlen):
                 na_count += 1
                 validity_ptr[i >> 3] &= <uint8_t>(~(1 << (i & 7)))
                 if large:
@@ -2583,10 +2634,6 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 else:
                     offsets32_ptr[i + 1] = <int32_t>total_bytes
                 continue
-
-            # _token_len, not strlen: an embedded NUL is a data byte here, so
-            # strlen would truncate the field at it (GH#66277).
-            wlen = _token_len(parser, token_idx)
 
             if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
                 overflow = True
@@ -2647,20 +2694,20 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
             saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
 
     if large:
-        offsets_buf = pa.py_buffer(offsets64)
-        pa_type = pa.large_string()
+        offsets_buf = _pa_py_buffer(offsets64)
+        pa_type = _pa_large_string_type
     else:
-        offsets_buf = pa.py_buffer(offsets32)
-        pa_type = pa.string()
-    data_buf = pa.py_buffer(data_arr)
+        offsets_buf = _pa_py_buffer(offsets32)
+        pa_type = _pa_string_type
+    data_buf = _pa_py_buffer(data_arr)
     if na_count > 0:
-        validity_buf = pa.py_buffer(validity_arr)
-        pa_arr = pa.Array.from_buffers(
+        validity_buf = _pa_py_buffer(validity_arr)
+        pa_arr = _pa_from_buffers(
             pa_type, lines, [validity_buf, offsets_buf, data_buf],
             null_count=na_count,
         )
     else:
-        pa_arr = pa.Array.from_buffers(
+        pa_arr = _pa_from_buffers(
             pa_type, lines, [None, offsets_buf, data_buf],
             null_count=0,
         )
@@ -2671,16 +2718,24 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     if saw_non_ascii:
         try:
             pa_arr.validate(full=True)
-        except pa.lib.ArrowInvalid:
+        except _pa_ArrowInvalid:
             return _string_box_utf8(parser, col, line_start, line_end,
                                     na_filter, na_hashset, b"strict")
 
+    # Bypass ArrowStringArray/ArrowExtensionArray.__init__ (type checks, dtype
+    # construction) -- the exact type and dtype are known by construction.
+    # This is `_from_pyarrow_array` inlined; that helper re-checks the pyarrow
+    # type on every call, which we already know here.  The attribute set is
+    # pinned by test_pyarrow_string_fast_path_attrs_match_constructor.
     if target == "str_nan":
-        return (
-            ArrowStringArray(pa_arr, dtype=StringDtype(na_value=np.nan)),
-            na_count,
-        )
-    return ArrowExtensionArray(pa_arr), na_count
+        arr = ArrowStringArray.__new__(ArrowStringArray)
+        arr._dtype = _pa_str_nan_dtype
+    else:
+        arr = ArrowExtensionArray.__new__(ArrowExtensionArray)
+        arr._dtype = _pa_arrow_str_dtype
+    arr._pa_array = _pa_chunked_array([pa_arr])
+    arr._cache = {}
+    return arr, na_count
 
 
 @cython.wraparound(False)
@@ -2726,7 +2781,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
             word_len = _token_len(parser, token_idx)
 
             if na_filter:
-                if kh_get_str_starts_item(na_hashset, word):
+                if kh_get_str_starts_item(na_hashset, word,
+                                          <size_t>word_len):
                     # is in NA values
                     na_count += 1
                     codes[i] = NA
@@ -2799,23 +2855,23 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
         int64_t _
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        size_t word_len
 
     coliter_setup(&it, parser, col, line_start)
 
     for _ in range(line_end - line_start):
-        word = coliter_next(&it)
-        strncpy(data, word, width)
+        word = coliter_next_with_idx(&it, &token_idx)
+        # memcpy at the exact token length rather than strncpy, which stops at
+        # an embedded NUL -- numpy "S" dtype can hold one, so truncating there
+        # would collapse distinct values.
+        word_len = <size_t>_token_len(parser, token_idx)
+        if word_len > width:
+            word_len = width
+        memcpy(data, word, word_len)
+        if word_len < width:
+            memset(data + word_len, 0, width - word_len)
         data += width
-
-
-cdef:
-    char* cinf = b"inf"
-    char* cposinf = b"+inf"
-    char* cneginf = b"-inf"
-
-    char* cinfty = b"Infinity"
-    char* cposinfty = b"+Infinity"
-    char* cneginfty = b"-Infinity"
 
 
 # -> tuple[ndarray[float64_t], int]  | tuple[None, None]
@@ -2856,14 +2912,16 @@ cdef int _probe_int64(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             continue
-        str_to_int64(word, _token_len(parser, token_idx),
-                     &error, parser.thousands)
+        str_to_int64(word, word_len, &error, parser.thousands)
         return error
     return 0
 
@@ -2879,24 +2937,22 @@ cdef int _probe_double(parser_t *parser, int64_t col,
         const char *word = NULL
         const char *word_end = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         char *p_end
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
         word = coliter_next_with_idx(&it, &token_idx)
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             continue
-        word_end = word + _token_len(parser, token_idx)
+        word_end = word + word_len
         parser.double_converter(word, &p_end, parser.decimal,
                                 parser.sci, parser.thousands,
                                 1, &error, NULL, word_end)
-        if error != 0 or p_end == word or p_end[0]:
-            if (strcasecmp(word, cinf) == 0 or
-                    strcasecmp(word, cposinf) == 0 or
-                    strcasecmp(word, cinfty) == 0 or
-                    strcasecmp(word, cposinfty) == 0 or
-                    strcasecmp(word, cneginf) == 0 or
-                    strcasecmp(word, cneginfty) == 0):
+        if error != 0 or p_end == word or p_end != word_end:
+            if infinity_sign(word, word_len) != 0:
                 return 0
             return 1
         return 0
@@ -2913,18 +2969,21 @@ cdef int _probe_bool_flex(parser_t *parser, int64_t col,
         Py_ssize_t lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        size_t word_len
         uint8_t tmp
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
-        word = coliter_next(&it)
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = <size_t>_token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word, word_len):
             continue
-        if kh_get_str_starts_item(true_hashset, word):
+        if kh_get_str_starts_item(true_hashset, word, word_len):
             return 0
-        if kh_get_str_starts_item(false_hashset, word):
+        if kh_get_str_starts_item(false_hashset, word, word_len):
             return 0
-        return to_boolean(word, &tmp)
+        return to_boolean(word, <int64_t>word_len, &tmp)
     return 0
 
 
@@ -2977,12 +3036,13 @@ cdef int _try_double_nogil(parser_t *parser,
                            float64_t NA, float64_t *data,
                            int *na_count) nogil:
     cdef:
-        int error = 0,
+        int error = 0, inf_sign
         Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         const char *word_end
         c_int64_t token_idx = 0
+        int64_t word_len
         char *p_end
         khiter_t k64
         # try_parse_plain_double covers the default converter with default
@@ -2998,28 +3058,26 @@ cdef int _try_double_nogil(parser_t *parser,
     if na_filter:
         for _ in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
+            word_len = _token_len(parser, token_idx)
 
-            if kh_get_str_starts_item(na_hashset, word):
+            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
                 # in the hash table
                 na_count[0] += 1
                 data[0] = NA
             else:
-                word_end = word + _token_len(parser, token_idx)
+                word_end = word + word_len
                 if not (fastpath and
                         try_parse_plain_double(word, word_end,
                                                parser.decimal, data) == 0):
                     data[0] = double_converter(word, &p_end, parser.decimal,
                                                parser.sci, parser.thousands,
                                                1, &error, NULL, word_end)
-                    if error != 0 or p_end == word or p_end[0]:
+                    if error != 0 or p_end == word or p_end != word_end:
                         error = 0
-                        if (strcasecmp(word, cinf) == 0 or
-                                strcasecmp(word, cposinf) == 0 or
-                                strcasecmp(word, cinfty) == 0 or
-                                strcasecmp(word, cposinfty) == 0):
+                        inf_sign = infinity_sign(word, word_len)
+                        if inf_sign > 0:
                             data[0] = INF
-                        elif (strcasecmp(word, cneginf) == 0 or
-                                strcasecmp(word, cneginfty) == 0):
+                        elif inf_sign < 0:
                             data[0] = NEGINF
                         else:
                             return 1
@@ -3039,15 +3097,12 @@ cdef int _try_double_nogil(parser_t *parser,
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL, word_end)
-                if error != 0 or p_end == word or p_end[0]:
+                if error != 0 or p_end == word or p_end != word_end:
                     error = 0
-                    if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0 or
-                            strcasecmp(word, cinfty) == 0 or
-                            strcasecmp(word, cposinfty) == 0):
+                    inf_sign = infinity_sign(word, word_end - word)
+                    if inf_sign > 0:
                         data[0] = INF
-                    elif (strcasecmp(word, cneginf) == 0 or
-                            strcasecmp(word, cneginfty) == 0):
+                    elif inf_sign < 0:
                         data[0] = NEGINF
                     else:
                         return 1
@@ -3105,6 +3160,28 @@ cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nog
     return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
 
 
+cdef inline int64_t _token_len_words(parser_t *parser, int64_t token_idx,
+                                     const char *word) noexcept nogil:
+    # Same arithmetic as _token_len, but taking the boundary from `words`
+    # rather than `word_starts`.  The tokenizer keeps the two in lockstep
+    # (words[i] == stream + word_starts[i], rebased whenever the stream
+    # reallocs), so the result is identical; what differs is which array the
+    # loop touches.  coliter_next_with_idx already loaded words[token_idx] to
+    # produce `word`, so the boundary comes off a cache line the loop has in
+    # hand instead of streaming a second metadata array alongside the first.
+    # `word` must be the unmodified coliter_next_with_idx result for
+    # `token_idx`; an adjusted pointer would silently yield a wrong length.
+    # Only the pyarrow string path uses this: rewriting _token_len itself to
+    # this form regressed long-token ints ~6% (GH#66277), so the numeric
+    # callers keep the word_starts version.
+    if token_idx < 0:
+        # missing field; word is a static "" outside the stream
+        return 0
+    if <uint64_t>(token_idx + 1) < parser.words_len:
+        return <int64_t>(parser.words[token_idx + 1] - word) - 1
+    return <int64_t>(parser.stream + parser.stream_len - word) - 1
+
+
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                            int64_t line_start,
                            int64_t line_end, bint na_filter,
@@ -3116,6 +3193,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
@@ -3123,14 +3201,14 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
     if na_filter:
         for i in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
-            if kh_get_str_starts_item(na_hashset, word):
+            word_len = _token_len(parser, token_idx)
+            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
                 # in the hash table
                 state.seen_null = 1
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
-                                    &error, thousands)
+            data[i] = str_to_uint64(state, word, word_len, &error, thousands)
             if error != 0:
                 return error
     else:
@@ -3191,6 +3269,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         c_int64_t token_idx = 0
+        int64_t word_len
         char thousands = parser.thousands
 
     na_count[0] = 0
@@ -3199,14 +3278,14 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
     if na_filter:
         for i in range(lines):
             word = coliter_next_with_idx(&it, &token_idx)
-            if kh_get_str_starts_item(na_hashset, word):
+            word_len = _token_len(parser, token_idx)
+            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
                 # in the hash table
                 na_count[0] += 1
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, _token_len(parser, token_idx),
-                                   &error, thousands)
+            data[i] = str_to_int64(word, word_len, &error, thousands)
             if error != 0:
                 return error
     else:
@@ -3230,6 +3309,9 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
         Py_ssize_t lines
         coliter_t it
         const char *word = NULL
+        char *pend = NULL
+        c_int64_t token_idx = 0
+        int64_t word_len
         ndarray[object] result
         object NA = na_values[np.object_]
 
@@ -3238,16 +3320,23 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        word = coliter_next(&it)
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
             # in the hash table
             na_count += 1
             result[i] = NA
             continue
 
-        py_int = PyLong_FromString(word, NULL, 10)
-        if py_int is None:
-            raise ValueError("Invalid integer ", word)
+        # PyLong_FromString is declared returning object, so a parse failure
+        # raises rather than returning None.
+        py_int = PyLong_FromString(word, &pend, 10)
+        # Require the parse to reach the end of the token: PyLong_FromString
+        # stops at an embedded NUL, so "1\0xyz" would otherwise be accepted
+        # as 1.  The caller turns this ValueError into a string column.
+        if <const char*>pend != word + word_len:
+            raise ValueError("Invalid integer ", word[:word_len])
         result[i] = py_int
 
     return result, na_count
@@ -3300,49 +3389,53 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
         Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        size_t word_len
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for _ in range(lines):
-            word = coliter_next(&it)
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_len = <size_t>_token_len(parser, token_idx)
 
-            if kh_get_str_starts_item(na_hashset, word):
+            if kh_get_str_starts_item(na_hashset, word, word_len):
                 # in the hash table
                 na_count[0] += 1
                 data[0] = NA
                 data += 1
                 continue
 
-            if kh_get_str_starts_item(true_hashset, word):
+            if kh_get_str_starts_item(true_hashset, word, word_len):
                 data[0] = 1
                 data += 1
                 continue
-            if kh_get_str_starts_item(false_hashset, word):
+            if kh_get_str_starts_item(false_hashset, word, word_len):
                 data[0] = 0
                 data += 1
                 continue
 
-            error = to_boolean(word, data)
+            error = to_boolean(word, <int64_t>word_len, data)
             if error != 0:
                 return error
             data += 1
     else:
         for _ in range(lines):
-            word = coliter_next(&it)
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_len = <size_t>_token_len(parser, token_idx)
 
-            if kh_get_str_starts_item(true_hashset, word):
+            if kh_get_str_starts_item(true_hashset, word, word_len):
                 data[0] = 1
                 data += 1
                 continue
 
-            if kh_get_str_starts_item(false_hashset, word):
+            if kh_get_str_starts_item(false_hashset, word, word_len):
                 data[0] = 0
                 data += 1
                 continue
 
-            error = to_boolean(word, data)
+            error = to_boolean(word, <int64_t>word_len, data)
             if error != 0:
                 return error
             data += 1
@@ -3350,18 +3443,20 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
     return 0
 
 
-cdef inline int _bool_numeric_literal(const char *word) noexcept nogil:
+cdef inline int _bool_numeric_literal(const char *word,
+                                      int64_t length) noexcept nogil:
     # The numeric boolean spellings BooleanArray accepts by default:
-    # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.
-    if word[0] == ord("1"):
-        if word[1] == 0:
+    # "1"/"1.0" -> 1, "0"/"0.0" -> 0, anything else -> -1.  Compare against
+    # `length` rather than a NUL so a token like "1\0x" is not read as "1".
+    if length == 1:
+        if word[0] == ord("1"):
             return 1
-        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
-            return 1
-    elif word[0] == ord("0"):
-        if word[1] == 0:
+        if word[0] == ord("0"):
             return 0
-        if word[1] == ord(".") and word[2] == ord("0") and word[3] == 0:
+    elif length == 3 and word[1] == ord(".") and word[2] == ord("0"):
+        if word[0] == ord("1"):
+            return 1
+        if word[0] == ord("0"):
             return 0
     return -1
 
@@ -3383,21 +3478,24 @@ cdef int _try_boolean_masked_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
+        size_t word_len
         int numeric
 
     coliter_setup(&it, parser, col, line_start)
     for i in range(lines):
-        word = coliter_next(&it)
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = <size_t>_token_len(parser, token_idx)
 
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
+        if na_filter and kh_get_str_starts_item(na_hashset, word, word_len):
             mask[i] = 1
             data[i] = 0
             continue
 
-        numeric = _bool_numeric_literal(word)
-        if kh_get_str_starts_item(true_hashset, word) or numeric == 1:
+        numeric = _bool_numeric_literal(word, <int64_t>word_len)
+        if kh_get_str_starts_item(true_hashset, word, word_len) or numeric == 1:
             data[i] = 1
-        elif kh_get_str_starts_item(false_hashset, word) or numeric == 0:
+        elif kh_get_str_starts_item(false_hashset, word, word_len) or numeric == 0:
             data[i] = 0
         else:
             return -1
@@ -3412,6 +3510,8 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
         kh_str_starts_t *table
         int ret = 0
         object val
+        char *buf
+        Py_ssize_t buflen
 
     table = kh_init_str_starts()
 
@@ -3423,7 +3523,10 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
             kh_destroy_str_starts(table)
             raise ValueError("Must be all encoded bytes")
 
-        kh_put_str_starts_item(table, PyBytes_AsString(val), &ret)
+        # PyBytes_AsStringAndSize, not PyBytes_AsString: an na_value may itself
+        # contain an embedded NUL, and its length is what makes it comparable.
+        PyBytes_AsStringAndSize(val, &buf, &buflen)
+        kh_put_str_starts_item(table, buf, <size_t>buflen, &ret)
 
     if table.table.n_buckets <= 128:
         # Resize the hash table to make it almost empty, this
@@ -3540,6 +3643,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
+        c_int64_t token_idx = 0
         ndarray[object] result
         object val
 
@@ -3549,8 +3653,10 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        word = coliter_next(&it)
-        val = PyUnicode_FromString(word)
+        word = coliter_next_with_idx(&it, &token_idx)
+        # _token_len, not PyUnicode_FromString: a converter must see the same
+        # value the object path produces, embedded NULs included.
+        val = PyUnicode_DecodeUTF8(word, _token_len(parser, token_idx), NULL)
         result[i] = f(val)
 
     return lib.maybe_convert_objects(result)
