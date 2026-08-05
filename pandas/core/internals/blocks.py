@@ -2131,6 +2131,17 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
+            elif (
+                is_list_like(indexer[1])
+                and len(indexer[1]) == 1
+                and isinstance(indexer[1][0], (bool, np.bool_))
+                and indexer[1][0]
+            ):
+                # GH#66527 boolean column indexer selecting the sole column
+                # of a single-column, 1D-only EA block
+                # (e.g. df.loc[:, [True]] / df.iloc[:, [True]])
+                indexer = indexer[0]
+
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
 
