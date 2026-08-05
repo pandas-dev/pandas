@@ -1377,6 +1377,17 @@ def test_fullmatch_compiled_regex(any_string_dtype):
     expected = Series([True, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
+    # GH#66138 compatible case/flags should not raise
+    result = values.str.fullmatch(re.compile("ab", flags=re.IGNORECASE), case=False)
+    expected = Series([True, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = values.str.fullmatch(
+        re.compile("ab", flags=re.IGNORECASE), flags=re.IGNORECASE
+    )
+    expected = Series([True, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
     with pytest.raises(
         ValueError, match="Cannot pass flags that do not match pat.flags"
     ):
