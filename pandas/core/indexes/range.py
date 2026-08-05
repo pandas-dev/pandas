@@ -1693,3 +1693,31 @@ class RangeIndex(Index):
         if was_scalar:
             return np.intp(result.item())
         return result.astype(np.intp, copy=False)
+
+    def isin(
+        self, values: Axes | set, level: str | int | None = None
+    ) -> npt.NDArray[np.bool_]:
+        if level is not None:
+            self._validate_index_level(level)
+
+        if len(self) == 0:
+            return np.zeros(0, dtype=bool)
+
+        if not lib.is_list_like(values):
+            raise TypeError("values must be list-like")
+
+        if len(values) < len(self) or len(values) < 50_000:
+            start = self.start
+            step = self.step
+            length = len(self)
+            result = np.zeros(length, dtype=bool)
+
+            for val in values:
+                try:
+                    if val in self._range:
+                        result[int((val - start) // step)] = True
+                except (TypeError, ValueError):
+                    pass
+            return result
+        else:
+            return super().isin(values, level=level)
