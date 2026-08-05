@@ -169,6 +169,7 @@ Other API changes
 - :func:`testing.assert_series_equal` with ``check_index=False`` no longer checks the ``freq`` attribute of a :class:`DatetimeIndex` or :class:`TimedeltaIndex`, as ``freq`` is an attribute of the index (:issue:`51920`)
 - :func:`to_numeric`, and the readers built on it such as :func:`read_csv` and :func:`read_xml`, now report an unparsable value in the ``"Unable to parse string"`` message using its :func:`repr`, e.g. ``Unable to parse string 'apple' at position 2`` rather than ``Unable to parse string "apple" at position 2``. Previously the value was interpolated as a C string, so it was truncated at an embedded NUL byte, e.g. ``"abc\x00def"`` was reported as ``abc`` (:issue:`66524`)
 - :meth:`.DataFrameGroupBy.sum` and :meth:`.DataFrameGroupBy.mean` on float dtypes with sorted grouping keys may differ from prior versions in the last few floating-point digits, due to a faster summation algorithm that does not use Kahan compensation (:issue:`65103`)
+- :meth:`.GroupBy.sum` and :meth:`.GroupBy.prod` on :class:`ArrowDtype` decimal columns now return the maximum decimal precision (``decimal128(38, scale)`` or ``decimal256(76, scale)``) instead of a precision inferred from the group results; a result needing more digits than the maximum precision still falls back to a wider inferred type (:issue:`63416`)
 - :meth:`DataFrame.select_dtypes` now selects only columns with exactly the given dtype when a dtype instance is passed to ``include`` or ``exclude``. Previously an instance selected all columns with a matching ``dtype.type``, e.g. ``pd.DatetimeTZDtype(tz="UTC")`` also selected other timezones, ``np.dtype("int64")`` also selected ``Int64`` and Arrow ``int64`` columns, and ``pd.CategoricalDtype(["a", "b"])`` selected every categorical column (:issue:`40234`)
 - :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file; the value was hardcoded to ``"0.15.2"`` and never reflected the pandas version. As a consequence, ``format="table"`` files written with pandas 3.1 or later cannot be read by pandas 3.0 or earlier (:issue:`62792`)
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
@@ -184,7 +185,7 @@ Deprecations
 - Deprecated :attr:`PeriodIndex.is_full`; use ``index.empty or len(index.unique()) == len(period_range(index.min(), index.max(), freq=index.freq))`` instead. Unlike ``is_full``, this is also correct for frequencies with a multiple (e.g. ``"2D"``) and does not raise on a non-monotonic index (:issue:`64938`)
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
 - Deprecated :class:`PeriodIndex` and :class:`PeriodArray` inferring the frequency from a :class:`Series` of datetime64 data when ``freq`` is not provided. Pass ``freq`` explicitly instead (:issue:`64241`)
-- Deprecated :func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`, and :attr:`TimedeltaIndex.inferred_freq` returning a string; in a future version these will return a :class:`BaseOffset` instead. Use ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in to the future behavior (:issue:`55504`)
+- Deprecated :func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`, :attr:`TimedeltaIndex.inferred_freq`, and :attr:`Series.dt.freq` returning a string; in a future version these will return a :class:`BaseOffset` instead. Use ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in to the future behavior (:issue:`55504`)
 - Deprecated :func:`set_eng_float_format`. Use ``pd.set_option("display.precision", N)`` to control decimal precision, or pass a custom callable to ``pd.set_option("display.float_format", func)`` (:issue:`64460`)
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
 - Deprecated :meth:`ExcelFile.parse`, use :func:`read_excel` instead (:issue:`58247`)
@@ -234,6 +235,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :class:`.DataFrameGroupBy` aggregations (``sum``, ``mean``, ``min``, ``max``, ``prod``) when the grouping keys are already sorted (:issue:`65103`)
+- Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` reductions for :class:`ArrowDtype` decimal columns (``sum``, ``prod``, ``min``, ``max``, ``mean``, ``var``) and for Arrow-backed string columns (``min``, ``max``), i.e. :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"``, by dispatching to PyArrow's native ``group_by`` instead of a slower fallback (:issue:`63416`)
 - Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` with ``sort=True``, as well as :func:`factorize` and :func:`merge` with ``sort=True``, when the keys are integers with many unique values (:issue:`66129`)
 - Performance improvement in casting integer and boolean dtypes to ``string[pyarrow]`` by using PyArrow's native cast instead of element-wise conversion (:issue:`56505`)
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
@@ -263,6 +265,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns with default settings (:issue:`66239`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and string columns (:issue:`65350`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default except on Windows and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, growing with the number of columns in the file (:issue:`66619`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, particularly when strings do not repeat (:issue:`65283`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when an extension dtype is requested (e.g. ``dtype="Int64"``, ``dtype="boolean"``, or ``dtype="int64[pyarrow]"``) (:issue:`66279`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing float columns (:issue:`66457`)
@@ -463,6 +466,7 @@ Numeric
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 - Fixed bug in :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`DataFrame.idxmax`, and :meth:`DataFrame.idxmin` returning the label of a missing-value row when every non-missing value equals the dtype's minimum (for ``idxmax``) or maximum (for ``idxmin``), e.g. a float column containing only ``-inf`` and NaN (:issue:`64478`)
 - Fixed bug in :meth:`Series.mean` and :meth:`Series.sum` (and their :class:`DataFrame` counterparts) overflowing for ``float16`` dtypes instead of upcasting to ``float64`` (:issue:`43929`)
+- Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) for :class:`ArrowDtype` returning the biased (population) statistic instead of the bias-corrected sample statistic returned by other dtypes; :meth:`Series.kurt` also raised ``TypeError`` instead of computing a result (:issue:`66336`)
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
@@ -493,6 +497,7 @@ Strings
 
 Interval
 ^^^^^^^^
+- Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors allowing unsupported ``object`` dtype on the right endpoint, causing ``dtype.subtype`` to disagree with ``right.dtype`` (:issue:`66518`)
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
 
@@ -670,7 +675,10 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` on ``timedelta64`` data where a group total that left the representable range silently wrapped to an unrelated value, or landed on the ``NaT`` sentinel and came back as a missing value, instead of raising :class:`OutOfBoundsTimedelta` (:issue:`66551`)
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with ``skipna=False`` returning ``NaT`` for a ``timedelta64`` group containing no missing values, when its running total happened to pass through the ``NaT`` sentinel (:issue:`66551`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` returning ``NaN`` with ``float64`` dtype for unobserved categorical groups on NumPy ``bool`` data instead of the boolean identity value with ``bool`` dtype (:issue:`65100`)
+- Bug in :meth:`.GroupBy.min` and :meth:`.GroupBy.max` on Arrow-backed string columns, i.e. :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"``, ignoring ``skipna=False`` and ``min_count``, returning a value instead of ``NA`` for groups containing ``NA`` or holding fewer non-``NA`` values than ``min_count`` (:issue:`63416`)
 - Bug in :meth:`.GroupBy.quantile` returning incorrect results for groups containing a non-null ``NaN`` value (e.g. from a pyarrow or masked float array), and returning the Unix epoch instead of ``NaT`` for all-``NaT`` datetime-like groups on some platforms (:issue:`64330`)
+- Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` raising ``NotImplementedError`` on :class:`ArrowDtype` decimal columns (:issue:`63416`)
+- Bug in :meth:`.GroupBy.sum`, :meth:`.GroupBy.prod`, :meth:`.GroupBy.min`, and :meth:`.GroupBy.max` with ``skipna=False`` on :class:`ArrowDtype` decimal columns ignoring ``NA`` values instead of returning ``NA`` for groups containing them (:issue:`63416`)
 - Bug in :meth:`.Resampler.agg` raising ``ValueError`` with a dict of aggregations when applied to a :meth:`DataFrame.groupby` with ``as_index=False`` (:issue:`52397`)
 - Bug in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` computing incorrect results on degenerate windows (:issue:`24019`)
 - Bug in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` returning ``NaN`` for all later windows once a window contained no valid pairs, e.g. due to ``NaN`` values (:issue:`65739`)
