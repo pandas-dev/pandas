@@ -121,10 +121,10 @@ if TYPE_CHECKING:
     class _read_shared(TypedDict, Generic[HashableT], total=False):
         # annotations shared between read_csv/fwf/table's overloads
         # NOTE: Keep in sync with the annotations of the implementation
-        sep: str | None | lib.NoDefault
-        delimiter: str | None | lib.NoDefault
-        header: int | Sequence[int] | None | Literal["infer"]
-        names: Sequence[Hashable] | None | lib.NoDefault
+        sep: str | lib.NoDefault | None
+        delimiter: str | lib.NoDefault | None
+        header: int | Sequence[int] | Literal["infer"] | None
+        names: Sequence[Hashable] | lib.NoDefault | None
         index_col: IndexLabel | Literal[False] | None
         usecols: UsecolsArgType
         dtype: DtypeArg | None
@@ -1085,11 +1085,11 @@ def read_csv(
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
-    sep: str | None | lib.NoDefault = lib.no_default,
-    delimiter: str | None | lib.NoDefault = None,
+    sep: str | lib.NoDefault | None = lib.no_default,
+    delimiter: str | lib.NoDefault | None = None,
     # Column and Index Locations and Names
-    header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
+    names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType = None,
     # General Parsing Configuration
@@ -1683,11 +1683,11 @@ def read_table(
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
-    sep: str | None | lib.NoDefault = lib.no_default,
-    delimiter: str | None | lib.NoDefault = None,
+    sep: str | lib.NoDefault | None = lib.no_default,
+    delimiter: str | lib.NoDefault | None = None,
     # Column and Index Locations and Names
-    header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
+    names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType = None,
     # General Parsing Configuration
@@ -3058,11 +3058,11 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 def _refine_defaults_read(
     dialect: str | csv.Dialect | type[csv.Dialect] | None,
-    delimiter: str | None | lib.NoDefault,
+    delimiter: str | lib.NoDefault | None,
     engine: CSVEngine | None,
-    sep: str | None | lib.NoDefault,
+    sep: str | lib.NoDefault | None,
     on_bad_lines: str | Callable,
-    names: Sequence[Hashable] | None | lib.NoDefault,
+    names: Sequence[Hashable] | lib.NoDefault | None,
     defaults: dict[str, Any],
     dtype_backend: DtypeBackend | lib.NoDefault,
 ):
