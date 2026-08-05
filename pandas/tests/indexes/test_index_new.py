@@ -191,6 +191,24 @@ class TestIndexConstructorInference:
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            lambda arr: arr,
+            lambda arr: Series(arr),
+            lambda arr: array(arr, dtype=arr.dtype),
+        ],
+        ids=["ndarray", "Series", "NumpyExtensionArray"],
+    )
+    def test_constructor_numpy_bytes_to_object(self, data):
+        # GH#57645 numpy fixed-width bytes are not a supported Index dtype
+        arr = np.array(["apple", "banana", "orange", "grape"], dtype="S6")
+        expected = Index(
+            np.array([b"apple", b"banana", b"orange", b"grape"], dtype=object)
+        )
+        result = Index(data(arr))
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_preserves_byteorder(self):
         # GH#43042 non-native byteorder (and the values) must be preserved
         arr = np.array([0, 256, 2**40], dtype=">i8")

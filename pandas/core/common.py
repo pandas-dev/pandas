@@ -248,6 +248,9 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     elif isinstance(values, ABCIndex):
         return values._values
     elif isinstance(values, ABCSeries):
+        # GH#57645: don't pass through numpy fixed-width bytes (|S)
+        if getattr(values.dtype, "kind", None) == "S":
+            return np.asarray(values._values, dtype=object)
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
@@ -262,7 +265,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         # has incompatible type "Iterable[Any]"; expected "Sized"
         return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
-    if issubclass(result.dtype.type, str):
+    # GH#57645: convert numpy fixed-width string/bytes to object
+    if result.dtype.kind in "SU":
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
