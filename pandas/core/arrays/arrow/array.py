@@ -3446,26 +3446,30 @@ class ArrowExtensionArray(
                 ngroups=ngroups,
             )
 
-        if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
-            try:
+        try:
+            if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
                 # scatter carries an out-of-precision decimal through silently
                 result_values.validate(full=True)
-            except pa.ArrowInvalid:
-                return None
-
-        pa_result = pc.scatter(result_values, result_group_ids, max_index=ngroups - 1)
-        if default_value.as_py() is not None and min_count == 0:
-            if result_values.null_count == 0:
-                # every null is a group with no rows
-                pa_result = _safe_fill_null(pa_result, default_value)
-            else:
-                # keep the skipna=False nulls, fill only the empty groups
-                seen = pc.scatter(
-                    pa.repeat(True, len(result_values)),
-                    result_group_ids,
-                    max_index=ngroups - 1,
-                )
-                pa_result = pc.if_else(pc.is_null(seen), default_value, pa_result)
+            pa_result = pc.scatter(
+                result_values, result_group_ids, max_index=ngroups - 1
+            )
+            if default_value.as_py() is not None and min_count == 0:
+                if result_values.null_count == 0:
+                    # every null is a group with no rows
+                    pa_result = _safe_fill_null(pa_result, default_value)
+                else:
+                    # keep the skipna=False nulls, fill only the empty groups
+                    seen = pc.scatter(
+                        pa.repeat(True, len(result_values)),
+                        result_group_ids,
+                        max_index=ngroups - 1,
+                    )
+                    pa_result = pc.if_else(pc.is_null(seen), default_value, pa_result)
+        except pa.ArrowInvalid:
+            # e.g. a decimal needing more digits than the maximum precision.
+            # ArrowNotImplementedError needs no branch here: it is a
+            # NotImplementedError, which groupby already routes to the fallback.
+            return None
         return self._from_pyarrow_array(pa_result)
 
     def _groupby_scatter_numpy(

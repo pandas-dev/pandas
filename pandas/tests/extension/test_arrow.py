@@ -42,6 +42,7 @@ from pandas.compat import (
     pa_version_under19p0,
     pa_version_under20p0,
     pa_version_under21p0,
+    pa_version_under23p0,
 )
 from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import (
@@ -72,6 +73,7 @@ from pandas.api.types import (
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
+pc = pytest.importorskip("pyarrow.compute")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
@@ -4179,6 +4181,52 @@ class TestGroupbyAggPyArrowNative:
         result = getattr(ser.groupby([1] * len(values)), how)()
         assert result.dtype == ArrowDtype(pa.decimal256(39, 0))
         assert result.iloc[0] == expected
+
+    @pytest.mark.skipif(
+        pa_version_under23p0, reason="the NumPy placement does not call scatter"
+    )
+    @pytest.mark.parametrize(
+        "dtype, values, how",
+        [
+            (
+                ArrowDtype(pa.decimal128(10, 2)),
+                [Decimal("1"), Decimal("2"), Decimal("3")],
+                "sum",
+            ),
+            (
+                ArrowDtype(pa.decimal128(10, 2)),
+                [Decimal("1"), Decimal("2"), Decimal("3")],
+                "min",
+            ),
+            (ArrowDtype(pa.string()), ["a", "b", "c"], "min"),
+        ],
+        ids=["decimal-sum", "decimal-min", "string-min"],
+    )
+    @pytest.mark.parametrize(
+        "error",
+        [pa.ArrowInvalid, pa.ArrowNotImplementedError],
+        ids=["ArrowInvalid", "ArrowNotImplementedError"],
+    )
+    def test_groupby_scatter_error_falls_back(
+        self, monkeypatch, dtype, values, how, error
+    ):
+        # GH#63416 a scatter that cannot take the values, e.g. string_view,
+        # which has no kernel, falls back instead of raising. No routed type
+        # reaches that today, so make scatter report the failure itself.
+        # ArrowNotImplementedError is a NotImplementedError, which groupby
+        # already routes to the fallback; ArrowInvalid is a ValueError and only
+        # the aggregation itself catches it.
+        ser = pd.Series(values, dtype=dtype)
+        expected = getattr(ser.groupby([1, 1, 2]), how)()
+
+        def raise_error(*args, **kwargs):
+            raise error("scatter cannot take these values")
+
+        monkeypatch.setattr(pc, "scatter", raise_error)
+        result = getattr(ser.groupby([1, 1, 2]), how)()
+        # the fallback types a decimal sum from the values rather than widening
+        # it to the maximum precision
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.xfail(
         reason="PyArrow's product wraps silently once the result exceeds int256, "
