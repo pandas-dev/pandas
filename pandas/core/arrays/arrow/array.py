@@ -3461,7 +3461,7 @@ class ArrowExtensionArray(
             else:
                 # keep the skipna=False nulls, fill only the empty groups
                 seen = pc.scatter(
-                    pa.array(np.ones(len(result_values), dtype=bool)),
+                    pa.repeat(True, len(result_values)),
                     result_group_ids,
                     max_index=ngroups - 1,
                 )
