@@ -454,6 +454,7 @@ class MergeAsof:
                 "time": np.random.randint(0, one_count / 20, one_count),
                 "key": np.random.choice(list(string.ascii_uppercase), one_count),
                 "key2": np.random.randint(0, 25, one_count),
+                "key3": np.random.randint(0, 100000, one_count),
                 "value1": np.random.randn(one_count),
             }
         )
@@ -462,6 +463,7 @@ class MergeAsof:
                 "time": np.random.randint(0, two_count / 20, two_count),
                 "key": np.random.choice(list(string.ascii_uppercase), two_count),
                 "key2": np.random.randint(0, 25, two_count),
+                "key3": np.random.randint(0, 100000, two_count),
                 "value2": np.random.randn(two_count),
             }
         )
@@ -487,6 +489,8 @@ class MergeAsof:
         self.df2e = df2[["time", "key", "key2", "value2"]]
         self.df1f = df1[["timeu64", "value1"]]
         self.df2f = df2[["timeu64", "value2"]]
+        self.df1g = df1[["time", "key3", "value1"]]
+        self.df2g = df2[["time", "key3", "value2"]]
 
     def time_on_int(self, direction, tolerance):
         merge_asof(
@@ -519,6 +523,16 @@ class MergeAsof:
             self.df2c,
             on="time",
             by="key2",
+            direction=direction,
+            tolerance=tolerance,
+        )
+
+    def time_by_int_many_groups(self, direction, tolerance):
+        merge_asof(
+            self.df1g,
+            self.df2g,
+            on="time",
+            by="key3",
             direction=direction,
             tolerance=tolerance,
         )
