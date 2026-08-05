@@ -2498,7 +2498,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If ``True``, performs operation inplace and returns None.
 
         ignore_index : bool, default ``False``
-            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+            If ``True``, the resulting axis will be labeled 0, 1, â€¦, n - 1.
 
             .. versionadded:: 2.0.0
 
@@ -3975,7 +3975,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
         ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+            If True, the resulting axis will be labeled 0, 1, â€¦, n - 1.
         key : callable, optional
             If not None, apply the key function to the series values
             before sorting. This is similar to the `key` argument in the
@@ -4227,7 +4227,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
         ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+            If True, the resulting axis will be labeled 0, 1, â€¦, n - 1.
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -4761,7 +4761,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         ignore_index : bool, default False
-            If True, the resulting index will be labeled 0, 1, …, n - 1.
+            If True, the resulting index will be labeled 0, 1, â€¦, n - 1.
 
         Returns
         -------
@@ -6903,7 +6903,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         how : str, optional
             Not in use. Kept for compatibility.
         ignore_index : bool, default ``False``
-            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+            If ``True``, the resulting axis will be labeled 0, 1, â€¦, n - 1.
 
             .. versionadded:: 2.0.0
 
@@ -7403,7 +7403,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : None or float or str value, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7467,7 +7467,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : None or float or str value, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7532,7 +7532,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : None or float or str value, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7599,7 +7599,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : None or float or str value, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7667,7 +7667,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : None or float or str value, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
@@ -7735,7 +7735,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
+        fill_value : None or float or str value, default None (NaN)
             Fill existing missing (NaN) values, and any new element needed for
             successful Series alignment, with this value before computation.
             If data in both corresponding Series locations is missing
