@@ -555,7 +555,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_partition(self, sep: str, expand: bool):
         if expand:
-            return ArrowStringArrayMixin._str_partition_expand(self, sep)
+            # rows of three strings, so a list array rather than Self
+            return ArrowExtensionArray(
+                ArrowStringArrayMixin._str_partition_expand(self, sep)
+            )
         # expand=False wants tuples, which the object path produces directly
         return ObjectStringArrayMixin._str_partition(self, sep, expand)
 

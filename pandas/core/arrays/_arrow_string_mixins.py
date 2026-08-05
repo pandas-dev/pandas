@@ -475,7 +475,7 @@ class ArrowStringArrayMixin:
         result = result.cast(pa.int64())
         return self._convert_int_result(result)
 
-    def _str_partition_expand(self, sep: str):
+    def _str_partition_expand(self, sep: str) -> pa.ChunkedArray:
         """
         Split each string on the first occurrence of ``sep``.
 
@@ -483,9 +483,10 @@ class ArrowStringArrayMixin:
         -- the part before the separator, the separator, and the part after --
         which ``StringMethods._wrap_result`` expands into three columns. Rows
         without ``sep`` get two empty strings, matching ``str.partition``.
-        """
-        from pandas.core.arrays.arrow import ArrowExtensionArray
 
+        The caller wraps this in an :class:`ArrowExtensionArray`; the rows are
+        lists, so it is not of the calling array's own type.
+        """
         if not sep:
             # pyarrow reports this as "Empty separator"; keep str.partition's
             #  wording so every dtype raises the same way
@@ -496,7 +497,7 @@ class ArrowStringArrayMixin:
             self._partition_chunk(chunk, sep, str_type)
             for chunk in self._pa_array.chunks
         ]
-        return ArrowExtensionArray(pa.chunked_array(chunks, type=pa.list_(str_type)))
+        return pa.chunked_array(chunks, type=pa.list_(str_type))
 
     @staticmethod
     def _partition_chunk(chunk: pa.Array, sep: str, str_type: pa.DataType) -> pa.Array:
