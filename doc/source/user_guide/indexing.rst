@@ -2,9 +2,9 @@
 
 {{ header }}
 
-***************************
+******************************
 Indexing and selecting data
-***************************
+******************************
 
 The axis labeling information in pandas objects serves many purposes:
 
