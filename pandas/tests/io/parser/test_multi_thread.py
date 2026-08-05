@@ -15,8 +15,6 @@ from pandas import DataFrame
 import pandas._testing as tm
 from pandas.util.version import Version
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-
 # We'll probably always skip these for pyarrow
 # Maybe we'll add our own tests for pyarrow too
 pytestmark = [
@@ -126,7 +124,6 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
     return final_dataframe
 
 
-@xfail_pyarrow  # ValueError: The 'nrows' option is not supported
 def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
     # see gh-11786
     num_tasks = 4
@@ -151,6 +148,12 @@ def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
 
     path = tmp_path / file_name
     df.to_csv(path)
+
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
+        return
 
     result = _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
 

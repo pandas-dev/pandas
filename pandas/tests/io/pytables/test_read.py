@@ -6,7 +6,6 @@ import pytest
 
 from pandas.compat import is_platform_windows
 
-import pandas as pd
 from pandas import (
     DataFrame,
     HDFStore,
@@ -18,6 +17,8 @@ from pandas import (
 )
 
 from pandas.io.pytables import TableIterator
+
+tables = pytest.importorskip("tables")
 
 pytestmark = [pytest.mark.single_cpu]
 
@@ -45,6 +46,25 @@ def test_read_index_error_close_store(temp_h5_path):
 
     # smoke test to test that file is properly closed after
     # read with IndexError before another write
+    df.to_hdf(temp_h5_path, key="k1")
+
+
+def test_read_other_error_closes_store(temp_h5_path, monkeypatch):
+    # GH 28430 read_hdf must close a store it opened on *any* error from
+    # select, not only ValueError/TypeError/LookupError
+    df = DataFrame({"a": range(2), "b": range(2)})
+    df.to_hdf(temp_h5_path, key="k1")
+
+    def raise_assertion(*args, **kwargs):
+        raise AssertionError("gaps in blocks ref_loc")
+
+    monkeypatch.setattr(HDFStore, "select", raise_assertion)
+
+    with pytest.raises(AssertionError, match="gaps in blocks ref_loc"):
+        read_hdf(temp_h5_path, "k1")
+
+    # smoke test to test that file is properly closed after the error,
+    # so we can reopen it for writing
     df.to_hdf(temp_h5_path, key="k1")
 
 
@@ -159,7 +179,25 @@ def test_pytables_native2_read(datapath):
     assert isinstance(d1, DataFrame)
 
 
-def test_read_hdf_open_store(temp_h5_path, using_infer_string):
+def test_read_hdf_legacy_freq_none_attr(temp_h5_path):
+    # GH#33186 old versions of pandas (<=0.15.x) wrote a freq=None attr on
+    # every index node, including non-datetimelike ones. Reading such a file
+    # must not try to coerce e.g. a string/integer index into a TimedeltaIndex.
+    df = DataFrame(
+        {"x": [1.0, 2.0, 3.0], "frame": [0, 0, 0]},
+        index=Index([0, 1, 2]),
+    )
+    df.to_hdf(temp_h5_path, key="features", mode="w")
+
+    with tables.open_file(temp_h5_path, mode="a") as handle:
+        for name in ["axis1", "block0_items", "block1_items"]:
+            handle.get_node(f"/features/{name}")._v_attrs.freq = None
+
+    result = read_hdf(temp_h5_path, "features")
+    tm.assert_frame_equal(result, df)
+
+
+def test_read_hdf_open_store(temp_h5_path):
     # GH10330
     # No check for non-string path_or-buf, and no test of open store
     df = DataFrame(
@@ -285,21 +323,15 @@ def test_read_hdf_series_mode_r(temp_h5_path, format):
 
 def test_read_infer_string(temp_h5_path):
     # GH#54431
-    df = DataFrame({"a": ["a", "b", None]})
+    df = DataFrame({"a": ["a", "b", np.nan]})
     df.to_hdf(temp_h5_path, key="data", format="table")
-    with pd.option_context("future.infer_string", True):
-        result = read_hdf(temp_h5_path, key="data", mode="r")
-    expected = DataFrame(
-        {"a": ["a", "b", None]},
-        dtype=pd.StringDtype(na_value=np.nan),
-        columns=Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
-    )
-    tm.assert_frame_equal(result, expected)
+    result = read_hdf(temp_h5_path, key="data", mode="r")
+    tm.assert_frame_equal(result, df)
 
 
 def test_hdfstore_read_datetime64_unit_s(temp_hdfstore):
     # GH 59004
     df_s = DataFrame(["2001-01-01", "2002-02-02"], dtype="datetime64[s]")
-    temp_hdfstore.put("df_s", df_s)
+    temp_hdfstore.put("df_s", df_s, track_times=False)
     df_fromstore = temp_hdfstore.get("df_s")
     tm.assert_frame_equal(df_s, df_fromstore)

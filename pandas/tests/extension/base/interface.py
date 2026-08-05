@@ -9,6 +9,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.extensions import ExtensionArray
 
 
 class BaseInterfaceTests:
@@ -170,3 +171,34 @@ class BaseInterfaceTests:
         expected = list(data)
         assert isinstance(result, list)
         assert result == expected
+
+    def test_cast_pointwise_result_robust_any_input(self, data):
+        # the _cast_pointwise_result method should be robust to any input,
+        # and if it receives input it cannot handle for its own dtype (family),
+        # always fall back to return a generic array instead of raising an error
+        values = [
+            1,
+            "a",
+            (1, 2),
+            [1, 2],
+            {"x": 1},
+            pd.NA,
+            None,
+            np.nan,
+            pd.Timestamp("2020-01-01"),
+            pd.Timedelta("1D"),
+            True,
+        ]
+
+        result = data._cast_pointwise_result(values)
+        assert len(result) == len(values)
+        assert isinstance(result, (ExtensionArray, np.ndarray))
+
+        for val in values:
+            result = data._cast_pointwise_result([val])
+            assert len(result) == 1
+            assert isinstance(result, (ExtensionArray, np.ndarray))
+
+            result = data._cast_pointwise_result([val, val, val])
+            assert len(result) == 3
+            assert isinstance(result, (ExtensionArray, np.ndarray))

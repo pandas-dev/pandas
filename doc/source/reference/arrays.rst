@@ -187,6 +187,8 @@ Methods
    Timestamp.day_name
    Timestamp.dst
    Timestamp.floor
+   Timestamp.fromisocalendar
+   Timestamp.fromisoformat
    Timestamp.fromordinal
    Timestamp.fromtimestamp
    Timestamp.isocalendar
@@ -265,6 +267,7 @@ Properties
    Timedelta.min
    Timedelta.nanoseconds
    Timedelta.resolution
+   Timedelta.resolution_string
    Timedelta.seconds
    Timedelta.unit
    Timedelta.value

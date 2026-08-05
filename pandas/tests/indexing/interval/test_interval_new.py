@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
-
 from pandas import (
     Index,
     Interval,
@@ -214,7 +212,6 @@ class TestIntervalIndex:
             obj.loc[[4, 5, 6]]
 
 
-@pytest.mark.xfail(WASM, reason="GH 23440")
 @pytest.mark.parametrize(
     "intervals",
     [

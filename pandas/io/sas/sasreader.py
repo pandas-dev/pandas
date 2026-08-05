@@ -15,6 +15,7 @@ from typing import (
     overload,
 )
 
+from pandas._libs import lib
 from pandas.util._decorators import set_module
 
 from pandas.io.common import stringify_path
@@ -62,7 +63,7 @@ def read_sas(
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
-    encoding: str | None = ...,
+    encoding: str | None | lib.NoDefault = ...,
     chunksize: int = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
@@ -75,7 +76,7 @@ def read_sas(
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
-    encoding: str | None = ...,
+    encoding: str | None | lib.NoDefault = ...,
     chunksize: None = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
@@ -88,13 +89,16 @@ def read_sas(
     *,
     format: str | None = None,
     index: Hashable | None = None,
-    encoding: str | None = None,
+    encoding: str | None | lib.NoDefault = lib.no_default,
     chunksize: int | None = None,
     iterator: bool = False,
     compression: CompressionOptions = "infer",
 ) -> DataFrame | SASReader:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
+
+    The file format is inferred from the file extension if not explicitly
+    specified. Supports both full reads and chunked iteration.
 
     Parameters
     ----------
@@ -104,13 +108,26 @@ def read_sas(
         a URL. Valid URL schemes include http, ftp, s3, and file. For file
         URLs, a host is expected. A local file could be:
         ``file://localhost/path/to/table.sas7bdat``.
-    format : str {{'xport', 'sas7bdat'}} or None
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+    format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.
     index : identifier of index column, defaults to None
         Identifier of column that should be used as index of the DataFrame.
-    encoding : str, default is None
+    encoding : str, 'infer' or None, default is None
         Encoding for text data.  If None, text data are stored as raw bytes.
+        ``'infer'`` decodes SAS7BDAT files using the encoding recorded in the
+        file header, falling back to latin-1 if the header does not name one
+        pandas recognizes; XPORT files record no encoding, so ``'infer'``
+        means ISO-8859-1 there.
+
+        .. deprecated:: 3.1.0
+            The default will change from ``None`` to ``'infer'``, so text data
+            will be decoded rather than returned as bytes.  Pass ``None``
+            explicitly to keep the current behavior.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
     iterator : bool, defaults to False

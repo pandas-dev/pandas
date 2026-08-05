@@ -426,10 +426,10 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs : dict, default None
             Applies to all supported aggregation methods.
 
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         Returns
@@ -521,6 +521,14 @@ class ExponentialMovingWindow(BaseWindow):
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
         """
+        if callable(func):
+            # GH#41700 BaseWindow.aggregate falls back to ``self.apply(...)``,
+            #  which ExponentialMovingWindow does not implement.
+            raise NotImplementedError(
+                f"{type(self).__name__}.aggregate does not support arbitrary "
+                "callables; supported aggregations are mean, sum, std, var, "
+                "cov, corr."
+            )
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
@@ -533,6 +541,10 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         """
         Calculate the ewm (exponential weighted moment) mean.
+
+        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
+        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
+        :meth:`Series.ewm`.
 
         Parameters
         ----------
@@ -547,10 +559,10 @@ class ExponentialMovingWindow(BaseWindow):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -619,6 +631,10 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) sum.
 
+        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
+        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
+        :meth:`Series.ewm`.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -630,10 +646,10 @@ class ExponentialMovingWindow(BaseWindow):
               ``compute.use_numba``
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -701,6 +717,10 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) standard deviation.
 
+        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
+        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
+        :meth:`Series.ewm`.
+
         Parameters
         ----------
         bias : bool, default False
@@ -746,6 +766,10 @@ class ExponentialMovingWindow(BaseWindow):
     def var(self, bias: bool = False, numeric_only: bool = False):
         """
         Calculate the ewm (exponential weighted moment) variance.
+
+        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
+        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
+        :meth:`Series.ewm`.
 
         Parameters
         ----------
@@ -801,6 +825,10 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         """
         Calculate the ewm (exponential weighted moment) sample covariance.
+
+        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
+        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
+        :meth:`Series.ewm`.
 
         Parameters
         ----------
@@ -892,6 +920,10 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         """
         Calculate the ewm (exponential weighted moment) sample correlation.
+
+        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
+        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
+        :meth:`Series.ewm`.
 
         Parameters
         ----------
@@ -1165,7 +1197,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
             update_deltas,
-            self.min_periods,
+            self.min_periods,  # type: ignore[arg-type]
             ewma_func,
         )
         if not is_frame:

@@ -19,21 +19,23 @@ from typing import (
     Literal,
     Self,
     TypeVar,
-    Union,
     cast,
     overload,
 )
 import warnings
 import zipfile
 
-from pandas._config import config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
 )
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     set_module,
 )
@@ -203,12 +205,19 @@ def read_excel(
     read from a local filesystem or URL. Supports an option to read
     a single sheet or a list of sheets.
 
+    This function requires an external library depending on the
+    file format; see the ``engine`` parameter below.
+
     Parameters
     ----------
     io : str, ExcelFile, xlrd.Book, path object, or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
@@ -265,6 +274,10 @@ def read_excel(
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
         Use ``object`` to preserve data as stored in Excel and not interpret dtype,
         which will necessarily result in ``object`` dtype.
+        Specifying a ``dtype`` does not change how missing values are parsed;
+        values recognized as missing (see ``na_values`` and ``keep_default_na``)
+        are still read as ``NaN`` (or the dtype's NA value) rather than cast to
+        the requested ``dtype``.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
         If you use ``None``, it will infer the dtype of each column based on the data.
@@ -286,6 +299,12 @@ def read_excel(
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
+
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` option (xlsm
+            files are format-detected as xlsx), to keep the current behavior.
 
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
@@ -389,9 +408,8 @@ def read_excel(
         is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-        * ``"pyarrow"``: returns pyarrow-backed nullable
-
-        :class:`ArrowDtype` :class:`DataFrame`
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -493,7 +511,7 @@ def read_excel(
         )
 
     try:
-        data = io.parse(
+        data = io._reader.parse(
             sheet_name=sheet_name,
             header=header,
             names=names,
@@ -743,7 +761,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast("Union[list[int], list[str]]", list(dict.fromkeys(sheets).keys()))
+        sheets = cast("list[int] | list[str]", list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -961,11 +979,19 @@ class ExcelWriter(Generic[_WorkbookT]):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use:
+    The default ``engine`` is chosen based on the file extension. The values
+    below are the engine strings (i.e. valid values for the ``engine``
+    keyword); the package each one wraps is shown in parentheses:
 
-    * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
-      is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
+    * ``.xlsx``: ``"xlsxwriter"`` (`XlsxWriter
+      <https://pypi.org/project/XlsxWriter/>`__) if installed, otherwise
+      ``"openpyxl"`` (`openpyxl <https://pypi.org/project/openpyxl/>`__).
+    * ``.xlsm``: ``"openpyxl"`` (`openpyxl
+      <https://pypi.org/project/openpyxl/>`__).
+    * ``.ods``: ``"odf"`` (`odfpy <https://pypi.org/project/odfpy/>`__).
+
+    These defaults can be overridden via the ``engine`` argument or by
+    setting the ``io.excel.<extension>.writer`` option.
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -975,18 +1001,33 @@ class ExcelWriter(Generic[_WorkbookT]):
     Parameters
     ----------
     path : str or typing.BinaryIO
-        Path to xls or xlsx or ods file.
-    engine : str (optional)
-        Engine to use for writing. If None, defaults to
-        ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
-        argument.
+        Path to xlsx, xlsm, or ods file.
+    engine : {'openpyxl', 'xlsxwriter', 'odf'}, optional
+        Engine to use for writing, given as the engine string (not the
+        package name). Which engines are accepted depends on the file
+        extension:
+
+        * ``.xlsx``: ``"openpyxl"`` or ``"xlsxwriter"``.
+        * ``.xlsm``: ``"openpyxl"``.
+        * ``.ods``: ``"odf"`` (provided by the ``odfpy`` package).
+
+        If None, defaults to ``io.excel.<extension>.writer``.  NOTE: can only
+        be passed as a keyword argument.
     date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    mode : {{'w', 'a'}}, default 'w'
-        File mode to use (write or append). Append does not work with fsspec URLs.
+    mode : {'w', 'a'}, default 'w'
+        File mode to use (write or append). Append does not work with fsspec
+        URLs.
+
+        .. warning::
+
+           In append mode the existing workbook is read and completely
+           rewritten by the engine, so any content the engine cannot
+           represent (e.g. VBA macros in ``.xlsm`` files, charts or images)
+           is silently lost and the workbook may be otherwise altered.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -997,7 +1038,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -1008,13 +1049,16 @@ class ExcelWriter(Generic[_WorkbookT]):
           but possibly over top of, the existing contents.
 
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine. These will be passed to
-        the following functions of the respective engines:
+        Keyword arguments to be passed into the engine. The bullets below
+        are keyed by the ``engine`` string (not the package name); for
+        each engine, ``engine_kwargs`` is forwarded as follows:
 
-        * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
-        * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
-        * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * ``"xlsxwriter"``: ``xlsxwriter.Workbook(file, **engine_kwargs)``
+        * ``"openpyxl"`` (write mode): ``openpyxl.Workbook(**engine_kwargs)``
+        * ``"openpyxl"`` (append mode):
+          ``openpyxl.load_workbook(file, **engine_kwargs)``
+        * ``"odf"``:
+          ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
     See Also
     --------
@@ -1111,7 +1155,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1122,7 +1166,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}},
+    ...     engine_kwargs={"keep_vba": True},
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1172,7 +1216,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer")
+                    engine = config["io"]["excel"][ext]["writer"]
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1526,6 +1570,12 @@ class ExcelFile:
             then ``openpyxl`` will be used.
         - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` option (xlsm
+            files are format-detected as xlsx), to keep the current behavior.
+
         .. warning::
 
            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
@@ -1603,6 +1653,7 @@ class ExcelFile:
 
                 if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                     ext = "xls"
+                    engine = "xlrd"
 
             if ext is None:
                 ext = inspect_excel_format(
@@ -1614,9 +1665,32 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader")
-            if engine == "auto":
-                engine = get_default_engine(ext, mode="reader")
+            if engine is None:
+                engine = config["io"]["excel"][ext]["reader"]
+                if engine == "auto":
+                    engine = get_default_engine(ext, mode="reader")
+                    # GH#56542 - the calamine engine will become the default
+                    # for xlsx/xlsm. Warn while calamine is available so the
+                    # switch is actionable; an explicit engine or the
+                    # io.excel.xlsx.reader option silences this. xlsm files
+                    # are format-sniffed as xlsx, so ext is never "xlsm" here.
+                    if (
+                        ext == "xlsx"
+                        and engine == "openpyxl"
+                        and import_optional_dependency(
+                            "python_calamine", errors="ignore"
+                        )
+                        is not None
+                    ):
+                        warnings.warn(
+                            "The default engine for reading 'xlsx' files "
+                            "will change from 'openpyxl' to 'calamine' in a "
+                            "future version. Pass engine='openpyxl' (or set "
+                            "the 'io.excel.xlsx.reader' option) to keep the "
+                            "current engine and silence this warning.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
 
         assert engine is not None
         self.engine = engine
@@ -1654,6 +1728,9 @@ class ExcelFile:
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
         Parse specified sheet(s) into a DataFrame.
+
+        .. deprecated:: 3.1.0
+            Use :func:`pd.read_excel` instead.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
@@ -1724,7 +1801,7 @@ class ExcelFile:
               each as a separate date column.
             * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and
               parse as a single date column.
-            * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+            * ``dict``, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
               result 'foo'
 
             If a column or index contains an unparsable date, the entire column or
@@ -1749,7 +1826,7 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
             (still experimental). If not specified, the default behavior
             is to not use nullable data types. If specified, the behavior
@@ -1781,6 +1858,12 @@ class ExcelFile:
         >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP
         """
+        warnings.warn(
+            # GH#58247
+            f"{type(self).__name__}.parse is deprecated. Use pd.read_excel instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self._reader.parse(
             sheet_name=sheet_name,
             header=header,

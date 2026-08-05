@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     Timestamp,
     date_range,
@@ -133,7 +134,7 @@ def test_append_with_timezones_as_index(temp_hdfstore, gettz):
 
     df = DataFrame({"A": Series(range(3), index=dti)})
 
-    temp_hdfstore.put("df", df)
+    temp_hdfstore.put("df", df, track_times=False)
     result = temp_hdfstore.select("df")
     tm.assert_frame_equal(result, df)
 
@@ -149,7 +150,7 @@ def test_roundtrip_tz_aware_index(temp_hdfstore, unit):
     dti = DatetimeIndex([ts]).as_unit(unit)
     df = DataFrame(data=[0], index=dti)
 
-    temp_hdfstore.put("frame", df, format="fixed")
+    temp_hdfstore.put("frame", df, format="fixed", track_times=False)
     recons = temp_hdfstore["frame"]
     tm.assert_frame_equal(recons, df)
 
@@ -165,7 +166,7 @@ def test_store_index_name_with_tz(temp_hdfstore):
     df.index = df.index.tz_localize("UTC")
     df.index.name = "foo"
 
-    temp_hdfstore.put("frame", df, format="table")
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
     recons = temp_hdfstore["frame"]
     tm.assert_frame_equal(recons, df)
 
@@ -241,7 +242,7 @@ def test_timezones_fixed_format_empty(temp_hdfstore, tz_aware_fixture, frame_or_
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
-    obj = Series(dtype=dtype, name="A")
+    obj = Series(dtype=dtype, name="A", index=Index([]))
     if frame_or_series is DataFrame:
         obj = obj.to_frame()
 
@@ -269,7 +270,7 @@ def test_fixed_offset_tz(temp_hdfstore):
 
     temp_hdfstore["frame"] = frame
     recons = temp_hdfstore["frame"]
-    tm.assert_index_equal(recons.index, rng)
+    tm.assert_index_equal(recons.index, rng, check_freq=False)
     assert rng.tz == recons.index.tz
 
 
@@ -331,4 +332,4 @@ def test_read_with_where_tz_aware_index(temp_hdfstore):
     with pd.HDFStore(temp_hdfstore) as store:
         store.append(key, expected, format="table", append=True)
     result = pd.read_hdf(temp_hdfstore, key, where="DATE > 20151130")
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_freq=False)

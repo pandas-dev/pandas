@@ -83,47 +83,49 @@ def test_apply_np_transformer(float_frame, op, how):
 
 @pytest.mark.parametrize(
     "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("sum", 0),
-                ("max", np.nan),
-                ("min", np.nan),
-                ("all", True),
-                ("any", False),
-                ("mean", np.nan),
-                ("prod", 1),
-                ("std", np.nan),
-                ("var", np.nan),
-                ("median", np.nan),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("sum", 6),
-                ("max", 3),
-                ("min", 1),
-                ("all", True),
-                ("any", True),
-                ("mean", 2),
-                ("prod", 6),
-                ("std", 1),
-                ("var", 1),
-                ("median", 2),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()),
-            [
-                ("sum", "abc"),
-                ("max", "c"),
-                ("min", "a"),
-                ("all", True),
-                ("any", True),
-            ],
-        ),
+    list(
+        chain(
+            tm.get_cython_table_params(
+                Series(dtype=np.float64),
+                [
+                    ("sum", 0),
+                    ("max", np.nan),
+                    ("min", np.nan),
+                    ("all", True),
+                    ("any", False),
+                    ("mean", np.nan),
+                    ("prod", 1),
+                    ("std", np.nan),
+                    ("var", np.nan),
+                    ("median", np.nan),
+                ],
+            ),
+            tm.get_cython_table_params(
+                Series([np.nan, 1, 2, 3]),
+                [
+                    ("sum", 6),
+                    ("max", 3),
+                    ("min", 1),
+                    ("all", True),
+                    ("any", True),
+                    ("mean", 2),
+                    ("prod", 6),
+                    ("std", 1),
+                    ("var", 1),
+                    ("median", 2),
+                ],
+            ),
+            tm.get_cython_table_params(
+                Series("a b c".split()),
+                [
+                    ("sum", "abc"),
+                    ("max", "c"),
+                    ("min", "a"),
+                    ("all", True),
+                    ("any", True),
+                ],
+            ),
+        )
     ),
 )
 def test_agg_cython_table_series(series, func, expected):
@@ -141,24 +143,26 @@ def test_agg_cython_table_series(series, func, expected):
 
 @pytest.mark.parametrize(
     "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("cumprod", Series([], dtype=np.float64)),
-                ("cumsum", Series([], dtype=np.float64)),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("cumprod", Series([np.nan, 1, 2, 6])),
-                ("cumsum", Series([np.nan, 1, 3, 6])),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
-        ),
+    list(
+        chain(
+            tm.get_cython_table_params(
+                Series(dtype=np.float64),
+                [
+                    ("cumprod", Series([], dtype=np.float64)),
+                    ("cumsum", Series([], dtype=np.float64)),
+                ],
+            ),
+            tm.get_cython_table_params(
+                Series([np.nan, 1, 2, 3]),
+                [
+                    ("cumprod", Series([np.nan, 1, 2, 6])),
+                    ("cumsum", Series([np.nan, 1, 3, 6])),
+                ],
+            ),
+            tm.get_cython_table_params(
+                Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
+            ),
+        )
     ),
 )
 def test_agg_cython_table_transform_series(series, func, expected):
@@ -173,37 +177,39 @@ def test_agg_cython_table_transform_series(series, func, expected):
 
 @pytest.mark.parametrize(
     "df, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            DataFrame(),
-            [
-                ("sum", Series(dtype="float64")),
-                ("max", Series(dtype="float64")),
-                ("min", Series(dtype="float64")),
-                ("all", Series(dtype=bool)),
-                ("any", Series(dtype=bool)),
-                ("mean", Series(dtype="float64")),
-                ("prod", Series(dtype="float64")),
-                ("std", Series(dtype="float64")),
-                ("var", Series(dtype="float64")),
-                ("median", Series(dtype="float64")),
-            ],
-        ),
-        tm.get_cython_table_params(
-            DataFrame([[np.nan, 1], [1, 2]]),
-            [
-                ("sum", Series([1.0, 3])),
-                ("max", Series([1.0, 2])),
-                ("min", Series([1.0, 1])),
-                ("all", Series([True, True])),
-                ("any", Series([True, True])),
-                ("mean", Series([1, 1.5])),
-                ("prod", Series([1.0, 2])),
-                ("std", Series([np.nan, 0.707107])),
-                ("var", Series([np.nan, 0.5])),
-                ("median", Series([1, 1.5])),
-            ],
-        ),
+    list(
+        chain(
+            tm.get_cython_table_params(
+                DataFrame(),
+                [
+                    ("sum", Series(dtype="float64")),
+                    ("max", Series(dtype="float64")),
+                    ("min", Series(dtype="float64")),
+                    ("all", Series(dtype=bool)),
+                    ("any", Series(dtype=bool)),
+                    ("mean", Series(dtype="float64")),
+                    ("prod", Series(dtype="float64")),
+                    ("std", Series(dtype="float64")),
+                    ("var", Series(dtype="float64")),
+                    ("median", Series(dtype="float64")),
+                ],
+            ),
+            tm.get_cython_table_params(
+                DataFrame([[np.nan, 1], [1, 2]]),
+                [
+                    ("sum", Series([1.0, 3])),
+                    ("max", Series([1.0, 2])),
+                    ("min", Series([1.0, 1])),
+                    ("all", Series([True, True])),
+                    ("any", Series([True, True])),
+                    ("mean", Series([1, 1.5])),
+                    ("prod", Series([1.0, 2])),
+                    ("std", Series([np.nan, 0.707107])),
+                    ("var", Series([np.nan, 0.5])),
+                    ("median", Series([1, 1.5])),
+                ],
+            ),
+        )
     ),
 )
 def test_agg_cython_table_frame(df, func, expected, axis):
@@ -219,17 +225,19 @@ def test_agg_cython_table_frame(df, func, expected, axis):
 
 @pytest.mark.parametrize(
     "df, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
-        ),
-        tm.get_cython_table_params(
-            DataFrame([[np.nan, 1], [1, 2]]),
-            [
-                ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
-                ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
-            ],
-        ),
+    list(
+        chain(
+            tm.get_cython_table_params(
+                DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
+            ),
+            tm.get_cython_table_params(
+                DataFrame([[np.nan, 1], [1, 2]]),
+                [
+                    ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
+                    ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
+                ],
+            ),
+        )
     ),
 )
 def test_agg_cython_table_transform_frame(df, func, expected, axis):

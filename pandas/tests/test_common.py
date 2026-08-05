@@ -152,7 +152,7 @@ def test_maybe_match_name(left, right, expected):
             r"to_dict\(\) only accepts initialized defaultdicts",
         ),
         (
-            # non-mapping subtypes,, instance
+            # non-mapping subtypes, instance
             [],
             "unsupported type: <class 'list'>",
         ),
@@ -239,6 +239,15 @@ class TestIsBoolIndexer:
         # GH 63391
         arr = pd.arrays.NumpyExtensionArray(np.array([scalar]))
         assert com.is_bool_indexer(arr) is isinstance(scalar, bool)
+
+    def test_tuple_of_tuples_label(self):
+        # GH#35434 indexing with a tuple-of-tuples label must not build a
+        #  ragged ndarray (warned on numpy<2, errors on numpy>=2)
+        tup = ("A", ("B", 2))
+        assert not com.is_bool_indexer([tup])
+
+        ser = Series([42], index=[tup])
+        tm.assert_series_equal(ser[[tup]], ser)
 
 
 @pytest.mark.parametrize("with_exception", [True, False])

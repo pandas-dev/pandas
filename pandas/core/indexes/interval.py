@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    cast,
 )
 
 import numpy as np
@@ -59,7 +60,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
 )
-from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+)
 
 from pandas.core.algorithms import unique
 from pandas.core.arrays.datetimelike import validate_periods
@@ -91,6 +95,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from pandas._typing import (
+        Axes,
         Dtype,
         DtypeObj,
         IntervalClosedType,
@@ -160,6 +165,12 @@ class IntervalIndex(ExtensionIndex):
     """
     Immutable index of intervals that are closed on the same side.
 
+    An ``IntervalIndex`` stores an array of :class:`Interval` objects, all
+    sharing the same ``closed`` value, enabling vectorized operations such as
+    overlap checks, containment tests, and set-like comparisons on intervals.
+    It is commonly produced by :func:`cut`, :func:`qcut`, or
+    :func:`interval_range`.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -199,6 +210,8 @@ class IntervalIndex(ExtensionIndex):
     from_arrays
     from_tuples
     from_breaks
+    get_loc
+    get_indexer
     contains
     overlaps
     set_closed
@@ -290,6 +303,10 @@ class IntervalIndex(ExtensionIndex):
         """
         Construct an IntervalIndex from an array of splits.
 
+        The *breaks* array of length *N* is converted into *N-1* adjacent,
+        non-overlapping intervals whose endpoints are consecutive pairs of
+        break values.
+
         Parameters
         ----------
         breaks : array-like (1-dimensional)
@@ -338,6 +355,10 @@ class IntervalIndex(ExtensionIndex):
     ) -> IntervalIndex:
         """
         Construct from two arrays defining the left and right bounds.
+
+        Each interval is formed by pairing the corresponding elements of
+        *left* and *right*, producing an :class:`IntervalIndex` of the same
+        length as the input arrays.
 
         Parameters
         ----------
@@ -405,6 +426,9 @@ class IntervalIndex(ExtensionIndex):
     ) -> IntervalIndex:
         """
         Construct an IntervalIndex from an array-like of tuples.
+
+        Each tuple in *data* should contain exactly two elements representing
+        the left and right bounds of an interval.
 
         Parameters
         ----------
@@ -839,10 +863,15 @@ class IntervalIndex(ExtensionIndex):
                 indexer = self._get_indexer_pointwise(target)[0]
 
         elif not (is_object_dtype(target.dtype) or is_string_dtype(target.dtype)):
-            # homogeneous scalar index: use IntervalTree
+            # homogeneous scalar index
             # we should always have self._should_partial_index(target) here
-            target = self._maybe_convert_i8(target)
-            indexer = self._engine.get_indexer(target.values)
+            if self.is_monotonic_increasing:
+                # GH#47614 - use searchsorted for O(n*log(m)) instead of
+                # IntervalTree which scales poorly for large target arrays
+                indexer = self._get_indexer_monotonic(target)
+            else:
+                target = self._maybe_convert_i8(target)
+                indexer = self._engine.get_indexer(cast("np.ndarray", target.values))
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # we should always have self._should_partial_index(target) here
@@ -851,7 +880,7 @@ class IntervalIndex(ExtensionIndex):
         return ensure_platform_int(indexer)
 
     def get_indexer_non_unique(
-        self, target: Index
+        self, target: Axes
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """
         Compute indexer and mask for new index given the current index.
@@ -928,7 +957,9 @@ class IntervalIndex(ExtensionIndex):
             # Note: this case behaves differently from other Index subclasses
             #  because IntervalIndex does partial-int indexing
             target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)
+            indexer, missing = self._engine.get_indexer_non_unique(
+                cast("np.ndarray", target.values)  # type: ignore[union-attr]
+            )
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
@@ -943,6 +974,36 @@ class IntervalIndex(ExtensionIndex):
         right_indexer = self.right.get_indexer(target.right)
         indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
         return indexer
+
+    def _get_indexer_monotonic(self, target: Index) -> npt.NDArray[np.intp]:
+        """
+        Use searchsorted on endpoints for O(n*log(m)) scalar lookups on
+        a monotonic non-overlapping IntervalIndex, instead of IntervalTree
+        which scales poorly for large target arrays. See GH#47614.
+        """
+        # Caller is responsible for checking self.is_monotonic_increasing
+        closed_right = self.closed in ("right", "both")
+        closed_left = self.closed in ("left", "both")
+
+        # searchsorted on right endpoints to find candidate bin
+        side: Literal["left", "right"] = "left" if closed_right else "right"
+        indexer = self.right.searchsorted(target, side=side)
+
+        nbins = len(self)
+        past_end = indexer >= nbins
+        indexer = np.minimum(indexer, nbins - 1)
+
+        # Verify values fall within the candidate bin's left bound
+        left_values = self.left[indexer]
+        if closed_left:
+            left_miss = target < left_values
+        else:
+            left_miss = target <= left_values
+
+        na_mask = isna(target)
+        invalid = past_end | left_miss | na_mask
+        indexer = np.where(invalid, -1, indexer)
+        return ensure_platform_int(indexer)
 
     def _get_indexer_pointwise(
         self, target: Index
@@ -973,8 +1034,8 @@ class IntervalIndex(ExtensionIndex):
 
             indexer.append(locs)
 
-        indexer = np.concatenate(indexer)
-        return ensure_platform_int(indexer), ensure_platform_int(missing)
+        concatenated_indexer = np.concatenate(indexer)
+        return ensure_platform_int(concatenated_indexer), ensure_platform_int(missing)
 
     @cache_readonly
     def _index_as_unique(self) -> bool:
@@ -1294,6 +1355,10 @@ def interval_range(
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
+
+    This function generates a sequence of evenly spaced intervals over a
+    specified range, supporting numeric, datetime-like, and timedelta
+    endpoints.
 
     Parameters
     ----------

@@ -147,8 +147,8 @@ class TestDataFrameToCSV:
         timezone_frame.to_csv(path)
         result = read_csv(path, index_col=0, parse_dates=["A"])
 
-        converter = (
-            lambda c: to_datetime(result[c])
+        converter = lambda c: (
+            to_datetime(result[c])
             .dt.tz_convert("UTC")
             .dt.tz_convert(timezone_frame[c].dt.tz)
             .dt.as_unit("ns")
@@ -590,7 +590,7 @@ class TestDataFrameToCSV:
         # TODO to_csv drops column name
         expected = tsframe.copy()
         expected.index = MultiIndex.from_arrays([old_index.as_unit("us"), new_index[1]])
-        tm.assert_frame_equal(recons, expected, check_names=False)
+        tm.assert_frame_equal(recons, expected, check_names=False, check_freq=False)
 
         # do not load index
         tsframe.to_csv(path)
@@ -1196,7 +1196,6 @@ class TestDataFrameToCSV:
         # GH11619
         idx = date_range(start, end, freq="h", tz="Europe/Paris", unit="ns")
         idx = idx._with_freq(None)  # freq does not round-trip
-        idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
 
         df.to_csv(temp_file, index=True)

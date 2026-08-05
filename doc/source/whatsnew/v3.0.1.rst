@@ -29,7 +29,7 @@ Fixed regressions
 .. _whatsnew_301.bugs:
 
 Bug fixes
-^^^^^^^^^
+~~~~~~~~~
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
 - Added additional typing aliases in :py:mod:`pandas.api.typing.aliases` (:issue:`64098`)
@@ -45,4 +45,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v3.0.0..v3.0.1|HEAD
+.. contributors:: v3.0.0..v3.0.1

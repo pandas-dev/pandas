@@ -254,6 +254,8 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op) -> ndarray
     return maybe_convert_bool(result.base)[0]  # `.base` to access np.ndarray
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def maybe_convert_bool(ndarray[object] arr,
                        true_values=None,
                        false_values=None,

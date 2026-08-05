@@ -28,6 +28,14 @@ def test_to_numpy_cast_before_setting_na():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_copy_false_returns_readonly_view():
+    # GH#57431 - to_numpy(copy=False) should return a read-only view
+    ser = Series([1.0, 2.0, 3.0])
+    result = ser.to_numpy(copy=False)
+    assert result.flags.writeable is False
+    assert np.shares_memory(result, ser.to_numpy(copy=False))
+
+
 @td.skip_if_no("pyarrow")
 def test_to_numpy_arrow_dtype_given():
     # GH#57121

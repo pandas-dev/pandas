@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -725,7 +726,7 @@ class TestMerge:
     def test_join_append_timedeltas2(self):
         # timedelta64 issues with join/merge
         # GH 5695
-        td = np.timedelta64(300000000)
+        td = np.timedelta64(300000000, "ns")
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 
@@ -814,7 +815,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|str'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='(object|str)'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -1094,10 +1095,14 @@ class TestMerge:
         for i in ["_right_indicator", "_left_indicator", "_merge"]:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
-            msg = (
-                "Cannot use `indicator=True` option when data contains a "
-                f"column named {i}|"
-                "Cannot use name of an existing column for indicator column"
+            msg = "|".join(
+                [
+                    (
+                        "Cannot use `indicator=True` option when data contains a "
+                        f"column named {i}"
+                    ),
+                    "Cannot use name of an existing column for indicator column",
+                ]
             )
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
@@ -2595,9 +2600,12 @@ def test_merge_multiindex_columns():
     index = MultiIndex.from_product((letters, numbers), names=["outer", "inner"])
 
     frame_x = DataFrame(columns=index)
-    frame_x["id"] = ""
     frame_y = DataFrame(columns=index)
-    frame_y["id"] = ""
+    msg = "Setting a new column"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_x["id"] = ""
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_y["id"] = ""
 
     l_suf = "_x"
     r_suf = "_y"
@@ -3227,3 +3235,127 @@ def test_merge_right_on_and_right_index():
 
     with pytest.raises(pd.errors.MergeError):
         df1.merge(df2, left_on="col", right_on="col", right_index=True)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_left_sort_false_range_like_right(dtype, start, step):
+    left_k = np.array(
+        [start + step * 3, start, start + step * 1, start + step * 10],
+        dtype=dtype,
+    )
+    left = (
+        DataFrame({"k": left_k, "v": [10, 11, 12, 13]})
+        .iloc[[2, 0, 3, 1]]
+        .reset_index(drop=True)
+    )
+    right_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    right = DataFrame(
+        {"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)},
+    )
+
+    result = left.merge(right, on="k", how="left", sort=False)
+
+    expected = left.copy()
+    expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_right_sort_false_range_like_left(dtype, start, step):
+    left_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    left = DataFrame(
+        {"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)},
+    )
+
+    right_k = np.array(
+        [start + step * 2, start, start + step * 10, start + step * 1],
+        dtype=dtype,
+    )
+    right = (
+        DataFrame({"k": right_k, "w": [1, 2, 3, 4]})
+        .iloc[[1, 3, 0, 2]]
+        .reset_index(drop=True)
+    )
+
+    result = left.merge(right, on="k", how="right", sort=False)
+
+    expected = right.copy()
+    expected["v"] = left.set_index("k")["v"].reindex(expected["k"]).to_numpy()
+    expected = expected[["k", "v", "w"]]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+@pytest.mark.parametrize(
+    "range_k, other_k",
+    [
+        # uint64 keys above INT64_MAX were silently dropped (all-NaN)
+        (
+            np.array([2**63, 2**63 + 1, 2**63 + 2], dtype=np.uint64),
+            np.array([2**63 + 2, 2**63, 2**63 + 5], dtype=np.uint64),
+        ),
+        # a probe value near INT64_MIN overflowed and matched spuriously
+        (
+            np.array([10, 11, 12], dtype=np.int64),
+            np.array([11, np.iinfo(np.int64).min, 10], dtype=np.int64),
+        ),
+        # a two-element key whose implied step overflows int64
+        (
+            np.array([np.iinfo(np.int64).min, np.iinfo(np.int64).max], dtype=np.int64),
+            np.array(
+                [np.iinfo(np.int64).max, 0, np.iinfo(np.int64).min], dtype=np.int64
+            ),
+        ),
+    ],
+)
+def test_merge_sort_false_range_like_extreme_int_keys(how, range_k, other_k):
+    # GH#64148 the range-like fast path promoted one side's key to a RangeIndex
+    # and looked the other side up in it; for extreme integer keys this
+    # overflowed/wrapped and silently dropped matches or returned out-of-bounds
+    # (garbage) ones. The promoted side is the one opposite ``how``.
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    # reference lookup via reindex, which does not use the range-like fast path
+    if how == "left":
+        expected = left.copy()
+        expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+    else:
+        expected = right.copy()
+        expected.insert(1, "v", left.set_index("k")["v"].reindex(right["k"]).to_numpy())
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
+    # GH#64148 range-like keys spanning more than INT64_MAX: the promoted
+    # RangeIndex's offset computation overflowed int64 and fabricated matches.
+    # Expected values are hardcoded because a reindex-based reference would go
+    # through the same RangeIndex lookup.
+    range_k = np.array([-(2**62) - 1, -1, 2**62 - 1], dtype=np.int64)
+    other_k = np.array([2**62 - 1, 5, -1], dtype=np.int64)
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    if how == "left":
+        expected = DataFrame({"k": other_k, "v": [0, 1, 2], "w": [2.0, np.nan, 1.0]})
+    else:
+        expected = DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
+    tm.assert_frame_equal(result, expected)

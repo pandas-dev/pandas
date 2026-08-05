@@ -19,6 +19,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     date_range,
     period_range,
@@ -146,11 +147,11 @@ class TestSetIndex:
         res = df.set_index(["index", "a"])
         exp_index = MultiIndex.from_arrays([di, [0, 1, 2]], names=["index", "a"])
         exp = DataFrame({"b": [3, 4, 5]}, index=exp_index)
-        tm.assert_frame_equal(res, exp)
+        tm.assert_frame_equal(res, exp, check_freq=False)
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame
-        idx = Index(np.arange(len(df) - 1, -1, -1, dtype=np.int64))
+        idx = RangeIndex(start=29, stop=-1, step=-1)
 
         df = df.set_index(idx)
         tm.assert_index_equal(df.index, idx)

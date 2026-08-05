@@ -329,6 +329,58 @@ However, R ``NA`` semantics are now available by using masked NumPy types such a
 or PyArrow types (:class:`ArrowDtype`).
 
 
+Integer overflow
+----------------
+
+pandas uses NumPy's fixed-width integer types (``int64`` by default) rather than
+Python's arbitrary-precision integers. This means integer arithmetic can silently
+overflow without raising an error:
+
+.. ipython:: python
+
+   series = pd.Series([406, 372, 496, 41, 63, 118, 311, 271, 431, 95, 57, 52])
+   series.dtype
+
+The product of these integers exceeds the range of ``int64``, so the result wraps
+around silently:
+
+.. ipython:: python
+
+   series.prod()
+
+Compare this to pure Python, which uses arbitrary-precision integers and gives the
+correct result:
+
+.. ipython:: python
+
+   python_product = 1
+   for val in [406, 372, 496, 41, 63, 118, 311, 271, 431, 95, 57, 52]:
+       python_product *= val
+   python_product
+
+This behavior comes from NumPy and affects all integer arithmetic operations
+(addition, subtraction, multiplication, etc.), not just :meth:`~Series.prod`. See the
+`NumPy documentation on overflow errors <https://numpy.org/doc/stable/user/basics.types.html#overflow-errors>`__
+for more details.
+
+If your computation may exceed ``int64`` range, you can convert to ``float64`` first
+(at the cost of precision for very large values) or use Python's built-in integers
+via ``object`` dtype:
+
+.. ipython:: python
+
+   series.astype("float64").prod()
+   series.astype("object").prod()
+
+.. _gotchas.numpy_kwargs:
+
+NumPy compatibility kwargs
+--------------------------
+
+Many pandas methods accept additional keyword arguments (often passed as ``**kwargs``) to ensure compatibility with NumPy's API. When a pandas object is passed to a NumPy function (for example, ``np.sum(df)``), NumPy will often pass its own arguments (such as ``out`` or ``keepdims``) to the pandas method. To prevent errors, pandas accepts these keywords, if passed with their default value.
+
+While pandas historically ignored many of these additional arguments, the library now strictly validates them (i.e. ensuring they are only passed with their default values) or deprecates them where they are not necessary for NumPy compatibility. If you pass an argument that pandas does not implement, it will raise an error or emit a deprecation warning. You should only rely on the arguments explicitly documented in the pandas method signature.
+
 Differences with NumPy
 ----------------------
 For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by

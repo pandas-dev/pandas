@@ -306,7 +306,7 @@ def test_assert_almost_equal_inf(a, b):
     _assert_almost_equal_both(a, b)
 
 
-objs = [NA, np.nan, NaT, None, np.datetime64("NaT"), np.timedelta64("NaT")]
+objs = [NA, np.nan, NaT, None, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
 
 
 @pytest.mark.parametrize("left", objs)

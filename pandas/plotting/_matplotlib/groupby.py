@@ -138,4 +138,4 @@ def reformat_hist_y_given_by(y: np.ndarray, by: IndexLabel | None) -> np.ndarray
     """
     if by is not None and len(y.shape) > 1:
         return np.array([remove_na_arraylike(col) for col in y.T]).T
-    return remove_na_arraylike(y)
+    return remove_na_arraylike(y)  # pyright: ignore[reportReturnType]

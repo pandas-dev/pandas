@@ -87,7 +87,12 @@ class TestDataFrameInterpolate:
         )
         expected["D"] = expected["D"].astype(dtype)
 
-        msg = f"[Cc]annot interpolate with {dtype} dtype"
+        # the EA path (str dtype) and the object-block path word the error
+        # differently; pin each to its dtype rather than hedging the case
+        if dtype == "object":
+            msg = "cannot interpolate with object dtype"
+        else:
+            msg = f"Cannot interpolate with {dtype} dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
         tm.assert_frame_equal(df, df_orig)
@@ -360,7 +365,7 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(result, expected)
 
     def test_interp_ignore_all_good(self):
-        # GH
+        # GH#6290
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -473,4 +478,20 @@ class TestDataFrameInterpolate:
         df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype + "[pyarrow]")
         result = df.interpolate(limit=2)
         expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "Float64",
+        ],
+    )
+    def test_interpolate_time_nullable_int_float(self, dtype):
+        # GH#40252
+        idx = date_range("1970-01-02", periods=3, freq="D")
+
+        df = DataFrame({"a": [1, None, 2]}, index=idx, dtype=dtype)
+        result = df.interpolate(method="time")
+        expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
         tm.assert_frame_equal(result, expected)

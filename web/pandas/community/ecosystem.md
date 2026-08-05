@@ -26,6 +26,7 @@ authors to coordinate on the namespace.
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [akimbo](https://akimbo.readthedocs.io/en/latest/)                   | `ak`       | `Series`              |
+  | [bigframes](https://dataframes.bigquery.dev/)                        | `bigquery` | `DataFrame`           |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
@@ -34,6 +35,7 @@ authors to coordinate on the namespace.
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+  | [pd-money](https://github.com/aalhajmee/pd-money)                     | `money`    | `Series`              |
 
 ### Data types
 
@@ -370,6 +372,31 @@ def process_data():
 process_data()
 ```
 
+#### [BigQuery DataFrames](https://dataframes.bigquery.dev/)
+
+BigQuery DataFrames compiles pandas-compatible expressions to run on the BigQuery engine.
+It can also compile to Polars for local data, if the hybrid engine is enabled. This allows
+you to use the pandas API without moving data out of BigQuery, as well as scale your
+local pandas workloads to BigQuery's petabyte-scale engine.
+
+It also provides a `bigquery` accessor, exposing BigQuery-native
+functionality to pandas objects such as
+[`pandas.DataFrame.bigquery.ai.forecast(...)`](https://dataframes.bigquery.dev/reference/api/bigframes.bigquery.ai.forecast.html),
+which provides access to Google's foundational model for time series prediction.
+
+To get started, install the `bigframes` package, then run:
+
+```python
+import bigframes.pandas as bpd
+
+bpd.options.bigquery.project = "your-google-cloud-project-id"
+bpd.options.bigquery.location = "US"
+bpd.options.bigquery.order_mode = "partial"  # Recommended for performance.
+
+df = bpd.read_pandas(pd_df)
+# ... your pandas-compatible code here ...
+```
+
 #### [Dask](https://docs.dask.org)
 
 Dask is a flexible parallel computing library for analytics. Dask
@@ -414,6 +441,10 @@ Pandera provides a flexible and expressive API for performing data validation on
 to make data processing pipelines more readable and robust.
 Dataframes contain information that pandera explicitly validates at runtime. This is useful in
 production-critical data pipelines or reproducible research settings.
+
+#### [pd-money](https://github.com/aalhajmee/pd-money)
+
+A comprehensive extension for financial data cleaning, performance analysis, and valuation.
 
 #### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
 

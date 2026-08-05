@@ -12,6 +12,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import to_offset
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -454,8 +455,6 @@ class SharedTests:
     )
     def test_setitem_object_dtype(self, box, arr1d):
         expected = arr1d.copy()[::-1]
-        if expected.dtype.kind in ["m", "M"]:
-            expected = expected._with_freq(None)
 
         vals = expected
         if box is list:
@@ -494,8 +493,6 @@ class SharedTests:
     @pytest.mark.parametrize("as_index", [True, False])
     def test_setitem_categorical(self, arr1d, as_index):
         expected = arr1d.copy()[::-1]
-        if not isinstance(expected, PeriodArray):
-            expected = expected._with_freq(None)
 
         cat = pd.Categorical(arr1d)
         if as_index:
@@ -651,7 +648,7 @@ class TestDatetimeArray(SharedTests):
 
         dta = dti._data
         result = dta.round(freq="2min")
-        expected = expected._data._with_freq(None)
+        expected = expected._data.view()
         tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
@@ -805,7 +802,6 @@ class TestDatetimeArray(SharedTests):
         # in this case _bool_ops is just `is_leap_year`
         dti = self.index_cls(arr1d)
         arr = arr1d
-        assert dti.freq == arr.freq
 
         result = getattr(arr, propname)
         expected = np.array(getattr(dti, propname), dtype=result.dtype)
@@ -817,8 +813,10 @@ class TestDatetimeArray(SharedTests):
         dti = self.index_cls(arr1d)
         arr = arr1d
 
-        result = getattr(arr, propname)
-        expected = np.array(getattr(dti, propname), dtype=result.dtype)
+        warn = Pandas4Warning if propname == "weekday" else None
+        with tm.assert_produces_warning(warn, match="weekday is deprecated"):
+            result = getattr(arr, propname)
+            expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1097,7 +1095,9 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        expected = DatetimeIndex(pi.to_timestamp(how=how))._data
+        # Array-level to_timestamp returns a freq-less DTA; freq computation
+        # lives on the wrapping PeriodIndex.
+        expected = pi.to_timestamp(how=how)._data
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArray)
 
@@ -1105,22 +1105,21 @@ class TestPeriodArray(SharedTests):
 
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"
-        dta = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")._data
-        parr = dta.to_period()
-        result = parr.to_timestamp()
+        dti = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")
+        pi = dti.to_period("B")
+        result = pi.to_timestamp()
         assert result.freq == "B"
-        tm.assert_extension_array_equal(result, dta.as_unit("us"))
+        tm.assert_index_equal(result, dti.as_unit("us"))
 
-        dta2 = dta[::2]
-        parr2 = dta2.to_period()
-        result2 = parr2.to_timestamp()
+        pi2 = dti[::2].to_period("2B")
+        result2 = pi2.to_timestamp()
         assert result2.freq == "2B"
-        tm.assert_extension_array_equal(result2, dta2.as_unit("us"))
+        tm.assert_index_equal(result2, dti[::2].as_unit("us"))
 
-        parr3 = dta.to_period("2B")
-        result3 = parr3.to_timestamp()
+        pi3 = dti.to_period("2B")
+        result3 = pi3.to_timestamp()
         assert result3.freq == "B"
-        tm.assert_extension_array_equal(result3, dta.as_unit("us"))
+        tm.assert_index_equal(result3, dti.as_unit("us"))
 
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently
@@ -1145,8 +1144,10 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        result = getattr(arr, propname)
-        expected = np.array(getattr(pi, propname))
+        warn = Pandas4Warning if propname == "weekday" else None
+        with tm.assert_produces_warning(warn, match="weekday is deprecated"):
+            result = getattr(arr, propname)
+            expected = np.array(getattr(pi, propname))
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1388,3 +1389,40 @@ def test_from_pandas_array(dtype):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "self_unit,val_unit",
+    [("s", "ns"), ("ms", "us"), ("us", "ns"), ("ns", "s")],
+)
+@pytest.mark.parametrize("dtype_kind", ["M", "m"])
+def test_isin_mismatched_reso(dtype_kind, self_unit, val_unit):
+    # GH64545 - isin should not silently truncate finer-resolution values
+    #  when converting to self's resolution, which leads to false matches.
+    if dtype_kind == "M":
+        # DatetimeArray
+        arr = DatetimeArray._from_sequence(
+            np.array([0, 1], dtype=f"M8[{self_unit}]"),
+            dtype=np.dtype(f"M8[{self_unit}]"),
+        )
+        vals = DatetimeArray._from_sequence(
+            np.array([1], dtype=f"M8[{val_unit}]"),
+            dtype=np.dtype(f"M8[{val_unit}]"),
+        )
+    else:
+        # TimedeltaArray
+        arr = TimedeltaArray._from_sequence(
+            np.array([0, 1], dtype=f"m8[{self_unit}]"),
+            dtype=np.dtype(f"m8[{self_unit}]"),
+        )
+        vals = TimedeltaArray._from_sequence(
+            np.array([1], dtype=f"m8[{val_unit}]"),
+            dtype=np.dtype(f"m8[{val_unit}]"),
+        )
+
+    result = arr.isin(vals)
+
+    # 1 in self_unit != 1 in val_unit (unless they happen to be the same
+    # unit, which our parametrization avoids), so isin should be [False, False].
+    expected = np.array([False, False])
+    tm.assert_numpy_array_equal(result, expected)

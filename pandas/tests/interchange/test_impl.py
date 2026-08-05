@@ -1,16 +1,13 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_windows,
-)
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import pa_version_under22p0
 
 import pandas as pd
@@ -386,7 +383,7 @@ def test_interchange_from_non_pandas_tz_aware(request):
     pa = pytest.importorskip("pyarrow", "11.0.0")
     import pyarrow.compute as pc
 
-    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
+    if is_platform_windows() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
@@ -516,8 +513,8 @@ def test_non_str_names_w_duplicates():
         ),
         (
             [
-                datetime(2020, 1, 1, tzinfo=timezone.utc),
-                datetime(2020, 1, 2, tzinfo=timezone.utc),
+                datetime(2020, 1, 1, tzinfo=UTC),
+                datetime(2020, 1, 2, tzinfo=UTC),
                 None,
             ],
             "timestamp[us, Asia/Kathmandu][pyarrow]",
@@ -584,9 +581,9 @@ def test_pandas_nullable_with_missing_values(
         ),
         (
             [
-                datetime(2020, 1, 1, tzinfo=timezone.utc),
-                datetime(2020, 1, 2, tzinfo=timezone.utc),
-                datetime(2020, 1, 3, tzinfo=timezone.utc),
+                datetime(2020, 1, 1, tzinfo=UTC),
+                datetime(2020, 1, 2, tzinfo=UTC),
+                datetime(2020, 1, 3, tzinfo=UTC),
             ],
             "timestamp[us, Asia/Kathmandu][pyarrow]",
             "timestamp[us, tz=Asia/Kathmandu]",

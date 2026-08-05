@@ -331,11 +331,23 @@ class StringMethods(NoNewAttributesMixin):
                         return [x]
 
                 result = [cons_row(x) for x in result]
-                if result and not self._is_string:
-                    # propagate nan values to match longest sequence (GH 18450)
+                if result:
+                    if not self._is_string:
+                        # propagate nan values to match longest sequence
+                        #  (GH 18450)
+                        max_len = max(len(x) for x in result)
+                        result = [
+                            x * max_len if len(x) == 0 or x[0] is np.nan else x
+                            for x in result
+                        ]
+
+                    # GH#65751 right-pad ragged rows to a common length so the
+                    #  DataFrame constructor below isn't relied on to NaN-pad
+                    #  mismatched-length sequences (now deprecated). Filling
+                    #  with None matches the constructor's previous behavior.
                     max_len = max(len(x) for x in result)
                     result = [
-                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        list(x) + [None] * (max_len - len(x)) if len(x) < max_len else x
                         for x in result
                     ]
 
@@ -511,6 +523,11 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
+            Note: when the caller is an :class:`Index`, its *values* are used
+            as the index for alignment, so a ``Series`` or ``DataFrame`` in
+            `others` is aligned against those values rather than positionally.
+            An ``Index`` or ``np.ndarray`` in `others` has no index of its own
+            and is always used positionally.
 
         Returns
         -------
@@ -599,6 +616,19 @@ class StringMethods(NoNewAttributesMixin):
         4    -e
         2    -c
         dtype: str
+
+        When the caller is an :class:`Index`, alignment uses the values of that
+        ``Index``, so concatenating with a ``Series`` whose index is unrelated
+        gives missing values:
+
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]))
+        Index([nan, nan, nan], dtype='object')
+
+        Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
+
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]).to_numpy())
+        Index(['ax', 'by', 'cz'], dtype='str')
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
@@ -748,12 +778,12 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.split : Split strings around given separator/delimiter.
         Series.str.rsplit : Splits string around given separator/delimiter,
             starting from the right.
         Series.str.join : Join lists contained as elements in the Series/Index
             with passed delimiter.
-        str.split : Standard library version for split.
+        re.split : Standard library version for split with ``regex=True``.
+        str.split : Standard library version for split with ``regex=False``.
         str.rsplit : Standard library version for rsplit.
 
         Notes
@@ -762,11 +792,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Use of `regex =False` with a `pat` as a compiled regex will raise an error.
 
@@ -909,7 +944,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         pat : str, optional
-            String to split on.
+            String to split on. Does not support regex.
             If not specified, split on whitespace.
         n : int, default -1 (all)
             Limit number of splits in output.
@@ -927,12 +962,12 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.split : Split strings around given separator/delimiter.
-        Series.str.rsplit : Splits string around given separator/delimiter,
-            starting from the right.
+        Series.str.split : Split strings around given separator/delimiter or
+            regular expression.
         Series.str.join : Join lists contained as elements in the Series/Index
             with passed delimiter.
-        str.split : Standard library version for split.
+        re.split : Standard library version for split with ``regex=True``.
+        str.split : Standard library version for split with ``regex=False``.
         str.rsplit : Standard library version for rsplit.
 
         Notes
@@ -941,11 +976,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Examples
         --------
@@ -2179,8 +2219,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Notes
         -----
-        Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.
+        Follows the same rules as :meth:`str.zfill`: a leading sign character
+        ('+'/'-') is kept at the front of the string and the '0' padding is
+        inserted after it.
 
         Examples
         --------
@@ -2194,10 +2235,10 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
-        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        special character and the zero is added to the right of it
-        (:meth:`str.zfill` would have moved it to the left). ``1000``
-        remains unchanged as it is longer than `width`.
+        converted to ``NaN``. The minus sign in ``'-1'`` is kept at the front
+        of the string and the '0' padding is inserted after it, the same as
+        :meth:`str.zfill`. ``1000`` remains unchanged as it is longer than
+        `width`.
 
         >>> s.str.zfill(3)
         0     -01

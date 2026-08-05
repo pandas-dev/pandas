@@ -35,7 +35,7 @@ def bisect_left(a: list[Any], x: Any, lo: int = 0, hi: int = -1) -> int:
     return lo
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def sliding_min_max(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -129,7 +129,7 @@ def sliding_min_max(
     return output, na_pos
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def grouped_min_max(
     values: np.ndarray,
     result_dtype: np.dtype,

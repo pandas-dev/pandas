@@ -200,7 +200,7 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     right : np.ndarray or scalar
         Excludes DataFrame, Series, Index, ExtensionArray.
     is_cmp : bool, default False
-        If this a comparison operation.
+        If this is a comparison operation.
 
     Returns
     -------

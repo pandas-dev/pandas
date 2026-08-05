@@ -812,6 +812,55 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
 
+class TestMergeMultiIndexNaN:
+    def test_merge_multiindex_nan_right_index(self):
+        # GH#64492 - merge with right MultiIndex containing NaN used
+        # lev.take(codes) which mapped -1 codes to the last level value
+        # instead of NaN
+        left = DataFrame(
+            {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
+        )
+        right = DataFrame(
+            {"data": [100, 200, 300]},
+            index=MultiIndex.from_arrays(
+                [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
+            ),
+        )
+        result = merge(left, right, left_on=["key1", "key2"], right_index=True)
+        expected = DataFrame(
+            {
+                "key1": [1.0, np.nan, 3.0],
+                "key2": ["a", "b", "c"],
+                "val": [10, 20, 30],
+                "data": [100, 200, 300],
+            },
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_multiindex_nan_left_index(self):
+        # GH#64492 - same bug as test_merge_multiindex_nan_right_index
+        # but for the left_index=True, right_on=... code path
+        left = DataFrame(
+            {"data": [100, 200, 300]},
+            index=MultiIndex.from_arrays(
+                [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
+            ),
+        )
+        right = DataFrame(
+            {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
+        )
+        result = merge(left, right, left_index=True, right_on=["key1", "key2"])
+        expected = DataFrame(
+            {
+                "data": [100, 200, 300],
+                "key1": [1.0, np.nan, 3.0],
+                "key2": ["a", "b", "c"],
+                "val": [10, 20, 30],
+            },
+        )
+        tm.assert_frame_equal(result, expected)
+
+
 class TestJoinMultiMulti:
     def test_join_multi_multi(self, left_multi, right_multi, join_type, on_cols_multi):
         left_names = left_multi.index.names
@@ -928,3 +977,37 @@ class TestJoinMultiMulti:
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multiindex_with_tuple_valued_level():
+    # GH#39100 merging on a MultiIndex whose innermost level holds tuples must
+    # align rows correctly instead of mismatching them
+    a_idx = MultiIndex.from_tuples(
+        [
+            (0, "TV", ("train", "val")),
+            (1, "TV", ("train", "val")),
+            (2, "Test", ("test",)),
+        ],
+        names=["epoch", "stage", "sl"],
+    )
+    a_df = DataFrame({"a": [0.1, 0.2, 0.3]}, index=a_idx)
+    b_idx = MultiIndex.from_tuples(
+        [(0, "Reval", ("reval",)), (2, "Test", ("test",))],
+        names=["epoch", "stage", "sl"],
+    )
+    b_df = DataFrame({"b": [0.03, 0.9]}, index=b_idx)
+    result = a_df.merge(b_df, how="outer", left_index=True, right_index=True)
+    expected_idx = MultiIndex.from_tuples(
+        [
+            (0, "Reval", ("reval",)),
+            (0, "TV", ("train", "val")),
+            (1, "TV", ("train", "val")),
+            (2, "Test", ("test",)),
+        ],
+        names=["epoch", "stage", "sl"],
+    )
+    expected = DataFrame(
+        {"a": [np.nan, 0.1, 0.2, 0.3], "b": [0.03, np.nan, np.nan, 0.9]},
+        index=expected_idx,
+    )
+    tm.assert_frame_equal(result, expected)

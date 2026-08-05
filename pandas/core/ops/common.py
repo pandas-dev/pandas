@@ -6,11 +6,20 @@ from __future__ import annotations
 
 from functools import wraps
 from typing import TYPE_CHECKING
+import warnings
 
-from pandas._libs.lib import item_from_zerodim
+import numpy as np
+
+from pandas._libs.lib import (
+    is_list_like,
+    item_from_zerodim,
+)
 from pandas._libs.missing import is_matching_na
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
@@ -25,6 +34,37 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pandas._typing import F
+
+
+def has_castable_attr(obj) -> bool:
+    attrs = ["__array__", "__dlpack__", "__arrow_c_array__", "__arrow_c_stream__"]
+    return any(hasattr(obj, name) for name in attrs)
+
+
+def maybe_warn_listlike(other) -> None:
+    """
+    Warn when operating against a list-like that is neither a standard container
+    (``list``, ``np.ndarray``) nor a pandas object nor array-castable.
+
+    Such operations (e.g. with ``tuple``, ``range``, ``deque``) are deprecated
+    (GH#62423) and will treat ``other`` as scalar-like in a future version.
+    """
+    if (
+        is_list_like(other)
+        and not isinstance(
+            other,
+            (list, np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCDataFrame),
+        )
+        and not has_castable_attr(other)
+    ):
+        warnings.warn(
+            f"Operation with {type(other).__name__} are deprecated. "
+            "In a future version these will be treated as scalar-like. "
+            "To retain the old behavior, explicitly wrap in a Series "
+            "instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
