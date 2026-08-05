@@ -836,6 +836,123 @@ represented and behave as ``pd.NA``.
 Notice that the last three values are all inferred by pandas as being NA
 values, and hence stored as ``pd.NA``.
 
+Performance considerations and known differences
+=================================================
+
+.. _text.performance_considerations:
+
+Performance Trade-offs
+----------------------
+
+The choice of storage backend (PyArrow vs Python) involves important
+performance trade-offs:
+
+**PyArrow storage** (``storage='pyarrow'``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Advantages**: Compact memory footprint, fast vectorized operations
+- **Disadvantages**: Immutable strings - any modification creates a new PyArrow ChunkedArray
+- **Recommendation**: Use for best performance when PyArrow is available
+
+When using PyArrow-backed strings, operations benefit from vectorization and
+Arrow's efficient memory layout. This often results in significantly better
+performance and lower memory usage compared to Python storage, especially for
+large datasets.
+
+**Python storage** (``storage='python'``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Advantages**: Mutable strings, compatible without external dependencies
+- **Disadvantages**: Highest memory overhead (each string is a separate Python object), no vectorization
+- **Recommendation**: Use when mutations are necessary or PyArrow is not available
+
+Python-backed strings store actual Python string objects, allowing in-place
+modifications. However, this comes at the cost of greater memory consumption
+and slower operations due to lack of vectorization.
+
+.. _text.known_differences:
+
+Known Behavior Differences
+--------------------------
+
+While pandas aims to provide consistent behavior regardless of storage backend,
+there are some edge cases where PyArrow and Python storage behave differently:
+
+**Regex Operations**
+~~~~~~~~~~~~~~~~~~~~
+
+The underlying regex engines differ between backends:
+
+- **Python storage**: Uses Python's ``re`` module (full Perl-compatible regex support)
+- **PyArrow storage**: Uses Google's RE2 engine (some regex features not supported)
+
+This can lead to different results for complex regex patterns. For example,
+lookahead/lookbehind assertions work in Python's ``re`` but not in RE2.
+
+See :issue:`63683` for more details on regex engine differences.
+
+**Unicode Case Operations**
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The German character "ß" is handled differently during case conversion:
+
+- **Python storage**: ``'ß'.upper()`` returns ``'SS'`` (standard Python behavior)
+- **PyArrow storage**: Returns ``'ẞ'`` (capital sharp S, following Unicode standard)
+
+Example:
+
+.. ipython:: python
+
+   import pandas as pd
+   s_python = pd.Series(['ß'], dtype=pd.StringDtype(storage='python'))
+   s_pyarrow = pd.Series(['ß'], dtype=pd.StringDtype(storage='pyarrow'))
+   s_python.str.upper()
+   # 0    SS
+   # dtype: string[python]
+   s_pyarrow.str.upper()
+   # 0    ẞ
+   # dtype: string[pyarrow]
+
+See `Apache Arrow #34599 <https://github.com/apache/arrow/issues/34599>`_
+for discussion on Unicode standard compliance.
+
+**Unicode Digit Detection**
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Unicode characters representing fractions behave differently in the ``isdigit()`` method:
+
+- **Python storage**: ``'⅕'.isdigit()`` returns ``False``
+- **PyArrow storage**: ``'⅕'.isdigit()`` returns ``True``
+
+This stems from different interpretations of the Unicode standard. PyArrow
+treats Unicode fraction characters as digits, while Python's standard
+library does not.
+
+See :issue:`61466` for more details.
+
+**Other Unicode Edge Cases**
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Various other Unicode operations may differ due to:
+
+- Different Unicode normalization implementations
+- Different character property classifications
+- Different interpretations of the Unicode standard
+
+If you encounter unexpected differences in string operations between storage
+backends, it's often related to these Unicode edge cases. When consistency
+is critical, test your operations with both backends.
+
+**Recommendation**
+~~~~~~~~~~~~~~~~~~
+
+When deploying code that must behave identically across environments:
+
+1. Always explicitly specify the ``storage`` parameter if consistency is critical
+2. Test string operations with both backends if using Unicode-sensitive operations
+3. Consider using ``storage='pyarrow'`` for performance but validate regex behavior
+4. Use ``storage='python'`` if exact Python regex semantics are required
+
 Method summary
 ==============
 
