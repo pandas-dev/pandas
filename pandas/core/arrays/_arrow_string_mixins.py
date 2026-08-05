@@ -524,8 +524,11 @@ class ArrowStringArrayMixin:
 
         n = len(chunk)
         # Interleave the three columns into [before[0], sep[0], after[0],
-        # before[1], ...]; taking from the concatenation is cheaper than
-        # building the rows one at a time.
+        #  before[1], ...]. Arrow has no kernel that zips arrays into rows, so
+        #  take from their concatenation. Both ranges below are plain index
+        #  arithmetic: NumPy builds them in one strided pass, while pyarrow has
+        #  no arange at all before 21.0 and would need four kernels for the
+        #  interleave, so they stay NumPy at every supported version.
         values = pa.concat_arrays([before, middle, after])
         indices = np.arange(3 * n, dtype=np.int64).reshape(3, n).T.reshape(-1)
         values = values.take(pa.array(indices))
