@@ -511,13 +511,19 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
 
-    def test_setitem_single_column_boolean_column_indexer(self):
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [f"x{i}" for i in range(60)],
+            pd.array([f"x{i}" for i in range(60)], dtype="string"),
+            pd.array(range(60), dtype="Int64"),
+        ],
+    )
+    def test_setitem_single_column_boolean_column_indexer(self, data):
         # GH#66527 boolean column indexer on a single-column DataFrame
-        # used to raise NotImplementedError for 1D-only EA-backed blocks
-        # (e.g. object/string dtype).
-        df = DataFrame({"A": [f"x{i}" for i in range(60)]})
+        # used to raise NotImplementedError for single-column EA-backed blocks
+        df = DataFrame({"A": data})
         expected = df.copy()
-
         df.loc[:, [True]] = df.loc[:, [True]]
         tm.assert_frame_equal(df, expected)
 
