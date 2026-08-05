@@ -4159,6 +4159,14 @@ class TestGroupbyAggPyArrowNative:
                 [Decimal(3 * 10**37)] * 5,
                 Decimal(15 * 10**37),
             ),
+            # same, but the input already has the maximum precision, so the
+            # widening cast is a no-op and cannot report the overflow
+            (
+                "prod",
+                pa.decimal128(38, 0),
+                [Decimal(10**19), Decimal(12 * 10**18)],
+                Decimal(12 * 10**37),
+            ),
         ],
     )
     def test_groupby_sum_prod_exceeds_max_precision(
