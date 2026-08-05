@@ -834,3 +834,35 @@ def test_split_arrow_dtype_regex_false_multichar():
     )
     expected.columns = RangeIndex(3)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["split", "rsplit"])
+def test_split_categorical(method):
+    # GH#66341 - str.split/rsplit on categorical should return lists, not strings
+    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype="category")
+    result = getattr(values.str, method)("_")
+    exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
+    tm.assert_series_equal(result, exp)
+    assert result.dtype == object
+
+
+def test_split_categorical_expand():
+    # GH#66341 - str.split on categorical with expand=True
+    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype="category")
+    result = values.str.split("_", expand=True)
+    exp = DataFrame(
+        [["a", "b", "c"], ["c", "d", "e"], [np.nan] * 3, ["f", "g", "h"]],
+    )
+    tm.assert_frame_equal(result, exp)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+def test_partition_categorical(method):
+    # GH#66341 - str.partition/rpartition on categorical should return tuples
+    values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype="category")
+    result = getattr(values.str, method)("_", expand=False)
+    exp = Series(
+        [("a", "_", "b_c"), ("c", "_", "d_e"), np.nan, ("f", "_", "g_h")]
+    )
+    tm.assert_series_equal(result, exp)
+    assert result.dtype == object
