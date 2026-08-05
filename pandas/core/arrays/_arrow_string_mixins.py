@@ -508,20 +508,18 @@ class ArrowStringArrayMixin:
         offset width of ``str_type``, which matters for columns near the 2 GiB
         limit of 32-bit ``string``.
         """
-        # max_splits=1 gives [before] when sep is absent, else [before, after]
+        # max_splits=1 gives [before] when sep is absent, else [before, after];
+        #  padding to a fixed two elements makes the tail null in the first case
         split = pc.split_pattern(chunk, sep, max_splits=1)
-        found = pc.fill_null(pc.equal(pc.list_value_length(split), 2), False)
-        found_np = np.asarray(found)
+        pieces = pc.list_slice(split, 0, 2, return_fixed_size_list=True)
 
-        before = pc.list_element(split, 0)
-        # flattening drops the rows that have no tail, so the tail of row i is
-        #  at position rank[i]; rows without one take a null and become ""
-        tails = pc.list_flatten(pc.list_slice(split, 1))
-        rank = np.cumsum(found_np) - 1
-        after = tails.take(pa.array(rank, mask=~found_np))
-        after = pc.fill_null(after, pa.scalar("", type=str_type))
+        before = pc.list_element(pieces, 0)
+        tail = pc.list_element(pieces, 1)
+        after = pc.fill_null(tail, pa.scalar("", type=str_type))
         middle = pc.if_else(
-            found, pa.scalar(sep, type=str_type), pa.scalar("", type=str_type)
+            pc.is_valid(tail),
+            pa.scalar(sep, type=str_type),
+            pa.scalar("", type=str_type),
         )
 
         n = len(chunk)
