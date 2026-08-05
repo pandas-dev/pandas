@@ -1887,8 +1887,9 @@ def test_get_level_values_integer_names():
         idx_5.get_level_values(1)
 
 
+@pytest.mark.parametrize("wrap", [str, np.str_])
 @pytest.mark.parametrize("dtype", [object, "str"])
-def test_slice_locs_quarterly_string_bounds_no_deprecation_warning(dtype):
+def test_slice_locs_quarterly_string_bounds_no_deprecation_warning(dtype, wrap):
     # GH#50907 slice_locs parses str bounds internally to compare UTC offsets;
     # on a non-datetime Index nothing is being parsed as a datetime, so a
     # quarterly-looking label must not trigger the deprecation
@@ -1896,8 +1897,20 @@ def test_slice_locs_quarterly_string_bounds_no_deprecation_warning(dtype):
     ser = Series(np.arange(len(idx)), index=idx)
 
     with tm.assert_produces_warning(None):
-        result = ser.loc["2000Q1":"2000Q2"]
+        result = ser.loc[wrap("2000Q1") : wrap("2000Q2")]
     tm.assert_series_equal(result, ser.iloc[:2])
 
     with tm.assert_produces_warning(None):
-        assert idx.slice_locs("2000Q1", "2000Q2") == (0, 2)
+        assert idx.slice_locs(wrap("2000Q1"), wrap("2000Q2")) == (0, 2)
+
+
+@pytest.mark.parametrize("wrap", [str, np.str_])
+def test_slice_locs_quarterly_string_bound_utc_offset_check(wrap):
+    # GH#50907 recognizing the quarterly bound without warning must not lose the
+    # GH#16785 offset comparison; a quarterly string is always naive. GH#45580
+    # the bound may be an np.str_, which the opted-out parser rejects.
+    idx = Index(["a", "b", "c"])
+
+    with tm.assert_produces_warning(None):
+        with pytest.raises(ValueError, match="Both dates must"):
+            idx.slice_locs(wrap("2000Q1"), "2000-06-01 00:00:00+06:00")

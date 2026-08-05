@@ -11062,23 +11062,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if ax._is_all_dates:
             from pandas.core.tools.datetimes import to_datetime
 
-            with warnings.catch_warnings():
-                if isinstance(ax, PeriodIndex):
-                    # GH#50907 the user is slicing a PeriodIndex by Period, so
-                    #  the quarterly-string deprecation from this internal
-                    #  parse would be spurious. On a DatetimeIndex the user did
-                    #  write a quarterly string, so it must still warn.
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Parsing.*quarterly string",
-                        Pandas4Warning,
-                    )
-                if before is not None:
-                    # Avoid converting to NaT
-                    before = to_datetime(before)
-                if after is not None:
-                    # Avoid converting to NaT
-                    after = to_datetime(after)
+            if before is not None:
+                # Avoid converting to NaT
+                before = to_datetime(before)
+            if after is not None:
+                # Avoid converting to NaT
+                after = to_datetime(after)
 
         if before is not None and after is not None and before > after:
             raise ValueError(f"Truncate: {after} must be after {before}")

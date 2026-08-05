@@ -69,21 +69,33 @@ class TestTruncate:
         tm.assert_series_equal(truncated, obj)
 
 
-@pytest.mark.parametrize("freq", ["Q-DEC", "Q-FEB"])
-def test_truncate_periodindex_quarterly_string_no_deprecation_warning(freq):
-    # GH#50907 truncate parses its bounds with to_datetime internally; on a
-    # PeriodIndex the user is slicing by Period, so that must not warn
+@pytest.mark.parametrize(
+    "freq,expected_start", [("Q-DEC", "2001Q1"), ("Q-FEB", "2001Q4")]
+)
+def test_truncate_periodindex_quarterly_string_deprecated(freq, expected_start):
+    # GH#50907 truncate parses its bounds with to_datetime, so the bound is the
+    # calendar quarter rather than the freq-anchored one -- unlike
+    # ser.loc["2001Q1":"2001Q3"], which uses Period semantics
     pi = pd.period_range("2000Q1", periods=12, freq=freq)
     ser = Series(range(len(pi)), index=pi)
 
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
         result = ser.truncate("2001Q1", "2001Q3")
-    assert len(result) == 3
+
+    tm.assert_index_equal(
+        result.index, pd.period_range(expected_start, periods=3, freq=freq)
+    )
+    # following the deprecation message preserves the behavior
+    expected = ser.truncate(
+        pd.Period("2001Q1").to_timestamp(), pd.Period("2001Q3").to_timestamp()
+    )
+    tm.assert_series_equal(result, expected)
 
 
-def test_truncate_datetimeindex_quarterly_string_still_warns():
-    # GH#50907 on a DatetimeIndex the user did write a quarterly string, so the
-    # suppression above must not reach this case
+def test_truncate_datetimeindex_quarterly_string_deprecated():
+    # GH#50907
     dti = date_range("2001-01-01", periods=500, freq="D")
     ser = Series(range(len(dti)), index=dti)
 

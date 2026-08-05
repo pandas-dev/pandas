@@ -560,13 +560,17 @@ def test_datetimeindex_quarterly_slice_still_warns():
     dti = date_range("2001-01-01", periods=500, freq="D")
     ser = Series(np.arange(len(dti)), index=dti)
 
+    # one warning per bound; without the suppression the internal parse of each
+    # bound would double that
     with tm.assert_produces_warning(
         Pandas4Warning, match="quarterly string is deprecated"
-    ):
+    ) as record:
         result = ser.loc["2001Q1":"2001Q3"]
     assert len(result) == 273
+    assert len(record) == 2
 
     with tm.assert_produces_warning(
         Pandas4Warning, match="quarterly string is deprecated"
-    ):
+    ) as record:
         assert dti.slice_locs("2001Q1", "2001Q3") == (0, 273)
+    assert len(record) == 2

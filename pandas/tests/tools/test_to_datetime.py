@@ -4572,9 +4572,7 @@ def test_to_datetime_quarterly_string_warns_once_tzaware():
     # GH#50907 the tz-aware array path goes through array_to_datetime_with_tz
     values = [f"{2000 + i % 50}Q{1 + i % 4}" for i in range(200)]
     with tm.assert_produces_warning(
-        Pandas4Warning,
-        match="quarterly string is deprecated",
-        raise_on_extra_warnings=False,
+        Pandas4Warning, match="quarterly string is deprecated"
     ) as record:
         DatetimeIndex(values, tz="US/Pacific")
 
@@ -4599,3 +4597,18 @@ def test_to_datetime_quarterly_string_warns_once_mixed_resolution():
         rec for rec in record if "quarterly string is deprecated" in str(rec.message)
     ]
     assert len(quarter_warnings) == 1
+
+
+def test_to_datetime_quarterly_string_warns_once_mixed_resolution_tzaware():
+    # GH#50907 same as the above for the array_to_datetime_with_tz recursion
+    values = ["2014Q2", "2015-01-01 00:00:00.000000001"]
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = DatetimeIndex(values, tz="UTC")
+
+    quarter_warnings = [
+        rec for rec in record if "quarterly string is deprecated" in str(rec.message)
+    ]
+    assert len(quarter_warnings) == 1
+    assert result[0] == Timestamp("2014-04-01", tz="UTC")
