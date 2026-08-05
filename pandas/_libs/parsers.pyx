@@ -655,7 +655,7 @@ cdef class TextReader:
 
         After this call the tokeniser reads directly from the supplied *data*
         buffer rather than calling back into Python via the ``cb_io``
-        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.c`` checks
+        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.cpp`` checks
         ``self->source == NULL`` before invoking ``parser_buffer_bytes``, the
         GIL is **never** re-acquired during tokenisation — enabling true CPU
         parallelism across threads.
@@ -690,7 +690,7 @@ cdef class TextReader:
         self.parser.datalen = data.shape[0]
         self.parser.datapos = 0
 
-        # Disable the header/first-line special cases in tokenizer.c: the
+        # Disable the header/first-line special cases in tokenizer.cpp: the
         # buffer holds plain data rows, so its first line must get regular
         # bad-line handling and no BOM stripping (see parser_t.preloaded).
         self.parser.preloaded = 1
