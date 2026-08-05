@@ -968,17 +968,142 @@ def test_resample_origin_with_day_freq_on_dst(unit):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_dst_midnight_last_nonexistent():
-    # GH 58380
+def test_resample_dst_crosses_boundary():
+    # GH 62601
+    # Data spans April 24 through April 27, crossing the DST gap on April 26.
+    # In Africa/Cairo, DST starts on 2024-04-26 at 00:00 local time (clocks spring
+    # forward to 01:00, UTC+2 -> UTC+3), so the daily bin edge at midnight April 26
+    # is nonexistent. The fix in resample shifts that edge to 01:00+03:00.
     ts = Series(
         1,
-        date_range("2024-04-19", "2024-04-20", tz="Africa/Cairo", freq="15min"),
+        date_range("2024-04-24", "2024-04-27", tz="Africa/Cairo", freq="1h"),
     )
 
-    expected = Series([len(ts)], index=DatetimeIndex([ts.index[0]], freq="7D"))
+    result = ts.resample("1D").sum()
 
-    result = ts.resample("7D").sum()
-    tm.assert_series_equal(result, expected)
+    expected = Series(
+        [24, 24, 23, 1],
+        index=DatetimeIndex(
+            [
+                "2024-04-24 00:00:00+02:00",
+                "2024-04-25 00:00:00+02:00",
+                "2024-04-26 01:00:00+03:00",
+                "2024-04-27 00:00:00+03:00",
+            ],
+            tz="Africa/Cairo",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_dst_15min_across_boundary():
+    # GH 62601
+    # Start safely before, end safely after the April 26 gap.
+    # Apr 25 bin has 8 quarter-hours (22:00 through 23:45);
+    # Apr 26 bin has 13 quarter-hours (01:00 through 04:00).
+    ts = Series(
+        1,
+        date_range(
+            "2024-04-25 22:00", "2024-04-26 04:00", tz="Africa/Cairo", freq="15min"
+        ),
+    )
+
+    result = ts.resample("1D").sum()
+    expected = Series(
+        [8, 13],
+        index=DatetimeIndex(
+            ["2024-04-25 00:00:00", "2024-04-26 01:00:00"],
+            tz="Africa/Cairo",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_dst_normal_behavior_before_boundary():
+    # GH 62601
+    # Example 2 no DST issue (1H -> 1D)
+    ts = Series(
+        1,
+        date_range("2024-04-20", "2024-04-21", tz="Africa/Cairo", freq="1h"),
+    )
+
+    result = ts.resample("1D").sum()
+
+    # Manually computed: date_range "2024-04-20" to "2024-04-21" at 1H gives
+    # 25 timestamps. Both endpoints share the same calendar day split:
+    # April 20 -> 24 points, april 21 -> 1 point.
+    expected = Series(
+        [24, 1],
+        index=DatetimeIndex(
+            ["2024-04-20 00:00:00", "2024-04-21 00:00:00"],
+            tz="Africa/Cairo",
+            freq="D",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_dst_direct_boundary():
+    # GH 62601
+    # Direct DST boundary
+    # "2024-04-26 01:00" is the first valid local time after the gap
+    ts = Series(
+        [1, 2],
+        DatetimeIndex(
+            ["2024-04-26 01:00:00", "2024-04-27 00:00:00"],
+            tz="Africa/Cairo",
+        ),
+    )
+
+    result = ts.resample("1D").sum()
+    expected = Series(
+        [1, 2],
+        index=DatetimeIndex(
+            ["2024-04-26 01:00:00", "2024-04-27 00:00:00"],
+            tz="Africa/Cairo",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_dst_generated_edge():
+    # GH 62601
+    # Build the hourly data via periods so setup itself does not try to
+    # localize the nonexistent midnight edge (2024-04-26 00:00).
+    ts = Series(
+        1,
+        date_range("2024-04-25", periods=25, tz="Africa/Cairo", freq="1h"),
+    )
+
+    result = ts.resample("1D").sum()
+    expected = Series(
+        [24, 1],
+        index=DatetimeIndex(
+            ["2024-04-25 00:00:00", "2024-04-26 01:00:00"],
+            tz="Africa/Cairo",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_dst_check_edge():
+    # GH 62601
+    ts = Series(
+        1,
+        date_range(
+            "2024-04-24 23:00", "2024-04-25 00:00", tz="Africa/Cairo", freq="1h"
+        ),
+    )
+
+    result = ts.resample("1D").sum()
+    expected = Series(
+        [1, 1],
+        index=DatetimeIndex(
+            ["2024-04-24 00:00:00", "2024-04-25 00:00:00"],
+            tz="Africa/Cairo",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
 
 
 def test_resample_daily_anchored(unit):
