@@ -1042,9 +1042,10 @@ def crosstab(
     Any Series passed will have their name attributes used unless row or column
     names for the cross-tabulation are specified.
 
-    Any input passed containing Categorical data will have **all** of its
-    categories included in the cross-tabulation, even if the actual data does
-    not contain any instances of a particular category.
+    Any input passed containing Categorical data will have all of its
+    categories included in the cross-tabulation when ``dropna=False``. With
+    the default ``dropna=True``, categories without any observed instances
+    are dropped from the result.
 
     Series arguments are aligned on their index before tabulating; rows where
     any value is missing after alignment (e.g. index labels not present in
