@@ -4228,6 +4228,24 @@ class TestGroupbyAggPyArrowNative:
         # it to the maximum precision
         tm.assert_series_equal(result, expected, check_dtype=False)
 
+    @pytest.mark.skipif(
+        pa_version_under23p0, reason="the NumPy placement does not call scatter"
+    )
+    def test_groupby_scatter_other_error_raises(self, monkeypatch):
+        # GH#63416 only the failures that have a fallback are swallowed, so an
+        # unrelated Arrow error still reaches the caller
+        ser = pd.Series(
+            [Decimal("1"), Decimal("2"), Decimal("3")],
+            dtype=ArrowDtype(pa.decimal128(10, 2)),
+        )
+
+        def raise_type_error(*args, **kwargs):
+            raise pa.ArrowTypeError("scatter got the wrong type")
+
+        monkeypatch.setattr(pc, "scatter", raise_type_error)
+        with pytest.raises(pa.ArrowTypeError, match="scatter got the wrong type"):
+            ser.groupby([1, 1, 2]).min()
+
     @pytest.mark.xfail(
         reason="PyArrow's product wraps silently once the result exceeds int256, "
         "so the group result is a wrong (negative) value; this predates the "
