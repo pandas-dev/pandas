@@ -456,6 +456,54 @@ class TestDataFrameQueryWithMultiIndex:
         exp = df[ind != "red"]
         tm.assert_frame_equal(res, exp)
 
+    def test_query_multiindex_level_python_parser(self, parser, engine):
+        # GH#57812 querying a MultiIndex level with ==/!= (which is internally
+        # rewritten to a membership op) must resolve the level name for the
+        # python parser too, not only the pandas parser / numexpr engine.
+        a = np.random.default_rng(2).choice(["red", "green"], size=10)
+        b = np.arange(10)
+        index = MultiIndex.from_arrays([a, b], names=["color", "rating"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
+
+        color = Series(
+            df.index.get_level_values("color").values, index=index, name="color"
+        )
+        rating = Series(
+            df.index.get_level_values("rating").values, index=index, name="rating"
+        )
+
+        # string level
+        tm.assert_frame_equal(
+            df.query('color == "red"', parser=parser, engine=engine),
+            df[color == "red"],
+        )
+        tm.assert_frame_equal(
+            df.query('color != "red"', parser=parser, engine=engine),
+            df[color != "red"],
+        )
+        tm.assert_frame_equal(
+            df.query('color == ["red"]', parser=parser, engine=engine),
+            df[color.isin(["red"])],
+        )
+
+        # numeric level
+        tm.assert_frame_equal(
+            df.query("rating == 1", parser=parser, engine=engine),
+            df[rating == 1],
+        )
+
+        # unnamed levels via the ilevel_* aliases
+        unnamed = DataFrame(
+            df.to_numpy(), index=MultiIndex.from_arrays([a, b])
+        )
+        ind0 = Series(
+            unnamed.index.get_level_values(0).values, index=unnamed.index
+        )
+        tm.assert_frame_equal(
+            unnamed.query('ilevel_0 == "red"', parser=parser, engine=engine),
+            unnamed[ind0 == "red"],
+        )
+
     def test_query_multiindex_get_index_resolvers(self):
         df = DataFrame(
             np.ones((10, 3)),
@@ -1044,80 +1092,47 @@ class TestDataFrameQueryStrings:
         tm.assert_frame_equal(result, expected)
 
     def test_str_query_method(self, parser, engine):
+        # GH#57812 string ==/!= is rewritten to a membership (isin) op and must
+        # work for both the pandas and python parsers.
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings == "a"]
 
-        if parser != "pandas":
-            col = "strings"
-            lst = '"a"'
+        res = df.query('"a" == strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            lhs = [col] * 2 + [lst] * 2
-            rhs = lhs[::-1]
+        res = df.query('strings == "a"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
+        tm.assert_frame_equal(res, df[df.strings.isin(["a"])])
 
-            eq, ne = "==", "!="
-            ops = 2 * ([eq, ne])
-            msg = r"'(Not)?In' nodes are not implemented"
+        expect = df[df.strings != "a"]
+        res = df.query('strings != "a"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            for lh, op_, rh in zip(lhs, ops, rhs, strict=True):
-                ex = f"{lh} {op_} {rh}"
-                with pytest.raises(NotImplementedError, match=msg):
-                    df.query(
-                        ex,
-                        engine=engine,
-                        parser=parser,
-                        local_dict={"strings": df.strings},
-                    )
-        else:
-            res = df.query('"a" == strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('strings == "a"', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-            tm.assert_frame_equal(res, df[df.strings.isin(["a"])])
-
-            expect = df[df.strings != "a"]
-            res = df.query('strings != "a"', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('"a" != strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-            tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
+        res = df.query('"a" != strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
+        tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
 
     def test_str_list_query_method(self, parser, engine):
+        # GH#57812 list ==/!= is rewritten to a membership (isin) op and must
+        # work for both the pandas and python parsers.
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings.isin(["a", "b"])]
 
-        if parser != "pandas":
-            col = "strings"
-            lst = '["a", "b"]'
+        res = df.query('strings == ["a", "b"]', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            lhs = [col] * 2 + [lst] * 2
-            rhs = lhs[::-1]
+        res = df.query('["a", "b"] == strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            eq, ne = "==", "!="
-            ops = 2 * ([eq, ne])
-            msg = r"'(Not)?In' nodes are not implemented"
+        expect = df[~df.strings.isin(["a", "b"])]
 
-            for lh, ops_, rh in zip(lhs, ops, rhs, strict=True):
-                ex = f"{lh} {ops_} {rh}"
-                with pytest.raises(NotImplementedError, match=msg):
-                    df.query(ex, engine=engine, parser=parser)
-        else:
-            res = df.query('strings == ["a", "b"]', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
+        res = df.query('strings != ["a", "b"]', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] == strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            expect = df[~df.strings.isin(["a", "b"])]
-
-            res = df.query('strings != ["a", "b"]', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('["a", "b"] != strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
+        res = df.query('["a", "b"] != strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
     def test_query_with_string_columns(self, parser, engine):
         df = DataFrame(
