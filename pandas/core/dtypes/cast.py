@@ -983,8 +983,16 @@ def convert_dtypes(
                     convert_to_nullable_dtype=True,
                 )
                 if converted.dtype.kind in "iu":
+                    # `converted.dtype` is already an np.dtype here (guarded by
+                    # the kind check above), so no typing.cast is needed.
+                    # GH#66517 review feedback: drop the unnecessary cast.
+                    converted_np_dtype = (
+                        converted.dtype
+                        if isinstance(converted.dtype, np.dtype)
+                        else np.dtype(converted.dtype)
+                    )
                     inferred_dtype = NUMPY_INT_TO_DTYPE.get(
-                        cast("np.dtype", converted.dtype), target_int_dtype
+                        converted_np_dtype, target_int_dtype
                     )
 
         if convert_floating:
