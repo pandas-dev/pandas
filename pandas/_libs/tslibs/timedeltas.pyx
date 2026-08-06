@@ -2792,7 +2792,7 @@ class Timedelta(_Timedelta):
             return Timedelta._from_value_and_reso(value, self._creso)
 
             result = self._value / other
-            if is_float_object(result) and not result.is_integer():
+            if not result.is_integer():
                 # GH#57264
                 return type(self)(
                     result,
