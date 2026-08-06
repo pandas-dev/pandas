@@ -666,6 +666,24 @@ def test_reset_index_dtypes_on_empty_frame_with_multiindex(
     tm.assert_series_equal(result, expected)
 
 
+def test_reset_index_infers_dtype_from_object_levels():
+    # GH#58517 object-dtype MultiIndex levels are inferred to concrete dtypes
+    #  when they are moved into columns
+    mi = MultiIndex.from_arrays(
+        [
+            Index([1, 2], dtype=object),
+            Index([1.5, 2.5], dtype=object),
+            Index([True, False], dtype=object),
+        ],
+        names=["i", "f", "b"],
+    )
+    result = DataFrame({"v": [1, 2]}, index=mi).reset_index()
+    expected = DataFrame(
+        {"i": [1, 2], "f": [1.5, 2.5], "b": [True, False], "v": [1, 2]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_reset_index_empty_frame_with_datetime64_multiindex():
     # https://github.com/pandas-dev/pandas/issues/35606
     dti = pd.DatetimeIndex(["2020-07-20 00:00:00"], dtype="M8[ns]")

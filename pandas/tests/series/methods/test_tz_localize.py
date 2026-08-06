@@ -1,4 +1,7 @@
-from datetime import UTC
+from datetime import (
+    UTC,
+    timedelta,
+)
 
 import pytest
 
@@ -8,6 +11,7 @@ from pandas import (
     DatetimeIndex,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
 )
@@ -117,6 +121,26 @@ class TestTZLocalize:
 
             res_index = dti.tz_localize(tz, nonexistent=method)
             tm.assert_index_equal(res_index, expected.index)
+
+    @pytest.mark.parametrize("offset", [Timedelta("1h"), timedelta(hours=1)])
+    def test_tz_localize_nonexistent_timedelta(self, warsaw, unit, offset):
+        # GH#58517 nonexistent= also accepts a timedelta, but that form was
+        #  only covered for DatetimeIndex, not for Series/DataFrame
+        tz = warsaw
+        dti = date_range(start="2015-03-29 02:00:00", periods=3, freq="min", unit=unit)
+        ser = Series(1, index=dti)
+
+        # localizing shifts the nonexistent times by offset and keeps the unit
+        expected_index = (dti + offset).tz_localize(tz).as_unit(unit)
+
+        result = ser.tz_localize(tz, nonexistent=offset)
+        tm.assert_series_equal(result, Series(1, index=expected_index))
+
+        result = ser.to_frame().tz_localize(tz, nonexistent=offset)
+        tm.assert_frame_equal(result, Series(1, index=expected_index).to_frame())
+
+        res_index = dti.tz_localize(tz, nonexistent=offset)
+        tm.assert_index_equal(res_index, expected_index)
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_series_tz_localize_empty(self, tzstr):
