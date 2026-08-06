@@ -255,6 +255,9 @@ class CParserWrapper(ParserBase):
                 chunks = self._reader.read_low_memory(nrows)
                 # destructive to chunks
                 data = _concatenate_chunks(chunks, self.names)
+                # GH#56044 category-dtype inference is deferred until after
+                #  concatenation so all chunks agree
+                self._reader._maybe_infer_categoricals(data)
             else:
                 data = self._reader.read(nrows)
         except StopIteration:
@@ -373,6 +376,27 @@ def _filter_usecols(usecols, names: SequenceT) -> SequenceT | list[Hashable]:
     return names
 
 
+def _harmonize_empty_categories(arrs: list[ArrayLike]) -> list[ArrayLike]:
+    """
+    Give chunks that inferred no categories the others' categories dtype.
+
+    GH#56044 a chunk that is entirely NA yields empty object-dtype categories
+    where a populated chunk yields string ones, which union_categoricals
+    rejects.  When every chunk is empty there is nothing to match, so an
+    all-NA column keeps its object categories.
+    """
+    populated = {arr.categories.dtype for arr in arrs if len(arr.categories)}  # type: ignore[union-attr]
+    if len(populated) != 1:
+        return arrs
+    cat_dtype = populated.pop()
+    return [
+        arr
+        if len(arr.categories)  # type: ignore[union-attr]
+        else arr.set_categories(arr.categories.astype(cat_dtype))  # type: ignore[union-attr]
+        for arr in arrs
+    ]
+
+
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
     column_names: Sequence[Hashable],
@@ -400,6 +424,7 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
+            arrs = _harmonize_empty_categories(arrs)
             result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)

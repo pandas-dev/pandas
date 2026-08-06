@@ -77,6 +77,67 @@ nanosecond component. The vectorized :meth:`TimedeltaIndex.total_seconds` and
 they now match the scalar result exactly, including at large magnitudes
 where floating-point rounding previously differed (:issue:`46819`).
 
+.. _whatsnew_310.notable_bug_fixes.read_csv_categorical:
+
+:func:`read_csv` with ``dtype="category"`` infers numeric and boolean categories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` with ``dtype="category"`` and the ``c`` or ``python`` engine
+produced string categories for numeric and boolean columns, while the
+``pyarrow`` engine inferred numeric and boolean categories. All engines now
+infer numeric and boolean categories under the default ``dtype_backend``
+(:issue:`56044`).
+
+.. ipython:: python
+
+    from io import StringIO
+
+    data = "a\n1\n1\n2"
+    pd.read_csv(StringIO(data), dtype="category")["a"].dtype
+
+    data = "a\nTrue\nFalse\nTrue"
+    pd.read_csv(StringIO(data), dtype="category")["a"].dtype
+
+Some columns keep string categories:
+
+* those whose values do not all parse as numeric or boolean;
+* those read with non-default ``thousands`` or ``decimal`` options;
+* datetime-like columns on the ``c`` and ``python`` engines, where the
+  ``pyarrow`` engine instead gives ``datetime64`` categories for timestamps and
+  ``object`` categories of :class:`datetime.date` for date-only columns.
+
+Two cases differ from what the same column receives without
+``dtype="category"``:
+
+* an integer or boolean column containing missing values gets integer or
+  boolean categories rather than ``float64`` or ``object``, since the codes
+  already carry the missing values;
+* under a non-default ``dtype_backend`` the ``c`` engine still gives
+  numpy-backed categories, as does the ``python`` engine with
+  ``dtype_backend="numpy_nullable"`` (:issue:`66382`).
+
+The same inference now applies to the other readers built on the shared text
+parser, including :func:`read_table`, :func:`read_fwf` and :func:`read_excel`,
+which already inferred numeric and boolean types for these columns without
+``dtype="category"``.
+
+The ``pyarrow`` engine gave nullable ``Int64`` categories for integer columns
+under the default ``dtype_backend``; it now gives numpy ``int64`` like the other
+engines.
+
+Two further inconsistencies in the ``c`` and ``python`` engines are fixed.
+``low_memory=True`` (the default for the ``c`` engine) no longer leaves string
+categories in the order the file's buffer chunks happened to produce them, and
+a :class:`CategoricalDtype` that specifies ``ordered=True`` without specifying
+``categories`` no longer discards ``ordered``:
+
+.. ipython:: python
+
+    from pandas.api.types import CategoricalDtype
+
+    data = "a\n2\n1"
+    pd.read_csv(StringIO(data), dtype={"a": CategoricalDtype(ordered=True)})["a"].dtype
+
 .. _whatsnew_310.notable_bug_fixes.timestamp_ignored_arguments:
 
 :class:`Timestamp` no longer ignores date components and the positional ``tzinfo``
