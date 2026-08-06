@@ -206,7 +206,7 @@ def test_dtype_float(parser, temp_file):
 
 def test_wrong_dtype(xml_books, parser, iterparse):
     with pytest.raises(
-        ValueError, match=('Unable to parse string "Everyday Italian" at position 0')
+        ValueError, match=("Unable to parse string 'Everyday Italian' at position 0")
     ):
         read_xml(
             xml_books, dtype={"title": "Int64"}, parser=parser, iterparse=iterparse
@@ -305,7 +305,7 @@ def test_wrong_converters_type(xml_books, parser, iterparse):
 def test_callable_func_converters(xml_books, parser, iterparse):
     with pytest.raises(TypeError, match=("'float' object is not callable")):
         read_xml(
-            xml_books, converters={"year": float()}, parser=parser, iterparse=iterparse
+            xml_books, converters={"year": 0.0}, parser=parser, iterparse=iterparse
         )
 
 

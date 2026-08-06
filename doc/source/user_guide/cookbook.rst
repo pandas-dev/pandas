@@ -416,8 +416,49 @@ Levels
 `Prepending a level to a multiindex
 <https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {"A": ["a1", "a1", "a2", "a3"], "B": ["b1", "b2", "b3", "b4"], "Vals": np.random.randn(4)}
+   ).groupby(["A", "B"]).sum()
+   df
+
+Prepend a constant label to the existing row MultiIndex using ``pd.concat`` with the ``keys`` argument:
+
+.. ipython:: python
+
+   df = pd.concat([df], keys=["Foo"], names=["FirstLevel"])
+   df
+
 `Flatten Hierarchical columns
 <https://stackoverflow.com/q/14507794>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "USAF": ["702730"] * 4,
+           "WBAN": [26451] * 4,
+           "day": [1, 2, 3, 4],
+           "s_PC": [1, 0, 1, 3],
+           "s_CL": [0, 0, 10, 0],
+           "tempf": [30.92, 32.00, 23.00, 10.04],
+       }
+   )
+   df = df.groupby(["USAF", "WBAN", "day"]).agg(
+       {"s_PC": "sum", "s_CL": "sum", "tempf": ["max", "min"]}
+   ).reset_index()
+   df
+
+Use a generator expression to drop the empty-string second levels before joining, so
+``("USAF", "")`` becomes ``"USAF"`` rather than ``"USAF_"``. Columns with a real
+aggregation label are joined normally, so ``("tempf", "max")`` becomes ``"tempf_max"``
+and ``("s_PC", "sum")`` becomes ``"s_PC_sum"``:
+
+.. ipython:: python
+
+   df.columns = ["_".join(c for c in col if c) for col in df.columns]
+   df
 
 .. _cookbook.missing_data:
 

@@ -419,6 +419,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
     _str_zfill = ArrowStringArrayMixin._str_zfill
+    _str_normalize = ArrowStringArrayMixin._str_normalize
 
     @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:

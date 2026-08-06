@@ -116,7 +116,7 @@ of the index is up to you:
 
 We've "sparsified" the higher levels of the indexes to make the console output a
 bit easier on the eyes. Note that how the index is displayed can be controlled using the
-``multi_sparse`` option in ``pandas.set_options()``:
+``multi_sparse`` option in ``pandas.set_option()``:
 
 .. ipython:: python
 

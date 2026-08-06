@@ -1,5 +1,6 @@
 # Test: range
 dependencies:
   - jinja2<8
+  - pyarrow!=24.*
   - scipy<9
   - SQLAlchemy<2.0

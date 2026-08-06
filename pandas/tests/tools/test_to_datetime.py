@@ -3,6 +3,7 @@
 import calendar
 from collections import deque
 from datetime import (
+    UTC,
     date,
     datetime,
     timedelta,
@@ -10,6 +11,7 @@ from datetime import (
 )
 from decimal import Decimal
 import locale
+import re
 import zoneinfo
 
 from dateutil.parser import parse
@@ -23,6 +25,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     PY314,
+    PY315,
     WASM,
 )
 from pandas.errors import (
@@ -533,6 +536,39 @@ class TestTimeConversionFormats:
         expected = DatetimeIndex(expected_dates)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(
+        not PY315, reason="%:z directive not supported prior to 3.15", raises=ValueError
+    )
+    def test_to_datetime_colon_z_offset(self):
+        dates = [
+            "2010-01-01 12:00:00+04:00",
+            "2010-01-01 12:00:00+04:30",
+            "2010-01-01 12:00:00-05:00",
+        ]
+        expected_dates = [
+            "2010-01-01 08:00:00+00:00",
+            "2010-01-01 07:30:00+00:00",
+            "2010-01-01 17:00:00+00:00",
+        ]
+        fmt = "%Y-%m-%d %H:%M:%S%:z"
+
+        result = to_datetime(dates, format=fmt, utc=True)
+        expected = DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_datetime_missing_colon_z_offset(self):
+        # test adapted from python/cpython#136961
+        dates = ["+04:0030"]
+        fmt = "%:z"
+
+        if PY315:
+            msg = r"Missing colon in %:z before '30', got '\+04:0030'"
+        else:
+            msg = "':' is a bad directive in format '%:z'"
+
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(dates, format=fmt, utc=True)
+
     @pytest.mark.parametrize(
         "offset", ["+0", "-1foo", "UTCbar", ":10", "+01:000:01", ""]
     )
@@ -560,6 +596,12 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_invalid_errors(self):
+        # GH#66542
+        msg = "errors must be one of"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(["2024-01-01"], errors="never")
+
     def test_to_datetime_mixed_string_resos(self):
         # GH#62801
         vals = [
@@ -1406,9 +1448,12 @@ class TestToDatetime:
     @pytest.mark.parametrize("errors", ["coerce", "raise"])
     def test_invalid_format_raises(self, errors):
         # https://github.com/pandas-dev/pandas/issues/50255
-        with pytest.raises(
-            ValueError, match="':' is a bad directive in format 'H%:M%:S%"
-        ):
+        if PY315:
+            msg = r"':M' is a bad directive in format 'H%:M%:S%"
+        else:
+            msg = "':' is a bad directive in format 'H%:M%:S%"
+
+        with pytest.raises(ValueError, match=msg):
             to_datetime(["00:00:00"], format="H%:M%:S%", errors=errors)
 
     @pytest.mark.parametrize("value", ["a", "00:01:99"])
@@ -1757,7 +1802,7 @@ class TestToDatetime:
         arr = np.array([parse("2012-06-13T01:39:00Z")], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        assert result.tz is timezone.utc
+        assert result.tz is UTC
 
     def test_to_datetime_fixed_offset(self):
         from pandas.tests.indexes.datetimes.test_timezones import FixedOffset
@@ -2784,7 +2829,7 @@ class TestToDatetimeMisc:
     )
     def test_to_datetime_iso8601_with_timezone_valid(self, input, format):
         # https://github.com/pandas-dev/pandas/issues/12649
-        expected = Timestamp(2020, 1, 1, tzinfo=timezone.utc)
+        expected = Timestamp(2020, 1, 1, tzinfo=UTC)
         result = to_datetime(input, format=format)
         assert result == expected
 
@@ -3218,7 +3263,7 @@ class TestToDatetimeInferFormat:
         # GH 41047
         ser = Series([ts + zero_tz])
         result = to_datetime(ser)
-        tz = timezone.utc if zero_tz == "Z" else None
+        tz = UTC if zero_tz == "Z" else None
         expected = Series([Timestamp(ts, tz=tz)])
         tm.assert_series_equal(result, expected)
 
@@ -3657,7 +3702,7 @@ class TestOrigin:
     def test_invalid_origins_tzinfo(self):
         # GH16842
         with pytest.raises(ValueError, match="must be tz-naive"):
-            to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=timezone.utc))
+            to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=UTC))
 
     def test_incorrect_value_exception(self):
         # GH47495
@@ -3972,6 +4017,41 @@ def test_empty_string_datetime_coerce__unit():
     # verify that no exception is raised even when errors='raise' is set
     result = to_datetime([1, ""], unit="s", errors="raise")
     tm.assert_index_equal(expected, result)
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected",
+    [
+        ({}, "2012-10-11"),
+        ({"dayfirst": True}, "2012-11-10"),
+        ({"yearfirst": True}, "2010-11-12"),
+        ({"dayfirst": True, "yearfirst": True}, "2010-12-11"),
+    ],
+)
+def test_to_datetime_unit_dayfirst_yearfirst(kwargs, expected, cache):
+    # GH#63472 dayfirst/yearfirst were silently ignored for string entries
+    #  when 'unit' was passed
+    arg = ["10/11/12"]
+    result = to_datetime(arg, unit="s", cache=cache, **kwargs)
+
+    tm.assert_index_equal(result, DatetimeIndex([expected], dtype="datetime64[us]"))
+    # passing a unit gives the same result as not passing one
+    tm.assert_index_equal(result, to_datetime(arg, cache=cache, **kwargs))
+
+
+@pytest.mark.parametrize(
+    "kwargs, parsed",
+    [
+        ({"dayfirst": True}, "2012-11-10"),
+        ({"yearfirst": True}, "2010-11-12"),
+    ],
+)
+def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, parsed, cache):
+    # GH#63472 the unit still applies to the numeric entries
+    result = to_datetime(["10/11/12", 1], unit="s", cache=cache, **kwargs)
+
+    expected = DatetimeIndex([parsed, "1970-01-01 00:00:01"], dtype="datetime64[us]")
+    tm.assert_index_equal(result, expected)
 
 
 def test_to_datetime_monotonic_increasing_index(cache):
@@ -4391,3 +4471,96 @@ def test_dataframe_assemble_duplicate_index_with_nan(cache):
         dtype="M8[us]",
     )
     tm.assert_series_equal(result, expected)
+
+
+# GH#66510 iNaT == INT64_MIN, one below Timestamp.min. A value that renders or
+#  tz-shifts onto it is not NaT but reads back as NaT once stored. `{}` takes the
+#  last three digits: "192" is the sentinel, "193" is one nanosecond later and
+#  must keep parsing. to_datetime has several parser legs, and the format alone
+#  does not determine which one a value takes -- with format=None the "192"
+#  values take the array_to_datetime route, because guess_datetime_format
+#  validates its guess by round-tripping through array_strptime and discards it
+#  when that raises, while the "193" values keep their guess and go through
+#  array_strptime. Both are worth pinning; the labels below are for "192".
+NAT_SENTINEL_PARSE_ROUTES = [
+    # array_to_datetime -> convert_str_to_tsobject (format guess discarded)
+    ("1677-09-21 00:12:43.145224{}", None),
+    ("1677-09-21 01:12:43.145224{}+01:00", None),
+    # array_strptime, ISO route (string_to_dts), naive
+    ("1677-09-21 00:12:43.145224{}", "ISO8601"),
+    # array_strptime, ISO route, embedded offset (checked_sub leg)
+    ("1677-09-21 01:12:43.145224{}+01:00", "ISO8601"),
+    # array_strptime, _parse_with_format route, naive
+    ("21/09/1677 00:12:43.145224{}", "%d/%m/%Y %H:%M:%S.%f"),
+    # array_strptime, _parse_with_format route, %z fixed offset (checked_sub leg)
+    ("21/09/1677 01:12:43.145224{}+01:00", "%d/%m/%Y %H:%M:%S.%f%z"),
+    # array_strptime, _parse_with_format route, named tz
+    #  (tz_localize_to_utc_single leg)
+    ("1677-09-21 01:12:43.145224{} Etc/GMT-1", "%Y-%m-%d %H:%M:%S.%f %Z"),
+    # array_to_datetime -> convert_str_to_tsobject, explicitly
+    ("1677-09-21 00:12:43.145224{}", "mixed"),
+    ("1677-09-21 01:12:43.145224{}+01:00", "mixed"),
+]
+
+
+@pytest.mark.parametrize("template, format", NAT_SENTINEL_PARSE_ROUTES)
+def test_to_datetime_hits_nat_sentinel(template, format):
+    # GH#66510 every parser leg must reject the sentinel rather than silently
+    #  producing NaT
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
+        to_datetime([template.format("192")], format=format)
+
+
+@pytest.mark.parametrize("template, format", NAT_SENTINEL_PARSE_ROUTES)
+def test_to_datetime_hits_nat_sentinel_coerce(template, format):
+    # GH#66510 errors="coerce" still asks for NaT
+    result = to_datetime([template.format("192")], format=format, errors="coerce")
+    assert result[0] is NaT
+
+
+@pytest.mark.parametrize("template, format", NAT_SENTINEL_PARSE_ROUTES)
+def test_to_datetime_nat_sentinel_neighbour(template, format):
+    # GH#66510 one nanosecond later is representable and must still parse
+    result = to_datetime([template.format("193")], format=format)
+    assert result[0]._value == -(2**63) + 1
+
+
+@pytest.mark.parametrize(
+    "value, format, wall",
+    [
+        ("1677-09-21 00:12:43.145224192", "ISO8601", "1677-09-21 00:12:43.145224192"),
+        (
+            "1677-09-21 01:12:43.145224192 Etc/GMT-1",
+            "%Y-%m-%d %H:%M:%S.%f %Z",
+            "1677-09-21 01:12:43.145224192",
+        ),
+    ],
+)
+def test_to_datetime_nat_sentinel_message(value, format, wall):
+    # GH#66510 the message names the sub-second digits -- truncating to seconds
+    #  would name a representable value
+    msg = re.escape(f"Out of bounds nanosecond timestamp: {wall}")
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        to_datetime([value], format=format)
+
+
+@pytest.mark.parametrize(
+    "format",
+    [
+        None,  # array_strptime, ISO route
+        "ISO8601",  # array_strptime, ISO route
+        "%Y-%m-%d %H:%M:%S.%f%z",  # array_strptime, _parse_with_format route
+    ],
+)
+def test_to_datetime_offset_shifts_off_nat_sentinel(format):
+    # GH#66510 to_datetime counterpart of
+    #  test_constructor_offset_shifts_off_nat_sentinel: the wall time renders onto
+    #  the sentinel but the westward shift moves it back in bounds, so rejecting
+    #  before the shift would be wrong.
+    # utc=True so the result is usable: keeping the +01:00 offset would leave a
+    #  value that boxes back through check_dts_bounds on the sentinel wall time.
+    result = to_datetime(
+        ["1677-09-21 00:12:43.145224192-01:00"], format=format, utc=True
+    )
+    assert result.asi8[0] == -(2**63) + 3600 * 10**9
+    assert result[0] == Timestamp("1677-09-21 01:12:43.145224192", tz="UTC")

@@ -163,7 +163,13 @@ class TestDecimalArray(base.ExtensionTests):
         # GH#57723
         # EAs that don't have special logic for None will raise, unlike pandas'
         # which interpret None as the NA value for the dtype.
-        msg = "conversion from NoneType to Decimal is not supported"
+        msg = "|".join(
+            [
+                "Cannot convert None to Decimal",  # PY315 - maybe linux specific
+                "conversion from NoneType to Decimal is not supported",
+            ]
+        )
+
         with pytest.raises(TypeError, match=msg):
             super().test_fillna_with_none(data_missing)
 

@@ -4850,7 +4850,8 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
             npy_datetimestruct dts
-            int months, to_day, nadj, n = self._n
+            int64_t months, nadj, n = self._n
+            int to_day
             int days_in_month, day, anchor_dom = self._day_of_month
             bint is_start = isinstance(self, SemiMonthBegin)
             NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
@@ -7602,28 +7603,28 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef int year_add_months(npy_datetimestruct dts, int months) noexcept nogil:
+cdef int64_t year_add_months(npy_datetimestruct dts, int64_t months) noexcept nogil:
     """
     New year number after shifting npy_datetimestruct number of months.
     """
     return dts.year + (dts.month + months - 1) // 12
 
 
-cdef int month_add_months(npy_datetimestruct dts, int months) noexcept nogil:
+cdef int month_add_months(npy_datetimestruct dts, int64_t months) noexcept nogil:
     """
     New month number after shifting npy_datetimestruct
     number of months.
     """
     cdef:
-        int new_month = (dts.month + months) % 12
-    return 12 if new_month == 0 else new_month
+        int64_t new_month = (dts.month + months) % 12
+    return 12 if new_month == 0 else <int>new_month
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef ndarray shift_quarters(
     ndarray dtindex,
-    int quarters,
+    int64_t quarters,
     int q1start_month,
     str day_opt,
     int modby=3,
@@ -7636,7 +7637,7 @@ cdef ndarray shift_quarters(
     Parameters
     ----------
     dtindex : int64_t[:] timestamps for input dates
-    quarters : int number of quarters to shift
+    quarters : int64_t number of quarters to shift
     q1start_month : int month in which Q1 begins by convention
     day_opt : {'start', 'end', 'business_start', 'business_end'}
     modby : int (3 for quarters, 12 for years)
@@ -7651,7 +7652,8 @@ cdef ndarray shift_quarters(
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
         Py_ssize_t _
         int64_t val, res_val
-        int months_since, n
+        int months_since
+        int64_t n
         npy_datetimestruct dts
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
@@ -7688,7 +7690,7 @@ cdef ndarray shift_quarters(
 @cython.boundscheck(False)
 def shift_months(
     ndarray dtindex,  # int64_t, arbitrary ndim
-    int months,
+    int64_t months,
     str day_opt=None,
     NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns,
 ):
@@ -7706,7 +7708,7 @@ def shift_months(
         npy_datetimestruct dts
         int count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
-        int months_to_roll
+        int64_t months_to_roll
         int64_t val, res_val
         _DayOpt day_opt_enum
 
@@ -7794,8 +7796,9 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     shifted : datetime or Timestamp (same as input `stamp`)
     """
     cdef:
-        int year, month, day
-        int days_in_month, dy
+        int month, day
+        int days_in_month
+        int64_t year, dy
         npy_datetimestruct dts
 
     if isinstance(stamp, _Timestamp):
@@ -7860,7 +7863,7 @@ cdef int get_day_of_month(npy_datetimestruct* dts, _DayOpt day_opt) noexcept nog
         return get_lastbday(dts.year, dts.month)
 
 
-cpdef int roll_convention(int other, int n, int compare) noexcept nogil:
+cpdef int64_t roll_convention(int other, int64_t n, int compare) noexcept nogil:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -7874,7 +7877,7 @@ cpdef int roll_convention(int other, int n, int compare) noexcept nogil:
 
     Returns
     -------
-    n : int number of periods to increment
+    n : int64_t number of periods to increment
     """
     if n > 0 and other < compare:
         n -= 1
@@ -7924,10 +7927,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     return _roll_qtrday(&dts, n, months_since, day_opt_enum)
 
 
-cdef int _roll_qtrday(npy_datetimestruct* dts,
-                      int n,
-                      int months_since,
-                      _DayOpt day_opt) noexcept nogil:
+cdef int64_t _roll_qtrday(npy_datetimestruct* dts,
+                          int64_t n,
+                          int months_since,
+                          _DayOpt day_opt) noexcept nogil:
     """
     See roll_qtrday.__doc__
     """
