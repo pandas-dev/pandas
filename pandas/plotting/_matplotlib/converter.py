@@ -275,7 +275,7 @@ class PeriodConverter(mdates.DateConverter):
 
     @staticmethod
     def _convert_1d(values, freq: BaseOffset):
-        # error: "Offset" has no attribute "_period_dtype_code"
+        # error: "BaseOffset" has no attribute "_period_dtype_code"
         dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
         is_bday = FreqGroup.from_period_dtype_code(dtype_code) == FreqGroup.FR_BUS
 
@@ -588,14 +588,14 @@ def has_level_label(label_flags: npt.NDArray[np.intp], vmin: float) -> bool:
 
 
 def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
-    # error: "Offset" has no attribute "_period_dtype_code"
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
     ppd = -1  # placeholder for above-day freqs
 
     if dtype_code >= FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
-        # error: "Offset" has no attribute "_creso"
+        # error: "BaseOffset" has no attribute "_creso"
         ppd = periods_per_day(freq._creso)  # type: ignore[attr-defined]
         ppm = 28 * ppd
         ppy = 365 * ppd
@@ -625,7 +625,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
 
 @functools.cache
 def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
-    # error: "Offset" has no attribute "_period_dtype_code"
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
@@ -987,7 +987,7 @@ def _annual_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
 
 
 def get_finder(freq: BaseOffset):
-    # error: "Offset" has no attribute "_period_dtype_code"
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     fgroup = FreqGroup.from_period_dtype_code(dtype_code)
 
@@ -1129,7 +1129,7 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
             fmt = self.formatdict.pop(x, "")
             if isinstance(fmt, np.bytes_):
                 fmt = fmt.decode("utf-8")
-            # error: "Offset" has no attribute "_period_dtype_code"
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
             dtype_code = self.freq._period_dtype_code  # type: ignore[attr-defined]
             freq_group = FreqGroup.from_period_dtype_code(dtype_code)
             if freq_group == FreqGroup.FR_BUS:

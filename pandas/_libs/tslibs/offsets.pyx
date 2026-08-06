@@ -126,7 +126,7 @@ cdef _DayOpt _str_to_day_opt(str day_opt) except? DAY_OPT_START:
 # Misc Helpers
 
 cdef bint is_offset_object(object obj):
-    return isinstance(obj, Offset)
+    return isinstance(obj, BaseOffset)
 
 
 cdef bint is_tick_object(object obj):
@@ -151,7 +151,7 @@ def apply_wraps(func):
         if other is NaT:
             return NaT
         elif (
-            isinstance(other, Offset)
+            isinstance(other, BaseOffset)
             or PyDelta_Check(other)
             or cnp.is_timedelta64_object(other)
         ):
@@ -383,7 +383,7 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-cdef class Offset:
+cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
 
@@ -584,7 +584,7 @@ cdef class Offset:
         elif is_integer_object(other):
             return type(self)(n=other * self._n, normalize=self._normalize,
                               **self.kwds)
-        elif isinstance(other, Offset):
+        elif isinstance(other, BaseOffset):
             # Otherwise raises RecurrsionError due to __rmul__
             raise TypeError(
                 f"Cannot multiply {type(self).__name__} with "
@@ -972,7 +972,7 @@ cdef class Offset:
     # ------------------------------------------------------------------
 
     # Staticmethod so we can call from Tick.__init__, will be unnecessary
-    #  once Offset is a cdef class and is inherited by Tick
+    #  once BaseOffset is a cdef class and is inherited by Tick
     @staticmethod
     def _validate_n(n) -> int:
         """
@@ -1210,11 +1210,7 @@ cdef class Offset:
         return ts._get_start_end_field("is_year_end", self)
 
 
-# Offset was named BaseOffset through 3.0; keep the old name working.
-BaseOffset = Offset
-
-
-cdef class SingleConstructorOffset(Offset):
+cdef class SingleConstructorOffset(BaseOffset):
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
@@ -1223,7 +1219,7 @@ cdef class SingleConstructorOffset(Offset):
         return cls()
 
     def __reduce__(self):
-        # This __reduce__ implementation is for all Offset subclasses
+        # This __reduce__ implementation is for all BaseOffset subclasses
         #  except for RelativeDeltaOffset
         # np.busdaycalendar objects do not pickle nicely, but we can reconstruct
         #  from attributes that do get pickled.
@@ -1369,7 +1365,7 @@ cdef class Tick(SingleConstructorOffset):
         """
         return True
 
-    # This is identical to Offset.__hash__, but has to be redefined here
+    # This is identical to BaseOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self) -> int:
         return hash(self._params)
@@ -1413,7 +1409,7 @@ cdef class Tick(SingleConstructorOffset):
                 return type(self)(int(n))
             new_self = self._next_higher_resolution()
             return new_self * other
-        return Offset.__mul__(self, other)
+        return BaseOffset.__mul__(self, other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -1516,7 +1512,7 @@ cdef class Day(SingleConstructorOffset):
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
     def __init__(self, n=1, normalize=False):
-        Offset.__init__(self, n)
+        BaseOffset.__init__(self, n)
         if normalize:
             # GH#21427
             raise ValueError(
@@ -1886,7 +1882,7 @@ def delta_to_tick(delta: timedelta) -> Tick:
 
 # --------------------------------------------------------------------
 
-cdef class RelativeDeltaOffset(Offset):
+cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
     """
@@ -1894,7 +1890,7 @@ cdef class RelativeDeltaOffset(Offset):
     _adjust_dst = False
 
     def __init__(self, n=1, normalize=False, **kwds):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
         off, use_rd = _determine_offset(kwds)
         object.__setattr__(self, "_offset", off)
         object.__setattr__(self, "_use_relativedelta", use_rd)
@@ -2116,20 +2112,20 @@ cdef class RelativeDeltaOffset(Offset):
 
 class OffsetMeta(type):
     """
-    Metaclass that allows us to pretend that all Offset subclasses
+    Metaclass that allows us to pretend that all BaseOffset subclasses
     inherit from DateOffset (which is needed for backward-compatibility).
     """
 
     @classmethod
     def __instancecheck__(cls, obj) -> bool:
-        result = isinstance(obj, Offset)
+        result = isinstance(obj, BaseOffset)
         if result and not isinstance(obj, RelativeDeltaOffset):
             from pandas.errors import Pandas4Warning
 
             warnings.warn(
                 "isinstance(obj, DateOffset) is deprecated for offsets that are "
                 "not DateOffset instances and will return False in a future "
-                "version. Use isinstance(obj, pd.offsets.Offset) instead.",
+                "version. Use isinstance(obj, pd.offsets.BaseOffset) instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
@@ -2137,14 +2133,14 @@ class OffsetMeta(type):
 
     @classmethod
     def __subclasscheck__(cls, obj) -> bool:
-        result = issubclass(obj, Offset)
+        result = issubclass(obj, BaseOffset)
         if result and not issubclass(obj, RelativeDeltaOffset):
             from pandas.errors import Pandas4Warning
 
             warnings.warn(
                 "issubclass(cls, DateOffset) is deprecated for offset classes "
                 "that are not DateOffset subclasses and will return False in a "
-                "future version. Use issubclass(cls, pd.offsets.Offset) "
+                "future version. Use issubclass(cls, pd.offsets.BaseOffset) "
                 "instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
@@ -2319,7 +2315,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         object _weekmask, _holidays, _calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
         self._offset = offset
 
     cpdef _init_custom(self, weekmask, holidays, calendar):
@@ -2569,7 +2565,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
             self._calendar = calendar
             self._holidays = holidays
 
-        Offset.__setstate__(self, state)
+        BaseOffset.__setstate__(self, state)
 
 
 cdef class BusinessDay(BusinessMixin):
@@ -3368,7 +3364,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         int _weekday, _week
 
     def __init__(self, n=1, normalize=False, weekday=0):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
         self._weekday = weekday
 
         if weekday < 0 or weekday > 6:
@@ -3541,7 +3537,7 @@ cdef class YearOffset(SingleConstructorOffset):
         int _month
 
     def __init__(self, n=1, normalize=False, month=None):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
 
         month = month if month is not None else self._default_month
         self._month = month
@@ -3660,7 +3656,7 @@ cdef class YearOffset(SingleConstructorOffset):
         return dt.month == self._month and dt.day == self._get_offset_day(dt)
 
     def _get_offset_day(self, other: datetime) -> int:
-        # override Offset method to use self._month instead of other.month
+        # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
@@ -3887,7 +3883,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
@@ -4242,7 +4238,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
@@ -4600,7 +4596,7 @@ cdef class MonthOffset(SingleConstructorOffset):
         state.pop("_offset", None)
         state.pop("kwds", {})
 
-        Offset.__setstate__(self, state)
+        BaseOffset.__setstate__(self, state)
 
 
 cdef class MonthEnd(MonthOffset):
@@ -4788,7 +4784,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         return self._day_of_month
 
     def __init__(self, n=1, normalize=False, day_of_month=None):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
 
         if day_of_month is None:
             day_of_month = self._default_day_of_month
@@ -5192,7 +5188,7 @@ cdef class Week(SingleConstructorOffset):
         return self._weekday
 
     def __init__(self, n=1, normalize=False, weekday=None):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
         self._weekday = weekday
 
         if self._weekday is not None:
@@ -5628,7 +5624,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     def __init__(
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
         self._startingMonth = startingMonth
         self._weekday = weekday
         self._variation = variation
@@ -6457,7 +6453,7 @@ cdef class Easter(SingleConstructorOffset):
     from dateutil.easter import EASTER_WESTERN
 
     def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
-        Offset.__init__(self, n, normalize)
+        BaseOffset.__init__(self, n, normalize)
 
         self.method = method
 
@@ -6623,7 +6619,7 @@ cdef class CustomBusinessDay(BusinessDay):
         # GH#52534
         raise ValueError(f"{self.base} is not supported as period frequency")
 
-    _apply_array = Offset._apply_array
+    _apply_array = BaseOffset._apply_array
 
     def __init__(
         self,
@@ -7358,7 +7354,7 @@ cdef _validate_to_offset_alias(str alias, bint is_period):
 
 
 # TODO: better name?
-def _get_offset(name: str) -> Offset:
+def _get_offset(name: str) -> BaseOffset:
     """
     Return DateOffset object associated with rule name.
 
@@ -7386,11 +7382,11 @@ cpdef to_offset(freq, bint is_period=False):
 
     This function converts a frequency string (e.g. ``"5min"``, ``"1D1h"``,
     ``"2W"``) or a ``datetime.timedelta`` into a pandas ``DateOffset`` subclass.
-    It can also pass through existing ``Offset`` instances unchanged.
+    It can also pass through existing ``BaseOffset`` instances unchanged.
 
     Parameters
     ----------
-    freq : str, datetime.timedelta, Offset or None
+    freq : str, datetime.timedelta, BaseOffset or None
         The frequency represented.
     is_period : bool, default False
         Convert string denoting period frequency to corresponding offsets
@@ -7398,7 +7394,7 @@ cpdef to_offset(freq, bint is_period=False):
 
     Returns
     -------
-    Offset subclass or None
+    BaseOffset subclass or None
 
     Raises
     ------
@@ -7407,7 +7403,7 @@ cpdef to_offset(freq, bint is_period=False):
 
     See Also
     --------
-    Offset : Standard kind of date increment used for a date range.
+    BaseOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------
@@ -7449,7 +7445,7 @@ cpdef to_offset(freq, bint is_period=False):
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
-    if isinstance(freq, Offset):
+    if isinstance(freq, BaseOffset):
         result = freq
 
     elif PyDelta_Check(freq):
