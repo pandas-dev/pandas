@@ -891,3 +891,219 @@ class TestSeriesInterpolateData:
         result = ser.interpolate(method="linear")
         expected = Series([1.0, 2.0, 3.0], dtype="Float64")
         tm.assert_series_equal(result, expected)
+
+
+class TestInterpolateLimitBehavior:
+    def test_interpolate_limit_behavior_skip_basic(self):
+        # Gap of 3 NaNs with limit=1 should skip all
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(limit=1, limit_behavior="skip")
+        expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_fill_default(self):
+        # Default behavior unchanged: fill up to limit
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(limit=1)  # default fill
+        expected = Series([1.0, 2.0, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_multiple_gaps(self):
+        # Multiple gaps: skip only those exceeding limit
+        s = Series([1.0, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0])
+        result = s.interpolate(limit=2, limit_behavior="skip")
+        # Gap [1] size=1 <= 2 -> fill; Gap [3,4,5] size=3 > 2 -> skip
+        expected = Series([1.0, 2.0, 3.0, np.nan, np.nan, np.nan, 7.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_exact_limit(self):
+        # Gap exactly equal to limit should be filled
+        s = Series([1.0, np.nan, np.nan, 4.0])
+        result = s.interpolate(limit=2, limit_behavior="skip")
+        expected = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_forward_direction(self):
+        # With limit_direction, skip behavior should still work
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(
+            limit=1, limit_direction="forward", limit_behavior="skip"
+        )
+        expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("invalid", ["invalid", None, 123])
+    def test_interpolate_limit_behavior_invalid_value(self, invalid):
+        # Invalid limit_behavior should raise ValueError
+        s = Series([1.0, np.nan, 3.0])
+        msg = "Invalid limit_behavior"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(limit_behavior=invalid)
+
+    @pytest.mark.parametrize("dtype", ["Float64", "Int64", "Arrow"])
+    def test_interpolate_limit_behavior_extension_arrays(self, dtype):
+        # extension arrays support
+        if dtype == "Arrow":
+            pytest.importorskip("pyarrow")
+            from pandas.core.arrays.arrow.array import ArrowExtensionArray
+
+            # Case 1: Gap > limit -> skip
+            vals = [1.0, np.nan, np.nan, np.nan, 5.0]
+            s = Series(ArrowExtensionArray._from_sequence(vals))
+            expected = Series(ArrowExtensionArray._from_sequence(vals))
+            result = s.interpolate(limit=1, limit_behavior="skip")
+            tm.assert_series_equal(result, expected)
+
+            # Case 2: Gap <= limit -> fill
+            expected_filled = Series(
+                ArrowExtensionArray._from_sequence([1.0, 2.0, 3.0, 4.0, 5.0])
+            )
+            result2 = s.interpolate(limit=3, limit_behavior="skip")
+            tm.assert_series_equal(result2, expected_filled)
+
+            # Case 3: Multiple gaps: skip only those exceeding limit
+            vals_mult = [1.0, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0]
+            s_mult = Series(ArrowExtensionArray._from_sequence(vals_mult))
+            expected_mult = Series(
+                ArrowExtensionArray._from_sequence(
+                    [1.0, 2.0, 3.0, np.nan, np.nan, np.nan, 7.0]
+                )
+            )
+            result_mult = s_mult.interpolate(limit=2, limit_behavior="skip")
+            tm.assert_series_equal(result_mult, expected_mult)
+        else:
+            s = Series([1.0, np.nan, np.nan, np.nan, 5.0], dtype=dtype)
+            expected_dtype = "Float64" if dtype == "Int64" else dtype
+            expected = Series([1.0, np.nan, np.nan, np.nan, 5.0], dtype=expected_dtype)
+            result = s.interpolate(limit=1, limit_behavior="skip")
+            tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_backward(self):
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(
+            limit=1, limit_direction="backward", limit_behavior="skip"
+        )
+        expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+        # Gap size <= limit should be filled backward
+        s2 = Series([1.0, np.nan, np.nan, 4.0])
+        result2 = s2.interpolate(
+            limit=2, limit_direction="backward", limit_behavior="skip"
+        )
+        expected2 = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_both(self):
+        # Gap > limit -> skip
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(limit=1, limit_direction="both", limit_behavior="skip")
+        expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill
+        s2 = Series([1.0, np.nan, np.nan, 4.0])
+        result2 = s2.interpolate(limit=2, limit_direction="both", limit_behavior="skip")
+        expected2 = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_inside(self):
+        # NaNs inside (surrounded by valid values)
+        # Gap > limit -> skip
+        s = Series([np.nan, 1.0, np.nan, np.nan, np.nan, 5.0, np.nan])
+        result = s.interpolate(limit=1, limit_area="inside", limit_behavior="skip")
+        expected = Series([np.nan, 1.0, np.nan, np.nan, np.nan, 5.0, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill inside
+        s2 = Series([np.nan, 1.0, np.nan, np.nan, 4.0, np.nan])
+        result2 = s2.interpolate(limit=2, limit_area="inside", limit_behavior="skip")
+        expected2 = Series([np.nan, 1.0, 2.0, 3.0, 4.0, np.nan])
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_outside(self):
+        # NaNs outside (extrapolation)
+        # Gap > limit -> skip
+        s = Series([np.nan, np.nan, 1.0, 2.0, np.nan, np.nan])
+        # outside gaps are size 2, limit=1 -> skip outside gaps
+        result = s.interpolate(
+            limit=1, limit_direction="both", limit_area="outside", limit_behavior="skip"
+        )
+        expected = Series([np.nan, np.nan, 1.0, 2.0, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill outside
+        s2 = Series([np.nan, 1.0, 2.0, np.nan])
+        # outside gaps are size 1, limit=1 -> fill outside gaps
+        result2 = s2.interpolate(
+            limit=1, limit_direction="both", limit_area="outside", limit_behavior="skip"
+        )
+        expected2 = Series([1.0, 1.0, 2.0, 2.0])
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_datetime(self):
+        # Datetime interpolation
+        s = Series(date_range("2020-01-01", periods=5))
+        s.iloc[1:4] = pd.NaT
+        # s is [2020-01-01, NaT, NaT, NaT, 2020-01-05]
+        # Gap > limit -> skip
+        result = s.interpolate(limit=1, limit_behavior="skip")
+        expected = s.copy()
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill
+        s2 = Series(date_range("2020-01-01", periods=4))
+        s2.iloc[1:3] = pd.NaT
+        result2 = s2.interpolate(limit=2, limit_behavior="skip")
+        expected2 = Series(date_range("2020-01-01", periods=4))
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_timedelta(self):
+        # Timedelta interpolation
+        s = Series(pd.timedelta_range("1D", periods=5))
+        s.iloc[1:4] = pd.NaT
+        # Gap > limit -> skip
+        result = s.interpolate(limit=1, limit_behavior="skip")
+        expected = s.copy()
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill
+        s2 = Series(pd.timedelta_range("1D", periods=4))
+        s2.iloc[1:3] = pd.NaT
+        result2 = s2.interpolate(limit=2, limit_behavior="skip")
+        expected2 = Series(pd.timedelta_range("1D", periods=4))
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_no_limit(self):
+        # limit=None with limit_behavior="skip" should be equivalent to default fill
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(limit=None, limit_behavior="skip")
+        expected = Series([1.0, 2.0, 3.0, 4.0, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_time_method(self):
+        idx = date_range("2020-01-01", periods=5)
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0], index=idx)
+        # Gap > limit -> skip
+        result = s.interpolate(method="time", limit=1, limit_behavior="skip")
+        expected = s.copy()
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill
+        s2 = Series([1.0, np.nan, np.nan, 4.0], index=idx[:4])
+        result2 = s2.interpolate(method="time", limit=2, limit_behavior="skip")
+        expected2 = Series([1.0, 2.0, 3.0, 4.0], index=idx[:4])
+        tm.assert_series_equal(result2, expected2)
+
+    def test_interpolate_limit_behavior_skip_index_method(self):
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0], index=[1.0, 2.0, 3.0, 4.0, 5.0])
+        # Gap > limit -> skip
+        result = s.interpolate(method="index", limit=1, limit_behavior="skip")
+        expected = s.copy()
+        tm.assert_series_equal(result, expected)
+
+        # Gap <= limit -> fill
+        s2 = Series([1.0, np.nan, np.nan, 4.0], index=[1.0, 2.0, 3.0, 4.0])
+        result2 = s2.interpolate(method="index", limit=2, limit_behavior="skip")
+        expected2 = Series([1.0, 2.0, 3.0, 4.0], index=[1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result2, expected2)
