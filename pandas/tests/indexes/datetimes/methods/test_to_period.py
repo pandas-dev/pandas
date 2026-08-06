@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 
 import dateutil.tz
 from dateutil.tz import tzlocal
@@ -228,7 +228,7 @@ class TestToPeriod:
         "tz",
         [
             "US/Eastern",
-            timezone.utc,
+            UTC,
             tzlocal(),
             "dateutil/US/Eastern",
             dateutil.tz.tzutc(),

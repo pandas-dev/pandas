@@ -306,12 +306,12 @@ def enable_data_resource_formatter(enable: bool) -> None:
     from IPython import get_ipython  # pyright: ignore[reportPrivateImportUsage]
 
     # error: Call to untyped function "get_ipython" in typed context
-    ip = get_ipython()  # type: ignore[no-untyped-call]
+    ip = get_ipython()
     if ip is None:
         # still not in IPython
         return
 
-    formatters = ip.display_formatter.formatters
+    formatters = ip.display_formatter.formatters  # type: ignore[union-attr]
     mimetype = "application/vnd.dataresource+json"
 
     if enable:

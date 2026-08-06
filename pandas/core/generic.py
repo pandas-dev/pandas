@@ -2407,26 +2407,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 - default is 'index'
                 - allowed values are: {'split', 'records', 'index', 'table'}.
-                - with 'records', the result is a JSON array of the Series
-                  values only; the index labels are not included.
+                - the format of the JSON string:
+
+                  - 'split' : dict like {'name' -> name, 'index' -> [index],
+                    'data' -> [values]}
+                  - 'records' : list like [value, ... , value]; the index
+                    labels and the Series name are not included
+                  - 'index' : dict like {index -> value}
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
                 - default is 'columns'
                 - allowed values are: {'split', 'records', 'index', 'columns',
                   'values', 'table'}.
+                - the format of the JSON string:
 
-            * The format of the JSON string:
+                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                    'data' -> [values]}
+                  - 'records' : list like [{column -> value}, ... , {column -> value}]
+                  - 'index' : dict like {index -> {column -> value}}
+                  - 'columns' : dict like {column -> {index -> value}}
+                  - 'values' : just the values array
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
-                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}
-                - 'records' : list like [{column -> value}, ... , {column -> value}]
-                - 'index' : dict like {index -> {column -> value}}
-                - 'columns' : dict like {column -> {index -> value}}
-                - 'values' : just the values array
-                - 'table' : dict like {'schema': {schema}, 'data': {data}}
-
-                Describing the data, where data component is like ``orient='records'``.
+            For ``orient='table'``, the data component is like ``orient='records'``.
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -2578,6 +2583,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         '[1,2,3]'
         >>> ser.to_json(orient="records", lines=True)
         '1\\n2\\n3\\n'
+
+        For a Series, the default ``orient="index"`` maps index labels to
+        values, and ``orient="split"`` has a 'name' entry in place of a
+        DataFrame's 'columns':
+
+        >>> ser.to_json()
+        '{"0":1,"1":2,"2":3}'
+        >>> ser.to_json(orient="split")
+        '{"name":null,"index":[0,1,2],"data":[1,2,3]}'
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
@@ -12337,17 +12351,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         com : float, optional
             Specify decay in terms of center of mass
 
-            :math:`\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
+            :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
 
         span : float, optional
             Specify decay in terms of span
 
-            :math:`\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
+            :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
 
         halflife : float, str, timedelta, optional
             Specify decay in terms of half-life
 
-            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`,
             for :math:`halflife > 0`.
 
             If ``times`` is specified, a timedelta convertible unit over which an
@@ -12357,7 +12371,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         alpha : float, optional
             Specify smoothing factor :math:`\alpha` directly
 
-            :math:`0 < \alpha \\leq 1`.
+            :math:`0 < \alpha \leq 1`.
 
         min_periods : int, default 0
             Minimum number of observations in window required to have a value;
@@ -12384,7 +12398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 \begin{split}
                     y_0 &= x_0\\
                     y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
-                \\end{split}
+                \end{split}
 
         ignore_na : bool, default False
             Ignore missing values when calculating weights.
