@@ -2574,7 +2574,11 @@ class TextFileReader(abc.Iterator):
 
         sep = options["delimiter"]
 
-        if sep is not None and len(sep) > 1:
+        if sep is None:
+            if engine not in ("python", "python-fwf"):
+                fallback_reason = f"the {engine!r} engine does not support sep=None"
+                engine = "python"
+        elif len(sep) > 1:
             if engine == "c" and sep == r"\s+":
                 # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
