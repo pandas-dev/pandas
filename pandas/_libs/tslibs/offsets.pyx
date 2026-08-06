@@ -385,7 +385,11 @@ class ApplyTypeError(TypeError):
 
 cdef class BaseOffset:
     """
-    Base class for DateOffset methods that are not overridden by subclasses.
+    Base class for all pandas date offsets.
+
+    Every offset in ``pandas.tseries.offsets`` is a subclass of ``BaseOffset``,
+    so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
+    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
 
     Parameters
     ----------
@@ -395,12 +399,20 @@ cdef class BaseOffset:
     normalize : bool
         Whether the frequency can align with midnight.
 
+    See Also
+    --------
+    tseries.offsets.DateOffset : Offset backed by a ``dateutil.relativedelta``.
+    tseries.frequencies.to_offset : Convert a string or timedelta to an offset.
+
     Examples
     --------
     >>> pd.offsets.Hour(5).n
     5
     >>> pd.offsets.Hour(5).normalize
     False
+
+    >>> isinstance(pd.offsets.BDay(), pd.offsets.BaseOffset)
+    True
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
