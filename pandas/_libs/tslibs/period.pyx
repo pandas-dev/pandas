@@ -1783,13 +1783,17 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
 
 
 # GH#64227
+# NB: no one-liner reproduces the current behavior for every input, because
+#  the int-array path (from_calendar_ordinals) reads an int as a calendar
+#  year while the object path parses str(value), and those disagree outside
+#  4-digit years -- e.g. 200701 gives year 200701 vs 2007-01. So we point at
+#  the unambiguous replacement and leave the rest to the user.
 INT_TO_PERIOD_DEPR_MSG = (
     "Passing integer data to PeriodArray/PeriodIndex is deprecated and will "
     "change behavior in a future version, when integers will be treated as "
-    "period ordinals instead of calendar years. To retain the current "
-    "behavior, cast to string first, e.g. "
-    "PeriodIndex(data.astype(str), freq=...). To get the future behavior "
-    "now, use PeriodIndex.from_ordinals(data, freq=...)."
+    "period ordinals instead of calendar years. To get the future behavior "
+    "now, use PeriodIndex.from_ordinals(data, freq=...). To retain the "
+    "current behavior, construct the Period objects explicitly."
 )
 
 INT_TO_PERIOD_SCALAR_DEPR_MSG = (

@@ -311,6 +311,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return cls(ordinals, dtype=dtype)
 
         elif arrdata.dtype.kind in "iu":
+            # GH#64227 enforcing means dropping from_calendar_ordinals here and
+            #  reading arrdata as ordinals; the object-dtype and Period-scalar
+            #  paths in tslibs.period must be enforced at the same time or the
+            #  two interpretations diverge again.
             warnings.warn(
                 INT_TO_PERIOD_DEPR_MSG,
                 Pandas4Warning,
