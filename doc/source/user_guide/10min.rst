@@ -197,6 +197,13 @@ for getting a subset/rearranging:
 
    df[["B", "A"]]
 
+A list containing a single label still selects a :class:`DataFrame`, not a
+:class:`Series`:
+
+.. ipython:: python
+
+   df[["A"]]
+
 For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 
 .. ipython:: python
