@@ -12,11 +12,18 @@ import pandas._testing as tm
 
 from pandas.io.excel import (
     ExcelWriter,
+    _base as _excel_base,
     _OpenpyxlWriter,
 )
 from pandas.io.excel._openpyxl import OpenpyxlReader
 
 openpyxl = pytest.importorskip("openpyxl")
+
+# These tests read xlsx back with the default engine; the pending
+# calamine-default change (GH#56542) is not what they exercise.
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 
 
 @pytest.fixture
@@ -346,10 +353,14 @@ def test_read_with_bad_dimension(
 @pytest.mark.parametrize(
     "filename", ["dimension_missing", "dimension_small", "dimension_large"]
 )
-def test_read_with_bad_dimension_skiprows_callable_all(datapath, ext, filename):
+def test_read_with_bad_dimension_skiprows_callable_all(
+    datapath, ext, filename, monkeypatch
+):
     # GH 64027
     path = datapath("io", "data", "excel", f"{filename}{ext}")
-    result = pd.read_excel(path, skiprows=lambda _: True, nrows=1)
+    with monkeypatch.context() as m:
+        m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
+        result = pd.read_excel(path, skiprows=lambda _: True, nrows=1)
     expected = DataFrame()
     tm.assert_frame_equal(result, expected)
 
@@ -440,6 +451,23 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
         index=pd.MultiIndex.from_tuples([("A", "AA", "AAA"), ("A", "BB", "BBB")]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_excel_book_dimensions_preserved(tmp_excel):
+    # GH#63010 - reading should not permanently reset the dimensions of the
+    # worksheet handle available through ExcelFile.book
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    df.to_excel(tmp_excel, index=False)
+
+    with pd.ExcelFile(tmp_excel, engine="openpyxl") as excel_file:
+        sheet = excel_file.book["Sheet1"]
+        assert (sheet.max_row, sheet.max_column) == (3, 2)
+
+        result = pd.read_excel(excel_file, sheet_name="Sheet1")
+
+        assert (sheet.max_row, sheet.max_column) == (3, 2)
+
+    tm.assert_frame_equal(result, df)
 
 
 class TestWriteOnly:

@@ -9,6 +9,7 @@ from pandas.errors import Pandas4Warning
 from pandas import array
 import pandas._testing as tm
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.take import _get_take_nd_function_cached
 
 
 @pytest.fixture(
@@ -150,11 +151,59 @@ class TestTake:
         # GH#64437 - _take_1d_dict had wrong keys for uint16/uint32/uint64,
         # causing fallback to the slow object path instead of the fast
         # Cython path. Verify the optimized function is found.
-        from pandas.core.array_algos.take import _get_take_nd_function_cached
-
         arr_dtype = np.dtype(dtype)
         func = _get_take_nd_function_cached(1, arr_dtype, arr_dtype, 0)
         assert func is not None
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[us]",
+            "datetime64[ms]",
+            "datetime64[s]",
+            "timedelta64[us]",
+            "timedelta64[ms]",
+            "timedelta64[s]",
+        ],
+    )
+    @pytest.mark.parametrize("ndim", [1, 2])
+    def test_non_ns_datetime_timedelta_uses_cython_path(self, dtype, ndim):
+        arr_dtype = np.dtype(dtype)
+        func = _get_take_nd_function_cached(ndim, arr_dtype, arr_dtype, 0)
+        assert func is not None
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["datetime64[us]", "datetime64[s]", "timedelta64[us]", "timedelta64[s]"],
+    )
+    def test_1d_non_ns_datetime_timedelta(self, dtype):
+        arr = np.arange(5, dtype="i8").view(dtype)
+        indexer = np.array([3, 1, 0, -1], dtype=np.intp)
+
+        result = algos.take_nd(arr, indexer)
+        expected = arr.take([3, 1, 0, 0])
+        expected.view("i8")[-1] = iNaT
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["datetime64[us]", "datetime64[s]", "timedelta64[us]", "timedelta64[s]"],
+    )
+    def test_2d_non_ns_datetime_timedelta(self, dtype):
+        arr = np.arange(15, dtype="i8").reshape(5, 3).view(dtype)
+        indexer = np.array([0, 2, -1, 1, -1], dtype=np.intp)
+
+        # axis=0
+        result = algos.take_nd(arr, indexer, axis=0)
+        expected = arr.take(indexer, axis=0)
+        expected.view(np.int64)[[2, 4], :] = iNaT
+        tm.assert_numpy_array_equal(result, expected)
+
+        # axis=1
+        result = algos.take_nd(arr, indexer[:3], axis=1)
+        expected = arr.take(indexer[:3], axis=1)
+        expected.view(np.int64)[:, 2] = iNaT
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_1d_other_dtypes(self):
         arr = np.random.default_rng(2).standard_normal(10).astype(np.float32)

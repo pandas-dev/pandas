@@ -440,7 +440,12 @@ def test_resample_groupby_agg_listlike():
     result = resampled.agg(["sum", "size"])
     expected = DataFrame(
         [[69, 1]],
-        index=pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"]),
+        index=pd.MultiIndex.from_arrays(
+            [
+                Index(["beta"], name="class"),
+                pd.DatetimeIndex([ts], freq="ME", name="date"),
+            ]
+        ),
         columns=["sum", "size"],
     )
     tm.assert_frame_equal(result, expected)
@@ -455,7 +460,7 @@ def test_empty(keys):
     expected = (
         DataFrame(columns=["a", "b"])
         .set_index(keys, drop=False)
-        .set_index(TimedeltaIndex([]), append=True)[expected_columns]
+        .set_index(TimedeltaIndex([], freq="s"), append=True)[expected_columns]
     )
     if len(keys) == 1:
         expected.index.name = keys[0]
@@ -526,7 +531,11 @@ def test_groupby_resample_with_list_of_keys():
     result = df.groupby("group").resample("2D", on="date")[["val"]].mean()
 
     mi_exp = pd.MultiIndex.from_arrays(
-        [[0, 0, 1, 1], df["date"]._values[::2]], names=["group", "date"]
+        [
+            [0, 0, 1, 1],
+            pd.DatetimeIndex(df["date"]._values[::2], freq="2D"),
+        ],
+        names=["group", "date"],
     )
     expected = DataFrame(
         data={
@@ -548,6 +557,12 @@ def test_resample_no_index(keys):
     expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
     expected["date"] = pd.to_datetime(expected["date"])
     expected = expected.set_index("date", append=True, drop=True)[expected_columns]
+    # set freq on the DatetimeIndex level to match resample output
+    date_level = len(keys)  # "date" is appended after the key levels
+    expected.index = expected.index.set_levels(
+        pd.DatetimeIndex([], dtype="datetime64[s]", freq="s"),
+        level=date_level,
+    )
     if len(keys) == 1:
         expected.index.name = keys[0]
 
@@ -672,3 +687,16 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     rs = gb.resample("2D")
     with pytest.raises(KeyError, match="Columns not found"):
         rs[["val_not_in_dataframe"]]
+
+
+def test_groupby_resample_agg_dict_as_index_false():
+    # GH#52397 dict-style agg used to raise on as_index=False; should now
+    # match the shape of calling the reduction directly on the resampler
+    df = DataFrame(
+        {"a": np.repeat([0, 1, 2, 3, 4], 10), "b": range(50, 100)},
+        index=date_range("2023-01-01", freq="1min", periods=50),
+    )
+    gb = df.groupby("a", as_index=False).resample("2min")
+    result = gb.agg({"b": "min"})
+    expected = gb.min()
+    tm.assert_frame_equal(result, expected)

@@ -13,8 +13,10 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
@@ -24,6 +26,7 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -33,6 +36,11 @@ from pandas.core.tools.datetimes import to_datetime
 from pandas.tseries import (
     frequencies,
     offsets,
+)
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:A future version of pandas will return a BaseOffset"
+    ":pandas.errors.Pandas4Warning"
 )
 
 
@@ -92,6 +100,22 @@ def test_infer_freq_range(periods, freq):
             "QE-JAN",
         )
         assert is_dec_range or is_nov_range or is_oct_range
+
+
+@pytest.mark.parametrize("offset_prefix", ["QS", "BQS"])
+@pytest.mark.parametrize("month", MONTHS)
+def test_infer_freq_quarter_start(offset_prefix, month):
+    # GH#36939 the start anchor is only known up to mod 3; the inferred
+    #  freq uses the first-calendar-quarter representative (JAN/FEB/MAR)
+    gen = date_range("1/1/2000", periods=5, freq=f"{offset_prefix}-{month}")
+    index = DatetimeIndex(gen.values)
+    expected_month = MONTHS[(gen[0].month - 1) % 3]
+    inferred = frequencies.infer_freq(index)
+    if offset_prefix == "QS":
+        assert inferred == f"QS-{expected_month}"
+    else:
+        # a BQS range whose stamps all fall on the 1st infers as QS
+        assert inferred in (f"BQS-{expected_month}", f"QS-{expected_month}")
 
 
 def test_raise_if_period_index():
@@ -569,3 +593,69 @@ def test_infer_freq_no_stateful_behavior():
 
     # After calling on full index, slice should still return "D"
     assert frequencies.infer_freq(times[:3]) == "D"
+
+
+@pytest.mark.filterwarnings(
+    "default:A future version of pandas will return a BaseOffset"
+    ":pandas.errors.Pandas4Warning"
+)
+class TestInferFreqDeprecation:
+    # GH#55504
+    def test_infer_freq_warns(self):
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = frequencies.infer_freq(idx)
+        assert result == "D"
+
+    def test_infer_freq_no_warning_on_none(self):
+        # No warning when result is None
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-04"])
+        with tm.assert_produces_warning(None):
+            result = frequencies.infer_freq(idx)
+        assert result is None
+
+    def test_inferred_freq_warns(self):
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = idx.inferred_freq
+        assert result == "D"
+
+    def test_inferred_freq_no_warning_on_none(self):
+        # No warning when result is None
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-04"])
+        with tm.assert_produces_warning(None):
+            result = idx.inferred_freq
+        assert result is None
+
+    def test_infer_freq_future_option_true(self):
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", True):
+            with tm.assert_produces_warning(None):
+                result = frequencies.infer_freq(idx)
+            assert not isinstance(result, str)
+            assert result == offsets.Day()
+
+    def test_inferred_freq_future_option_true(self):
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", True):
+            with tm.assert_produces_warning(None):
+                result = idx.inferred_freq
+            assert not isinstance(result, str)
+            assert result == offsets.Day()
+
+    def test_infer_freq_future_option_false(self):
+        # False silences the warning and keeps old behavior
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", False):
+            with tm.assert_produces_warning(None):
+                result = frequencies.infer_freq(idx)
+            assert result == "D"
+
+    def test_inferred_freq_future_option_false(self):
+        idx = DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", False):
+            with tm.assert_produces_warning(None):
+                result = idx.inferred_freq
+            assert result == "D"

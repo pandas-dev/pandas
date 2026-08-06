@@ -8,6 +8,7 @@ from typing import (
     Literal,
     Self,
 )
+import unicodedata
 
 import numpy as np
 
@@ -169,6 +170,25 @@ class ArrowStringArrayMixin:
             pa_pad(self._pa_array, width=width, padding=fillchar)
         )
 
+    def _str_zfill(self, width: int) -> Self:
+        if pa_version_under21p0:
+            predicate = lambda val: val.zfill(width)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
+
+    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
+        if form not in ("NFC", "NFD", "NFKC", "NFKD"):
+            raise ValueError("invalid normalization form")
+        if form in ("NFC", "NFKC"):
+            # GH#64359 pc.utf8_normalize only decomposes; it skips the canonical
+            #  composition step, so for the composing forms it returns decomposed
+            #  output. Fall back to unicodedata for these.
+            predicate = lambda val: unicodedata.normalize(form, val)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
+
     def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
         if i >= 0:
@@ -203,6 +223,12 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
+
+    def _str_getitem(self, key: slice | int) -> Self:
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
@@ -394,8 +420,9 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.startswith("^"):
-            pat = f"^({pat})"
+        if pat.startswith("^"):
+            pat = pat[1:]
+        pat = f"^({pat})"
         return ArrowStringArrayMixin._str_contains(
             self, pat, case, flags, na, regex=True
         )

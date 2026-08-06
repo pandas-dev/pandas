@@ -125,6 +125,17 @@ class TestDatetimeConcat:
         expected = DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_datetimeindex_freq_mixed_unit(self):
+        # GH#65920 - retain freq when concatting contiguous, evenly spaced
+        # DatetimeIndexes that share a freq but differ in unit
+        idx1 = date_range("2024-01-01", periods=3, freq="s", unit="s")
+        idx2 = date_range("2024-01-01 00:00:03", periods=3, freq="s", unit="ns")
+        result = idx1.append(idx2)
+        expected = date_range("2024-01-01", periods=6, freq="s", unit="ns")
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == "s"
+
     def test_concat_datetimeindex_tz_convert_freq(self):
         # GH#41585 - concat after tz_convert should not raise when
         # the converted timestamps no longer conform to the original freq
@@ -574,6 +585,30 @@ class TestPeriodConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
+
+    def test_concat_keys_mixed_freq_period_columns(self):
+        # GH#51489 concat with keys must not raise IncompatibleFrequency
+        # when the inputs have PeriodIndex columns with different freq
+        q_period = pd.period_range("2022-1-1", "2022-12-31", freq="Q")
+        y_period = pd.period_range("2019-1-1", "2023-1-1", freq="Y")
+
+        q_df = DataFrame([range(len(q_period))], columns=q_period)
+        y_df = DataFrame([range(len(y_period))], columns=y_period)
+
+        result = concat([q_df, y_df], keys=["Quarterly", "Yearly"], axis=1)
+
+        expected_inner = Index(list(q_period) + list(y_period), dtype=object)
+        expected_columns = MultiIndex.from_arrays(
+            [
+                ["Quarterly"] * len(q_period) + ["Yearly"] * len(y_period),
+                expected_inner,
+            ]
+        )
+        expected = DataFrame(
+            [list(range(len(q_period))) + list(range(len(y_period)))],
+            columns=expected_columns,
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_concat_timedelta64_block():

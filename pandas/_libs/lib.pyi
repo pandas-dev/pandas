@@ -62,6 +62,7 @@ def is_datetime_array(values: np.ndarray, skipna: bool = ...): ...
 def is_string_array(values: np.ndarray, skipna: bool = ...): ...
 def is_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_integer_array(values: np.ndarray, skipna: bool = ...): ...
+def is_integer_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
 def fast_multiget(
     mapping: dict,
@@ -85,7 +86,6 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> ArrayLike: ...
-def check_all_hashable(values: npt.NDArray[np.object_]) -> None: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -222,6 +222,16 @@ def array_equivalent_object(
     right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
+def has_nans(arr: np.ndarray) -> bool: ...  # const floating[:]
+def all_nans(arr: np.ndarray) -> bool: ...  # const floating[:]
+def array_equivalent_float(
+    left: np.ndarray,
+    right: np.ndarray,
+) -> bool: ...  # const floating[:]
+def array_equivalent_bytes(
+    left: np.ndarray,
+    right: np.ndarray,
+) -> bool: ...
 def has_only_ints_or_nan(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
@@ -236,4 +246,8 @@ def is_range_indexer(
 def is_sequence_range(
     sequence: np.ndarray,
     step: int,  # np.ndarray[np.int64, ndim=1]
+) -> bool: ...
+def has_sentinel(
+    arr: np.ndarray,  # const signed_int_t[:]
+    sentinel: int,
 ) -> bool: ...

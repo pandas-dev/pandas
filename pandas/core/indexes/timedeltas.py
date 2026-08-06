@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.timedeltas import parse_timedelta_string_reso
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -383,23 +384,32 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # "tuple[datetime, Resolution]" in supertype
     # "pandas.core.indexes.datetimelike.DatetimeIndexOpsMixin"
     def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
-        parsed = Timedelta(label)
+        # Resolution comes from the string text (GH#33603), not the value's
+        # components: "720s" resolves to "s", not "min" (even though
+        # 720s == 12 minutes). The parser reports both in a single pass.
+        parsed, string_reso_code = parse_timedelta_string_reso(label)
         if isinstance(parsed, Timedelta):
-            reso = Resolution.get_reso_from_freqstr(parsed.unit)
+            string_reso = Resolution(string_reso_code)
+            # Fold in sub-unit precision the written unit doesn't capture,
+            # e.g. "1.5min" is minute-written but second-resolution.
+            value_reso = Resolution.get_reso_from_freqstr(parsed.resolution_string)
+            reso = min(string_reso, value_reso)
         else:
             # i.e. pd.NaT
-            reso = Resolution.get_reso_from_freqstr("s")
+            reso = Resolution.RESO_SEC
         return parsed, reso
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
-        # reso is unused, included to match signature of DTI/PI
-        lbound = parsed.round(parsed.resolution_string)
+        reso_str = reso.attr_abbrev
+        lbound = parsed.floor(reso_str)
         rbound = (
             lbound
-            + to_offset(parsed.resolution_string)
+            + to_offset(reso_str)
             - Timedelta(1, unit=self.unit).as_unit(self.unit)
         )
-        return lbound, rbound
+        # If reso is finer than the index unit, the window [lbound, rbound]
+        # collapses to lbound alone; without the clamp rbound < lbound.
+        return lbound, max(lbound, rbound)
 
     # -------------------------------------------------------------------
 

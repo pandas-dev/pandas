@@ -102,6 +102,19 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
+        op_name = all_reductions
+        ser = pd.Series(data)
+
+        if op_name != "count":
+            # https://github.com/pandas-dev/pandas/pull/63512
+            # DecimalArray does not implement sum et all as attributes.
+            msg = f"object has no attribute '{op_name}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(ser.array, op_name)()
+        else:
+            return super().test_reduce_array(request, data, all_reductions, skipna)
+
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
 
@@ -150,7 +163,13 @@ class TestDecimalArray(base.ExtensionTests):
         # GH#57723
         # EAs that don't have special logic for None will raise, unlike pandas'
         # which interpret None as the NA value for the dtype.
-        msg = "conversion from NoneType to Decimal is not supported"
+        msg = "|".join(
+            [
+                "Cannot convert None to Decimal",  # PY315 - maybe linux specific
+                "conversion from NoneType to Decimal is not supported",
+            ]
+        )
+
         with pytest.raises(TypeError, match=msg):
             super().test_fillna_with_none(data_missing)
 
@@ -181,6 +200,15 @@ class TestDecimalArray(base.ExtensionTests):
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
         super().test_unary_ufunc_dunder_equivalence(data, ufunc)
+
+    @pytest.mark.xfail(
+        raises=AssertionError, reason="DecimalArray does not support roundtrip"
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # DecimalArray does not support roundtrip as Decimal cannot be created from
+        # dictionary created in JSON serialization
+        super().test_json_roundtrip(data)
 
 
 def test_take_na_value_other_decimal():

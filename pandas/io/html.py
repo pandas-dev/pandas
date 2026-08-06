@@ -1084,7 +1084,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int, list-like or slice, optional
-        Number of rows to skip after parsing the column integer. 0-based. If a
+        Number of rows to skip after parsing the header. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.

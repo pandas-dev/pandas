@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import np_long
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -70,7 +71,9 @@ class TestDatetimeIndex:
 
     def assert_index_parameters(self, index):
         assert index.freq == "40960ns"
-        assert index.inferred_freq == "40960ns"
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400

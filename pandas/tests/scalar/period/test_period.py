@@ -789,6 +789,54 @@ class TestPeriodMethods:
         result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
 
+    @pytest.mark.parametrize("freq", ["ns", "1ns", offsets.Nano()])
+    def test_to_timestamp_nanosecond_target(self, freq):
+        # GH#63760 the result unit is derived from the normalized target base,
+        #  so a freq that normalizes to nanoseconds (e.g. "1ns") must give a
+        #  correct nanosecond-unit Timestamp rather than misinterpreting the
+        #  nanosecond ordinal as microseconds
+        per = Period("2020-01-01", freq="D")
+        result = per.to_timestamp(freq)
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01")
+
+    @pytest.mark.parametrize(
+        "freq, unit", [(None, "ns"), ("D", "us"), ("s", "us"), ("us", "us")]
+    )
+    def test_to_timestamp_from_nanosecond_period(self, freq, unit):
+        # GH#63760 a nanosecond Period converted with a coarser (non-ns) target
+        #  must yield a microsecond Timestamp, not reinterpret the microsecond
+        #  value as nanoseconds
+        per = Period("2020-01-01", freq="ns")
+        result = per.to_timestamp(freq)
+        assert result.unit == unit
+        assert result == Timestamp("2020-01-01")
+
+    @pytest.mark.parametrize("freq", ["ns", "1ns", offsets.Nano()])
+    def test_to_timestamp_end_nanosecond_target(self, freq):
+        # GH#63760 how="end" keeps nanosecond precision for a target freq
+        #  that normalizes to nanoseconds
+        per = Period("2020-01-01", freq="D")
+        result = per.to_timestamp(freq, how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01 23:59:59.999999999")
+
+    def test_to_timestamp_end_from_nanosecond_period(self):
+        # GH#63760 a nanosecond Period keeps its nanosecond end bound with a
+        #  coarser target freq
+        per = Period("2020-01-01", freq="ns")
+        result = per.to_timestamp("D", how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01")
+
+    def test_to_timestamp_end_bday_nanosecond_target(self):
+        # GH#63760 the B roll-forward path keeps nanosecond precision too
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per = Period("2020-01-02", freq="B")
+            result = per.to_timestamp("ns", how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-02 23:59:59.999999999")
+
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
@@ -843,6 +891,29 @@ class TestPeriodMethods:
         res = p.strftime("%Y-%m-%d %H:%M:%S")
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
+
+    def test_strftime_nanosecond_capital_N(self):
+        # GH#65432 %N is the new directive for nanoseconds
+        per = Period("2000-1-1 12:34:12.123456789", freq="ns")
+        res = per.strftime("%Y-%m-%d %H:%M:%S.%N")
+        assert res == "2000-01-01 12:34:12.123456789"
+
+    def test_strftime_nanosecond_lowercase_n_deprecated(self):
+        # GH#65432 %n conflicts with POSIX newline meaning, deprecated in
+        # favor of %N
+        per = Period("2000-1-1 12:34:12.123456789", freq="ns")
+        msg = "The %n directive in Period.strftime is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = per.strftime("%Y-%m-%d %H:%M:%S.%n")
+        assert res == "2000-01-01 12:34:12.123456789"
+
+    def test_strftime_default_format_no_warning(self):
+        # GH#65432 the default format (fmt=None) for ns frequency must
+        # not raise the %n deprecation warning
+        per = Period("2000-1-1 12:34:12.123456789", freq="ns")
+        with tm.assert_produces_warning(None):
+            res = str(per)
+        assert res == "2000-01-01 12:34:12.123456789"
 
     @pytest.mark.parametrize("fmt", ["%Y-Q%Q", "%Q", "%E", "%Y%"])
     def test_strftime_invalid_format(self, fmt):

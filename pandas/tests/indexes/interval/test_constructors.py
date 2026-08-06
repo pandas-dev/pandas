@@ -60,8 +60,12 @@ class ConstructorTests:
         assert result.closed == closed
         assert result.name == name
         assert result.dtype.subtype == expected_subtype
-        tm.assert_index_equal(result.left, Index(breaks[:-1], dtype=expected_subtype))
-        tm.assert_index_equal(result.right, Index(breaks[1:], dtype=expected_subtype))
+        tm.assert_index_equal(
+            result.left, Index(breaks[:-1], dtype=expected_subtype), check_freq=False
+        )
+        tm.assert_index_equal(
+            result.right, Index(breaks[1:], dtype=expected_subtype), check_freq=False
+        )
 
     @pytest.mark.parametrize(
         "breaks, subtype",

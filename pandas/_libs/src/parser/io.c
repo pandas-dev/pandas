@@ -36,8 +36,13 @@ void *new_rd_source(PyObject *obj) {
  */
 
 void del_rd_source(void *rds) {
+  // Callable without the GIL held (parser_free runs in a nogil block so
+  // freeing large buffers does not stall other parser threads); take it
+  // for the decrefs.
+  PyGILState_STATE state = PyGILState_Ensure();
   Py_XDECREF(RDS(rds)->obj);
   Py_XDECREF(RDS(rds)->buffer);
+  PyGILState_Release(state);
   free(rds);
 }
 

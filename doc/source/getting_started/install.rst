@@ -48,10 +48,7 @@ Additionally, it is recommended to install and run pandas from a virtual environ
 .. code-block:: shell
 
     conda create -c conda-forge -n name_of_my_env python pandas
-    # On Linux or MacOS
-    source activate name_of_my_env
-    # On Windows
-    activate name_of_my_env
+    conda activate name_of_my_env
 
 .. tip::
     For users that are new to Python, the easiest way to install Python, pandas, and the
@@ -230,10 +227,10 @@ Installable with ``pip install "pandas[excel]"``.
 ================================================================== ================== =============== =============================================================
 Dependency                                                         Minimum Version    pip extra       Notes
 ================================================================== ================== =============== =============================================================
-`xlrd <https://github.com/python-excel/xlrd>`__                    2.0.1              excel           Reading for xls files
+`xlrd <https://github.com/python-excel/xlrd>`__                    2.0.1              excel           Reading for xls files (deprecated; use python-calamine)
 `xlsxwriter <https://github.com/jmcnamara/XlsxWriter>`__           3.2.0              excel           Writing for xlsx files
 `openpyxl <https://github.com/theorchard/openpyxl>`__              3.1.5              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
-`pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files
+`pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files (deprecated; use python-calamine)
 `python-calamine <https://github.com/dimastbk/python-calamine>`__  0.3.0              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
 `odfpy <https://github.com/eea/odfpy>`__                           1.4.1              excel           Reading / writing for OpenDocument 1.2 files
 ================================================================== ================== =============== =============================================================

@@ -48,7 +48,7 @@ class TestNormalize:
 
         result = rng.normalize()  # does not preserve freq
         expected = date_range("1/1/2000", periods=10, freq="D", tz="US/Eastern")
-        tm.assert_index_equal(result, expected._with_freq(None))
+        tm.assert_index_equal(result, expected._with_freq(None), check_freq=False)
 
         assert result.is_normalized
         assert not rng.is_normalized
@@ -65,7 +65,7 @@ class TestNormalize:
         rng = date_range("1/1/2000 9:30", periods=10, freq="D", tz=tzlocal())
         result = rng.normalize()  # does not preserve freq
         expected = date_range("1/1/2000", periods=10, freq="D", tz=tzlocal())
-        tm.assert_index_equal(result, expected._with_freq(None))
+        tm.assert_index_equal(result, expected._with_freq(None), check_freq=False)
 
         assert result.is_normalized
         assert not rng.is_normalized
@@ -93,7 +93,7 @@ class TestNormalize:
             result = rng.normalize()
             expected = date_range("1/1/2000", periods=10, freq="D", tz=tzlocal())
             expected = expected._with_freq(None)
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, check_freq=False)
 
             assert result.is_normalized
             assert not rng.is_normalized

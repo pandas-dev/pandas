@@ -18,7 +18,7 @@ extern "C" {
 #include "pandas/parser/tokenizer.h"
 
 typedef struct {
-  int (*to_double)(char *, double *, char, char, int *);
+  int (*to_double)(const char *, const char *, double *, char, char, int *);
   int (*floatify)(PyObject *, double *, int *);
   void *(*new_rd_source)(PyObject *);
   void (*del_rd_source)(void *);
@@ -37,11 +37,11 @@ typedef struct {
   int (*parser_trim_buffers)(parser_t *);
   int (*tokenize_all_rows)(parser_t *, const char *);
   int (*tokenize_nrows)(parser_t *, uint64_t, const char *);
-  int64_t (*str_to_int64)(const char *, int *, char);
-  uint64_t (*str_to_uint64)(uint_state *, const char *, int *, char);
+  int64_t (*str_to_int64)(const char *, int64_t, int *, char);
+  uint64_t (*str_to_uint64)(uint_state *, const char *, int64_t, int *, char);
   double (*precise_xstrtod)(const char *, char **, char, char, char, int, int *,
                             int *);
-  int (*to_boolean)(const char *, uint8_t *);
+  int (*to_boolean)(const char *, int64_t, uint8_t *);
 } PandasParser_CAPI;
 
 #define PandasParser_CAPSULE_NAME "pandas._pandas_parser_CAPI"
@@ -53,8 +53,9 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
     PandasParserAPI =                                                          \
         (PandasParser_CAPI *)PyCapsule_Import(PandasParser_CAPSULE_NAME, 0)
 
-#  define to_double(item, p_value, sci, decimal, maybe_int)                    \
-    PandasParserAPI->to_double((item), (p_value), (sci), (decimal), (maybe_int))
+#  define to_double(item, end, p_value, sci, decimal, maybe_int)               \
+    PandasParserAPI->to_double((item), (end), (p_value), (sci), (decimal),     \
+                               (maybe_int))
 #  define floatify(str, result, maybe_int)                                     \
     PandasParserAPI->floatify((str), (result), (maybe_int))
 #  define new_rd_source(obj) PandasParserAPI->new_rd_source((obj))
@@ -83,15 +84,17 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
     PandasParserAPI->tokenize_all_rows((self), (encoding_errors))
 #  define tokenize_nrows(self, nrows, encoding_errors)                         \
     PandasParserAPI->tokenize_nrows((self), (nrows), (encoding_errors))
-#  define str_to_int64(p_item, error, t_sep)                                   \
-    PandasParserAPI->str_to_int64((p_item), (error), (t_sep))
-#  define str_to_uint64(state, p_item, error, t_sep)                           \
-    PandasParserAPI->str_to_uint64((state), (p_item), (error), (t_sep))
+#  define str_to_int64(p_item, length, error, t_sep)                           \
+    PandasParserAPI->str_to_int64((p_item), (length), (error), (t_sep))
+#  define str_to_uint64(state, p_item, length, error, t_sep)                   \
+    PandasParserAPI->str_to_uint64((state), (p_item), (length), (error),       \
+                                   (t_sep))
 #  define precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error,      \
                           maybe_int)                                           \
     PandasParserAPI->precise_xstrtod((p), (q), (decimal), (sci), (tsep),       \
                                      (skip_trailing), (error), (maybe_int))
-#  define to_boolean(item, val) PandasParserAPI->to_boolean((item), (val))
+#  define to_boolean(item, length, val)                                        \
+    PandasParserAPI->to_boolean((item), (length), (val))
 #endif /* !defined(_PANDAS_PARSER_IMPL) */
 
 #ifdef __cplusplus

@@ -1680,6 +1680,11 @@ class IndexOpsMixin(OpsMixin):
         res_name = ops.get_op_result_name(self, other)
 
         lvalues = self._values
+        if not isinstance(lvalues, ExtensionArray) or isinstance(other, range):
+            # For EA-backed values the warning is emitted by the EA's own
+            # _arith_method; the exception is ``range``, which is converted to
+            # an ndarray below before it reaches the EA (GH#62423).
+            ops.maybe_warn_listlike(other)
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
         rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)

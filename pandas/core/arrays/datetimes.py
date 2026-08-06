@@ -802,7 +802,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and not offset._use_relativedelta
         ):
             res_values = self._ndarray + offset._pd_timedelta
-            result = type(self)._simple_new(res_values, dtype=self.dtype)
+            # GH#64806 offset._pd_timedelta may have finer resolution than
+            # self, promoting res_values to a finer unit; derive the dtype
+            # from the promoted values rather than assuming self.dtype's unit.
+            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
+            res_dtype = tz_to_dtype(self.tz, res_unit)
+            result = type(self)._simple_new(res_values, dtype=res_dtype)
             if offset.normalize:
                 result = result.normalize()
             return result
@@ -890,6 +895,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         DatetimeIndex.tz : A timezone that has a variable offset from UTC.
         DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        Series.dt.tz : A timezone that has a variable offset from UTC.
+        Series.dt.tz_localize : Localize tz-naive Series datetimes to a given
+            time zone, or remove timezone from tz-aware Series datetimes.
 
         Examples
         --------
@@ -963,8 +971,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
-            Time zone to convert timestamps to. Passing ``None`` will
-            remove the time zone information preserving local time.
+            Time zone to attach to the tz-naive timestamps; the wall time is
+            preserved. Passing ``None`` detaches the time zone from a tz-aware
+            Array/Index, returning a tz-naive result with the same wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -1028,8 +1037,8 @@ default 'raise'
                        '2018-03-03 09:00:00-05:00'],
                       dtype='datetime64[us, US/Eastern]', freq=None)
 
-        With the ``tz=None``, we can remove the time zone information
-        while keeping the local time (not converted to UTC):
+        With ``tz=None`` we can remove the time zone information while
+        preserving the wall time (no conversion to UTC):
 
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
@@ -1081,7 +1090,7 @@ default 'raise'
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
@@ -1190,13 +1199,16 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
-        dt64_values = new_values.view(self._ndarray.dtype)
-
-        dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
+        dta = self._normalize_naive()
         if self.tz is not None:
             dta = dta.tz_localize(self.tz)
         return dta
+
+    def _normalize_naive(self) -> Self:
+        """Normalize times to midnight, ignoring the timezone."""
+        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
+        dt64_values = new_values.view(self._ndarray.dtype)
+        return type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
 
     def to_period(self, freq=None) -> PeriodArray:
         """
@@ -1260,7 +1272,7 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.inferred_freq
+            freq = self._inferred_freq_str
 
             if freq is None:
                 raise ValueError(
@@ -2482,6 +2494,9 @@ default 'raise'
         >>> idx.to_julian_date()
         Index([2461995.5375, 2461995.5875], dtype='float64')
         """
+        if self.tz is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            return self.tz_convert("UTC").tz_localize(None).to_julian_date()
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
         year = np.asarray(self.year)
@@ -3168,21 +3183,31 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    start = Timestamp(start)  # type: ignore[arg-type]
-    if start is not NaT:
+    start = Timestamp(start)
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if start is not NaT:  # type: ignore[comparison-overlap]
         start = start.as_unit(unit)
     else:
         start = None
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    end = Timestamp(end)  # type: ignore[arg-type]
-    if end is not NaT:
+    end = Timestamp(end)
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if end is not NaT:  # type: ignore[comparison-overlap]
         end = end.as_unit(unit)
     else:
         end = None
+
+    # GH#64834/GH#65011 When deriving start from (end, periods), roll end onto
+    # the offset first so we don't lose a period. For B/bh this is handled by
+    # the vectorized path, but anchored offsets (W, ME, MS, QS, ...) reach here.
+    # Without this, periods=1 also leaves freq pinned to an off-grid end.
+    if end is not None and periods is not None and not offset.is_on_offset(end):
+        if offset.n >= 0:
+            end = offset.rollback(end)  # type: ignore[assignment]
+        else:
+            end = offset.rollforward(end)  # type: ignore[assignment]
 
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",

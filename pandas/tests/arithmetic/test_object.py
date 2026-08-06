@@ -345,7 +345,9 @@ class TestArithmetic:
     def test_sub_fail(self):
         index = pd.Index([str(i) for i in range(10)])
 
-        msg = "unsupported operand type|Cannot broadcast|sub' not supported"
+        msg = "|".join(
+            ["unsupported operand type", "Cannot broadcast", "sub' not supported"]
+        )
         with pytest.raises(TypeError, match=msg):
             index - "a"
         with pytest.raises(TypeError, match=msg):
