@@ -28,6 +28,21 @@ Categorical\\.categories values are different \\(100\\.0 %\\)
         tm.assert_categorical_equal(c1, c2, **kwargs)
 
 
+def test_categorical_equal_nan_different_category_order():
+    # GH#62008: with check_category_order=False, missing values (code -1) must
+    # map to NaN rather than wrapping around to the last category, which
+    # otherwise looks like a difference when the categories are ordered
+    # differently.
+    c1 = Categorical(["B", None, "D"], categories=["B", "D"])
+    c2 = Categorical(["B", None, "D"], categories=["D", "B"])
+    tm.assert_categorical_equal(c1, c2, check_category_order=False)
+
+    # Genuinely different values are still reported.
+    c3 = Categorical(["B", "D", "D"], categories=["D", "B"])
+    with pytest.raises(AssertionError, match=r"Categorical\.values are different"):
+        tm.assert_categorical_equal(c1, c3, check_category_order=False)
+
+
 def test_categorical_equal_categories_mismatch():
     msg = """Categorical\\.categories are different
 
