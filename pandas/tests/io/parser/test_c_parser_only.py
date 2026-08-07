@@ -1252,3 +1252,15 @@ def test_na_values_leading_nul(c_parser_only):
     assert result["a"].isna().tolist() == [True, False, False]
     assert result["a"][1] == "\x00z"
     assert result["a"][2] == ""
+
+
+def test_tokenizer_error_message_path_does_not_crash(c_parser_only):
+    # Regression test for tokenizer error/warning formatting paths:
+    # allocation failures while building messages must raise cleanly,
+    # not segfault by dereferencing NULL during snprintf.
+    parser = c_parser_only
+    huge = "x" * (10**7)
+    data = f"a,b\n1,2\n{huge},2,3\n"
+
+    with pytest.raises(Exception):
+        parser.read_csv(StringIO(data), on_bad_lines="error")

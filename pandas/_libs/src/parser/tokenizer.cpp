@@ -356,8 +356,10 @@ static int push_char(parser_t *self, char c) {
   if (self->stream_len >= self->stream_cap) {
     const size_t bufsize = 100;
     self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    if (self->error_msg != NULL) {
+      snprintf(self->error_msg, bufsize,
+               "Buffer overflow caught - possible malformed input file.\n");
+    }
     return PARSER_OUT_OF_MEMORY;
   }
   self->stream[self->stream_len++] = c;
@@ -369,8 +371,10 @@ static inline int end_field(parser_t *self) {
   if (self->words_len >= self->words_cap) {
     const size_t bufsize = 100;
     self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    if (self->error_msg != NULL) {
+      snprintf(self->error_msg, bufsize,
+               "Buffer overflow caught - possible malformed input file.\n");
+    }
     return PARSER_OUT_OF_MEMORY;
   }
 
@@ -396,7 +400,9 @@ static void append_warning(parser_t *self, const char *msg) {
 
   if (self->warn_msg == NULL) {
     self->warn_msg = (char *)malloc(length + 1);
-    snprintf(self->warn_msg, length + 1, "%s", msg);
+    if (self->warn_msg != NULL) {
+      snprintf(self->warn_msg, length + 1, "%s", msg);
+    }
   } else {
     const int64_t ex_length = strlen(self->warn_msg);
     char *newptr = (char *)realloc(self->warn_msg, ex_length + length + 1);
@@ -453,10 +459,12 @@ static int end_line(parser_t *self) {
     if (self->on_bad_lines == BLHM_ERROR) {
       const size_t bufsize = 100;
       self->error_msg = (char *)malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Expected %" PRId64 " fields in line %" PRIu64 ", saw %" PRId64
-               "\n",
-               ex_fields, self->file_lines, fields);
+      if (self->error_msg != NULL) {
+        snprintf(self->error_msg, bufsize,
+                 "Expected %" PRId64 " fields in line %" PRIu64
+                 ", saw %" PRId64 "\n",
+                 ex_fields, self->file_lines, fields);
+      }
       return -1;
     } else {
       // simply skip bad lines
@@ -464,12 +472,14 @@ static int end_line(parser_t *self) {
         // pass up error message
         const size_t bufsize = 100;
         char *msg = (char *)malloc(bufsize);
-        snprintf(msg, bufsize,
-                 "Skipping line %" PRIu64 ": expected %" PRId64
-                 " fields, saw %" PRId64 "\n",
-                 self->file_lines, ex_fields, fields);
-        append_warning(self, msg);
-        free(msg);
+        if (msg != NULL) {
+          snprintf(msg, bufsize,
+                   "Skipping line %" PRIu64 ": expected %" PRId64
+                   " fields, saw %" PRId64 "\n",
+                   self->file_lines, ex_fields, fields);
+          append_warning(self, msg);
+          free(msg);
+        }
       }
     }
   } else {
@@ -479,7 +489,9 @@ static int end_line(parser_t *self) {
       if (make_stream_space(self, ex_fields - fields) < 0) {
         const size_t bufsize = 100;
         self->error_msg = (char *)malloc(bufsize);
-        snprintf(self->error_msg, bufsize, "out of memory");
+        if (self->error_msg != NULL) {
+          snprintf(self->error_msg, bufsize, "out of memory");
+        }
         return -1;
       }
 
@@ -497,9 +509,11 @@ static int end_line(parser_t *self) {
     if (self->lines >= self->lines_cap) {
       const size_t bufsize = 100;
       self->error_msg = (char *)malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Buffer overflow caught - "
-               "possible malformed input file.\n");
+      if (self->error_msg != NULL) {
+        snprintf(self->error_msg, bufsize,
+                 "Buffer overflow caught - "
+                 "possible malformed input file.\n");
+      }
       return PARSER_OUT_OF_MEMORY;
     }
     self->line_start[self->lines] =
@@ -550,12 +564,14 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
     const size_t bufsize = 200;
     self->error_msg = (char *)malloc(bufsize);
 
-    if (status == CALLING_READ_FAILED) {
-      snprintf(self->error_msg, bufsize,
-               "Calling read(nbytes) on source failed. "
-               "Try engine='python'.");
-    } else {
-      snprintf(self->error_msg, bufsize, "Unknown error in IO callback");
+    if (self->error_msg != NULL) {
+      if (status == CALLING_READ_FAILED) {
+        snprintf(self->error_msg, bufsize,
+                 "Calling read(nbytes) on source failed. "
+                 "Try engine='python'.");
+      } else {
+        snprintf(self->error_msg, bufsize, "Unknown error in IO callback");
+      }
     }
     return -1;
   }
@@ -572,8 +588,10 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
   if (slen >= self->stream_cap) {                                              \
     const size_t bufsize = 100;                                                \
     self->error_msg = (char *)malloc(bufsize);                                 \
-    snprintf(self->error_msg, bufsize,                                         \
-             "Buffer overflow caught - possible malformed input file.\n");     \
+    if (self->error_msg != NULL) {                                             \
+      snprintf(self->error_msg, bufsize,                                       \
+               "Buffer overflow caught - possible malformed input file.\n");   \
+    }                                                                          \
     return PARSER_OUT_OF_MEMORY;                                               \
   }                                                                            \
   *stream++ = c;                                                               \
@@ -1207,7 +1225,9 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
     self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "out of memory");
+    if (self->error_msg != NULL) {
+      snprintf(self->error_msg, bufsize, "out of memory");
+    }
     return -1;
   }
 
@@ -1726,13 +1746,17 @@ static int parser_handle_eof(parser_t *self) {
   case ESCAPE_IN_QUOTED_FIELD:
   case IN_QUOTED_FIELD:
     self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "EOF inside string starting at row %" PRIu64, self->file_lines);
+    if (self->error_msg != NULL) {
+      snprintf(self->error_msg, bufsize,
+               "EOF inside string starting at row %" PRIu64, self->file_lines);
+    }
     return -1;
 
   case ESCAPED_CHAR:
     self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "EOF following escape character");
+    if (self->error_msg != NULL) {
+      snprintf(self->error_msg, bufsize, "EOF following escape character");
+    }
     return -1;
 
   case IN_FIELD:
