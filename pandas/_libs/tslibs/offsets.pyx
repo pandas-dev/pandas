@@ -74,6 +74,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    add_overflowsafe,
     dts_to_iso_string,
     get_unit_from_dtype,
     import_pandas_datetime,
@@ -99,6 +100,12 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
+
+
+cdef extern from "pandas/portable.h":
+    bint checked_add(int64_t a, int64_t b, int64_t *res) noexcept nogil
+    bint checked_mul(int64_t a, int64_t b, int64_t *res) noexcept nogil
+
 
 # ---------------------------------------------------------------------
 # day_opt enum: avoids repeated string comparisons in nogil loops
@@ -5223,13 +5230,21 @@ cdef class Week(SingleConstructorOffset):
         return other + timedelta(weeks=k)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        cdef:
+            NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
+            int64_t shift
+
         if self._weekday is None:
-            td = timedelta(days=7 * self._n)
-            unit = np.datetime_data(dtarr.dtype)[0]
-            td64 = np.timedelta64(td, unit)
-            return dtarr + td64
+            if (
+                checked_mul(self._n, 7, &shift)
+                or checked_mul(shift, periods_per_day(reso), &shift)
+                or shift == NPY_NAT
+            ):
+                raise OverflowError("Overflow in int64 addition")
+            return add_overflowsafe(
+                dtarr.view("i8"), np.array(shift, dtype="i8")
+            )
         else:
-            reso = get_unit_from_dtype(dtarr.dtype)
             i8other = dtarr.view("i8")
             return self._end_apply_index(i8other, reso=reso)
 
@@ -5256,10 +5271,12 @@ cdef class Week(SingleConstructorOffset):
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
             npy_datetimestruct dts
-            int wday, days, weeks, n = self._n
+            int wday
+            int64_t days, weeks, shift, n = self._n
             int anchor_weekday = self.weekday
             int64_t DAY_PERIODS = periods_per_day(reso)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
+            bint overflowed = False
 
         with nogil:
             for _ in range(count):
@@ -5279,12 +5296,26 @@ cdef class Week(SingleConstructorOffset):
                         if weeks > 0:
                             weeks -= 1
 
-                    res_val = val + (7 * weeks + days) * DAY_PERIODS
+                    # GH#66552 a result that wraps, or that lands exactly on
+                    #  NPY_NAT and so is indistinguishable from a missing
+                    #  value downstream, has to raise rather than be stored.
+                    if (
+                        checked_mul(weeks, 7, &shift)
+                        or checked_add(shift, days, &shift)
+                        or checked_mul(shift, DAY_PERIODS, &shift)
+                        or checked_add(val, shift, &res_val)
+                        or res_val == NPY_NAT
+                    ):
+                        overflowed = True
+                        break
 
                 # Analogous to: out[i] = res_val
                 (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
                 cnp.PyArray_MultiIter_NEXT(mi)
+
+        if overflowed:
+            raise OverflowError("Overflow in int64 addition")
 
         return out
 
