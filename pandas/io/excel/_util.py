@@ -280,6 +280,7 @@ def pop_header_name(
         The data row to parse for the header name.
     index_col : int, list
         The index columns for our data. Assumed to be non-null.
+        If a list passed, only the highest index column is taken.
 
     Returns
     -------
