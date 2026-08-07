@@ -308,19 +308,22 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize(
         "msg, key",
         [
-            (r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
-            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
-            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
+            (
+                r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'",
+                (Period("2019"), "foo", "bar"),
+            ),
+            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period("2019"), "y1", "bar")),
+            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period("2019"), "foo", "z1")),
             (
                 r"Period\('2018', 'Y-DEC'\), Period\('2016', 'Y-DEC'\), 'bar'",
-                (Period(2018), Period(2016), "bar"),
+                (Period("2018"), Period("2016"), "bar"),
             ),
-            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
+            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period("2018"), "foo", "y1")),
             (
                 r"Period\('2017', 'Y-DEC'\), 'foo', Period\('2015', 'Y-DEC'\)",
-                (Period(2017), "foo", Period(2015)),
+                (Period("2017"), "foo", Period("2015")),
             ),
-            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
+            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period("2017"), "z1", "bar")),
         ],
     )
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
@@ -334,9 +337,9 @@ class TestLocBaseIndependent:
         """
         df = DataFrame(
             {
-                "A": [Period(2019), "x1", "x2"],
-                "B": [Period(2018), Period(2016), "y1"],
-                "C": [Period(2017), "z1", Period(2015)],
+                "A": [Period("2019"), "x1", "x2"],
+                "B": [Period("2018"), Period("2016"), "y1"],
+                "C": [Period("2017"), "z1", Period("2015")],
                 "V1": [1, 2, 3],
                 "V2": [10, 20, 30],
             }

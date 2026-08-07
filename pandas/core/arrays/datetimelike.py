@@ -1637,7 +1637,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 # GH#34479
                 raise TypeError(
                     f"'{how}' with PeriodDtype is no longer supported. "
-                    f"Use (obj != pd.Period(0, freq)).{how}() instead."
+                    f"Use (obj != pd.Period(ordinal=0, freq=freq)).{how}() instead."
                 )
         # timedeltas we can add but not multiply
         elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
