@@ -35,7 +35,13 @@ class TestEWM:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
+        "obj",
+        [
+            DataFrame({"a": range(5), "b": range(5)}),
+            # GH#66522 single-column DataFrame
+            DataFrame({"a": range(5)}),
+            Series(range(5), name="foo"),
+        ],
     )
     def test_online_vs_non_online_mean(self, obj, nogil, parallel, adjust, ignore_na):
         expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()
