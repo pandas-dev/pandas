@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -23,7 +24,8 @@ class TestConvertDtypes:
             }
         )
         with pd.option_context("string_storage", string_storage):
-            result = df.convert_dtypes(True, True, convert_integer, False)
+            with tm.assert_produces_warning(Pandas4Warning):
+                result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=expected),
@@ -168,13 +170,14 @@ class TestConvertDtypes:
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
         expected = df.copy()
-        result = df.convert_dtypes(
-            convert_floating=False,
-            convert_integer=False,
-            convert_boolean=False,
-            convert_string=False,
-            dtype_backend="pyarrow",
-        )
+        with tm.assert_produces_warning(Pandas4Warning):
+            result = df.convert_dtypes(
+                convert_floating=False,
+                convert_integer=False,
+                convert_boolean=False,
+                convert_string=False,
+                dtype_backend="pyarrow",
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_convert_dtypes_pyarrow_to_np_nullable(self):
@@ -196,7 +199,8 @@ class TestConvertDtypes:
     def test_convert_dtypes_avoid_block_splitting(self):
         # GH#55341
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": "a"})
-        result = df.convert_dtypes(convert_integer=False)
+        with tm.assert_produces_warning(Pandas4Warning):
+            result = df.convert_dtypes(convert_integer=False)
         expected = pd.DataFrame(
             {
                 "a": [1, 2, 3],
@@ -253,3 +257,20 @@ class TestConvertDtypes:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwarg",
+        [
+            "infer_objects",
+            "convert_string",
+            "convert_integer",
+            "convert_boolean",
+            "convert_floating",
+        ],
+    )
+    def test_convert_dtypes_deprecated_kwargs(self, kwarg):
+        # GH#62022
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        msg = f"The {kwarg} keyword in DataFrame.convert_dtypes"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.convert_dtypes(**{kwarg: True})
