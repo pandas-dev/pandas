@@ -391,12 +391,11 @@ cdef class BaseOffset:
     so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
     a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
 
-    Parameters
+    Attributes
     ----------
-    n : int
+    n : int, default 1
         Number of multiples of the frequency.
-
-    normalize : bool
+    normalize : bool, default False
         Whether the frequency can align with midnight.
 
     See Also
