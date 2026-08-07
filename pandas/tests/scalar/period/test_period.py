@@ -1345,3 +1345,15 @@ def test_period_int_nat_sentinel_not_deprecated():
     result = Period(np.str_("2023"), freq="Y")
     expected = Period("2023", freq="Y")
     assert result == expected
+
+
+def test_period_quarterly_string_no_deprecation_warning():
+    # GH#50907 Period is the recommended replacement for quarterly-string
+    # parsing in Timestamp, so it must not emit the deprecation warning
+    with tm.assert_produces_warning(None):
+        per = Period("2014Q2")
+    assert per == Period(year=2014, quarter=2, freq="Q-DEC")
+
+    with tm.assert_produces_warning(None):
+        per = Period("2014Q2", freq="Q-FEB")
+    assert per == Period(year=2014, quarter=2, freq="Q-FEB")

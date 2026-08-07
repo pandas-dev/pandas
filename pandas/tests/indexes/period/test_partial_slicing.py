@@ -198,3 +198,29 @@ class TestPeriodIndex:
 
         result = ser["May 2015"]
         tm.assert_series_equal(result, expected)
+
+
+def test_periodindex_quarterly_string_no_deprecation_warning():
+    # GH#50907 PeriodIndex is the recommended replacement for quarterly-string
+    # parsing, so its indexing paths -- which parse the label as a Period -- may
+    # not emit the deprecation warning. Methods that route the string through
+    # Timestamp/to_datetime instead (truncate, asof) still warn, since there the
+    # parsed datetime is the value actually used.
+    with tm.assert_produces_warning(None):
+        pidx = PeriodIndex(["2000Q1", "2000Q2", "2000Q3", "2000Q4"], freq="Q")
+
+    ser = Series(np.arange(len(pidx)), index=pidx)
+    with tm.assert_produces_warning(None):
+        result = ser["2000Q1"]
+    assert result == 0
+
+    with tm.assert_produces_warning(None):
+        result = ser.loc["2000Q1":"2000Q3"]
+    tm.assert_series_equal(result, ser.iloc[:3])
+
+    with tm.assert_produces_warning(None):
+        pidx.slice_locs("2000Q1", "2000Q3")
+
+    # GH#45580 an np.str_ bound must take the same no-warn path
+    with tm.assert_produces_warning(None):
+        pidx.slice_locs(np.str_("2000Q1"), np.str_("2000Q3"))
