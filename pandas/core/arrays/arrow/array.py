@@ -35,6 +35,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under14p0,
     pa_version_under21p0,
+    pa_version_under23p0,
     pa_version_under25p0,
 )
 from pandas.compat.numpy import function as nv
@@ -3435,16 +3436,65 @@ class ArrowExtensionArray(
             )
             result_values = pc.if_else(below_min_count, None, result_values)
 
-        # Scatter results into output array ordered by group id.
-        # Fallback to NumPy here due to the limitation of pc.scatter.
-        # Another workaround is to use join + sort.
-        # TODO: revisit this part when pc.scatter becomes more functionally complete.
+        # Place the group results into an output ordered by group id
+        if pa_version_under23p0:
+            return self._groupby_scatter_numpy(
+                result_values,
+                result_group_ids,
+                default_value=default_value,
+                min_count=min_count,
+                ngroups=ngroups,
+            )
+
+        try:
+            if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
+                # scatter carries an out-of-precision decimal through silently
+                result_values.validate(full=True)
+            pa_result = pc.scatter(
+                result_values, result_group_ids, max_index=ngroups - 1
+            )
+            if default_value.as_py() is not None and min_count == 0:
+                if result_values.null_count == 0:
+                    # every null is a group with no rows
+                    pa_result = _safe_fill_null(pa_result, default_value)
+                else:
+                    # keep the skipna=False nulls, fill only the empty groups
+                    seen = pc.scatter(
+                        pa.repeat(True, len(result_values)),
+                        result_group_ids,
+                        max_index=ngroups - 1,
+                    )
+                    pa_result = pc.if_else(pc.is_null(seen), default_value, pa_result)
+        except pa.ArrowInvalid:
+            # e.g. a decimal needing more digits than the maximum precision.
+            # ArrowNotImplementedError needs no branch here: it is a
+            # NotImplementedError, which groupby already routes to the fallback.
+            return None
+        return self._from_pyarrow_array(pa_result)
+
+    def _groupby_scatter_numpy(
+        self,
+        result_values: pa.ChunkedArray,
+        result_group_ids: pa.ChunkedArray,
+        *,
+        default_value: pa.Scalar,
+        min_count: int,
+        ngroups: int,
+    ) -> Self | None:
+        """
+        Place group results into an output ordered by group id, using NumPy.
+
+        Only for pyarrow < 23, whose ``pc.scatter`` has no ``max_index`` and so
+        cannot size its output by ``ngroups``. Delete this method and its caller
+        once the minimum pyarrow is 23.
+        """
+        output_type = result_values.type
+        default_py = default_value.as_py()
         result_group_ids_np = result_group_ids.to_numpy(zero_copy_only=False).astype(
             np.int64, copy=False
         )
         result_values_np = result_values.to_numpy(zero_copy_only=False)
 
-        default_py = default_value.as_py()
         try:
             if default_py is not None and min_count == 0:
                 # Fill missing groups with identity element

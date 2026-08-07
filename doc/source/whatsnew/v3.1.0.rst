@@ -236,6 +236,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :class:`.DataFrameGroupBy` aggregations (``sum``, ``mean``, ``min``, ``max``, ``prod``) when the grouping keys are already sorted (:issue:`65103`)
+- Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` reductions for :class:`ArrowDtype` decimal and Arrow-backed string columns with PyArrow 23 or later, by placing the group results with PyArrow's ``scatter`` instead of converting them to NumPy and back (:issue:`66625`)
 - Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` reductions for :class:`ArrowDtype` decimal columns (``sum``, ``prod``, ``min``, ``max``, ``mean``, ``var``) and for Arrow-backed string columns (``min``, ``max``), i.e. :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"``, by dispatching to PyArrow's native ``group_by`` instead of a slower fallback (:issue:`63416`)
 - Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` with ``sort=True``, as well as :func:`factorize` and :func:`merge` with ``sort=True``, when the keys are integers with many unique values (:issue:`66129`)
 - Performance improvement in casting integer and boolean dtypes to ``string[pyarrow]`` by using PyArrow's native cast instead of element-wise conversion (:issue:`56505`)
