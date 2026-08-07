@@ -203,7 +203,7 @@ class TestToIterable:
             "datetime64[ns, US/Central]",
         ),
         (
-            pd.PeriodIndex([2018, 2019], freq="Y"),
+            pd.PeriodIndex(["2018", "2019"], freq="Y"),
             PeriodArray,
             pd.core.dtypes.dtypes.PeriodDtype("Y-DEC"),
         ),

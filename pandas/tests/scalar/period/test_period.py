@@ -254,7 +254,9 @@ class TestPeriodConstruction:
         i1 = Period("200701", freq="M")
         assert i1 == expected
 
-        i1 = Period(200701, freq="M")
+        msg = "Passing an integer to Period is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            i1 = Period(200701, freq="M")
         assert i1 == expected
 
         i1 = Period(ordinal=200701, freq="M")
@@ -310,7 +312,9 @@ class TestPeriodConstruction:
                 year=2012, month=3, day=10, freq="3B"
             )
 
-        assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
+        msg = "Passing an integer to Period is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
 
         i1 = Period(ordinal=200701, freq=offsets.MonthEnd())
         i2 = Period(ordinal=200701, freq="M")
@@ -1316,6 +1320,27 @@ def test_period_np_str():
     result = Period(np.str_("2023-01"), freq="M")
     expected = Period("2023-01", freq="M")
     assert result == expected
+
+
+@pytest.mark.parametrize("value", [2000, np.int64(2000), np.uint16(2000)])
+def test_period_int_deprecated(value):
+    # GH#64227 an integer is currently read as a calendar year; in a future
+    #  version it will be read as an ordinal, matching PeriodArray
+    msg = "Passing an integer to Period is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = Period(value, freq="D")
+    assert result == Period("2000", freq="D")
+
+    # the two unambiguous spellings are unaffected
+    with tm.assert_produces_warning(None):
+        assert Period("2000", freq="D") == result
+        assert Period(ordinal=2000, freq="D").ordinal == 2000
+
+
+def test_period_int_nat_sentinel_not_deprecated():
+    # GH#64227 iNaT means NaT under both the old and new interpretations
+    with tm.assert_produces_warning(None):
+        assert Period(iNaT, freq="D") is NaT
 
     result = Period(np.str_("2023"), freq="Y")
     expected = Period("2023", freq="Y")

@@ -759,7 +759,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         result._freq = self._freq
         return result
 
-    def _pin_freq(self, freq, inferred, validate_kwds: dict) -> None:
+    def _pin_freq(self, freq, inferred) -> None:
         """
         Constructor helper to pin the appropriate ``freq`` attribute on self.
 
@@ -787,7 +787,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # We cannot inherit a freq from the data, so we need to validate
             #  the user-passed freq
             freq = to_offset(freq)
-            type(arr)._validate_frequency(self, freq, **validate_kwds)
+            type(arr)._validate_frequency(self, freq)
             self._freq = freq
         else:
             # Otherwise we just need to check that the user-passed freq
@@ -822,7 +822,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                             f"{freq.freqstr}"
                         )
                 elif len(self) > 1:
-                    type(arr)._validate_frequency(self, freq, **validate_kwds)
+                    type(arr)._validate_frequency(self, freq)
             self._freq = freq
 
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:

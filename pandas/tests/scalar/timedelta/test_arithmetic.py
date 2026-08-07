@@ -1354,9 +1354,17 @@ def test_td_add_sub_lands_on_nat_sentinel(unit):
         td_min + np.timedelta64(-1, unit)
 
 
-@pytest.mark.parametrize("op", [operator.mul, operator.truediv])
-def test_td_float_op_rounds_onto_nat_sentinel(op):
-    # GH#66551 Timedelta.min is iNaT + 1, which float64 rounds down onto iNaT
-    msg = f"Out of bounds nanosecond timedelta: {-(2**63)}"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        op(Timedelta.min, 1.0)
+@pytest.mark.parametrize("op", [operator.mul, operator.truediv, operator.floordiv])
+def test_td_integral_float_op_is_exact(op):
+    # GH#66551 an integral float operand has an exact int equivalent, so it
+    #  takes the int64 path rather than float64.  Timedelta.min is iNaT + 1,
+    #  which float64 used to round down onto iNaT, and Timedelta.max used to
+    #  round up out of the int64 range.
+    assert op(Timedelta.min, 1.0) == Timedelta.min
+    assert op(Timedelta.max, 1.0) == Timedelta.max
+
+    # above 2**53 the float64 mantissa runs out, so the operand had to be
+    #  applied exactly for these to round-trip
+    td = Timedelta(2**53 + 1, "ns")
+    assert op(td, 1.0)._value == 2**53 + 1
+    assert op(td, 1.0) == op(td, 1)

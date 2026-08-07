@@ -2091,6 +2091,17 @@ class TestStackUnstackMultiLevel:
         with pytest.raises(IndexError, match="not a valid level number"):
             unstacked.stack([-4, -3], future_stack=future_stack)
 
+    @pytest.mark.parametrize("level", [[0, 0], ["l0", "l0"], [2, -1], [1, -2]])
+    def test_stack_duplicate_levels(self, level):
+        # GH#66588
+        columns = MultiIndex.from_product(
+            [["A", "B"], ["c", "d"], ["e", "f"]], names=["l0", "l1", "l2"]
+        )
+        df = DataFrame(np.arange(8).reshape(1, 8), columns=columns)
+
+        with pytest.raises(ValueError, match="level should not contain duplicate"):
+            df.stack(level)
+
     def test_unstack_period_series(self):
         # GH4342
         idx1 = pd.PeriodIndex(

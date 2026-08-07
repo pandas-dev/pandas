@@ -47,6 +47,7 @@ from pandas._libs.tslibs.offsets import (
 )
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
+    INT_TO_PERIOD_DEPR_MSG,
     IncompatibleFrequency,
     Period,
     get_period_field_arr,
@@ -310,6 +311,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return cls(ordinals, dtype=dtype)
 
         elif arrdata.dtype.kind in "iu":
+            # GH#64227 enforcing means dropping from_calendar_ordinals here and
+            #  reading arrdata as ordinals; the object-dtype and Period-scalar
+            #  paths in tslibs.period must be enforced at the same time or the
+            #  two interpretations diverge again.
+            warnings.warn(
+                INT_TO_PERIOD_DEPR_MSG,
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             arr = arrdata.astype(np.int64, copy=False)
             ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
             return cls(ordinals, dtype=dtype)
@@ -1403,13 +1413,6 @@ def period_array(
     <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[Y-DEC]
-
-    Integers that look like years are handled
-
-    >>> period_array([2000, 2001, 2002], dtype=PeriodDtype("D"))
-    <PeriodArray>
-    ['2000-01-01', '2001-01-01', '2002-01-01']
-    Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 

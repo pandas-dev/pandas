@@ -65,6 +65,7 @@ from pandas._libs.tslibs.dtypes cimport (
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
     c_PERIOD_TO_OFFSET_FREQSTR,
+    npy_unit_to_attrname,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -73,6 +74,8 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    add_overflowsafe,
+    dts_to_iso_string,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -82,6 +85,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 import_pandas_datetime()
+
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport (
@@ -95,6 +100,12 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
+
+
+cdef extern from "pandas/portable.h":
+    bint checked_add(int64_t a, int64_t b, int64_t *res) noexcept nogil
+    bint checked_mul(int64_t a, int64_t b, int64_t *res) noexcept nogil
+
 
 # ---------------------------------------------------------------------
 # day_opt enum: avoids repeated string comparisons in nogil loops
@@ -120,6 +131,19 @@ cdef _DayOpt _str_to_day_opt(str day_opt) except? DAY_OPT_START:
             "day must be 'start', 'end', 'business_start', or "
             f"'business_end', got {day_opt}"
         )
+
+
+cdef _raise_out_of_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT reso, err):
+    """
+    Re-raise the bare OverflowError that npy_datetimestruct_to_datetime raises
+    for an unrepresentable shift result as the OutOfBoundsDatetime the scalar
+    paths raise.
+    """
+    fmt = dts_to_iso_string(dts)
+    attrname = npy_unit_to_attrname[reso]
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {attrname} timestamp: {fmt}"
+    ) from err
 
 
 # ---------------------------------------------------------------------
@@ -385,15 +409,23 @@ class ApplyTypeError(TypeError):
 
 cdef class BaseOffset:
     """
-    Base class for DateOffset methods that are not overridden by subclasses.
+    Base class for all pandas date offsets.
 
-    Parameters
+    Every offset in ``pandas.tseries.offsets`` is a subclass of ``BaseOffset``,
+    so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
+    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
+
+    Attributes
     ----------
-    n : int
+    n : int, default 1
         Number of multiples of the frequency.
-
-    normalize : bool
+    normalize : bool, default False
         Whether the frequency can align with midnight.
+
+    See Also
+    --------
+    tseries.offsets.DateOffset : Offset backed by a ``dateutil.relativedelta``.
+    tseries.frequencies.to_offset : Convert a string or timedelta to an offset.
 
     Examples
     --------
@@ -401,6 +433,9 @@ cdef class BaseOffset:
     5
     >>> pd.offsets.Hour(5).normalize
     False
+
+    >>> isinstance(pd.offsets.BDay(), pd.offsets.BaseOffset)
+    True
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -2118,11 +2153,34 @@ class OffsetMeta(type):
 
     @classmethod
     def __instancecheck__(cls, obj) -> bool:
-        return isinstance(obj, BaseOffset)
+        result = isinstance(obj, BaseOffset)
+        if result and not isinstance(obj, RelativeDeltaOffset):
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                "isinstance(obj, DateOffset) is deprecated for offsets that are "
+                "not DateOffset instances and will return False in a future "
+                "version. Use isinstance(obj, pd.offsets.BaseOffset) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     @classmethod
     def __subclasscheck__(cls, obj) -> bool:
-        return issubclass(obj, BaseOffset)
+        result = issubclass(obj, BaseOffset)
+        if result and not issubclass(obj, RelativeDeltaOffset):
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                "issubclass(cls, DateOffset) is deprecated for offset classes "
+                "that are not DateOffset subclasses and will return False in a "
+                "future version. Use issubclass(cls, pd.offsets.BaseOffset) "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
 
 # TODO: figure out a way to use a metaclass with a cdef class
@@ -4857,54 +4915,59 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
-        with nogil:
-            for _ in range(count):
-                # Analogous to: val = i8other[i]
-                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        try:
+            with nogil:
+                for _ in range(count):
+                    # Analogous to: val = i8other[i]
+                    val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                if val == NPY_NAT:
-                    res_val = NPY_NAT
-
-                else:
-                    pandas_datetime_to_datetimestruct(val, reso, &dts)
-                    day = dts.day
-
-                    # Adjust so that we are always looking at self._day_of_month,
-                    #  incrementing/decrementing n if necessary.
-                    nadj = roll_convention(day, n, anchor_dom)
-
-                    days_in_month = get_days_in_month(dts.year, dts.month)
-                    # For SemiMonthBegin on other.day == 1 and
-                    #  SemiMonthEnd on other.day == days_in_month,
-                    #  shifting `other` to `self._day_of_month` _always_ requires
-                    #  incrementing/decrementing `n`, regardless of whether it is
-                    #  initially positive.
-                    if is_start and (n <= 0 and day == 1):
-                        nadj -= 1
-                    elif (not is_start) and (n > 0 and day == days_in_month):
-                        nadj += 1
-
-                    if is_start:
-                        # See also: SemiMonthBegin._apply
-                        months = nadj // 2 + nadj % 2
-                        to_day = 1 if nadj % 2 else anchor_dom
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
 
                     else:
-                        # See also: SemiMonthEnd._apply
-                        months = nadj // 2
-                        to_day = 31 if nadj % 2 else anchor_dom
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        day = dts.day
 
-                    dts.year = year_add_months(dts, months)
-                    dts.month = month_add_months(dts, months)
-                    days_in_month = get_days_in_month(dts.year, dts.month)
-                    dts.day = min(to_day, days_in_month)
+                        # Adjust so that we are always looking at
+                        #  self._day_of_month, incrementing/decrementing n if
+                        #  necessary.
+                        nadj = roll_convention(day, n, anchor_dom)
 
-                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                        days_in_month = get_days_in_month(dts.year, dts.month)
+                        # For SemiMonthBegin on other.day == 1 and
+                        #  SemiMonthEnd on other.day == days_in_month,
+                        #  shifting `other` to `self._day_of_month` _always_
+                        #  requires incrementing/decrementing `n`, regardless of
+                        #  whether it is initially positive.
+                        if is_start and (n <= 0 and day == 1):
+                            nadj -= 1
+                        elif (not is_start) and (n > 0 and day == days_in_month):
+                            nadj += 1
 
-                # Analogous to: out[i] = res_val
-                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                        if is_start:
+                            # See also: SemiMonthBegin._apply
+                            months = nadj // 2 + nadj % 2
+                            to_day = 1 if nadj % 2 else anchor_dom
 
-                cnp.PyArray_MultiIter_NEXT(mi)
+                        else:
+                            # See also: SemiMonthEnd._apply
+                            months = nadj // 2
+                            to_day = 31 if nadj % 2 else anchor_dom
+
+                        dts.year = year_add_months(dts, months)
+                        dts.month = month_add_months(dts, months)
+                        days_in_month = get_days_in_month(dts.year, dts.month)
+                        dts.day = min(to_day, days_in_month)
+
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
+
+                    # Analogous to: out[i] = res_val
+                    (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                    cnp.PyArray_MultiIter_NEXT(mi)
+        except OverflowError as err:
+            # GH#66549 dts holds the unrepresentable result
+            _raise_out_of_bounds(&dts, reso, err)
 
         return out
 
@@ -5201,13 +5264,21 @@ cdef class Week(SingleConstructorOffset):
         return other + timedelta(weeks=k)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        cdef:
+            NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
+            int64_t shift
+
         if self._weekday is None:
-            td = timedelta(days=7 * self._n)
-            unit = np.datetime_data(dtarr.dtype)[0]
-            td64 = np.timedelta64(td, unit)
-            return dtarr + td64
+            if (
+                checked_mul(self._n, 7, &shift)
+                or checked_mul(shift, periods_per_day(reso), &shift)
+                or shift == NPY_NAT
+            ):
+                raise OverflowError("Overflow in int64 addition")
+            return add_overflowsafe(
+                dtarr.view("i8"), np.array(shift, dtype="i8")
+            )
         else:
-            reso = get_unit_from_dtype(dtarr.dtype)
             i8other = dtarr.view("i8")
             return self._end_apply_index(i8other, reso=reso)
 
@@ -5234,10 +5305,12 @@ cdef class Week(SingleConstructorOffset):
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
             npy_datetimestruct dts
-            int wday, days, weeks, n = self._n
+            int wday
+            int64_t days, weeks, shift, n = self._n
             int anchor_weekday = self.weekday
             int64_t DAY_PERIODS = periods_per_day(reso)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
+            bint overflowed = False
 
         with nogil:
             for _ in range(count):
@@ -5257,12 +5330,26 @@ cdef class Week(SingleConstructorOffset):
                         if weeks > 0:
                             weeks -= 1
 
-                    res_val = val + (7 * weeks + days) * DAY_PERIODS
+                    # GH#66552 a result that wraps, or that lands exactly on
+                    #  NPY_NAT and so is indistinguishable from a missing
+                    #  value downstream, has to raise rather than be stored.
+                    if (
+                        checked_mul(weeks, 7, &shift)
+                        or checked_add(shift, days, &shift)
+                        or checked_mul(shift, DAY_PERIODS, &shift)
+                        or checked_add(val, shift, &res_val)
+                        or res_val == NPY_NAT
+                    ):
+                        overflowed = True
+                        break
 
                 # Analogous to: out[i] = res_val
                 (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
                 cnp.PyArray_MultiIter_NEXT(mi)
+
+        if overflowed:
+            raise OverflowError("Overflow in int64 addition")
 
         return out
 
@@ -7658,30 +7745,34 @@ cdef ndarray shift_quarters(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
-    with nogil:
-        for _ in range(count):
-            # Analogous to: val = dtindex[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+    try:
+        with nogil:
+            for _ in range(count):
+                # Analogous to: val = dtindex[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-            else:
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                n = quarters
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    n = quarters
 
-                months_since = (dts.month - q1start_month) % modby
-                n = _roll_qtrday(&dts, n, months_since, day_opt_enum)
+                    months_since = (dts.month - q1start_month) % modby
+                    n = _roll_qtrday(&dts, n, months_since, day_opt_enum)
 
-                dts.year = year_add_months(dts, modby * n - months_since)
-                dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = get_day_of_month(&dts, day_opt_enum)
+                    dts.year = year_add_months(dts, modby * n - months_since)
+                    dts.month = month_add_months(dts, modby * n - months_since)
+                    dts.day = get_day_of_month(&dts, day_opt_enum)
 
-                res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        # GH#66549 dts holds the unrepresentable result
+        _raise_out_of_bounds(&dts, reso, err)
 
     return out
 
@@ -7714,56 +7805,62 @@ def shift_months(
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
 
-    if day_opt is None:
-        # TODO: can we combine this with the non-None case?
-        with nogil:
-            for _ in range(count):
-                # Analogous to: val = i8other[i]
-                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+    try:
+        if day_opt is None:
+            # TODO: can we combine this with the non-None case?
+            with nogil:
+                for _ in range(count):
+                    # Analogous to: val = i8other[i]
+                    val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                if val == NPY_NAT:
-                    res_val = NPY_NAT
-                else:
-                    pandas_datetime_to_datetimestruct(val, reso, &dts)
-                    dts.year = year_add_months(dts, months)
-                    dts.month = month_add_months(dts, months)
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
+                    else:
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        dts.year = year_add_months(dts, months)
+                        dts.month = month_add_months(dts, months)
 
-                    dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
-                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                        dts.day = min(
+                            dts.day, get_days_in_month(dts.year, dts.month)
+                        )
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
-                # Analogous to: out[i] = res_val
-                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    # Analogous to: out[i] = res_val
+                    (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-                cnp.PyArray_MultiIter_NEXT(mi)
+                    cnp.PyArray_MultiIter_NEXT(mi)
 
-    else:
-        day_opt_enum = _str_to_day_opt(day_opt)
-        with nogil:
-            for _ in range(count):
+        else:
+            day_opt_enum = _str_to_day_opt(day_opt)
+            with nogil:
+                for _ in range(count):
 
-                # Analogous to: val = i8other[i]
-                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+                    # Analogous to: val = i8other[i]
+                    val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                if val == NPY_NAT:
-                    res_val = NPY_NAT
-                else:
-                    pandas_datetime_to_datetimestruct(val, reso, &dts)
-                    months_to_roll = months
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
+                    else:
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        months_to_roll = months
 
-                    months_to_roll = _roll_qtrday(
-                        &dts, months_to_roll, 0, day_opt_enum
-                    )
+                        months_to_roll = _roll_qtrday(
+                            &dts, months_to_roll, 0, day_opt_enum
+                        )
 
-                    dts.year = year_add_months(dts, months_to_roll)
-                    dts.month = month_add_months(dts, months_to_roll)
-                    dts.day = get_day_of_month(&dts, day_opt_enum)
+                        dts.year = year_add_months(dts, months_to_roll)
+                        dts.month = month_add_months(dts, months_to_roll)
+                        dts.day = get_day_of_month(&dts, day_opt_enum)
 
-                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
-                # Analogous to: out[i] = res_val
-                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    # Analogous to: out[i] = res_val
+                    (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-                cnp.PyArray_MultiIter_NEXT(mi)
+                    cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        # GH#66549 dts holds the unrepresentable result
+        _raise_out_of_bounds(&dts, reso, err)
 
     return out
 

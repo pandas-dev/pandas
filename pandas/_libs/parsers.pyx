@@ -219,14 +219,14 @@ cdef extern from "pandas/parser/tokenizer.h":
         uint64_t stream_len
         uint64_t stream_cap
 
-        # Store words in (potentially ragged) matrix for now, hmm
-        char **words
-        int64_t *word_starts  # where we are in the stream
+        # Words NUL-terminated and packed in the stream; word_ends[i] is the
+        # stream offset of word i's trailing NUL (word i starts at
+        # word_ends[i-1] + 1, or 0 for word 0).
+        int64_t *word_ends
         uint64_t words_len
         uint64_t words_cap
         uint64_t max_words_cap   # maximum word cap encountered
 
-        char *pword_start        # pointer to stream start of current field
         int64_t word_start       # position start of current field
 
         int64_t *line_start      # position in words for start of line
@@ -283,7 +283,8 @@ cdef extern from "pandas/parser/tokenizer.h":
         int preloaded
 
     ctypedef struct coliter_t:
-        char **words
+        const char *stream
+        const int64_t *word_ends
         int64_t *line_start
         int64_t col
 
@@ -406,6 +407,9 @@ cdef class TextReader:
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
         str _pa_target  # cached _string_convert target; None = unresolved
+        # Set by _close, which frees the tokenizer's buffers.  Reading from a
+        # closed reader would dereference those freed pointers (GH#66622).
+        bint is_closed
 
     cdef public:
         int64_t leading_cols, table_width
@@ -650,12 +654,16 @@ cdef class TextReader:
     def close(self):
         _close(self)
 
+    cdef _check_not_closed(self):
+        if self.is_closed:
+            raise ValueError("I/O operation on closed file.")
+
     def load_buffer(self, const unsigned char[::1] data, bint strip_bom=False):
         """Pre-load all chunk bytes into the parser's internal buffer.
 
         After this call the tokeniser reads directly from the supplied *data*
         buffer rather than calling back into Python via the ``cb_io``
-        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.c`` checks
+        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.cpp`` checks
         ``self->source == NULL`` before invoking ``parser_buffer_bytes``, the
         GIL is **never** re-acquired during tokenisation — enabling true CPU
         parallelism across threads.
@@ -690,7 +698,7 @@ cdef class TextReader:
         self.parser.datalen = data.shape[0]
         self.parser.datapos = 0
 
-        # Disable the header/first-line special cases in tokenizer.c: the
+        # Disable the header/first-line special cases in tokenizer.cpp: the
         # buffer holds plain data rows, so its first line must get regular
         # bad-line handling and no BOM stripping (see parser_t.preloaded).
         self.parser.preloaded = 1
@@ -757,7 +765,7 @@ cdef class TextReader:
 
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count, level
-            char *word
+            const char *word
             str name
             uint64_t hr, data_line = 0
             list header = []
@@ -797,7 +805,7 @@ cdef class TextReader:
                 unnamed_col_indices = []
 
                 for i in range(field_count):
-                    word = self.parser.words[start + i]
+                    word = _parser_word(self.parser, start + i)
 
                     # _token_len, not strlen: a column name containing an
                     # embedded NUL must not be truncated at it.
@@ -930,6 +938,7 @@ cdef class TextReader:
         """
         rows=None --> read all rows
         """
+        self._check_not_closed()
         # Don't care about memory usage
         columns = self._read_rows(rows, self.trim_after_read)
 
@@ -945,6 +954,8 @@ cdef class TextReader:
         cdef:
             size_t rows_read = 0
             list chunks = []
+
+        self._check_not_closed()
 
         if self.datetime_cols:
             # Per-chunk fastpath state keyed by column; see _DatetimeChunkState.
@@ -1799,6 +1810,7 @@ cdef class TextReader:
 # which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
+    reader.is_closed = True
     # Drop the pre-loaded buffer reference deterministically so the caller
     # can close the backing mmap (free-threaded builds may otherwise delay
     # the release past pool shutdown).
@@ -2623,7 +2635,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
 
             # Not strlen: an embedded NUL is a data byte here, so strlen would
             # truncate the field at it (GH#66415).
-            wlen = _token_len_words(parser, token_idx, word)
+            wlen = _token_len(parser, token_idx)
 
             if na_filter and kh_get_str_starts_item(na_hashset, word,
                                                     <size_t>wlen):
@@ -3149,37 +3161,23 @@ cdef _try_uint64(parser_t *parser, int64_t col,
     return result
 
 
+cdef inline const char* _parser_word(parser_t *parser,
+                                     int64_t idx) noexcept nogil:
+    # Pointer to word ``idx`` in the stream (NUL-terminated).
+    if idx == 0:
+        return parser.stream
+    return parser.stream + parser.word_ends[idx - 1] + 1
+
+
 cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nogil:
-    # Token length from adjacent word_starts offsets (avoids strlen);
-    # token_idx == -1 marks a missing field; the last token uses stream_len.
+    # Length of the token at ``token_idx`` (excluding its trailing NUL),
+    # derived from adjacent word_ends entries so we avoid a strlen scan.
+    # token_idx == -1 signals a missing field (word == "").
     if token_idx < 0:
         return 0
-    elif <uint64_t>(token_idx + 1) < parser.words_len:
-        return (parser.word_starts[token_idx + 1]
-                - parser.word_starts[token_idx] - 1)
-    return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
-
-
-cdef inline int64_t _token_len_words(parser_t *parser, int64_t token_idx,
-                                     const char *word) noexcept nogil:
-    # Same arithmetic as _token_len, but taking the boundary from `words`
-    # rather than `word_starts`.  The tokenizer keeps the two in lockstep
-    # (words[i] == stream + word_starts[i], rebased whenever the stream
-    # reallocs), so the result is identical; what differs is which array the
-    # loop touches.  coliter_next_with_idx already loaded words[token_idx] to
-    # produce `word`, so the boundary comes off a cache line the loop has in
-    # hand instead of streaming a second metadata array alongside the first.
-    # `word` must be the unmodified coliter_next_with_idx result for
-    # `token_idx`; an adjusted pointer would silently yield a wrong length.
-    # Only the pyarrow string path uses this: rewriting _token_len itself to
-    # this form regressed long-token ints ~6% (GH#66277), so the numeric
-    # callers keep the word_starts version.
-    if token_idx < 0:
-        # missing field; word is a static "" outside the stream
-        return 0
-    if <uint64_t>(token_idx + 1) < parser.words_len:
-        return <int64_t>(parser.words[token_idx + 1] - word) - 1
-    return <int64_t>(parser.stream + parser.stream_len - word) - 1
+    elif token_idx == 0:
+        return parser.word_ends[0]
+    return parser.word_ends[token_idx] - parser.word_ends[token_idx - 1] - 1
 
 
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
