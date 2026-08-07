@@ -80,9 +80,13 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
 @set_module("pandas.api.typing")
 class Expression:
     """
-    Class representing a deferred column.
+    Class representing a deferred column or expression.
 
     This is not meant to be instantiated directly. Instead, use :meth:`pandas.col`.
+
+    The attributes and methods available on an ``Expression`` depend on the
+    context where it is evaluated (e.g., within a DataFrame or Series).
+    Therefore, they are not exhaustively documented here.
     """
 
     def __init__(
