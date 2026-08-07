@@ -1,6 +1,7 @@
 """test feather-format compat"""
 
 from datetime import datetime
+import warnings
 import zoneinfo
 
 import numpy as np
@@ -64,6 +65,9 @@ class TestFeather:
         ]:
             self.check_error_on_write(obj, ValueError, msg, temp_file)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic(self, temp_file):
         tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
@@ -253,7 +257,15 @@ class TestFeather:
         from pyarrow import feather
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
-        feather.write_feather(table, temp_file)
+        # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66169)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.write_feather is deprecated",
+                FutureWarning,
+            )
+            feather.write_feather(table, temp_file)
 
         result = read_feather(temp_file)
 

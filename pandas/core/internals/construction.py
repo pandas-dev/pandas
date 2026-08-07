@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -17,6 +18,8 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
@@ -637,9 +640,9 @@ def _extract_index(data) -> Index:
         raise ValueError("If using all scalar values, you must pass an index")
 
     if have_series:
-        index = union_indexes(indexes)
+        index, _ = union_indexes(indexes)
     elif have_dicts:
-        index = union_indexes(indexes, sort=False)
+        index, _ = union_indexes(indexes, sort=False)
 
     if have_raw_arrays:
         if len(raw_lengths) > 1:
@@ -853,6 +856,21 @@ def to_arrays(
 def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
+
+    # GH#65751 shorter sequences get padded with NaN out to the longest one,
+    #  which is deprecated.  A null scalar counts as length 1, mirroring the
+    #  handling in lib.to_object_array_tuples.
+    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if len(lengths) > 1:
+        warnings.warn(
+            "Constructing a DataFrame from a list of sequences with mismatched "
+            "lengths is deprecated and will raise in a future version. The "
+            "shorter sequences are currently padded with NaN; make all "
+            "sequences the same length before constructing instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     if isinstance(data[0], tuple):
         content = lib.to_object_array_tuples(data)
     else:
@@ -870,7 +888,7 @@ def _list_of_series_to_arrays(
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
-        columns = get_objs_combined_axis(pass_data, sort=False)
+        columns, _ = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache: dict[int, np.ndarray] = {}
 

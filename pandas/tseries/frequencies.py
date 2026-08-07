@@ -16,10 +16,8 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
 )
 from pandas._libs.tslibs.ccalendar import (
-    DAYS,
     MONTH_ALIASES,
     MONTH_NUMBERS,
-    MONTHS,
     int_to_weekday,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
@@ -64,27 +62,56 @@ if TYPE_CHECKING:
 # --------------------------------------------------------------------
 # Offset related functions
 
-_need_suffix = ["QS", "BQE", "BQS", "YS", "BYE", "BYS"]
-
-for _prefix in _need_suffix:
-    for _m in MONTHS:
-        key = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
-
-for _prefix in ["Y", "Q"]:
-    for _m in MONTHS:
-        _alias = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[_alias] = _alias
-
-for _d in DAYS:
-    OFFSET_TO_PERIOD_FREQSTR[f"W-{_d}"] = f"W-{_d}"
-
 
 def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
     return OFFSET_TO_PERIOD_FREQSTR.get(offset_str, None)
+
+
+def maybe_convert_inferred_freq(
+    freq_str: str | None, caller: str, expr: str | None = None
+) -> str | BaseOffset | None:
+    """
+    Implement the GH#55504 deprecation of inferred frequencies being returned
+    as strings rather than BaseOffset objects.
+
+    Parameters
+    ----------
+    freq_str : str or None
+        The inferred frequency, as returned by infer_freq_str.
+    caller : str
+        User-facing name of the attribute or function being called, used in
+        the warning message.
+    expr : str, optional
+        Expression the user can append ``.freqstr`` to in order to keep the
+        string result. Defaults to `caller`.
+
+    Returns
+    -------
+    str, BaseOffset, or None
+    """
+    if freq_str is None:
+        # The result is None either way, so there is no behavior change
+        #  to warn about.
+        return None
+
+    opt = using_infer_freq_offset()
+    if opt is True:
+        return to_offset(freq_str)
+    if opt is None:
+        warnings.warn(
+            f"A future version of pandas will return a BaseOffset object "
+            f"instead of a string from {caller}. "
+            f"Use pd.set_option('future.infer_freq_returns_offset', True) "
+            f"to get the future behavior, or set to False to keep the old "
+            f"behavior and silence this warning. To preserve the string "
+            f"representation, use ``{expr or caller}.freqstr``.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    return freq_str
 
 
 # ---------------------------------------------------------------------
@@ -194,23 +221,9 @@ def infer_freq(
     >>> pd.infer_freq(idx)  # doctest: +SKIP
     'D'
     """
-    result = infer_freq_str(index)
-    if result is not None:
-        opt = using_infer_freq_offset()
-        if opt is True:
-            return to_offset(result)
-        if opt is None:
-            warnings.warn(
-                "A future version of pandas will return a BaseOffset object "
-                "instead of a string from infer_freq. "
-                "Use pd.set_option('future.infer_freq_returns_offset', True) "
-                "to get the future behavior, or set to False to keep the old "
-                "behavior and silence this warning. To preserve the string "
-                "representation, use ``infer_freq(...).freqstr``.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-    return result
+    return maybe_convert_inferred_freq(
+        infer_freq_str(index), "infer_freq", expr="infer_freq(...)"
+    )
 
 
 class _FrequencyInferer:
@@ -358,7 +371,14 @@ class _FrequencyInferer:
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
-            mod_dict = {0: 12, 2: 11, 1: 10}
+            if quarterly_rule in ("QS", "BQS"):
+                # GH#36939 the anchor month is only known up to mod 3; use the
+                #  first-calendar-quarter representative so that to_period on
+                #  e.g. Jan/Apr/Jul/Oct starts (QS-JAN) keeps the calendar
+                #  convention Q-DEC
+                mod_dict = {1: 1, 2: 2, 0: 3}
+            else:
+                mod_dict = {0: 12, 2: 11, 1: 10}
             month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
             alias = f"{quarterly_rule}-{month}"
             return _maybe_add_count(alias, nquarters)

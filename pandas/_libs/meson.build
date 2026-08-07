@@ -59,13 +59,12 @@ subdir('simd')
 
 # Compile the CSV tokenizer once into a static library shared by every
 # extension that needs it, rather than recompiling it per-extension. This
-# also keeps simd_config_inc (needed only by tokenizer.c) off the include
+# also keeps simd_config_inc (needed only by tokenizer.cpp) off the include
 # search path of unrelated extensions.
 tokenizer_lib = static_library(
     'pandas_tokenizer',
-    'src/parser/fast_float_strtod.cpp',
-    'src/parser/pd_strtoi.cpp',
-    'src/parser/tokenizer.c',
+    'src/parser/fast_float_wrappers.cpp',
+    'src/parser/tokenizer.cpp',
     include_directories: [inc_pd, simd_config_inc],
     dependencies: [fast_float_dep, py.dependency()],
 )
@@ -82,7 +81,7 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': [_khash_primitive_helper_dep, m_dep],
+        'deps': [_khash_primitive_helper_dep, m_dep, moments_simd_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},

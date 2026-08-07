@@ -726,6 +726,9 @@ class TestBasic(Base):
             "string",
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_read_empty_array(self, pa, dtype, temp_file):
         # GH #41241
         df = pd.DataFrame(
@@ -772,6 +775,9 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -784,6 +790,9 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, temp_file, pa)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic_subset_columns(self, pa, df_full, temp_file):
         # GH18628
 
@@ -1070,6 +1079,9 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, temp_file, pa, write_kwargs={"version": ver})
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_timezone_aware_index(self, pa, timezone_aware_date_list, temp_file):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
@@ -1084,6 +1096,9 @@ class TestParquetPyArrow(Base):
         assert len(result) == 1
 
     @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full, temp_file):
         import pyarrow
 
@@ -1309,6 +1324,16 @@ class TestParquetPyArrow(Base):
         with pytest.raises(OSError, match=msg):
             df.to_parquet(path, engine=pa)
 
+    def test_read_parquet_with_self_destruct(self, pa, temp_file):
+        # GH#66509
+        df = pd.DataFrame({0: [0.25]})
+        check_round_trip(
+            df,
+            temp_file,
+            engine=pa,
+            read_kwargs={"to_pandas_kwargs": {"self_destruct": True}},
+        )
+
     def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
         # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
         # be routed through it because pyarrow cannot fetch them
@@ -1326,6 +1351,7 @@ class TestParquetPyArrow(Base):
         assert calls == [(url, "rb")]
 
 
+@pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request, temp_file):
         if using_string_dtype():

@@ -17,7 +17,6 @@ import pandas._testing as tm
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 if PY314:
@@ -40,7 +39,6 @@ else:
         ({"quotechar": 2}, f'"quotechar" must be {MSG2}, not int'),
     ],
 )
-@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_bad_quote_char(all_parsers, kwargs, msg):
     data = "1,2,3"
     parser = all_parsers
@@ -93,20 +91,17 @@ def test_quote_char_various(all_parsers, quote_char):
 
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
-def test_null_quote_char(all_parsers, quoting, quote_char, request):
+def test_null_quote_char(all_parsers, quoting, quote_char):
     kwargs = {"quotechar": quote_char, "quoting": quoting}
     data = "a,b,c\n1,2,3"
     parser = all_parsers
 
-    if parser.engine == "pyarrow":
-        if quoting != csv.QUOTE_MINIMAL:
-            # any non-default value of ``quoting`` is rejected outright
-            msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(StringIO(data), **kwargs)
-            return
-        mark = pytest.mark.xfail(reason="pyarrow mishandles null/blank quote chars")
-        request.applymarker(mark)
+    if parser.engine == "pyarrow" and quoting != csv.QUOTE_MINIMAL:
+        # any non-default value of ``quoting`` is rejected outright
+        msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
 
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.

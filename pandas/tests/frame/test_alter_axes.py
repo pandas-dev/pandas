@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 from pandas import DataFrame
@@ -14,7 +14,7 @@ class TestDataFrameAlterAxes:
         # GH 6785
         # set the index manually
 
-        df = DataFrame([{"ts": datetime(2014, 4, 1, tzinfo=timezone.utc), "foo": 1}])
+        df = DataFrame([{"ts": datetime(2014, 4, 1, tzinfo=UTC), "foo": 1}])
         expected = df.set_index("ts")
         df.index = df["ts"]
         df.pop("ts")

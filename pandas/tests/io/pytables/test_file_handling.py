@@ -199,8 +199,12 @@ def test_complibs_default_settings(temp_h5_path):
             assert node.filters.complevel == 9
             assert node.filters.complib == "zlib"
 
-    # Set complib and check to see if compression is disabled
-    df.to_hdf(temp_h5_path, key="df", complib="zlib")
+    # GH#29310 complib without complevel does not compress; check the store is
+    # written uncompressed and that a UserWarning is emitted (rather than the
+    # complib argument being silently ignored).
+    msg = "complib='zlib' was specified without complevel"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        df.to_hdf(temp_h5_path, key="df", complib="zlib")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
@@ -303,6 +307,38 @@ def test_complib_object_dtype_compressed(temp_h5_path):
         assert isinstance(node, tables.VLArray)
         assert node.filters.complevel == 9
         assert node.filters.complib == "zlib"
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_complib_without_complevel_warns(tmp_path, fmt):
+    # GH#29310 passing complib without complevel to to_hdf/HDFStore does not
+    # compress (complevel defaults to 0); warn instead of silently ignoring it.
+    df = DataFrame(
+        np.ones((1000, 4)),
+        columns=list("ABCD"),
+        index=np.arange(1000).astype(np.str_),
+    )
+
+    plain = tmp_path / "plain.h5"
+    uncompressed = tmp_path / "uncompressed.h5"
+    df.to_hdf(plain, key="df", format=fmt)
+
+    msg = "complib='zlib' was specified without complevel"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        df.to_hdf(uncompressed, key="df", format=fmt, complib="zlib")
+
+    tm.assert_frame_equal(read_hdf(uncompressed, "df"), df)
+    # no compression was applied: same size as the plain store, no filters
+    assert uncompressed.stat().st_size == plain.stat().st_size
+    with tables.open_file(uncompressed, mode="r") as h5file:
+        for node in h5file.walk_nodes(where="/df", classname="Leaf"):
+            assert node.filters.complevel == 0
+            assert node.filters.complib is None
+
+    # explicitly disabling compression with complevel=0 does not warn
+    disabled = tmp_path / "disabled.h5"
+    with tm.assert_produces_warning(None):
+        df.to_hdf(disabled, key="df", format=fmt, complib="zlib", complevel=0)
 
 
 @pytest.mark.skipif(

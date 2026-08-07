@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # create allowlist
     with tempfile.TemporaryDirectory() as td:
         allow = os.path.join(td, "test")
-        with open(allow, "w+t") as allow:
+        with open(allow, "w+") as allow:
             allow.write("\n".join(_ALLOWLIST))
             allow.flush()
 

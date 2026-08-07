@@ -237,11 +237,11 @@ class TestTZConvert:
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3), (idx4, exp4)]:
             converted = idx.tz_convert(tz)
             reset = converted.tz_convert(None)
-            tm.assert_index_equal(reset, expected)
+            tm.assert_index_equal(reset, expected, check_freq=False)
             assert reset.tzinfo is None
             expected = converted.tz_convert("UTC").tz_localize(None)
             expected = expected._with_freq("infer")
-            tm.assert_index_equal(reset, expected)
+            tm.assert_index_equal(reset, expected, check_freq=False)
 
     def test_dti_tz_convert_tzlocal(self):
         # GH#13583

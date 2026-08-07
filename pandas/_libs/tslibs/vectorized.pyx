@@ -63,7 +63,7 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
-        Py_ssize_t pos, i, n = stamps.size
+        Py_ssize_t pos, _, n = stamps.size
 
         ndarray result
         cnp.broadcast mi
@@ -71,7 +71,7 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
     mi = cnp.PyArray_MultiIterNew2(result, stamps)
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -235,14 +235,14 @@ def get_resolution(
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
-        Py_ssize_t i, n = stamps.size
+        Py_ssize_t _, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         cnp.flatiter it = cnp.PyArray_IterNew(stamps)
 
         npy_datetimestruct dts
         c_Resolution pd_reso = c_Resolution.RESO_DAY, curr_reso
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
@@ -292,14 +292,14 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val, res_val
-        Py_ssize_t i, n = stamps.size
+        Py_ssize_t _, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
 
         ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, stamps)
         int64_t ppd = periods_per_day(reso)
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -347,12 +347,12 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
-        Py_ssize_t i, n = stamps.size
+        Py_ssize_t _, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         cnp.flatiter it = cnp.PyArray_IterNew(stamps)
         int64_t ppd = periods_per_day(reso)
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
@@ -381,7 +381,7 @@ def dt64arr_to_periodarr(
 
     cdef:
         Localizer info = Localizer(tz, creso=reso)
-        Py_ssize_t i, n = stamps.size
+        Py_ssize_t _, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val
 
@@ -389,7 +389,7 @@ def dt64arr_to_periodarr(
         ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, stamps)
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
