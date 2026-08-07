@@ -769,7 +769,7 @@ class DataFrame(NDFrame, OpsMixin):
         return table.__arrow_c_stream__()
 
     @classmethod
-    def _from_arrow(cls, table) -> DataFrame:
+    def _from_pyarrow(cls, table) -> DataFrame:
         """
         Construct a DataFrame from a ``pyarrow.Table``.
 

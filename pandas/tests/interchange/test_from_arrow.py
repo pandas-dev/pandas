@@ -37,7 +37,7 @@ def test_from_arrow_roundtrip(df):
     # GH#59780 pandas-side arrow -> DataFrame conversion round-trips through the
     # pandas metadata that pa.Table.from_pandas writes.
     table = pa.Table.from_pandas(df)
-    result = pd.DataFrame._from_arrow(table)
+    result = pd.DataFrame._from_pyarrow(table)
     tm.assert_frame_equal(result, df)
 
 
@@ -45,6 +45,6 @@ def test_from_arrow_no_pandas_metadata():
     # a table without the b"pandas" schema metadata converts with a default index
     table = pa.table({"a": [1, 2, 3], "b": ["x", "y", "z"]})
     assert table.schema.pandas_metadata is None
-    result = pd.DataFrame._from_arrow(table)
+    result = pd.DataFrame._from_pyarrow(table)
     expected = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
     tm.assert_frame_equal(result, expected)
