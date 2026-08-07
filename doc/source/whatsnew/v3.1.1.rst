@@ -1,1 +1,0 @@
-- Fixed a bug in the C tokenizer where allocation-failure error paths could call string-formatting functions with a null destination pointer, which could lead to a crash.
