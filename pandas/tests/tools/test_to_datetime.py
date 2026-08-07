@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     PY314,
+    PY315,
     WASM,
 )
 from pandas.errors import (
@@ -535,6 +536,39 @@ class TestTimeConversionFormats:
         expected = DatetimeIndex(expected_dates)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(
+        not PY315, reason="%:z directive not supported prior to 3.15", raises=ValueError
+    )
+    def test_to_datetime_colon_z_offset(self):
+        dates = [
+            "2010-01-01 12:00:00+04:00",
+            "2010-01-01 12:00:00+04:30",
+            "2010-01-01 12:00:00-05:00",
+        ]
+        expected_dates = [
+            "2010-01-01 08:00:00+00:00",
+            "2010-01-01 07:30:00+00:00",
+            "2010-01-01 17:00:00+00:00",
+        ]
+        fmt = "%Y-%m-%d %H:%M:%S%:z"
+
+        result = to_datetime(dates, format=fmt, utc=True)
+        expected = DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_datetime_missing_colon_z_offset(self):
+        # test adapted from python/cpython#136961
+        dates = ["+04:0030"]
+        fmt = "%:z"
+
+        if PY315:
+            msg = r"Missing colon in %:z before '30', got '\+04:0030'"
+        else:
+            msg = "':' is a bad directive in format '%:z'"
+
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(dates, format=fmt, utc=True)
+
     @pytest.mark.parametrize(
         "offset", ["+0", "-1foo", "UTCbar", ":10", "+01:000:01", ""]
     )
@@ -562,6 +596,12 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_invalid_errors(self):
+        # GH#66542
+        msg = "errors must be one of"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(["2024-01-01"], errors="never")
+
     def test_to_datetime_mixed_string_resos(self):
         # GH#62801
         vals = [
@@ -1408,9 +1448,12 @@ class TestToDatetime:
     @pytest.mark.parametrize("errors", ["coerce", "raise"])
     def test_invalid_format_raises(self, errors):
         # https://github.com/pandas-dev/pandas/issues/50255
-        with pytest.raises(
-            ValueError, match="':' is a bad directive in format 'H%:M%:S%"
-        ):
+        if PY315:
+            msg = r"':M' is a bad directive in format 'H%:M%:S%"
+        else:
+            msg = "':' is a bad directive in format 'H%:M%:S%"
+
+        with pytest.raises(ValueError, match=msg):
             to_datetime(["00:00:00"], format="H%:M%:S%", errors=errors)
 
     @pytest.mark.parametrize("value", ["a", "00:01:99"])
@@ -3030,12 +3073,17 @@ class TestToDatetimeMisc:
         expected = DatetimeIndex(
             [datetime(2014, 2, 10), datetime(2014, 2, 11), datetime(2014, 2, 12)]
         )
-        idx1 = DatetimeIndex(arr, dayfirst=True)
-        idx2 = DatetimeIndex(np.array(arr), dayfirst=True)
+        depr_msg = "The 'dayfirst' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx1 = DatetimeIndex(arr, dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx2 = DatetimeIndex(np.array(arr), dayfirst=True)
         idx3 = to_datetime(arr, dayfirst=True, cache=cache)
         idx4 = to_datetime(np.array(arr), dayfirst=True, cache=cache)
-        idx5 = DatetimeIndex(Index(arr), dayfirst=True)
-        idx6 = DatetimeIndex(Series(arr), dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx5 = DatetimeIndex(Index(arr), dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx6 = DatetimeIndex(Series(arr), dayfirst=True)
         tm.assert_index_equal(expected, idx1)
         tm.assert_index_equal(expected, idx2)
         tm.assert_index_equal(expected, idx3)
@@ -3388,12 +3436,15 @@ class TestDatetimeParsingWrappers:
                 yearfirst=yearfirst,
                 cache=cache,
             )
-        with tm.assert_produces_warning(warn, match=msg):
+        depr_msg = "keyword in DatetimeIndex is deprecated"
+        if is_quarter:
+            depr_msg = f"{depr_msg}|{msg}"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
         # result7 is used below
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
 
         for res in [result1, result2]:
@@ -3505,7 +3556,11 @@ class TestDatetimeParsingWrappers:
             date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
         )
 
-        result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[0]
+        depr_msg = "keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[
+                0
+            ]
 
         assert result1 == expected
         assert result3 == expected

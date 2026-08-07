@@ -708,3 +708,30 @@ def test_pd_array_structured_masked_array_raises():
     msg = "Cannot construct an array from an ndarray with compound dtype"
     with pytest.raises(ValueError, match=msg):
         pd.array(ma_arr)
+
+
+@pytest.mark.parametrize(
+    "data, dtype, expected_data",
+    [
+        (
+            ["1970-01-01T00:00:00.000000001"],
+            "datetime64[ns]",
+            ["1970-01-01T00:00:00.000000001"],
+        ),
+        (
+            [1],
+            "timedelta64[ns]",
+            ["1 nanoseconds"],
+        ),
+    ],
+)
+def test_numpy_datetime_like_to_string(data, dtype, expected_data):
+    arr = np.array(data, dtype=dtype)
+    result = pd.array(arr, dtype="string")
+    expected = (
+        pd.StringDtype()
+        .construct_array_type()
+        ._from_sequence(expected_data, dtype=pd.StringDtype())
+    )
+
+    tm.assert_equal(result, expected)

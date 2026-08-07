@@ -873,6 +873,11 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
                 res_value = NPY_DATETIME_NAT
             else:
                 res_value = lval + rval
+                if res_value == NPY_DATETIME_NAT:
+                    # GH#66549 int64 can hold this sum, but the value is the
+                    #  NaT sentinel, so it would be indistinguishable from a
+                    #  missing value downstream. Treat it as an overflow.
+                    raise OverflowError
 
             # Analogous to: result[i] = res_value
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value

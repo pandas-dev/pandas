@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import PY315
+
 from pandas import (
     DataFrame,
     PeriodIndex,
@@ -53,7 +55,10 @@ class TestPeriodIndex:
         # GH#6716
         idx = make_range(start="2013/01/01", freq="D", periods=400)
 
-        msg = "slice indices must be integers or None or have an __index__ method"
+        if PY315:
+            msg = "slice indices must be integers or have an __index__ method"
+        else:
+            msg = "slice indices must be integers or None or have an __index__ method"
         # slices against index should raise IndexError
         values = [
             "2014",
@@ -82,7 +87,10 @@ class TestPeriodIndex:
     def test_range_slice_seconds(self, make_range):
         # GH#6716
         idx = make_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
-        msg = "slice indices must be integers or None or have an __index__ method"
+        if PY315:
+            msg = "slice indices must be integers or have an __index__ method"
+        else:
+            msg = "slice indices must be integers or None or have an __index__ method"
 
         # slices against index should raise IndexError
         values = [

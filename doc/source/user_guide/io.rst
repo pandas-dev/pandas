@@ -1535,7 +1535,9 @@ considerably. This happens automatically when all of the following hold:
 
 * ``filepath_or_buffer`` is a local, uncompressed file path
 * the C engine is used (the default)
-* the file is at least 50 MB
+* the file's data rows total at least 5 MB, excluding any header preamble
+* more than one thread is in use -- see ``mode.max_threads`` below, which
+  defaults to ``1`` on Windows and when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
   ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
   ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
@@ -1544,11 +1546,14 @@ considerably. This happens automatically when all of the following hold:
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
-The number of threads is controlled with the ``mode.max_threads`` option,
-which defaults to the number of CPU cores, capped at ``4``. On Windows the
-default is ``1`` (serial), as parallel reading currently does not improve
-performance there. Set the option to ``1`` to disable parallel reading, e.g.
-when pandas runs inside an application that already parallelizes work:
+The number of threads is controlled with the ``mode.max_threads`` option, which
+defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+available to the process -- CPU affinity, and the cgroup CPU quota when the
+process runs in its own cgroup namespace, as it does under Docker and
+Kubernetes. On Windows the default is ``1`` (serial), as parallel reading
+currently does not improve performance there. Set the option to ``1`` to
+disable parallel reading, e.g. when pandas runs inside an application that
+already parallelizes work:
 
 .. code-block:: python
 
@@ -2831,10 +2836,16 @@ Read an XML string:
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
-   df
+   In [362]: df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
+
+   In [363]: df
+   Out[363]:
+      category             title               author  year  price
+   0   cooking  Everyday Italian  Giada De Laurentiis  2005  30.00
+   1  children      Harry Potter         J K. Rowling  2005  29.99
+   2       web      Learning XML          Erik T. Ray  2003  39.95
 
 Read in the content of the "books.xml" file and pass it to ``read_xml``
 as a string:

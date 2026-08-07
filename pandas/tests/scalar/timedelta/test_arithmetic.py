@@ -423,6 +423,34 @@ class TestTimedeltaMultiplicationDivision:
             # invalid multiply with another timedelta
             op(td, td)
 
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.int32, np.int8])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_integer_overflow(self, op, dtype):
+        # GH#66551 numpy integer scalars used to keep the multiply in the
+        #  operand's own dtype, so an out-of-bounds product wrapped silently
+        #  instead of raising the way a Python int does.
+        td = Timedelta(2**62, unit="ns")
+
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            op(td, dtype(4))
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_float_precision(self, op, dtype):
+        # GH#66551 a float32 multiplier used to drag the product down to
+        #  float32 precision, losing 16 seconds here.
+        td = Timedelta(10**18, unit="ns")
+
+        result = op(td, dtype(1.0))
+        assert result == td
+
     def test_td_mul_numeric_ndarray(self):
         td = Timedelta("1 day")
         other = np.array([2])
@@ -506,6 +534,31 @@ class TestTimedeltaMultiplicationDivision:
         result = td / 5
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
+
+    @pytest.mark.parametrize(
+        "value, divisor, expected",
+        [
+            (Timedelta.min._value, 1, Timedelta.min._value),
+            (Timedelta.max._value, 1, Timedelta.max._value),
+            (Timedelta.min._value, -1, Timedelta.max._value),
+            (2**53 + 1, 1, 2**53 + 1),
+            # truncation toward zero, matching numpy
+            (36028797018963967, 2, 18014398509481983),
+            (-36028797018963967, 2, -18014398509481983),
+            (36028797018963967, -2, -18014398509481983),
+        ],
+    )
+    def test_td_div_integer_exact(self, value, divisor, expected):
+        # GH#66551 the quotient was computed in float64, whose 53-bit mantissa
+        #  rounds values that int64 holds exactly, so dividing by 1 gave NaT at
+        #  Timedelta.min and raised OverflowError at Timedelta.max.
+        td = Timedelta(value, unit="ns")
+
+        result = td / divisor
+        assert result._value == expected
+
+        # the vectorized path was already exact; the scalar disagreed with it
+        assert (pd.array([td]) / divisor)[0]._value == expected
 
     @pytest.mark.parametrize(
         "nan",
@@ -1260,3 +1313,58 @@ def test_ops_str_deprecated(box):
             item // td
         with pytest.raises(TypeError, match=floordiv_msg):
             td // item
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("factor", [-(2**63), float(-(2**63))])
+def test_td_mul_lands_on_nat_sentinel(unit, factor):
+    # GH#66551 the result is iNaT, which is not NaT but is indistinguishable
+    #  from it once stored, so it has to raise rather than be constructed.
+    #  The guard used to be a bare `assert`, which `python -O` strips.
+    td = Timedelta(1, unit).as_unit(unit)
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_td_add_sub_lands_on_nat_sentinel(unit):
+    # GH#66552 stepping one unit past Timedelta.min lands on iNaT, which is not
+    #  NaT but is indistinguishable from it once stored, so it has to raise
+    #  rather than come back as NaT.
+    td_min = Timedelta(np.timedelta64(-(2**63) + 1, unit))
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min - Timedelta(1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + Timedelta(-1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(-1, unit) + td_min
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + np.timedelta64(-1, unit)
+
+
+@pytest.mark.parametrize("op", [operator.mul, operator.truediv, operator.floordiv])
+def test_td_integral_float_op_is_exact(op):
+    # GH#66551 an integral float operand has an exact int equivalent, so it
+    #  takes the int64 path rather than float64.  Timedelta.min is iNaT + 1,
+    #  which float64 used to round down onto iNaT, and Timedelta.max used to
+    #  round up out of the int64 range.
+    assert op(Timedelta.min, 1.0) == Timedelta.min
+    assert op(Timedelta.max, 1.0) == Timedelta.max
+
+    # above 2**53 the float64 mantissa runs out, so the operand had to be
+    #  applied exactly for these to round-trip
+    td = Timedelta(2**53 + 1, "ns")
+    assert op(td, 1.0)._value == 2**53 + 1
+    assert op(td, 1.0) == op(td, 1)
