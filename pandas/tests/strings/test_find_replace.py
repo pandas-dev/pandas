@@ -1728,3 +1728,34 @@ def test_flags_kwarg(any_string_dtype):
     with tm.assert_produces_warning(UserWarning, match=msg):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result.iloc[0]
+
+
+def test_match_ascii_flag(any_string_dtype):
+    # GH#66348 - re.ASCII flag should not be overridden by re.U
+    values = Series(["abc", "123", "ñ"], dtype=any_string_dtype)
+
+    # \w matches unicode letters by default, so ñ matches
+    result = values.str.match(r"\w+", flags=0)
+    expected = Series([True, True, True], dtype=bool)
+    tm.assert_series_equal(result, expected)
+
+    # With re.ASCII, \w only matches [a-zA-Z0-9_], so ñ should NOT match
+    result = values.str.match(r"\w+", flags=re.ASCII)
+    expected = Series([True, True, False], dtype=bool)
+    tm.assert_series_equal(result, expected)
+
+    # Compiled pattern with re.ASCII
+    pat = re.compile(r"\w+", flags=re.ASCII)
+    result = values.str.match(pat)
+    expected = Series([True, True, False], dtype=bool)
+    tm.assert_series_equal(result, expected)
+
+
+def test_fullmatch_ascii_flag(any_string_dtype):
+    # GH#66348 - re.ASCII flag should not be overridden by re.U
+    values = Series(["abc", "123", "ñ"], dtype=any_string_dtype)
+
+    # With re.ASCII, \w+ should not match standalone ñ
+    result = values.str.fullmatch(r"\w+", flags=re.ASCII)
+    expected = Series([True, True, False], dtype=bool)
+    tm.assert_series_equal(result, expected)

@@ -242,8 +242,9 @@ class ObjectStringArrayMixin:
         if isinstance(pat, re.Pattern):
             # We need to check that flags matches pat.flags.
             # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
+            # before checking for a match. But don't override re.ASCII (GH#66348).
+            if not (flags & re.ASCII):
+                flags = flags | re.U
 
             if flags != pat.flags:
                 raise ValueError("Cannot pass flags that do not match pat.flags")
