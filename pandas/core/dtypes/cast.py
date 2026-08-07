@@ -972,7 +972,30 @@ def convert_dtypes(
                 and input_array.dtype == object
                 and (isinstance(inferred_dtype, str) and inferred_dtype == "integer")
             ):
-                inferred_dtype = target_int_dtype
+                # GH#66517: only pick a nullable integer dtype if the values
+                # actually fit one. maybe_convert_objects returns a numpy
+                # int/uint dtype when they do (and object otherwise), so it
+                # tells us both whether to convert and which signedness to use.
+                from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
+
+                converted = lib.maybe_convert_objects(
+                    np.asarray(input_array).ravel(),
+                    convert_to_nullable_dtype=True,
+                )
+                if converted.dtype.kind in "iu":
+                    # GH#66517: `maybe_convert_objects` can return either a
+                    # numpy dtype (e.g. np.int64) or a pandas ExtensionDtype
+                    # (e.g. Int64Dtype). The numpy case maps cleanly through
+                    # NUMPY_INT_TO_DTYPE; for an ExtensionDtype we already have
+                    # the exact target dtype in hand and can use it directly.
+                    if isinstance(converted.dtype, ExtensionDtype):
+                        inferred_dtype = converted.dtype
+                    else:
+                        # numpy dtype path: GH#66517 review feedback, drop the
+                        # unnecessary `typing.cast` wrapper.
+                        inferred_dtype = NUMPY_INT_TO_DTYPE.get(
+                            converted.dtype, target_int_dtype
+                        )
 
         if convert_floating:
             if input_array.dtype.kind in "fb":

@@ -342,3 +342,46 @@ class TestSeriesConvertDtypes:
         ser = pd.Series([1.5 + 3.0j, 1.5 - 3.0j])
         result = ser.convert_dtypes()
         tm.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize(
+        "value, expected_dtype",
+        [
+            (2**63 - 1, "Int64"),
+            (-(2**63), "Int64"),
+            (2**63, "UInt64"),
+            (2**64 - 1, "UInt64"),
+            (2**64, "object"),
+            (2**100, "object"),
+            (-(2**63) - 1, "object"),
+        ],
+    )
+    def test_convert_dtypes_integer_out_of_range(self, value, expected_dtype):
+        # GH#66517: integers outside the Int64/UInt64 range must be retained as
+        # object instead of raising OverflowError, matching what Series
+        # construction already infers. In-range values still convert, using
+        # UInt64 when the value does not fit Int64.
+        ser = pd.Series([value], dtype=object)
+        result = ser.convert_dtypes()
+        assert result.dtype == expected_dtype
+        if expected_dtype == "object":
+            # the out-of-range integer is preserved exactly (no lossy cast)
+            assert result.iloc[0] == value
+
+    def test_convert_dtypes_integer_out_of_range_with_na(self):
+        # GH#66517: an out-of-range integer alongside NA also stays object
+        ser = pd.Series([2**64, pd.NA], dtype=object)
+        result = ser.convert_dtypes()
+        assert result.dtype == "object"
+
+    def test_convert_dtypes_integer_out_of_range_frame(self):
+        # GH#66517: per column, an overflowing column is kept as object while
+        # an in-range column still converts to a nullable integer dtype.
+        df = pd.DataFrame(
+            {
+                "big": pd.Series([2**64], dtype=object),
+                "ok": pd.Series([5], dtype=object),
+            }
+        )
+        result = df.convert_dtypes()
+        assert result["big"].dtype == "object"
+        assert result["ok"].dtype == "Int64"
