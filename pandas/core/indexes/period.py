@@ -413,8 +413,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. The frequency is inferred from
-        the fields provided or can be given explicitly.
+        specified as a scalar or array-like. At least one field must be
+        array-like; scalar fields are broadcast to its length. The frequency
+        is inferred from the fields provided or can be given explicitly.
 
         Parameters
         ----------
