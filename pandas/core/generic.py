@@ -33,6 +33,7 @@ from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
+    Timedelta,
     Timestamp,
     to_offset,
 )
@@ -8119,6 +8120,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
+        limit_distance: float | int | str | Timedelta | None = None,
         **kwargs,
     ) -> Self:
         """
@@ -8175,6 +8177,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+        limit_distance : float, int, str, or Timedelta, optional
+            Maximum allowed x-axis distance between consecutive valid points to
+            interpolate. Must be greater than 0.
+
+            * For numerical indexes, should be a numeric scalar (`float` or `int`).
+            * For :class:`DatetimeIndex` or :class:`TimedeltaIndex`, can be a
+              time duration string (e.g., ``'5s'``, ``'2h'``) or a
+              :class:`Timedelta` object.
+            * Only supported when ``method`` is ``'index'``, ``'values'``, or
+              ``'time'``.
+
+            .. versionchanged:: 3.1.0
+               Added support for time duration strings and ``Timedelta`` objects
+               when interpolating over temporal indexes.
 
         **kwargs : optional
             Keyword arguments to pass on to the interpolating function. Not
@@ -8296,6 +8313,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
 
+        if limit_distance is not None:
+            target_index = self._get_axis(axis)
+            unit = getattr(target_index, "unit", None) or getattr(
+                target_index.dtype, "unit", None
+            )
+            missing.validate_limit_distance(limit_distance, unit=unit)
+
         if self.empty:
             return self if inplace else self.copy()
 
@@ -8318,6 +8342,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
+            limit_distance=limit_distance,
             inplace=inplace,
             **kwargs,
         )

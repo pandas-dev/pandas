@@ -517,6 +517,176 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(**kwargs)
 
+    def test_interpolate_limit_distance_exact_boundaries(self):
+        # limit_distance = 5.0:
+        # Gap 1 (between 0.0 and 4.9) = 4.9 <= 5.0 -> Should be filled
+        # Gap 2 (between 10.0 and 15.0) = 5.0 <= 5.0 -> Should be filled
+        # Gap 3 (between 20.0 and 25.1) = 5.1 > 5.0 -> Too large, stays NaN
+        index = [0.0, 2.0, 4.9, 10.0, 12.0, 15.0, 20.0, 22.0, 25.1]
+        ser = Series(
+            [1.0, np.nan, 2.0, 3.0, np.nan, 4.0, 5.0, np.nan, 6.0], index=index
+        )
+
+        result = ser.interpolate(method="index", limit_distance=5.0)
+
+        assert not np.isnan(result.iloc[1])  # Gap 4.9 is filled
+        assert not np.isnan(result.iloc[4])  # Gap 5.0 is filled
+        assert np.isnan(result.iloc[7])  # Gap 5.1 is NOT filled
+
+    def test_interpolate_limit_distance_decreasing_index(self):
+        # limit_distance = 9.0:
+        # Gap is abs(2.0 - 10.0) = 8.0. Tests the np.abs() fix.
+        index = [10.0, 5.0, 2.0]
+        ser = Series([100.0, np.nan, 200.0], index=index)
+
+        res1 = ser.interpolate(method="index", limit_distance=9.0)
+        assert not np.isnan(res1.iloc[1])  # 8.0 <= 9.0 -> Filled
+
+        res2 = ser.interpolate(method="index", limit_distance=7.0)
+        assert np.isnan(res2.iloc[1])  # 8.0 > 7.0 -> Stays NaN
+
+    @pytest.mark.parametrize("limit_dist", [0, -5.0, np.nan])
+    def test_interpolate_limit_distance_invalid_threshold(self, limit_dist):
+        ser = Series([1.0, np.nan, 2.0])
+        msg = "limit_distance must be greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="index", limit_distance=limit_dist)
+
+    @pytest.mark.parametrize("limit_dist", [0, -5.0, np.nan])
+    def test_interpolate_limit_distance_empty_series_raises(self, limit_dist):
+        # Ensure empty Series validates limit_distance consistently with non-empty
+        ser = Series([], dtype=float)
+        msg = "limit_distance must be greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="index", limit_distance=limit_dist)
+
+    @pytest.mark.parametrize(
+        "limit_dist", ["0s", "-5s", pd.Timedelta(seconds=-5), pd.Timedelta(0)]
+    )
+    def test_interpolate_limit_distance_empty_temporal_raises(self, limit_dist):
+        # Ensure empty temporal Series rejects invalid duration strings/Timedeltas
+        msg = "limit_distance must be greater than 0"
+        for idx in [pd.DatetimeIndex([]), pd.TimedeltaIndex([])]:
+            ser = Series([], index=idx, dtype=float)
+            with pytest.raises(ValueError, match=msg):
+                ser.interpolate(method="time", limit_distance=limit_dist)
+
+    def test_interpolate_limit_distance_type_mismatch_raises(self):
+        # 1. Passing time string/Timedelta to a non-temporal index
+        ser_int = Series([1.0, np.nan, 3.0], index=[0, 1, 2])
+        msg_int = "Cannot use a time duration string or Timedelta"
+        with pytest.raises(ValueError, match=msg_int):
+            ser_int.interpolate(method="index", limit_distance="5s")
+
+        # 2. Passing numeric integer/float to a temporal DatetimeIndex
+        times = pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"])
+        ser_time = Series([10.0, np.nan, 30.0], index=times)
+        msg_time = "Cannot use a numeric limit_distance with a temporal index"
+        with pytest.raises(ValueError, match=msg_time):
+            ser_time.interpolate(method="time", limit_distance=5)
+
+    def test_interpolate_limit_distance_too_few_points(self):
+        # 1. No NaNs
+        ser_all_valid = Series([10.0, 20.0, 30.0], index=[1.0, 2.0, 3.0])
+        tm.assert_series_equal(
+            ser_all_valid.interpolate(method="index", limit_distance=5.0),
+            ser_all_valid,
+        )
+
+        # 2. All NaNs (0 valid points)
+        ser_all_nan = Series([np.nan, np.nan, np.nan], index=[1.0, 2.0, 3.0])
+        tm.assert_series_equal(
+            ser_all_nan.interpolate(method="index", limit_distance=5.0),
+            ser_all_nan,
+        )
+
+        # 3. Only 1 valid point -> trailing NaN is forward-filled to 10.0 by default
+        ser_one_valid = Series([np.nan, 10.0, np.nan], index=[1.0, 2.0, 3.0])
+        expected_one = Series([np.nan, 10.0, 10.0], index=[1.0, 2.0, 3.0])
+        tm.assert_series_equal(
+            ser_one_valid.interpolate(method="index", limit_distance=5.0),
+            expected_one,
+        )
+
+    def test_interpolate_limit_distance_boundary_nans(self):
+        # NaNs on the very edge should safely bypass the limit_distance logic
+        index = [1.0, 2.0, 3.0, 4.0]
+        ser = Series([np.nan, 10.0, 20.0, np.nan], index=index)
+
+        result = ser.interpolate(method="index", limit_distance=0.1)
+        # Default limit_direction='forward' forward-fills trailing NaNs to 20.0
+        expected = Series([np.nan, 10.0, 20.0, 20.0], index=index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("limit_dist", ["5s", pd.Timedelta(seconds=5)])
+    def test_interpolate_limit_distance_datetime_and_timedelta(self, limit_dist):
+        times = pd.to_datetime(
+            [
+                "2026-01-01 00:00:00",
+                "2026-01-01 00:00:02",
+                "2026-01-01 00:00:04",  # Gap 1: 4 seconds
+                "2026-01-01 00:00:14",
+                "2026-01-01 00:00:15",  # Gap 2: 11 seconds
+            ]
+        )
+        tds = pd.to_timedelta([0, 2, 4, 14, 15], unit="s")
+
+        for idx in [times, tds]:
+            ser = Series([10.0, np.nan, 20.0, np.nan, 30.0], index=idx)
+            result = ser.interpolate(method="time", limit_distance=limit_dist)
+
+            assert not np.isnan(result.iloc[1])  # Gap 4s <= 5s -> Filled
+            assert np.isnan(result.iloc[3])  # Gap 11s > 5s -> Stays NaN
+
+    def test_interpolate_limit_distance_consecutive_nans(self):
+        # Gap 1 (index 0 to 3, distance = 3.0 <= 4.0): Both NaNs should be filled
+        # Gap 2 (index 3 to 10, distance = 7.0 > 4.0): Both NaNs should stay NaN
+        index = [0.0, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0]
+        ser = Series([100.0, np.nan, np.nan, 200.0, np.nan, np.nan, 300.0], index=index)
+
+        result = ser.interpolate(method="index", limit_distance=4.0)
+
+        # First gap (distance 3.0) -> Interpolated
+        assert not np.isnan(result.iloc[1])
+        assert not np.isnan(result.iloc[2])
+
+        # Second gap (distance 7.0) -> Preserved as NaN
+        assert np.isnan(result.iloc[4])
+        assert np.isnan(result.iloc[5])
+
+    def test_interpolate_limit_distance_dataframe(self):
+        # Ensure limit_distance works cleanly across DataFrame columns
+        index = [0.0, 2.0, 10.0]
+        df = pd.DataFrame(
+            {
+                "A": [1.0, np.nan, 3.0],  # Gap = 10.0
+                "B": [10.0, np.nan, 30.0],  # Gap = 10.0
+            },
+            index=index,
+        )
+
+        # Threshold 15.0 -> Both columns should interpolate
+        res_filled = df.interpolate(method="index", limit_distance=15.0)
+        assert not np.isnan(res_filled.loc[2.0, "A"])
+        assert not np.isnan(res_filled.loc[2.0, "B"])
+
+        # Threshold 5.0 -> Both columns should preserve NaN
+        res_nan = df.interpolate(method="index", limit_distance=5.0)
+        assert np.isnan(res_nan.loc[2.0, "A"])
+        assert np.isnan(res_nan.loc[2.0, "B"])
+
+    def test_interpolate_limit_distance_extreme_endpoints(self):
+        # GH#66548: Ensure gap calculation does not overflow on extreme timestamps
+        idx = pd.DatetimeIndex(
+            [pd.Timestamp.min, pd.Timestamp("2000-01-01"), pd.Timestamp.max]
+        )
+        ser = Series([1.0, np.nan, 2.0], index=idx)
+
+        # Gap between Timestamp.min and Timestamp.max is ~584 years (> int64 max nanos)
+        # Should not overflow and should correctly remain NaN for a 10-day limit
+        result = ser.interpolate(method="time", limit_distance="10D")
+        assert np.isnan(result.iloc[1])
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])

@@ -22,6 +22,7 @@ from pandas._libs import (
     algos,
     lib,
 )
+from pandas._libs.tslibs import Timedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -375,6 +376,7 @@ def interpolate_2d_inplace(
     limit: int | None = None,
     limit_direction: str = "forward",
     limit_area: str | None = None,
+    limit_distance: float | int | str | Timedelta | None = None,
     fill_value: Any | None = None,
     mask=None,
     **kwargs,
@@ -410,6 +412,8 @@ def interpolate_2d_inplace(
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
 
+    # Check index.unit first so microsecond/millisecond DatetimeIndexes are caught!
+    unit = getattr(index, "unit", None) or getattr(index.dtype, "unit", None)
     indices = _index_to_interp_indices(index, method)
 
     def func(yvalues: np.ndarray) -> None:
@@ -422,9 +426,11 @@ def interpolate_2d_inplace(
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area_validated,
+            limit_distance=limit_distance,
             fill_value=fill_value,
             bounds_error=False,
             mask=mask,
+            unit=unit,
             **kwargs,
         )
 
@@ -512,10 +518,12 @@ def _interpolate_1d(
     limit: int | None = None,
     limit_direction: str = "forward",
     limit_area: Literal["inside", "outside"] | None = None,
+    limit_distance: float | int | str | Timedelta | None = None,
     fill_value: Any | None = None,
     bounds_error: bool = False,
     order: int | None = None,
     mask=None,
+    unit: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -582,6 +590,12 @@ def _interpolate_1d(
         mid_nans = np.setdiff1d(all_nans, start_nans, assume_unique=True)
         mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
         preserve_nans = np.union1d(preserve_nans, mid_nans)
+
+    if limit_distance is not None:
+        distance_nans = _interp_limit_distance(
+            indices, invalid, limit_distance, unit=unit
+        )
+        preserve_nans = np.union1d(preserve_nans, distance_nans)
 
     is_datetimelike = yvalues.dtype.kind in "mM"
 
@@ -1160,3 +1174,135 @@ def _interp_limit(
                 return b_idx
 
     return np.intersect1d(f_idx, b_idx, assume_unique=assume_unique)
+
+
+def validate_limit_distance(
+    limit_distance: float | int | str | Timedelta,
+    unit: str | None = None,
+) -> None:
+    """
+    Validate that limit_distance is positive, non-NA, and matches the index type.
+    """
+    is_temporal = unit is not None
+    is_td_or_str = isinstance(limit_distance, (str, Timedelta))
+
+    if not is_temporal and is_td_or_str:
+        raise ValueError(
+            "Cannot use a time duration string or Timedelta limit_distance "
+            "with a non-temporal index."
+        )
+    if is_temporal and not is_td_or_str:
+        raise ValueError(
+            "Cannot use a numeric limit_distance with a temporal index; "
+            "pass a Timedelta or time duration string instead."
+        )
+
+    is_invalid_na = isna(limit_distance)
+    is_invalid_numeric = (
+        isinstance(limit_distance, (int, float, np.number))
+        and not is_invalid_na
+        and limit_distance <= 0
+    )
+
+    is_invalid_timedelta = False
+    if is_td_or_str and not is_invalid_na:
+        from pandas.core.tools.timedeltas import to_timedelta
+
+        td = to_timedelta(limit_distance)
+        is_invalid_timedelta = isna(td) or td <= Timedelta(0)
+
+    if is_invalid_na or is_invalid_numeric or is_invalid_timedelta:
+        raise ValueError("limit_distance must be greater than 0")
+
+
+def _interp_limit_distance(
+    indices: np.ndarray,
+    invalid: npt.NDArray[np.bool_],
+    limit_distance: float | int | str | Timedelta,
+    unit: str | None = None,
+) -> np.ndarray:
+    """
+    Return index positions of invalid values that should not be filled
+    because the x-axis distance between the surrounding valid points
+    exceeds limit_distance.
+
+    Parameters
+    ----------
+    indices : np.ndarray
+        1D array of numeric x-axis values (e.g., index labels, timestamps,
+        or positional coordinates) used to measure physical distance.
+    invalid : npt.NDArray[np.bool_]
+        Boolean mask representing NA/NaN values where True indicates a
+        missing or invalid value.
+    limit_distance : float, int, str, or Timedelta
+        Maximum allowed x-axis distance between consecutive valid points
+        for interior NaN values to be interpolated. For DatetimeIndex or
+        TimedeltaIndex, can be a time duration string (e.g., '5s').
+
+    Returns
+    -------
+    np.ndarray
+        1D array of integer positions corresponding to invalid values that
+        should be preserved as NaN (excluded from interpolation).
+    """
+    validate_limit_distance(limit_distance, unit=unit)
+
+    # Normalize and validate limit_distance
+    if isinstance(limit_distance, (str, Timedelta)):
+        from pandas.core.tools.timedeltas import to_timedelta
+
+        td = to_timedelta(limit_distance)
+        if unit is not None:
+            # Cast to matching NumPy timedelta unit then to int64
+            threshold = td.to_numpy().astype(f"m8[{unit}]").astype(np.int64)
+        else:
+            threshold = td.value
+    else:
+        threshold = limit_distance
+
+    if threshold <= 0:
+        raise ValueError("limit_distance must be greater than 0")
+
+    # Identify valid and invalid positions
+    valid_pos = np.flatnonzero(~invalid)
+    invalid_pos = np.flatnonzero(invalid)
+
+    # everything is valid if thereare less than 2 valid points
+    # or if there are no NaNs (impossible/no need to interpolate)
+    if len(valid_pos) < 2 or len(invalid_pos) == 0:
+        return np.array([], dtype=np.int64)
+
+    # For every NaN position, find the valid index immediately next to it
+    right_idx = np.searchsorted(valid_pos, invalid_pos, side="left")
+
+    # Only inspect NaNs that sit between two valid points (not leading/trailing NaNs)
+    inside_mask = (right_idx > 0) & (right_idx < len(valid_pos))
+    if not inside_mask.any():
+        return np.array([], dtype=np.int64)
+
+    # Map each interior NaN to its own array index and the array indexes
+    # of the valid anchor points immediately to its left and right
+    invalid_inside = invalid_pos[inside_mask]
+    right_valid_pos = valid_pos[right_idx[inside_mask]]
+    left_valid_pos = valid_pos[right_idx[inside_mask] - 1]
+
+    right_vals = indices[right_valid_pos]
+    left_vals = indices[left_valid_pos]
+
+    if right_vals.dtype.kind in "mM":
+        right_vals = right_vals.view("i8")
+        left_vals = left_vals.view("i8")
+
+    if right_vals.dtype.kind in "iu":
+        # Overflow-safe unsigned subtraction for extreme endpoints
+        # (e.g. Timestamp.max - Timestamp.min > 292 years in nanoseconds)
+        larger = np.maximum(right_vals, left_vals)
+        smaller = np.minimum(right_vals, left_vals)
+        gap_sizes = larger.view(np.uint64) - smaller.view(np.uint64)
+        if isinstance(threshold, (int, np.integer)):
+            threshold = np.uint64(threshold)
+    else:
+        gap_sizes = np.abs(right_vals - left_vals)
+
+    # Return only the NaN positions where the gap exceeds the threshold
+    return invalid_inside[gap_sizes > threshold]
