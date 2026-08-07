@@ -983,17 +983,19 @@ def convert_dtypes(
                     convert_to_nullable_dtype=True,
                 )
                 if converted.dtype.kind in "iu":
-                    # `converted.dtype` is already an np.dtype here (guarded by
-                    # the kind check above), so no typing.cast is needed.
-                    # GH#66517 review feedback: drop the unnecessary cast.
-                    converted_np_dtype = (
-                        converted.dtype
-                        if isinstance(converted.dtype, np.dtype)
-                        else np.dtype(converted.dtype)
-                    )
-                    inferred_dtype = NUMPY_INT_TO_DTYPE.get(
-                        converted_np_dtype, target_int_dtype
-                    )
+                    # GH#66517: `maybe_convert_objects` can return either a
+                    # numpy dtype (e.g. np.int64) or a pandas ExtensionDtype
+                    # (e.g. Int64Dtype). The numpy case maps cleanly through
+                    # NUMPY_INT_TO_DTYPE; for an ExtensionDtype we already have
+                    # the exact target dtype in hand and can use it directly.
+                    if isinstance(converted.dtype, ExtensionDtype):
+                        inferred_dtype = converted.dtype
+                    else:
+                        # numpy dtype path: GH#66517 review feedback, drop the
+                        # unnecessary `typing.cast` wrapper.
+                        inferred_dtype = NUMPY_INT_TO_DTYPE.get(
+                            converted.dtype, target_int_dtype
+                        )
 
         if convert_floating:
             if input_array.dtype.kind in "fb":
