@@ -728,6 +728,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+        if reso == self._resolution_obj:
+            iv = Period(parsed, freq=self.freq)
+            return iv, iv
+
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         iv = Period(parsed, freq=freq)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
