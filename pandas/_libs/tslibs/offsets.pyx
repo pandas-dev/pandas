@@ -402,15 +402,23 @@ class ApplyTypeError(TypeError):
 
 cdef class BaseOffset:
     """
-    Base class for DateOffset methods that are not overridden by subclasses.
+    Base class for all pandas date offsets.
 
-    Parameters
+    Every offset in ``pandas.tseries.offsets`` is a subclass of ``BaseOffset``,
+    so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
+    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
+
+    Attributes
     ----------
-    n : int
+    n : int, default 1
         Number of multiples of the frequency.
-
-    normalize : bool
+    normalize : bool, default False
         Whether the frequency can align with midnight.
+
+    See Also
+    --------
+    tseries.offsets.DateOffset : Offset backed by a ``dateutil.relativedelta``.
+    tseries.frequencies.to_offset : Convert a string or timedelta to an offset.
 
     Examples
     --------
@@ -418,6 +426,9 @@ cdef class BaseOffset:
     5
     >>> pd.offsets.Hour(5).normalize
     False
+
+    >>> isinstance(pd.offsets.BDay(), pd.offsets.BaseOffset)
+    True
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -2135,11 +2146,34 @@ class OffsetMeta(type):
 
     @classmethod
     def __instancecheck__(cls, obj) -> bool:
-        return isinstance(obj, BaseOffset)
+        result = isinstance(obj, BaseOffset)
+        if result and not isinstance(obj, RelativeDeltaOffset):
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                "isinstance(obj, DateOffset) is deprecated for offsets that are "
+                "not DateOffset instances and will return False in a future "
+                "version. Use isinstance(obj, pd.offsets.BaseOffset) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     @classmethod
     def __subclasscheck__(cls, obj) -> bool:
-        return issubclass(obj, BaseOffset)
+        result = issubclass(obj, BaseOffset)
+        if result and not issubclass(obj, RelativeDeltaOffset):
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                "issubclass(cls, DateOffset) is deprecated for offset classes "
+                "that are not DateOffset subclasses and will return False in a "
+                "future version. Use issubclass(cls, pd.offsets.BaseOffset) "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
 
 # TODO: figure out a way to use a metaclass with a cdef class
