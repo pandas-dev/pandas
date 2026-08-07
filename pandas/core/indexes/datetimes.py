@@ -803,7 +803,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             dt_freq = self.freq
             freq = self.freqstr
             if dt_freq is not None and hasattr(dt_freq, "_period_dtype_code"):
-                freq = PeriodDtype(dt_freq)._freqstr
+                freq = PeriodDtype(dt_freq).unit
 
             if freq is None:
                 freq = self._inferred_freq_str
