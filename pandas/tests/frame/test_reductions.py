@@ -290,7 +290,7 @@ class TestDataFrameAnalytics:
                     # different message on different builds
                     msg = "|".join(
                         [
-                            r"Could not convert \['.*'\] to numeric",
+                            r"Could not convert array to numeric",
                             "Could not convert string '(bar){30}' to numeric",
                         ]
                     )
