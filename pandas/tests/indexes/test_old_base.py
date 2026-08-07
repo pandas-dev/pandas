@@ -354,9 +354,10 @@ class TestBase:
 
         res_with_engine = index.memory_usage()
 
-        # the empty engine doesn't affect the result even when initialized with values,
-        # because engine.sizeof() doesn't consider the content of engine.values
-        assert res_with_engine == res_without_engine
+        # engine.sizeof() doesn't consider the content of engine.values, so the
+        # empty engine only adds the array it holds, and only when that array is a
+        # copy made by _get_engine_target rather than our own (GH#66593)
+        assert res_with_engine >= res_without_engine
 
         if len(index) == 0:
             assert res_without_engine == 0

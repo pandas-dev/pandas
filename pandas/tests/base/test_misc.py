@@ -98,7 +98,9 @@ def test_memory_usage(index_or_series_memory_obj):
         elif isinstance(obj.dtype, pd.CategoricalDtype):
             return _is_object_dtype(obj.dtype.categories)
         elif isinstance(obj.dtype, pd.StringDtype):
-            return obj.dtype.storage == "python"
+            # python storage boxes the values itself; for the other storages the
+            #  index engine holds an object-dtype copy of them (GH#66593)
+            return True
         return is_object_dtype(obj)
 
     has_objects = _is_object_dtype(obj) or (is_ser and _is_object_dtype(obj.index))

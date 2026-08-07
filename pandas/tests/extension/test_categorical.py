@@ -102,6 +102,12 @@ class TestCategorical(base.ExtensionTests):
             if not using_string_dtype():
                 assert na_value_obj in data_missing
 
+    def test_memory_usage(self, data):
+        # GH#66593 the categories Index caches an engine that holds an
+        #  object-dtype copy of the categories, which nbytes does not include
+        data.categories._cache.pop("_engine", None)
+        super().test_memory_usage(data)
+
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
         result = cls._empty((4,), dtype=dtype)

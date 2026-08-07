@@ -46,6 +46,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     tz_compare,
 )
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
@@ -5468,6 +5469,21 @@ class Index(IndexOpsMixin, PandasObject):
         # include our engine hashtable, only if it's already cached
         if "_engine" in self._cache:
             result += self._engine.sizeof(deep=deep)
+
+            # GH#66593 the engine also holds the array it was built from. That is
+            #  our own array except when _get_engine_target had to cast to object,
+            #  e.g. for arrow-backed strings, where it is a copy that
+            #  _memory_usage did not see.
+            engine_values = getattr(self._engine, "values", None)
+            own_values = getattr(self._values, "_ndarray", self._values)
+            if (
+                isinstance(engine_values, np.ndarray)
+                and engine_values.dtype == object
+                and engine_values is not own_values
+            ):
+                result += engine_values.nbytes
+                if deep and not PYPY:
+                    result += lib.memory_usage_of_objects(engine_values)
         return result
 
     @final
