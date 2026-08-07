@@ -1827,7 +1827,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @final
     @classmethod
-    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs) -> None:
+    def _validate_frequency(cls, index, freq: BaseOffset) -> None:
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
@@ -1843,6 +1843,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
+        if getattr(index.dtype, "tz", None) is not None and not isinstance(freq, Tick):
+            # GH#55499 non-tick offsets do wall-time arithmetic, so validate
+            #  against wall times; avoids raising on ambiguous times.
+            index = index.tz_localize(None)
+
         try:
             on_freq = cls._generate_range(
                 start=index[0],
@@ -1850,7 +1855,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 periods=len(index),
                 freq=freq,
                 unit=index.unit,
-                **kwargs,
             )
             if not lib.array_equivalent_bytes(index.asi8, on_freq.asi8):
                 raise ValueError

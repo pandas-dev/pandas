@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     timezones,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -846,12 +847,14 @@ class TestDatetimeIndex:
     def test_constructor_with_ambiguous_keyword_arg(self):
         # GH 35297
 
-        expected = DatetimeIndex(
-            ["2020-11-01 01:00:00", "2020-11-02 01:00:00"],
-            dtype="datetime64[ns, America/New_York]",
-            freq="D",
-            ambiguous=False,
-        )
+        msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = DatetimeIndex(
+                ["2020-11-01 01:00:00", "2020-11-02 01:00:00"],
+                dtype="datetime64[ns, America/New_York]",
+                freq="D",
+                ambiguous=False,
+            )
 
         # ambiguous keyword in start
         timezone = "America/New_York"
@@ -1234,10 +1237,13 @@ class TestTimeSeries:
         arr = np.array(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"], dtype="O")
         idx4 = DatetimeIndex(arr)
 
-        idx5 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)
-        idx6 = DatetimeIndex(
-            ["2007/05/12", "2008/01/25"], dayfirst=False, yearfirst=True
-        )
+        depr_msg = "keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx5 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx6 = DatetimeIndex(
+                ["2007/05/12", "2008/01/25"], dayfirst=False, yearfirst=True
+            )
         tm.assert_index_equal(idx5, idx6)
 
         for other in [idx2, idx3, idx4]:
@@ -1250,13 +1256,64 @@ class TestTimeSeries:
         dfirst = Timestamp(2016, 10, 5, tz="US/Pacific")
         yfirst = Timestamp(2005, 10, 16, tz="US/Pacific")
 
-        result1 = DatetimeIndex([val], tz="US/Pacific", dayfirst=True)
+        depr_msg = "keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result1 = DatetimeIndex([val], tz="US/Pacific", dayfirst=True)
         expected1 = DatetimeIndex([dfirst])
         tm.assert_index_equal(result1, expected1)
 
-        result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
         expected2 = DatetimeIndex([yfirst])
         tm.assert_index_equal(result2, expected2)
+
+
+@pytest.mark.parametrize(
+    "kwarg, val",
+    [
+        ("dayfirst", True),
+        ("dayfirst", False),
+        ("yearfirst", True),
+        ("yearfirst", False),
+        ("ambiguous", False),
+        ("ambiguous", True),
+        ("ambiguous", "infer"),
+        ("ambiguous", "NaT"),
+        ("ambiguous", "raise"),
+        ("ambiguous", np.array([True])),
+    ],
+)
+def test_dti_constructor_deprecated_keywords(kwarg, val):
+    # GH#55499 explicitly passing a keyword warns even with the default value
+    msg = f"The '{kwarg}' keyword in DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        DatetimeIndex(["2020-01-01"], **{kwarg: val})
+
+
+def test_dti_freq_validation_wall_time_dst():
+    # GH#55499 freq validation compares wall times, so wall-preserving freqs
+    #  spanning a DST transition validate without the ambiguous keyword
+    vals = DatetimeIndex(["2020-10-31 01:30", "2020-11-01 01:30"]).tz_localize(
+        "America/New_York", ambiguous=[False, False]
+    )
+
+    result = DatetimeIndex(vals, freq="D")
+    assert result.freq == "D"
+    tm.assert_numpy_array_equal(result.asi8, vals.asi8)
+
+    setter_result = vals.copy()
+    setter_result.freq = "D"
+    assert setter_result.freq == "D"
+
+    msg = "does not conform to passed frequency"
+    with pytest.raises(ValueError, match=msg):
+        # Tick freq, so still validated against the UTC values
+        DatetimeIndex(vals, freq="h")
+
+    # non-Tick freq that does not conform in wall time still raises
+    naive = DatetimeIndex(["2020-10-31 01:30", "2020-11-01 02:30"])
+    with pytest.raises(ValueError, match=msg):
+        DatetimeIndex(naive.tz_localize("America/New_York"), freq="D")
 
 
 @pytest.mark.parametrize("tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")])
