@@ -2730,16 +2730,18 @@ cdef class BusinessDay(BusinessMixin):
         ndarray[int64_t]
         """
         cdef:
-            int periods = self._n
+            int64_t periods = self._n
             Py_ssize_t _, count = i8other.size
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
-            int64_t val, res_val
-            int wday, days, weeks
+            int64_t val, res_val, shift
+            int wday
+            int64_t days, weeks
             npy_datetimestruct dts
             int64_t DAY_PERIODS = periods_per_day(reso)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
+            bint overflowed = False
 
         weeks = periods // 5
 
@@ -2755,19 +2757,33 @@ cdef class BusinessDay(BusinessMixin):
                     wday = dayofweek(dts.year, dts.month, dts.day)
 
                     days = self._adjust_ndays(wday, weeks)
-                    res_val = val + (7 * weeks + days) * DAY_PERIODS
+                    # GH#66552 a result that wraps, or that lands exactly on
+                    #  NPY_NAT and so is indistinguishable from a missing value
+                    #  downstream, has to raise rather than be stored.
+                    if (
+                        checked_mul(weeks, 7, &shift)
+                        or checked_add(shift, days, &shift)
+                        or checked_mul(shift, DAY_PERIODS, &shift)
+                        or checked_add(val, shift, &res_val)
+                        or res_val == NPY_NAT
+                    ):
+                        overflowed = True
+                        break
 
                 # Analogous to: out[i] = res_val
                 (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
                 cnp.PyArray_MultiIter_NEXT(mi)
 
+        if overflowed:
+            raise OverflowError("Overflow in int64 addition")
+
         return result
 
-    cdef int _adjust_ndays(self, int wday, int weeks) noexcept nogil:
+    cdef int64_t _adjust_ndays(self, int wday, int64_t weeks) noexcept nogil:
         cdef:
-            int n = self._n
-            int days
+            int64_t n = self._n
+            int64_t days
 
         if n <= 0 and wday > 4:
             # roll forward
