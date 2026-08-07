@@ -503,6 +503,7 @@ Strings
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 - Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
+- Bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` with :class:`ArrowDtype` and no separator keeping empty whitespace tokens (:issue:`66368`)
 - Bug in :meth:`Series.str.split` with :class:`ArrowDtype` ``string`` not inferring regex for multi-character patterns when ``regex=None``, causing the pattern to be treated as a literal instead of a regular expression (:issue:`58321`)
 - Bug in :meth:`Series.unique`, :meth:`Index.unique` and :func:`factorize` on object dtype returning incorrect results when the values were not UTF-8 encodable, e.g. lone surrogates (:issue:`34550`)
 - Bug in :meth:`Series.unique`, :meth:`Index.unique`, :meth:`Series.nunique`, :func:`factorize` and ``groupby`` on object dtype, and on ``str``/``string`` dtype backed by python storage, collapsing distinct strings that are identical up to an embedded NUL byte, e.g. ``""`` and ``"\x00"``, into a single value (:issue:`34551`)
