@@ -248,7 +248,7 @@ def test_mean_with_convertible_string_raises(using_infer_string):
     msg = (
         "Cannot perform reduction 'mean' with string dtype"
         if using_infer_string
-        else r"Could not convert \['12'\] to numeric"
+        else r"Could not convert array to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         df.mean()
@@ -262,7 +262,7 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     msg = (
         "Cannot perform reduction 'mean' with string dtype"
         if using_infer_string
-        else r"Could not convert \['J'\] to numeric"
+        else r"Could not convert array to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         df.mean()
