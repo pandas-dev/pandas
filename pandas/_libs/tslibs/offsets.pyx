@@ -65,6 +65,7 @@ from pandas._libs.tslibs.dtypes cimport (
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
     c_PERIOD_TO_OFFSET_FREQSTR,
+    npy_unit_to_abbrev,
     npy_unit_to_attrname,
     periods_per_day,
 )
@@ -75,6 +76,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     add_overflowsafe,
+    astype_overflowsafe,
     dts_to_iso_string,
     get_unit_from_dtype,
     import_pandas_datetime,
@@ -1917,6 +1919,31 @@ def delta_to_tick(delta: timedelta) -> Tick:
 
 # --------------------------------------------------------------------
 
+
+cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
+    """
+    Add a Timedelta to a datetime64 ndarray, raising instead of wrapping.
+
+    Matching numpy, the operands are cast to the finer of the two units. Unlike
+    numpy, both that cast and the addition itself raise, and a sum landing on
+    the NaT sentinel is rejected rather than passed off as missing (GH#66552).
+    """
+    cdef:
+        NPY_DATETIMEUNIT reso = get_unit_from_dtype(dt64arr.dtype)
+
+    if reso < delta._creso:
+        dt64arr = astype_overflowsafe(
+            dt64arr, np.dtype(f"M8[{npy_unit_to_abbrev(delta._creso)}]")
+        )
+    elif reso > delta._creso:
+        delta = delta._as_creso(reso)
+
+    i8result = add_overflowsafe(
+        dt64arr.view("i8"), np.array(delta._value, dtype="i8")
+    )
+    return i8result.view(dt64arr.dtype)
+
+
 cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
@@ -2103,7 +2130,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         if months:
             shifted = shift_months(dt64other.view("i8"), months, reso=reso)
             dt64other = shifted.view(dtarr.dtype)
-        return dt64other + delta
+        return _add_timedelta_overflowsafe(dt64other, delta)
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
