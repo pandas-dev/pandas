@@ -1165,13 +1165,12 @@ def read_csv(
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
-        Character or regex pattern to treat as the delimiter. If ``sep=None``, the
-        C engine cannot automatically detect
-        the separator, but the Python parsing engine can, meaning the latter will
-        be used and automatically detect the separator from only the first valid
-        row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
+        the separator from the first valid row of the file with Python's builtin
+        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
+        engine and must be combined with ``engine='python'`` explicitly.
         In addition, separators longer than 1 character and different from
-        ``'\\s+'`` will be interpreted as regular expressions and will also force
+        ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
@@ -1254,13 +1253,16 @@ def read_csv(
     engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
-        is currently more feature-complete. Multithreading
-        is currently only supported by
-        the pyarrow engine. Some features of the "pyarrow" engine
+        is currently more feature-complete. The pyarrow engine is
+        multithreaded, and the C engine reads sufficiently large files in
+        parallel. Some features of the "pyarrow" engine
         are unsupported or may not work correctly.
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
-        be column labels or column indices.
+        be column labels or column indices. The function is applied to the raw
+        text read from the file, before any missing-value detection: an empty
+        field is passed as an empty string ``''``, and ``na_values`` and
+        ``keep_default_na`` have no effect on a column that has a converter.
     true_values : list, optional
         Values to consider as ``True`` in addition
         to case-insensitive variants of 'True'.
@@ -1763,13 +1765,12 @@ def read_table(
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
-        Character or regex pattern to treat as the delimiter. If ``sep=None``, the
-        C engine cannot automatically detect
-        the separator, but the Python parsing engine can, meaning the latter will
-        be used and automatically detect the separator from only the first valid
-        row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
+        the separator from the first valid row of the file with Python's builtin
+        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
+        engine and must be combined with ``engine='python'`` explicitly.
         In addition, separators longer than 1 character and different from
-        ``'\\s+'`` will be interpreted as regular expressions and will also force
+        ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
@@ -1849,13 +1850,16 @@ def read_table(
     engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
-        is currently more feature-complete. Multithreading is
-        currently only supported by
-        the pyarrow engine. The 'pyarrow' engine is an *experimental* engine,
+        is currently more feature-complete. The pyarrow engine is
+        multithreaded, and the C engine reads sufficiently large files in
+        parallel. The 'pyarrow' engine is an *experimental* engine,
         and some features are unsupported, or may not work correctly, with this engine.
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
-        be column labels or column indices.
+        be column labels or column indices. The function is applied to the raw
+        text read from the file, before any missing-value detection: an empty
+        field is passed as an empty string ``''``, and ``na_values`` and
+        ``keep_default_na`` have no effect on a column that has a converter.
     true_values : list, optional
         Values to consider as ``True`` in addition to
         case-insensitive variants of 'True'.
