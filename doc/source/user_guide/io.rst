@@ -2836,10 +2836,16 @@ Read an XML string:
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
-   df
+   In [362]: df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
+
+   In [363]: df
+   Out[363]:
+      category             title               author  year  price
+   0   cooking  Everyday Italian  Giada De Laurentiis  2005  30.00
+   1  children      Harry Potter         J K. Rowling  2005  29.99
+   2       web      Learning XML          Erik T. Ray  2003  39.95
 
 Read in the content of the "books.xml" file and pass it to ``read_xml``
 as a string:

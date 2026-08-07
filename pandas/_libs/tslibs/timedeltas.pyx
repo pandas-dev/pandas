@@ -2734,6 +2734,8 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            other = _exact_if_integral(other)
+
             return _timedelta_from_value_and_reso(
                 Timedelta,
                 <int64_t>(other * self._value),
@@ -2778,6 +2780,7 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            other = _exact_if_integral(other)
 
             if is_integer_object(other):
                 # GH#66551 float64 carries only a 53-bit mantissa, so dividing
@@ -2847,6 +2850,7 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            other = _exact_if_integral(other)
             return type(self)._from_value_and_reso(self._value// other, self._creso)
 
         elif is_array(other):
@@ -3044,6 +3048,23 @@ cdef bint _should_cast_to_timedelta(object obj):
     return (
         is_any_td_scalar(obj) or obj is None or obj is NaT or isinstance(obj, str)
     )
+
+
+cdef object _exact_if_integral(object other):
+    """
+    Return the exact int equivalent of an integral float, otherwise `other`.
+
+    GH#66551 float64 carries only a 53-bit mantissa, so applying a float
+    operand in floating point rounds results that int64 represents exactly.
+    An integral float has an exact int equivalent, so the int path can be used
+    instead.  inf and nan are not integral and so stay in float64.
+
+    Zero is left alone: it needs no exactness fix, and routing it to the int
+    path would turn division by 0.0 into a ZeroDivisionError.
+    """
+    if is_float_object(other) and other != 0 and other.is_integer():
+        return int(other)
+    return other
 
 
 cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:

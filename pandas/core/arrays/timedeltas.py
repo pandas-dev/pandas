@@ -91,6 +91,23 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+def _exact_if_integral(other):
+    """
+    Return the exact int equivalent of an integral float, otherwise `other`.
+
+    GH#66551 float64 carries only a 53-bit mantissa, so applying a float operand
+    in floating point rounds results that int64 represents exactly.  An integral
+    float has an exact int equivalent, so the int path can be used instead.
+    inf and nan are not integral and so stay in float64.
+
+    Zero is left alone: it needs no exactness fix, and routing it to the int
+    path would turn division by 0.0 from NaT into a raise.
+    """
+    if lib.is_float(other) and other != 0 and other.is_integer():
+        return int(other)
+    return other
+
+
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
@@ -503,13 +520,15 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
                     "integers instead"
                 )
+            other = _exact_if_integral(other)
             if lib.is_integer(other):
                 # GH#43178: detect int64 overflow rather than silently wrapping
                 #  in the i8 cast below (e.g. a multiplier outside int64 bounds).
                 # TODO(numpy>=2.5): numpy detects this natively (numpy GH-31378)
                 #  but raises OverflowError; once the numpy floor is >= 2.5, drop
                 #  mul_overflowsafe and re-wrap numpy's error as
-                #  OutOfBoundsTimedelta. The float path isn't covered and stays.
+                #  OutOfBoundsTimedelta. The non-integral float path isn't
+                #  covered and stays.
                 other = int(other)
                 if other > lib.i8max or other < -lib.i8max - 1:
                     raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
@@ -645,6 +664,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot divide {type(other).__name__} by {type(self).__name__}"
                 )
 
+            other = _exact_if_integral(other)
             if lib.is_float(other):
                 # GH#43178: raise instead of silently saturating on overflow
                 self._check_float_div_overflow(other)
