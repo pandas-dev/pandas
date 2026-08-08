@@ -801,13 +801,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and isinstance(offset, RelativeDeltaOffset)
             and not offset._use_relativedelta
         ):
-            res_values = self._ndarray + offset._pd_timedelta
-            # GH#64806 offset._pd_timedelta may have finer resolution than
-            # self, promoting res_values to a finer unit; derive the dtype
-            # from the promoted values rather than assuming self.dtype's unit.
-            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
-            res_dtype = tz_to_dtype(self.tz, res_unit)
-            result = type(self)._simple_new(res_values, dtype=res_dtype)
+            # GH#64806 _add_timedeltalike_scalar casts to the finer of the two
+            # resolutions, so the result keeps offset._pd_timedelta's unit when
+            # that is finer than self's.
+            result = self._add_timedeltalike_scalar(offset._pd_timedelta)
             if offset.normalize:
                 result = result.normalize()
             return result
@@ -820,7 +817,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                res_values = res_values.view(values.dtype)
+                # values is tz-naive here, so its dtype is the ndarray's
+                res_values = res_values.view(values._ndarray.dtype)
         except NotImplementedError:
             if config["mode"]["performance_warnings"]:
                 warnings.warn(
