@@ -136,6 +136,25 @@ class TestDatetimeConcat:
         # Not checked by assert_index_equal
         assert result.freq == "s"
 
+    def test_concat_datetimeindex_freq_order_independent(self):
+        # GH#64253 - the freq of the combined index must not depend on the
+        # order of the inputs when they share a (non-inferable) freq and the
+        # union is exactly regular with respect to it.
+        freq = pd.offsets.CustomBusinessDay(holidays=["2020-01-10"])
+        idx1 = date_range("2020-01-01", periods=5, freq=freq)
+        idx2 = date_range(start=idx1[3], periods=5, freq=freq)
+        idx3 = date_range(start=idx2[3], periods=5, freq=freq)
+        s1 = Series(1, index=idx1, name="S1")
+        s2 = Series(1, index=idx2, name="S2")
+        s3 = Series(1, index=idx3, name="S3")
+
+        result_123 = concat([s1, s2, s3], axis=1, sort=True)
+        result_132 = concat([s1, s3, s2], axis=1, sort=True)
+
+        assert result_123.index.freq == freq
+        assert result_132.index.freq == freq
+        tm.assert_index_equal(result_123.index, result_132.index)
+
     def test_concat_datetimeindex_tz_convert_freq(self):
         # GH#41585 - concat after tz_convert should not raise when
         # the converted timestamps no longer conform to the original freq
