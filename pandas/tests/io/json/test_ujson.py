@@ -676,6 +676,53 @@ class TestUltraJSONTests:
             "d": 4,
         }
 
+    def test_encode_object_bad_dir(self):
+        class _TestObject:
+            def __dir__(self):
+                raise TypeError("I raise you one exception")
+
+        with pytest.raises(TypeError, match="I raise you one exception"):
+            ujson.ujson_dumps(_TestObject())
+
+    def test_encode_object_dir_surrogate(self):
+        class _TestObject:
+            def __dir__(self):
+                return ["\ud800"]
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(_TestObject())
+
+    def test_encode_bad_set(self):
+        class MySet(set):
+            def __iter__(self):
+                raise TypeError("I raise you one exception")
+
+        with pytest.raises(TypeError, match="I raise you one exception"):
+            ujson.ujson_dumps(MySet([1, 2, 3]))
+
+    def test_encode_bad_set_iterator_next(self):
+        class MySet(set):
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                raise TypeError("I raise you one exception")
+
+        with pytest.raises(TypeError, match="I raise you one exception"):
+            ujson.ujson_dumps(MySet([1, 2, 3]))
+
+    def test_encode_dict_with_lone_surrogate_key(self):
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps({"\ud800": "value"})
+
+    def test_encode_dict_with_lone_surrogate_object_key(self):
+        class LoneSurrogateProxy:
+            def __str__(self):
+                return "\ud800"
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps({LoneSurrogateProxy(): "value"})
+
     def test_ujson__name__(self):
         # GH 52898
         assert ujson.__name__ == "pandas._libs._ujson"
@@ -854,6 +901,27 @@ class TestPandasJSONTests:
             "df2": ujson.ujson_loads(ujson.ujson_dumps(df, **kwargs)),
         }
         assert ujson.ujson_loads(ujson.ujson_dumps(nested, **kwargs)) == exp
+
+    def test_encode_labels_invalid_str(self):
+        class LoneSurrogateProxy:
+            def __str__(self):
+                return "\ud800"
+
+        for obj in [
+            DataFrame({LoneSurrogateProxy(): [1, 2, 3]}),
+            DataFrame({"a": [1, 2, 3]}, index=[LoneSurrogateProxy()] * 3),
+            Series([1, 2, 3], index=[LoneSurrogateProxy()] * 3),
+        ]:
+            with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+                ujson.ujson_dumps(obj)
+
+    def test_encode_labels_custom_str(self):
+        class Proxy:
+            def __str__(self):
+                return "proxy"
+
+        result = ujson.ujson_loads(ujson.ujson_dumps(DataFrame({Proxy(): [1]})))
+        assert result == {"proxy": {"0": 1}}
 
     def test_series(self, orient):
         dtype = np.int64

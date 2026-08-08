@@ -579,6 +579,7 @@ MultiIndex
 
 I/O
 ^^^
+- Fixed segfaults in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when object iteration, dictionary-key conversion, or label encoding raises an exception (:issue:`66356`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``EmptyDataError`` (matching the ``c`` and ``python`` engines) instead of a cryptic ``ParserError`` reporting ``Empty CSV file or block`` when no columns can be parsed from the input (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``TypeError`` when passed a text-mode file handle (the engine requires a binary buffer) instead of a cryptic ``a bytes-like object is required`` error (:issue:`66065`)
