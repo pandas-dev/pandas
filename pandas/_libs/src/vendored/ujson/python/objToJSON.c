@@ -1697,14 +1697,50 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     pc->longValue = value;
     return;
   } else if (PyArray_IsScalar(obj, Integer)) {
-    tc->type = JT_LONG;
-    PyArray_CastScalarToCtype(obj, &(pc->longValue),
-                              PyArray_DescrFromType(NPY_INT64));
+    // np.uint64 values above signed int64 max cannot be cast to JT_LONG
+    // without wraparound; route those through JT_BIGNUM (PyObject_Str).
+    PyArray_Descr *dtype = PyArray_DescrFromScalar(obj);
+    if (dtype == NULL) {
+      goto INVALID;
+    }
+
+    if (dtype->type_num == NPY_UINT64) {
+      npy_uint64 uintValue;
+      PyArray_Descr *outcode = PyArray_DescrFromType(NPY_UINT64);
+      if (outcode == NULL) {
+        Py_DECREF(dtype);
+        goto INVALID;
+      }
+      PyArray_CastScalarToCtype(obj, &uintValue, outcode);
+      Py_DECREF(outcode);
+      Py_DECREF(dtype);
+
+      if (PyErr_Occurred()) {
+        goto INVALID;
+      }
+
+      if (uintValue > (npy_uint64)NPY_MAX_INT64) {
+        tc->type = JT_BIGNUM;
+      } else {
+        pc->longValue = (JSINT64)uintValue;
+        tc->type = JT_LONG;
+      }
+      return;
+    }
+    Py_DECREF(dtype);
+
+    PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
+    if (outcode == NULL) {
+      goto INVALID;
+    }
+    PyArray_CastScalarToCtype(obj, &(pc->longValue), outcode);
+    Py_DECREF(outcode);
 
     if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_OverflowError)) {
       goto INVALID;
     }
 
+    tc->type = JT_LONG;
     return;
   } else if (PyArray_IsScalar(obj, Bool)) {
     PyArray_CastScalarToCtype(obj, &(pc->longValue),
