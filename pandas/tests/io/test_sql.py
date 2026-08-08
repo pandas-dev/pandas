@@ -4470,3 +4470,29 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+def test_to_sql_preserves_user_sqlite_adapters(sqlite_buildin):
+    """
+    GH#64337 — DataFrame.to_sql() should not overwrite user-registered
+    SQLite adapters on subsequent calls.
+    """
+    import sqlite3
+
+    # First to_sql call — pandas registers its adapters
+    df = DataFrame({"t": [time(12, 30)]})
+    df.to_sql("test_adapter_1", sqlite_buildin, if_exists="replace", index=False)
+
+    # User registers a custom adapter for time
+    def custom_time_adapter(t):
+        return f"CUSTOM:{t.hour:02d}:{t.minute:02d}:{t.second:02d}"
+
+    sqlite3.register_adapter(time, custom_time_adapter)
+
+    # Second to_sql call — must NOT overwrite the user's adapter
+    df2 = DataFrame({"t": [time(14, 0)]})
+    df2.to_sql("test_adapter_2", sqlite_buildin, if_exists="replace", index=False)
+
+    # Verify user's adapter is still registered
+    registered = sqlite3.adapters.get((time, sqlite3.PrepareProtocol))
+    assert registered is custom_time_adapter
