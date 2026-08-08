@@ -163,6 +163,14 @@ class TestDatetimeArray(base.ExtensionTests):
         # Pandas4Warning.
         super().test_json_roundtrip(data)
 
+    @pytest.mark.xfail(raises=AssertionError, reason="numpy array are different")
+    def test_plot_on_x_axis(self, data):
+        # GH 64535, GH 65915
+        # A tz-aware DatetimeArray on the x-axis is converted to a PeriodArray and
+        # thereby loses its tz information. Therefore the check that the plotted data
+        # is matching the expected converted data fails.
+        super().test_plot_on_x_axis(data)
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     pass

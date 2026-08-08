@@ -31,6 +31,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
     is_bool,
+    is_bool_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -43,6 +44,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    CategoricalDtypeType,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -61,6 +63,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
+    plottable_types,
     register_pandas_matplotlib_converters,
 )
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
@@ -694,24 +697,40 @@ class MPLPlot(ABC):
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data.infer_objects()
-        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+        include_type = plottable_types()
 
         # GH23719, allow plotting boolean
         if self.include_bool is True:
-            include_type.append(np.bool_)
+            include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = None
+        exclude_type = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
-            exclude_type = ["timedelta"]
+            exclude_type = [np.timedelta64]
 
         # GH 18755, include object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend(["object", "category", "string"])
+            include_type.extend([object, CategoricalDtypeType, str])
 
-        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
+        # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
+        def dtype_predicate(dtype, types) -> bool:
+            type_ = dtype.type
+            return issubclass(type_, tuple(types)) or (
+                np.number in types
+                and getattr(dtype, "_is_numeric", False)
+                and not is_bool_dtype(dtype)
+            )
+
+        def predicate_for_plottability(blk_vals) -> bool:
+            dtype = blk_vals.dtype
+            is_included = dtype_predicate(dtype, include_type)
+            is_excluded = dtype_predicate(dtype, exclude_type)
+            return is_included and not is_excluded
+
+        mgr = data._mgr._get_data_subset(predicate_for_plottability)
+        numeric_data = data._constructor_from_mgr(mgr, axes=mgr.axes)
 
         is_empty = numeric_data.shape[-1] == 0
         # no non-numeric frames or series allowed

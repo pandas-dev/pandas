@@ -77,6 +77,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from datetime import tzinfo
 
+    import matplotlib.units
     import pyarrow as pa  # noqa: TC004
 
     from pandas._typing import (
@@ -994,6 +995,14 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         return DatetimeIndex
 
+    @classmethod
+    def _get_plot_converter(
+        cls,
+    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]]:
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
+        return cls.type, DatetimeConverter
+
 
 @register_extension_dtype
 @set_module("pandas")
@@ -1235,6 +1244,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         from pandas import PeriodIndex
 
         return PeriodIndex
+
+    @classmethod
+    def _get_plot_converter(
+        cls,
+    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]]:
+        from pandas.plotting._matplotlib.converter import PeriodConverter
+
+        return cls.type, PeriodConverter
 
 
 @register_extension_dtype
