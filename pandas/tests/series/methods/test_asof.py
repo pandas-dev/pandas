@@ -2,9 +2,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DatetimeIndex,
+    Period,
     PeriodIndex,
     Series,
     Timestamp,
@@ -203,3 +205,20 @@ class TestSeriesAsof:
         result = Series(np.nan, index=[1, 2, 3, 4], name="test").asof([4, 5])
         expected = Series(np.nan, index=[4, 5], name="test")
         tm.assert_series_equal(result, expected)
+
+
+def test_asof_quarterly_string_deprecated():
+    # GH#50907 asof converts a string `where` with Timestamp before casting it
+    # to a Period, so a quarterly string warns even on a PeriodIndex -- as with
+    # truncate, the parsed value is the one actually used
+    pi = period_range("2000Q1", periods=8, freq="Q")
+    ser = Series(range(len(pi)), index=pi)
+
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result = ser.asof("2000Q2")
+    assert result == 1
+
+    # following the deprecation message preserves the behavior
+    assert result == ser.asof(Period("2000Q2").to_timestamp())

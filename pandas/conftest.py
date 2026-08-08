@@ -1977,7 +1977,7 @@ _any_skipna_inferred_dtype = [
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
     ("time", [time(1), np.nan, time(2)]),
-    ("period", [Period(2013), pd.NaT, Period(2018)]),
+    ("period", [Period("2013"), pd.NaT, Period("2018")]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
 ids = [

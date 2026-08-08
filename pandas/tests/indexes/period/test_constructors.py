@@ -332,10 +332,13 @@ class TestPeriodIndex:
         tm.assert_index_equal(PeriodIndex(list(vals)), idx)
 
         msg = "freq not specified and cannot be inferred"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx.asi8)
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx.asi8))
+        depr_msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match=msg):
+                PeriodIndex(idx.asi8)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match=msg):
+                PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
@@ -396,18 +399,22 @@ class TestPeriodIndex:
         #  values used to silently wrap instead of raising like Period(int)
         arr = np.array([2**32 + 1985], dtype=np.int64)
         msg = "Out of bounds year: 4294969281"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            PeriodIndex(arr, freq="Y")
+        depr_msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
+                PeriodIndex(arr, freq="Y")
 
         # negative out-of-range and a nanosecond-epoch-like value also raise
         for val in [-(2**32), 10**18]:
-            with pytest.raises(OutOfBoundsDatetime, match="Out of bounds year"):
-                PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                with pytest.raises(OutOfBoundsDatetime, match="Out of bounds year"):
+                    PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
 
         # int32 boundaries and >4-digit years remain valid; for freq="Y" the
         #  ordinal is year - 1970
         for val in [2**31 - 1, -(2**31), 100000]:
-            result = PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                result = PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
             assert result.asi8[0] == val - 1970
 
     @pytest.mark.parametrize("box", [None, "series", "index"])
@@ -733,7 +740,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(idx, org)
 
     def test_map_with_string_constructor(self):
-        raw = [2005, 2007, 2009]
+        raw = ["2005", "2007", "2009"]
         index = PeriodIndex(raw, freq="Y")
 
         expected = Index([str(num) for num in raw])

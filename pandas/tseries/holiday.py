@@ -118,6 +118,10 @@ def nearest_workday(dt: datetime) -> datetime:
 def next_workday(dt: datetime) -> datetime:
     """
     returns next workday used for observances
+
+    The date is always advanced by at least one day, even when ``dt`` already
+    falls on a weekday. To leave weekdays unchanged and move only weekend
+    dates forward, use ``next_monday`` or ``weekend_to_monday``.
     """
     dt += timedelta(days=1)
     while dt.weekday() > 4:
@@ -129,6 +133,10 @@ def next_workday(dt: datetime) -> datetime:
 def previous_workday(dt: datetime) -> datetime:
     """
     returns previous workday used for observances
+
+    The date is always moved back by at least one day, even when ``dt``
+    already falls on a weekday. To leave weekdays unchanged and move only
+    weekend dates back, use ``previous_friday``.
     """
     dt -= timedelta(days=1)
     while dt.weekday() > 4:

@@ -20,6 +20,7 @@ import pytest
 from pandas.compat import WASM
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
@@ -1252,3 +1253,75 @@ def test_na_values_leading_nul(c_parser_only):
     assert result["a"].isna().tolist() == [True, False, False]
     assert result["a"][1] == "\x00z"
     assert result["a"][2] == ""
+
+
+def _raise_on_five(value):
+    if value == "5":
+        raise RuntimeError("boom")
+    return value
+
+
+@pytest.mark.parametrize(
+    "data,kwargs,error,match",
+    [
+        (
+            "a,b\n" + "".join(f"{i},{'oops' if i == 5 else i}\n" for i in range(20)),
+            {"dtype": {"b": "int64"}},
+            ValueError,
+            "invalid literal for int",
+        ),
+        (
+            "a,b\n" + "".join(f"{i},{i}\n" for i in range(20)),
+            {"converters": {"b": _raise_on_five}},
+            RuntimeError,
+            "boom",
+        ),
+        (
+            "a,b\n"
+            + "".join(
+                (f"{i},{i},{i}\n" if i == 15 else f"{i},{i}\n") for i in range(20)
+            ),
+            {},
+            ParserError,
+            "Expected 2 fields",
+        ),
+    ],
+)
+def test_read_after_chunk_raised(c_parser_only, data, kwargs, error, match):
+    # GH#66622: a chunk that raised closed the reader, and reading again then
+    # dereferenced the freed tokenizer buffers instead of raising.
+    parser = c_parser_only
+
+    with parser.read_csv(StringIO(data), chunksize=10, **kwargs) as reader:
+        with pytest.raises(error, match=match):
+            for _ in reader:
+                pass
+
+        with pytest.raises(ValueError, match="I/O operation on closed file"):
+            next(reader)
+
+
+def test_read_after_close(c_parser_only):
+    # GH#66622: reading from a closed reader crashed the interpreter.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    with parser.read_csv(StringIO(data), chunksize=10) as reader:
+        assert len(next(reader)) == 10
+
+    with pytest.raises(ValueError, match="I/O operation on closed file"):
+        next(reader)
+
+
+def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
+    # GH#66622: exhausting a reader closes it, but it must keep behaving like a
+    # spent iterator rather than reporting a closed file.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    reader = parser.read_csv(StringIO(data), chunksize=10)
+    assert len(list(reader)) == 2
+
+    for _ in range(2):
+        with pytest.raises(StopIteration):
+            next(reader)
