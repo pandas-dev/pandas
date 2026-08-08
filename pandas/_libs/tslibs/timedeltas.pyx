@@ -65,7 +65,11 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    NPY_FR_GENERIC,
+    NPY_FR_W,
     NPY_FR_ns,
+    add_overflowsafe,
+    astype_overflowsafe,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -932,9 +936,73 @@ def _op_unary_method(func, name):
     return f
 
 
+cdef _addsub_timedelta64_array(
+    _Timedelta td, ndarray other, bint subtract, bint reverse
+):
+    """
+    Add or subtract a timedelta64 ndarray to/from a Timedelta.
+
+    Matching numpy, the operands are cast to the finer of the two units. Unlike
+    numpy, both that cast and the addition itself raise instead of wrapping,
+    and a sum landing on the NaT sentinel is rejected rather than passed off as
+    missing, matching what the scalar path already does (GH#66552).
+    """
+    cdef:
+        NPY_DATETIMEUNIT other_reso = get_unit_from_dtype(other.dtype)
+        NPY_DATETIMEUNIT reso = td._creso
+        ndarray i8other, i8result
+        int64_t value
+
+    if other_reso == NPY_FR_GENERIC:
+        # numpy reads a generic timedelta64 in the other operand's unit
+        other_reso = reso
+    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
+        # year/month, which numpy itself refuses to add to a time unit, and
+        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+        m8 = td.to_timedelta64()
+        if not subtract:
+            return m8 + other
+        return (other - m8) if reverse else (m8 - other)
+
+    if reso < other_reso:
+        td = td._as_creso(other_reso, round_ok=True)
+        reso = other_reso
+    elif reso > other_reso:
+        other = astype_overflowsafe(
+            other, np.dtype(f"m8[{npy_unit_to_abbrev(reso)}]")
+        )
+
+    if not other.dtype.isnative:
+        # the view below would misread a byte-swapped buffer
+        other = other.astype(other.dtype.newbyteorder("="))
+
+    i8other = other.view("i8")
+    value = td._value
+    if subtract:
+        if reverse:
+            # other - td; td is never NaT, so negating its value is safe
+            value = -value
+        else:
+            # NPY_NAT negates to itself, so NaT still propagates
+            i8other = np.negative(i8other)
+
+    try:
+        i8result = add_overflowsafe(i8other, np.array(value, dtype="i8"))
+    except OverflowError as err:
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds {npy_unit_to_attrname[reso]} timedelta"
+        ) from err
+
+    return i8result.view(f"m8[{npy_unit_to_abbrev(reso)}]")
+
+
 def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
+    cdef:
+        bint subtract = name in ("__sub__", "__rsub__")
+        bint reverse = name == "__rsub__"
+
     def f(self, other):
         if other is NaT:
             return NaT
@@ -956,7 +1024,10 @@ def _binary_op_method_timedeltalike(op, name):
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return f(self, item)
 
-            elif other.dtype.kind in "mM":
+            elif other.dtype.kind == "m":
+                return _addsub_timedelta64_array(self, other, subtract, reverse)
+            elif other.dtype.kind == "M":
+                # GH#66552 the datetime64 result path still wraps on overflow
                 return op(self.to_timedelta64(), other)
             elif other.dtype.kind == "O":
                 return np.array([op(self, x) for x in other])
