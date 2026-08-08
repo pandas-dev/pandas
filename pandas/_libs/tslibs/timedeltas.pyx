@@ -1877,7 +1877,7 @@ cdef class _Timedelta(timedelta):
         >>> td.view(int)
         np.int64(259200000000)
         """
-        return np.timedelta64(self._value).view(dtype)
+        return np.timedelta64(self._value, self.unit).view(dtype)
 
     @property
     def components(self):
