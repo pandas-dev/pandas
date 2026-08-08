@@ -606,6 +606,7 @@ I/O
 - Fixed bug in :func:`read_csv` with the ``c`` engine where a value passed to a ``converters`` callable was truncated at an embedded NUL byte (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where reading from a chunked or iterator reader after it had been closed -- explicitly, by leaving its ``with`` block, or automatically after a chunk raised -- crashed the interpreter instead of raising ``ValueError`` (:issue:`66622`)
+- Fixed bug in :func:`read_csv` with the ``c`` engine where running out of memory while the parser was reporting an error crashed the interpreter instead of raising ``ParserError`` (:issue:`66660`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with ``dtype="S"`` (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with an explicit string-like ``dtype`` (``object``, ``"str"``, ``"string"`` or ``"category"``) (:issue:`66525`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
