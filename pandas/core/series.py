@@ -5088,7 +5088,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         func : function, str, list or dict
             Function to use for aggregating the data. If a function, must either
-            work when passed a Series or when passed to Series.apply.
+            work when passed a Series or when passed to Series.apply. Functions must
+            accept a Series and return a scalar.
 
             Accepted combinations are:
 
@@ -5135,6 +5136,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         A passed user-defined-function will be passed a Series for evaluation.
 
         If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
+
+        Called functions are found according to the MRO of a Series object,
+        e.g., ``getattr(s, 'function_name')``. If no matching function is found,
+        the MRO of numpy will be used as a fallback.
 
         Examples
         --------
