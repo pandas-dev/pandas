@@ -442,6 +442,15 @@ static const char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc,
     PyObject *tmp = str;
     str = PyUnicode_AsUTF8String(str);
     Py_DECREF(tmp);
+  } else if (!PyBytes_Check(str)) {
+    Py_DECREF(str);
+    PyErr_SetString(PyExc_ValueError, "Failed to convert time");
+    str = NULL;
+  }
+  if (str == NULL) {
+    *outLen = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
   }
 
   GET_TC(tc)->newObj = str;
@@ -467,6 +476,11 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
 
   Py_ssize_t s_len;
   char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  if (outValue == NULL) {
+    *len = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
   *len = s_len;
 
   return outValue;
@@ -914,6 +928,11 @@ static void Set_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 static int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+  if (GET_TC(tc)->iterator == NULL) {
+    // PyObject_GetIter failed in Set_iterBegin, let the exception propagate
+    return 0;
+  }
+
   if (GET_TC(tc)->itemValue) {
     Py_DECREF(GET_TC(tc)->itemValue);
     GET_TC(tc)->itemValue = NULL;
@@ -959,7 +978,10 @@ static const char *Set_iterGetName(JSOBJ Py_UNUSED(obj),
 static void Dir_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
   GET_TC(tc)->attrList = PyObject_Dir(obj);
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->size = PyList_GET_SIZE(GET_TC(tc)->attrList);
+  // PyObject_Dir can fail, in which case the exception is propagated by
+  // Dir_iterNext, which stops immediately when an error is set
+  GET_TC(tc)->size =
+      GET_TC(tc)->attrList ? PyList_GET_SIZE(GET_TC(tc)->attrList) : 0;
 }
 
 static void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
@@ -973,7 +995,7 @@ static void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->itemName = NULL;
   }
 
-  Py_DECREF((PyObject *)GET_TC(tc)->attrList);
+  Py_XDECREF((PyObject *)GET_TC(tc)->attrList);
 }
 
 static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
@@ -999,6 +1021,10 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     PyObject *attrName =
         PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
     PyObject *attr = PyUnicode_AsUTF8String(attrName);
+    if (attr == NULL) {
+      ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+      return 0;
+    }
     const char *attrStr = PyBytes_AS_STRING(attr);
 
     if (attrStr[0] == '_') {
@@ -1266,12 +1292,22 @@ static int Dict_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   if (PyUnicode_Check(GET_TC(tc)->itemName)) {
     GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
   } else if (!PyBytes_Check(GET_TC(tc)->itemName)) {
-    GET_TC(tc)->itemName = PyObject_Str(GET_TC(tc)->itemName);
-    PyObject *itemNameTmp = GET_TC(tc)->itemName;
-    GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
-    Py_DECREF(itemNameTmp);
+    PyObject *itemNameTmp = PyObject_Str(GET_TC(tc)->itemName);
+    GET_TC(tc)->itemName = NULL;
+    if (itemNameTmp != NULL) {
+      GET_TC(tc)->itemName = PyUnicode_AsUTF8String(itemNameTmp);
+      Py_DECREF(itemNameTmp);
+    }
   } else {
     Py_INCREF(GET_TC(tc)->itemName);
+  }
+
+  if (GET_TC(tc)->itemName == NULL) {
+    /* Converting the key failed.
+      Set errorMsg(to tell encoder to stop),
+      and let Python exception propagate. */
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return 0;
   }
   return 1;
 }
@@ -1436,6 +1472,8 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             // numpy arrays are already scaled to the correct unit
             // only need to scale if coming from a datetime/timedelta object
             if (scaleNanosecToUnit(&i8date, targetUnit) == -1) {
+              PyObject_Free(cLabel);
+              Py_DECREF(item);
               NpyArr_freeLabels(ret, num);
               ret = 0;
               break;
@@ -1455,6 +1493,12 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
       }
 
       cLabel = (char *)PyUnicode_AsUTF8(item);
+      if (cLabel == NULL) {
+        Py_DECREF(item);
+        NpyArr_freeLabels(ret, num);
+        ret = 0;
+        break;
+      }
       len = strlen(cLabel);
     }
 
@@ -1895,6 +1939,9 @@ ISITERABLE:
       pc->rowLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
                                           pc->rowLabelsLen, values_is_utc);
       Py_DECREF(tmpObj);
+      if (!pc->rowLabels) {
+        goto INVALID;
+      }
       tmpObj =
           (enc->outputFormat == INDEX ? PyObject_GetAttrString(obj, "columns")
                                       : PyObject_GetAttrString(obj, "index"));
@@ -2047,7 +2094,18 @@ static double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 static const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
                                                size_t *_outLen) {
   PyObject *repr = PyObject_Str(obj);
+  if (repr == NULL) {
+    *_outLen = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
   const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *)_outLen);
+  if (str == NULL) {
+    *_outLen = 0;
+    Py_DECREF(repr);
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
   char *bytes = PyObject_Malloc(*_outLen + 1);
   memcpy(bytes, str, *_outLen + 1);
   GET_TC(tc)->cStr = bytes;

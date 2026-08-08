@@ -27,6 +27,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+LONE_SURROGATE = "\ud800"
+
 
 def _clean_dict(d):
     """
@@ -675,6 +677,94 @@ class TestUltraJSONTests:
             "b": 2,
             "d": 4,
         }
+
+    def test_encode_object_dir_raises(self):
+        # GH#66489
+        class _TestObject:
+            def __dir__(self):
+                raise TypeError("I raise you one exception")
+
+        with pytest.raises(TypeError, match="I raise you one exception"):
+            ujson.ujson_dumps(_TestObject())
+
+    def test_encode_object_dir_lone_surrogate(self):
+        # GH#66489
+        class _TestObject:
+            def __dir__(self):
+                return [LONE_SURROGATE]
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(_TestObject())
+
+    def test_encode_set_iter_raises(self):
+        # GH#66489
+        class _TestSet(set):
+            def __iter__(self):
+                raise TypeError("I raise you one exception")
+
+        with pytest.raises(TypeError, match="I raise you one exception"):
+            ujson.ujson_dumps(_TestSet([1, 2, 3]))
+
+    def test_encode_decimal_lone_surrogate(self):
+        # GH#66489
+        class _TestDecimal(decimal.Decimal):
+            def __format__(self, *args, **kwargs):
+                return LONE_SURROGATE
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(_TestDecimal(1))
+
+    def test_encode_time_non_str_isoformat(self):
+        # GH#66489
+        class _TestTime(datetime.time):
+            def isoformat(self, *args, **kwargs):
+                return 1
+
+        with pytest.raises(ValueError, match="Failed to convert time"):
+            ujson.ujson_dumps(_TestTime())
+
+    def test_encode_time_lone_surrogate_isoformat(self):
+        # GH#66489
+        class _TestTime(datetime.time):
+            def isoformat(self, *args, **kwargs):
+                return LONE_SURROGATE
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(_TestTime())
+
+    def test_encode_huge_int(self):
+        # GH#66489
+        with pytest.raises(ValueError, match="Exceeds the limit"):
+            ujson.ujson_dumps(1 << 1_000_000)
+
+    def test_encode_huge_int_key(self):
+        # GH#66489
+        with pytest.raises(ValueError, match="Exceeds the limit"):
+            ujson.ujson_dumps({1 << 1_000_000: "value"})
+
+    def test_encode_lone_surrogate_key(self):
+        # GH#66489
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps({LONE_SURROGATE: "value"})
+
+    def test_encode_lone_surrogate_str_key(self):
+        # GH#66489
+        class _TestKey:
+            def __str__(self) -> str:
+                return LONE_SURROGATE
+
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps({_TestKey(): "value"})
+
+    def test_encode_lone_surrogate_labels(self):
+        # GH#66489
+        class _TestKey:
+            def __str__(self) -> str:
+                return LONE_SURROGATE
+
+        df = DataFrame({_TestKey(): [1, 2, 3]})
+        with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+            ujson.ujson_dumps(df)
 
     def test_ujson__name__(self):
         # GH 52898
