@@ -1965,6 +1965,26 @@ class TestAsOfMerge:
             by="ticker",
             tolerance=1,
         )
+        left = pd.DataFrame({"key": [1]})
+        right = pd.DataFrame({"key": [1], "value": [2]})
+        result = merge_asof(left, right, on="key", tolerance=0)
+        expected = pd.DataFrame({"key": [1], "value": [2]})
+        tm.assert_frame_equal(result, expected)
+
+        datetime_left = pd.DataFrame({"key": to_datetime(["2020-01-01"])})
+        datetime_right = pd.DataFrame(
+            {"key": to_datetime(["2020-01-01"]), "value": [2]}
+        )
+        result = merge_asof(
+            datetime_left, datetime_right, on="key", tolerance=Timedelta(0)
+        )
+        expected = datetime_right
+        tm.assert_frame_equal(result, expected)
+
+        float_left = pd.DataFrame({"key": [1.0]})
+        float_right = pd.DataFrame({"key": [1.0], "value": [2]})
+        result = merge_asof(float_left, float_right, on="key", tolerance=0.0)
+        tm.assert_frame_equal(result, float_right)
 
         msg = r"incompatible tolerance .*, must be compat with type .*"
 
@@ -1982,7 +2002,7 @@ class TestAsOfMerge:
                 tolerance=1.0,
             )
 
-        msg = "tolerance must be positive"
+        msg = "tolerance must be non-negative"
 
         # invalid negative
         with pytest.raises(MergeError, match=msg):
