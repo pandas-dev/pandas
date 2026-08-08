@@ -58,7 +58,7 @@ from ctypes import (
 import os
 import platform
 from shutil import which as _executable_exists
-import subprocess
+import subprocess  # nosec
 import time
 import warnings
 
@@ -100,13 +100,13 @@ def init_osx_pbcopy_clipboard():
     def copy_osx_pbcopy(text):
         text = _stringifyText(text)  # Converts non-str values to str.
         with subprocess.Popen(
-            ["pbcopy", "w"], stdin=subprocess.PIPE, close_fds=True
+            ["pbcopy", "w"], stdin=subprocess.PIPE, close_fds=True, shell=False
         ) as p:
             p.communicate(input=text.encode(ENCODING))
 
     def paste_osx_pbcopy():
         with subprocess.Popen(
-            ["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True
+            ["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True, shell=False
         ) as p:
             stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
