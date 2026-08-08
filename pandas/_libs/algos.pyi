@@ -150,23 +150,27 @@ def scalar_skew(
     values: np.ndarray,  # const float64_t[:]
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+    bias: bool = ...,  # bint
 ) -> float: ...
 def scalar_kurt(
     values: np.ndarray,  # const float64_t[:]
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+    bias: bool = ...,  # bint
 ) -> float: ...
 def axis_skew(
     values: np.ndarray,  # const float64_t[:, :]
     axis: int,
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+    bias: bool = ...,  # bint
 ) -> np.ndarray: ...
 def axis_kurt(
     values: np.ndarray,  # const float64_t[:, :]
     axis: int,
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+    bias: bool = ...,  # bint
 ) -> np.ndarray: ...
 def ensure_platform_int(arr: object) -> npt.NDArray[np.intp]: ...
 def ensure_object(arr: object) -> npt.NDArray[np.object_]: ...

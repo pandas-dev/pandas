@@ -40,6 +40,7 @@ Other enhancements
 - :func:`to_datetime` and ``strptime`` parsing now support the ``%N`` directive for matching exactly 9 digits representing nanoseconds, providing symmetry with ``strftime`` formatting (:issue:`65863`)
 - :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
 - :meth:`Series.round` now works on third-party numeric :class:`ExtensionArray` types via a default :meth:`ExtensionArray.round` (:issue:`49387`)
+- :meth:`Series.skew`, :meth:`Series.kurt`, :meth:`DataFrame.skew`, and :meth:`DataFrame.kurt` now accept a ``bias`` parameter to compute the biased (population) statistic instead of the default bias-corrected (sample) statistic, matching the behavior of ``scipy.stats.skew`` and ``scipy.stats.kurtosis`` (:issue:`54556`)
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)

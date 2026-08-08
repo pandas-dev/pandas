@@ -2585,8 +2585,10 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
-        elif name in ["skew", "kurt"] and "biased" not in kwargs:
-            kwargs["biased"] = False
+        elif name in ["skew", "kurt"]:
+            # pandas' `bias` kwarg maps to pyarrow's `biased` kwarg; both
+            # use the same semantics (True = population/biased statistic).
+            kwargs["biased"] = kwargs.pop("bias", False)
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)

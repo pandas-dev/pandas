@@ -181,6 +181,8 @@ def test_frame_consistency(groupby_func):
         exclude_result = {"engine", "engine_kwargs"}
     elif groupby_func in ("median", "prod", "sem"):
         exclude_expected = {"axis", "kwargs"}
+    elif groupby_func in ("skew", "kurt"):
+        exclude_expected = {"bias"}
     elif groupby_func in ("bfill", "ffill"):
         exclude_expected = {"inplace", "axis", "limit_area"}
     elif groupby_func in ("cummax", "cummin"):
@@ -255,6 +257,8 @@ def test_series_consistency(request, groupby_func):
         exclude_expected = {"args", "kwargs"}
     elif groupby_func in ("quantile",):
         exclude_result = {"numeric_only"}
+    elif groupby_func in ("skew", "kurt"):
+        exclude_expected = {"bias"}
     if groupby_func not in [
         "diff",
         "pct_change",
