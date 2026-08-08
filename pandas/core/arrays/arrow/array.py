@@ -1865,13 +1865,10 @@ class ArrowExtensionArray(
 
         data = self._pa_array
 
+        # GH 66490
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
-                encoded = data
+            data = data.cast(data.type.value_type)
+            encoded = data.dictionary_encode(null_encoding=null_encoding)
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:

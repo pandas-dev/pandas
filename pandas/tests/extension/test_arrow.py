@@ -4370,14 +4370,33 @@ def test_factorize_chunked_dictionary():
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
-def test_factorize_dictionary_with_na():
+@pytest.mark.parametrize(
+    ("codes", "uniques"),
+    [
+        pytest.param([0, None], ["a1"], id="null_in_codes"),
+        pytest.param([0, 1], ["a1", None], id="null_in_uniques"),
+    ],
+)
+def test_factorize_dictionary_with_na(codes, uniques):
     # GH#60567
-    arr = pd.array(
-        ["a1", pd.NA], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array(codes, type=pa.int32()),
+        pa.array(uniques, type=pa.utf8()),
     )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+
+    # use_na_sentinel=False should produce valid integer codes for Null values
     indices, uniques = arr.factorize(use_na_sentinel=False)
     expected_indices = np.array([0, 1], dtype=np.intp)
     expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    # GH#66490
+    # use_na_sentinel=True should produce -1 codes for Null values
+    indices, uniques = arr.factorize(use_na_sentinel=True)
+    expected_indices = np.array([0, -1], dtype=np.intp)
+    expected_uniques = pd.array(["a1"], dtype=ArrowDtype(pa.string()))
     tm.assert_numpy_array_equal(indices, expected_indices)
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
