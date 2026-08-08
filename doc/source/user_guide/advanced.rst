@@ -165,6 +165,22 @@ completely analogous way to selecting a column in a regular DataFrame:
    df["bar"]["one"]
    s["qux"]
 
+For a ``Series``, ``[]`` selects on the index, so ``s["qux"]`` above performs
+partial selection on the row labels. For a ``DataFrame``, however, ``[]``
+selects *columns*: ``df["bar"]`` works above only because this ``df`` has a
+``MultiIndex`` on its columns. If the ``MultiIndex`` is on the rows instead,
+selecting a partial label with ``[]`` raises a ``KeyError`` — use ``.loc``
+for partial selection on the rows:
+
+.. ipython:: python
+   :okexcept:
+
+   df.T["bar"]
+
+.. ipython:: python
+
+   df.T.loc["bar"]
+
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
 
