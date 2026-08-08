@@ -3,8 +3,8 @@
 #pragma once
 
 #include <Python.h>
-
 #include <pymem.h>
+#include <stdbool.h>
 #include <string.h>
 
 typedef struct {
@@ -220,11 +220,51 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
+// GH#57052
+// this function assumes PyErr_Occurred is checked further up the call stack
+static inline bool pandas_is_NA(PyTypeObject *t) {
+  PyObject *module = NULL;
+  PyObject *na_type = NULL;
+  static PyTypeObject *pandas_na_type = NULL;
+  bool is_na = false;
+
+  if (pandas_na_type == NULL) {
+    if ((module = PyImport_ImportModule("pandas._libs.missing")) == NULL) {
+      goto end;
+    }
+    if ((na_type = PyObject_GetAttrString(module, "NAType")) == NULL) {
+      goto end;
+    }
+    if (PyType_Check(na_type) == 0) {
+      goto end;
+    }
+    // keep a reference to NAType forever (until the interpreter exits) to
+    // ensure pandas_na_type never points to an invalid address.
+    // this is a hack and should be cleaned up, possibly by generating NAType
+    // in this header or upstream of whatever compilation unit this header gets
+    // pulled into
+    Py_INCREF(na_type);
+    pandas_na_type = (PyTypeObject *)na_type;
+  }
+
+end:
+  is_na = t == pandas_na_type;
+  Py_XDECREF(na_type);
+  Py_XDECREF(module);
+  return is_na;
+}
+
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   if (a == b) {
     return 1;
   }
-  if (Py_TYPE(a) == Py_TYPE(b)) {
+
+  PyTypeObject *a_type = Py_TYPE(a);
+  PyTypeObject *b_type = Py_TYPE(b);
+  if (a_type == b_type) {
     // special handling for some built-in types which could have NaNs
     // as we would like to have them equivalent, but the usual
     // PyObject_RichCompareBool would return False
@@ -240,10 +280,14 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     }
     // frozenset isn't yet supported
   }
+  if (pandas_is_NA(a_type) || pandas_is_NA(b_type)) {
+    // GH#57052: PyObject_RichCompareBool would raise
+    // because comparing anything to pd.NA returns pd.NA
+    return 0;
+  }
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
-    PyErr_Clear();
     return 0;
   }
   return result;
@@ -320,6 +364,9 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
 }
 
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -338,12 +385,19 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   } else if (PyTuple_Check(key)) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
+  } else if (PyDict_Check(key) || PyList_Check(key)) {
+    // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were
+    // suppressed. Existing code that relies on this behaviour is for example:
+    //   * _libs.hashtable.value_count_object via DataFrame.describe
+    //   * _libs.hashtable.ismember_object via Series.isin
+    // Using hash = 0 puts all dict and list objects in the same bucket,
+    // which is bad for performance but that is how it worked before.
+    hash = 0;
   } else {
     hash = PyObject_Hash(key);
   }
 
   if (hash == -1) {
-    PyErr_Clear();
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4
