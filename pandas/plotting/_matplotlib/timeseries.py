@@ -301,6 +301,14 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     # inspect the first element because the index has a (possibly inferred)
     # freq, so the rest are evenly spaced relative to it.
     if isinstance(index, ABCDatetimeIndex):
+        # GH#65915: Timezone-aware DatetimeIndex must not use Period-based
+        # plotting because Period has no timezone concept.  Converting a
+        # tz-aware index to Period silently drops the timezone, which makes
+        # timestamps from different timezones (e.g. UTC-06:00 and UTC+00:00)
+        # appear at the same x-position even when they represent different
+        # absolute times.  Fall back to regular datetime-based plotting.
+        if index.tz is not None:
+            return False
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
