@@ -1088,10 +1088,17 @@ class Block(PandasObject, libinternals.Block):
         # get_new_values can return a view of self.values on the identity-indexer
         #  fast path (see _Unstacker._make_sorted_values); every other path copies
         #  via take_nd.  Gate on that, then the O(1) may_share_memory, so CoW
-        #  tracks the reference.  GH#65107
-        if unstacker._indexer_is_identity and np.may_share_memory(
-            new_values, self.values
-        ):
+        #  tracks the reference.  GH#65107.  For NDArrayBacked EAs (e.g. tz-aware
+        #  datetime, period) np.asarray boxes to object, so may_share_memory on
+        #  the EA objects is always False; compare the backing ._ndarray instead
+        #  as get_result does, else the shared view goes untracked.  GH#65748
+        if isinstance(self.values, np.ndarray):
+            source, unstacked = self.values, new_values
+        else:
+            values = cast("NDArrayBackedExtensionArray", self.values)
+            source, unstacked = values._ndarray, new_values._ndarray
+
+        if unstacker._indexer_is_identity and np.may_share_memory(unstacked, source):
             refs = self.refs
         else:
             refs = None
@@ -1152,12 +1159,15 @@ class Block(PandasObject, libinternals.Block):
                 casted = setitem_datetimelike_compat(values, num_set, casted)
 
                 if (
-                    isinstance(casted, list)
+                    self.ndim == 1
+                    and isinstance(casted, list)
                     and len(casted) > 0
                     and isinstance(casted[0], (tuple, list, np.ndarray))
                 ):
                     # Prevent numpy from unpacking nested containers
-                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    # (e.g. tuples) into a scalar cell during assignment. GH#37629
+                    # Only for 1D blocks: on a 2D block a list of lists/tuples is
+                    # a genuine 2D value whose rows must not be wrapped. GH#65264
                     casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
@@ -1734,6 +1744,12 @@ class EABackedBlock(Block):
         value = self._maybe_squeeze_arg(value)
 
         values = self.values
+        if values._readonly:
+            # GH#38547 raise here instead of letting the ValueError from
+            #  EA.__setitem__ reach the except clause below, which would
+            #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
+            #  whose __setitem__ does not check the flag.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
@@ -1848,6 +1864,11 @@ class EABackedBlock(Block):
 
         self = self._maybe_copy(inplace=True)
         values = self.values
+        if values._readonly:
+            # GH#38547 as in EABackedBlock.setitem, raise instead of letting
+            #  the except clause below misinterpret the EA-level ValueError
+            #  as a cast failure.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#64620 Reorient the read-only inputs to the block's storage
             #  layout and putmask into self.values in place. We must not

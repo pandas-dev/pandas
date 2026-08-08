@@ -911,3 +911,62 @@ def test_select_dtypes_arrow_timestamp_string_matches_only_arrow():
     )
     result = df.select_dtypes(include=["timestamp[ns][pyarrow]"])
     tm.assert_frame_equal(result, df[["arrow"]])
+
+
+@pytest.mark.parametrize("spec", ["interval[int64]", pd.IntervalDtype("int64")])
+def test_select_dtypes_interval_subtype_matches_any_closed(spec):
+    # GH#66119, GH#66120: an interval spec with a subtype but no ``closed``
+    # (the string "interval[int64]" or the instance IntervalDtype("int64"),
+    # both of which have closed=None) selects interval columns of that
+    # subtype for any closed value. Previously these matched nothing because
+    # no column ever has closed=None.
+    df = DataFrame(
+        {
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+            "int_left": pd.arrays.IntervalArray.from_breaks(
+                [0, 1, 2, 3], closed="left"
+            ),
+            "float_right": pd.arrays.IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0]),
+            "other": [1, 2, 3],
+        }
+    )
+    result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["int_right", "int_left"]])
+
+    result = df.select_dtypes(exclude=spec)
+    tm.assert_frame_equal(result, df[["float_right", "other"]])
+
+
+@pytest.mark.parametrize(
+    "spec", ["interval[int64, right]", pd.IntervalDtype("int64", "right")]
+)
+def test_select_dtypes_interval_closed_matches_exact(spec):
+    # GH#66119, GH#66120: a fully specified interval spec (subtype and closed)
+    # still matches only that exact closed value
+    df = DataFrame(
+        {
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+            "int_left": pd.arrays.IntervalArray.from_breaks(
+                [0, 1, 2, 3], closed="left"
+            ),
+        }
+    )
+    result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["int_right"]])
+
+
+def test_select_dtypes_interval_family_string_and_bare_instance():
+    # GH#66120: the bare "interval" string and a bare IntervalDtype() instance
+    # both select every interval column regardless of subtype or closed
+    df = DataFrame(
+        {
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+            "float_left": pd.arrays.IntervalArray.from_breaks(
+                [0.0, 1.0, 2.0, 3.0], closed="left"
+            ),
+            "other": [1, 2, 3],
+        }
+    )
+    expected = df[["int_right", "float_left"]]
+    tm.assert_frame_equal(df.select_dtypes(include="interval"), expected)
+    tm.assert_frame_equal(df.select_dtypes(include=pd.IntervalDtype()), expected)

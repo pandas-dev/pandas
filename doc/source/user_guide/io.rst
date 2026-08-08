@@ -1535,7 +1535,9 @@ considerably. This happens automatically when all of the following hold:
 
 * ``filepath_or_buffer`` is a local, uncompressed file path
 * the C engine is used (the default)
-* the file is at least 50 MB
+* the file's data rows total at least 5 MB, excluding any header preamble
+* more than one thread is in use -- see ``mode.max_threads`` below, which
+  defaults to ``1`` on Windows and when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
   ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
   ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
@@ -1544,11 +1546,14 @@ considerably. This happens automatically when all of the following hold:
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
-The number of threads is controlled with the ``mode.max_threads`` option,
-which defaults to the number of CPU cores, capped at ``4``. On Windows the
-default is ``1`` (serial), as parallel reading currently does not improve
-performance there. Set the option to ``1`` to disable parallel reading, e.g.
-when pandas runs inside an application that already parallelizes work:
+The number of threads is controlled with the ``mode.max_threads`` option, which
+defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+available to the process -- CPU affinity, and the cgroup CPU quota when the
+process runs in its own cgroup namespace, as it does under Docker and
+Kubernetes. On Windows the default is ``1`` (serial), as parallel reading
+currently does not improve performance there. Set the option to ``1`` to
+disable parallel reading, e.g. when pandas runs inside an application that
+already parallelizes work:
 
 .. code-block:: python
 
@@ -1940,7 +1945,16 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if ``False``, then don't infer dtypes at all, default is True, apply only to the data.
 * ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is ``True``
 * ``convert_dates`` : a list of columns to parse for dates; If ``True``, then try to parse date-like columns, default is ``True``.
+
+  .. deprecated:: 3.1.0
+     Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
+
 * ``keep_default_dates`` : boolean, default ``True``. If parsing dates, then parse the default date-like columns.
+
+  .. deprecated:: 3.1.0
+     Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
+
+
 * ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -2822,10 +2836,16 @@ Read an XML string:
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
-   df
+   In [362]: df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
+
+   In [363]: df
+   Out[363]:
+      category             title               author  year  price
+   0   cooking  Everyday Italian  Giada De Laurentiis  2005  30.00
+   1  children      Harry Potter         J K. Rowling  2005  29.99
+   2       web      Learning XML          Erik T. Ray  2003  39.95
 
 Read in the content of the "books.xml" file and pass it to ``read_xml``
 as a string:
@@ -3486,7 +3506,7 @@ For example, to read in a ``MultiIndex`` index without names:
        index=pd.MultiIndex.from_product([["a", "b"], ["c", "d"]]),
    )
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 If the index has level names, they will be parsed as well, using the same
@@ -3496,7 +3516,7 @@ parameters.
 
    df.index = df.index.set_names(["lvl1", "lvl2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 
@@ -3507,7 +3527,7 @@ should be passed to ``index_col`` and ``header``:
 
    df.columns = pd.MultiIndex.from_product([["a"], ["b", "d"]], names=["c1", "c2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1], engine="openpyxl")
    df
 
 .. ipython:: python
@@ -6345,6 +6365,10 @@ Specify a ``chunksize`` or use ``iterator=True`` to obtain reader
 objects (``XportReader`` or ``SAS7BDATReader``) for incrementally
 reading the file.  The reader objects also have attributes that
 contain additional information about the file and its variables.
+
+Text is returned as raw bytes unless an ``encoding`` is given.  Pass
+``encoding="infer"`` to decode using the encoding recorded in the file
+header; this will become the default in a future version.
 
 Read a SAS7BDAT file:
 

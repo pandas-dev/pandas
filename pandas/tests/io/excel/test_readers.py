@@ -62,6 +62,9 @@ engine_params = [
             pytest.mark.filterwarnings(
                 "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
             ),
+            pytest.mark.filterwarnings(
+                "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
     pytest.param(
@@ -174,6 +177,29 @@ def xfail_datetimes_with_pyxlsb(engine, request):
         )
 
 
+@td.skip_if_no("openpyxl")
+@td.skip_if_no("python_calamine")
+@pytest.mark.parametrize("ext", ["xlsx", "xlsm"])
+def test_read_excel_default_engine_deprecated(datapath, ext):
+    # GH#56542 - the default xlsx/xlsm reader engine will change to calamine.
+    # xlsm files are format-sniffed as xlsx, so both get the 'xlsx' warning.
+    path = datapath("io", "data", "excel", f"test1.{ext}")
+
+    msg = "The default engine for reading 'xlsx' files will change"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.read_excel(path)
+
+    # passing an explicit engine silences the warning
+    for engine in ("openpyxl", "calamine"):
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path, engine=engine)
+
+    # setting the io.excel.xlsx.reader option silences the warning
+    with pd.option_context("io.excel.xlsx.reader", "openpyxl"):
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path)
+
+
 class TestReaders:
     @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
     def test_read_excel_type_check(self, col, tmp_excel, read_ext):
@@ -225,7 +251,7 @@ class TestReaders:
         # GH 58159
         f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
 
-        with pd.ExcelFile(f_path) as excel:
+        with pd.ExcelFile(f_path, engine="openpyxl") as excel:
             parsed = pd.read_excel(
                 excel,
                 sheet_name="Sheet1",
@@ -1736,12 +1762,18 @@ class TestExcelFileRead:
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
     def test_read_excel_header_index_out_of_range(self, engine):
         # GH#43143
         with open("df_header_oob.xlsx", "rb") as f:
             with pytest.raises(ValueError, match="exceeds maximum"):
                 pd.read_excel(f, header=[0, 1])
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):
         # GH 33476

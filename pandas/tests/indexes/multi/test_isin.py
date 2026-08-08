@@ -102,3 +102,36 @@ def test_isin_generator():
     result = midx.isin(x for x in [(1, 2)])
     expected = np.array([True])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_isin_scalar_values_raises_gh20252():
+    # GH#20252
+    midx = MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
+    msg = (
+        "MultiIndex.isin expects an iterable of tuples of length 2 "
+        r"\(the number of levels\); got a scalar \(1\) at position 0\. "
+        "To match on a single level, pass the level= argument\\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        midx.isin([1, 2])
+
+
+@pytest.mark.parametrize(
+    "values, bad_len, position",
+    [
+        ([("foo", "one", "B"), ("bar",)], 1, 1),
+        ([("foo", "one")], 2, 0),
+        ([("foo", "one", "B"), ("bar", "two", "A", "x")], 4, 1),
+    ],
+)
+def test_isin_wrong_length_tuples_raises_gh26622(values, bad_len, position):
+    # GH#26622 short tuples used to silently give wrong results
+    midx = MultiIndex.from_product([["foo", "bar"], ["one", "two"], ["A", "B"]])
+    msg = (
+        "MultiIndex.isin expects an iterable of tuples of length 3 "
+        rf"\(the number of levels\); got an element of length {bad_len} at "
+        rf"position {position}\. To match on a single level, pass the "
+        "level= argument\\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        midx.isin(values)

@@ -177,6 +177,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     _data_cls = PeriodArray
     _supports_partial_string_indexing = True
 
+    _warn_quarter: bool = False
+
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
@@ -517,6 +519,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         )
         return np.asarray(self, dtype=object)
 
+    def _mpl_repr(self) -> np.ndarray:
+        # Return ordinals directly so matplotlib receives numeric x-values,
+        # bypassing a round-trip through Period scalar objects.  GH#10578
+        return self.asi8
+
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -580,7 +587,23 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         (inclusive) with no gaps.
 
         Requires monotonic increasing order. Duplicate periods are allowed.
+
+        .. deprecated:: 3.1.0
+            ``PeriodIndex.is_full`` is deprecated and will be removed in
+            a future version. Use
+            ``index.empty or len(index.unique()) ==
+            len(period_range(index.min(), index.max(), freq=index.freq))``
+            instead. Unlike ``is_full``, this does not raise on a
+            non-monotonic index.
         """
+        warnings.warn(
+            "PeriodIndex.is_full is deprecated and will be removed in a "
+            "future version. Use index.empty or len(index.unique()) == "
+            "len(period_range(index.min(), index.max(), freq=index.freq)) "
+            "instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if len(self) == 0:
             return True
         if not self.is_monotonic_increasing:

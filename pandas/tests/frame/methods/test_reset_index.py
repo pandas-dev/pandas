@@ -67,7 +67,7 @@ class TestResetIndex:
         assert result["foo"].dtype == "datetime64[ns, US/Eastern]"
 
         df = result.set_index("foo")
-        tm.assert_index_equal(df.index, idx)
+        tm.assert_index_equal(df.index, idx, check_freq=False)
 
     def test_reset_index_tz(self, tz_aware_fixture):
         # GH 3950
@@ -362,7 +362,7 @@ class TestResetIndex:
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
         if isinstance(item, str) and item == "2012-12-31":
-            columns = columns.astype("datetime64[ns]")
+            columns = pd.DatetimeIndex(columns, dtype="datetime64[ns]", freq="D")
         else:
             assert columns.dtype == object
 
