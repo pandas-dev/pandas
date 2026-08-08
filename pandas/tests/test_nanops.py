@@ -952,6 +952,12 @@ class TestEnsureNumeric:
         o_values = values.astype(object)
         assert np.allclose(nanops._ensure_numeric(o_values), values)
 
+        # Test mixed-integer array
+        o_values[2] = "3"
+        msg = r"Could not convert \[1 2 '3'\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric(o_values)
+
         # Test convertible string ndarray
         s_values = np.array(["1", "2", "3"], dtype=object)
         msg = r"Could not convert \['1' '2' '3'\] to numeric"
@@ -1105,6 +1111,40 @@ class TestNanvarFixedValues:
             comparator_method = pytest.importorskip("scipy.stats").sem
         result = nanops_method(arr, axis=axis, ddof=ddof)
         expected = comparator_method(arr, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("ddof", range(3))
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_complex_nanvar_partial_nan(self, ddof, axis, method, skipna):
+        real = self.prng.standard_normal((5, 4))
+        imag = self.prng.standard_normal((5, 4))
+
+        real[0, 0] = np.nan
+        imag[1, 1] = np.nan
+        real[2, 2] = imag[2, 2] = np.nan
+
+        arr = np.empty_like(real, dtype=np.complex128)
+        arr.real = real
+        arr.imag = imag
+
+        nanops_method = getattr(nanops, f"nan{method}")
+
+        if method in {"var", "std"}:
+            nan_prefix = "nan" if skipna else ""
+            comparator_method = getattr(np, nan_prefix + method)
+        elif method == "sem":
+            st_sem = pytest.importorskip("scipy.stats").sem
+            nan_policy = "omit" if skipna else "propagate"
+            comparator_method = partial(st_sem, nan_policy=nan_policy)
+
+        result = nanops_method(arr, axis=axis, ddof=ddof, skipna=skipna)
+        expected = comparator_method(arr, axis=axis, ddof=ddof)
+        if not skipna and method == "sem":
+            # scipy returns a complex number,
+            # the correct part is in the real component :-/
+            expected = expected.real
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("ddof", range(3))
@@ -1350,12 +1390,7 @@ def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     ],
 )
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_nanops_reductions_dont_skip_nan_with_mask(
-    nanops_operation, skipna, axis, request
-):
-    if not skipna and axis in {0, 1} and nanops_operation == "nansem":
-        mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
-        request.applymarker(mark)
+def test_nanops_reductions_dont_skip_nan_with_mask(nanops_operation, skipna, axis):
     if axis is None:
         expected = np.nan
     else:

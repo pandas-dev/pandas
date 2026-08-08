@@ -277,6 +277,9 @@ class TestSeriesStatReductions:
 @pytest.mark.parametrize(
     "opname",
     [
+        "std",
+        "sem",
+        "var",
         "skew",
         "kurt",
     ],
@@ -305,3 +308,18 @@ def test_reduction_consistency(opname, loc, scale):
 
     result_frame = getattr(DataFrame(s), opname)().iloc[0]
     tm.assert_almost_equal(result_series, result_frame)
+
+
+@pytest.mark.parametrize("opname", ["var", "std", "sem"])
+def test_stat_nobs_equal_ddof(opname):
+    s = Series([1.0, 2.0, 3.0])
+    ddof = 3
+
+    result_series = getattr(s, opname)(ddof=ddof)
+    assert np.isnan(result_series)
+
+    result_gb = getattr(s.groupby([0, 0, 0]), opname)(ddof=ddof).iloc[0]
+    assert np.isnan(result_gb)
+
+    result_window = getattr(s.rolling(3, min_periods=3), opname)(ddof=ddof).iloc[2]
+    assert np.isnan(result_window)
