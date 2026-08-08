@@ -3803,21 +3803,25 @@ class ArrowExtensionArray(
         return pa_type.unit
 
     @cache_readonly
-    def _dt_day_remainder(self) -> pa.ChunkedArray:
+    def _dt_day_and_remainder(self) -> tuple[pa.ChunkedArray, pa.ChunkedArray]:
         """
-        Return the remainder after removing full days, always non-negative.
+        Return ``(days, sub-day remainder)`` for a duration array.
 
-        For negative durations like -22h 57m 57s (= -1 day + 1h 2m 3s),
-        this returns the positive offset from the day boundary.
-
-        This is cached because it's used by all sub-day component accessors.
+        The remainder is always non-negative (e.g. -22h57m57s = -1 day + 1h2m3s
+        gives the positive offset from the day boundary). Deriving the remainder
+        already requires the day count, so both are cached together to avoid
+        recomputing the floor division in ``_dt_days``.
         """
         unit = self._duration_unit
         divisor = _DURATION_DIVISORS["day"][unit]
         arr = self._pa_array.cast(pa.int64())
         days = floor_div_int64(arr, divisor)
-        # remainder = arr - days * divisor (always non-negative)
-        return pc.subtract(arr, pc.multiply(days, divisor))
+        remainder = pc.subtract(arr, pc.multiply(days, divisor))
+        return days, remainder
+
+    @property
+    def _dt_day_remainder(self) -> pa.ChunkedArray:
+        return self._dt_day_and_remainder[1]
 
     def _dt_subday_component(self, component: str, modulo: int) -> Self:
         """
@@ -3837,10 +3841,8 @@ class ArrowExtensionArray(
 
     @property
     def _dt_days(self) -> Self:
-        unit = self._duration_unit
-        arr = self._pa_array.cast(pa.int64())
-        result = floor_div_int64(arr, _DURATION_DIVISORS["day"][unit])
-        return self._from_pyarrow_array(result.cast(pa.int32()))
+        days = self._dt_day_and_remainder[0]
+        return self._from_pyarrow_array(days.cast(pa.int32()))
 
     @property
     def _dt_hours(self) -> Self:
@@ -3894,21 +3896,37 @@ class ArrowExtensionArray(
         """
         Return all duration components.
 
-        The day remainder is computed once (and cached on ``_dt_day_remainder``),
-        so every sub-day component below reuses it. Note that the per-field
-        semantics differ from the like-named accessors: ``seconds`` here is the
-        0-59 seconds field (not the 0-86399 total) and ``microseconds`` is the
-        0-999 field (not the 0-999999 total).
+        Sub-day fields are peeled off a running remainder from the coarsest unit
+        down, so each is ``remainder // divisor`` with no modulo needed.
+        ``seconds``/``microseconds`` here are the 0-59 / 0-999 fields.
         """
-        return {
-            "days": self._dt_days,
-            "hours": self._dt_hours,
-            "minutes": self._dt_minutes,
-            "seconds": self._dt_subday_component("second", modulo=60),
-            "milliseconds": self._dt_milliseconds,
-            "microseconds": self._dt_subday_component("microsecond", modulo=1000),
-            "nanoseconds": self._dt_nanoseconds,
-        }
+        unit = self._duration_unit
+        components: dict[str, ArrowExtensionArray] = {"days": self._dt_days}
+        remainder = self._dt_day_remainder
+        subday = (
+            ("hours", "hour"),
+            ("minutes", "minute"),
+            ("seconds", "second"),
+            ("milliseconds", "millisecond"),
+            ("microseconds", "microsecond"),
+            ("nanoseconds", "nanosecond"),
+        )
+        # index of the finest field present at this resolution; its remainder
+        # update is redundant since no finer field follows
+        last = max(
+            i for i, (_, c) in enumerate(subday) if unit in _DURATION_DIVISORS[c]
+        )
+        for i, (name, component) in enumerate(subday):
+            divisor = _DURATION_DIVISORS[component].get(unit)
+            if divisor is None:
+                # array resolution is coarser than this component -> always 0
+                components[name] = self._dt_zero_or_null_int32()
+                continue
+            value = pc.divide(remainder, divisor)
+            components[name] = self._from_pyarrow_array(value.cast(pa.int32()))
+            if i != last:
+                remainder = pc.subtract(remainder, pc.multiply(value, divisor))
+        return components
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
         data = self._pa_array.to_pylist()

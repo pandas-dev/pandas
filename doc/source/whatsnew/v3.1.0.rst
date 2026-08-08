@@ -367,6 +367,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.isin` and :meth:`DataFrame.isin`
   when checking a numeric :class:`Series` or :class:`Index` against a
   list-like of integers of a different numeric dtype (:issue:`46485`).
+- Performance improvement in :attr:`Series.dt.components` for :class:`ArrowDtype` durations by extracting the sub-day fields from a cascading remainder instead of an independent modulo per field (:issue:`66635`)
 - Performance improvement in the :attr:`Series.dt` duration component accessors (``days``, ``seconds``, ``microseconds``, ``nanoseconds``, ``components``, etc.) for :class:`ArrowDtype` durations by using PyArrow compute instead of converting to :class:`TimedeltaArray` (:issue:`63470`)
 - Performance improvement in tab completion and :meth:`DataFrame.__dir__`
   for :class:`DataFrame` and :class:`Series` with a large string-valued
