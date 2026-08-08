@@ -768,6 +768,22 @@ class DataFrame(NDFrame, OpsMixin):
         table = pa.Table.from_pandas(self, schema=requested_schema)
         return table.__arrow_c_stream__()
 
+    @classmethod
+    def _from_pyarrow(cls, table) -> DataFrame:
+        """
+        Construct a DataFrame from a ``pyarrow.Table``.
+
+        Private, pandas-controlled entry point for the arrow -> pandas
+        conversion (GH#59780). Exposed as a method (rather than a module-level
+        function) so the API pyarrow calls is stable across internal refactors.
+        The pandas-specific metadata/index handling lives in
+        :mod:`pandas.core.interchange.from_arrow`; the array-level conversion is
+        delegated to pyarrow.
+        """
+        from pandas.core.interchange.from_arrow import table_to_dataframe
+
+        return table_to_dataframe(table)
+
     # ----------------------------------------------------------------------
 
     @property
