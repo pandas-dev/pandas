@@ -1528,6 +1528,7 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
+    values = _ensure_numeric(values)
     dtype = values.dtype
     values = ensure_float64(values)
 
@@ -1586,6 +1587,7 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
+    values = _ensure_numeric(values)
     dtype = values.dtype
     values = ensure_float64(values)
 
@@ -1974,10 +1976,9 @@ def _ensure_numeric(x):
         if x.dtype.kind in "biu":
             x = x.astype(np.float64)
         elif x.dtype == object:
-            inferred = lib.infer_dtype(x)
-            if inferred in ["string", "mixed"]:
+            if lib.contains_strings(x):
                 # GH#44008, GH#36703 avoid casting e.g. strings to numeric
-                raise TypeError(f"Could not convert {x} to numeric")
+                raise TypeError("Could not convert array to numeric")
             try:
                 x = x.astype(np.complex128)
             except (TypeError, ValueError):
@@ -1985,7 +1986,7 @@ def _ensure_numeric(x):
                     x = x.astype(np.float64)
                 except ValueError as err:
                     # GH#29941 we get here with object arrays containing strs
-                    raise TypeError(f"Could not convert {x} to numeric") from err
+                    raise TypeError("Could not convert array to numeric") from err
             else:
                 if not np.any(np.imag(x)):
                     x = x.real
