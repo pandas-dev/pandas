@@ -1793,12 +1793,13 @@ class ExcelFile:
               column if the callable returns ``True``.
 
             Returns a subset of the columns according to behavior above.
-        Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
-        To instantiate a :class:`~pandas.DataFrame` with element order preserved
-        use ``pd.read_excel(path, usecols=['foo', 'bar'])[['foo', 'bar']]`` for
-        columns in ``['foo', 'bar']`` order or
-        ``pd.read_excel(path, usecols=['foo', 'bar'])[['bar', 'foo']]`` for
-        ``['bar', 'foo']`` order.
+            Element order is ignored, so ``usecols=[0, 1]`` is the same as
+            ``[1, 0]``. To instantiate a :class:`~pandas.DataFrame` with element
+            order preserved use
+            ``pd.read_excel(path, usecols=['foo', 'bar'])[['foo', 'bar']]`` for
+            columns in ``['foo', 'bar']`` order or
+            ``pd.read_excel(path, usecols=['foo', 'bar'])[['bar', 'foo']]`` for
+            ``['bar', 'foo']`` order.
         converters : dict, default None
             Dict of functions for converting values in certain columns. Keys can
             either be integers or column labels, values are functions that take one
