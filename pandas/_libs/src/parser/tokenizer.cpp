@@ -475,8 +475,14 @@ static int end_line(parser_t *self) {
   } else {
     // missing trailing delimiters
     if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
-      // might overrun the buffer when closing fields
-      if (make_stream_space(self, ex_fields - fields) < 0) {
+      // The synthetic terminators written for the missing fields take stream
+      // space the bulk-scan copies in tokenize_bytes still need for the
+      // unconsumed input: those copies write input 1:1 with no per-copy
+      // capacity check and rely on the up-front reservation. Reserve for the
+      // terminators AND the rest of the chunk, so a run of short rows before a
+      // wide field cannot leave the stream too small for the next bulk copy.
+      if (make_stream_space(self, (size_t)(ex_fields - fields) +
+                                      (self->datalen - self->datapos)) < 0) {
         const size_t bufsize = 100;
         self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize, "out of memory");

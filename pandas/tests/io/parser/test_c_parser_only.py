@@ -65,6 +65,23 @@ def test_cr_in_field_with_trailing_space(c_parser_only):
     assert result.shape == (3, 3)
 
 
+def test_buffer_overflow_short_rows_before_wide_field(c_parser_only):
+    # GH#66657 - rows with fewer fields than expected are padded with synthetic
+    # field terminators, which ate the token-stream reservation that the bulk
+    # copies rely on; a wide field after a run of short rows in the same read
+    # buffer then overran the stream (heap-buffer-overflow, truncated field).
+    parser = c_parser_only
+    n_cols = 5000
+    wide = "X" * 100_000
+    data = "a\n" * 40 + wide + "\n"
+    result = parser.read_csv(
+        StringIO(data), header=None, names=[f"c{i}" for i in range(n_cols)]
+    )
+    assert result.shape == (41, n_cols)
+    assert result.iloc[0, 0] == "a"
+    assert result.iloc[40, 0] == wide
+
+
 def test_delim_whitespace_custom_terminator(c_parser_only):
     # See gh-12912
     data = "a b c~1 2 3~4 5 6~7 8 9"
