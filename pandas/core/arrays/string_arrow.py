@@ -553,6 +553,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
 
+    def _str_partition(self, sep: str, expand: bool):
+        if expand:
+            # rows of three strings, so a list array rather than Self
+            return ArrowExtensionArray(
+                ArrowStringArrayMixin._str_partition_expand(self, sep)
+            )
+        # expand=False wants tuples, which the object path produces directly
+        return ObjectStringArrayMixin._str_partition(self, sep, expand)
+
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
             dtype = np.int64
