@@ -3251,7 +3251,7 @@ def test_dt_timedelta_components_negative_and_nulls():
 
 
 def test_dt_timedelta_accessors_match_python_timedelta():
-    # GH 63470: .dt.seconds/.dt.microseconds previously returned the
+    # GH 63470, GH#63283: .dt.seconds/.dt.microseconds previously returned the
     # .dt.components field values (0-59 / 0-999) instead of Python timedelta
     # semantics (total sub-day seconds, total sub-second microseconds)
     td = timedelta(
@@ -3300,9 +3300,10 @@ def test_dt_timedelta_components_different_units(unit):
     for col in result.columns:
         assert pd.isna(result[col].iloc[1])
 
-    # GH 63470: the direct .dt.<component> accessors must match the NumPy-backed
-    # result at every unit. In particular .dt.microseconds on a coarser unit
-    # (e.g. "ms") must scale up the sub-second portion rather than returning 0.
+    # GH 63470, GH#63283: the direct .dt.<component> accessors must match the
+    # NumPy-backed result at every unit. In particular .dt.microseconds on a
+    # coarser unit (e.g. "ms") must scale up the sub-second portion rather
+    # than returning 0.
     ser_numpy = pd.Series([td.as_unit(unit), None])
     for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
         expected = pd.Series(
