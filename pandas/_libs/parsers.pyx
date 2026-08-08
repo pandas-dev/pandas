@@ -412,6 +412,9 @@ cdef class TextReader:
         # handles instead of ExtensionArrays; the c_parser_wrapper layer
         # materializes them once per column at the end of the read.
         public bint defer_pa_wrap
+        # Set by _close, which frees the tokenizer's buffers.  Reading from a
+        # closed reader would dereference those freed pointers (GH#66622).
+        bint is_closed
 
     cdef public:
         int64_t leading_cols, table_width
@@ -656,6 +659,10 @@ cdef class TextReader:
 
     def close(self):
         _close(self)
+
+    cdef _check_not_closed(self):
+        if self.is_closed:
+            raise ValueError("I/O operation on closed file.")
 
     def load_buffer(self, const unsigned char[::1] data, bint strip_bom=False):
         """Pre-load all chunk bytes into the parser's internal buffer.
@@ -937,6 +944,7 @@ cdef class TextReader:
         """
         rows=None --> read all rows
         """
+        self._check_not_closed()
         # Don't care about memory usage
         columns = self._read_rows(rows, self.trim_after_read)
 
@@ -952,6 +960,8 @@ cdef class TextReader:
         cdef:
             size_t rows_read = 0
             list chunks = []
+
+        self._check_not_closed()
 
         if self.datetime_cols:
             # Per-chunk fastpath state keyed by column; see _DatetimeChunkState.
@@ -1807,6 +1817,7 @@ cdef class TextReader:
 # which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
+    reader.is_closed = True
     # Drop the pre-loaded buffer reference deterministically so the caller
     # can close the backing mmap (free-threaded builds may otherwise delay
     # the release past pool shutdown).

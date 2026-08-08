@@ -64,6 +64,7 @@ if TYPE_CHECKING:
 class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
+    _exhausted: bool
     # When False, read() leaves deferred string columns as raw pending
     # handles for the caller to materialize (one chunked ExtensionArray per
     # column, e.g. post-gather in a parallel read).
@@ -75,6 +76,7 @@ class CParserWrapper(ParserBase):
         kwds = kwds.copy()
 
         self.low_memory = kwds.pop("low_memory", False)
+        self._exhausted = False
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -260,6 +262,10 @@ class CParserWrapper(ParserBase):
     ]:
         index: Index | MultiIndex | None
         column_names: Sequence[Hashable] | MultiIndex
+        if self._exhausted:
+            # Exhausting the reader closed it, so calling into the C reader
+            # again would raise instead of signalling the end of the data.
+            raise StopIteration
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -299,6 +305,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self._exhausted = True
                 self.close()
                 raise
 
