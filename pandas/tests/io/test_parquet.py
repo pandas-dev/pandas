@@ -521,6 +521,11 @@ class TestBasic(Base):
         df.index = index
         check_round_trip(df, temp_file, engine)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and pa_version_under19p0,
+        reason="With pyarrow<19 we pass a types_mapper to Table.to_pandas, which "
+        "makes pyarrow drop the extension dtype of MultiIndex levels",
+    )
     @pytest.mark.parametrize("freq", ["D", "M"])
     def test_write_multiindex_period_level(self, pa, temp_file, freq):
         # GH#49641 a PeriodIndex level of a MultiIndex round-tripped as the
