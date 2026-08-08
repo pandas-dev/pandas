@@ -1304,3 +1304,27 @@ class TestDataFrameSelectReindex:
             index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["datetime64[ns]", "timedelta64[ns]", "Int64", "float32", "str"]
+)
+def test_reindex_columns_preserves_homogeneous_dtype(dtype, using_infer_string):
+    # GH#59529, GH#63288 columns introduced by reindexing a frame whose
+    #  columns all share a NA-capable dtype should get that dtype, not float64
+    if dtype == "str" and not using_infer_string:
+        # without infer_string, "str" is object dtype, which is not preserved
+        pytest.skip("str resolves to object dtype without infer_string")
+    df = DataFrame({"a": [1, 2], "b": [3, 4]}).astype(dtype)
+    result = df.reindex(columns=["a", "b", "c"])
+    assert result["c"].dtype == df["a"].dtype
+    assert result["c"].isna().all()
+
+
+def test_reindex_columns_categorical_does_not_inherit_categories():
+    # GH#59529 a new all-NA column should not inherit an existing
+    #  column's categories
+    df = DataFrame({"a": Categorical(["x", "y"])})
+    result = df.reindex(columns=["a", "b"])
+    assert result["b"].dtype == np.float64
+    assert result["b"].isna().all()
