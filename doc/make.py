@@ -161,7 +161,9 @@ class DocBuilder:
         """
         Open the rst file `page` and extract its title.
         """
-        fname = os.path.join(SOURCE_PATH, f"{page}.rst")
+        fname = os.path.realpath(os.path.join(SOURCE_PATH, f"{page}.rst"))
+        if not fname.startswith(os.path.realpath(SOURCE_PATH) + os.sep):
+            raise ValueError(f"Invalid page path: {page}")
         doc = docutils.utils.new_document(
             "<doc>",
             docutils.frontend.get_default_settings(docutils.parsers.rst.Parser),
@@ -196,7 +198,11 @@ class DocBuilder:
                     continue
 
                 html_path = os.path.join(BUILD_PATH, "html")
-                path = os.path.join(html_path, *row[0].split("/")) + ".html"
+                path = os.path.realpath(
+                    os.path.join(html_path, *row[0].split("/")) + ".html"
+                )
+                if not path.startswith(os.path.realpath(html_path) + os.sep):
+                    raise ValueError(f"Invalid redirect path: {row[0]}")
 
                 if not self.include_api and (
                     os.path.join(html_path, "reference") in path
