@@ -34,7 +34,7 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     ----------
     obj : any object
         The object to pickle and then re-read.
-    path : str, path object or file-like object, default None
+    tmp_path : str, path object or file-like object, default None
         The path where the pickled object is written and then read.
 
     Returns
@@ -58,7 +58,7 @@ def round_trip_pathlib(
         IO writing function (e.g. DataFrame.to_csv )
     reader : callable
         IO reading function (e.g. pd.read_csv )
-    path : str, default None
+    tmp_path : str, default None
         The path where the object is written and then read.
 
     Returns
