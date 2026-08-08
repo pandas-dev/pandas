@@ -188,19 +188,35 @@ def _convert_arrays_to_dataframe(
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
+
+    content_t = list(content.T)
+    preserve_as_object: dict[int, np.ndarray] = {}
+    if coerce_float:
+        new_content_t = []
+        for i, col in enumerate(content_t):
+            converted, is_exact_int_with_nulls = lib.maybe_convert_lossy_decimal_ints(
+                col
+            )
+            if is_exact_int_with_nulls and dtype_backend == "numpy":
+                preserve_as_object[i] = converted
+            new_content_t.append(converted)
+        content_t = new_content_t
+
     arrays = convert_object_array(
-        list(content.T),
+        content_t,
         dtype=None,
         coerce_float=coerce_float,
         dtype_backend=dtype_backend,
     )
+    for i, arr in preserve_as_object.items():
+        arrays[i] = arr
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
 
         result_arrays = []
-        for arr in arrays:
-            pa_array = pa.array(arr, from_pandas=True)
-            if arr.dtype == "string":
+        for col_arr in arrays:
+            pa_array = pa.array(col_arr, from_pandas=True)
+            if col_arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
                 # of large_string, which is what we preserver everywhere else for
                 # dtype_backend="pyarrow". We may want to reconsider this
