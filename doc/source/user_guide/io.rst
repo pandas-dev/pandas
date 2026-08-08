@@ -65,12 +65,12 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
-  the separator, but the Python parsing engine can, meaning the latter will be
-  used and automatically detect the separator by Python's builtin sniffer tool,
-  :class:`python:csv.Sniffer`. In addition, separators longer than 1 character and
-  different from ``'\s+'`` will be interpreted as regular expressions and
-  will also force the use of the Python parsing engine. Note that regex
+  Delimiter to use. ``sep=None`` detects the separator from the first valid row
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
+  is supported only by the Python parsing engine and must be combined with
+  ``engine='python'`` explicitly. In addition, separators longer than 1 character
+  and different from ``'\s+'`` will be interpreted as regular expressions and
+  will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
@@ -172,12 +172,15 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
-  is currently more feature-complete. Multithreading is currently only supported by
-  the pyarrow engine. Some features of the "pyarrow" engine
-  are unsupported or may not work correctly.
+  is currently more feature-complete. The pyarrow engine is multithreaded, and the C
+  engine reads :ref:`sufficiently large files <io.csv.parallel>` in parallel. Some
+  features of the "pyarrow" engine are unsupported or may not work correctly.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
-  integers or column labels.
+  integers or column labels. The function is applied to the raw text read from the
+  file, before any missing-value detection: an empty field is passed as an empty
+  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
+  column that has a converter.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -1419,7 +1422,8 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``.
+class of the csv module. For this, you have to specify ``sep=None`` together
+with ``engine='python'``.
 
 .. ipython:: python
 
@@ -1482,45 +1486,46 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-pandas currently supports three engines, the C engine, the python engine, and a
-pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
-on larger workloads and is equivalent in speed to the C engine on most other workloads.
-The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
-the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
-Python engine.
+pandas supports three parser engines, selected with the ``engine`` keyword:
+the C engine (``engine='c'``, the default), the python engine
+(``engine='python'``), and the pyarrow engine (``engine='pyarrow'``, which
+requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads and is equivalent in speed to the C engine on most other
+workloads; the python engine is the slowest, but it is the only one that
+supports regex separators and ``skipfooter``. The table below compares the
+three engines:
 
-Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
-back to Python if C-unsupported options are specified.
+.. csv-table::
+   :header: "", "``'c'``", "``'python'``", "``'pyarrow'``"
+   :widths: 40, 18, 18, 18
 
-Currently, options unsupported by the C and pyarrow engines include:
+   "Default engine","yes","",""
+   "Relative speed","fast","slowest","fastest on large workloads"
+   "Multithreaded",":ref:`for large files <io.csv.parallel>`","no","yes"
+   "Regex or multi-character ``sep``","no","yes","no"
+   "``sep=None`` (auto-detect the separator)","no","yes","no"
+   "``skipfooter``","no","yes","no"
+   "``low_memory``","yes","no","no"
+   "``lineterminator``","yes","no","no"
+   "``memory_map``","yes","yes","no"
+   "``iterator`` / ``chunksize`` / ``nrows``","yes","yes","no"
+   "``comment``, ``thousands``, ``skipinitialspace``","yes","yes","no"
+   "``dayfirst``","yes","yes","no"
+   "``converters``","yes","yes","no"
+   "``quoting``, ``dialect``","yes","yes","no"
+   "``na_filter``","yes","yes","no"
 
-* ``sep`` other than a single character (e.g. regex separators)
-* ``skipfooter``
+Where possible, pandas uses the C parser (specified as ``engine='c'``), but
+it may fall back to Python if C-unsupported options are specified: passing an
+option only the python engine supports produces a ``ParserWarning`` unless
+the python engine is selected explicitly with ``engine='python'``. Selecting
+the C engine explicitly instead raises a ``ValueError``, as does passing an
+option unsupported by the pyarrow engine together with ``engine='pyarrow'``.
 
-Specifying any of the above options will produce a ``ParserWarning`` unless the
-python engine is selected explicitly using ``engine='python'``.
-
-Options that are unsupported by the pyarrow engine which are not covered by the list above include:
-
-* ``float_precision``
-* ``chunksize``
-* ``comment``
-* ``nrows``
-* ``thousands``
-* ``memory_map``
-* ``dialect``
-* ``on_bad_lines``
-* ``quoting``
-* ``lineterminator``
-* ``converters``
-* ``decimal``
-* ``iterator``
-* ``dayfirst``
-* ``verbose``
-* ``skipinitialspace``
-* ``low_memory``
-
-Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
+``sep=None``, which sniffs the separator, is an exception to this fallback and
+must be combined with ``engine='python'`` explicitly. The other engines do not
+fall back to Python for it: the C engine raises a ``TypeError``, and the
+pyarrow engine silently parses each line as a single column.
 
 .. _io.csv.parallel:
 
@@ -3156,6 +3161,14 @@ of reading in Wikipedia's very large (12 GB+) latest article data dump.
 
     [3578765 rows x 3 columns]
 
+.. note::
+
+   ``iterparse`` cannot be combined with ``stylesheet``. XSLT transformation
+   requires the entire tree in memory, which is exactly what ``iterparse``
+   avoids, so a ``stylesheet`` passed alongside ``iterparse`` is ignored
+   without warning. To transform a document with XSLT, use ``xpath`` parsing
+   instead.
+
 .. _io.xml:
 
 Writing XML
@@ -3534,6 +3547,23 @@ should be passed to ``index_col`` and ``header``:
    :suppress:
 
    os.remove("path_to_file.xlsx")
+
+.. note::
+
+   When a ``DataFrame`` with ``MultiIndex`` columns is written by
+   :meth:`~DataFrame.to_excel`, a row containing the index name(s) — blank
+   when the index is unnamed — is always inserted between the header rows and
+   the data. This makes the format unambiguous, and
+   ``read_excel`` assumes this layout when ``header`` is a list of two or more
+   rows and ``index_col`` is given: if the cells outside the ``index_col``
+   in the row following the last header row are all empty, that row is
+   interpreted as the index name(s) rather than as data. A spreadsheet not
+   written by pandas that lacks this separator row will therefore lose its
+   first data row to the index name(s) if that row has values only in the
+   index column(s); there is no way for the parser to distinguish the two
+   layouts. If your file does not contain the separator row, read it without
+   ``index_col`` and call :meth:`~DataFrame.set_index` on the resulting
+   column(s) instead.
 
 Missing values in columns specified in ``index_col`` will be forward filled to
 allow roundtripping with ``to_excel`` for ``merged_cells=True``. To avoid forward
@@ -6068,6 +6098,24 @@ Specifying this will return an iterator through chunks of the query result:
 
     for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
         print(chunk)
+
+.. _io.sql.chunksize:
+
+.. note::
+
+   ``chunksize`` controls only how many rows pandas converts into a
+   ``DataFrame`` at a time; by itself it usually does not reduce peak memory
+   usage. Most database drivers fetch the complete result set into client
+   memory before the first chunk is produced. Actually streaming the result
+   requires a server-side cursor, which with SQLAlchemy is requested with the
+   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
+   pymysql drivers; drivers without server-side cursor support ignore it):
+
+   .. code-block:: python
+
+      with engine.connect().execution_options(stream_results=True) as conn:
+          for chunk in pd.read_sql_query("SELECT * FROM data_chunks", conn, chunksize=5):
+              print(chunk)
 
 
 Engine connection examples

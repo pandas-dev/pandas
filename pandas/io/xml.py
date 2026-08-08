@@ -963,15 +963,18 @@ def read_xml(
         installed and specify 'lxml' as ``parser``. The ``xpath`` must
         reference nodes of transformed XML document generated after XSLT
         transformation and not the original XML document. Only XSLT 1.0
-        scripts and not later versions is currently supported.
+        scripts and not later versions is currently supported. This option
+        cannot be combined with ``iterparse`` and is ignored if ``iterparse``
+        is used.
 
     iterparse : dict, optional
         The nodes or attributes to retrieve in iterparsing of XML document
         as a dict with key being the name of repeating element and value being
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
-        and unlike ``xpath``, descendants do not need to relate to each other but can
-        exist anywhere in document under the repeating element. This memory-
+        and any ``stylesheet`` is ignored, since XSLT requires the whole tree in
+        memory. Unlike ``xpath``, descendants do not need to relate to each other
+        but can exist anywhere in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 
