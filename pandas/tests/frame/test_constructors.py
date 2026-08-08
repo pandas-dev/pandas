@@ -4,6 +4,7 @@ from collections import (
     UserList,
     abc,
     defaultdict,
+    deque,
     namedtuple,
 )
 from collections.abc import Iterator
@@ -79,6 +80,18 @@ MIXED_INT_DTYPES = [
     "int32",
     "int64",
 ]
+
+
+class DummySequence(abc.Sequence):
+    # stand-in for third-party Sequence implementations such as numba.typed.List
+    def __init__(self, lst) -> None:
+        self._lst = lst
+
+    def __getitem__(self, n):
+        return self._lst[n]
+
+    def __len__(self) -> int:
+        return len(self._lst)
 
 
 class TestDataFrameConstructors:
@@ -1426,6 +1439,58 @@ class TestDataFrameConstructors:
         columns = ["num", "str"]
         result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, "a"], [2, "b"]], columns=columns)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            deque,
+            UserList,
+            functools.partial(array.array, "i"),
+            lambda lst: memoryview(np.array(lst)),
+            DummySequence,
+        ],
+    )
+    def test_constructor_1d_sequence(self, box):
+        # GH#27539 a 1D Sequence that is not a list/tuple/range used to raise
+        #  AttributeError in the DataFrame constructor
+        result = DataFrame(box([1, 2, 3]))
+        expected = DataFrame([1, 2, 3])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [1, 2, 3],
+            [1.0, 2.0, 3.0],
+            ["a", "b"],
+            [1, "a", True],
+            [Timestamp("2020-01-01"), Timestamp("2020-01-02")],
+            [pd.NaT, pd.NaT],
+            [],
+        ],
+    )
+    def test_constructor_1d_sequence_dtype_inference(self, data):
+        # GH#27539 dtype inference for a generic Sequence must match both the
+        #  equivalent list and what the Series constructor would infer
+        result = DataFrame(deque(data))
+        expected = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
+        if data:
+            assert result.dtypes.iloc[0] == Series(deque(data)).dtype
+
+    @td.skip_if_no("numba")
+    def test_constructor_numba_typed_list(self):
+        # GH#27539
+        import numba
+
+        data = [1.0, 2.0]
+        typed_list = numba.typed.List()
+        for item in data:
+            typed_list.append(item)
+
+        result = DataFrame(typed_list)
+        expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_stdlib_array(self):
