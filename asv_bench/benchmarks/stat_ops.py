@@ -156,7 +156,7 @@ class Correlation:
 class PearsonCorrelation:
     params = [
         ["clean", "constant", "sorted_nans", "unsorted_nans"],
-        [1_000, 1_000_000],
+        [1_000, 131_072, 1_000_000],
     ]
     param_names = ["scenario", "size"]
 
