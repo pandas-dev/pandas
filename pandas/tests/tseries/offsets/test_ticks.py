@@ -268,6 +268,27 @@ def test_tick_division(cls):
         assert result._as_pd_timedelta == off._as_pd_timedelta / 0.001
 
 
+def test_td_div_numeric_scalar_finer_resolution():
+    # GH#57264
+    td = Timedelta(1, unit="s").as_unit("s")
+    result = td / 10
+    expected = Timedelta(100, unit="ms")
+
+    assert result == expected
+
+
+def test_tick_division_fractional_result():
+    # GH#57264
+    result = offsets.Second() / 10
+    expected = offsets.Milli(100)
+
+    print("result:", result, type(result))
+    print("expected:", expected, type(expected))
+
+    assert result == expected
+    assert type(result) is type(expected)
+
+
 def test_tick_mul_float():
     off = Micro(2)
 

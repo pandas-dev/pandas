@@ -2790,8 +2790,25 @@ class Timedelta(_Timedelta):
                 value = self._value // other
                 if value < 0 and self._value % other:
                     value += 1
+
+                if self._value % other:
+                    # GH#57264 use a finer resolution for fractional results
+                    return type(self)(
+                        self._value / other,
+                        unit=npy_unit_to_abbrev(self._creso),
+                    )
+
             else:
-                value = <int64_t>(self._value/ other)
+                result = self._value / other
+
+                if not result.is_integer():
+                    # GH#57264 use a finer resolution for fractional results
+                    return type(self)(
+                        result,
+                        unit=npy_unit_to_abbrev(self._creso),
+                    )
+                value = <int64_t>result
+
             return Timedelta._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
