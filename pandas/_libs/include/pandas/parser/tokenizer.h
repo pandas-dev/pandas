@@ -26,6 +26,11 @@ extern "C" {
 
 #define STREAM_INIT_SIZE 32
 
+// Every parser error message is a constant or a short format over a few
+// integers, so they live in a fixed buffer inside parser_t rather than being
+// malloc'd on the error path.  Nothing can fail, so nothing needs checking.
+#define ERROR_MSG_SIZE 256
+
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
@@ -162,6 +167,13 @@ typedef struct parser_t {
   // The buffer then never starts with a header row, so the first line gets
   // no special treatment: no BOM strip, no exemption from field-count checks.
   int preloaded;
+
+  // Message storage, kept last so every other field keeps its offset.
+  // error_msg points into error_buf (or is NULL) and is never freed.  Warnings
+  // get their own buffer so formatting one can never rewrite a pending error
+  // message out from under error_msg.
+  char error_buf[ERROR_MSG_SIZE];
+  char warn_buf[ERROR_MSG_SIZE];
 } parser_t;
 
 typedef struct coliter_t {
