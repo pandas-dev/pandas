@@ -63,6 +63,7 @@ from libc.stdint cimport (
     INT64_MAX,
     INT64_MIN,
     int64_t as c_int64_t,
+    uintptr_t,
 )
 from libc.stdlib cimport (
     free,
@@ -407,6 +408,10 @@ cdef class TextReader:
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
         str _pa_target  # cached _string_convert target; None = unresolved
+        # Let the pyarrow string fast path return raw _PendingStringColumn
+        # handles instead of ExtensionArrays; the c_parser_wrapper layer
+        # materializes them once per column at the end of the read.
+        public bint defer_pa_wrap
         # Set by _close, which frees the tokenizer's buffers.  Reading from a
         # closed reader would dereference those freed pointers (GH#66622).
         bint is_closed
@@ -566,6 +571,7 @@ cdef class TextReader:
         self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
+        self.defer_pa_wrap = False
         self._pa_target = None
         self.trim_after_read = True
 
@@ -1511,7 +1517,8 @@ cdef class TextReader:
         if target:
             try:
                 return _string_pyarrow_utf8(self.parser, i, start, end,
-                                            na_filter, na_hashset, target)
+                                            na_filter, na_hashset, target,
+                                            self.defer_pa_wrap)
             except OverflowError:
                 # >2GiB of string data does not fit the "arrow" target's
                 # int32 offsets; the object path below chunks as needed.
@@ -1896,6 +1903,11 @@ def _maybe_upcast(
     -------
     The casted array.
     """
+    if isinstance(arr, _PendingStringColumn):
+        # Deferred string column from the pyarrow fast path; the
+        # c_parser_wrapper layer materializes it into an ExtensionArray.
+        return arr
+
     if isinstance(arr.dtype, ExtensionDtype):
         # TODO: the docstring says arr is an ndarray, in which case this cannot
         #  be reached. Is that incorrect?
@@ -2029,6 +2041,7 @@ cdef object _pa_string_type = None
 cdef object _pa_str_nan_dtype = None
 cdef object _pa_arrow_str_dtype = None
 cdef object _pa_py_buffer = None
+cdef object _pa_foreign_buffer = None
 cdef object _pa_from_buffers = None
 cdef object _pa_chunked_array = None
 cdef object _pa_ArrowInvalid = None
@@ -2046,9 +2059,105 @@ if HAS_PYARROW:
     # bound here too, so `_string_pyarrow_utf8` does no pyarrow attribute
     # lookups of its own
     _pa_py_buffer = pa.py_buffer
+    _pa_foreign_buffer = pa.foreign_buffer
     _pa_from_buffers = pa.Array.from_buffers
     _pa_chunked_array = pa.chunked_array
     _pa_ArrowInvalid = pa.lib.ArrowInvalid
+
+
+cdef void _free_malloc_capsule(object capsule) noexcept:
+    free(PyCapsule_GetPointer(capsule, NULL))
+
+
+cdef class _PendingStringColumn:
+    """
+    Raw malloc'd buffers for one parsed string column chunk, produced
+    without numpy/pyarrow object creation so parallel-read workers touch
+    the GIL as little as possible; `materialize()` wraps them into a
+    pyarrow Array.
+    """
+    cdef:
+        int64_t *offsets64_ptr
+        int32_t *offsets32_ptr
+        uint8_t *validity_ptr
+        char *data_ptr
+        Py_ssize_t lines
+        Py_ssize_t total_bytes
+        int na_count
+        bint large
+
+    def __dealloc__(self):
+        # Only owns whatever materialize() has not yet transferred.
+        free(self.offsets64_ptr)
+        free(self.offsets32_ptr)
+        free(self.validity_ptr)
+        free(self.data_ptr)
+
+    def __len__(self) -> int:
+        return self.lines
+
+    @property
+    def dtype(self):
+        """
+        The dtype `materialize()` will produce.  Lets a caller reconcile
+        dtypes across chunks (see the parallel-read gather) while the
+        columns are still unmaterialized.
+        """
+        return _pa_str_nan_dtype if self.large else _pa_arrow_str_dtype
+
+    def materialize(self):
+        """
+        Build a pyarrow Array from the buffers; ownership moves to pyarrow
+        via capsule-based foreign buffers, so this can be called only once.
+        """
+        cdef uintptr_t addr
+        if self.data_ptr == NULL:
+            # A fresh instance always has a non-NULL data_ptr (malloc'd at
+            # least 1 byte); NULL means the buffers were already transferred.
+            raise RuntimeError("materialize() may only be called once")
+
+        if self.large:
+            addr = <uintptr_t>self.offsets64_ptr
+            capsule = PyCapsule_New(<void *>self.offsets64_ptr, NULL,
+                                    _free_malloc_capsule)
+            self.offsets64_ptr = NULL
+            offsets_buf = _pa_foreign_buffer(
+                addr, (self.lines + 1) * sizeof(int64_t), capsule
+            )
+            pa_type = _pa_large_string_type
+        else:
+            addr = <uintptr_t>self.offsets32_ptr
+            capsule = PyCapsule_New(<void *>self.offsets32_ptr, NULL,
+                                    _free_malloc_capsule)
+            self.offsets32_ptr = NULL
+            offsets_buf = _pa_foreign_buffer(
+                addr, (self.lines + 1) * sizeof(int32_t), capsule
+            )
+            pa_type = _pa_string_type
+
+        if self.na_count > 0:
+            addr = <uintptr_t>self.validity_ptr
+            capsule = PyCapsule_New(<void *>self.validity_ptr, NULL,
+                                    _free_malloc_capsule)
+            self.validity_ptr = NULL
+            validity_buf = _pa_foreign_buffer(
+                addr, (self.lines + 7) // 8, capsule
+            )
+        else:
+            validity_buf = None
+            free(self.validity_ptr)
+            self.validity_ptr = NULL
+
+        addr = <uintptr_t>self.data_ptr
+        capsule = PyCapsule_New(<void *>self.data_ptr, NULL,
+                                _free_malloc_capsule)
+        self.data_ptr = NULL
+        data_buf = _pa_foreign_buffer(addr, self.total_bytes, capsule)
+
+        return _pa_from_buffers(
+            pa_type, self.lines, [validity_buf, offsets_buf, data_buf],
+            null_count=self.na_count,
+        )
 
 
 cdef int _days_per_month_array[12]
@@ -2559,13 +2668,13 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
     return out, na_count
 
 
-# -> tuple[ExtensionArray, int]
+# -> tuple[ExtensionArray | _PendingStringColumn, int]
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                           int64_t line_start, int64_t line_end,
                           bint na_filter, kh_str_starts_t *na_hashset,
-                          str target):
+                          str target, bint defer=False):
     """
     Build a pyarrow-backed string ExtensionArray directly from the C parser
     buffers, bypassing the intermediate ``ndarray[object]`` and its associated
@@ -2580,6 +2689,11 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     StringDtype's pyarrow storage. For "arrow" we keep ``pa.string()`` (int32
     offsets) to match the dtype_backend="pyarrow" convention; raises
     OverflowError if the column exceeds 2GiB.
+
+    With ``defer=True``, pure-ASCII columns are returned as a raw
+    `_PendingStringColumn` (no numpy/pyarrow objects created); the
+    c_parser_wrapper layer materializes them into one ExtensionArray per
+    column at the end of the read.
     """
     cdef:
         int na_count = 0
@@ -2589,10 +2703,6 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         c_int64_t token_idx = 0
         coliter_t it
         const char *word = NULL
-        ndarray[int32_t, ndim=1] offsets32
-        ndarray[int64_t, ndim=1] offsets64
-        ndarray[uint8_t, ndim=1] validity_arr
-        ndarray[uint8_t, ndim=1] data_arr
         int32_t *offsets32_ptr = NULL
         int64_t *offsets64_ptr = NULL
         uint8_t *validity_ptr = NULL
@@ -2600,37 +2710,53 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         bint large = target == "str_nan"
         bint track_validity = na_filter
         bint overflow = False
+        bint malloc_failed = False
         bint saw_non_ascii = False
         uint64_t ascii_acc = 0
         uint64_t HIGH_BITS = 0x8080808080808080
         const uint64_t *data_words = NULL
         Py_ssize_t nwords, block_start, block_end, jw
+        _PendingStringColumn pending
 
     lines = line_end - line_start
-    if large:
-        offsets64 = np.empty(lines + 1, dtype=np.int64)
-        offsets64_ptr = <int64_t *>offsets64.data
-        offsets64_ptr[0] = 0
-    else:
-        offsets32 = np.empty(lines + 1, dtype=np.int32)
-        offsets32_ptr = <int32_t *>offsets32.data
-        offsets32_ptr[0] = 0
 
-    if track_validity:
-        # Start all-valid and clear bits on NA rows, so the common no-NA case
-        # does no per-token bitmap work.  Padding bits in the last byte stay
-        # set, which Arrow permits (their value is unspecified).
-        validity_arr = np.full((lines + 7) // 8, 255, dtype=np.uint8)
-        validity_ptr = <uint8_t *>validity_arr.data
-    else:
-        validity_arr = None
-
-    # Pass 1 (nogil): compute offsets / validity / na_count / total_bytes.  No
-    # Python-object resize happens in the loop, so the whole pass is GIL-free
-    # and parallelises across threads in the parallel-read path.
+    # Single GIL-free region covering every allocation and both passes:
+    # pass 1 computes offsets / validity / na_count / total_bytes, the data
+    # buffer is malloc'd once the size is known, and pass 2 copies each
+    # token's bytes into its slot (segment lengths come from the pass-1
+    # offsets, so na / empty rows are skipped without re-checking the na
+    # hashset).  No numpy or pyarrow objects are created here, so parallel
+    # workers spend almost no time holding the GIL.
     coliter_setup(&it, parser, col, line_start)
     with nogil:
-        for i in range(lines):
+        if large:
+            offsets64_ptr = <int64_t *>malloc(
+                (lines + 1) * sizeof(int64_t)
+            )
+            malloc_failed = offsets64_ptr == NULL
+            if not malloc_failed:
+                offsets64_ptr[0] = 0
+        else:
+            offsets32_ptr = <int32_t *>malloc(
+                (lines + 1) * sizeof(int32_t)
+            )
+            malloc_failed = offsets32_ptr == NULL
+            if not malloc_failed:
+                offsets32_ptr[0] = 0
+
+        if track_validity and not malloc_failed:
+            # Start all-valid and clear bits on NA rows, so the common
+            # no-NA case does no per-token bitmap work.  Padding bits in
+            # the last byte stay set, which Arrow permits (their value is
+            # unspecified).
+            validity_ptr = <uint8_t *>malloc(
+                (lines + 7) // 8 if lines else 1
+            )
+            malloc_failed = validity_ptr == NULL
+            if not malloc_failed:
+                memset(validity_ptr, 0xFF, (lines + 7) // 8)
+
+        for i in range(lines if not malloc_failed else 0):
             word = coliter_next_with_idx(&it, &token_idx)
 
             # Not strlen: an embedded NUL is a data byte here, so strlen would
@@ -2657,72 +2783,81 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
             else:
                 offsets32_ptr[i + 1] = <int32_t>total_bytes
 
-    if overflow:
+        if not overflow and not malloc_failed:
+            # Allocate the data buffer exactly once, now the size is known.
+            data_ptr = <char *>malloc(total_bytes if total_bytes else 1)
+            if data_ptr == NULL:
+                malloc_failed = True
+            else:
+                coliter_setup(&it, parser, col, line_start)
+                for i in range(lines):
+                    word = coliter_next(&it)
+                    if large:
+                        seg = offsets64_ptr[i + 1] - offsets64_ptr[i]
+                        if seg:
+                            memcpy(data_ptr + offsets64_ptr[i], word,
+                                   <size_t>seg)
+                    else:
+                        seg = offsets32_ptr[i + 1] - offsets32_ptr[i]
+                        if seg:
+                            memcpy(data_ptr + offsets32_ptr[i], word,
+                                   <size_t>seg)
+
+                # ASCII probe: a clear high bit across the data buffer means
+                # the column is pure ASCII, which is valid UTF-8 by
+                # construction, so the validate(full=True) below can be
+                # skipped.  Scan in 32KiB blocks so multibyte data bails out
+                # after the first block.
+                nwords = total_bytes >> 3
+                data_words = <const uint64_t *>data_ptr
+                block_start = 0
+                while block_start < nwords and not saw_non_ascii:
+                    block_end = block_start + 4096
+                    if block_end > nwords:
+                        block_end = nwords
+                    for jw in range(block_start, block_end):
+                        ascii_acc |= data_words[jw]
+                    if ascii_acc & HIGH_BITS:
+                        saw_non_ascii = True
+                    block_start = block_end
+                if not saw_non_ascii:
+                    for jw in range(nwords << 3, total_bytes):
+                        ascii_acc |= <uint8_t>data_ptr[jw]
+                    saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
+
+    if overflow or malloc_failed:
+        free(offsets64_ptr)
+        free(offsets32_ptr)
+        free(validity_ptr)
+        free(data_ptr)
+        if malloc_failed:
+            raise MemoryError()
         raise OverflowError(
             "String column exceeds 2GiB, which is the maximum supported "
             "by pyarrow's 'string' type."
         )
 
-    # Allocate the data buffer exactly once now that the total size is known.
-    data_arr = np.empty(total_bytes, dtype=np.uint8)
-    if total_bytes:
-        data_ptr = <char *>data_arr.data
+    pending = _PendingStringColumn.__new__(_PendingStringColumn)
+    pending.offsets64_ptr = offsets64_ptr
+    pending.offsets32_ptr = offsets32_ptr
+    pending.validity_ptr = validity_ptr
+    pending.data_ptr = data_ptr
+    pending.lines = lines
+    pending.total_bytes = total_bytes
+    pending.na_count = na_count
+    pending.large = large
 
-    # Pass 2 (nogil): copy each token's bytes into its slot.  Segment lengths
-    # come from the offsets computed in pass 1, so na / empty rows (seg == 0)
-    # are skipped without re-checking the na hashset.
-    coliter_setup(&it, parser, col, line_start)
-    with nogil:
-        for i in range(lines):
-            word = coliter_next(&it)
-            if large:
-                seg = offsets64_ptr[i + 1] - offsets64_ptr[i]
-                if seg:
-                    memcpy(data_ptr + offsets64_ptr[i], word, <size_t>seg)
-            else:
-                seg = offsets32_ptr[i + 1] - offsets32_ptr[i]
-                if seg:
-                    memcpy(data_ptr + offsets32_ptr[i], word, <size_t>seg)
+    if defer and not saw_non_ascii:
+        # Caller materializes and wraps into one ExtensionArray per column
+        # at the end of the read (see c_parser_wrapper), so worker threads
+        # skip all pyarrow object construction while holding the GIL.
+        # Non-ASCII chunks fall through to an eager materialize instead:
+        # they need the UTF-8 validation below while the object-path
+        # fallback is still possible (the parser rows are consumed once
+        # this returns).
+        return pending, na_count
 
-        # ASCII probe: a clear high bit across the data buffer means the
-        # column is pure ASCII, which is valid UTF-8 by construction, so
-        # validate(full=True) below can be skipped.  Scan in 32KiB blocks so
-        # multibyte data bails out after the first block.
-        nwords = total_bytes >> 3
-        data_words = <const uint64_t *>data_ptr
-        block_start = 0
-        while block_start < nwords and not saw_non_ascii:
-            block_end = block_start + 4096
-            if block_end > nwords:
-                block_end = nwords
-            for jw in range(block_start, block_end):
-                ascii_acc |= data_words[jw]
-            if ascii_acc & HIGH_BITS:
-                saw_non_ascii = True
-            block_start = block_end
-        if not saw_non_ascii:
-            for jw in range(nwords << 3, total_bytes):
-                ascii_acc |= <uint8_t>data_ptr[jw]
-            saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
-
-    if large:
-        offsets_buf = _pa_py_buffer(offsets64)
-        pa_type = _pa_large_string_type
-    else:
-        offsets_buf = _pa_py_buffer(offsets32)
-        pa_type = _pa_string_type
-    data_buf = _pa_py_buffer(data_arr)
-    if na_count > 0:
-        validity_buf = _pa_py_buffer(validity_arr)
-        pa_arr = _pa_from_buffers(
-            pa_type, lines, [validity_buf, offsets_buf, data_buf],
-            null_count=na_count,
-        )
-    else:
-        pa_arr = _pa_from_buffers(
-            pa_type, lines, [None, offsets_buf, data_buf],
-            null_count=0,
-        )
+    pa_arr = pending.materialize()
 
     # from_buffers does not validate UTF-8; fall back to the object path so
     # malformed bytes raise UnicodeDecodeError as before.  Pure-ASCII columns
@@ -2887,10 +3022,6 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
 
 
 # -> tuple[ndarray[float64_t], int]  | tuple[None, None]
-cdef void _free_malloc_capsule(object capsule) noexcept:
-    free(PyCapsule_GetPointer(capsule, NULL))
-
-
 cdef ndarray _wrap_malloc_array(void *data, Py_ssize_t lines, int typenum):
     """
     Wrap nogil-malloc'd memory as a 1D ndarray that owns it (via a capsule
