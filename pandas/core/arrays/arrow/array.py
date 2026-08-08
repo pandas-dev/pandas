@@ -2279,6 +2279,40 @@ class ArrowExtensionArray(
         pa_result = pc.unique(self._pa_array)
         return self._from_pyarrow_array(pa_result)
 
+    def _unique_by_run_ends(self) -> Self | None:
+        """
+        Compute the unique values by collapsing runs of equal adjacent values.
+
+        Run-end encoding does this in a single pass instead of building a hash
+        table, so it is much faster than :meth:`unique`, but it only finds the
+        duplicates that are adjacent. Sorted input is what makes them adjacent.
+
+        Returns None if the fast path cannot be used: the type has no run-end
+        or comparison kernel, the values contain NA, or the encoded runs are not
+        strictly increasing, which means equal values were not all adjacent.
+        Unsorted input lands there, and so do -0.0 and 0.0, which are equal to
+        the comparison that orders the values but distinct to the encoder.
+        Callers fall back to :meth:`unique`.
+
+        Returns
+        -------
+        ArrowExtensionArray or None
+        """
+        # a run cannot be detected across a chunk boundary
+        combined = self._pa_array.combine_chunks()
+        try:
+            values = pc.run_end_encode(combined).values
+            if len(values) > 1 and (
+                # pc.all skips null comparisons, so a null run would hide
+                # duplicates on either side of it
+                values.null_count
+                or pc.all(pc.less(values[:-1], values[1:])).as_py() is not True
+            ):
+                return None
+        except pa.ArrowNotImplementedError:
+            return None
+        return self._from_pyarrow_array(values)
+
     def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of each unique value.
