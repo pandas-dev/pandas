@@ -374,13 +374,14 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_td64_ndarray_nat_operand(self):
         # GH#66552 a missing operand is still missing, not an overflow
         td = Timedelta(1, "ns")
-        other = np.array([1, np.timedelta64("NaT")], dtype="m8[ns]")
+        nat = np.timedelta64("NaT", "ns")
+        other = np.array([1, nat], dtype="m8[ns]")
 
-        expected = np.array([2, np.timedelta64("NaT")], dtype="m8[ns]")
+        expected = np.array([2, nat], dtype="m8[ns]")
         tm.assert_numpy_array_equal(td + other, expected)
         tm.assert_numpy_array_equal(other + td, expected)
 
-        expected = np.array([0, np.timedelta64("NaT")], dtype="m8[ns]")
+        expected = np.array([0, nat], dtype="m8[ns]")
         tm.assert_numpy_array_equal(td - other, expected)
         tm.assert_numpy_array_equal(other - td, expected)
 
