@@ -3295,4 +3295,3 @@ def test_pivot_non_column_label_raises_gh35785():
     )
     expected.columns.name = "bar"
     tm.assert_frame_equal(result, expected)
-
