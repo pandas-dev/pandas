@@ -18,6 +18,7 @@ from pandas.errors import (
     ParserError,
 )
 
+from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -89,6 +90,26 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         data = "a,b,c~~1,2,3~~4,5,6"
         with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), lineterminator="~~")
+
+    def test_none_separator_fallback(self):
+        # GH 66639
+        data = "a;b\n1;2"
+        msg = "the 'c' engine does not support sep=None"
+
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
+            result = read_csv(StringIO(data), sep=None)
+
+        expected = DataFrame({"a": [1], "b": [2]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("engine", ["c", "pyarrow"])
+    def test_none_separator_explicit_engine(self, engine):
+        # GH 66639
+        data = "a;b\n1;2"
+        msg = rf"the '{engine}' engine does not support sep=None"
+
+        with pytest.raises(ValueError, match=msg):
+            read_csv(StringIO(data), sep=None, engine=engine)
 
     def test_python_engine(self, python_engine):
         from pandas.io.parsers.readers import _python_unsupported as py_unsupported
