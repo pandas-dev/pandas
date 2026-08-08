@@ -1151,6 +1151,14 @@ class TestNanskewFixedValues:
         skew = nanops.nanskew(samples)
         tm.assert_almost_equal(skew, actual_skew)
 
+    @pytest.fixture
+    def actual_skew_biased(self):
+        return -0.18617965780524853
+
+    def test_ground_truth_bias(self, samples, actual_skew_biased):
+        skew = nanops.nanskew(samples, bias=True)
+        tm.assert_almost_equal(skew, actual_skew_biased)
+
     def test_axis(self, samples, actual_skew):
         samples = np.vstack([samples, np.nan * np.ones(len(samples))])
         skew = nanops.nanskew(samples, axis=1)
@@ -1218,6 +1226,14 @@ class TestNankurtFixedValues:
     def test_ground_truth(self, samples, actual_kurt):
         kurt = nanops.nankurt(samples)
         tm.assert_almost_equal(kurt, actual_kurt)
+
+    @pytest.fixture
+    def actual_kurt_biased(self):
+        return -1.2057456029870537
+
+    def test_ground_truth_bias(self, samples, actual_kurt_biased):
+        kurt = nanops.nankurt(samples, bias=True)
+        tm.assert_almost_equal(kurt, actual_kurt_biased)
 
     def test_axis(self, samples, actual_kurt):
         samples = np.vstack([samples, np.nan * np.ones(len(samples))])

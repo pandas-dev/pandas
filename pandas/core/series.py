@@ -9833,12 +9833,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ):
         """
-        Return unbiased skew over requested axis.
+        Return skew over requested axis, optionally corrected for statistical bias.
 
-        Normalized by N-1.
+        Normalized by N-1 unless ``bias=True``.
 
         Parameters
         ----------
@@ -9848,6 +9849,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Unused.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
         **kwargs
             Additional keyword arguments have no effect but might be accepted for
             compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
@@ -9855,7 +9858,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar
-            Unbiased skew of the Series.
+            Skew of the Series.
 
         See Also
         --------
@@ -9868,9 +9871,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s = pd.Series([1, 2, 3])
         >>> s.skew()
         0.0
+        >>> s.skew(bias=True)
+        0.0
         """
         return NDFrame.skew(
-            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+            self,
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            bias=bias,
+            **kwargs,
         )
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
@@ -9879,13 +9889,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ):
         """
-        Return unbiased kurtosis over requested axis.
+        Return kurtosis over requested axis, optionally corrected for statistical bias.
 
         Kurtosis obtained using Fisher's definition of
-        kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+        kurtosis (kurtosis of normal == 0.0). Normalized by N-1 unless ``bias=True``.
 
         Parameters
         ----------
@@ -9902,6 +9913,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         **kwargs
             Additional keyword arguments have no effect but might be accepted for
@@ -9910,11 +9923,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar
-            Unbiased kurtosis.
+            Kurtosis.
 
         See Also
         --------
-        Series.skew : Return unbiased skew over requested axis.
+        Series.skew : Return skew over requested axis, optionally
+            corrected for statistical bias.
         Series.var : Return unbiased variance over requested axis.
         Series.std : Return unbiased standard deviation over requested axis.
 
@@ -9929,9 +9943,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
         >>> round(s.kurt(), 6)
         1.5
+        >>> round(s.kurt(bias=True), 6)
+        -1.0
         """
         return NDFrame.kurt(
-            self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+            self,
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            bias=bias,
+            **kwargs,
         )
 
     kurtosis = kurt
