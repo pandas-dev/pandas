@@ -27,6 +27,78 @@ def _assert_frame_equal_both(a, b, **kwargs):
     tm.assert_frame_equal(b, a, **kwargs)
 
 
+@pytest.mark.parametrize(
+    "levels,codes,arrays",
+    [
+        (
+            [["USD"], np.array([np.nan], dtype=np.float64)],
+            [[0], [0]],
+            [["USD"], np.array([np.nan], dtype=np.float64)],
+        ),
+        (
+            [["USD"], np.array([np.nan, 1.0], dtype=np.float64)],
+            [[0, 0], [0, 1]],
+            [["USD", "USD"], np.array([np.nan, 1.0], dtype=np.float64)],
+        ),
+        (
+            [np.array([np.nan], dtype=np.float64), ["cash"]],
+            [[0], [0]],
+            [np.array([np.nan], dtype=np.float64), ["cash"]],
+        ),
+    ],
+    ids=["all-na-level", "na-and-valid-level", "na-first-level"],
+)
+def test_assert_frame_equal_multiindex_columns_with_na(levels, codes, arrays):
+    # GH#54521
+    left_columns = pd.MultiIndex(
+        levels=levels,
+        codes=codes,
+        names=["Currency", "Collateral"],
+        verify_integrity=False,
+    )
+    right_columns = pd.MultiIndex.from_arrays(
+        arrays,
+        names=["Currency", "Collateral"],
+    )
+    values = np.full((2, len(left_columns)), 200.0)
+    left = DataFrame(values, columns=left_columns)
+    right = DataFrame(values, columns=right_columns)
+
+    _assert_frame_equal_both(left, right)
+
+
+def test_assert_frame_equal_groupby_multiindex_columns_with_na():
+    # GH#54521
+    date1 = pd.Timestamp("2023-01-01")
+    date2 = pd.Timestamp("2023-02-01")
+    df = DataFrame(
+        {
+            "Currency": ["USD", "USD", "USD"],
+            "Collateral": [None, None, None],
+            "Payment": [date1, date1, date2],
+            "Cashflow": [100.0, 100.0, 200.0],
+        }
+    )
+    result = (
+        df.groupby(["Currency", "Collateral", "Payment"], dropna=False)
+        .sum()
+        .unstack([0, 1])
+        .droplevel(0, axis=1)
+    )
+    expected = DataFrame(
+        [200.0, 200.0],
+        columns=pd.MultiIndex.from_arrays(
+            [
+                pd.Index(["USD"], name="Currency"),
+                pd.Index([None], name="Collateral", dtype="float64"),
+            ]
+        ),
+        index=pd.DatetimeIndex([date1, date2], name="Payment"),
+    )
+
+    _assert_frame_equal_both(result, expected, atol=1e-5)
+
+
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_row_order_mismatch(check_like, frame_or_series):
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])

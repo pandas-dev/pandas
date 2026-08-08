@@ -524,6 +524,15 @@ def assert_attr_equal(
         # e.g. both np.nan, both NaT, both pd.NA, ...
         return None
 
+    # MultiIndex labels can be tuples containing matching NA values.
+    if isinstance(left_attr, tuple) and isinstance(right_attr, tuple):
+        try:
+            assert_almost_equal(left_attr, right_attr, rtol=0, atol=0)
+        except AssertionError:
+            pass
+        else:
+            return None
+
     try:
         result = left_attr == right_attr
     except TypeError:
