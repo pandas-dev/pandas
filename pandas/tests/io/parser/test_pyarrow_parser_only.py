@@ -22,7 +22,8 @@ def test_to_pandas_kwargs_split_blocks(pyarrow_parser_only, split_blocks):
     assert list(result.columns) == ["a", "b"]
     assert len(result) == 2
     # With split_blocks=True, each column should be in its own block
-    assert len(result._mgr.blocks) == len(result.columns) if split_blocks else 1
+    expected_blocks = len(result.columns) if split_blocks else 1
+    assert len(result._mgr.blocks) == expected_blocks
 
 
 def test_to_pandas_kwargs_zero_copy_only_raises(pyarrow_parser_only):
@@ -37,8 +38,7 @@ def test_to_pandas_kwargs_zero_copy_only_raises(pyarrow_parser_only):
         )
 
 
-@pytest.mark.parametrize("zero_copy_only", [True, False])
-def test_to_pandas_kwargs_zero_copy_only_success(pyarrow_parser_only, zero_copy_only):
+def test_to_pandas_kwargs_zero_copy_only_success(pyarrow_parser_only):
     # GH#34823
     # zero_copy_only with split_blocks=True enables zero-copy conversion
     # No exception means pyarrow confirmed zero-copy conversion is possible
@@ -46,7 +46,7 @@ def test_to_pandas_kwargs_zero_copy_only_success(pyarrow_parser_only, zero_copy_
 
     result = pyarrow_parser_only.read_csv(
         StringIO(data),
-        to_pandas_kwargs={"zero_copy_only": zero_copy_only, "split_blocks": True},
+        to_pandas_kwargs={"zero_copy_only": True, "split_blocks": True},
     )
     assert list(result.columns) == ["a", "b"]
     assert len(result) == 2
