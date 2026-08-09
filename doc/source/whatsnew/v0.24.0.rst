@@ -124,6 +124,7 @@ some transformation of it, or one of pandas custom arrays (like
 a new ndarray of period objects each time.
 
 .. ipython:: python
+   :okwarning:
 
    idx.values
    id(idx.values)
@@ -1076,6 +1077,7 @@ The affected cases are:
    df + arr[[0], :]
 
 .. ipython:: python
+   :okwarning:
 
    # Comparison operations and arithmetic operations both broadcast.
    df == (1, 2)

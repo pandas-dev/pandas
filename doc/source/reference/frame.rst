@@ -114,6 +114,13 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
+Unary operator functions
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.__invert__
+
 Function application, GroupBy & window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -275,7 +282,7 @@ Flags
 ~~~~~
 
 Flags refer to attributes of the pandas object. Properties of the dataset (like
-the date is was recorded, the URL it was accessed from, etc.) should be stored
+the date it was recorded, the URL it was accessed from, etc.) should be stored
 in :attr:`DataFrame.attrs`.
 
 .. autosummary::

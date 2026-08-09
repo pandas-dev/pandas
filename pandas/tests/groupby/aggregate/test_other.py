@@ -441,8 +441,8 @@ def test_agg_over_numpy_arrays():
     result = gb.agg("sum", numeric_only=False)
     tm.assert_frame_equal(result, expected)
 
-    # FIXME: the original version of this test called `gb.agg(sum)`
-    #  and that raises TypeError if `numeric_only=False` is passed
+    result = gb.agg(sum)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("as_period", [True, False])

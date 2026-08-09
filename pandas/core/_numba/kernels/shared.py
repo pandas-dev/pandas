@@ -9,9 +9,7 @@ if TYPE_CHECKING:
 
 
 @numba.jit(
-    # error: Any? not callable
-    numba.boolean(numba.int64[:]),  # type: ignore[misc]
-    nopython=True,
+    numba.boolean(numba.int64[:]),
     nogil=True,
     parallel=False,
 )

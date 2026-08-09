@@ -14,9 +14,12 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -85,6 +88,15 @@ def describe_ndframe(
 
     describer: NDFrameDescriberAbstract
     if obj.ndim == 1:
+        if include is not None or exclude is not None:
+            # GH#54193
+            warnings.warn(
+                "The 'include' and 'exclude' arguments are deprecated for "
+                "Series.describe and will be removed in a future version. "
+                "These arguments have no effect on Series and will be removed.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         describer = SeriesDescriber(
             obj=cast("Series", obj),
         )
@@ -173,12 +185,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             ldesc.append(describe_func(series, percentiles))
 
         col_names = reorder_columns(ldesc)
-        d = concat(
-            [x.reindex(col_names) for x in ldesc],
-            axis=1,
-            ignore_index=True,
-            sort=False,
-        )
+        d = concat(ldesc, axis=1, ignore_index=True, sort=False).reindex(col_names)
         d.columns = data.columns.copy()
         return d
 

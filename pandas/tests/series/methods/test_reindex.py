@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     NA,
     Categorical,
@@ -314,7 +316,9 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
 
     ser = Series([NaT], dtype=dtype)
 
-    result = ser.reindex([0, 1], fill_value=fill_value)
+    msg = "reindexing with a fill_value that cannot be held"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.reindex([0, 1], fill_value=fill_value)
     expected = Series([NaT, fill_value], index=range(2), dtype=object)
     tm.assert_series_equal(result, expected)
 

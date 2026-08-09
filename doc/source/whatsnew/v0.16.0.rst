@@ -89,7 +89,7 @@ See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`922
 Interaction with scipy.sparse
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a ``scipy.sparse.coo_matrix`` by specifying the row and column labels as index levels:
+Added ``SparseSeries.to_coo`` and ``SparseSeries.from_coo`` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a ``scipy.sparse.coo_matrix`` by specifying the row and column labels as index levels:
 
 .. code-block:: python
 
@@ -612,7 +612,7 @@ Bug fixes
 - Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
 - Bug in ``DataFrame.where`` and ``Series.where`` coerce numerics to string incorrectly (:issue:`9280`)
 - Bug in ``DataFrame.where`` and ``Series.where`` raise ``ValueError`` when string list-like is passed. (:issue:`9280`)
-- Accessing ``Series.str`` methods on with non-string values now raises ``TypeError`` instead of producing incorrect results (:issue:`9184`)
+- Accessing ``Series.str`` methods with non-string values now raises ``TypeError`` instead of producing incorrect results (:issue:`9184`)
 - Bug in ``DatetimeIndex.__contains__`` when index has duplicates and is not monotonic increasing (:issue:`9512`)
 - Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format was applied. This prevented other row or column formatting being applied. (:issue:`9167`)

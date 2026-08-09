@@ -9,6 +9,7 @@ import pandas as pd
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
 
@@ -35,7 +36,9 @@ class TablePlotter:
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
 
-    def _get_cells(self, left, right, vertical) -> tuple[int, int]:
+    def _get_cells(
+        self, left: list[pd.DataFrame], right: pd.DataFrame, vertical: bool
+    ) -> tuple[int, int]:
         """
         Calculate appropriate figure size based on left and right data.
         """
@@ -49,7 +52,11 @@ class TablePlotter:
         return hcells, vcells
 
     def plot(
-        self, left, right, labels: Iterable[str] = (), vertical: bool = True
+        self,
+        left: pd.DataFrame | pd.Series | list[pd.DataFrame | pd.Series],
+        right: pd.DataFrame | pd.Series,
+        labels: Iterable[str] = (),
+        vertical: bool = True,
     ) -> Figure:
         """
         Plot left / right DataFrames in specified layout.
@@ -66,11 +73,13 @@ class TablePlotter:
         import matplotlib.pyplot as plt
 
         if not isinstance(left, list):
-            left = [left]
-        left = [self._conv(df) for df in left]
-        right = self._conv(right)
+            left_raw = [left]
+        else:
+            left_raw = left
+        left_dfs = [self._conv(df) for df in left_raw]
+        right_df = self._conv(right)
 
-        hcells, vcells = self._get_cells(left, right, vertical)
+        hcells, vcells = self._get_cells(left_dfs, right_df, vertical)
 
         if vertical:
             figsize = self.cell_width * hcells, self.cell_height * vcells
@@ -80,48 +89,48 @@ class TablePlotter:
         fig = plt.figure(figsize=figsize)
 
         if vertical:
-            gs = gridspec.GridSpec(len(left), hcells)
+            gs = gridspec.GridSpec(len(left_dfs), hcells)
             # left
-            max_left_cols = max(self._shape(df)[1] for df in left)
-            max_left_rows = max(self._shape(df)[0] for df in left)
-            for i, (_left, _label) in enumerate(zip(left, labels, strict=True)):
+            max_left_cols = max(self._shape(df)[1] for df in left_dfs)
+            max_left_rows = max(self._shape(df)[0] for df in left_dfs)
+            for i, (_left, _label) in enumerate(zip(left_dfs, labels, strict=True)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
                 self._make_table(ax, _left, title=_label, height=1.0 / max_left_rows)
             # right
             ax = plt.subplot(gs[:, max_left_cols:])
-            self._make_table(ax, right, title="Result", height=1.05 / vcells)
+            self._make_table(ax, right_df, title="Result", height=1.05 / vcells)
             fig.subplots_adjust(top=0.9, bottom=0.05, left=0.05, right=0.95)
         else:
-            max_rows = max(self._shape(df)[0] for df in [*left, right])
+            max_rows = max(self._shape(df)[0] for df in [*left_dfs, right_df])
             height = 1.0 / np.max(max_rows)
             gs = gridspec.GridSpec(1, hcells)
             # left
             i = 0
-            for df, _label in zip(left, labels, strict=True):
+            for df, _label in zip(left_dfs, labels, strict=True):
                 sp = self._shape(df)
                 ax = fig.add_subplot(gs[0, i : i + sp[1]])
                 self._make_table(ax, df, title=_label, height=height)
                 i += sp[1]
             # right
             ax = plt.subplot(gs[0, i:])
-            self._make_table(ax, right, title="Result", height=height)
+            self._make_table(ax, right_df, title="Result", height=height)
             fig.subplots_adjust(top=0.85, bottom=0.05, left=0.05, right=0.95)
 
         return fig
 
-    def _conv(self, data):
+    def _conv(self, data: pd.DataFrame | pd.Series) -> pd.DataFrame:
         """
-        Convert each input to appropriate for table outplot.
+        Convert each input to appropriate format for table output.
         """
         if isinstance(data, pd.Series):
             if data.name is None:
                 data = data.to_frame(name="")
             else:
                 data = data.to_frame()
-        data = data.fillna("NaN")
+        data = data.astype(object).fillna("NaN")
         return data
 
-    def _insert_index(self, data):
+    def _insert_index(self, data: pd.DataFrame) -> pd.DataFrame:
         # insert is destructive
         data = data.copy()
         idx_nlevels = data.index.nlevels
@@ -143,7 +152,13 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: float | None = None) -> None:
+    def _make_table(
+        self,
+        ax: Axes,
+        df: pd.DataFrame | None,
+        title: str,
+        height: float | None = None,
+    ) -> None:
         if df is None:
             ax.set_visible(False)
             return

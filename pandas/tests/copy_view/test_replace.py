@@ -69,6 +69,21 @@ def test_replace_regex_inplace():
     assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
+@pytest.mark.parametrize("dtype", ["object", "string[python]"])
+def test_replace_regex_non_inplace_does_not_mutate_original(dtype):
+    # GH#57733 - replace_regex with non-string value triggers astype to object,
+    # which for StringArray (backed by object ndarray) returned a view, causing
+    # in-place mutation of the original
+    df = DataFrame({"b": list("ab..")}, dtype=dtype)
+    df_orig = df.copy()
+    result = df.replace([r"\s*\.\s*", "b"], 0, regex=True)
+
+    expected = DataFrame({"b": ["a", 0, 0, 0]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+    # Original must be unchanged
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_replace_regex_inplace_no_op():
     df = DataFrame({"a": [1, 2]})
     arr = get_array(df, "a")

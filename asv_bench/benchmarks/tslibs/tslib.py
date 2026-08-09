@@ -17,6 +17,7 @@ for box in tr.params[0]:
 """
 
 from datetime import (
+    UTC,
     timedelta,
     timezone,
 )
@@ -36,7 +37,7 @@ except ImportError:
 tzlocal_obj = tzlocal()
 _tzs = [
     None,
-    timezone.utc,
+    UTC,
     timezone(timedelta(minutes=60)),
     zoneinfo.ZoneInfo("US/Pacific"),
     gettz("Asia/Tokyo"),

@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 import zoneinfo
 
@@ -15,7 +15,7 @@ class TimestampConstruction:
     def setup(self):
         self.npdatetime64 = np.datetime64("2020-01-01 00:00:00")
         self.dttime_unaware = datetime(2020, 1, 1, 0, 0, 0)
-        self.dttime_aware = datetime(2020, 1, 1, 0, 0, 0, 0, timezone.utc)
+        self.dttime_aware = datetime(2020, 1, 1, 0, 0, 0, 0, UTC)
         self.ts = Timestamp("2020-01-01 00:00:00")
 
     def time_parse_iso8601_no_tz(self):
@@ -63,10 +63,10 @@ class TimestampProperties:
         self.ts.tz
 
     def time_dayofweek(self, tz):
-        self.ts.dayofweek
+        self.ts.day_of_week
 
     def time_dayofyear(self, tz):
-        self.ts.dayofyear
+        self.ts.day_of_year
 
     def time_week(self, tz):
         self.ts.week

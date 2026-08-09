@@ -95,7 +95,9 @@ class ObjectStringArrayMixin:
             )
 
             if len(err.args) >= 1 and re.search(p_err, err.args[0]):
-                # FIXME: this should be totally avoidable
+                # NOTE: matches CPython's TypeError when a user-supplied
+                # callable (e.g. `repl` in str.replace) is called with the
+                # wrong number of positional arguments.
                 raise err
 
             def g(x):
@@ -383,6 +385,9 @@ class ObjectStringArrayMixin:
         return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n is None or n == 0:
             n = -1
         f = lambda x: x.rsplit(pat, n)

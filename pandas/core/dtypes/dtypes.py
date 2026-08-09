@@ -23,7 +23,7 @@ import zoneinfo
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -337,7 +337,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
             elif not isinstance(dtype, CategoricalDtype):
-                raise ValueError(f"Cannot not construct CategoricalDtype from {dtype}")
+                raise ValueError(f"Cannot construct CategoricalDtype from {dtype}")
         elif cls.is_dtype(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
@@ -514,11 +514,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 hashed = hash((tuple(categories), ordered))
                 return hashed
 
-            if DatetimeTZDtype.is_dtype(categories.dtype):
-                # Avoid future warning.
-                categories = categories.view("datetime64[ns]")
-
-            cat_array = hash_array(np.asarray(categories), categorize=False)
+            cat_array = hash_array(categories._values, categorize=False)
         if ordered:
             cat_array = np.vstack(
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
@@ -632,12 +628,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         )
         new_ordered = dtype.ordered if dtype.ordered is not None else self.ordered
 
-        return CategoricalDtype(new_categories, new_ordered)
+        return CategoricalDtype._from_fastpath(new_categories, new_ordered)
 
     @property
     def categories(self) -> Index:
         """
         An ``Index`` containing the unique categories allowed.
+
+        If no categories were explicitly provided at construction time, this
+        will be ``None`` until the ``CategoricalDtype`` is attached to actual
+        data.
 
         See Also
         --------
@@ -655,6 +655,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        When ``True``, comparison operations on the resulting Categorical
+        are valid and sort in the order of the categories.
 
         See Also
         --------
@@ -825,6 +828,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        Returns the time resolution as one of ``'s'``, ``'ms'``, ``'us'``,
+        or ``'ns'``.
+
         See Also
         --------
         DatetimeTZDtype.tz : Retrieves the timezone.
@@ -842,6 +848,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Returns the :class:`datetime.tzinfo` object associated with this
+        dtype, representing the timezone used for localization.
 
         See Also
         --------
@@ -1048,6 +1057,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if isinstance(freq, PeriodDtype):
             return freq
+
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = to_offset(freq, is_period=True)
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -1353,6 +1365,9 @@ class IntervalDtype(PandasExtensionDtype):
         """
         The dtype of the Interval bounds.
 
+        Each interval in an :class:`~pandas.arrays.IntervalArray` has the same
+        data type for its left and right bounds. ``subtype`` returns that dtype.
+
         See Also
         --------
         IntervalDtype: An ExtensionDtype for Interval data.
@@ -1602,6 +1617,17 @@ class NumpyEADtype(ExtensionDtype):
         The element size of this data-type object.
         """
         return self._dtype.itemsize
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        from pandas.core.dtypes.cast import find_common_type
+
+        dtypes = [x.numpy_dtype if isinstance(x, NumpyEADtype) else x for x in dtypes]
+        if not all(isinstance(x, np.dtype) for x in dtypes):
+            return None
+
+        common_dtype = find_common_type(dtypes)
+        # error: Argument 1 to "NumpyEADtype" has incompatible type
+        return NumpyEADtype(common_dtype)  # type: ignore[arg-type]
 
 
 class BaseMaskedDtype(ExtensionDtype):
@@ -2123,7 +2149,7 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if get_option("performance_warnings") and (
+        if config["mode"]["performance_warnings"] and (
             not (len(set(fill_values)) == 1 or isna(fill_values).all())
         ):
             warnings.warn(

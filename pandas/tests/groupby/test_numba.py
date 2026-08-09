@@ -25,11 +25,11 @@ pytestmark.append(
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     def test_cython_vs_numba_frame(
-        self, sort, nogil, parallel, nopython, numba_supported_reductions
+        self, sort, nogil, parallel, numba_supported_reductions
     ):
         func, kwargs = numba_supported_reductions
         df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
-        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
         gb = df.groupby("a", sort=sort)
         result = getattr(gb, func)(
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
@@ -38,11 +38,11 @@ class TestEngine:
         tm.assert_frame_equal(result, expected)
 
     def test_cython_vs_numba_getitem(
-        self, sort, nogil, parallel, nopython, numba_supported_reductions
+        self, sort, nogil, parallel, numba_supported_reductions
     ):
         func, kwargs = numba_supported_reductions
         df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
-        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
         gb = df.groupby("a", sort=sort)["c"]
         result = getattr(gb, func)(
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
@@ -51,11 +51,11 @@ class TestEngine:
         tm.assert_series_equal(result, expected)
 
     def test_cython_vs_numba_series(
-        self, sort, nogil, parallel, nopython, numba_supported_reductions
+        self, sort, nogil, parallel, numba_supported_reductions
     ):
         func, kwargs = numba_supported_reductions
         ser = Series(range(3), index=[1, 2, 1], name="foo")
-        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
         gb = ser.groupby(level=0, sort=sort)
         result = getattr(gb, func)(
             engine="numba", engine_kwargs=engine_kwargs, **kwargs

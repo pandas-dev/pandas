@@ -568,7 +568,7 @@ class ExcelFormatter:
         if cols is not None:
             # all missing, raise
             if not len(Index(cols).intersection(df.columns)):
-                raise KeyError("passes columns are not ALL present dataframe")
+                raise KeyError("Passed columns are not all present in the dataframe")
 
             if len(Index(cols).intersection(df.columns)) != len(set(cols)):
                 # Deprecated in GH#17295, enforced in 1.0.0
@@ -802,8 +802,7 @@ class ExcelFormatter:
                 ):
                     values = levels.take(
                         level_codes,
-                        allow_fill=levels._can_hold_na,
-                        fill_value=levels._na_value,
+                        allow_fill=True,
                     )
                     # GH#60099
                     if isinstance(values[0], Period):
@@ -982,7 +981,7 @@ class ExcelFormatter:
                         )
                     else:
                         startrowsoffset = self.columns.nlevels
-                        # multindex columns add a blank row between header and data
+                        # multiindex columns add a blank row between header and data
                         endrowsoffset = self.columns.nlevels + 1
             else:
                 # no index column

@@ -307,17 +307,13 @@ Number formatting
 ------------------
 
 pandas also allows you to set how numbers are displayed in the console.
-This option is not set through the ``set_options`` API.
-
-Use the ``set_eng_float_format`` function
-to alter the floating-point formatting of pandas objects to produce a particular
-format.
+Use ``display.precision`` to control the number of decimal places:
 
 .. ipython:: python
 
    import numpy as np
 
-   pd.set_eng_float_format(accuracy=3, use_eng_prefix=True)
+   pd.set_option("display.precision", 2)
    s = pd.Series(np.random.randn(5), index=["a", "b", "c", "d", "e"])
    s / 1.0e3
    s / 1.0e6

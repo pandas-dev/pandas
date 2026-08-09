@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     IntervalIndex,
     Series,
@@ -19,7 +20,9 @@ class TestValues:
     )
     def test_values_object_extension_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/23995
-        result = Series(data).values
+        msg = "Series.values returning an object-dtype ndarray"
+        with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+            result = Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
 

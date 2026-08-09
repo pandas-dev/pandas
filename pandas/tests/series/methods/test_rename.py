@@ -162,6 +162,16 @@ class TestRename:
 
         tm.assert_series_equal(result, expected)
 
+    def test_rename_preserves_nullable_index_dtype(self):
+        # GH#65315
+        ser = Series(
+            [1, 2, 3],
+            index=Index(array([1, 2, 3], dtype="Int64"), name="id"),
+        )
+        result = ser.rename({1: 9})
+        expected = Index(array([9, 2, 3], dtype="Int64"), name="id")
+        tm.assert_index_equal(result.index, expected)
+
     def test_rename_error_arg(self):
         # GH 46889
         ser = Series(["foo", "bar"])

@@ -111,6 +111,38 @@ class NumericMaskedIndexing:
         self.data.get_indexer_for(self.indexer)
 
 
+class GetIndexerNonUnique:
+    params = [
+        ("int64", "float64", "object"),
+        ("monotonic", "non_monotonic"),
+    ]
+    param_names = ["dtype", "index_structure"]
+
+    def setup(self, dtype, index_structure):
+        N = 10**6
+        rng = np.random.default_rng(42)
+        values = rng.integers(0, N // 10, size=N)
+        targets = rng.integers(0, N // 10, size=N // 10)
+        if index_structure == "monotonic":
+            values = np.sort(values)
+        if dtype == "object":
+            self.idx = Index(values.astype(str), dtype=object)
+            self.targets = Index(targets.astype(str), dtype=object)
+            self.targets_few = Index(targets[:100].astype(str), dtype=object)
+        else:
+            self.idx = Index(values.astype(dtype))
+            self.targets = Index(targets.astype(dtype))
+            self.targets_few = Index(targets[:100].astype(dtype))
+        # warm the engine's cached properties outside the timer
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique_few_targets(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets_few)
+
+
 class NonNumericSeriesIndexing:
     params = [
         ("string", "datetime", "period"),
@@ -318,6 +350,10 @@ class MultiIndexing:
     def time_xs_full_key(self, unique_levels):
         target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.xs(target)
+
+    def time_xs_partial_key(self, unique_levels):
+        # partial key -> contiguous slice of rows (non-unique levels)
+        self.df.xs(self.tgt_scalar)
 
 
 class IntervalIndexing:
@@ -550,6 +586,24 @@ class SetitemObjectDtype:
         self.df.loc[0, 1] = 1.0
 
 
+class SeriesSetitem:
+    params = ["str"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 500_000
+        self.s = Series(np.random.rand(N), dtype=dtype)
+        self.arr = self.s.array
+        self.arr_obj = np.asarray(self.s.array, dtype=object)
+
+    def time_setitem_slice_array(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/64530
+        self.s[:] = self.arr
+
+    def time_setitem_slice_array_infer(self, dtype):
+        self.s[:] = self.arr_obj
+
+
 class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]
@@ -579,6 +633,23 @@ class Block:
         start = datetime(2010, 5, 1)
         end = datetime(2010, 9, 1)
         self.df.loc[start:end, :] = True
+
+
+class LocSetitem2dValue:
+    def setup(self):
+        nrows = 10_000_000
+        # Mixed dtypes so the setitem takes the split path.
+        self.df = DataFrame(
+            {
+                "a": np.zeros(nrows),
+                "b": np.zeros(nrows, dtype=int),
+                "c": np.zeros(nrows),
+            }
+        )
+        self.value = np.random.randn(nrows, 2).tolist()
+
+    def time_loc_setitem_2d(self):
+        self.df.loc[:, ["a", "c"]] = self.value
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

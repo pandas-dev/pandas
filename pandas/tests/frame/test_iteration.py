@@ -63,6 +63,21 @@ class TestIteration:
             exp = s.loc[k]
             tm.assert_series_equal(v, exp)
 
+    def test_iterrows_no_datetime_coercion(self):
+        # GH#26427 - string that looks like a year should not be coerced
+        # to Timestamp when row also contains a datetime
+        df = DataFrame(
+            {
+                "a": ["1801", "11801"],
+                "b": date_range("2020-01-01", periods=2),
+            }
+        )
+        df["a"] = df["a"].astype(object)
+        for idx, row in df.iterrows():
+            assert isinstance(row["a"], str), (
+                f"row {idx}: 'a' was coerced to {type(row['a'])}"
+            )
+
     def test_iterrows_corner(self):
         # GH#12222
         df = DataFrame(
@@ -129,7 +144,7 @@ class TestIteration:
 
     @pytest.mark.parametrize("limit", [254, 255, 1024])
     @pytest.mark.parametrize("index", [True, False])
-    def test_itertuples_py2_3_field_limit_namedtuple(self, limit, index):
+    def test_itertuples_field_limit_namedtuple(self, limit, index):
         # GH#28282
         df = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(limit)}])
         result = next(df.itertuples(index=index))

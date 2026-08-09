@@ -110,6 +110,8 @@ class ToDatetimeFromIntsFloats:
         self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
         self.ts_sec_uint = Series(range(1521080307, 1521685107), dtype="uint64")
         self.ts_sec_float = self.ts_sec.astype("float64")
+        # Non-round floats exercise cast_from_unit_vectorized (GH#57366)
+        self.ts_sec_float_fractional = self.ts_sec_float + 0.5
 
         self.ts_nanosec = 1_000_000 * self.ts_sec
         self.ts_nanosec_uint = 1_000_000 * self.ts_sec_uint
@@ -134,6 +136,9 @@ class ToDatetimeFromIntsFloats:
 
     def time_sec_float64(self):
         to_datetime(self.ts_sec_float, unit="s")
+
+    def time_sec_float64_fractional(self):
+        to_datetime(self.ts_sec_float_fractional, unit="s")
 
 
 class ToDatetimeYYYYMMDD:
@@ -165,6 +170,7 @@ class ToDatetimeISO8601:
         self.strings_tz_space = [
             x.strftime("%Y-%m-%d %H:%M:%S") + " -0800" for x in rng
         ]
+        self.strings_tz_offset = [x + "+05:00" for x in self.strings]
         self.strings_zero_tz = [x.strftime("%Y-%m-%d %H:%M:%S") + "Z" for x in rng]
 
     def time_iso8601(self):
@@ -181,6 +187,12 @@ class ToDatetimeISO8601:
 
     def time_iso8601_tz_spaceformat(self):
         to_datetime(self.strings_tz_space)
+
+    def time_iso8601_tz_offset(self):
+        to_datetime(self.strings_tz_offset)
+
+    def time_iso8601_tz_offset_format(self):
+        to_datetime(self.strings_tz_offset, format="%Y-%m-%d %H:%M:%S%z")
 
     def time_iso8601_infer_zero_tz_fromat(self):
         # GH 41047

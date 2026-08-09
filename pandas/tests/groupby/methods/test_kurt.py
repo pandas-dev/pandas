@@ -9,7 +9,7 @@ import pandas._testing as tm
 
 def test_groupby_kurt_equivalence():
     # GH#40139
-    # Test that that groupby kurt method (which uses libgroupby.group_kurt)
+    # Test that the groupby kurt method (which uses libgroupby.group_kurt)
     #  matches the results of operating group-by-group (which uses nanops.nankurt)
     nrows = 1000
     ngroups = 3
@@ -84,7 +84,7 @@ def test_groupby_kurt_all_ones():
     result = gb.kurt(skipna=False)
     expected = pd.DataFrame(
         {
-            "x": [0.0],  # Same behavior as pd.DataFrame.kurt()
+            "x": [np.nan],  # Same behavior as pd.DataFrame.kurt()
         }
     )
     tm.assert_almost_equal(result, expected)

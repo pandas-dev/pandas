@@ -129,6 +129,7 @@ class TestDataFrameMissingData:
         with pytest.raises(ValueError, match=msg):
             df.dropna(axis=3)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
         original = Series([1, 2, np.nan], name="A")

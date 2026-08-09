@@ -61,6 +61,7 @@ if TYPE_CHECKING:
 class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
+    _exhausted: bool
 
     def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
@@ -68,6 +69,7 @@ class CParserWrapper(ParserBase):
         kwds = kwds.copy()
 
         self.low_memory = kwds.pop("low_memory", False)
+        self._exhausted = False
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -192,14 +194,54 @@ class CParserWrapper(ParserBase):
         # error: Cannot determine type of 'names'
 
         # much faster than using orig_names.index(x) xref GH#44106
-        names_dict = {x: i for i, x in enumerate(self.orig_names)}
-        col_indices = [names_dict[x] for x in self.names]
+        names_dict = {x: i for i, x in enumerate(self.orig_names)}  # pyright: ignore[reportOptionalIterable]
+        col_indices = [names_dict[x] for x in self.names]  # pyright: ignore[reportOptionalIterable]
         noconvert_columns = self._set_noconvert_dtype_columns(
             col_indices,
             self.names,
         )
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
+
+        # Mark parse_dates columns so the C parser can try to emit datetime64
+        # directly, skipping the Python-str ndarray round-trip. In low_memory
+        # mode the C parser keeps raw-byte receipts per chunk so a fallback in
+        # any chunk restores the whole column to the object-string path.
+        # With a list parse_dates, noconvert_columns is exactly the resolved
+        # parse_dates targets (integer colspecs usecols-relative, matching
+        # _do_date_conversions).
+        # Not with implicit-index files (leading_cols > 0): noconvert indices
+        # are not shifted by leading_cols, so the fastpath gate in
+        # _convert_tokens cannot line up with them.
+        if isinstance(self.parse_dates, list) and self._reader.leading_cols == 0:
+            for col_idx in noconvert_columns:
+                name = self.orig_names[col_idx]
+                require_consistent = self._parse_dates_fastpath_strictness(name)
+                if require_consistent is not None:
+                    self._reader.set_datetime_convert(col_idx, require_consistent)
+
+    def _parse_dates_fastpath_strictness(self, name: Hashable) -> bool | None:
+        """
+        Decide whether a parse_dates column is a candidate for the direct
+        char-buffer -> datetime64 fastpath, returning None if not, otherwise
+        whether the fastpath must require a single consistent format.
+
+        With date_format=None, to_datetime infers one format from the first
+        value and rejects rows that deviate, so the fastpath must do the same;
+        with date_format="ISO8601" mixed ISO8601 layouts are allowed.
+        """
+        if self.dayfirst:
+            return None
+        date_format = self.date_format
+        if isinstance(date_format, dict):
+            date_format = date_format.get(name)
+        if date_format is None:
+            return True
+        if date_format == "ISO8601":
+            return False
+        # If a specific format is supplied, let the existing path handle it.
+        # A future extension could detect ISO-shaped formats here.
+        return None
 
     def read(
         self,
@@ -211,6 +253,10 @@ class CParserWrapper(ParserBase):
     ]:
         index: Index | MultiIndex | None
         column_names: Sequence[Hashable] | MultiIndex
+        if self._exhausted:
+            # Exhausting the reader closed it, so calling into the C reader
+            # again would raise instead of signalling the end of the data.
+            raise StopIteration
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -246,6 +292,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self._exhausted = True
                 self.close()
                 raise
 
@@ -335,13 +382,19 @@ def _filter_usecols(usecols, names: SequenceT) -> SequenceT | list[Hashable]:
 
 
 def _concatenate_chunks(
-    chunks: list[dict[int, ArrayLike]], column_names: list[str]
+    chunks: list[dict[int, ArrayLike]],
+    column_names: Sequence[Hashable],
+    warn_mixed: bool = True,
 ) -> dict:
     """
     Concatenate chunks of data read with low_memory=True.
 
     The tricky part is handling Categoricals, where different chunks
     may have different inferred categories.
+
+    ``warn_mixed=False`` suppresses the mixed-dtype warning; the parallel
+    reader gathers byte-range chunks (not low_memory row chunks), so a
+    column's cross-chunk dtype has already been reconciled by the caller.
     """
     names = list(chunks[0].keys())
     warning_columns = []
@@ -355,13 +408,13 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
-            result[name] = union_categoricals(arrs, sort_categories=False)
+            result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
                 warning_columns.append(column_names[name])
 
-    if warning_columns:
+    if warning_columns and warn_mixed:
         warning_names = ", ".join(
             [f"{index}: {name}" for index, name in enumerate(warning_columns)]
         )

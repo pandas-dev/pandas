@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from dateutil.tz.tz import tzlocal
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
@@ -12,6 +13,8 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+
+from pandas import DatetimeIndex
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -154,10 +157,46 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
 
     except OutOfBoundsDatetime:
         pass
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, NotImplementedError, OverflowError, OSError):
         # we are creating an invalid offset
         # so ignore
+        # - NotImplementedError is raised for tz-aware timestamps outside Python's
+        #   range that are created by adding the offset
+        # - OverflowError is raised in the same case on 32-bit systems with tzlocal
+        # - OSError is raised in the same case on Windows with tzlocal
         pass
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        DateOffset(months=1),
+        MonthBegin(),
+        MonthEnd(),
+        QuarterEnd(),
+        YearEnd(),
+        SemiMonthBegin(),
+        SemiMonthEnd(),
+    ],
+)
+def test_apply_array_out_of_bounds_raises(offset):
+    # GH#66549 the vectorized month/quarter shifts raised a bare OverflowError
+    #  naming a C source line, where the scalar path raises OutOfBoundsDatetime
+    dti = DatetimeIndex([Timestamp.max])
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+        dti + offset
+
+    with pytest.raises(OutOfBoundsDatetime):
+        Timestamp.max + offset
+
+
+def test_apply_array_out_of_bounds_raises_non_nano():
+    # GH#66549 the message names the resolution the result overflowed
+    dti = DatetimeIndex(np.array([np.iinfo(np.int64).max], dtype="M8[s]"))
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds second"):
+        dti + MonthEnd()
 
 
 def test_offsets_compare_equal(_offset):

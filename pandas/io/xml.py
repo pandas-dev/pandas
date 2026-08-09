@@ -84,8 +84,8 @@ class _XMLFrameParser:
         Column names for :class:`~pandas.DataFrame` of parsed XML data.
 
     dtype : dict
-        Data type for data or columns. E.g. {{'a': np.float64,
-        'b': np.int32, 'c': 'Int64'}}
+        Data type for data or columns. E.g. {'a': np.float64,
+        'b': np.int32, 'c': 'Int64'}
 
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
@@ -342,44 +342,53 @@ class _XMLFrameParser:
             set(self.iterparse[row_node])
         )
 
-        for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
-            curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
+        parser = iterparse(self.path_or_buffer, events=("start", "end"))
+        try:
+            for event, elem in parser:
+                curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
-            if event == "start":
-                if curr_elem == row_node:
-                    row = {}
+                if event == "start":
+                    if curr_elem == row_node:
+                        row = {}
 
-            if row is not None:
-                if self.names and iterparse_repeats:
-                    for col, nm in zip(
-                        self.iterparse[row_node], self.names, strict=True
-                    ):
-                        if curr_elem == col:
-                            elem_val = elem.text if elem.text else None
-                            if elem_val not in row.values() and nm not in row:
-                                row[nm] = elem_val
+                if row is not None:
+                    if self.names and iterparse_repeats:
+                        for col, nm in zip(
+                            self.iterparse[row_node], self.names, strict=True
+                        ):
+                            if curr_elem == col:
+                                elem_val = elem.text if elem.text else None
+                                if elem_val not in row.values() and nm not in row:
+                                    row[nm] = elem_val
 
-                        if col in elem.attrib:
-                            if elem.attrib[col] not in row.values() and nm not in row:
-                                row[nm] = elem.attrib[col]
-                else:
-                    for col in self.iterparse[row_node]:
-                        if curr_elem == col:
-                            row[col] = elem.text if elem.text else None
-                        if col in elem.attrib:
-                            row[col] = elem.attrib[col]
+                            if col in elem.attrib:
+                                if (
+                                    elem.attrib[col] not in row.values()
+                                    and nm not in row
+                                ):
+                                    row[nm] = elem.attrib[col]
+                    else:
+                        for col in self.iterparse[row_node]:
+                            if curr_elem == col:
+                                row[col] = elem.text if elem.text else None
+                            if col in elem.attrib:
+                                row[col] = elem.attrib[col]
 
-            if event == "end":
-                if curr_elem == row_node and row is not None:
-                    dicts.append(row)
-                    row = None
+                if event == "end":
+                    if curr_elem == row_node and row is not None:
+                        dicts.append(row)
+                        row = None
 
-                elem.clear()
-                if hasattr(elem, "getprevious"):
-                    while (
-                        elem.getprevious() is not None and elem.getparent() is not None
-                    ):
-                        del elem.getparent()[0]
+                    elem.clear()
+                    if hasattr(elem, "getprevious"):
+                        while (
+                            elem.getprevious() is not None
+                            and elem.getparent() is not None
+                        ):
+                            del elem.getparent()[0]
+        finally:
+            if hasattr(parser, "close"):
+                parser.close()
 
         if dicts == []:
             raise ParserError("No result from selected items in iterparse.")
@@ -419,7 +428,7 @@ class _XMLFrameParser:
         Raises
         ------
         ValueError
-            * If value is not a list and less then length of nodes.
+            * If value is not a list and less than length of nodes.
         """
         raise AbstractMethodError(self)
 
@@ -504,7 +513,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "undeclared namespace prefix."
             ) from err
 
-        return elems
+        return elems  # pyright: ignore[reportReturnType]
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -872,6 +881,10 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
+    This function parses an XML document from a file path, URL, or string buffer,
+    and returns the content as a DataFrame. Nodes are selected using an XPath
+    expression, and their child elements and attributes are mapped to columns.
+
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
@@ -879,6 +892,10 @@ def read_xml(
         object implementing a ``read()`` function. The string can be a path.
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
@@ -910,10 +927,9 @@ def read_xml(
         attributes.
 
     dtype : Type name or dict of column -> type, optional
-        Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
-        'c': 'Int64'}}
-        Use `str` or `object` together with suitable `na_values` settings
-        to preserve and not interpret dtype.
+        Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32,
+        'c': 'Int64'}
+        Use ``str`` or ``object`` to preserve and not interpret dtype.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
@@ -929,13 +945,13 @@ def read_xml(
           each as a separate date column.
         * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
           a single date column.
-        * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+        * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
           result 'foo'
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
 
-    parser : {{'lxml','etree'}}, default 'lxml'
+    parser : {'lxml','etree'}, default 'lxml'
         Parser module to use for retrieval of data. Only 'lxml' and
         'etree' are supported. With 'lxml' more complex ``XPath`` searches
         and ability to use XSLT stylesheet are supported.
@@ -947,17 +963,20 @@ def read_xml(
         installed and specify 'lxml' as ``parser``. The ``xpath`` must
         reference nodes of transformed XML document generated after XSLT
         transformation and not the original XML document. Only XSLT 1.0
-        scripts and not later versions is currently supported.
+        scripts and not later versions is currently supported. This option
+        cannot be combined with ``iterparse`` and is ignored if ``iterparse``
+        is used.
 
     iterparse : dict, optional
         The nodes or attributes to retrieve in iterparsing of XML document
         as a dict with key being the name of repeating element and value being
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
-        and unlike ``xpath``, descendants do not need to relate to each other but can
-        exist any where in document under the repeating element. This memory-
+        and any ``stylesheet`` is ignored, since XSLT requires the whole tree in
+        memory. Unlike ``xpath``, descendants do not need to relate to each other
+        but can exist anywhere in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
-        For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
+        For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
@@ -986,7 +1005,7 @@ def read_xml(
         user_guide/io.html?highlight=storage_options#reading-writing-remote-
         files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior

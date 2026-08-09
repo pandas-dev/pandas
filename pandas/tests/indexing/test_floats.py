@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import PY315
+
 from pandas import (
     DataFrame,
     Index,
@@ -251,7 +253,13 @@ class TestFloatIndexers:
         # setitem
         if indexer_sli is tm.iloc:
             # otherwise we keep the same message as above
-            msg = "slice indices must be integers or None or have an __index__ method"
+            if PY315:
+                msg = "slice indices must be integers or have an __index__ method"
+            else:
+                msg = (
+                    "slice indices must be integers or None or have an __index__ method"
+                )
+
         with pytest.raises(TypeError, match=msg):
             indexer_sli(s)[idx] = 0
 

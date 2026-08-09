@@ -179,18 +179,28 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   }
 
   out->year = 0;
-  if (sublen >= 4 && isdigit(substr[0]) && isdigit(substr[1]) &&
-      isdigit(substr[2]) && isdigit(substr[3])) {
+  if (str[0] == '-') {
+    /* GH#55954: BC years may have 1-4 digits (e.g. "-111-01-01"); read
+     * digits up to a maximum of 4. The number of digits read is later
+     * used to validate that at least one digit was provided. */
+    numdigits = 0;
+    while (numdigits < 4 && sublen > 0 && isdigit(*substr)) {
+      out->year = 10 * out->year + (*substr - '0');
+      ++substr;
+      --sublen;
+      ++numdigits;
+    }
+    if (numdigits == 0) {
+      goto parse_error;
+    }
+    out->year = -out->year;
+  } else if (sublen >= 4 && isdigit(substr[0]) && isdigit(substr[1]) &&
+             isdigit(substr[2]) && isdigit(substr[3])) {
     out->year = 1000 * (substr[0] - '0') + 100 * (substr[1] - '0') +
                 10 * (substr[2] - '0') + (substr[3] - '0');
 
     substr += 4;
     sublen -= 4;
-  }
-
-  /* Negate the year if necessary */
-  if (str[0] == '-') {
-    out->year = -out->year;
   }
   /* Check whether it's a leap-year */
   year_leap = is_leapyear(out->year);

@@ -86,14 +86,15 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 :class:`NA` semantics
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. warning::
+.. note::
 
-   Experimental: the behaviour of :class:`NA` can still change without warning.
+   :class:`NA` is the missing-value sentinel for nullable dtypes. Its
+   behaviour in some edge cases may still change in future releases.
 
-Starting from pandas 1.0, an experimental :class:`NA` value (singleton) is
-available to represent scalar missing values. The goal of :class:`NA` is provide a
-"missing" indicator that can be used consistently across data types
-(instead of ``np.nan``, ``None`` or ``pd.NaT`` depending on the data type).
+:class:`NA` is a scalar (singleton) used to represent missing values for
+nullable dtypes. The goal of :class:`NA` is to provide a "missing" indicator
+that can be used consistently across data types (instead of ``np.nan``,
+``None`` or ``pd.NaT`` depending on the data type).
 
 For example, when having missing values in a :class:`Series` with the nullable integer
 dtype, it will use :class:`NA`:
@@ -218,8 +219,44 @@ potentially be :class:`NA`. In such cases, :func:`isna` can be used to check
 for :class:`NA` or ``condition`` being :class:`NA` can be avoided, for example by
 filling missing values beforehand.
 
+For the same reason, the Python keywords ``and``, ``or``, and ``not`` cannot be
+used with :class:`NA`: these keywords always call ``bool()`` on their operands
+and cannot be overridden, so they will raise the same ``TypeError``. This
+manifests as an asymmetry depending on operand position, since ``and`` and
+``or`` only call ``bool()`` on the left operand:
+
+.. ipython:: python
+   :okexcept:
+
+   True and pd.NA
+   pd.NA and True
+
+Use the bitwise operators ``&``, ``|``, and ``~`` instead, which dispatch to
+``__and__``, ``__or__``, and ``__invert__`` and follow Kleene logic as
+described above.
+
 A similar situation occurs when using :class:`Series` or :class:`DataFrame` objects in ``if``
 statements, see :ref:`gotchas.truth`.
+
+Converting a nullable array to NumPy keeps :class:`NA` in the resulting
+object-dtype array, so NumPy operations that must produce a boolean result hit
+the same ``TypeError``. Elementwise comparison is the common case: NumPy
+compares each pair of elements, gets :class:`NA` back for the missing entries,
+and then fails when casting the result to bool dtype.
+
+.. ipython:: python
+   :okexcept:
+
+   arr = pd.array(["a", "b", None], dtype="string")
+   np.asarray(arr)
+   np.asarray(arr) == np.array(["a", "z"])[:, None]
+
+Pass an explicit ``na_value`` to :meth:`~api.extensions.ExtensionArray.to_numpy`
+to substitute a value NumPy can compare, such as ``None`` or ``np.nan``:
+
+.. ipython:: python
+
+   arr.to_numpy(dtype=object, na_value=None) == np.array(["a", "z"])[:, None]
 
 NumPy ufuncs
 ------------
@@ -319,6 +356,19 @@ The descriptive statistics and computational methods discussed in the
 <api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
+The default behavior differs from many NumPy reduction functions. For example,
+pandas reductions such as :meth:`Series.std` and :meth:`DataFrame.std`
+skip missing values by default, while :func:`numpy.std` returns ``nan``
+when the input contains ``nan`` values. To include missing values in
+pandas reductions, pass ``skipna=False``.
+
+.. ipython:: python
+
+   ser = pd.Series([1.0, np.nan, 3.0])
+   ser.std()
+   ser.std(skipna=False)
+   np.std(ser.to_numpy(), ddof=1)
+
 When summing data, NA values or empty data will be treated as zero.
 
 .. ipython:: python
@@ -380,6 +430,12 @@ Replace NA with a scalar value
    df = pd.DataFrame(data)
    df
    df.fillna(0)
+
+Replace NA with column-specific values using a dict
+
+.. ipython:: python
+
+   df.fillna({"np": 0, "arrow": 1})
 
 When the data has object dtype, you can control what type of NA values are present.
 

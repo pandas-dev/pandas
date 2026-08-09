@@ -870,7 +870,7 @@ class TestDataFrameReshape:
             right = sorted(map(cast, right))
             assert left == right
 
-    @pytest.mark.parametrize("idx", itertools.permutations(["1st", "2nd", "3rd"]))
+    @pytest.mark.parametrize("idx", list(itertools.permutations(["1st", "2nd", "3rd"])))
     @pytest.mark.parametrize("lev", list(range(3)))
     @pytest.mark.parametrize("col", ["4th", "5th"])
     def test_unstack_nan_index_repeats(self, idx, lev, col):
@@ -1005,7 +1005,9 @@ class TestDataFrameReshape:
         )
 
         right = DataFrame(vals, columns=cols, index=idx)
-        tm.assert_frame_equal(left, right)
+        # the unstacked columns level has no freq while the date_range expected
+        #  does; freq is not what this test checks
+        tm.assert_frame_equal(left, right, check_freq=False)
 
     def test_unstack_nan_index4(self):
         # GH4862
@@ -1421,6 +1423,41 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
         columns=MultiIndex.from_tuples(expected_columns, names=[None, "level2"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_unsorted_with_gaps():
+    # Unsorted MI with missing combinations, unstacking non-last level
+    # with sort=False. Exercises the identity=False, mask_all=False,
+    # sort=False path through _Unstacker.get_new_values.
+    index = MultiIndex.from_tuples([("b", 1), ("a", 2), ("b", 2)], names=["x", "y"])
+    ser = Series([10, 20, 30], index=index)
+    result = ser.unstack(level=0, sort=False)
+    expected = DataFrame(
+        {"b": [10.0, 30.0], "a": [np.nan, 20.0]},
+        index=Index([1, 2], name="y"),
+        columns=Index(["b", "a"], name="x"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_monotonic_values_unsorted_codes():
+    # GH#65107 An MI whose tuple *values* are monotonic but whose codes are
+    #  unsorted (here level 0 has unsorted levels ['b', 'a']) must still be
+    #  reordered before reshaping.  Previously the identity-indexer fast path
+    #  keyed off index.is_monotonic_increasing, which reflects values not
+    #  codes, so it skipped the take and placed values under the wrong labels.
+    index = MultiIndex(levels=[["b", "a"], [1, 2]], codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
+    # tuples are ("a", 1), ("a", 2), ("b", 1), ("b", 2)
+    ser = Series([10, 20, 30, 40], index=index)
+    result = ser.unstack()
+    expected = DataFrame(
+        {1: [30, 10], 2: [40, 20]},
+        index=Index(["b", "a"]),
+        columns=Index([1, 2]),
+    )
+    tm.assert_frame_equal(result, expected)
+    # ("a", 1) -> 10 must land under row "a", not row "b"
+    assert result.loc["a", 1] == 10
 
 
 def test_unstack_fill_frame_object():
@@ -2054,6 +2091,17 @@ class TestStackUnstackMultiLevel:
         with pytest.raises(IndexError, match="not a valid level number"):
             unstacked.stack([-4, -3], future_stack=future_stack)
 
+    @pytest.mark.parametrize("level", [[0, 0], ["l0", "l0"], [2, -1], [1, -2]])
+    def test_stack_duplicate_levels(self, level):
+        # GH#66588
+        columns = MultiIndex.from_product(
+            [["A", "B"], ["c", "d"], ["e", "f"]], names=["l0", "l1", "l2"]
+        )
+        df = DataFrame(np.arange(8).reshape(1, 8), columns=columns)
+
+        with pytest.raises(ValueError, match="level should not contain duplicate"):
+            df.stack(level)
+
     def test_unstack_period_series(self):
         # GH4342
         idx1 = pd.PeriodIndex(
@@ -2306,9 +2354,11 @@ class TestStackUnstackMultiLevel:
     )
     @pytest.mark.parametrize(
         "levels",
-        itertools.chain.from_iterable(
-            itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
-            for width in [2, 3]
+        list(
+            itertools.chain.from_iterable(
+                itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
+                for width in [2, 3]
+            )
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))

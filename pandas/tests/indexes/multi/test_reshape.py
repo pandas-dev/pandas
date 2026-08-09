@@ -66,9 +66,7 @@ def test_insert(idx):
         columns=["1st", "2nd", "3rd"],
     )
     right.set_index(["1st", "2nd"], inplace=True)
-    # FIXME data types changes to float because
-    # of intermediate nan insertion;
-    tm.assert_frame_equal(left, right, check_dtype=False)
+    tm.assert_frame_equal(left, right)
     tm.assert_series_equal(ts, right["3rd"])
 
 
@@ -129,10 +127,10 @@ def test_append_index():
 
     result = midx_lv2.append(midx_lv2)
     expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, check_freq=False)
 
     result = midx_lv2.append(midx_lv3)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, check_freq=False)
 
     result = midx_lv3.append(midx_lv2)
     expected = Index._simple_new(

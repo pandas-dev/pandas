@@ -5,6 +5,8 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -326,7 +328,8 @@ def test_cython_agg_nullable_int(op_name):
         convert_integer = False
     else:
         convert_integer = True
-    expected = expected.convert_dtypes(convert_integer=convert_integer)
+    with tm.assert_produces_warning(Pandas4Warning):
+        expected = expected.convert_dtypes(convert_integer=convert_integer)
     tm.assert_series_equal(result, expected)
 
 

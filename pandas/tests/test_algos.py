@@ -63,8 +63,8 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=complex)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    def test_factorize(self, index_or_series_obj, sort):
-        obj = index_or_series_obj
+    def test_factorize(self, index_or_series_obj_orderable, sort):
+        obj = index_or_series_obj_orderable
         result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
@@ -573,14 +573,14 @@ class TestUnique:
         result = algos.unique(index)
 
         # dict.fromkeys preserves the order
-        unique_values = list(dict.fromkeys(index.values))
+        unique_values = list(dict.fromkeys(index._values))
         if isinstance(index, MultiIndex):
             expected = MultiIndex.from_tuples(unique_values, names=index.names)
         else:
             expected = Index(unique_values, dtype=index.dtype)
             if isinstance(index.dtype, DatetimeTZDtype):
                 expected = expected.normalize()
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
     def test_factorize_multiindex_empty(self):
         # GH#57517
@@ -1057,7 +1057,7 @@ class TestIsin:
         # nan is special, because from " a is b" doesn't follow "a == b"
         # at least, isin() should follow python's "np.nan in [nan] == True"
         # casting to -> np.float64 -> another float-object somewhere on
-        # the way could lead jeopardize this behavior
+        # the way could jeopardize this behavior
         comps = np.array([np.nan], dtype=object)  # could be casted to float64
         values = [np.nan]
         expected = np.array([True])
@@ -1207,6 +1207,68 @@ class TestIsin:
         expected = Series(False)
         tm.assert_series_equal(result, expected)
 
+    def test_isin_uint64_vs_float_no_precision_loss(self):
+        # GH#46485: a uint64 magnitude > 2**53 must not be down-cast to float64
+        # when checking membership against float targets.
+        value = 2**63 + 3
+        ser = Series([value], dtype=np.uint64)
+        result = ser.isin([float(value)])  # float(value) rounds to 2.0**63
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_float_vs_int64_no_precision_loss(self):
+        # GH#46485: the symmetric case -- a float caller against int64 targets
+        # whose magnitude exceeds 2**53 must not collide via a float64 cast.
+        ser = Series([2.0**53], dtype="float64")
+        result = ser.isin([2**53 + 1])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_uint64_vs_complex_no_precision_loss(self):
+        # GH#46485: complex128 components are float64, so casting a uint64
+        # with magnitude > 2**53 to complex128 is just as lossy as float64.
+        ser = Series([2**63 + 3], dtype=np.uint64)
+        result = ser.isin([complex(2**63)])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_complex_vs_int64_no_precision_loss(self):
+        # GH#46485: the symmetric case -- a complex caller against int64
+        # targets whose magnitude exceeds 2**53.
+        ser = Series([complex(2**53)], dtype="complex128")
+        result = ser.isin([2**53 + 1])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["float32", "complex128"])
+    def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
+        # GH#46485: a mixed int/float targets list is cast to float64 by
+        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
+        # can see it; we must still object-cast and compare exactly.
+        ser = Series([2**53], dtype="int64").astype(dtype)
+        result = ser.isin([2**53 + 1, 1.5])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_float_vs_small_int_keeps_numeric_path(self, monkeypatch):
+        # GH#46485: int targets that fit exactly in float64 (|x| <= 2**53) are
+        # safe to compare numerically, so they must not fall back to the slower
+        # object-dtype path. 2**53 is the inclusive boundary.
+        called = []
+        monkeypatch.setattr(
+            algos,
+            "construct_1d_object_array_from_listlike",
+            lambda values: called.append(values) or np.asarray(values, dtype=object),
+        )
+        ser = Series([1.0, 2.0, 2.0**53], dtype="float64")
+        result = ser.isin([2, 2**53])
+        tm.assert_series_equal(result, Series([False, True, True]))
+        assert called == []  # numeric path, no object cast
+
+        # ... while an out-of-range target still forces the object path.
+        ser.isin([2**53 + 1])
+        assert len(called) == 1
+
 
 class TestValueCounts:
     def test_value_counts(self):
@@ -1251,7 +1313,7 @@ class TestValueCounts:
             algos.value_counts_internal(np.array(["1", 1], dtype=object), bins=1)
 
     def test_value_counts_nat(self):
-        td = Series([np.timedelta64(10000), NaT], dtype="timedelta64[ns]")
+        td = Series([np.timedelta64(10000, "ns"), NaT], dtype="timedelta64[ns]")
         dt = to_datetime(["NaT", "2014-01-01"])
 
         for ser in [td, dt]:
@@ -1264,7 +1326,7 @@ class TestValueCounts:
         result_dt = algos.value_counts_internal(dt)
         tm.assert_series_equal(result_dt, exp_dt)
 
-        exp_td = Series([1], index=[np.timedelta64(10000)], name="count")
+        exp_td = Series([1], index=[np.timedelta64(10000, "ns")], name="count")
         result_td = algos.value_counts_internal(td)
         tm.assert_series_equal(result_td, exp_td)
 
@@ -1593,7 +1655,7 @@ class TestDuplicated:
             np.array([Timestamp(d) for d in dt]),
             np.array([Timestamp(d, tz="US/Eastern") for d in dt]),
             np.array([Period(d, freq="D") for d in dt]),
-            np.array([np.datetime64(d) for d in dt]),
+            np.array([np.datetime64(d, "ns") for d in dt]),
             np.array([Timedelta(d) for d in td]),
         ]
 
@@ -1846,7 +1908,7 @@ class TestRank:
 
     def test_too_many_ndims(self):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
-        msg = "Array with ndim > 2 are not supported"
+        msg = "Array with ndim > 2 is not supported"
 
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
@@ -1861,6 +1923,58 @@ class TestRank:
         values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
+
+
+class TestIsMonotonic:
+    @pytest.mark.parametrize(
+        "arr, expected",
+        [
+            ([1, 2, 3], (True, False, True)),
+            ([3, 2, 1], (False, True, True)),
+            ([1, 2, 2, 3], (True, False, False)),
+            ([3, 2, 2, 1], (False, True, False)),
+            ([5, 5, 5], (True, True, False)),
+            ([1, 3, 2], (False, False, False)),
+            ([7], (True, True, True)),
+            ([], (True, True, True)),
+        ],
+    )
+    def test_numeric(self, arr, expected, any_real_numpy_dtype):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        values = np.array(arr, dtype=any_real_numpy_dtype)
+        assert algos.is_monotonic(values) == expected
+
+    def test_float16(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        # float16 is not supported by libalgos.is_monotonic directly;
+        # _ensure_data converts it to float64
+        values = np.array([1, 2, 3], dtype="float16")
+        assert algos.is_monotonic(values) == (True, False, True)
+        assert algos.is_monotonic(values[::-1]) == (False, True, True)
+
+    def test_bool(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        assert algos.is_monotonic(np.array([False, True, True])) == (True, False, False)
+        assert algos.is_monotonic(np.array([True, False])) == (False, True, True)
+
+    def test_object(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        values = np.array(["a", "b", "c"], dtype=object)
+        assert algos.is_monotonic(values) == (True, False, True)
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    def test_datetimelike(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        values = np.array([1, 2, 3], dtype="int64").view(dtype)
+        assert algos.is_monotonic(values) == (True, False, True)
+        assert algos.is_monotonic(values[::-1]) == (False, True, True)
+
+    def test_complex_raises(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        # complex is not orderable
+        values = np.array([1 + 0j, 2 + 0j], dtype="complex128")
+        with pytest.raises(TypeError, match="No matching signature found"):
+            algos.is_monotonic(values)
 
 
 class TestMode:

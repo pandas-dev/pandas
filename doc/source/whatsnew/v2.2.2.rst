@@ -28,8 +28,8 @@ As usual please report any bugs discovered to our `issue tracker <https://github
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pandas nullable on with missing values (:issue:`56702`)
-- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pyarrow nullable on with missing values (:issue:`57664`)
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when a column's type was a pandas nullable one with missing values (:issue:`56702`)
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when a column's type was a pyarrow nullable one with missing values (:issue:`57664`)
 - Avoid issuing a spurious ``DeprecationWarning`` when a custom :class:`DataFrame` or :class:`Series` subclass method is called (:issue:`57553`)
 - Fixed regression in precision of :func:`to_datetime` with string and ``unit`` input (:issue:`57051`)
 

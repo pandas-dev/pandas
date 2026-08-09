@@ -6,6 +6,7 @@ from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
 
 cpdef str get_rule_month(str source)
 cpdef quarter_to_myear(int year, int quarter, str freq)
+cdef void warn_quarter_deprecated(str date_string, str freq)
 
 cdef datetime parse_datetime_string(
     str date_string,
@@ -13,4 +14,5 @@ cdef datetime parse_datetime_string(
     bint yearfirst,
     NPY_DATETIMEUNIT* out_bestunit,
     int64_t* nanos,
+    bint* out_is_quarter=*,
 )

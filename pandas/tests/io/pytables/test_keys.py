@@ -70,7 +70,7 @@ def test_keys_ignore_hdf_softlink(temp_hdfstore):
     # GH 20523
     # Puts a softlink into HDF file and rereads
     df = DataFrame({"A": range(5), "B": range(5)})
-    temp_hdfstore.put("df", df)
+    temp_hdfstore.put("df", df, track_times=False)
 
     assert temp_hdfstore.keys() == ["/df"]
 

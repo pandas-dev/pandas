@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -274,7 +275,7 @@ class KdePlot(HistPlot):
     ):
         from scipy.stats import gaussian_kde
 
-        y = remove_na_arraylike(y)
+        y = remove_na_arraylike(y)  # pyright: ignore[reportAssignmentType]
         gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
         # gaussian_kde.evaluate(None) raises TypeError, so pyright requires this check
@@ -537,7 +538,7 @@ def hist_frame(
         data = data[column]
     # GH32590
     data = data.select_dtypes(
-        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+        include=(np.number, "datetime64", DatetimeTZDtype), exclude="timedelta"
     )
     naxes = len(data.columns)
 
