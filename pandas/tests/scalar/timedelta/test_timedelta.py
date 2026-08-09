@@ -106,6 +106,13 @@ class TestNonNano:
             elif unit == NpyDatetimeUnit.NPY_FR_us.value:
                 assert res.dtype == "m8[us]"
 
+    def test_view(self):
+        # GH#66608
+        td = Timedelta(seconds=1)
+        with tm.assert_produces_warning(None):
+            res = td.view(np.int64)
+        assert res == td._value
+
     def test_truediv_timedeltalike(self, td):
         assert td / td == 1
         assert (2.5 * td) / td == 2.5
@@ -621,8 +628,10 @@ class TestTimedeltas:
         assert min_td._value == iNaT + 1
         assert max_td._value == lib.i8max
 
-        # Beyond lower limit, a NAT before the Overflow
-        assert (min_td - Timedelta(1, "ns")) is NaT
+        # GH#66552 landing exactly on the NaT sentinel is out of bounds, not NaT
+        msg2 = "Out of bounds nanosecond timedelta: -9223372036854775808"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg2):
+            min_td - Timedelta(1, "ns")
 
         msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):

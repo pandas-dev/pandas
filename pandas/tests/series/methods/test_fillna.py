@@ -1,7 +1,7 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 
 import numpy as np
@@ -847,7 +847,7 @@ class TestSeriesFillNA:
         ser = Series(date_range("2020", periods=3, tz="UTC"))
         expected = ser.copy()
         ser[1] = NaT
-        result = ser.fillna(datetime(2020, 1, 2, tzinfo=timezone.utc))
+        result = ser.fillna(datetime(2020, 1, 2, tzinfo=UTC))
         tm.assert_series_equal(result, expected)
 
         # pre-2.0 we cast to object with mixed tzs, in 2.0 we retain dtype
@@ -893,7 +893,7 @@ class TestFillnaPad:
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
-        series = Series([datetime(2015, 1, 1, tzinfo=timezone.utc), 1])
+        series = Series([datetime(2015, 1, 1, tzinfo=UTC), 1])
         result = series.ffill()
         tm.assert_series_equal(series, result)
 
@@ -954,17 +954,15 @@ class TestFillnaPad:
     def test_datetime64tz_fillna_round_issue(self):
         # GH#14872
 
-        data = Series(
-            [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc)]
-        )
+        data = Series([NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=UTC)])
 
         filled = data.bfill()
 
         expected = Series(
             [
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=UTC),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=UTC),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=UTC),
             ]
         )
 

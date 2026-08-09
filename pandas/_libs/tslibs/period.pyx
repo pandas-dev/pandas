@@ -1682,6 +1682,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
+        bint saw_integer = False
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # if we don't raise here, we'll segfault later!
@@ -1691,17 +1692,32 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, dtype)
+        ordinal = _extract_ordinal(p, dtype, &saw_integer)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if saw_integer:
+        # GH#64227; warn once for the array rather than once per element
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            INT_TO_PERIOD_DEPR_MSG,
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
+cdef int64_t _extract_ordinal(
+    object item, PeriodDtypeBase dtype, bint* saw_integer
+) except? -1:
     """
     See extract_ordinals.
     """
@@ -1715,8 +1731,11 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
             ordinal = NPY_NAT
         else:
             # GH#64227 treat integers as calendar years, matching the
-            #  int-array path (from_calendar_ordinals) and Period(int, freq)
-            ordinal = Period(item, freq=dtype).ordinal
+            #  int-array path (from_calendar_ordinals) and Period(int, freq).
+            #  Go through str so we don't emit the scalar deprecation warning
+            #  once per element; extract_ordinals warns once for the array.
+            saw_integer[0] = True
+            ordinal = Period(str(item), freq=dtype).ordinal
     else:
         try:
             ordinal = item.ordinal
@@ -1761,6 +1780,29 @@ def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
+
+
+# GH#64227
+# NB: no one-liner reproduces the current behavior for every input, because
+#  the int-array path (from_calendar_ordinals) reads an int as a calendar
+#  year while the object path parses str(value), and those disagree outside
+#  4-digit years -- e.g. 200701 gives year 200701 vs 2007-01. So we point at
+#  the unambiguous replacement and leave the rest to the user.
+INT_TO_PERIOD_DEPR_MSG = (
+    "Passing integer data to PeriodArray/PeriodIndex is deprecated and will "
+    "change behavior in a future version, when integers will be treated as "
+    "period ordinals instead of calendar years. To get the future behavior "
+    "now, use PeriodIndex.from_ordinals(data, freq=...). To retain the "
+    "current behavior, construct the Period objects explicitly."
+)
+
+INT_TO_PERIOD_SCALAR_DEPR_MSG = (
+    "Passing an integer to Period is deprecated and will change behavior in "
+    "a future version, when the integer will be treated as a period ordinal "
+    "instead of a calendar year. To retain the current behavior, pass a "
+    "string, e.g. Period(str(value), freq=...). To get the future behavior "
+    "now, use Period(ordinal=value, freq=...)."
+)
 
 
 @set_module("pandas.errors")
@@ -2056,6 +2098,19 @@ cdef class _Period(PeriodMixin):
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
+    cdef _period_from_computed_ordinal(self, int64_t ordinal):
+        """
+        Build a Period from an ordinal produced by arithmetic on this one.
+
+        NPY_NAT is INT64_MIN, so an ordinal that lands on it is not NaT but is
+        indistinguishable from it once stored; the Period constructor renders it
+        as NaT.  The neighbouring result one step further out already raises
+        OverflowError, as does the vectorized path. (GH#66552)
+        """
+        if ordinal == NPY_NAT:
+            raise OverflowError("Period ordinal is out of bounds")
+        return Period(ordinal=ordinal, freq=self._freq)
+
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
             int64_t inc, ordinal
@@ -2082,7 +2137,7 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
             ordinal = self._ordinal + inc
-        return Period(ordinal=ordinal, freq=self._freq)
+        return self._period_from_computed_ordinal(ordinal)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -2092,7 +2147,7 @@ cdef class _Period(PeriodMixin):
         self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
-        return Period(ordinal=ordinal, freq=self._freq)
+        return self._period_from_computed_ordinal(ordinal)
 
     @cython.overflowcheck(True)
     def __add__(self, other):
@@ -2104,7 +2159,7 @@ cdef class _Period(PeriodMixin):
             return NaT
         elif util.is_integer_object(other):
             ordinal = self._ordinal + other * self._dtype._n
-            return Period(ordinal=ordinal, freq=self._freq)
+            return self._period_from_computed_ordinal(ordinal)
 
         elif is_period_object(other):
             # can't add datetime-like
@@ -3304,6 +3359,18 @@ class Period(_Period):
             if util.is_integer_object(value):
                 if value == NPY_NAT:
                     value = "NaT"
+                else:
+                    # GH#64227
+                    import warnings
+
+                    from pandas.errors import Pandas4Warning
+                    from pandas.util._exceptions import find_stack_level
+
+                    warnings.warn(
+                        INT_TO_PERIOD_SCALAR_DEPR_MSG,
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
                 value = str(value)
             elif type(value) is not str:
@@ -3313,7 +3380,9 @@ class Period(_Period):
 
             freqstr = freq.rule_code if freq is not None else None
             try:
-                dt, reso = parse_datetime_string_with_reso(value, freqstr)
+                dt, reso = parse_datetime_string_with_reso(
+                    value, freqstr, warn_quarter=False,
+                )
             except ValueError as err:
                 match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
                 if match:

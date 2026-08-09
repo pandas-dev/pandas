@@ -241,7 +241,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             refs = data._references
 
         result = cls._simple_new(tdarr, name=name, refs=refs)
-        result._pin_freq(freq, inferred_freq, {})
+        result._pin_freq(freq, inferred_freq)
         return result
 
     def __reduce__(self):

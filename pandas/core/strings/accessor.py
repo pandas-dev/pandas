@@ -331,11 +331,23 @@ class StringMethods(NoNewAttributesMixin):
                         return [x]
 
                 result = [cons_row(x) for x in result]
-                if result and not self._is_string:
-                    # propagate nan values to match longest sequence (GH 18450)
+                if result:
+                    if not self._is_string:
+                        # propagate nan values to match longest sequence
+                        #  (GH 18450)
+                        max_len = max(len(x) for x in result)
+                        result = [
+                            x * max_len if len(x) == 0 or x[0] is np.nan else x
+                            for x in result
+                        ]
+
+                    # GH#65751 right-pad ragged rows to a common length so the
+                    #  DataFrame constructor below isn't relied on to NaN-pad
+                    #  mismatched-length sequences (now deprecated). Filling
+                    #  with None matches the constructor's previous behavior.
                     max_len = max(len(x) for x in result)
                     result = [
-                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        list(x) + [None] * (max_len - len(x)) if len(x) < max_len else x
                         for x in result
                     ]
 
@@ -2207,8 +2219,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Notes
         -----
-        Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.
+        Follows the same rules as :meth:`str.zfill`: a leading sign character
+        ('+'/'-') is kept at the front of the string and the '0' padding is
+        inserted after it.
 
         Examples
         --------
@@ -2222,10 +2235,10 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
-        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        special character and the zero is added to the right of it
-        (:meth:`str.zfill` would have moved it to the left). ``1000``
-        remains unchanged as it is longer than `width`.
+        converted to ``NaN``. The minus sign in ``'-1'`` is kept at the front
+        of the string and the '0' padding is inserted after it, the same as
+        :meth:`str.zfill`. ``1000`` remains unchanged as it is longer than
+        `width`.
 
         >>> s.str.zfill(3)
         0     -01
