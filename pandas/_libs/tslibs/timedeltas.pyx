@@ -2910,6 +2910,9 @@ class Timedelta(_Timedelta):
     __rmul__ = __mul__
 
     def __truediv__(self, other):
+        cdef:
+            NPY_DATETIMEUNIT reso
+
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
             other = _wrapped_to_timedelta(other)
@@ -2917,7 +2920,7 @@ class Timedelta(_Timedelta):
                 return np.nan
             if other._creso != self._creso:
                 self, other = self._maybe_cast_to_matching_resos(other)
-            return self._value/ float(other._value)
+            return self._value / float(other._value)
 
         elif is_integer_object(other) or is_float_object(other):
             # integers or floats
@@ -2940,23 +2943,39 @@ class Timedelta(_Timedelta):
                 if value < 0 and self._value % other:
                     value += 1
 
-                if self._value % other:
-                    # GH#57264 use a finer resolution for fractional results
-                    return type(self)(
-                        self._value / other,
-                        unit=npy_unit_to_abbrev(self._creso),
-                    )
+                # GH#57264
+                if value == 0 and self._value != 0:
+                    reso = self._creso
+                    scaled_value = int(self._value)
+
+                    while value == 0 and reso < NPY_FR_ns:
+                        reso = <NPY_DATETIMEUNIT>(reso + 1)
+                        scaled_value *= 1000
+
+                        value = scaled_value // other
+                        if value < 0 and scaled_value % other:
+                            value += 1
+
+                    if value != 0:
+                        return Timedelta._from_value_and_reso(value, reso)
 
             else:
-                result = self._value / other
+                value = <int64_t>(self._value / other)
 
-                if not result.is_integer():
-                    # GH#57264 use a finer resolution for fractional results
-                    return type(self)(
-                        result,
-                        unit=npy_unit_to_abbrev(self._creso),
-                    )
-                value = <int64_t>result
+                # GH#57264
+                if value == 0:
+                    result = self._value / other
+
+                    if result != 0:
+                        reso = self._creso
+
+                        while value == 0 and reso < NPY_FR_ns:
+                            reso = <NPY_DATETIMEUNIT>(reso + 1)
+                            result *= 1000
+                            value = <int64_t>result
+
+                        if value != 0:
+                            return Timedelta._from_value_and_reso(value, reso)
 
             return Timedelta._from_value_and_reso(value, self._creso)
 
