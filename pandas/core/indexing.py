@@ -2489,7 +2489,9 @@ class _iLocIndexer(_LocationIndexer):
 
         # GH#44103 - setting a scalar row across columns with a list-like
         # value must go through the split path so each column gets its
-        # corresponding scalar value.
+        # corresponding scalar value.  Restricted to ExtensionArray blocks:
+        # the non-split path already handles the others correctly, and forcing
+        # the split path there transposes rectangular nested values (GH#65241).
         if (
             not take_split_path
             and isinstance(indexer, tuple)
@@ -2498,6 +2500,8 @@ class _iLocIndexer(_LocationIndexer):
             and not is_integer(indexer[1])
             and is_list_like(value)
             and not isinstance(value, (ABCSeries, ABCDataFrame))
+            # not take_split_path guarantees exactly one block
+            and self.obj._mgr.blocks[0].is_extension
         ):
             take_split_path = True
 
