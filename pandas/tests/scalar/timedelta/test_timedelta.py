@@ -590,15 +590,12 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    def test_hash_equality_invariance_no_nanos(self) -> None:
+    @pytest.mark.parametrize("td", [np.timedelta64(0, "ns"), timedelta(0)])
+    def test_hash_equality_invariance_no_nanos(self, td) -> None:
         # GH#44504
         pandas_timedelta = Timedelta(0)
-        numpy_timedelta = np.timedelta64(0, "ns")
-        stdlib_timedelta = timedelta(0)
-        assert pandas_timedelta == numpy_timedelta
-        assert hash(pandas_timedelta) == hash(numpy_timedelta)
-        assert pandas_timedelta == stdlib_timedelta
-        assert hash(pandas_timedelta) == hash(stdlib_timedelta)
+        assert pandas_timedelta == td
+        assert hash(pandas_timedelta) == hash(td)
 
     def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)
