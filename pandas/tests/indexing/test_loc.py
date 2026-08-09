@@ -4049,3 +4049,29 @@ def test_loc_setitem_multi_element_list_into_cell():
     df = DataFrame([{"foo": None, "bar": None}], index=["a"])
     df.loc["a", "foo"] = ["123", "456"]
     assert df.loc["a", "foo"] == ["123", "456"]
+
+
+@td.skip_if_no("pyarrow")
+def test_loc_setitem_row_expansion_int_ea_float_value():
+    # GH#65094 row expansion casts each column back to its original dtype; an
+    #  integral float above 2**53 used to raise ArrowInvalid for ArrowDtype and
+    #  saturate to the dtype's max for masked dtypes
+    df = DataFrame(
+        {
+            "arrow": pd.array([1, 2], dtype="int64[pyarrow]"),
+            "masked": pd.array([1, 2], dtype="Int64"),
+            "numpy": [1, 2],
+        }
+    )
+
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = [1.7e18, 2.0**63, 3.0]
+
+    expected = DataFrame(
+        {
+            "arrow": pd.array([1, 2, 1700000000000000000], dtype="int64[pyarrow]"),
+            "masked": pd.array([1.0, 2.0, 2.0**63], dtype="Float64"),
+            "numpy": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(df, expected)
