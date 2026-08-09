@@ -157,7 +157,9 @@ class _Unstacker:
                 self.unique_nan_index = np.flatnonzero(nan_mask)[0]
 
             self.removed_level = self.removed_level.take(unique_codes)
-            self.removed_level_full = self.removed_level_full.take(unique_codes)
+            self.removed_level_full = self.removed_level_full.take(
+                self.removed_level_full.get_indexer(self.removed_level)
+            )
 
         if config["mode"]["performance_warnings"]:
             # Bug fix GH 20601
