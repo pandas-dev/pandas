@@ -2920,7 +2920,7 @@ class Timedelta(_Timedelta):
                 return np.nan
             if other._creso != self._creso:
                 self, other = self._maybe_cast_to_matching_resos(other)
-            return self._value / float(other._value)
+            return self._value/ float(other._value)
 
         elif is_integer_object(other) or is_float_object(other):
             # integers or floats
@@ -2960,7 +2960,7 @@ class Timedelta(_Timedelta):
                         return Timedelta._from_value_and_reso(value, reso)
 
             else:
-                value = <int64_t>(self._value / other)
+                value = <int64_t>(self._value/ other)
 
                 # GH#57264
                 if value == 0:
