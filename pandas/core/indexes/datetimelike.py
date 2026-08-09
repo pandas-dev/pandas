@@ -21,8 +21,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_infer_freq_offset
-
 from pandas._libs import (
     NaT,
     lib,
@@ -88,6 +86,8 @@ from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
+from pandas.tseries import frequencies
+
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
@@ -112,6 +112,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
+    _warn_quarter: bool = True
 
     def mean(self, *, skipna: bool = True, axis: int | None = 0):
         """
@@ -522,7 +523,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             # GH#45580
             label = str(label)
 
-        parsed, reso_str = parsing.parse_datetime_string_with_reso(label, freqstr)
+        parsed, reso_str = parsing.parse_datetime_string_with_reso(
+            label,
+            freqstr,
+            warn_quarter=self._warn_quarter,
+        )
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
@@ -759,7 +764,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         result._freq = self._freq
         return result
 
-    def _pin_freq(self, freq, inferred, validate_kwds: dict) -> None:
+    def _pin_freq(self, freq, inferred) -> None:
         """
         Constructor helper to pin the appropriate ``freq`` attribute on self.
 
@@ -787,7 +792,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # We cannot inherit a freq from the data, so we need to validate
             #  the user-passed freq
             freq = to_offset(freq)
-            type(arr)._validate_frequency(self, freq, **validate_kwds)
+            type(arr)._validate_frequency(self, freq)
             self._freq = freq
         else:
             # Otherwise we just need to check that the user-passed freq
@@ -822,7 +827,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                             f"{freq.freqstr}"
                         )
                 elif len(self) > 1:
-                    type(arr)._validate_frequency(self, freq, **validate_kwds)
+                    type(arr)._validate_frequency(self, freq)
             self._freq = freq
 
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
@@ -1137,24 +1142,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        result = self._inferred_freq_str
-        if result is not None:
-            opt = using_infer_freq_offset()
-            if opt is True:
-                return to_offset(result)
-            if opt is None:
-                warnings.warn(
-                    "A future version of pandas will return a BaseOffset "
-                    "object instead of a string from inferred_freq. "
-                    "Use pd.set_option("
-                    "'future.infer_freq_returns_offset', True) "
-                    "to get the future behavior, or set to False to keep the "
-                    "old behavior and silence this warning. To preserve the "
-                    "string representation, use ``inferred_freq.freqstr``.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
-        return result
+        return frequencies.maybe_convert_inferred_freq(
+            self._inferred_freq_str, "inferred_freq"
+        )
 
     # --------------------------------------------------------------------
     # Set Operation Methods

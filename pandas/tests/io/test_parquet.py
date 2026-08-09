@@ -521,6 +521,22 @@ class TestBasic(Base):
         df.index = index
         check_round_trip(df, temp_file, engine)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and pa_version_under19p0,
+        reason="With pyarrow<19 we pass a types_mapper to Table.to_pandas, which "
+        "makes pyarrow drop the extension dtype of MultiIndex levels",
+    )
+    @pytest.mark.parametrize("freq", ["D", "M"])
+    def test_write_multiindex_period_level(self, pa, temp_file, freq):
+        # GH#49641 a PeriodIndex level of a MultiIndex round-tripped as the
+        # underlying integer ordinals
+        df = pd.DataFrame({"VALUE": [11, 22, 33]})
+        periods = pd.period_range("2020-01-01", periods=3, freq=freq)
+        df.index = pd.MultiIndex.from_arrays(
+            [["A", "B", "C"], periods], names=["ID", "DATE"]
+        )
+        check_round_trip(df, temp_file, pa)
+
     def test_multiindex_with_columns(self, pa, temp_file):
         engine = pa
         dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS", unit="ns")
@@ -1323,6 +1339,16 @@ class TestParquetPyArrow(Base):
         msg = "Cannot save file into a non-existent directory"
         with pytest.raises(OSError, match=msg):
             df.to_parquet(path, engine=pa)
+
+    def test_read_parquet_with_self_destruct(self, pa, temp_file):
+        # GH#66509
+        df = pd.DataFrame({0: [0.25]})
+        check_round_trip(
+            df,
+            temp_file,
+            engine=pa,
+            read_kwargs={"to_pandas_kwargs": {"self_destruct": True}},
+        )
 
     def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
         # GH#65810 only local paths skip get_handle; non-fsspec URLs must still

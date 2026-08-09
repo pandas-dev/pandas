@@ -604,6 +604,33 @@ def test_column_offset_past_row_raises(
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+@pytest.mark.parametrize(
+    "test_file, row_length_field_offset, int_len, row_length",
+    [
+        # byte offset of the row-size subheader's row_length field (it lands on
+        # page 1, not the header page, for these fixtures), the file's word
+        # size, and its known-good row length
+        ("test1.sas7bdat", 130612, 4, 816),  # 32-bit, uncompressed
+        ("test2.sas7bdat", 130612, 4, 809),  # 32-bit, RLE compressed
+        ("test7.sas7bdat", 130304, 8, 816),  # 64-bit
+    ],
+)
+def test_row_length_exceeds_page_size_raises(
+    datapath, test_file, row_length_field_offset, int_len, row_length
+):
+    # GH#66475 an inflated row_length overflowed the C `int` used in
+    # process_byte_array_with_data's offset + length bounds check in sas.pyx,
+    # causing a segfault instead of a clean error.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    bad_value = 0x7FFFFFF0
+    data[row_length_field_offset : row_length_field_offset + int_len] = (
+        bad_value.to_bytes(int_len, "little")
+    )
+    with pytest.raises(ValueError, match=r"row_length \(\d+\) exceeds the page size"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
 @pytest.mark.parametrize("bad_length", [9, 16, 4096])
 def test_numeric_column_longer_than_8_bytes_raises(datapath, bad_length):
     # GH#47339 a numeric column is widened into 8 bytes of the output buffer, so
@@ -655,6 +682,20 @@ def _fast_string_path_available() -> bool:
     )
 
 
+# Sized per file to be the largest chunk that still lands boundaries in all four
+# positions the parser distinguishes: starting mid-page, spanning a page, falling
+# wholly inside a data page, and a short final chunk. Chunking these row counts
+# any finer only repeats those four at a few hundred chunks apiece.
+_string_path_chunksizes = {
+    "test1": 7,
+    "test2": 7,
+    "test3": 7,
+    "test16": 7,
+    "load_log": 250,
+    "productsales": 50,
+}
+
+
 # cp037 is EBCDIC: the one encoding here whose bytes below 0x80 are not their
 # own utf-8, so it is what exercises the parser's non-ascii_identity path.
 @pytest.mark.parametrize(
@@ -663,17 +704,16 @@ def _fast_string_path_available() -> bool:
 )
 # test2 and test3 are the RLE- and RDC-compressed copies of test1, where the
 # parser reads cells out of the decompression buffer rather than the page.
-@pytest.mark.parametrize(
-    "name", ["test1", "test2", "test3", "test16", "load_log", "productsales"]
-)
-@pytest.mark.parametrize("chunksize", [None, 7])
+@pytest.mark.parametrize("name", list(_string_path_chunksizes))
+@pytest.mark.parametrize("chunked", [False, True])
 def test_string_fast_path_matches_object_path(
-    datapath, monkeypatch, encoding, name, chunksize
+    datapath, monkeypatch, encoding, name, chunked
 ):
     # GH#47339 string columns are built as pyarrow arrays directly rather than
     # via an object-dtype array of bytes; the two must agree, including on
     # which files fail to decode.
     fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    chunksize = _string_path_chunksizes[name] if chunked else None
     if not _fast_string_path_available():
         expected_mode = const.string_mode_object
     elif encoding == "utf-8":

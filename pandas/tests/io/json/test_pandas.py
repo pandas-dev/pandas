@@ -388,7 +388,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_frame_from_json_missing_data(self, orient, convert_axes, dtype):
-        num_df = DataFrame([[1, 2], [4, 5, 6]])
+        num_df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
 
         result = read_json(
             StringIO(num_df.to_json(orient=orient)),
@@ -398,7 +398,7 @@ class TestPandasContainer:
         )
         assert np.isnan(result.iloc[0, 2])
 
-        obj_df = DataFrame([["1", "2"], ["4", "5", "6"]])
+        obj_df = DataFrame([["1", "2", np.nan], ["4", "5", "6"]])
         result = read_json(
             StringIO(obj_df.to_json(orient=orient)),
             orient=orient,
@@ -421,7 +421,7 @@ class TestPandasContainer:
     def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
-        df = DataFrame([[1, 2], [4, 5, 6]])
+        df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
         df.loc[0, 2] = inf
 
         data = StringIO(df.to_json())
@@ -2592,3 +2592,36 @@ def test_to_json_unsupported_object_gh36211():
     msg = "Unable to serialize object to JSON: encountered an unsupported object type"
     with pytest.raises(ValueError, match=msg):
         df.to_json()
+
+
+@pytest.mark.parametrize("other", ['"notadate"', "true"])
+def test_read_json_quarterly_string_discarded_parse_no_warning(other):
+    # GH#50907 _try_convert_to_date parses the column several ways and keeps at
+    # most one result; an attempt the caller never receives must not warn. The
+    # two values reach the string and the object branch respectively, and which
+    # one a str hits depends on the future.infer_string setting.
+    with tm.assert_produces_warning(None):
+        result = read_json(StringIO(f'{{"date":{{"0":"2014Q2","1":{other}}}}}'))
+    assert result["date"].dtype.kind != "M"
+
+
+def test_read_json_quarterly_string_out_of_ns_bounds_warns():
+    # GH#50907 the as_unit("ns") bounds check fails for every unit, but the
+    # to_datetime result is still what the caller gets, so it must warn
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = read_json(StringIO('{"date":{"0":"9999Q4","1":1}}'))
+    assert len(record) == 1
+    assert result["date"][0] == Timestamp("9999-10-01")
+
+
+def test_read_json_quarterly_string_kept_parse_warns_once():
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = read_json(StringIO('{"date":{"0":"2014Q2","1":"2014Q3"}}'))
+    assert len(record) == 1
+    assert result["date"].dtype.kind == "M"
+    assert result["date"][0] == Timestamp("2014-04-01")
