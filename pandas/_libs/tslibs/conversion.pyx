@@ -221,6 +221,15 @@ cdef int64_t cast_from_unit(
         int p
         NPY_DATETIMEUNIT in_reso
 
+    # GH#56996 the base/frac arithmetic below stays in `ts`'s own dtype, so a
+    #  numpy scalar narrower than int64/float64 does it at that width: under
+    #  NEP 50 `frac * m` then overflows (int8) or rounds (float32/float16).
+    #  Widen to Python int/float up front so the math matches the builtin case.
+    if is_float_object(ts):
+        ts = float(ts)
+    elif is_integer_object(ts):
+        ts = int(ts)
+
     if unit in ["Y", "M"]:
         if is_float_object(ts) and not ts.is_integer():
             # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
@@ -520,6 +529,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             obj.creso = reso
             pandas_datetime_to_datetimestruct(ts, reso, &obj.dts)
     elif is_float_object(ts):
+        # GH#56996 widen first: comparing e.g. a np.float16 against NPY_NAT
+        #  casts the sentinel down to float16 and warns about the overflow.
+        ts = float(ts)
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
