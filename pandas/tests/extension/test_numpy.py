@@ -529,7 +529,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         "ignore:Casting complex values to real discards the imaginary part:"
         "numpy.exceptions.ComplexWarning"
     )
-    def test_plot_on_y_axis(self, data, request):
+    def test_plot_on_y_axis(self, data):
         # GH 64535
         # While plotting complex numbers only the real part is plotted, therefore numpy
         # raises a ComplexWarning. Object dtype as it cannot be plotted on y-axis.

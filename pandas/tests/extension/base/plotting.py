@@ -1,37 +1,24 @@
+from __future__ import annotations
+
 """
 Tests for plotting compatibility.
 """
 
-from typing import Literal
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 import warnings
 
-import pytest
-
-from pandas.util.version import Version
-
-mpl = pytest.importorskip("matplotlib", reason="test requires matplotlib")
-pyparsing = pytest.importorskip("pyparsing", reason="matplotlib requires pyparsing")
-from pyparsing.warnings import PyparsingDeprecationWarning
-
-# Filter warning raised by pyparsing in minimum-version CI for pyparsing>=3.3.0
-# and matplotlib<3.11, see https://github.com/matplotlib/matplotlib/pull/29745
-if (Version(pyparsing.__version__) >= Version("3.3.0")) and (
-    Version(mpl.__version__) < Version("3.11")
-):
-    warnings.filterwarnings(
-        "ignore",
-        message="'enablePackrat' deprecated - use 'enable_packrat'",
-        category=PyparsingDeprecationWarning,
-        module=r"matplotlib.*",
+if TYPE_CHECKING:
+    from matplotlib import (
+        axes as maxes,
+        axis as maxis,
+        lines as mlines,
     )
 
-from matplotlib import (
-    axes as maxes,
-    axis as maxis,
-    lines as mlines,
-    units as munits,
-)
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -43,8 +30,7 @@ from pandas.api.types import (
 )
 from pandas.core.arrays import ExtensionArray
 from pandas.tests.plotting.common import _check_plot_works
-
-from pandas.plotting._matplotlib.converter import pandas_converters
+from pandas.util.version import Version
 
 
 def _get_plot_df(data: ExtensionArray) -> pd.DataFrame:
@@ -80,6 +66,10 @@ def _check_plot_data(
     axis : Literal["x", "y"]
         The axis to check ("x" or "y").
     """
+    from matplotlib import units as munits
+
+    from pandas.plotting._matplotlib.converter import pandas_converters
+
     arr = ser.to_numpy()
     if munits._is_natively_supported(arr) or is_bool_dtype(arr):
         # Convert natively or boolean just to float
@@ -154,10 +144,36 @@ def _plot(
 class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
 
+    def skip_if_no_matplotlib(self):
+        """Skips a test if matplotlib dependency not fulfilled.
+
+        Also adds a filter for warnings raised by pyparsing in minimum-version CI for
+        pyparsing>=3.3.0 and matplotlib<3.11,
+        see https://github.com/matplotlib/matplotlib/pull/29745
+        """
+        pyparsing = pytest.importorskip(
+            "pyparsing", reason="matplotlib requires pyparsing"
+        )
+        from pyparsing.warnings import PyparsingDeprecationWarning
+
+        if Version(pyparsing.__version__) >= Version("3.3.0"):
+            warnings.filterwarnings(
+                "ignore",
+                message=(
+                    "'enablePackrat|oneOf|parseString|resetCache' deprecated - "
+                    "use 'enable_packrat|one_of|parse_string|reset_cache'"
+                ),
+                category=PyparsingDeprecationWarning,
+                module=r"matplotlib.*",
+            )
+        pytest.importorskip("matplotlib", reason="test requires matplotlib")
+
     def test_plot_on_x_axis(self, data):
         """Test that EA data can be plotted on the x-axis."""
+        self.skip_if_no_matplotlib()
         _plot(data, x="Data", y="Numeric")
 
     def test_plot_on_y_axis(self, data, **kwargs):
         """Test that EA data can be plotted on the y-axis."""
+        self.skip_if_no_matplotlib()
         _plot(data, x="Numeric", y="Data", **kwargs)
