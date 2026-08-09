@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         axis as maxis,
         lines as mlines,
     )
+    from pandas.core.arrays import ExtensionArray
 
 import numpy as np
 import pytest
@@ -28,7 +29,6 @@ from pandas.api.types import (
     is_bool_dtype,
     is_datetime64_any_dtype,
 )
-from pandas.core.arrays import ExtensionArray
 from pandas.tests.plotting.common import _check_plot_works
 from pandas.util.version import Version
 
