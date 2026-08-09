@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.compat import PY315
 
 from pandas.core.dtypes.common import is_integer
 
@@ -29,7 +30,10 @@ from pandas import (
 import pandas._testing as tm
 
 # We pass through a TypeError raised by numpy
-_slice_msg = "slice indices must be integers or None or have an __index__ method"
+if PY315:
+    _slice_msg = "slice indices must be integers or have an __index__ method"
+else:
+    _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
 class TestDataFrameIndexing:

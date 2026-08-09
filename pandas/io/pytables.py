@@ -4966,8 +4966,16 @@ class Table(Fixed):
             # encodes its missing values with a per-level sentinel rather than
             # the global nan_rep, so a literal "nan" in a level survives the
             # round-trip like it does for a string Index.
+            # The read path honors the per-level sentinel only when the table
+            # carries the marker attribute, which set_attrs writes when the
+            # table is created and an append cannot add retroactively. So when
+            # appending to a table written before the marker existed, keep
+            # encoding missing values with the global nan_rep, otherwise the
+            # sentinel would be read back as a literal string.
             level_names = self.levels if isinstance(self.levels, list) else []
             is_level = name is not None and name in level_names
+            if is_level and table_exists:
+                is_level = bool(getattr(self.attrs, "mi_level_nan_rep", False))
             level_nan_rep = None
             if is_level:
                 assert name is not None  # for mypy, implied by is_level

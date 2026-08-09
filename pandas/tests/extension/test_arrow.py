@@ -2419,6 +2419,45 @@ def test_str_partition():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
+def test_str_partition_chunked(pa_type):
+    # GH#63602 each chunk is partitioned on its own, so the result keeps the
+    #  input's chunking instead of concatenating into one oversized array
+    arr = ArrowExtensionArray(
+        pa.chunked_array(
+            [pa.array(["abcba"], type=pa_type), pa.array(["a", None], type=pa_type)]
+        )
+    )
+    result = pd.Series(arr).str.partition("b")
+    expected = pd.DataFrame(
+        [["a", "b", "cba"], ["a", "", ""], [None, None, None]],
+        dtype=ArrowDtype(pa.string()),
+        columns=pd.RangeIndex(3),
+    )
+    tm.assert_frame_equal(result, expected, check_column_type=True)
+
+    assert [len(chunk) for chunk in arr._str_partition("b", True)._pa_array.chunks] == [
+        1,
+        2,
+    ]
+
+
+@pytest.mark.parametrize("method", ["partition", "split"])
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
+@pytest.mark.parametrize("data", [[], [None, None]], ids=["empty", "all-na"])
+def test_str_expand_no_width(data, pa_type, method):
+    # GH#63602 no non-null row to take a width from; used to raise
+    ser = pd.Series(data, dtype=ArrowDtype(pa_type))
+    result = getattr(ser.str, method)("b", expand=True)
+    expected = pd.DataFrame(
+        {} if len(data) == 0 else {0: data},
+        dtype=ArrowDtype(pa_type),
+        index=pd.RangeIndex(len(data)),
+        columns=pd.RangeIndex(0 if len(data) == 0 else 1),
+    )
+    tm.assert_frame_equal(result, expected, check_column_type=True)
+
+
 @pytest.mark.parametrize("method", ["rsplit", "split"])
 def test_str_split_pat_none(method):
     # GH 56271
@@ -3251,7 +3290,7 @@ def test_dt_timedelta_components_negative_and_nulls():
 
 
 def test_dt_timedelta_accessors_match_python_timedelta():
-    # GH 63470: .dt.seconds/.dt.microseconds previously returned the
+    # GH 63470, GH#63283: .dt.seconds/.dt.microseconds previously returned the
     # .dt.components field values (0-59 / 0-999) instead of Python timedelta
     # semantics (total sub-day seconds, total sub-second microseconds)
     td = timedelta(
@@ -3300,9 +3339,10 @@ def test_dt_timedelta_components_different_units(unit):
     for col in result.columns:
         assert pd.isna(result[col].iloc[1])
 
-    # GH 63470: the direct .dt.<component> accessors must match the NumPy-backed
-    # result at every unit. In particular .dt.microseconds on a coarser unit
-    # (e.g. "ms") must scale up the sub-second portion rather than returning 0.
+    # GH 63470, GH#63283: the direct .dt.<component> accessors must match the
+    # NumPy-backed result at every unit. In particular .dt.microseconds on a
+    # coarser unit (e.g. "ms") must scale up the sub-second portion rather
+    # than returning 0.
     ser_numpy = pd.Series([td.as_unit(unit), None])
     for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
         expected = pd.Series(
