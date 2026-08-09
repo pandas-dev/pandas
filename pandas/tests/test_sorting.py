@@ -30,10 +30,12 @@ from pandas.core.sorting import (
 
 @pytest.fixture
 def left_right():
-    low, high, n = -1 << 10, 1 << 10, 1 << 20
+    low, high, n = -1 << 10, 1 << 10, 600
     left = DataFrame(
         np.random.default_rng(2).integers(low, high, (n, 7)), columns=list("ABCDEFG")
     )
+    shape = left.nunique().to_numpy()
+    assert is_int64_overflow_possible(shape)
     left["left"] = left.sum(axis=1)
     right = left.sample(
         frac=1, random_state=np.random.default_rng(2), ignore_index=True
@@ -46,8 +48,8 @@ def left_right():
 class TestSorting:
     @pytest.mark.slow
     def test_int64_overflow(self):
-        B = np.concatenate((np.arange(1000), np.arange(1000), np.arange(500)))
-        A = np.arange(2500)
+        B = np.concatenate((np.arange(149), np.arange(149), np.arange(75)))
+        A = np.arange(373)
         df = DataFrame(
             {
                 "A": A,
@@ -58,9 +60,10 @@ class TestSorting:
                 "F": B,
                 "G": A,
                 "H": B,
-                "values": np.random.default_rng(2).standard_normal(2500),
+                "values": np.random.default_rng(2).standard_normal(373),
             }
         )
+        assert is_int64_overflow_possible(df[list("ABCDEFGH")].nunique().to_numpy())
 
         lg = df.groupby(["A", "B", "C", "D", "E", "F", "G", "H"])
         rg = df.groupby(["H", "G", "F", "E", "D", "C", "B", "A"])
@@ -95,8 +98,8 @@ class TestSorting:
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
         rs = np.random.default_rng(2)
-        arr = rs.integers(-1 << 12, 1 << 12, (1 << 15, 5))
-        i = rs.choice(len(arr), len(arr) * 4)
+        arr = rs.integers(-1 << 12, 1 << 12, (11595, 5))
+        i = rs.choice(len(arr), len(arr))
         arr = np.vstack((arr, arr[i]))  # add some duplicate rows
 
         i = rs.permutation(len(arr))
@@ -320,14 +323,14 @@ class TestMerge:
     def test_int64_overflow_one_to_many_none_match(self, join_type, sort):
         # one-2-many/none match
         how = join_type
-        low, high, n = -1 << 10, 1 << 10, 1 << 11
+        low, high, n = -1 << 10, 1 << 10, 589
         left = DataFrame(
             np.random.default_rng(2).integers(low, high, (n, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
 
         # confirm that this is checking what it is supposed to check
-        shape = left.apply(Series.nunique).values
+        shape = left.nunique().to_numpy()
         assert is_int64_overflow_possible(shape)
 
         # add duplicates to left frame
