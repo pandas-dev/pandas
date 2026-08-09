@@ -1109,13 +1109,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             method = getattr(self._data, f"__{op.__name__}__")
             if is_list_like(other):
                 other_mask = getattr(other, "_mask", None) or libmissing.is_pdna(other)
+                other = other.copy()
             else:
                 other_mask = [False]
+
             if mask is None:
                 mask = self._mask | other_mask
             else:
                 mask = mask | self._mask | other_mask
-            other = np.where(mask, [False], other)
+
+            if is_list_like(other):
+                other[mask] = False
+            elif len(mask) == 1 and mask.all():
+                other = False
             result = method(other)
         else:
             with warnings.catch_warnings():
