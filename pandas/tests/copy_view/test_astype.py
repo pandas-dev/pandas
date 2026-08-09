@@ -3,6 +3,8 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Series,
@@ -199,12 +201,13 @@ def test_astype_arrow_timestamp():
 def test_convert_dtypes_infer_objects():
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
-    result = ser.convert_dtypes(
-        convert_integer=False,
-        convert_boolean=False,
-        convert_floating=False,
-        convert_string=False,
-    )
+    with tm.assert_produces_warning(Pandas4Warning):
+        result = ser.convert_dtypes(
+            convert_integer=False,
+            convert_boolean=False,
+            convert_floating=False,
+            convert_string=False,
+        )
 
     assert tm.shares_memory(get_array(ser), get_array(result))
     result.iloc[0] = "x"

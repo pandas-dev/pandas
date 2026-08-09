@@ -547,6 +547,42 @@ def test_to_timedelta_subint64_with_unit(dtype):
     assert pd.Timedelta(dtype(1), unit="D") == pd.Timedelta(1, unit="D")
 
 
+@pytest.mark.parametrize(
+    "dtype", [np.int8, np.int16, np.int32, np.uint8, np.uint16, np.uint32, np.int64]
+)
+def test_to_timedelta_subint64_with_unit_object_path(dtype):
+    # GH#56996 the object-array path reaches cast_from_unit with the raw numpy
+    #  scalar, where `frac * m` overflowed the narrow dtype and got reported as
+    #  OutOfBoundsTimedelta (or silently coerced to NaT).
+    # a list is always converted to object dtype, so this is the object path
+    expected = TimedeltaIndex([pd.Timedelta(1, unit="D")]).as_unit("s")
+
+    result = to_timedelta([dtype(1)], unit="D")
+    tm.assert_index_equal(result, expected)
+
+    result = to_timedelta([dtype(1)], unit="D", errors="coerce")
+    tm.assert_index_equal(result, expected)
+
+    # the issue's own repro, mixing in a Timedelta
+    result = to_timedelta([dtype(1), pd.Timedelta(1, "ns")], unit="D")
+    expected = TimedeltaIndex([pd.Timedelta(1, unit="D"), pd.Timedelta(1, "ns")])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+def test_to_timedelta_narrow_float_with_unit(dtype):
+    # GH#56996 the base/frac arithmetic used to happen in the input's own float
+    #  dtype, so e.g. np.float32(1.5) with unit="D" picked up bogus sub-second
+    #  digits, and rounding np.float16 to 13 places overflowed to NaN.
+    expected = pd.Timedelta("1 days 12:00:00")
+
+    assert pd.Timedelta(dtype(1.5), unit="D") == expected
+    assert to_timedelta(dtype(1.5), unit="D") == expected
+
+    result = to_timedelta([dtype(1.5)], unit="D")
+    tm.assert_index_equal(result, TimedeltaIndex([expected]).as_unit("ns"))
+
+
 @pytest.mark.parametrize("unit", ["ns", "ms"])
 def test_from_timedelta_arrow_dtype(unit):
     # GH 54298
