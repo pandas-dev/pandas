@@ -53,3 +53,17 @@ def test_to_pandas_kwargs_zero_copy_only_success(pyarrow_parser_only):
     # Zero-copy arrays share memory with pyarrow and are not writeable
     assert not result["a"].values.flags.writeable
     assert not result["b"].values.flags.writeable
+
+
+def test_to_pandas_kwargs_types_mapper_reserved(pyarrow_parser_only):
+    # GH#34823 pandas derives types_mapper from dtype_backend and passes it to
+    # Table.to_pandas itself, so accepting it here would raise an opaque
+    # "multiple values for keyword argument" TypeError from pyarrow.
+    data = "a,b\n1,2\n3,4"
+    msg = "The 'types_mapper' key is not supported in 'to_pandas_kwargs'"
+
+    with pytest.raises(ValueError, match=msg):
+        pyarrow_parser_only.read_csv(
+            StringIO(data),
+            to_pandas_kwargs={"types_mapper": None},
+        )
