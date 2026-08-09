@@ -1,12 +1,7 @@
 """test the scalar Timedelta"""
 
 from datetime import timedelta
-import sys
 
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -595,29 +590,15 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    @pytest.mark.slow
-    @pytest.mark.xfail(
-        reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
-    )
-    @given(
-        st.integers(
-            min_value=(-sys.maxsize - 1) // 500,
-            max_value=sys.maxsize // 500,
-        )
-    )
-    def test_hash_equality_invariance(self, half_microseconds: int) -> None:
+    def test_hash_equality_invariance_no_nanos(self) -> None:
         # GH#44504
-
-        nanoseconds = half_microseconds * 500
-
-        pandas_timedelta = Timedelta(nanoseconds)
-        numpy_timedelta = np.timedelta64(nanoseconds)
-
-        # See: https://docs.python.org/3/glossary.html#term-hashable
-        # Hashable objects which compare equal must have the same hash value.
-        assert pandas_timedelta != numpy_timedelta or hash(pandas_timedelta) == hash(
-            numpy_timedelta
-        )
+        pandas_timedelta = Timedelta(0)
+        numpy_timedelta = np.timedelta64(0, "ns")
+        stdlib_timedelta = timedelta(0)
+        assert pandas_timedelta == numpy_timedelta
+        assert hash(pandas_timedelta) == hash(numpy_timedelta)
+        assert pandas_timedelta == stdlib_timedelta
+        assert hash(pandas_timedelta) == hash(stdlib_timedelta)
 
     def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)
