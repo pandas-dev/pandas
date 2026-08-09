@@ -1047,11 +1047,11 @@ class TestDataFrameSelectReindex:
         df = DataFrame(
             [[1, 2], [3, 4]],
             index=["a", "b"],
-            columns = ["x", "y"],
+            columns=["x", "y"],
         )
 
         result = df.reindex(
-            index = ["b", "a"],
+            index=["b", "a"],
             columns=["x", "missing", "y"],
         )
 
