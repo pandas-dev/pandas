@@ -1388,6 +1388,36 @@ def test_unstack_sort_false(frame_or_series, dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["float64", "Int64"])
+def test_unstack_sort_false_unused_levels(dtype):
+    # GH 66673
+    index = MultiIndex(
+        levels=[["a", "b"], ["x", "y", "z"]],
+        codes=[[0, 0, 1, 1], [2, 0, 2, 0]],
+        names=["r", "c"],
+    )
+    df = DataFrame({"v": [1.0, 2, 3, 4]}, index=index)
+    obj = df if dtype == "float64" else df["v"].astype(dtype)
+
+    result = obj.unstack(sort=False)
+
+    if dtype == "float64":
+        columns = MultiIndex(
+            levels=[["v"], ["z", "x"]],
+            codes=[[0, 0], [0, 1]],
+            names=[None, "c"],
+        )
+    else:
+        columns = Index(["z", "x"], name="c")
+    expected = DataFrame(
+        [[1, 2], [3, 4]],
+        index=Index(["a", "b"], name="r"),
+        columns=columns,
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "levels2, expected_columns",
     [
