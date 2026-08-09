@@ -282,9 +282,6 @@ def test_tick_division_fractional_result():
     result = offsets.Second() / 10
     expected = offsets.Milli(100)
 
-    print("result:", result, type(result))
-    print("expected:", expected, type(expected))
-
     assert result == expected
     assert type(result) is type(expected)
 
