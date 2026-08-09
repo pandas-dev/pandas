@@ -1251,7 +1251,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_i8_data = add_overflowsafe(
             self.asi8, np.asarray(-other_i8, dtype="i8"), sentinel_ok=True
         )
-        new_data = np.array([self.freq.base * x for x in new_i8_data])
+        # multiply by python ints: numpy's scalar multiply spuriously reports
+        #  overflow for a np.int64 count of INT64_MIN on Windows
+        counts = new_i8_data.ravel().tolist()
+        new_data = np.array([self.freq.base * count for count in counts]).reshape(
+            new_i8_data.shape
+        )
 
         if o_mask is None:
             # i.e. Period scalar
