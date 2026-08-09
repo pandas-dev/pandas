@@ -1,7 +1,5 @@
 """support numpy compatibility across versions"""
 
-import warnings
-
 import numpy as np
 
 from pandas.util.version import Version
@@ -22,23 +20,6 @@ if _nlv < Version(_min_numpy_ver):
         f"Please upgrade numpy to >= {_min_numpy_ver} to use this pandas version.\n"
         f"Your numpy version is {_np_version}."
     )
-
-
-np_long: type
-np_ulong: type
-
-try:
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            r".*In the future `np\.long` will be defined as.*",
-            FutureWarning,
-        )
-        np_long = np.long
-        np_ulong = np.ulong
-except AttributeError:
-    np_long = np.int_
-    np_ulong = np.uint
 
 
 __all__ = [
