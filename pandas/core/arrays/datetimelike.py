@@ -1246,7 +1246,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self._check_compatible_with(other)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        new_i8_data = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
+        # GH#66552 the difference is a count of periods, not an ordinal, so
+        #  INT64_MIN is a legitimate answer here and not the NaT sentinel.
+        new_i8_data = add_overflowsafe(
+            self.asi8, np.asarray(-other_i8, dtype="i8"), sentinel_ok=True
+        )
         new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if o_mask is None:

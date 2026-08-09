@@ -841,11 +841,18 @@ cdef int64_t _convert_reso_with_dtstruct(
 
 
 @cython.overflowcheck(True)
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=False
+):
     """
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
     `right` may either be zero-dim or of the same shape as `left`.
+
+    A sum landing exactly on NPY_DATETIME_NAT is rejected, since as a datetime64
+    or timedelta64 value it would be indistinguishable from a missing one. Pass
+    ``sentinel_ok=True`` where the result is a count rather than such a value,
+    so that NPY_DATETIME_NAT is a legitimate answer (GH#66552).
 
     TODO(numpy>=2.5): numpy raises OverflowError natively for datetime64/
     timedelta64 add and subtract (numpy GH-31378); remove this once the numpy
@@ -873,7 +880,7 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
                 res_value = NPY_DATETIME_NAT
             else:
                 res_value = lval + rval
-                if res_value == NPY_DATETIME_NAT:
+                if res_value == NPY_DATETIME_NAT and not sentinel_ok:
                     # GH#66549 int64 can hold this sum, but the value is the
                     #  NaT sentinel, so it would be indistinguishable from a
                     #  missing value downstream. Treat it as an overflow.
