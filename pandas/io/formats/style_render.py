@@ -2261,8 +2261,8 @@ class Tooltips:
 
         Parameters
         ----------
-        styler : DataFrame
-            Underlying ``Styler`` DataFrame used for reindexing.
+        styler : StylerRenderer
+            The renderer whose ``data`` the tooltips are reindexed against.
         d : dict
             The dictionary prior to final render
 

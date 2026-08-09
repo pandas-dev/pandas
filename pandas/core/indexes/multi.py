@@ -382,7 +382,7 @@ class MultiIndex(Index):
             Codes to check for validity. Defaults to current codes.
         levels : optional list
             Levels to check for validity. Defaults to current levels.
-        levels_to_verify: optional list
+        levels_to_verify : optional list
             Specifies the levels to verify.
 
         Raises

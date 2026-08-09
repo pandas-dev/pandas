@@ -27,7 +27,8 @@ def _side_expander(prop_fmt: str) -> Callable:
     Parameters
     ----------
     prop_fmt : str
-        The border side to expand into properties
+        Format string for the expanded property, with a placeholder for the
+        side, e.g. ``"margin-{:s}"``.
 
     Returns
     -------
