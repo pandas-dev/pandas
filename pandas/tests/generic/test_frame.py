@@ -56,9 +56,7 @@ class TestDataFrame:
         assert result.index.name == name
 
     def test_rename_axis_tuple_name_multiindex(self):
-        df = DataFrame(
-            [1], index=MultiIndex.from_tuples([("a", "b")])
-        )
+        df = DataFrame([1], index=MultiIndex.from_tuples([("a", "b")]))
 
         result = df.rename_axis(("level1", "level2"))
 
