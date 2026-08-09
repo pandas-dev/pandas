@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -694,7 +695,7 @@ class MPLPlot(ABC):
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data.infer_objects()
-        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+        include_type = [np.number, "datetime", DatetimeTZDtype, "timedelta"]
 
         # GH23719, allow plotting boolean
         if self.include_bool is True:
