@@ -1049,6 +1049,29 @@ cdef _mul_numeric_array(_Timedelta td, ndarray other):
     return (i8other * value).view(f"m8[{abbrev}]")
 
 
+cdef _check_div_float_array(_Timedelta td, ndarray other):
+    """
+    Raise if dividing td by any element of the float ndarray other leaves the
+    int64 range, which numpy would saturate rather than report (GH#66552).
+
+    Integer divisors need no check: a quotient can only exceed td itself when
+    the divisor is between -1 and 1.  Zero and nan divisors are excluded here
+    because numpy returns NaT for those, which TimedeltaIndex keeps.
+    """
+    if other.size == 0:
+        return
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # in float64 regardless of the divisor's own precision: a float32
+        #  quotient would overflow to inf before we could measure it
+        quotients = np.abs(td._value / other.astype("f8", copy=False))
+    keep = ~(np.isnan(quotients) | (other == 0))
+    # a float64 quotient inside (-2**63, 2**63) is at least an ulp away from
+    #  the boundary, so the floor in __floordiv__ cannot push it out of bounds
+    if np.max(quotients, initial=0.0, where=keep) >= 2.0**63:
+        raise OutOfBoundsTimedelta("Overflow in timedelta division")
+
+
 def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
@@ -2925,6 +2948,8 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__truediv__(item)
+            if other.dtype.kind == "f":
+                _check_div_float_array(self, other)
             return self.to_timedelta64() / other
 
         return NotImplemented
@@ -3005,6 +3030,8 @@ class Timedelta(_Timedelta):
                 if other.ndim == 0:
                     return self // other.item()
                 else:
+                    if other.dtype.kind == "f":
+                        _check_div_float_array(self, other)
                     return self.to_timedelta64() // other
 
             raise TypeError(f"Invalid dtype {other.dtype} for __floordiv__")
