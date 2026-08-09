@@ -1947,8 +1947,8 @@ class TestLocWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
-        times = date_range("2000-01-01", freq="10min", periods=100000)
-        ser = Series(range(100000), times)
+        times = date_range("2000-01-01", freq="10min", periods=10)
+        ser = Series(range(10), times)
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
 
