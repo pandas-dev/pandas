@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -374,10 +373,6 @@ def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array, using_nan_
     result_cp2 = np.array(thing, copy=True)
     # When called with `copy=True` NumPy/we should ensure a copy was made
     assert not np.may_share_memory(result_cp1, result_cp2)
-
-    if not np_version_gt2:
-        # copy=False semantics are only supported in NumPy>=2.
-        return
 
     if not zero_copy:
         with pytest.raises(ValueError, match="Unable to avoid copy while creating"):

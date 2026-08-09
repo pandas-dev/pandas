@@ -38,15 +38,9 @@ def _check_ax_limits(col, ax):
     assert y_max >= col.max()
 
 
-if Version(mpl.__version__) < Version("3.10"):
-    verts: list[dict[str, bool | str]] = [{"vert": False}, {"vert": True}]
-else:
-    verts = [{"orientation": "horizontal"}, {"orientation": "vertical"}]
-
-
-@pytest.fixture(params=verts)
+@pytest.fixture(params=["horizontal", "vertical"])
 def vert(request):
-    return request.param
+    return {"orientation": request.param}
 
 
 class TestDataFramePlots:

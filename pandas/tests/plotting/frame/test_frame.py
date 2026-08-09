@@ -1118,12 +1118,7 @@ class TestDataFramePlots:
         labels = [pprint_thing(c) for c in numeric_cols]
 
         # if horizontal, yticklabels are rotated
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
-        ax = df.plot.box(rot=50, fontsize=8, **kwargs)
+        ax = df.plot.box(rot=50, fontsize=8, orientation="horizontal")
         _check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
         _check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == 7 * len(numeric_cols)
@@ -1137,13 +1132,12 @@ class TestDataFramePlots:
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
         axes = _check_plot_works(
-            df.plot.box, default_axes=True, subplots=True, logx=True, **kwargs
+            df.plot.box,
+            default_axes=True,
+            subplots=True,
+            logx=True,
+            orientation="horizontal",
         )
         _check_axes_shape(axes, axes_num=3, layout=(1, 3))
         _check_ax_scales(axes, xaxis="log")
@@ -1161,12 +1155,7 @@ class TestDataFramePlots:
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
         positions = np.array([3, 2, 8])
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
-        ax = df.plot.box(positions=positions, **kwargs)
+        ax = df.plot.box(positions=positions, orientation="horizontal")
         _check_text_labels(ax.get_yticklabels(), labels)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
         assert len(ax.lines) == 7 * len(numeric_cols)

@@ -35,7 +35,6 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas.compat import PY312
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes import inference
@@ -2198,7 +2197,7 @@ def test_ensure_int32():
         # find a smaller floating dtype
         (300.0, np.uint16),  # for integer floats, we convert them to ints
         (300.1, np.float64),
-        (np.int16(300), np.int16 if np_version_gt2 else np.uint16),
+        (np.int16(300), np.int16),
     ],
 )
 def test_find_result_type_uint_int(right, result):

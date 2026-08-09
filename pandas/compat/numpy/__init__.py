@@ -9,13 +9,12 @@ from pandas.util.version import Version
 # numpy versioning
 _np_version = np.__version__
 _nlv = Version(_np_version)
-np_version_gt2 = _nlv >= Version("2.0.0")
 np_version_gt2_2 = _nlv >= Version("2.2.0")
 np_version_gt2_3 = _nlv >= Version("2.3.0")
 np_version_gt2_5 = _nlv >= Version("2.5.0")
 np_version_gt2_6 = _nlv >= Version("2.6.0.dev0")
 is_numpy_dev = _nlv.dev is not None
-_min_numpy_ver = "1.26.0"
+_min_numpy_ver = "2.0.2"
 
 
 if _nlv < Version(_min_numpy_ver):
@@ -28,20 +27,16 @@ if _nlv < Version(_min_numpy_ver):
 np_long: type
 np_ulong: type
 
-if np_version_gt2:
-    try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                r".*In the future `np\.long` will be defined as.*",
-                FutureWarning,
-            )
-            np_long = np.long
-            np_ulong = np.ulong
-    except AttributeError:
-        np_long = np.int_
-        np_ulong = np.uint
-else:
+try:
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            r".*In the future `np\.long` will be defined as.*",
+            FutureWarning,
+        )
+        np_long = np.long
+        np_ulong = np.ulong
+except AttributeError:
     np_long = np.int_
     np_ulong = np.uint
 

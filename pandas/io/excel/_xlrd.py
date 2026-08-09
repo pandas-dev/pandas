@@ -49,7 +49,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
-        err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
+        err_msg = "Install xlrd >= 2.0.2 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
         warnings.warn(
             "The xlrd engine is deprecated and will be removed in a future version. "

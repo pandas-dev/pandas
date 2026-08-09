@@ -6,7 +6,6 @@ the interface tests.
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -179,7 +178,6 @@ def test_sort_readonly():
     tm.assert_extension_array_equal(arr, NumpyExtensionArray(np.array([3, 1, 2])))
 
 
-@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
 @pytest.mark.parametrize("dtype", [None, "int64"])
 def test_asarray_readonly(dtype):
     arr = NumpyExtensionArray(np.array([1, 2, 3], dtype="int64"))
