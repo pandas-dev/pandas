@@ -2118,7 +2118,10 @@ class Index(IndexOpsMixin, PandasObject):
             level = level_list
             names = names_adjusted
 
-        if not is_list_like(names):
+        if (
+            not is_list_like(names)
+            or (isinstance(names, tuple) and not isinstance(self, ABCMultiIndex))
+        ):
             names = [names]  # type: ignore[assignment]
         if level is not None and not is_list_like(level):
             level = [level]

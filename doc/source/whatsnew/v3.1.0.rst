@@ -377,6 +377,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed :meth:`DataFrame.rename_axis` treating a tuple name as multiple names for a non-:class:`MultiIndex`. (:issue:`66656`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_series_equal` showing a misleading class mismatch message when Series values were backed by different :class:`numpy.ndarray` subclasses (:issue:`65770`)
