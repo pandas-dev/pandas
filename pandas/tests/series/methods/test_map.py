@@ -702,3 +702,42 @@ def test_map_retains_dtype_with_na(dtype):
     ser = Series([1, 2, 3, pd.NA, 10], dtype=dtype)
     result = ser.map(lambda x: x)
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize(
+    "dtype, non_na",
+    [
+        ("Int64", 1),
+        ("Float64", 1.5),
+        ("boolean", True),
+        pytest.param("int64[pyarrow]", 1, marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", 1.5, marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", "a", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_na_identity(dtype, non_na):
+    # GH#57390 - pd.NA is passed to the mapper as pd.NA, not coerced to NaN,
+    # so an identity check (x is pd.NA) inside the mapper works
+    ser = Series([pd.NA, non_na], dtype=dtype)
+    result = ser.map(lambda x: x is pd.NA)
+    assert result.tolist() == [True, False]
+
+
+@pytest.mark.parametrize(
+    "dtype, non_na",
+    [
+        ("Int64", 1),
+        ("Float64", 1.5),
+        ("boolean", True),
+        pytest.param("int64[pyarrow]", 1, marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", 1.5, marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", "a", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_na_action_ignore_not_called_on_na(dtype, non_na):
+    # GH#57390 - na_action="ignore" propagates NA without passing it to the mapper
+    ser = Series([pd.NA, non_na], dtype=dtype)
+    seen = []
+    result = ser.map(lambda x: seen.append(x) or x, na_action="ignore")
+    assert not any(x is pd.NA for x in seen)
+    tm.assert_series_equal(result, ser)

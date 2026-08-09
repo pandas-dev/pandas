@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas import (
     Categorical,
@@ -30,7 +33,9 @@ class TestFillNA:
         df.columns = ["A", "A", "A"]
         orig = df[:]
 
-        df.fillna({"A": 2}, inplace=True)
+        # GH#45153 filling datetime with int is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            df.fillna({"A": 2}, inplace=True)
         # The first and third columns can be set inplace, while the second cannot.
 
         expected = DataFrame(
@@ -79,7 +84,10 @@ class TestFillNA:
         ).all()
         assert (result.loc[result.index[5:20], "foo"] == "bar").all()
 
-        result = mf.fillna(value=0)
+        # GH#45153 filling string column with int is deprecated
+        warn = Pandas4Warning if using_infer_string else None
+        with tm.assert_produces_warning(warn, match="fill value"):
+            result = mf.fillna(value=0)
         assert (result.loc[result.index[-10:], "A"] == 0).all()
         assert (result.loc[result.index[5:20], "foo"] == 0).all()
 
@@ -98,7 +106,9 @@ class TestFillNA:
             [["a", "a", np.nan, "a"], ["b", "b", np.nan, "b"], ["c", "c", np.nan, "c"]]
         )
 
-        result = df.fillna({2: "foo"})
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna({2: "foo"})
         expected = DataFrame(
             [["a", "a", "foo", "a"], ["b", "b", "foo", "b"], ["c", "c", "foo", "c"]]
         )
@@ -106,7 +116,8 @@ class TestFillNA:
         expected[2] = expected[2].astype("object")
         tm.assert_frame_equal(result, expected)
 
-        result = df.fillna({2: "foo"}, inplace=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna({2: "foo"}, inplace=True)
         assert result is df
         tm.assert_frame_equal(df, expected)
 
@@ -305,7 +316,9 @@ class TestFillNA:
 
         # empty block
         df = DataFrame(index=range(3), columns=["A", "B"], dtype="float64")
-        result = df.fillna("nan")
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna("nan")
         expected = DataFrame("nan", dtype="object", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
@@ -313,7 +326,10 @@ class TestFillNA:
     def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
         expected = df.replace(np.nan, val)
-        result = df.fillna(val)
+        # GH#45153 filling with incompatible value is deprecated
+        warn = Pandas4Warning if isinstance(val, str) else None
+        with tm.assert_produces_warning(warn, match="fill value"):
+            result = df.fillna(val)
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_datetime_columns(self):
@@ -327,7 +343,9 @@ class TestFillNA:
             },
             index=date_range("20130110", periods=3),
         )
-        result = df.fillna("?")
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna("?")
         expected = DataFrame(
             {
                 "A": [-1, -2, "?"],
@@ -348,7 +366,9 @@ class TestFillNA:
             },
             index=date_range("20130110", periods=3),
         )
-        result = df.fillna("?")
+        # GH#45153 filling datetime with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna("?")
         expected = DataFrame(
             {
                 "A": [-1, -2, "?"],
@@ -869,8 +889,10 @@ def test_fillna_out_of_bounds_datetime():
     df.iloc[0, 0] = None
 
     msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
-    with pytest.raises(OutOfBoundsDatetime, match=msg):
-        df.fillna(Timestamp("0001-01-01"))
+    # GH#45153 the Pandas4Warning fires before the OutOfBoundsDatetime
+    with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            df.fillna(Timestamp("0001-01-01"))
 
 
 def test_fillna_dtype_preservation_after_apply():

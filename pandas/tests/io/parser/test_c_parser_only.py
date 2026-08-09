@@ -27,7 +27,9 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    StringDtype,
     concat,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -702,3 +704,74 @@ def test_float_precision_options(c_parser_only):
             Pandas4Warning, match=depr_msg, check_stacklevel=False
         ):
             parser.read_csv(StringIO(s), float_precision="junk")
+
+
+# The C tokenizer copies runs of ordinary characters in bulk, scanning 16
+# bytes at a time for special characters (delimiter, line terminator, quote,
+# escape, comment). Fields shorter than 16 bytes never enter that stride, so
+# the tests below deliberately use fields that span the 16-byte boundary to
+# exercise the vectorized scan and its byte-offset arithmetic.
+
+
+@pytest.mark.parametrize("length", [14, 15, 16, 17, 18, 31, 32, 33, 47, 48, 49, 64])
+def test_bulk_scan_unquoted_field_boundaries(c_parser_only, length):
+    # GH#64515: a delimiter or line terminator ending a long unquoted field
+    # must be detected at the correct offset within a 16-byte scan chunk.
+    parser = c_parser_only
+    col_a = "a" * length
+    col_b = "b" * length
+    col_c = "c" * length
+    data = f"A,B,C\n{col_a},{col_b},{col_c}\n{col_a},{col_b},{col_c}\n"
+    result = parser.read_csv(StringIO(data))
+    expected = DataFrame(
+        {"A": [col_a, col_a], "B": [col_b, col_b], "C": [col_c, col_c]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("length", [8, 15, 16, 17, 32, 33, 48])
+def test_bulk_scan_quoted_field_boundaries(c_parser_only, length):
+    # GH#64515: inside a quoted field only the quote/escape characters are
+    # special, so an embedded delimiter and an embedded line terminator that
+    # fall past the first 16-byte chunk must be copied verbatim rather than
+    # ending the field or the record.
+    parser = c_parser_only
+    inner = ("a" * length) + "," + ("b" * length) + "\n" + ("c" * length)
+    data = 'col\n"' + inner + '"\n'
+    result = parser.read_csv(StringIO(data))
+    expected = DataFrame({"col": [inner]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("length", [15, 16, 17, 32, 40])
+def test_bulk_scan_comment_char_boundary(c_parser_only, length):
+    # GH#64515: a comment character terminating a long unquoted field must be
+    # detected at its offset within a 16-byte scan chunk.
+    parser = c_parser_only
+    field = "a" * length
+    data = f"A\n{field}# a fairly long trailing comment to skip\n"
+    result = parser.read_csv(StringIO(data), comment="#")
+    expected = DataFrame({"A": [field]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_invalid_utf8_raises(c_parser_only):
+    # GH#65283: the pyarrow string fast path memcpys raw bytes into arrow
+    # buffers; ensure invalid UTF-8 still raises like the object path
+    parser = c_parser_only
+    data = BytesIO(b"col\nabc\n\xff\xfe\n")
+    with pytest.raises(UnicodeDecodeError, match="invalid start byte"):
+        parser.read_csv(data)
+
+
+def test_string_storage_python_consistent(c_parser_only):
+    # GH#65283: the pyarrow string fast path must not produce an
+    # ArrowStringArray when mode.string_storage="python"
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    with option_context("future.infer_string", True, "mode.string_storage", "python"):
+        result = parser.read_csv(StringIO("col\nabc\nxyz\n"))
+        arr = result["col"].array
+        assert isinstance(arr.dtype, StringDtype)
+        assert arr.dtype.storage == "python"
+        assert type(arr) is arr.dtype.construct_array_type()

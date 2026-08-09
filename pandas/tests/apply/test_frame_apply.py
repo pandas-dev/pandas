@@ -1677,14 +1677,15 @@ def test_apply_datetime_tz_issue(engine, request):
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_mixed_column_raises(df, method, using_infer_string):
     # GH 16832
-    if method == "sum":
-        msg = r'can only concatenate str \(not "int"\) to str|does not support'
-    else:
-        msg = "not supported between instances of 'str' and 'float'"
-    if not using_infer_string:
+    if method == "sum" and not using_infer_string:
+        msg = "|".join(
+            [r'can only concatenate str \(not "int"\) to str', "does not support"]
+        )
         with pytest.raises(TypeError, match=msg):
             getattr(df, method)()
     else:
+        # GH#65500: object min/max fill NA from the same slice rather than
+        # +/-inf, so they no longer raise when NA sits alongside strings
         getattr(df, method)()
 
 
@@ -1933,6 +1934,67 @@ def test_agg_np_size():
 
     result = df.agg({"A": [np.mean, np.size]})
     expected = DataFrame({"A": [4.0, 3.0]}, index=["mean", "size"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_series_method_not_reduction():
+    # GH#65031 - the DataFrame-level reductions fast path must only fire for
+    # genuine column-wise reductions. Series-returning DataFrame methods that
+    # are not indexed by the columns (value_counts/duplicated/memory_usage)
+    # must fall back to the per-column path rather than silently producing NaN
+    # or wrong values.
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+    result = df.agg(["value_counts"])
+    expected = DataFrame(
+        {
+            ("A", "value_counts"): [1.0, 1.0, 1.0, np.nan, np.nan, np.nan],
+            ("B", "value_counts"): [np.nan, np.nan, np.nan, 1.0, 1.0, 1.0],
+        },
+        index=[1, 2, 3, 4, 5, 6],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg(["duplicated"])
+    expected = DataFrame(
+        {
+            ("A", "duplicated"): [False, False, False],
+            ("B", "duplicated"): [False, False, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # memory_usage is not a reduction; each column must match Series.memory_usage
+    result = df.agg(["memory_usage"])
+    for col in df.columns:
+        assert result.loc["memory_usage", col] == df[col].memory_usage()
+
+    # mixed dtypes previously raised ValueError on the fast path
+    df_mixed = DataFrame({"A": [1, 2, 3], "B": ["x", "yy", "zzz"]})
+    result = df_mixed.agg(["memory_usage"])
+    for col in df_mixed.columns:
+        assert result.loc["memory_usage", col] == df_mixed[col].memory_usage()
+
+
+def test_agg_list_like_square_frame_matching_labels():
+    # GH#65031 a square frame with identical row/column labels must not let
+    # a row-indexed result (DataFrame.duplicated) slip through the fast path
+    df = DataFrame([[0, 1], [0, 2]])
+    result = df.agg(["duplicated"])
+    expected = DataFrame(
+        {
+            (0, "duplicated"): [False, True],
+            (1, "duplicated"): [False, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_empty_frame_reduction():
+    # GH#65031 empty frame with a list of reductions returns an empty frame
+    # indexed by the func names (pandas 3.0 raised "No objects to concatenate")
+    result = DataFrame().agg(["sum"])
+    expected = DataFrame(index=["sum"])
     tm.assert_frame_equal(result, expected)
 
 

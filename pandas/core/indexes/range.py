@@ -417,8 +417,12 @@ class RangeIndex(Index):
         Return the number of bytes in the underlying data.
         """
         rng = self._range
-        return getsizeof(rng) + sum(
-            getsizeof(getattr(rng, attr_name))
+        # passing a default to getsizeof avoids a TypeError on PyPy, where
+        # sys.getsizeof always raises TypeError unless a default is provided
+        # (GH#46176)
+        objsize = 24
+        return getsizeof(rng, objsize) + sum(
+            getsizeof(getattr(rng, attr_name), objsize)
             for attr_name in ["start", "stop", "step"]
         )
 

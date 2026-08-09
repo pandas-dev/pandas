@@ -235,6 +235,23 @@ def test_isin_large_series_and_pdNA(dtype, data, values, expected, monkeypatch):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, data, values, expected",
+    [
+        ("int64[pyarrow]", [1, None], [1, pd.NA], [True, True]),
+        ("binary[pyarrow]", [None, b"\xe3"], [pd.NA, b"\xe3"], [True, True]),
+    ],
+)
+def test_isin_arrow_dtype_with_na_value(dtype, data, values, expected):
+    # GH#63304
+    pytest.importorskip("pyarrow")
+
+    result = Series(data, dtype=dtype).isin(values)
+    expected = Series(expected)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_isin_complex_numbers():
     # GH 17927
     array = [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j]

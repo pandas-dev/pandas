@@ -400,8 +400,9 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.startswith("^"):
-            pat = f"^({pat})"
+        if pat.startswith("^"):
+            pat = pat[1:]
+        pat = f"^({pat})"
         return ArrowStringArrayMixin._str_contains(
             self, pat, case, flags, na, regex=True
         )

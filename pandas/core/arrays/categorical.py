@@ -179,6 +179,10 @@ def _cat_compare_op(op):
         else:
             # allow categorical vs object dtype array comparisons for equality
             # these are only positional comparisons
+            # (hashable list-likes such as tuple/range take the branch above and
+            #  are already treated as scalar-like, so only non-standard
+            #  positional list-likes like ``deque`` warn here, GH#62423)
+            ops.maybe_warn_listlike(other)
             if opname not in ["__eq__", "__ne__"]:
                 raise TypeError(
                     f"Cannot compare a Categorical for op {opname} with "

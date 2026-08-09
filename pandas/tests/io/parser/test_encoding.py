@@ -13,6 +13,8 @@ import tempfile
 import numpy as np
 import pytest
 
+from pandas.errors import EmptyDataError
+
 from pandas import (
     DataFrame,
     read_csv,
@@ -339,7 +341,6 @@ def test_readcsv_memmap_utf8(all_parsers, temp_file):
     tm.assert_frame_equal(df, dfr)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("mode", ["w+b", "w+t"])
 def test_not_readable(all_parsers, mode):
     # GH43439
@@ -350,6 +351,17 @@ def test_not_readable(all_parsers, mode):
     with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
+        if parser.engine == "pyarrow":
+            # pyarrow's CSV reader cannot read from a SpooledTemporaryFile
+            if "t" in mode:
+                msg = "The 'pyarrow' engine can only read from a binary file object"
+                with pytest.raises(TypeError, match=msg):
+                    parser.read_csv(handle)
+            else:
+                msg = "No columns to parse from file"
+                with pytest.raises(EmptyDataError, match=msg):
+                    parser.read_csv(handle)
+            return
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])
     tm.assert_frame_equal(df, expected)

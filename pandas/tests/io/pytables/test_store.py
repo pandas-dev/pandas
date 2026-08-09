@@ -585,6 +585,34 @@ def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("n_selectors", [3, 100])
+def test_remove_where_filter_and_condition(temp_hdfstore, n_selectors):
+    # GH#17567 a large "in" selector (> numexpr's _max_selectors=31) becomes a
+    #  post-read filter, but it can be combined with a numexpr condition (here
+    #  "A>=50"). select_coords must apply the filter on top of the condition's
+    #  coordinates; otherwise remove drops the wrong rows.
+    store = temp_hdfstore
+    df = DataFrame(
+        {"A": np.arange(1000)},
+        index=date_range("2020-01-01", periods=1000, unit="ns"),
+    )
+    store.put("df", df, format="table", data_columns=["A"], track_times=False)
+
+    selector = list(df.index[:n_selectors])
+    where = "index in selector and A>=50"
+    # matching rows: index in the first n_selectors AND A>=50
+    mask = df.index.isin(selector) & (df["A"] >= 50)
+
+    assert len(store.select("df", where=where)) == mask.sum()
+    assert len(store.select_as_coordinates("df", where=where)) == mask.sum()
+
+    removed = store.remove("df", where=where)
+    assert removed == mask.sum()
+
+    result = store.select("df")
+    tm.assert_frame_equal(result, df[~mask])
+
+
 def test_same_name_scoping(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 2)),

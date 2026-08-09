@@ -21,6 +21,32 @@ class DataFrameAttributes:
         self.df.index = self.cur_index
 
 
+class Dir:
+    # GH#18587 measure uncached tab-completion cost over a large index.
+    number = 1
+    repeat = (3, 100, 20)
+
+    params = ["unique", "non_unique"]
+    param_names = ["kind"]
+
+    def setup(self, kind):
+        N = 10**5
+        if kind == "unique":
+            labels = [f"col_{i}" for i in range(N)]
+        else:
+            labels = [f"col_{i % 50}" for i in range(N)]
+        self.df = DataFrame(np.zeros((1, N)), columns=pd.Index(labels))
+        self.ser = pd.Series(np.zeros(N), index=pd.Index(labels))
+
+    def time_dir_frame(self, kind):
+        self.df.columns._cache = {}
+        dir(self.df)
+
+    def time_dir_series(self, kind):
+        self.ser.index._cache = {}
+        dir(self.ser)
+
+
 class SeriesArrayAttribute:
     params = [["numeric", "object", "category", "datetime64", "datetime64tz"]]
     param_names = ["dtype"]

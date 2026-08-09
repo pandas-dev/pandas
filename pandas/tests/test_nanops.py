@@ -704,6 +704,90 @@ class TestnanopsDataFrame:
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
 
+    @pytest.mark.parametrize("dtype", [np.float64, np.float32, np.int64])
+    def test_nancorr_pearson_matches_corrcoef_1d_numeric(self, dtype):
+        a = np.array([1, 2, 4, 8, 16], dtype=dtype)
+        b = np.array([2, 3, 5, 9, 17], dtype=dtype)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a, b)[0, 1]
+
+        assert type(result) is type(expected)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (
+                np.array([1 + 1j, 2 + 2j, 4 + 4j]),
+                np.array([2 + 2j, 3 + 3j, 5 + 5j]),
+            ),
+            (
+                np.array([[1.0, 2.0], [4.0, 8.0]]),
+                np.array([[2.0, 3.0], [5.0, 9.0]]),
+            ),
+        ],
+    )
+    def test_nancorr_pearson_fallback_matches_corrcoef(self, a, b):
+        corr_func = nanops.get_corr_func("pearson")
+
+        result = corr_func(a, b)
+        expected = np.corrcoef(a, b)[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
+        a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
+        b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
+        valid = ~isna(a) & ~isna(b)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a[valid], b[valid])[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b, expected",
+        [
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e100, 2e100, 3e100]),
+                1.0,
+            ),
+            (
+                np.array([1e-160, 2e-160, 3e-160]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([3e-160, 2e-160, 1e-160]),
+                -1.0,
+            ),
+        ],
+    )
+    def test_nancorr_pearson_extreme_magnitudes(self, a, b, expected):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (np.array([1.0]), np.array([2.0])),
+            (np.array([1.0, 1.0, 1.0]), np.array([2.0, 3.0, 4.0])),
+        ],
+    )
+    def test_nancorr_pearson_not_well_defined(self, a, b):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        assert isna(result)
+
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
 
@@ -1384,3 +1468,73 @@ def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars)
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype
+
+
+@pytest.mark.parametrize("na_pos", [0, 3])
+def test_nanargminmax_uint64_with_mask(na_pos):
+    # GH#64478 the +/-inf fill for masked uint64 values must stay uint64;
+    # an int64 fill promotes uint64/int64 to float64 and loses precision above
+    # 2**53, and i8max cannot bracket uint64 values above 2**63.
+    values = np.array([2**63 + 1, 2**63 + 2, 2**63 + 3, 0], dtype=np.uint64)
+    mask = np.zeros(4, dtype=bool)
+    mask[na_pos] = True
+    valid = np.flatnonzero(~mask)
+
+    argmax = nanops.nanargmax(values, mask=mask)
+    argmin = nanops.nanargmin(values, mask=mask)
+    assert argmax == valid[values[valid].argmax()]
+    assert argmin == valid[values[valid].argmin()]
+
+    assert nanops.nanmax(values, mask=mask) == values[valid].max()
+    assert nanops.nanmin(values, mask=mask) == values[valid].min()
+
+
+def test_idxminmax_uint64_with_na():
+    # GH#64478 idxmax/idxmin on a nullable UInt64 column with values above 2**53
+    values = pd.array([2**63 + 1, 2**63 + 2, 2**63 + 3, pd.NA], dtype="UInt64")
+    df = pd.DataFrame({"a": values})
+    assert df.idxmax().tolist() == [2]
+    assert df.idxmin().tolist() == [0]
+
+
+@pytest.mark.parametrize("tie_value", [0, 2**64 - 1])
+def test_nanargminmax_uint64_na_tie(tie_value):
+    # GH#64478 the NA fill values equal the dtype extremes; when every
+    # unmasked value ties with the fill, the NA position must not win
+    values = np.full(3, tie_value, dtype=np.uint64)
+    mask = np.array([True, False, False])
+    assert nanops.nanargmax(values, mask=mask) == 1
+    assert nanops.nanargmin(values, mask=mask) == 1
+
+
+def test_nanargminmax_int64_na_tie():
+    # GH#64478 same tie at the signed extremes
+    mask = np.array([True, False, False])
+    int64_info = np.iinfo(np.int64)
+    values = np.full(3, int64_info.min, dtype=np.int64)
+    assert nanops.nanargmax(values, mask=mask) == 1
+    values = np.full(3, int64_info.max, dtype=np.int64)
+    assert nanops.nanargmin(values, mask=mask) == 1
+
+
+def test_nanargminmax_float_inf_tie():
+    # GH#64478 NaN filled with -inf/+inf ties real infinities
+    assert nanops.nanargmax(np.array([np.nan, -np.inf, -np.inf])) == 1
+    assert nanops.nanargmin(np.array([np.nan, np.inf, np.inf])) == 1
+
+
+def test_idxminmax_uint64_all_zero_with_na():
+    # GH#64478 all-zero UInt64 column with a leading NA: idxmax must not
+    # return the NA row
+    df = pd.DataFrame({"a": pd.array([pd.NA, 0, 0], dtype="UInt64")})
+    assert df.idxmax().tolist() == [1]
+    assert df.idxmin().tolist() == [1]
+
+
+def test_idxminmax_float_inf_tie():
+    # GH#64478 2-D path: NaN filled with -inf/+inf ties real infinities
+    df = pd.DataFrame({"a": [np.nan, -np.inf, -np.inf], "b": [1.0, 3.0, 2.0]})
+    assert df.idxmax().tolist() == [1, 1]
+    assert df.idxmin().tolist() == [1, 0]
+    assert df["a"].idxmax() == 1
+    assert df["a"].idxmin() == 1

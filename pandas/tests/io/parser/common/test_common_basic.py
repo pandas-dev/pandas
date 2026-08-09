@@ -126,7 +126,6 @@ def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5

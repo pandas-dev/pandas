@@ -431,13 +431,15 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize(
         "breaks1, breaks2",
-        permutations(
-            [
-                date_range("20180101", periods=4),
-                date_range("20180101", periods=4, tz="US/Eastern"),
-                timedelta_range("0 days", periods=4),
-            ],
-            2,
+        list(
+            permutations(
+                [
+                    date_range("20180101", periods=4),
+                    date_range("20180101", periods=4, tz="US/Eastern"),
+                    timedelta_range("0 days", periods=4),
+                ],
+                2,
+            )
         ),
         ids=lambda x: str(x.dtype),
     )

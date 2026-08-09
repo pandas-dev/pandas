@@ -10,7 +10,7 @@ project(
     default_options: [
         'buildtype=release',
         'c_std=c17',
-        'cpp_std=c++17',
+        'cpp_std=c++20',
         'warning_level=2',
     ],
 )
@@ -37,6 +37,7 @@ add_project_arguments(
 )
 
 cc = meson.get_compiler('c')
+cxx = meson.get_compiler('cpp')
 if cc.get_id() == 'msvc'
     # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
     # Ignore some MSVC specific warnings:
@@ -44,8 +45,9 @@ if cc.get_id() == 'msvc'
     # C4267: conversion from `size_t` to smaller type.
     # C4551: occurs due to Cython generating code with (void)func.
     #        https://github.com/cython/cython/issues/3579
+    # C4146: unary minus operator applied to unsigned type. Occurs in xsimd.
     add_project_arguments(
-        ['/wd4244', '/wd4267', '/wd4551'],
+        ['/wd4244', '/wd4267', '/wd4551', '/wd4146'],
         language: ['c', 'cpp'],
     )
 endif
@@ -71,12 +73,11 @@ if cy.version().version_compare('>=3.1.0')
 
     # Use shared utility code to reduce wheel sizes
     # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
-    cy = find_program(cy.cmd_array()[0])
     cython_shared_src = custom_target(
         install: false,
         output: '_cyutility.c',
         command: [
-            cy,
+            cy.cmd_array(),
             '-3',
             '-Xfreethreading_compatible=true',
             '--fast-fail',

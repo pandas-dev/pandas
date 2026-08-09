@@ -15,6 +15,16 @@ class TestEquals:
         df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
         assert df1.equals(df2) is False
 
+    def test_equals_object_array_vs_scalar(self):
+        # GH#43867 one object-dtype element is a numpy array, the other a
+        #  scalar; these must not compare equal
+        df = DataFrame({"x": ["a"]}, dtype=object)
+        other = df.copy()
+        other["x"] = [np.array(["a"], dtype=object)]
+        assert df["x"].dtype == other["x"].dtype == object
+        assert not df.equals(other)
+        assert not other.equals(df)
+
     def test_equals_different_blocks(self):
         # GH#9330
         df0 = DataFrame(

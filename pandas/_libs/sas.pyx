@@ -590,9 +590,7 @@ cdef class Parser:
                 else:
                     m = s
                 if lngt == 8:
-                    (<uint64_t *>&byte_chunk[jb, m])[0] = (
-                        (<uint64_t *>&source.data[start])[0]
-                    )
+                    memcpy(&byte_chunk[jb, m], &source.data[start], sizeof(uint64_t))
                 else:
                     for k in range(lngt):
                         byte_chunk[jb, m + k] = buf_get(source, start + k)

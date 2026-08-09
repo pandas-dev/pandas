@@ -69,7 +69,6 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_path_path_lib(all_parsers, temp_file):
     parser = all_parsers
     df = DataFrame(

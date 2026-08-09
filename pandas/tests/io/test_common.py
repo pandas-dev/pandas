@@ -473,9 +473,11 @@ class TestMMapWrapper:
             df.to_csv(temp_file, compression=compression_, encoding=encoding)
 
         # reading should fail (otherwise we wouldn't need the warning)
-        msg = (
-            r"UTF-\d+ stream does not start with BOM|"
-            r"'utf-\d+' codec can't decode byte"
+        msg = "|".join(
+            [
+                r"UTF-\d+ stream does not start with BOM",
+                r"'utf-\d+' codec can't decode byte",
+            ]
         )
         with pytest.raises(UnicodeError, match=msg):
             pd.read_csv(temp_file, compression=compression_, encoding=encoding)

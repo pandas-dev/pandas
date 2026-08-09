@@ -458,6 +458,33 @@ with cf.config_prefix("mode"):
     )
 
 
+max_threads_doc = """
+: int or None
+    Maximum number of worker threads for parallel operations (e.g. ``read_csv``
+    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``.
+    Set to ``1`` to disable parallel execution, or to a fixed number to raise the
+    cap or to limit thread usage when pandas is embedded in a larger parallel
+    workflow.
+"""
+
+
+def _is_positive_int_or_none(value: Any) -> None:
+    if value is None:
+        return
+    if isinstance(value, int) and value >= 1:
+        return
+    raise ValueError("Value must be a positive integer or None")
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "max_threads",
+        None,
+        max_threads_doc,
+        validator=_is_positive_int_or_none,
+    )
+
+
 string_storage_doc = """
 : string
     The default storage for StringDtype.
@@ -905,6 +932,8 @@ with cf.config_prefix("future"):
         "python_scalars",
         False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
         "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        "Values from object dtype data where the operation coerces them to NumPy "
+        "floats remain NumPy scalars. "
         "Currently experimental, setting to True is not recommended for end users.",
         validator=is_one_of_factory([True, False]),
     )

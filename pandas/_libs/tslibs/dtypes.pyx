@@ -2,6 +2,11 @@
 # originals
 from enum import Enum
 
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTHS,
+)
+
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -245,6 +250,19 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YS": "Y",
     "BYS": "Y",
 }
+# Fill in the anchored variants of the above. Start offsets (QS/BQS/YS/BYS)
+# anchor on the FIRST month of each period, so the period's anchor month is
+# the one before it (YS-APR -> Y-MAR; YS-JAN wraps to Y-DEC). Period-form
+# aliases (Q-*, Y-*, W-*) map to themselves.
+for _prefix, _base in [("QS", "Q"), ("BQS", "Q"), ("YS", "Y"), ("BYS", "Y")]:
+    for _idx, _month in enumerate(MONTHS):
+        OFFSET_TO_PERIOD_FREQSTR[f"{_prefix}-{_month}"] = f"{_base}-{MONTHS[_idx - 1]}"
+for _prefix in ["Y", "Q"]:
+    for _month in MONTHS:
+        OFFSET_TO_PERIOD_FREQSTR[f"{_prefix}-{_month}"] = f"{_prefix}-{_month}"
+for _day in DAYS:
+    OFFSET_TO_PERIOD_FREQSTR[f"W-{_day}"] = f"W-{_day}"
+
 cdef dict c_OFFSET_RENAMED_FREQSTR = {
     "M": "ME",
     "Q": "QE",

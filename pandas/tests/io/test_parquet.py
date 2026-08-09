@@ -14,6 +14,7 @@ from pandas._config import using_string_dtype
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under15p0,
+    pa_version_under16p0,
     pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
@@ -469,11 +470,7 @@ class TestBasic(Base):
             read_kwargs={"columns": ["string"]},
         )
 
-    def test_read_filters(self, engine, request, tmp_path):
-        if engine == "fastparquet" and using_string_dtype() and _fp_version_lt_2025:
-            request.applymarker(
-                pytest.mark.xfail(reason="TODO(infer_string) fastparquet < 2025.12.0")
-            )
+    def test_read_filters(self, engine, tmp_path):
         df = pd.DataFrame(
             {
                 "int": list(range(4)),
@@ -729,6 +726,9 @@ class TestBasic(Base):
             "string",
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_read_empty_array(self, pa, dtype, temp_file):
         # GH #41241
         df = pd.DataFrame(
@@ -775,6 +775,9 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -787,6 +790,9 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, temp_file, pa)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic_subset_columns(self, pa, df_full, temp_file):
         # GH18628
 
@@ -1073,6 +1079,9 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, temp_file, pa, write_kwargs={"version": ver})
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_timezone_aware_index(self, pa, timezone_aware_date_list, temp_file):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
@@ -1087,6 +1096,9 @@ class TestParquetPyArrow(Base):
         assert len(result) == 1
 
     @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full, temp_file):
         import pyarrow
 
@@ -1161,6 +1173,20 @@ class TestParquetPyArrow(Base):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
+
+    @pytest.mark.xfail(
+        pa_version_under16p0,
+        reason="GH#40173 fixed in pyarrow 16.0.0",
+        raises=AttributeError,
+    )
+    def test_empty_column_multiindex(self, pa, temp_file):
+        # GH#40173 reading back an empty frame with a column MultiIndex used to
+        # raise inside pyarrow's metadata reconstruction
+        df = pd.DataFrame(columns=pd.MultiIndex(levels=[["abc"], []], codes=[[], []]))
+        # the unused "abc" level value is not preserved through the round-trip
+        expected = df.copy()
+        expected.columns = expected.columns.remove_unused_levels()
+        check_round_trip(df, temp_file, pa, expected=expected)
 
     def test_df_attrs_persistence(self, temp_file, pa):
         df = pd.DataFrame(data={1: [1]})
@@ -1255,7 +1281,67 @@ class TestParquetPyArrow(Base):
             read_kwargs={"to_pandas_kwargs": {"maps_as_pydicts": "strict"}},
         )
 
+    def test_to_parquet_local_path_does_not_call_get_handle(
+        self, pa, temp_file, monkeypatch
+    ):
+        # GH#65810 local paths are handed to pyarrow directly; get_handle used
+        # to open them only to unwrap the name back to a string, opening the
+        # path a second time and truncating output to 0 bytes on filesystems
+        # that finalize contents on close
+        def fail(*args, **kwargs):
+            pytest.fail("get_handle should not be called for a local path")
 
+        monkeypatch.setattr("pandas.io.parquet.get_handle", fail)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+
+    def test_to_parquet_local_path_opens_destination_once(
+        self, pa, temp_file, monkeypatch
+    ):
+        # GH#65810 pandas must not open the destination itself; pyarrow opens it
+        # via C++ (bypassing builtins.open), so no Python-level open is expected
+        opens = []
+        real_open = open
+        target = os.fspath(temp_file)
+
+        def spy_open(file, *args, **kwargs):
+            if os.fspath(file) == target:
+                opens.append(file)
+            return real_open(file, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.open", spy_open)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+        assert opens == []
+
+    def test_to_parquet_missing_parent_directory_raises(self, pa, tmp_path):
+        # GH#65810 skipping get_handle must keep its parent-directory check
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        path = tmp_path / "missing" / "out.parquet"
+        msg = "Cannot save file into a non-existent directory"
+        with pytest.raises(OSError, match=msg):
+            df.to_parquet(path, engine=pa)
+
+    def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
+        # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
+        # be routed through it because pyarrow cannot fetch them
+        url = "http://example.com/nonexistent.parquet"
+        calls = []
+
+        def stub(path, mode, **kwargs):
+            calls.append((path, mode))
+            raise ValueError("reached get_handle")
+
+        monkeypatch.setattr("pandas.io.parquet.get_handle", stub)
+
+        with pytest.raises(ValueError, match="reached get_handle"):
+            read_parquet(url, engine=pa)
+        assert calls == [(url, "rb")]
+
+
+@pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request, temp_file):
         if using_string_dtype():

@@ -558,7 +558,7 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = PeriodIndex([NaT, NaT, *i[2:].tolist()], freq="D")
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), np.asarray(i2, dtype=object))
         tm.assert_index_equal(result, i2)
 
     def test_where_invalid_dtypes(self):

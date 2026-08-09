@@ -291,7 +291,8 @@ def test_tick_rdiv(cls):
     td64 = delta.to_timedelta64()
     instance__type = ".".join([cls.__module__, cls.__name__])
     msg = (
-        f"unsupported operand type\\(s\\) for \\/: 'int'|'float' and '{instance__type}'"
+        f"unsupported operand type\\(s\\) for \\/: "
+        f"('int'|'float') and '{instance__type}'"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -354,8 +355,8 @@ def test_compare_ticks_to_strs(cls):
 
     instance_type = ".".join([cls.__module__, cls.__name__])
     msg = (
-        "'<'|'<='|'>'|'>=' not supported between instances of "
-        f"'str' and '{instance_type}'|'{instance_type}' and 'str'"
+        "('<'|'<='|'>'|'>=') not supported between instances of "
+        f"('str' and '{instance_type}'|'{instance_type}' and 'str')"
     )
 
     for left, right in [("infer", off), (off, "infer")]:

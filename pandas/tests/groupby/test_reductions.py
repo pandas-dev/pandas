@@ -325,6 +325,22 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["idxmin", "idxmax"])
+@pytest.mark.parametrize("dtype", ["int64", "float64", "Int64", "Float64"])
+def test_idxmin_idxmax_skipna_false_no_na(how, dtype):
+    # GH#56903 with skipna=False and no NA values, the group_idxmin_idxmax
+    # kernel previously skipped every group and returned the all-NA sentinel.
+    df = DataFrame(
+        {"a": [1, 1, 2, 2, 2], "b": [3, 1, 4, 9, 2]},
+        index=[10, 11, 12, 13, 14],
+    ).astype({"b": dtype})
+    gb = df.groupby("a")
+    result = getattr(gb, how)(skipna=False)
+    # No NA is present, so skipna is irrelevant; result must match skipna=True.
+    expected = getattr(gb, how)(skipna=True)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, values",
     [

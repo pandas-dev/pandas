@@ -87,6 +87,13 @@ class TestSeriesRepr:
         # empty
         str(Series(dtype=object))
 
+    def test_empty_frozenset(self):
+        ser = Series([frozenset()])
+        result = repr(ser)
+
+        expected = "0    frozenset()\ndtype: object"
+        assert result == expected
+
     def test_string(self, string_series):
         str(string_series)
         str(string_series.astype(int))

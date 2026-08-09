@@ -396,8 +396,8 @@ def assert_index_equal(
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)
         _testing.assert_almost_equal(
-            left.values,
-            right.values,
+            left._values,
+            right._values,
             rtol=rtol,
             atol=atol,
             check_dtype=exact_bool,
@@ -506,7 +506,7 @@ def assert_attr_equal(
 def assert_is_sorted(seq: Index | Series | np.ndarray | ExtensionArray) -> None:
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
-        seq = seq.values
+        seq = seq._values
     # sorting does not change precisions
     if isinstance(seq, np.ndarray):
         assert_numpy_array_equal(seq, np.sort(np.array(seq)))
@@ -684,6 +684,8 @@ def assert_numpy_array_equal(
     check_same: Literal["copy", "same"] | None = None,
     obj: str = "numpy array",
     index_values: Index | np.ndarray | None = None,
+    *,
+    class_obj: str | None = None,
 ) -> None:
     """
     Check that 'np.ndarray' is equivalent.
@@ -705,12 +707,15 @@ def assert_numpy_array_equal(
         assertion message.
     index_values : Index | numpy.ndarray, default None
         optional index (shared by both left and right), used in output.
+    class_obj : str, default None
+        Specify object name for class comparison, internally used to show
+        appropriate assertion message.
     """
     __tracebackhide__ = True
 
     # instance validation
     # Show a detailed error message when classes are different
-    assert_class_equal(left, right, obj=obj)
+    assert_class_equal(left, right, obj=class_obj or obj)
     # both classes must be an np.ndarray
     _check_isinstance(left, right, np.ndarray)
 
@@ -1125,6 +1130,7 @@ def assert_series_equal(
                 rv,
                 check_dtype=check_dtype,
                 obj=str(obj),
+                class_obj=f"{obj} values",
                 index_values=left.index,
             )
     elif check_datetimelike_compat and (
@@ -1221,6 +1227,8 @@ def assert_series_equal(
 # This could be refactored to use the NDFrame.equals method
 @set_module("pandas.testing")
 @deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
+# stacklevel=3 to account for the extra frame from the stacked decorator above
+@deprecate_kwarg(Pandas4Warning, "by_blocks", new_arg_name=None, stacklevel=3)
 def assert_frame_equal(
     left: DataFrame,
     right: DataFrame,
@@ -1271,6 +1279,8 @@ def assert_frame_equal(
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
+
+        .. deprecated:: 3.1
     check_exact : bool, default False
         Whether to compare number exactly. If False, the comparison uses the
         relative tolerance (``rtol``) and absolute tolerance (``atol``)

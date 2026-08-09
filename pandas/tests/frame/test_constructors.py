@@ -1,12 +1,16 @@
 import array
 from collections import (
     OrderedDict,
+    UserList,
     abc,
     defaultdict,
     namedtuple,
 )
 from collections.abc import Iterator
-from dataclasses import make_dataclass
+from dataclasses import (
+    dataclass,
+    make_dataclass,
+)
 from datetime import (
     date,
     datetime,
@@ -550,9 +554,23 @@ class TestDataFrameConstructors:
         # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
-        assert frame.index is idx
-        assert frame.columns is idx
+        tm.assert_index_equal(frame.index, idx)
+        tm.assert_index_equal(frame.columns, idx)
+        # GH#42934 the two axes must not be the same object, otherwise mutating
+        #  metadata on one (e.g. names) would silently affect the other
+        assert frame.index is not frame.columns
         assert len(frame._series) == 3
+
+    def test_constructor_same_index_and_columns_no_alias(self):
+        # GH#42934 passing one Index as both index and columns should not
+        #  alias the two axes, so mutating names on one leaves the other intact
+        idx = Index(["a", "b"])
+        frame = DataFrame([[1, 2], [3, 4]], index=idx, columns=idx)
+        assert frame.index is not frame.columns
+
+        frame.index.names = ["zzz"]
+        assert frame.columns.names == [None]
+        assert idx.names == [None]
 
     def test_constructor_dict_of_empty_lists(self):
         # with dict of empty list and Series
@@ -1654,6 +1672,17 @@ class TestDataFrameConstructors:
         with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
+    def test_constructor_list_of_list_like_dataclasses(self):
+        # GH#41682 a dataclass that is also list-like (e.g. a UserList subclass)
+        # is treated as list-like, not converted to a dict of its fields
+        @dataclass(frozen=True)
+        class MyList(UserList):
+            data: list
+
+        result = DataFrame([MyList([1, 2, 3]), [4, 5, 6]])
+        expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_dict_order(self):
         # GH10056
         data = [
@@ -2161,6 +2190,23 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_dict_of_series_preserves_byteorder(self):
+        # GH#43042 same-dtype Series get consolidated into one block; the
+        #  non-native byteorder (and the values) must be preserved
+        df = DataFrame(
+            {
+                "a": Series([0, 256], dtype=">i8"),
+                "b": Series([1, 257], dtype=">i4"),
+                "c": Series([2, 258], dtype=">i8"),
+            }
+        )
+        assert df["a"].dtype == np.dtype(">i8")
+        assert df["b"].dtype == np.dtype(">i4")
+        assert df["c"].dtype == np.dtype(">i8")
+        assert df["a"].tolist() == [0, 256]
+        assert df["b"].tolist() == [1, 257]
+        assert df["c"].tolist() == [2, 258]
+
     def test_constructor_list_of_ragged_arrays_first_shortest(self):
         # GH#64958 the uniform-dtype fast path must not silently truncate
         # ragged rows; they should be padded to max width with NaN
@@ -2548,7 +2594,9 @@ class TestDataFrameConstructors:
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
         dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
-        msg = "Shape of passed values|Passed arrays should have the same length"
+        msg = "|".join(
+            ["Shape of passed values", "Passed arrays should have the same length"]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame(dti, index=range(4))
 

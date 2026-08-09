@@ -1124,7 +1124,7 @@ def crosstab(
     common_idx = None
     pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
     if pass_objs:
-        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
+        common_idx, _ = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
     rownames = _get_names(index, rownames, prefix="row")
     colnames = _get_names(columns, colnames, prefix="col")

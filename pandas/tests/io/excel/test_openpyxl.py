@@ -447,6 +447,23 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
     tm.assert_frame_equal(result, expected)
 
 
+def test_read_excel_book_dimensions_preserved(tmp_excel):
+    # GH#63010 - reading should not permanently reset the dimensions of the
+    # worksheet handle available through ExcelFile.book
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    df.to_excel(tmp_excel, index=False)
+
+    with pd.ExcelFile(tmp_excel, engine="openpyxl") as excel_file:
+        sheet = excel_file.book["Sheet1"]
+        assert (sheet.max_row, sheet.max_column) == (3, 2)
+
+        result = pd.read_excel(excel_file, sheet_name="Sheet1")
+
+        assert (sheet.max_row, sheet.max_column) == (3, 2)
+
+    tm.assert_frame_equal(result, df)
+
+
 class TestWriteOnly:
     """Tests for write_only mode (GH#41681)."""
 
