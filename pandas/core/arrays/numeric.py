@@ -225,7 +225,12 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             values = np.ones(values.shape, dtype=dtype)
         else:
             idx = np.nanargmax(values)
-            if int(values[idx]) != original[idx]:
+            # Index ``original`` positionally and as an object array: it may
+            # be label-indexed (e.g. a Series with a non-default integer
+            # index) or hold ``pd.NA``, in which case ``original[idx]`` would
+            # do a label lookup and/or return ``pd.NA``, making the
+            # comparison raise "boolean value of NA is ambiguous" (GH#62473).
+            if int(values[idx]) != np.asarray(original, dtype=object)[idx]:
                 # We have ints that lost precision during the cast.
                 inferred_type = lib.infer_dtype(original, skipna=True)
                 if (

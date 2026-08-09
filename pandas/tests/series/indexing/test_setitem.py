@@ -2035,3 +2035,36 @@ def test_setitem_enlarge_within_int64_range():
 
     expected = Series([1, 2, 2**62], dtype="int64")
     tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_iloc_nullable_int_with_na_and_nondefault_index():
+    # GH#62473 setting a nullable Int64 Series that holds pd.NA and has a
+    # non-default integer index used to raise
+    # "boolean value of NA is ambiguous": the value was coerced to float,
+    # and the precision-loss check indexed the original Series by label
+    # instead of position, hitting the NA.
+    ser = Series(
+        [4, 6, 9, None, 10, 13, 15], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+    )
+    indices = Series([6, 1, 5, 0, 3, 2, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="int64")
+    values = Series(
+        [4, 6, 9, None, 10, 13, 15], index=[4, 1, 2, 6, 0, 5, 3], dtype="Int64"
+    )
+    ser.iloc[indices] = values
+    expected = Series(
+        [NA, 6, 13, 10, 15, 9, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+    )
+    tm.assert_series_equal(ser, expected)
+
+    # a plain int64 value (no NA) must give the same positional assignment
+    ser_ref = Series(
+        [4, 6, 9, 99, 10, 13, 15], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+    )
+    values_ref = Series(
+        [4, 6, 9, 99, 10, 13, 15], index=[4, 1, 2, 6, 0, 5, 3], dtype="Int64"
+    )
+    ser_ref.iloc[indices] = values_ref
+    expected_ref = Series(
+        [99, 6, 13, 10, 15, 9, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+    )
+    tm.assert_series_equal(ser_ref, expected_ref)
