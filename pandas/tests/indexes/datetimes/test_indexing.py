@@ -92,7 +92,8 @@ class TestGetItem:
         assert fancy_indexed.freq is None
 
         # 32-bit vs. 64-bit platforms
-        assert rng[4] == rng[np.int_(4)]
+        assert rng[4] == rng[np.int32(4)]
+        assert rng[4] == rng[np.int64(4)]
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):
