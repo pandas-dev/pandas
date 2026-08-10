@@ -600,17 +600,17 @@ class TestTimedeltas:
             pytest.param(
                 Timedelta(0),
                 np.timedelta64(0, "ns"),
-                marks=pytest.mark.skipif(WASM, reason="Fails in WASM"),
+                marks=pytest.mark.skipif(WASM, reason="Fails with WASM"),
             ),
             pytest.param(
                 Timedelta(55, "s"),
                 np.timedelta64(55, "s"),
-                marks=pytest.mark.skipif(WASM, reason="Fails in WASM"),
+                marks=pytest.mark.skipif(WASM, reason="Fails with WASM"),
             ),
             pytest.param(
                 Timedelta(-44, "us"),
                 np.timedelta64(-44, "us"),
-                marks=pytest.mark.skipif(WASM, reason="Fails in WASM"),
+                marks=pytest.mark.skipif(WASM, reason="Fails with WASM"),
             ),
         ],
     )
