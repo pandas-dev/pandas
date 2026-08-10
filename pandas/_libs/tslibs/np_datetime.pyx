@@ -840,6 +840,13 @@ cdef int64_t _convert_reso_with_dtstruct(
     return result
 
 
+# The reductions in add_overflowsafe's fast path cost a fixed ~1us that the
+#  per-element loop does not pay, putting the measured crossover at a few
+#  hundred elements.  Round up so that small inputs, the common case for
+#  scalar-broadcast arithmetic, stay on the loop.
+cdef Py_ssize_t _ADD_VECTORIZED_MIN_SIZE = 1000
+
+
 @cython.overflowcheck(True)
 cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     """
@@ -854,6 +861,26 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     cdef:
         Py_ssize_t _, N = left.size
         int64_t lval, rval, res_value
+        int64_t lmin, lmax, rmin, rmax
+
+    # Fast path: bound the result from the operands' min/max, and when every
+    #  sum provably stays inside (NPY_DATETIME_NAT, INT64_MAX] hand the whole
+    #  thing to numpy.  NPY_DATETIME_NAT is INT64_MIN, so a minimum above it
+    #  also rules out NaT operands.
+    if N >= _ADD_VECTORIZED_MIN_SIZE and right.size > 0:
+        lmin = left.min()
+        rmin = right.min()
+        if lmin > NPY_DATETIME_NAT and rmin > NPY_DATETIME_NAT:
+            lmax = left.max()
+            rmax = right.max()
+            # Each bound is phrased to keep the subtraction itself in range.
+            if (
+                (rmin >= 0 or lmin > NPY_DATETIME_NAT - rmin)
+                and (rmax <= 0 or lmax <= INT64_MAX - rmax)
+            ):
+                return left + right
+
+    cdef:
         ndarray iresult = cnp.PyArray_EMPTY(
             left.ndim, left.shape, cnp.NPY_INT64, 0
         )

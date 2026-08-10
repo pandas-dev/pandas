@@ -252,6 +252,7 @@ Performance improvements
 - Performance improvement in :attr:`Series.is_monotonic_increasing` and :attr:`Series.is_monotonic_decreasing` for :class:`ArrowDtype` and masked dtypes by dispatching to the :class:`ExtensionArray` (:issue:`56619`)
 - Performance improvement in :class:`DataFrame` repr by avoiding redundant formatting when columns exceed terminal width (:issue:`64863`)
 - Performance improvement in :class:`DatetimeIndex` and :class:`Series` construction with a timezone-aware ``datetime64`` dtype from a sequence of strings (:issue:`66123`)
+- Performance improvement in :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex`, and :class:`Series` arithmetic with a datetimelike scalar or array (:issue:`66552`)
 - Performance improvement in :class:`GroupBy` reductions and transformations for :class:`SparseDtype` columns (:issue:`36123`)
 - Performance improvement in :func:`bdate_range` and :func:`date_range` with ``freq="B"`` or ``freq="C"`` (business day frequencies) (:issue:`16463`)
 - Performance improvement in :func:`concat` and :meth:`DataFrame.astype` to extension dtypes (:issue:`65672`)
