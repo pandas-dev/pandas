@@ -1488,6 +1488,49 @@ def test_td_mul_lands_on_nat_sentinel(unit, factor):
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("dtype", ["f8", "f4"])
+def test_td_div_float_ndarray_overflow(unit, dtype):
+    # GH#66552 a quotient outside the int64 range used to saturate on the cast,
+    #  where the TimedeltaIndex equivalent raises
+    td = Timedelta(4, unit)
+    other = np.array([1e-30], dtype=dtype)
+
+    msg = "Overflow in timedelta division"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td / other
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td // other
+
+
+@pytest.mark.parametrize("other", [np.array([0]), np.array([0.0]), np.array([np.nan])])
+def test_td_div_ndarray_zero_or_nan_still_nat(other):
+    # GH#66552 a zero or nan divisor is not an overflow: numpy calls it NaT and
+    #  TimedeltaIndex keeps that, so the overflow check has to exempt it
+    td = Timedelta(4, "ns")
+    nat = np.array([np.timedelta64("NaT", "ns")])
+
+    # a float zero divisor also trips numpy's own zero-division warning, which
+    #  the TimedeltaIndex path suppresses and this one does not
+    with np.errstate(divide="ignore", invalid="ignore"):
+        tm.assert_numpy_array_equal(td / other, nat)
+        tm.assert_numpy_array_equal(td // other, nat)
+
+
+def test_td_div_ndarray_in_bounds():
+    # GH#66552 the overflow check leaves representable quotients alone,
+    #  including the ndim > 1 and empty cases
+    td = Timedelta(12, "ns")
+
+    expected = np.array([[6], [4]], dtype="m8[ns]")
+    tm.assert_numpy_array_equal(td / np.array([[2.0], [3.0]]), expected)
+    tm.assert_numpy_array_equal(td // np.array([[2.0], [3.0]]), expected)
+
+    empty = np.array([], dtype="m8[ns]")
+    tm.assert_numpy_array_equal(td / np.array([], dtype="f8"), empty)
+    tm.assert_numpy_array_equal(td // np.array([], dtype="f8"), empty)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_td_add_sub_lands_on_nat_sentinel(unit):
     # GH#66552 stepping one unit past Timedelta.min lands on iNaT, which is not
     #  NaT but is indistinguishable from it once stored, so it has to raise

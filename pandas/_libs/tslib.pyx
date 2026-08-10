@@ -496,6 +496,10 @@ cpdef array_to_datetime(
             elif is_float_object(val):
                 # these must be ns unit by-definition
 
+                # GH#56996 widen first: comparing e.g. a np.float16 against
+                #  NPY_NAT casts the sentinel down to float16 and warns about
+                #  the overflow.
+                val = float(val)
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 elif val.is_integer():

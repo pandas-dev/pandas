@@ -52,11 +52,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     NumpyEADtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -2489,7 +2492,9 @@ class _iLocIndexer(_LocationIndexer):
 
         # GH#44103 - setting a scalar row across columns with a list-like
         # value must go through the split path so each column gets its
-        # corresponding scalar value.
+        # corresponding scalar value.  Restricted to ExtensionArray blocks:
+        # the non-split path already handles the others correctly, and forcing
+        # the split path there transposes rectangular nested values (GH#65241).
         if (
             not take_split_path
             and isinstance(indexer, tuple)
@@ -2498,6 +2503,8 @@ class _iLocIndexer(_LocationIndexer):
             and not is_integer(indexer[1])
             and is_list_like(value)
             and not isinstance(value, (ABCSeries, ABCDataFrame))
+            # not take_split_path guarantees exactly one block
+            and self.obj._mgr.blocks[0].is_extension
         ):
             take_split_path = True
 
@@ -3757,6 +3764,15 @@ def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -
         )
 
 
+def _as_float64(arr: ArrayLike) -> np.ndarray:
+    """
+    Numpy float64 representation of a numeric array, with NA as NaN.
+    """
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.float64, copy=False)
+    return arr.to_numpy(dtype=np.float64, na_value=np.nan)
+
+
 def infer_and_maybe_downcast(
     orig: ExtensionArray,
     new_arr,
@@ -3787,13 +3803,29 @@ def infer_and_maybe_downcast(
         and new_arr.dtype.kind == "f"
     ):
         try:
-            converted = new_arr.astype(orig.dtype)
+            floats = _as_float64(new_arr)
+            # GH#66394 an out-of-range float->int cast saturates or wraps
+            #  instead of raising, which the roundtrip check below cannot
+            #  detect, since e.g. 2**63 and 2**63 - 1 are the same float64.
+            if isinstance(dtype, (ArrowDtype, BaseMaskedDtype)):
+                np_dtype = dtype.numpy_dtype
+            elif isinstance(dtype, SparseDtype):
+                np_dtype = dtype.subtype
+            else:
+                # a third-party ExtensionDtype we have no bounds for
+                np_dtype = None
+            if np_dtype is None or floats_fit_integer_dtype(
+                floats[~np.isnan(floats)], np_dtype
+            ):
+                converted = new_arr.astype(orig.dtype)
+                # Only accept the conversion if no values were truncated.  The
+                #  comparison is done in numpy float space because pyarrow
+                #  refuses its own int64->double cast above 2**53, even for
+                #  values that survive it intact.
+                if array_equivalent(_as_float64(converted), floats):
+                    new_arr = converted
         except (ValueError, TypeError):
             pass
-        else:
-            # Only accept the conversion if no values were truncated
-            if (converted.astype(new_arr.dtype) == new_arr).all():
-                new_arr = converted
     elif dtype.kind in "mM" and new_arr.dtype != dtype:
         # GH#66402 inference re-derives the unit from the scalars, which for a
         #  freshly-constructed Timestamp/Timedelta is us.  Restore the original
