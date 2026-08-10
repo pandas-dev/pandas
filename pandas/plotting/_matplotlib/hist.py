@@ -385,7 +385,7 @@ def _grouped_hist(
             kwargs["label"] = column
 
     def plot_group(group, ax) -> None:
-        ax.hist(group.dropna().values, bins=bins, **kwargs)
+        ax.hist(np.asarray(group.dropna()._values), bins=bins, **kwargs)
         if legend:
             ax.legend()
 
@@ -447,7 +447,7 @@ def hist_series(
             ax = fig.gca()
         elif ax.get_figure() != fig:
             raise AssertionError("passed axis not bound to passed figure")
-        values = self.dropna().values
+        values = np.asarray(self.dropna()._values)
         if legend:
             kwds["label"] = self.name
         ax.hist(values, bins=bins, **kwds)
@@ -561,7 +561,7 @@ def hist_frame(
     for ax, col in zip(flatten_axes(axes), data.columns, strict=False):
         if legend and can_set_label:
             kwds["label"] = col
-        ax.hist(data[col].dropna().values, bins=bins, **kwds)
+        ax.hist(np.asarray(data[col].dropna()._values), bins=bins, **kwds)
         ax.set_title(col)
         ax.grid(grid)
         if legend:
