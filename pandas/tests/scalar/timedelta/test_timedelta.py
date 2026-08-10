@@ -13,7 +13,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.compat import WASM
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -593,24 +592,30 @@ class TestTimedeltas:
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
     @pytest.mark.parametrize(
-        "td",
+        "pandas_timedelta, td",
         [
+            (Timedelta(0), timedelta(0)),
+            (Timedelta(-112, "s"), timedelta(seconds=-112)),
+            (Timedelta(99, "us"), timedelta(microseconds=99)),
             pytest.param(
+                Timedelta(0),
                 np.timedelta64(0, "ns"),
-                marks=pytest.mark.skipif(
-                    not np_version_gt2 or WASM,
-                    reason=(
-                        "Fixed in https://github.com/numpy/numpy/pull/14622 "
-                        "but not for WASM"
-                    ),
-                ),
+                marks=pytest.mark.skipif(WASM, reason="Fails in WASM"),
             ),
-            timedelta(0),
+            pytest.param(
+                Timedelta(55, "s"),
+                np.timedelta64(55, "s"),
+                marks=pytest.mark.skipif(WASM, reason="Fails in WASM"),
+            ),
+            pytest.param(
+                Timedelta(-44, "us"),
+                np.timedelta64(-44, "us"),
+                marks=pytest.mark.skipif(WASM, reason="Fails in WASM"),
+            ),
         ],
     )
-    def test_hash_equality_invariance_no_nanos(self, td) -> None:
+    def test_hash_equality_invariance_no_nanos(self, pandas_timedelta, td) -> None:
         # GH#44504
-        pandas_timedelta = Timedelta(0)
         assert pandas_timedelta == td
         assert hash(pandas_timedelta) == hash(td)
 
