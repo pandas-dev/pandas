@@ -1666,6 +1666,76 @@ def test_find_multibyte_chars(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_find_multibyte_chars_all_na_chunk(any_string_dtype):
+    # GH#64123 - the non-ascii fallback must keep an integer result type even
+    #  when a chunk holds nothing but nulls
+    ser = pd.concat(
+        [
+            Series([None, None], dtype=any_string_dtype),
+            Series(["永a", "ba"], dtype=any_string_dtype),
+        ],
+        ignore_index=True,
+    )
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = pd.NA
+
+    result = ser.str.find("a")
+    expected = Series([item, item, 1, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_find_all_na(any_string_dtype):
+    # GH#64123
+    ser = Series([None, None], dtype=any_string_dtype)
+    if any_string_dtype == object:
+        # an all-NA object result is never inferred to a numeric dtype
+        expected_dtype = object
+        item = None
+    elif is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = pd.NA
+
+    result = ser.str.find("a")
+    expected = Series([item, item], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.find("", 1, 2)
+    tm.assert_series_equal(result, expected)
+
+
+def test_find_empty(any_string_dtype):
+    # GH#64123
+    ser = Series([], dtype=any_string_dtype)
+    expected_dtype = (
+        np.int64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    result = ser.str.find("a")
+    expected = Series([], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_find_all_na_arrow_dtype(pa_type):
+    # GH#64123 - the result stayed null-typed instead of becoming integer
+    import pyarrow as pa
+
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    ser = Series([None, None], dtype=dtype)
+
+    result = ser.str.find("a")
+    expected = Series([None, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.translate
 # --------------------------------------------------------------------------------------
