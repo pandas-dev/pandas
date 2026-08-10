@@ -950,8 +950,6 @@ def group_var(
 
     N, K = (<object>values).shape
 
-    out[:, :] = 0.0
-
     with nogil:
         for i in range(N):
             lab = labels[i]
@@ -980,9 +978,9 @@ def group_var(
                         # With group_var, we cannot just use _treat_as_na bc
                         #  datetimelike dtypes get cast to float64 instead of
                         #  to int64.
-                        isna_result = out[lab, j] == NPY_NAT
+                        isna_result = M2[lab, j] == NPY_NAT
                     else:
-                        isna_result = _treat_as_na(out[lab, j], is_datetimelike)
+                        isna_result = _treat_as_na(M2[lab, j], is_datetimelike)
 
                     if isna_result:
                         # If aggregate is already NA, don't add to it. This is
@@ -998,7 +996,7 @@ def group_var(
                     if uses_mask:
                         result_mask[lab, j] = True
                     else:
-                        out[lab, j] = NAN
+                        M2[lab, j] = NAN
 
         for i in range(ncounts):
             for j in range(K):
