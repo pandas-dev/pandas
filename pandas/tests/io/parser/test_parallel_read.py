@@ -1179,6 +1179,7 @@ def test_parallel_uint64_na_conflict_matches_serial(tmp_path, monkeypatch, kwarg
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_uint64_na_conflict_na_filter_false(tmp_path, monkeypatch):
     # With na_filter=False the literal NA tokens are what a serial read gives
     # too, so such a file keeps using the parallel path.  GH#66259
