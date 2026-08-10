@@ -586,6 +586,7 @@ MultiIndex
 I/O
 ^^^
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``EmptyDataError`` (matching the ``c`` and ``python`` engines) instead of a cryptic ``ParserError`` reporting ``Empty CSV file or block`` when no columns can be parsed from the input (:issue:`66065`)
+- :func:`read_parquet` now raises an informative ``ValueError`` when ``to_pandas_kwargs`` contains ``types_mapper``, which pandas derives from ``dtype_backend`` and passes to :meth:`pyarrow.Table.to_pandas` itself, instead of a cryptic ``TypeError`` reporting multiple values for the keyword (:issue:`XXXXX`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``TypeError`` when passed a text-mode file handle (the engine requires a binary buffer) instead of a cryptic ``a bytes-like object is required`` error (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
