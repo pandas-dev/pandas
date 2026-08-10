@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     OutOfBoundsTimedelta,
@@ -597,8 +598,11 @@ class TestTimedeltas:
             pytest.param(
                 np.timedelta64(0, "ns"),
                 marks=pytest.mark.skipif(
-                    not np_version_gt2,
-                    reason="Fixed in https://github.com/numpy/numpy/pull/14622",
+                    not np_version_gt2 or WASM,
+                    reason=(
+                        "Fixed in https://github.com/numpy/numpy/pull/14622 "
+                        "but not for WASM"
+                    ),
                 ),
             ),
             timedelta(0),
