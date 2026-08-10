@@ -67,3 +67,14 @@ def test_to_pandas_kwargs_types_mapper_reserved(pyarrow_parser_only):
             StringIO(data),
             to_pandas_kwargs={"types_mapper": None},
         )
+
+
+@pytest.mark.parametrize("bad", [[], "split_blocks", 5])
+def test_to_pandas_kwargs_non_dict_raises(pyarrow_parser_only, bad):
+    # GH#34823 a non-dict otherwise reaches pyarrow as **kwargs and fails with
+    # an opaque TypeError from deep in the conversion
+    data = "a,b\n1,2\n3,4"
+    msg = "to_pandas_kwargs must be a dict or None"
+
+    with pytest.raises(TypeError, match=msg):
+        pyarrow_parser_only.read_csv(StringIO(data), to_pandas_kwargs=bad)

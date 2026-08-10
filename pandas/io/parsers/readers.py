@@ -2554,6 +2554,11 @@ class TextFileReader(abc.Iterator):
                         "The 'to_pandas_kwargs' option is only supported with the "
                         "'pyarrow' engine"
                     )
+                if not isinstance(value, dict):
+                    raise TypeError(
+                        "to_pandas_kwargs must be a dict or None, got "
+                        f"{type(value).__name__}"
+                    )
                 # 'types_mapper' is derived from 'dtype_backend' and passed to
                 # Table.to_pandas by pandas itself, so it cannot be overridden
                 # here without colliding with that argument.
