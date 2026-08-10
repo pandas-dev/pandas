@@ -3,6 +3,7 @@ import ctypes
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under17p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -72,7 +73,9 @@ def test_dataframe_from_arrow(using_infer_string):
 
     result = pd.DataFrame.from_arrow(table)
     expected = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
-    if not using_infer_string:
+    if pa_version_under17p0:
+        expected["b"] = expected["b"].astype(object)
+    elif not using_infer_string:
         expected["b"] = expected["b"].astype(pd.StringDtype(na_value=np.nan))
     tm.assert_frame_equal(result, expected)
 
