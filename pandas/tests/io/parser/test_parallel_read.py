@@ -1430,6 +1430,7 @@ def _converter_dtype_warning(name: str) -> str:
 # one column, then two: de-duplicating the collected warnings must not
 # collapse the distinct ones
 @pytest.mark.parametrize("names", [["col1"], ["col1", "col2"]])
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no chunk repeats the warning")
 def test_parallel_converter_dtype_warns_once(tmp_path, monkeypatch, names):
     # The converter+dtype ParserWarning was raised once per chunk, from a pool
     # thread whose stacklevel walk lands in threading internals (GH#66259).
@@ -1457,6 +1458,7 @@ def test_parallel_converter_dtype_warns_once(tmp_path, monkeypatch, names):
     assert recorded[0].filename == __file__
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
 def test_parallel_worker_exception_still_warns(tmp_path, monkeypatch):
     # An exception the caller does not answer with a serial read must not carry
     # the collected warnings off with it - this read is their only chance to be
@@ -1483,6 +1485,7 @@ def test_parallel_worker_exception_still_warns(tmp_path, monkeypatch):
     ]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so there is no attempt to decline")
 def test_parallel_fallback_does_not_repeat_c_layer_warning(tmp_path, monkeypatch):
     # A parallel attempt that hands back to serial must not leave its own copy
     # of a warning behind: the name-inference read hits the same converter+dtype
@@ -1511,6 +1514,9 @@ def test_parallel_fallback_does_not_repeat_c_layer_warning(tmp_path, monkeypatch
     ]
 
 
+@pytest.mark.skipif(
+    WASM, reason="WASM stays serial, so there is no attempt to fall back"
+)
 def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkeypatch):
     # Same for a warning raised by the Python layer rather than the C parser:
     # index_col=False with more fields than header names warns in the
