@@ -187,7 +187,6 @@ class TestCategoricalIndex:
         [
             ([1, 1, 1], [1, 2, 3], [1]),
             ([1, 1, 1], list("abc"), [np.nan]),
-            ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan]),
             ([2, "a", "b"], list("abc"), [np.nan, "a", "b"]),
         ],
     )
@@ -200,6 +199,12 @@ class TestCategoricalIndex:
             idx = CategoricalIndex(data, dtype=dtype)
             expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
+
+    def test_constructor_cast_raises(self, ordered):
+        dtype = CategoricalDtype([1, 2, 3], ordered=ordered)
+
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            CategoricalIndex([1, 2, "a"], dtype=dtype)
 
     def test_repr_roundtrip(self):
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
