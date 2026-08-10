@@ -27,7 +27,7 @@ VERSIONS = {
     "fastparquet": "2024.11.0",
     "fsspec": "2024.10.0",
     "html5lib": "1.1",
-    "hypothesis": "6.116.0",
+
     "gcsfs": "2024.10.0",
     "jinja2": "3.1.5",
     "lxml.etree": "5.3.0",
