@@ -696,6 +696,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
+- Bug in :meth:`DataFrame.plot.scatter` with timezone-aware data labelling the axis in UTC instead of in the data's own timezone (:issue:`64613`)
 -
 
 Groupby/resample/rolling

@@ -1390,8 +1390,11 @@ class ScatterPlot(PlanePlot):
             )
 
         scatter = ax.scatter(
-            x_data._values,
-            data[y]._values,
+            # matplotlib cannot consume ExtensionArrays directly; np.asarray
+            #  gives it either a plain ndarray or objects (e.g. Timestamp,
+            #  Period) that its unit converters understand.
+            np.asarray(x_data._values),
+            np.asarray(data[y]._values),
             c=c_values,
             label=label,
             cmap=cmap,
@@ -1421,7 +1424,12 @@ class ScatterPlot(PlanePlot):
         if len(errors_x) > 0 or len(errors_y) > 0:
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
-            ax.errorbar(data[x]._values, data[y]._values, linestyle="none", **err_kwds)
+            ax.errorbar(
+                np.asarray(data[x]._values),
+                np.asarray(data[y]._values),
+                linestyle="none",
+                **err_kwds,
+            )
 
     def _get_c_values(self, color, color_by_categorical: bool, c_is_column: bool):
         c = self.c
@@ -1527,9 +1535,15 @@ class HexBinPlot(PlanePlot):
         if C is None:
             c_values = None
         else:
-            c_values = data[C]._values
+            c_values = np.asarray(data[C]._values)
 
-        ax.hexbin(data[x]._values, data[y]._values, C=c_values, cmap=cmap, **self.kwds)
+        ax.hexbin(
+            np.asarray(data[x]._values),
+            np.asarray(data[y]._values),
+            C=c_values,
+            cmap=cmap,
+            **self.kwds,
+        )
         if cb:
             self._plot_colorbar(ax, fig=fig)
 
