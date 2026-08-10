@@ -973,9 +973,9 @@ def test_embedded_nul_is_not_a_float(value):
 
 
 def test_string_nan_and_specific_na():
-    # GH#65237 - perserve nan values and keep them distingusihable between nan and na
-    s = pd.Series(["1.0", "nan", None])
-    res = pd.to_numeric(s, dtype_backend="numpy_nullable")
+    # GH#65237 - preserve nan values and keep them distingusihable between nan and na
+    s = Series(["1.0", "nan", None])
+    res = to_numeric(s, dtype_backend="numpy_nullable")
     # res = [1.0, np.nan, pd.NA]
     assert np.isnan(res.iloc[1])
     assert res.iloc[2] is pd.NA

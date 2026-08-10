@@ -33,7 +33,6 @@ from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
 )
-from cpython.unicode cimport PyUnicode_Check
 from cython cimport (
     Py_ssize_t,
     floating,
