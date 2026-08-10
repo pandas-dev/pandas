@@ -891,6 +891,19 @@ class TestDataFramePlots:
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_scatterplot_datetime_y_data(self, tz):
+        # GH#64613 datetime y-column raised instead of plotting; the y axis
+        #  should get the same datetime scaling a line plot gets
+        dates = date_range(start=date(2019, 1, 1), periods=12, freq="W", tz=tz)
+        vals = np.random.default_rng(2).normal(0, 1, len(dates))
+        df = DataFrame({"vals": vals, "dates": dates})
+
+        _, ax = plt.subplots(2)
+        df.plot.scatter(x="vals", y="dates", ax=ax[0])
+        df.plot(x="vals", y="dates", ax=ax[1])
+        assert ax[0].get_yticks() == pytest.approx(ax[1].get_yticks())
+
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )

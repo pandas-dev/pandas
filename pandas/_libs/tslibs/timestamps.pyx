@@ -3662,6 +3662,15 @@ default 'raise'
                                               ambiguous=ambiguous,
                                               nonexistent=nonexistent,
                                               creso=self._creso)
+            if value == NPY_NAT and ambiguous != "NaT" and nonexistent != "NaT":
+                # GH#66550 nothing here asked for NaT, so the shift to UTC landed on
+                #  the sentinel, one below the minimum representable value; returning
+                #  it would render a real wall time as missing data.  Raise like the
+                #  Timestamp(..., tz=) constructor does for the same shift.
+                attrname = npy_unit_to_attrname[self._creso]
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds {attrname} timestamp: {self}"
+                )
         elif tz is None:
             # reset tz
             value = tz_convert_from_utc_single(self._value, self.tz, creso=self._creso)

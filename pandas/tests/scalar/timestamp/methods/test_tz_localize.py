@@ -1,18 +1,25 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+    timezone,
+)
 import re
 import zoneinfo
 
+import dateutil.tz
 from dateutil.tz import gettz
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
 
 from pandas import (
     NaT,
     Timestamp,
 )
+import pandas._testing as tm
 
 
 def _distant_date_only_for_zoneinfo(year, tz):
@@ -64,6 +71,45 @@ class TestTimestampTZLocalize:
             ts.tz_localize("Asia/Tokyo")
         with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
             Timestamp(ts.to_datetime64(), tz="Asia/Tokyo")
+
+    def test_tz_localize_fixed_offset_shift_onto_nat_sentinel(self):
+        # GH#66550 same sentinel underflow via the scalar fixed-offset branch.  The
+        #  message matches the Timestamp(..., tz=) constructor, which shifts through
+        #  the same helper and already rejected this.
+        ts = Timestamp(-(2**63) + 9 * 3600 * 10**9)
+        msg = re.escape(f"Out of bounds nanosecond timestamp: {ts}")
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.tz_localize(timezone(timedelta(hours=9)))
+
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
+    def test_tz_localize_tzlocal_shift_onto_nat_sentinel(self):
+        # GH#66550 the tzlocal branch reaches the same guard as the fixed-offset
+        #  one above; pin the ambient zone to +9 so the shift lands on the sentinel
+        ts = Timestamp(-(2**63) + 9 * 3600 * 10**9)
+        msg = re.escape(f"Out of bounds nanosecond timestamp: {ts}")
+
+        with tm.set_timezone("Asia/Tokyo"):
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
+                ts.tz_localize(dateutil.tz.tzlocal())
+
+    def test_tz_localize_overflow_past_last_cached_transition(self):
+        # GH#65733 wall times past the last cached DST transition are localized
+        #  through the zoneinfo fallback.  A candidate UTC instant that overflows
+        #  is out of bounds, but the unguarded subtraction wrapped instead, so the
+        #  round-trip check failed and the wall time was reported as nonexistent.
+        ts = Timestamp(Timestamp.max._value - 2 * 3600 * 10**9)
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            ts.tz_localize("America/New_York")
+        # ...and with nonexistent="NaT" the misclassification silently won out
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            ts.tz_localize("America/New_York", nonexistent="NaT")
+
+        # a wall time whose UTC instant still fits is unaffected
+        ok = Timestamp(Timestamp.max._value - 5 * 3600 * 10**9)
+        assert ok.tz_localize("America/New_York").utcoffset() == -timedelta(hours=4)
 
     @pytest.mark.parametrize(
         "tz",

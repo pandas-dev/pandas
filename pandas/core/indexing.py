@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import abc
 from contextlib import suppress
 import sys
 from typing import (
@@ -63,6 +64,8 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCExtensionArray,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -2752,15 +2755,19 @@ class _iLocIndexer(_LocationIndexer):
         ):
             value = np.asarray(value)
 
+        msg = "Must have equal len keys and value when setting with an ndarray"
         if isinstance(value, list):
-            if any(len(row) != len(ilocs) for row in value):
-                raise ValueError(
-                    "Must have equal len keys and value when setting with an ndarray"
-                )
+            nkeys = len(ilocs)
+            rows = []
+            for row in value:
+                if len(row) != nkeys:
+                    raise ValueError(msg)
+                if type(row) is not list:
+                    row = _positional_row(row)
+                rows.append(row)
+            value = rows
         elif value.shape[1] != len(ilocs):
-            raise ValueError(
-                "Must have equal len keys and value when setting with an ndarray"
-            )
+            raise ValueError(msg)
 
         for i, loc in enumerate(ilocs):
             if isinstance(value, list):
@@ -3501,16 +3508,46 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return super().__setitem__(key, value)
 
 
+def _positional_row(row):
+    """
+    Return a row of a 2D setitem value that can be indexed by position.
+
+    ``_setitem_with_indexer_2d_value`` extracts each column with ``row[i]``,
+    which is wrong for a Series (indexed by *label*) and for a foreign array
+    such as ``pyarrow.Array`` (``__getitem__`` hands back a boxed scalar).
+    Rows that already index positionally are returned as-is, to skip a copy.
+    Anything else goes through ``np.asarray``, as every row did before GH#64230
+    replaced it with ``row[i]``; ``dtype=object`` is what keeps a heterogeneous
+    row from being collapsed onto one numpy dtype, and ``pd.NA`` from becoming
+    ``nan``.
+    """
+    if isinstance(row, ABCSeries):
+        return row._values
+    if isinstance(row, (tuple, np.ndarray, ABCExtensionArray, ABCIndex)):
+        return row
+    return np.asarray(row, dtype=object)
+
+
 def _is_2d_value(value) -> bool:
     """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
     if isinstance(value, list):
         if len(value) == 0:
             return False
         first = value[0]
-        if isinstance(first, np.ndarray):
-            # a 0-d element is a scalar and a 2-D element makes value 3D
-            return first.ndim == 1
-        return isinstance(first, (list, tuple))
+        if isinstance(first, (list, tuple)):
+            return True
+        # A row is anything np.asarray would have stacked into a 2-D array: a
+        #  sized, subscriptable, non-mapping sequence, i.e. ndarray/Series/Index/
+        #  ExtensionArray but also e.g. deque/array.array/range. A 0-d element is
+        #  a scalar and a 2-D element makes value 3D.
+        # Note: deliberately not is_list_like, which also requires __iter__ and
+        #  so would exclude sequences that only implement __len__/__getitem__.
+        return (
+            not isinstance(first, (str, bytes, type, abc.Mapping))
+            and hasattr(first, "__len__")
+            and hasattr(first, "__getitem__")
+            and getattr(first, "ndim", 1) == 1
+        )
     return np.ndim(value) == 2
 
 
