@@ -2559,14 +2559,8 @@ class TextFileReader(abc.Iterator):
                         "to_pandas_kwargs must be a dict or None, got "
                         f"{type(value).__name__}"
                     )
-                # 'types_mapper' is derived from 'dtype_backend' and passed to
-                # Table.to_pandas by pandas itself, so it cannot be overridden
-                # here without colliding with that argument.
-                if "types_mapper" in value:
-                    raise ValueError(
-                        "The 'types_mapper' key is not supported in "
-                        "'to_pandas_kwargs'; use 'dtype_backend' instead"
-                    )
+                # NB: the reserved 'types_mapper' key is rejected by
+                # arrow_table_to_pandas, which owns that argument
             options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
