@@ -3305,24 +3305,24 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
         >>> html_string = df.to_html()
         >>> print(html_string)
-        <table style="border: 1px solid currentColor;" class="dataframe">
+        <table style="border: 1px solid;" class="dataframe">
           <thead>
             <tr style="text-align: right;">
-              <th style="border: 1px solid currentColor;"></th>
-              <th style="border: 1px solid currentColor;">col1</th>
-              <th style="border: 1px solid currentColor;">col2</th>
+              <th style="border: 1px solid;"></th>
+              <th style="border: 1px solid;">col1</th>
+              <th style="border: 1px solid;">col2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <th style="border: 1px solid currentColor;">0</th>
-              <td style="border: 1px solid currentColor;">1</td>
-              <td style="border: 1px solid currentColor;">4</td>
+              <th style="border: 1px solid;">0</th>
+              <td style="border: 1px solid;">1</td>
+              <td style="border: 1px solid;">4</td>
             </tr>
             <tr>
-              <th style="border: 1px solid currentColor;">1</th>
-              <td style="border: 1px solid currentColor;">2</td>
-              <td style="border: 1px solid currentColor;">3</td>
+              <th style="border: 1px solid;">1</th>
+              <td style="border: 1px solid;">2</td>
+              <td style="border: 1px solid;">3</td>
             </tr>
           </tbody>
         </table>
@@ -3340,21 +3340,21 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
         >>> html_string = df.to_html(index=False)
         >>> print(html_string)
-        <table style="border: 1px solid currentColor;" class="dataframe">
+        <table style="border: 1px solid;" class="dataframe">
           <thead>
             <tr style="text-align: right;">
-              <th style="border: 1px solid currentColor;">col1</th>
-              <th style="border: 1px solid currentColor;">col2</th>
+              <th style="border: 1px solid;">col1</th>
+              <th style="border: 1px solid;">col2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid currentColor;">1</td>
-              <td style="border: 1px solid currentColor;">4</td>
+              <td style="border: 1px solid;">1</td>
+              <td style="border: 1px solid;">4</td>
             </tr>
             <tr>
-              <td style="border: 1px solid currentColor;">2</td>
-              <td style="border: 1px solid currentColor;">3</td>
+              <td style="border: 1px solid;">2</td>
+              <td style="border: 1px solid;">3</td>
             </tr>
           </tbody>
         </table>

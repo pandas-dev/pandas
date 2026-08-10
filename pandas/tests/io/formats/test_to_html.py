@@ -114,15 +114,15 @@ def test_to_html_with_column_specific_col_space():
 
     result = df.to_html(col_space={"a": "2em", "b": 23})
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
-    assert 'style="border: 1px solid currentColor; min-width: 2em;">a</th>' in hdrs[1]
-    assert 'style="border: 1px solid currentColor; min-width: 23px;">b</th>' in hdrs[2]
-    assert '<th style="border: 1px solid currentColor;">c</th>' in hdrs[3]
+    assert 'style="border: 1px solid; min-width: 2em;">a</th>' in hdrs[1]
+    assert 'style="border: 1px solid; min-width: 23px;">b</th>' in hdrs[2]
+    assert '<th style="border: 1px solid;">c</th>' in hdrs[3]
 
     result = df.to_html(col_space=["1em", 2, 3])
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
-    assert 'style="border: 1px solid currentColor; min-width: 1em;">a</th>' in hdrs[1]
-    assert 'style="border: 1px solid currentColor; min-width: 2px;">b</th>' in hdrs[2]
-    assert 'style="border: 1px solid currentColor; min-width: 3px;">c</th>' in hdrs[3]
+    assert 'style="border: 1px solid; min-width: 1em;">a</th>' in hdrs[1]
+    assert 'style="border: 1px solid; min-width: 2px;">b</th>' in hdrs[2]
+    assert 'style="border: 1px solid; min-width: 3px;">c</th>' in hdrs[3]
 
 
 def test_to_html_with_empty_string_label():
@@ -362,7 +362,7 @@ def test_to_html_border(option, result, expected):
     else:
         with option_context("display.html.border", option):
             result = result(df)
-    expected = f'style="border: {expected}px solid currentColor;"'
+    expected = f'style="border: {expected}px solid;"'
     assert expected in result
 
 
@@ -823,7 +823,7 @@ def test_to_html_with_col_space_units(unit):
     if isinstance(unit, int):
         unit = str(unit) + "px"
     for h in hdrs:
-        expected = f'<th style="border: 1px solid currentColor; min-width: {unit};">'
+        expected = f'<th style="border: 1px solid; min-width: {unit};">'
         assert expected in h
 
 
@@ -995,9 +995,7 @@ class TestReprHTML:
             ).set_index("idx")
             reg_repr = df._repr_html_()
             assert ".." not in reg_repr
-            assert (
-                f'<td style="border: 1px solid currentColor;">{40 + h}</td>' in reg_repr
-            )
+            assert f'<td style="border: 1px solid;">{40 + h}</td>' in reg_repr
 
             h = max_rows + 1
             df = DataFrame(
@@ -1009,9 +1007,7 @@ class TestReprHTML:
             ).set_index("idx")
             long_repr = df._repr_html_()
             assert ".." in long_repr
-            assert (
-                '<td style="border: 1px solid currentColor;">31</td>' not in long_repr
-            )
+            assert '<td style="border: 1px solid;">31</td>' not in long_repr
             assert f"{h} rows " in long_repr
             assert "2 columns" in long_repr
 
@@ -1101,24 +1097,24 @@ def test_to_html_multiindex_col_with_colspace():
     df.columns = MultiIndex.from_tuples([(1, 1), (2, 1)])
     result = df.to_html(col_space=100)
     expected = (
-        '<table style="border: 1px solid currentColor;" class="dataframe">\n'
+        '<table style="border: 1px solid;" class="dataframe">\n'
         "  <thead>\n"
         "    <tr>\n"
-        '      <th style="border: 1px solid currentColor; min-width: 100px;"></th>\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">1</th>\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">2</th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;"></th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">1</th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">2</th>\n'
         "    </tr>\n"
         "    <tr>\n"
-        '      <th style="border: 1px solid currentColor; min-width: 100px;"></th>\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">1</th>\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">1</th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;"></th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">1</th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">1</th>\n'
         "    </tr>\n"
         "  </thead>\n"
         "  <tbody>\n"
         "    <tr>\n"
-        '      <th style="border: 1px solid currentColor;">0</th>\n'
-        '      <td style="border: 1px solid currentColor;">1</td>\n'
-        '      <td style="border: 1px solid currentColor;">2</td>\n'
+        '      <th style="border: 1px solid;">0</th>\n'
+        '      <td style="border: 1px solid;">1</td>\n'
+        '      <td style="border: 1px solid;">2</td>\n'
         "    </tr>\n"
         "  </tbody>\n"
         "</table>"
@@ -1131,20 +1127,20 @@ def test_to_html_tuple_col_with_colspace():
     df = DataFrame({("a", "b"): [1], "b": [2]})
     result = df.to_html(col_space=100)
     expected = (
-        '<table style="border: 1px solid currentColor;" class="dataframe">\n'
+        '<table style="border: 1px solid;" class="dataframe">\n'
         "  <thead>\n"
         '    <tr style="text-align: right;">\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;"></th>\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">'
+        '      <th style="border: 1px solid; min-width: 100px;"></th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">'
         "(a, b)</th>\n"
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">b</th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">b</th>\n'
         "    </tr>\n"
         "  </thead>\n"
         "  <tbody>\n"
         "    <tr>\n"
-        '      <th style="border: 1px solid currentColor;">0</th>\n'
-        '      <td style="border: 1px solid currentColor;">1</td>\n'
-        '      <td style="border: 1px solid currentColor;">2</td>\n'
+        '      <th style="border: 1px solid;">0</th>\n'
+        '      <td style="border: 1px solid;">1</td>\n'
+        '      <td style="border: 1px solid;">2</td>\n'
         "    </tr>\n"
         "  </tbody>\n"
         "</table>"
@@ -1157,11 +1153,11 @@ def test_to_html_empty_complex_array():
     df = DataFrame({"x": np.array([], dtype="complex")})
     result = df.to_html(col_space=100)
     expected = (
-        '<table style="border: 1px solid currentColor;" class="dataframe">\n'
+        '<table style="border: 1px solid;" class="dataframe">\n'
         "  <thead>\n"
         '    <tr style="text-align: right;">\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;"></th>\n'
-        '      <th style="border: 1px solid currentColor; min-width: 100px;">x</th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;"></th>\n'
+        '      <th style="border: 1px solid; min-width: 100px;">x</th>\n'
         "    </tr>\n"
         "  </thead>\n"
         "  <tbody>\n"
