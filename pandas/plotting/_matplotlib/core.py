@@ -710,9 +710,9 @@ class MPLPlot(ABC):
             include_type = [np.number]
             exclude_type = [np.timedelta64]
 
-        # GH 18755, include object and category type for scatter plot
+        # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend([object, CategoricalDtypeType, str])
+            include_type.extend([np.object_, CategoricalDtypeType, str])
 
         # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
         def dtype_predicate(dtype, types) -> bool:
