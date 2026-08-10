@@ -1596,7 +1596,16 @@ cdef class Day(SingleConstructorOffset):
         return other + np.timedelta64(self._n, "D")
 
     def _apply_array(self, dtarr):
-        return dtarr + np.timedelta64(self._n, "D")
+        cdef:
+            NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
+            int64_t shift
+
+        if (
+            checked_mul(self._n, periods_per_day(reso), &shift)
+            or shift == NPY_NAT
+        ):
+            raise OverflowError("Overflow in int64 addition")
+        return add_overflowsafe(dtarr.view("i8"), np.array(shift, dtype="i8"))
 
     @cache_readonly
     def freqstr(self) -> str:

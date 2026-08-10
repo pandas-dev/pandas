@@ -996,6 +996,82 @@ cdef _addsub_timedelta64_array(
     return i8result.view(f"m8[{npy_unit_to_abbrev(reso)}]")
 
 
+cdef _mul_numeric_array(_Timedelta td, ndarray other):
+    """
+    Multiply a Timedelta by an integer- or float-dtype ndarray.
+
+    numpy forms the product in int64, or in float64 followed by an int64 cast,
+    so an out-of-bounds product wraps or saturates and one landing on the NaT
+    sentinel comes back as a missing value. Raise instead, matching what
+    TimedeltaIndex does (GH#66552).
+    """
+    cdef:
+        int64_t value = td._value
+        str abbrev = npy_unit_to_abbrev(td._creso)
+        ndarray i8other, i8result
+        bint has_nan
+
+    if other.dtype.kind == "f":
+        # widen a float32 multiplier first: numpy would otherwise keep the
+        #  product in float32 and round it, where TimedeltaIndex uses float64
+        f_result = other.astype("f8", copy=False) * value
+        nan_mask = np.isnan(f_result)
+        has_nan = nan_mask.any()
+        if has_nan:
+            # a NaN-to-int64 cast is platform-dependent; substitute 0 and
+            #  re-mask below, so NaN and inf multipliers stay distinguishable
+            f_result = np.where(nan_mask, 0.0, f_result)
+        # Compare against 2**63, not int64.max: int64.max rounds up to 2**63
+        #  in float64, so a product landing exactly there would slip past a
+        #  ``> int64.max`` check and saturate on the cast. Also catches +/-inf.
+        if np.max(np.abs(f_result), initial=0.0) >= 2.0**63:
+            raise OutOfBoundsTimedelta("Overflow in timedelta multiplication")
+        i8result = f_result.astype("i8")
+        if has_nan:
+            i8result[nan_mask] = NPY_NAT
+        return i8result.view(f"m8[{abbrev}]")
+
+    i8other = other.astype("i8", copy=False)
+    if other.dtype.kind == "u" and (i8other < 0).any():
+        # a multiplier above int64.max, which wrapped negative in the cast
+        raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
+
+    if value != 0 and i8other.size:
+        # The extreme multipliers bound all the products, so checking those two
+        #  with exact Python-int arithmetic lets the common no-overflow case use
+        #  a plain vectorized multiply. The bound excludes int64.min itself,
+        #  which is representable but would be misread as NaT.
+        low_prod = int(i8other.min()) * value
+        high_prod = int(i8other.max()) * value
+        if max(abs(low_prod), abs(high_prod)) > 2**63 - 1:
+            raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
+
+    return (i8other * value).view(f"m8[{abbrev}]")
+
+
+cdef _check_div_float_array(_Timedelta td, ndarray other):
+    """
+    Raise if dividing td by any element of the float ndarray other leaves the
+    int64 range, which numpy would saturate rather than report (GH#66552).
+
+    Integer divisors need no check: a quotient can only exceed td itself when
+    the divisor is between -1 and 1.  Zero and nan divisors are excluded here
+    because numpy returns NaT for those, which TimedeltaIndex keeps.
+    """
+    if other.size == 0:
+        return
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # in float64 regardless of the divisor's own precision: a float32
+        #  quotient would overflow to inf before we could measure it
+        quotients = np.abs(td._value / other.astype("f8", copy=False))
+    keep = ~(np.isnan(quotients) | (other == 0))
+    # a float64 quotient inside (-2**63, 2**63) is at least an ulp away from
+    #  the boundary, so the floor in __floordiv__ cannot push it out of bounds
+    if np.max(quotients, initial=0.0, where=keep) >= 2.0**63:
+        raise OutOfBoundsTimedelta("Overflow in timedelta division")
+
+
 def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
@@ -2818,6 +2894,8 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__mul__(item)
+            elif other.dtype.kind in "iuf":
+                return _mul_numeric_array(self, other)
             return other * self.to_timedelta64()
 
         elif is_bool_object(other):
@@ -2870,6 +2948,8 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__truediv__(item)
+            if other.dtype.kind == "f":
+                _check_div_float_array(self, other)
             return self.to_timedelta64() / other
 
         return NotImplemented
@@ -2950,6 +3030,8 @@ class Timedelta(_Timedelta):
                 if other.ndim == 0:
                     return self // other.item()
                 else:
+                    if other.dtype.kind == "f":
+                        _check_div_float_array(self, other)
                     return self.to_timedelta64() // other
 
             raise TypeError(f"Invalid dtype {other.dtype} for __floordiv__")

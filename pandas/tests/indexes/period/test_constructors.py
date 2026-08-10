@@ -212,6 +212,23 @@ class TestPeriodIndex:
         exp = period_range("2007-01", periods=3, freq="M")
         tm.assert_index_equal(idx, exp)
 
+    @pytest.mark.parametrize("starting_month", range(1, 13))
+    def test_from_fields_quarterly_anchors(self, starting_month):
+        # GH#55784 from_fields rejected any quarterly freq not anchored on
+        # December, even though the equivalent scalar Period works.
+        freq = offsets.QuarterEnd(startingMonth=starting_month)
+        result = PeriodIndex.from_fields(year=[2014], quarter=[3], freq=freq)
+        expected = Period(year=2014, quarter=3, freq=freq)
+        assert result[0] == expected
+        assert result.dtype == PeriodDtype(freq)
+
+    def test_from_fields_quarterly_rejects_non_quarterly_freq(self):
+        # GH#55784 from_fields should reject non-quarterly frequencies
+        # when the ``quarter`` field is supplied.
+        msg = "freq must be a quarterly frequency"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex.from_fields(year=[2014], quarter=[3], freq=offsets.MonthEnd())
+
     def test_constructor_nano(self):
         idx = period_range(
             start=Period(ordinal=1, freq="ns"),

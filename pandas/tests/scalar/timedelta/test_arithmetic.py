@@ -542,6 +542,80 @@ class TestTimedeltaMultiplicationDivision:
         result = other * td
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_td_mul_int_ndarray_overflow(self, unit):
+        # GH#66552 the product used to be formed in int64 and wrap silently,
+        #  where the TimedeltaIndex equivalent raises
+        td = Timedelta(4, unit)
+        other = np.array([2**62])
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td * other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other * td
+
+        # int64.min is representable but would be misread as NaT
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta(1, unit) * np.array([-(2**63)])
+
+        # one step in from the sentinel is fine
+        result = Timedelta(1, unit) * np.array([-(2**63) + 1])
+        expected = np.array([-(2**63) + 1], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_td_mul_uint64_ndarray_overflow(self):
+        # GH#66552 a multiplier above int64.max wraps negative in the i8 cast
+        td = Timedelta(4, "ns")
+        other = np.array([2**63], dtype=np.uint64)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td * other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other * td
+
+    @pytest.mark.parametrize("factor", [1e30, np.inf, -np.inf])
+    def test_td_mul_float_ndarray_overflow(self, factor):
+        # GH#66552 the product used to saturate to int64.max on the cast, or
+        #  come back as NaT for an infinite multiplier
+        td = Timedelta(4, "ns")
+        other = np.array([factor])
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td * other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other * td
+
+    def test_td_mul_float_ndarray_nan(self):
+        # GH#66552 a NaN multiplier is still missing, not an overflow
+        td = Timedelta(4, "ns")
+        other = np.array([np.nan, 2.0])
+
+        expected = np.array([np.timedelta64("NaT", "ns"), np.timedelta64(8, "ns")])
+        tm.assert_numpy_array_equal(td * other, expected)
+        tm.assert_numpy_array_equal(other * td, expected)
+
+    def test_td_mul_float32_ndarray_precision(self):
+        # GH#66552 a float32 multiplier used to drag the product down to
+        #  float32 precision
+        td = Timedelta(10**18, "ns")
+        other = np.array([1.0], dtype=np.float32)
+
+        expected = np.array([10**18], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(td * other, expected)
+        tm.assert_numpy_array_equal(other * td, expected)
+
+    def test_td_mul_numeric_ndarray_byteswapped(self):
+        # GH#66552 a non-native buffer has to be converted before the multiply
+        td = Timedelta(4, "ns")
+        other = np.array([2, 3], dtype=np.dtype("i8").newbyteorder(">"))
+
+        expected = np.array([8, 12], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(td * other, expected)
+        tm.assert_numpy_array_equal(other * td, expected)
+
     def test_td_mul_numeric_ndarray_0d(self):
         td = Timedelta("1 day")
         other = np.array(2, dtype=np.int64)
@@ -1411,6 +1485,49 @@ def test_td_mul_lands_on_nat_sentinel(unit, factor):
         td * factor
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         factor * td
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("dtype", ["f8", "f4"])
+def test_td_div_float_ndarray_overflow(unit, dtype):
+    # GH#66552 a quotient outside the int64 range used to saturate on the cast,
+    #  where the TimedeltaIndex equivalent raises
+    td = Timedelta(4, unit)
+    other = np.array([1e-30], dtype=dtype)
+
+    msg = "Overflow in timedelta division"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td / other
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td // other
+
+
+@pytest.mark.parametrize("other", [np.array([0]), np.array([0.0]), np.array([np.nan])])
+def test_td_div_ndarray_zero_or_nan_still_nat(other):
+    # GH#66552 a zero or nan divisor is not an overflow: numpy calls it NaT and
+    #  TimedeltaIndex keeps that, so the overflow check has to exempt it
+    td = Timedelta(4, "ns")
+    nat = np.array([np.timedelta64("NaT", "ns")])
+
+    # a float zero divisor also trips numpy's own zero-division warning, which
+    #  the TimedeltaIndex path suppresses and this one does not
+    with np.errstate(divide="ignore", invalid="ignore"):
+        tm.assert_numpy_array_equal(td / other, nat)
+        tm.assert_numpy_array_equal(td // other, nat)
+
+
+def test_td_div_ndarray_in_bounds():
+    # GH#66552 the overflow check leaves representable quotients alone,
+    #  including the ndim > 1 and empty cases
+    td = Timedelta(12, "ns")
+
+    expected = np.array([[6], [4]], dtype="m8[ns]")
+    tm.assert_numpy_array_equal(td / np.array([[2.0], [3.0]]), expected)
+    tm.assert_numpy_array_equal(td // np.array([[2.0], [3.0]]), expected)
+
+    empty = np.array([], dtype="m8[ns]")
+    tm.assert_numpy_array_equal(td / np.array([], dtype="f8"), empty)
+    tm.assert_numpy_array_equal(td // np.array([], dtype="f8"), empty)
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
