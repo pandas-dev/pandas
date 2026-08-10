@@ -624,25 +624,6 @@ class TestArrowArray(base.ExtensionTests):
         with pytest.raises(TypeError, match=msg):
             type(dtype).construct_from_string("another_type")
 
-    def test_get_common_dtype(self, dtype, request):
-        pa_dtype = dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_time(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
-            or pa.types.is_binary(pa_dtype)
-            or pa.types.is_decimal(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=(
-                        f"{pa_dtype} does not have associated numpy "
-                        f"dtype findable by find_common_type"
-                    )
-                )
-            )
-        super().test_get_common_dtype(dtype)
-
     def test_is_not_string_type(self, dtype):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_string(pa_dtype):
@@ -1046,15 +1027,6 @@ class TestArrowArray(base.ExtensionTests):
             exp = [True, True, None]
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
-
-    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype):
-            mark = pytest.mark.xfail(
-                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
-            )
-            request.applymarker(mark)
-        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
     @pytest.mark.filterwarnings(
         "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
@@ -3627,6 +3599,36 @@ def test_concat_null_array():
     result = pd.concat([df, df2], ignore_index=True)
     expected = pd.DataFrame({"a": [None, None, 0, 1]}, dtype="int64[pyarrow]")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.date32(),
+        pa.date64(),
+        pa.time64("us"),
+        pa.decimal128(7, 3),
+        pa.binary(),
+        pa.large_string(),
+        pa.timestamp("us", "US/Pacific"),
+        pa.list_(pa.int64()),
+    ],
+)
+def test_concat_null_array_preserves_dtype(pa_type):
+    # GH#62343 the null dtype should not affect the resulting dtype
+    dtype = ArrowDtype(pa_type)
+    ser = pd.Series([None], dtype=dtype)
+    null_ser = pd.Series([None], dtype=ArrowDtype(pa.null()))
+
+    result = pd.concat([ser, null_ser], ignore_index=True)
+    expected = pd.Series([None, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_get_common_dtype_all_null():
+    # GH#62343
+    dtype = ArrowDtype(pa.null())
+    assert dtype._get_common_dtype([dtype, dtype]) == dtype
 
 
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
