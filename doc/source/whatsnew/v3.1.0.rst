@@ -523,6 +523,7 @@ Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
+- Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
 - Bug in :meth:`Series.str.partition` and :meth:`Series.str.split` with ``expand=True`` raising for :class:`ArrowDtype` when the :class:`Series` was empty or held only null values; an empty :class:`Series` now expands to no columns and an all-null one to a single all-NA column, matching object dtype (:issue:`63602`)
 - Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
 - Bug in :meth:`Series.str.split` with :class:`ArrowDtype` ``string`` not inferring regex for multi-character patterns when ``regex=None``, causing the pattern to be treated as a literal instead of a regular expression (:issue:`58321`)
