@@ -1131,7 +1131,7 @@ class TestArrowArray(base.ExtensionTests):
         else:
             super().test_json_roundtrip(data)
 
-    def test_plot_on_y_axis(self, data, request):
+    def test_plot_on_y_axis(self, data):
         # GH 64535
         # Setup expected exception and message for expected failures
         err_cls = None

@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Tests for plotting compatibility.
 """
+
+from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
@@ -154,9 +154,10 @@ class BasePlottingTests:
         pyparsing = pytest.importorskip(
             "pyparsing", reason="matplotlib requires pyparsing"
         )
-        from pyparsing.warnings import PyparsingDeprecationWarning
 
         if Version(pyparsing.__version__) >= Version("3.3.0"):
+            from pyparsing.warnings import PyparsingDeprecationWarning
+
             warnings.filterwarnings(
                 "ignore",
                 message=(
