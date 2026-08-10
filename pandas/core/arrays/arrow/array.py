@@ -3443,20 +3443,23 @@ class ArrowExtensionArray(
         group_ids_np = result_group_ids.to_numpy(zero_copy_only=False)
         inverse = np.full(ngroups, -1, dtype=np.int64)
         inverse[group_ids_np] = np.arange(len(group_ids_np))
-        empty = inverse < 0
+        # null marks a group with no rows, which take propagates to the output
+        indices = pa.array(inverse, mask=inverse < 0)
 
         try:
             if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
                 # take carries an out-of-precision decimal through silently
                 result_values.validate(full=True)
-            pa_result = pc.take(result_values, pa.array(inverse, mask=empty))
+            pa_result = pc.take(result_values, indices)
             if default_value.as_py() is not None and min_count == 0:
                 if result_values.null_count == 0:
                     # every null is a group with no rows
                     pa_result = _safe_fill_null(pa_result, default_value)
                 else:
                     # keep the skipna=False nulls, fill only the empty groups
-                    pa_result = pc.if_else(pa.array(empty), default_value, pa_result)
+                    pa_result = pc.if_else(
+                        pc.is_null(indices), default_value, pa_result
+                    )
         except pa.ArrowInvalid:
             # e.g. a decimal needing more digits than the maximum precision.
             # ArrowNotImplementedError needs no branch here: it is a
