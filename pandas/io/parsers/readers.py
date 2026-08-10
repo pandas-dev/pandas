@@ -59,6 +59,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
@@ -354,11 +355,14 @@ def _read(
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
             try:
                 result = _read_csv_parallel(_filepath, kwds, _n_workers)
-            except (ParserError, UnicodeDecodeError):
+            except (ParserError, UnicodeDecodeError, OverflowError):
                 # e.g. a chunk boundary landed inside a quoted field containing
-                # an embedded newline.  The serial path below handles anything
-                # the parallel path cannot.  Other exceptions propagate: they
-                # signal a parallel-path bug, not ineligible input.
+                # an embedded newline, or a chunk of only huge ints converted
+                # where the mixed whole-file column would have stayed a string
+                # (GH#66259).  The serial path below handles anything the
+                # parallel path cannot -- and raises in turn if it too fails.
+                # Other exceptions propagate: they signal a parallel-path bug,
+                # not ineligible input.
                 result = None
             if result is not None:
                 return result
@@ -734,7 +738,7 @@ def _read_csv_parallel(
     warning_sink: list[tuple[str, type[Warning]]] = []
     try:
         result = _read_csv_chunks(filepath, kwds, n_workers, warning_sink)
-    except (ParserError, UnicodeDecodeError):
+    except (ParserError, UnicodeDecodeError, OverflowError):
         # The caller answers these with a serial read of the whole file.
         raise
     except Exception:
@@ -815,9 +819,19 @@ def _read_csv_chunks(
         preamble = fd.read(data_start)
         first_line = fd.readline()
 
+    # Only the column names and the row count are kept, so the sample is parsed
+    # as strings: a value that converts on its own line but not for the whole
+    # column (an int above 2**63 under dtype_backend="pyarrow", say) would
+    # otherwise raise here for a file the serial path reads fine.  GH#66259
     name_buf = io.BytesIO(preamble + first_line)
+    name_kwds = {
+        **base_kwds,
+        "dtype": str,
+        "converters": None,
+        "dtype_backend": lib.no_default,
+    }
     try:
-        name_reader = TextFileReader(name_buf, **base_kwds)
+        name_reader = TextFileReader(name_buf, **name_kwds)
     except EmptyDataError:
         # The one data line we sliced off is blank (e.g. header=None on a file
         # whose first physical line is empty), so the name-inference read sees
@@ -1005,11 +1019,15 @@ def _read_csv_chunks(
             # Per-chunk dtype inference can disagree with whole-file inference
             # (a lone non-numeric row makes only its own chunk object).  Mixed
             # signed-int/float chunks gather to the float64 serial would give;
-            # anything else must be re-read serially.
+            # anything else must be re-read serially.  ArrowDtype is excluded
+            # because pyarrow widens int to double with a *checked* cast, which
+            # raises above 2**53 where the serial whole-file read just infers
+            # double.  GH#66259
             for name in col_list:
                 chunk_dtypes = {chunk_dict[name].dtype for chunk_dict in chunk_dicts}
                 if len(chunk_dtypes) > 1 and not all(
-                    dt.kind in "if" for dt in chunk_dtypes
+                    dt.kind in "if" and not isinstance(dt, ArrowDtype)
+                    for dt in chunk_dtypes
                 ):
                     return None
 

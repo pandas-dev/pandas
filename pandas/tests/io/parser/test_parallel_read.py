@@ -1563,3 +1563,66 @@ def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
     assert len(recorded) == 1
     assert recorded[0].category is ParserWarning
     assert "Falling back to the 'python' engine" in str(recorded[0].message)
+
+
+# 2**63 - 1 gathers through pyarrow's checked int-to-double cast; 2**64 does not
+# even fit an integer chunk, so it fails earlier, in a worker's own conversion
+@pytest.mark.parametrize(
+    ("big", "outcome"),
+    [("9223372036854775807", "declined"), ("18446744073709551616", "raised")],
+)
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the chunks never disagree")
+def test_parallel_pyarrow_huge_int_chunk_matches_serial(
+    tmp_path, monkeypatch, big, outcome
+):
+    # A chunk holding only huge integers converts as an integer column, while
+    # the whole-file serial read sees the trailing float too and infers double
+    # (or leaves the column a string).  The parallel path used to propagate the
+    # resulting ArrowInvalid / OverflowError instead of re-reading serially
+    # (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n" + f"{big}\n".encode() * 500 + b"1.5\n"
+    path = tmp_path / "huge_int.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    expected = read_csv(io.BytesIO(raw), dtype_backend="pyarrow")
+    assert outcomes == [outcome]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so nothing infers per chunk")
+def test_parallel_pyarrow_huge_int_column_stays_parallel(tmp_path, monkeypatch):
+    # The guard above must not cost the parallel path columns it handles fine:
+    # with no float row every chunk agrees on int64 and nothing falls back
+    # (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n" + b"9223372036854775807\n" * 500
+    path = tmp_path / "huge_int_only.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    expected = read_csv(io.BytesIO(raw), dtype_backend="pyarrow")
+    assert outcomes == ["used"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no sample line is parsed")
+def test_parallel_huge_int_first_line_matches_serial(tmp_path, monkeypatch):
+    # The name-inference read parses one data line only to learn the column
+    # names, so a value that converts on its own but not for the whole column
+    # must not raise there (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n18446744073709551616\n" + b"".join(
+        f"{i}.5\n".encode() for i in range(500)
+    )
+    path = tmp_path / "huge_first.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    tm.assert_frame_equal(result, read_csv(io.BytesIO(raw), dtype_backend="pyarrow"))
