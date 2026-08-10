@@ -42,7 +42,6 @@ from pandas.compat import (
     pa_version_under19p0,
     pa_version_under20p0,
     pa_version_under21p0,
-    pa_version_under23p0,
 )
 from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import (
@@ -4182,9 +4181,6 @@ class TestGroupbyAggPyArrowNative:
         assert result.dtype == ArrowDtype(pa.decimal256(39, 0))
         assert result.iloc[0] == expected
 
-    @pytest.mark.skipif(
-        pa_version_under23p0, reason="the NumPy placement does not call scatter"
-    )
     @pytest.mark.parametrize(
         "dtype, values, how",
         [
@@ -4207,31 +4203,27 @@ class TestGroupbyAggPyArrowNative:
         [pa.ArrowInvalid, pa.ArrowNotImplementedError],
         ids=["ArrowInvalid", "ArrowNotImplementedError"],
     )
-    def test_groupby_scatter_error_falls_back(
+    def test_groupby_take_error_falls_back(
         self, monkeypatch, dtype, values, how, error
     ):
-        # GH#66625 a scatter that cannot take the values, e.g. string_view,
-        # which has no kernel, falls back instead of raising. No routed type
-        # reaches that today, so make scatter report the failure itself.
-        # ArrowNotImplementedError is a NotImplementedError, which groupby
-        # already routes to the fallback; ArrowInvalid is a ValueError and only
-        # the aggregation itself catches it.
+        # GH#66625 a placement that fails falls back instead of raising. No
+        # routed type reaches that today, so make take report the failure
+        # itself. ArrowNotImplementedError is a NotImplementedError, which
+        # groupby already routes to the fallback; ArrowInvalid is a ValueError
+        # and only the aggregation itself catches it.
         ser = pd.Series(values, dtype=dtype)
         expected = getattr(ser.groupby([1, 1, 2]), how)()
 
         def raise_error(*args, **kwargs):
-            raise error("scatter cannot take these values")
+            raise error("take cannot take these values")
 
-        monkeypatch.setattr(pc, "scatter", raise_error)
+        monkeypatch.setattr(pc, "take", raise_error)
         result = getattr(ser.groupby([1, 1, 2]), how)()
         # the fallback types a decimal sum from the values rather than widening
         # it to the maximum precision
         tm.assert_series_equal(result, expected, check_dtype=False)
 
-    @pytest.mark.skipif(
-        pa_version_under23p0, reason="the NumPy placement does not call scatter"
-    )
-    def test_groupby_scatter_other_error_raises(self, monkeypatch):
+    def test_groupby_take_other_error_raises(self, monkeypatch):
         # GH#66625 only the failures that have a fallback are swallowed, so an
         # unrelated Arrow error still reaches the caller
         ser = pd.Series(
@@ -4240,10 +4232,10 @@ class TestGroupbyAggPyArrowNative:
         )
 
         def raise_type_error(*args, **kwargs):
-            raise pa.ArrowTypeError("scatter got the wrong type")
+            raise pa.ArrowTypeError("take got the wrong type")
 
-        monkeypatch.setattr(pc, "scatter", raise_type_error)
-        with pytest.raises(pa.ArrowTypeError, match="scatter got the wrong type"):
+        monkeypatch.setattr(pc, "take", raise_type_error)
+        with pytest.raises(pa.ArrowTypeError, match="take got the wrong type"):
             ser.groupby([1, 1, 2]).min()
 
     @pytest.mark.xfail(
@@ -4294,7 +4286,7 @@ class TestGroupbyAggPyArrowNative:
         ids=["decimal", "ArrowDtype", "str[pyarrow]"],
     )
     def test_groupby_empty(self, dtype, how):
-        # GH#63416 an empty input has no groups to scatter into
+        # GH#63416 an empty input has no groups to place results into
         ser = pd.Series([], dtype=dtype)
         result = getattr(ser.groupby([]), how)()
         assert len(result) == 0
