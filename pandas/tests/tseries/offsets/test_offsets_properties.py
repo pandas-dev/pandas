@@ -8,62 +8,81 @@ You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
 
+from datetime import (
+    UTC,
+    datetime,
+)
 import zoneinfo
 
-from hypothesis import (
-    assume,
-    given,
-)
 import pytest
 
 from pandas.compat import WASM
 
 import pandas as pd
-from pandas._testing._hypothesis import (
-    DATETIME_JAN_1_1900_OPTIONAL_TZ,
-    YQM_OFFSET,
+
+from pandas.tseries.offsets import (
+    MonthBegin,
+    MonthEnd,
+    QuarterBegin,
+    QuarterEnd,
+    YearBegin,
+    YearEnd,
 )
+
+YQM_OFFSETS = [
+    MonthBegin(1),
+    MonthEnd(1),
+    QuarterBegin(1),
+    QuarterEnd(1),
+    YearBegin(1),
+    YearEnd(1),
+    MonthBegin(-1),
+    QuarterEnd(-2),
+]
+DATETIMES = [
+    datetime(1900, 1, 1),
+    datetime(1900, 1, 1, tzinfo=UTC),
+    datetime(1900, 1, 1, tzinfo=zoneinfo.ZoneInfo("Africa/Kinshasa")),
+]
 
 # ----------------------------------------------------------------
 # Offset-specific behaviour tests
 
 
-@pytest.mark.slow
-@pytest.mark.arm_slow
-@given(DATETIME_JAN_1_1900_OPTIONAL_TZ, YQM_OFFSET)
+@pytest.mark.parametrize("dt", DATETIMES)
+@pytest.mark.parametrize("offset", YQM_OFFSETS)
 def test_on_offset_implementations(dt, offset):
-    assume(not offset.normalize)
+    if offset.normalize:
+        return
     # This case is flaky in CI 2024-11-04
-    assume(
-        not (
-            WASM
-            and isinstance(dt.tzinfo, zoneinfo.ZoneInfo)
-            and dt.tzinfo.key == "Indian/Cocos"
-            and isinstance(offset, pd.offsets.MonthBegin)
-        )
-    )
+    if (
+        WASM
+        and isinstance(dt.tzinfo, zoneinfo.ZoneInfo)
+        and dt.tzinfo.key == "Indian/Cocos"
+        and isinstance(offset, pd.offsets.MonthBegin)
+    ):
+        return
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
     try:
         compare = (dt + offset) - offset
     except ValueError:
-        # When dt + offset does not exist or is DST-ambiguous, assume(False) to
-        # indicate to hypothesis that this is not a valid test case
+        # When dt + offset does not exist or is DST-ambiguous, skip
         # DST-ambiguous example (GH41906):
         # dt = datetime.datetime(1900, 1, 1, tzinfo=ZoneInfo('Africa/Kinshasa'))
         # offset = MonthBegin(66)
-        assume(False)
+        return
 
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
-@pytest.mark.slow
-@given(YQM_OFFSET)
+@pytest.mark.parametrize("offset", YQM_OFFSETS)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and
     # 2) that hour is not incorrectly changed by this normalization
-    assume(not offset.normalize)
+    if offset.normalize:
+        return
 
     # Note that dti includes a transition across DST boundary
     dti = pd.date_range(

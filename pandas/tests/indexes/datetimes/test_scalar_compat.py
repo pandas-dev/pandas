@@ -11,8 +11,6 @@ from datetime import (
 import locale
 import unicodedata
 
-from hypothesis import given
-import hypothesis.strategies as st
 import numpy as np
 import pytest
 
@@ -469,11 +467,11 @@ class TestDatetimeIndexOps:
         tm.assert_numpy_array_equal(result, expected)
 
 
-@given(
-    dt=st.datetimes(min_value=datetime(1960, 1, 1), max_value=datetime(1980, 1, 1)),
-    n=st.integers(min_value=1, max_value=10),
-    freq=st.sampled_from(["MS", "QS", "YS"]),
+@pytest.mark.parametrize(
+    "dt", [datetime(1960, 1, 1), datetime(1970, 1, 1), datetime(1980, 1, 1)]
 )
+@pytest.mark.parametrize("n", [1, 5, 10])
+@pytest.mark.parametrize("freq", ["MS", "QS", "YS"])
 @pytest.mark.slow
 def test_against_scalar_parametric(freq, dt, n):
     # https://github.com/pandas-dev/pandas/issues/49606

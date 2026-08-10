@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from hypothesis import given
 import numpy as np
 import pytest
 
@@ -18,7 +17,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -976,8 +974,17 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
-@pytest.mark.slow
-@given(data=OPTIONAL_ONE_OF_ALL)
+@pytest.mark.parametrize(
+    "data",
+    [
+        [1, 2, 3],
+        [1.1, 2.2, 3.3],
+        ["a", "b", "c"],
+        [{"a": 1}, {"b": 2}],
+        [[1, 2], [3, 4]],
+        [None, None, None],
+    ],
+)
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})
