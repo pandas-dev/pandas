@@ -1868,9 +1868,7 @@ class ArrowExtensionArray(
         # GH 66490
         if pa.types.is_dictionary(data.type):
             data = data.cast(data.type.value_type)
-            encoded = data.dictionary_encode(null_encoding=null_encoding)
-        else:
-            encoded = data.dictionary_encode(null_encoding=null_encoding)
+        encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = self._from_pyarrow_array(
