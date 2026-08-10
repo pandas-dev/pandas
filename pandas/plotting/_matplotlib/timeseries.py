@@ -186,7 +186,8 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
 
                 plotf = PLOT_CLASSES[plotf]._plot
 
-            lines.append(plotf(ax, series.index._mpl_repr(), series.values, **kwds)[0])
+            values = np.asarray(series._values)
+            lines.append(plotf(ax, series.index._mpl_repr(), values, **kwds)[0])
             labels.append(pprint_thing(series.name))
 
     return lines, labels

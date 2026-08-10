@@ -1680,7 +1680,9 @@ class LinePlot(MPLPlot):
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
-        lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
+        lines = self._plot(
+            ax, data.index, np.asarray(data._values), style=style, **kwds
+        )
         # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
