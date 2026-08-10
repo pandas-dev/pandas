@@ -11,7 +11,9 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
 
 from pandas import (
     NaT,
@@ -80,6 +82,8 @@ class TestTimestampTZLocalize:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             ts.tz_localize(timezone(timedelta(hours=9)))
 
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
     def test_tz_localize_tzlocal_shift_onto_nat_sentinel(self):
         # GH#66550 the tzlocal branch reaches the same guard as the fixed-offset
         #  one above; pin the ambient zone to +9 so the shift lands on the sentinel

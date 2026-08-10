@@ -13,10 +13,12 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import (
     OutOfBoundsDatetime,
     Pandas4Warning,
 )
+import pandas.util._test_decorators as td
 
 from pandas import (
     DatetimeIndex,
@@ -93,6 +95,8 @@ class TestTZLocalize:
         with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
             dti.tz_localize(tz)
 
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
     def test_tz_localize_tzlocal_shift_onto_nat_sentinel(self):
         # GH#66550 the tzlocal loop needs the same sentinel guard as the
         #  fixed-offset one above.  Pin the ambient zone to +9 so the shift lands
@@ -105,6 +109,9 @@ class TestTZLocalize:
             with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
                 dti.tz_localize(dateutil.tz.tzlocal())
 
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
+    @td.skip_if_32bit  # OverflowError inside tzlocal past 2038
     def test_tz_localize_overflow_tzlocal(self):
         # GH#65733 same bare-subtraction overflow in the tzlocal loop.  Pin the
         #  ambient zone: the shift only overflows west of UTC.
