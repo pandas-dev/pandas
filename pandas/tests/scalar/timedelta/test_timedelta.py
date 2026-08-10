@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -590,7 +591,19 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    @pytest.mark.parametrize("td", [np.timedelta64(0, "ns"), timedelta(0)])
+    @pytest.mark.parametrize(
+        "td",
+        [
+            pytest.param(
+                np.timedelta64(0, "ns"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2,
+                    reason="Fixed in https://github.com/numpy/numpy/pull/14622",
+                ),
+            ),
+            timedelta(0),
+        ],
+    )
     def test_hash_equality_invariance_no_nanos(self, td) -> None:
         # GH#44504
         pandas_timedelta = Timedelta(0)
