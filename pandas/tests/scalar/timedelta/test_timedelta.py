@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.compat import WASM
+from pandas.compat.numpy import np_version_gt2_2
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -600,17 +601,35 @@ class TestTimedeltas:
             pytest.param(
                 Timedelta(0),
                 np.timedelta64(0, "ns"),
-                marks=pytest.mark.skipif(WASM, reason="Fails with WASM"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2_2 or WASM,
+                    reason=(
+                        "Fixed in https://github.com/numpy/numpy/pull/14622 but "
+                        "not for WASM",
+                    ),
+                ),
             ),
             pytest.param(
                 Timedelta(55, "s"),
                 np.timedelta64(55, "s"),
-                marks=pytest.mark.skipif(WASM, reason="Fails with WASM"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2_2 or WASM,
+                    reason=(
+                        "Fixed in https://github.com/numpy/numpy/pull/14622 but "
+                        "not for WASM",
+                    ),
+                ),
             ),
             pytest.param(
                 Timedelta(-44, "us"),
                 np.timedelta64(-44, "us"),
-                marks=pytest.mark.skipif(WASM, reason="Fails with WASM"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2_2 or WASM,
+                    reason=(
+                        "Fixed in https://github.com/numpy/numpy/pull/14622 but "
+                        "not for WASM",
+                    ),
+                ),
             ),
         ],
     )
