@@ -1537,3 +1537,57 @@ class TestPeriodIndexSeriesMethods:
         )
         tm.assert_index_equal(idx - Period("NaT", freq="M"), exp)
         tm.assert_index_equal(Period("NaT", freq="M") - idx, exp)
+
+
+def test_pi_sub_pi_count_on_nat_sentinel():
+    # GH#66552 the difference of two Periods is a count of periods, not an
+    #  ordinal, so INT64_MIN is a legitimate answer rather than the NaT sentinel
+    left = PeriodIndex([Period(ordinal=-(2**62), freq="D")])
+    right = PeriodIndex([Period(ordinal=2**62, freq="D")])
+    expected_offset = pd.offsets.Day(-(2**63))
+
+    # the scalar path has always given back the count; the array paths agree
+    assert left[0] - right[0] == expected_offset
+
+    tm.assert_numpy_array_equal(
+        left._data - right._data, np.array([expected_offset], dtype=object)
+    )
+    tm.assert_index_equal(left - right, pd.Index([expected_offset]))
+    tm.assert_series_equal(
+        Series(left) - Series(right), Series([expected_offset], dtype=object)
+    )
+
+
+def test_pi_sub_period_count_on_nat_sentinel():
+    # GH#66552 same, with a Period scalar on the right
+    pi = PeriodIndex([Period(ordinal=-(2**62), freq="D")])
+    result = pi - Period(ordinal=2**62, freq="D")
+    expected = pd.Index([pd.offsets.Day(-(2**63))])
+    tm.assert_index_equal(result, expected)
+
+
+def test_pi_sub_pi_still_raises_on_overflow():
+    # GH#66552 the sentinel opt-out must not disable the int64 overflow check
+    left = PeriodIndex([Period(ordinal=2**62, freq="D")])
+    right = PeriodIndex([Period(ordinal=-(2**62), freq="D")])
+    msg = "Overflow in int64 addition"
+    with pytest.raises(OverflowError, match=msg):
+        left - right
+
+
+def test_pi_sub_pi_nat_still_propagates():
+    # GH#66552 the opt-out is about the result, not about NaT operands
+    left = PeriodIndex([Period(ordinal=-(2**62), freq="D"), pd.NaT])
+    right = PeriodIndex([pd.NaT, Period(ordinal=2**62, freq="D")])
+    result = left - right
+    expected = pd.Index([pd.NaT, pd.NaT], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+
+def test_pi_add_int_still_raises_on_nat_sentinel():
+    # GH#66552 an ordinal landing on the sentinel is still an overflow; only
+    #  the Period-minus-Period count path opts out
+    pi = PeriodIndex([Period(ordinal=-(2**63) + 1, freq="D")])
+    msg = "Overflow in int64 addition"
+    with pytest.raises(OverflowError, match=msg):
+        pi - 1
