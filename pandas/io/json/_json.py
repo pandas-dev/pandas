@@ -43,7 +43,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+    SparseDtype,
+)
 
 from pandas import (
     ArrowDtype,
@@ -85,6 +88,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         DtypeArg,
         DtypeBackend,
+        DtypeObj,
         FilePath,
         IndexLabel,
         JSONEngine,
@@ -97,6 +101,18 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
+
+
+def _has_dt_accessor(dtype: DtypeObj) -> bool:
+    """
+    Whether this dtype takes the ``.dt.as_unit`` conversion below.
+
+    SparseDtype reports the subtype's kind, so the kind check alone is not
+    enough. This is not an exhaustive test for a usable ``.dt.as_unit`` -- it
+    only rules out what is known to reach here. Datetime-likes it returns False
+    for are scaled to date_unit by the C encoder instead.
+    """
+    return dtype.kind in "Mm" and not isinstance(dtype, SparseDtype)
 
 
 # interface to/from
@@ -196,27 +212,27 @@ def to_json(
             raise ValueError(f"Invalid value '{date_unit}' for option 'date_unit'")
         if isinstance(obj, DataFrame):
             copied = False
-            cols = np.nonzero(obj.dtypes.map(lambda dt: dt.kind in ["M", "m"]))[0]
+            cols = np.nonzero(obj.dtypes.map(_has_dt_accessor))[0]
             if len(cols):
                 obj = obj.copy(deep=False)
                 copied = True
                 for col in cols:
                     obj.isetitem(col, obj.iloc[:, col].dt.as_unit(date_unit))
-            if obj.index.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.index.dtype):
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
-            if obj.columns.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.columns.dtype):
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
                 obj.columns = Series(obj.columns).dt.as_unit(date_unit)
         elif isinstance(obj, Series):
-            if obj.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.dtype):
                 obj = obj.copy(deep=False)
                 obj = obj.dt.as_unit(date_unit)
-            if obj.index.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.index.dtype):
                 obj = obj.copy(deep=False)
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
 

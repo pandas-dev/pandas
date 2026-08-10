@@ -59,6 +59,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
@@ -354,11 +355,14 @@ def _read(
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
             try:
                 result = _read_csv_parallel(_filepath, kwds, _n_workers)
-            except (ParserError, UnicodeDecodeError):
+            except (ParserError, UnicodeDecodeError, OverflowError):
                 # e.g. a chunk boundary landed inside a quoted field containing
-                # an embedded newline.  The serial path below handles anything
-                # the parallel path cannot.  Other exceptions propagate: they
-                # signal a parallel-path bug, not ineligible input.
+                # an embedded newline, or a chunk of only huge ints converted
+                # where the mixed whole-file column would have stayed a string
+                # (GH#66259).  The serial path below handles anything the
+                # parallel path cannot -- and raises in turn if it too fails.
+                # Other exceptions propagate: they signal a parallel-path bug,
+                # not ineligible input.
                 result = None
             if result is not None:
                 return result
@@ -429,8 +433,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       name propagated to non-first chunks.
     * ``usecols`` is ``None`` - column selection changes the mapping between raw
       column positions and names in non-first chunks.
-    * The separator is a single character or ``r"\\s+"`` - anything else forces
-      the python engine inside ``TextFileReader``.
+    * The separator is a single ASCII character or ``r"\\s+"``, and ``quotechar``
+      is a single ASCII character - anything else forces the python engine
+      inside ``TextFileReader``.
     * The encoding is ``utf-8`` / ``utf-8-sig`` - chunk workers feed raw file
       bytes to the C tokenizer, which decodes words as UTF-8.  ``ascii`` is
       excluded so a non-ASCII byte still raises rather than being masked.
@@ -522,6 +527,17 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # use the C-engine buffer-loading fast path.
     delimiter = kwds.get("delimiter", ",")
     if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
+        return False
+
+    # A separator or quotechar wider than one byte forces the python engine
+    # too, and warns on the way.  The eligibility check has to catch these
+    # here: by the time the name-inference read reports the python engine, it
+    # has already raised that warning, which the serial read then raises
+    # again.  GH#66259
+    if len(delimiter) == 1 and ord(delimiter) > 127:
+        return False
+    quotechar = kwds.get("quotechar")
+    if isinstance(quotechar, str) and len(quotechar) == 1 and ord(quotechar) > 127:
         return False
 
     # Full-line comments before/inside the preamble shift the header location
@@ -677,6 +693,12 @@ def _find_chunk_byte_offsets(
     return offsets
 
 
+def _raise_collected(warning_sink: list[tuple[str, type[Warning]]]) -> None:
+    """Raise each distinct warning the parallel read's parsers collected."""
+    for warn_msg, warn_category in dict.fromkeys(warning_sink):
+        warnings.warn(warn_msg, warn_category, stacklevel=find_stack_level())
+
+
 def _read_csv_parallel(
     filepath: str,
     kwds: dict,
@@ -684,6 +706,14 @@ def _read_csv_parallel(
 ) -> DataFrame | None:
     """
     Read a large CSV file in parallel using *n_workers* threads.
+
+    Every read this makes - the one-line name inference and each chunk - raises
+    its own copy of the same ``ParserWarning``, and a worker raising one lands
+    the stacklevel walk in threading internals.  So the reads collect their
+    warnings into a sink (see :attr:`TextReader.warning_sink`) and each distinct
+    one is raised once here, from the caller's frame - except when the caller
+    goes on to read the file serially, since that read raises them itself.
+    GH#66259
 
     The file's data section (everything after the header / skiprows preamble)
     is split into up to *n_workers* byte-range chunks aligned to newline
@@ -704,6 +734,34 @@ def _read_csv_parallel(
     done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
     ``ParserError`` from the affected worker - the caller treats that as a
     serial-fallback signal too.
+    """
+    warning_sink: list[tuple[str, type[Warning]]] = []
+    try:
+        result = _read_csv_chunks(filepath, kwds, n_workers, warning_sink)
+    except (ParserError, UnicodeDecodeError, OverflowError):
+        # The caller answers these with a serial read of the whole file.
+        raise
+    except Exception:
+        # Nothing re-reads the file after this, so it is here or nowhere.  This
+        # over-warns when a serial read would have died before reaching the
+        # warning's column; losing the warning otherwise is the worse trade.
+        _raise_collected(warning_sink)
+        raise
+    if result is not None:
+        _raise_collected(warning_sink)
+    return result
+
+
+def _read_csv_chunks(
+    filepath: str,
+    kwds: dict,
+    n_workers: int,
+    warning_sink: list[tuple[str, type[Warning]]],
+) -> DataFrame | None:
+    """
+    Body of :func:`_read_csv_parallel`; see there for what the arguments mean
+    and when the result is ``None``.  Appends the ``ParserWarning``\\s its
+    parsers would have raised to *warning_sink* instead of raising them.
     """
     # Resolve the effective header value (mirrors TextFileReader.__init__).
     header = kwds.get("header", "infer")
@@ -761,9 +819,19 @@ def _read_csv_parallel(
         preamble = fd.read(data_start)
         first_line = fd.readline()
 
+    # Only the column names and the row count are kept, so the sample is parsed
+    # as strings: a value that converts on its own line but not for the whole
+    # column (an int above 2**63 under dtype_backend="pyarrow", say) would
+    # otherwise raise here for a file the serial path reads fine.  GH#66259
     name_buf = io.BytesIO(preamble + first_line)
+    name_kwds = {
+        **base_kwds,
+        "dtype": str,
+        "converters": None,
+        "dtype_backend": lib.no_default,
+    }
     try:
-        name_reader = TextFileReader(name_buf, **base_kwds)
+        name_reader = TextFileReader(name_buf, **name_kwds)
     except EmptyDataError:
         # The one data line we sliced off is blank (e.g. header=None on a file
         # whose first physical line is empty), so the name-inference read sees
@@ -775,6 +843,8 @@ def _read_csv_parallel(
         # eligibility checks did not anticipate; load_buffer needs the C engine.
         name_reader.close()
         return None
+    name_reader._engine._warning_sink = warning_sink
+    name_reader._engine._reader.warning_sink = warning_sink
     if name_reader._engine._reader.leading_cols:
         # Data rows have more fields than the header (implicit index).  The
         # chunk workers would fail on the extra field; bail out up front.
@@ -860,6 +930,8 @@ def _read_csv_parallel(
         # GIL-held pyarrow wrap happens once per column rather than once per
         # chunk in every worker.
         reader._engine.wrap_deferred = False
+        reader._engine._warning_sink = warning_sink
+        reader._engine._reader.warning_sink = warning_sink
         workers_readers.append(reader)
         while True:
             try:
@@ -947,11 +1019,15 @@ def _read_csv_parallel(
             # Per-chunk dtype inference can disagree with whole-file inference
             # (a lone non-numeric row makes only its own chunk object).  Mixed
             # signed-int/float chunks gather to the float64 serial would give;
-            # anything else must be re-read serially.
+            # anything else must be re-read serially.  ArrowDtype is excluded
+            # because pyarrow widens int to double with a *checked* cast, which
+            # raises above 2**53 where the serial whole-file read just infers
+            # double.  GH#66259
             for name in col_list:
                 chunk_dtypes = {chunk_dict[name].dtype for chunk_dict in chunk_dicts}
                 if len(chunk_dtypes) > 1 and not all(
-                    dt.kind in "if" for dt in chunk_dtypes
+                    dt.kind in "if" and not isinstance(dt, ArrowDtype)
+                    for dt in chunk_dtypes
                 ):
                     return None
 

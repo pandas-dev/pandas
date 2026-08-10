@@ -443,12 +443,14 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if not pc.all(pc.string_is_ascii(self._pa_array)).as_py():
+        # min_count=0 so that an empty or all-null array reports True instead of
+        #  null, keeping it on the pyarrow path below
+        if not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py():
             # GH#64123 - pc.find_substring returns byte offsets instead of
             # character offsets for multi-byte UTF-8 characters, so we fall back
             # to Python str.find which correctly returns character offsets.
             res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
-            return self._convert_int_result(pa.chunked_array(res_list))
+            return self._convert_int_result(pa.chunked_array(res_list, type=pa.int64()))
 
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
@@ -458,7 +460,9 @@ class ArrowStringArrayMixin:
                 res_list = self._apply_elementwise(
                     lambda val: val.find(sub, start, end)
                 )
-                return self._convert_int_result(pa.chunked_array(res_list))
+                return self._convert_int_result(
+                    pa.chunked_array(res_list, type=pa.int64())
+                )
             if start is None:
                 start_offset = 0
                 start = 0
