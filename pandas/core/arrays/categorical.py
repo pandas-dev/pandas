@@ -3129,7 +3129,8 @@ def _get_codes_for_values(
     if null_mask.any():
         values = values[~null_mask]
 
-    values = astype_array(values, categories.dtype, copy=False)
+    if len(values):
+        values = astype_array(values, categories.dtype, copy=False)
     codes = categories.get_indexer_for(values)
     wrong = codes == -1
     if wrong.any():

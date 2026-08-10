@@ -611,7 +611,7 @@ class TestAstypeCategorical:
     @pytest.mark.parametrize(
         "values, categories",
         [
-            ([1, 2], Index(["1", "2"], dtype="str")),
+            ([1, 2], Index(["1", "2"], dtype="string")),
             (np.array(["1", "2"], dtype=object), Index([1, 2])),
         ],
     )
