@@ -8,8 +8,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -139,11 +137,7 @@ class TestReductions:
         # GH#64266
         klass = index_or_series
         obj = klass([1, 2, 4], dtype=object)
-        if klass is Index and not np_version_gt2:
-            # np.any/np.all return an element for object dtype (numpy#4352)
-            expected_bool = int
-        else:
-            expected_bool = bool if using_python_scalars else np.bool_
+        expected_bool = bool if using_python_scalars else np.bool_
         result = obj.any()
         assert type(result) is expected_bool
         assert result

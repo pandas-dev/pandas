@@ -43,7 +43,6 @@ from pandas.tests.plotting.common import (
     _check_visible,
     get_y_axis,
 )
-from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -1122,7 +1121,6 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     @pytest.mark.xfail(
-        Version(mpl.__version__) >= Version("3.10"),
         reason="Fails starting with matplotlib 3.10",
     )
     def test_boxplot_vertical(self, hist_df):
@@ -1131,32 +1129,25 @@ class TestDataFramePlots:
         labels = [pprint_thing(c) for c in numeric_cols]
 
         # if horizontal, yticklabels are rotated
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
-        ax = df.plot.box(rot=50, fontsize=8, **kwargs)
+        ax = df.plot.box(rot=50, fontsize=8, orientation="horizontal")
         _check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
         _check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == 7 * len(numeric_cols)
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.xfail(
-        Version(mpl.__version__) >= Version("3.10"),
         reason="Fails starting with matplotlib version 3.10",
     )
     def test_boxplot_vertical_subplots(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
         axes = _check_plot_works(
-            df.plot.box, default_axes=True, subplots=True, logx=True, **kwargs
+            df.plot.box,
+            default_axes=True,
+            subplots=True,
+            logx=True,
+            orientation="horizontal",
         )
         _check_axes_shape(axes, axes_num=3, layout=(1, 3))
         _check_ax_scales(axes, xaxis="log")
@@ -1166,7 +1157,6 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     @pytest.mark.xfail(
-        Version(mpl.__version__) >= Version("3.10"),
         reason="Fails starting with matplotlib 3.10",
     )
     def test_boxplot_vertical_positions(self, hist_df):
@@ -1174,12 +1164,7 @@ class TestDataFramePlots:
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
         positions = np.array([3, 2, 8])
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
-        ax = df.plot.box(positions=positions, **kwargs)
+        ax = df.plot.box(positions=positions, orientation="horizontal")
         _check_text_labels(ax.get_yticklabels(), labels)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
         assert len(ax.lines) == 7 * len(numeric_cols)
@@ -2584,14 +2569,10 @@ class TestDataFramePlots:
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = DataFrame(d)
 
-        if Version(np.__version__) < Version("2.0.0"):
-            with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
-                df.plot(subplots=[("a", "bad_name")])
-        else:
-            with pytest.raises(
-                ValueError, match=r"Column label\(s\) \[np\.str\_\('bad_name'\)\]"
-            ):
-                df.plot(subplots=[("a", "bad_name")])
+        with pytest.raises(
+            ValueError, match=r"Column label\(s\) \[np\.str\_\('bad_name'\)\]"
+        ):
+            df.plot(subplots=[("a", "bad_name")])
 
     def test_group_subplot_duplicated_column(self):
         d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}

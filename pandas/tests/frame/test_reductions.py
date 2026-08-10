@@ -13,7 +13,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -42,7 +41,7 @@ from pandas.core import (
 )
 from pandas.tests.extension.decimal import DecimalArray
 
-is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
+is_windows_np2_or_is32 = not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -42,10 +40,6 @@ def test_array_interface(idx):
     result_copy1 = np.array(idx, copy=True)
     result_copy2 = np.array(idx, copy=True)
     assert not np.may_share_memory(result_copy1, result_copy2)
-
-    if not np_version_gt2:
-        # copy=False semantics are only supported in NumPy>=2.
-        return
 
     # for MultiIndex, copy=False is never allowed
     with pytest.raises(ValueError, match="Unable to avoid copy while creating"):

@@ -26,7 +26,6 @@ from numpy.ma import mrecords
 import pytest
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     IntCastingNaNError,
     Pandas4Warning,
@@ -3320,9 +3319,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
         tm.assert_frame_equal(result, expected)
 
     # TODO: make this not cast to object in pandas 3.0
-    @pytest.mark.skipif(
-        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
-    )
     @pytest.mark.parametrize(
         "data",
         [
