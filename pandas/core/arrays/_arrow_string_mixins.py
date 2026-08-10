@@ -474,3 +474,67 @@ class ArrowStringArrayMixin:
             result = pc.if_else(found, offset_result, -1)
         result = result.cast(pa.int64())
         return self._convert_int_result(result)
+
+    def _str_partition_expand(self, sep: str) -> pa.ChunkedArray:
+        """
+        Split each string on the first occurrence of ``sep``.
+
+        Returns a ``list<string>`` array holding one three-element list per row
+        -- the part before the separator, the separator, and the part after --
+        which ``StringMethods._wrap_result`` expands into three columns. Rows
+        without ``sep`` get two empty strings, matching ``str.partition``.
+
+        The caller wraps this in an :class:`ArrowExtensionArray`; the rows are
+        lists, so it is not of the calling array's own type.
+        """
+        if not sep:
+            # pyarrow reports this as "Empty separator"; keep str.partition's
+            #  wording so every dtype raises the same way
+            raise ValueError("empty separator")
+
+        str_type = self._pa_array.type
+        chunks = [
+            self._partition_chunk(chunk, sep, str_type)
+            for chunk in self._pa_array.chunks
+        ]
+        return pa.chunked_array(chunks, type=pa.list_(str_type))
+
+    @staticmethod
+    def _partition_chunk(chunk: pa.Array, sep: str, str_type: pa.DataType) -> pa.Array:
+        """
+        Build the ``list<string>`` rows for one chunk of :meth:`_str_partition_expand`.
+
+        Working a chunk at a time keeps the concatenation below within the
+        offset width of ``str_type``, which matters for columns near the 2 GiB
+        limit of 32-bit ``string``.
+        """
+        # max_splits=1 gives [before] when sep is absent, else [before, after];
+        #  padding to a fixed two elements makes the tail null in the first case
+        split = pc.split_pattern(chunk, sep, max_splits=1)
+        pieces = pc.list_slice(split, 0, 2, return_fixed_size_list=True)
+
+        before = pc.list_element(pieces, 0)
+        tail = pc.list_element(pieces, 1)
+        after = pc.fill_null(tail, pa.scalar("", type=str_type))
+        middle = pc.if_else(
+            pc.is_valid(tail),
+            pa.scalar(sep, type=str_type),
+            pa.scalar("", type=str_type),
+        )
+
+        n = len(chunk)
+        # Interleave the three columns into [before[0], sep[0], after[0],
+        #  before[1], ...]. Arrow has no kernel that zips arrays into rows, so
+        #  take from their concatenation. Both ranges below are plain index
+        #  arithmetic: NumPy builds them in one strided pass, while pyarrow has
+        #  no arange at all before 21.0 and would need four kernels for the
+        #  interleave, so they stay NumPy at every supported version.
+        values = pa.concat_arrays([before, middle, after])
+        indices = np.arange(3 * n, dtype=np.int64).reshape(3, n).T.reshape(-1)
+        values = values.take(pa.array(indices))
+        # int32 rather than int64 offsets, but built wide so that a chunk with
+        #  more than 2**31 / 3 rows raises instead of wrapping around
+        offsets = pa.array(np.arange(0, 3 * n + 1, 3, dtype=np.int64), type=pa.int32())
+        # a null string partitions to a null row, not to a row of nulls
+        mask = pc.is_null(before) if before.null_count else None
+        return pa.ListArray.from_arrays(offsets, values, mask=mask)

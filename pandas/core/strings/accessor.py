@@ -296,6 +296,13 @@ class StringMethods(NoNewAttributesMixin):
                 value_lengths = pa.compute.list_value_length(result._pa_array)
                 max_len = pa.compute.max(value_lengths).as_py()
                 min_len = pa.compute.min(value_lengths).as_py()
+                if max_len is None:
+                    # No non-null rows to take a width from. Match the
+                    # object-dtype path below, which expands an all-NA result
+                    # into a single all-NA column and an empty one into no
+                    # columns at all.
+                    max_len = min_len = 1 if len(result) else 0
+                value_type = result._pa_array.type.value_type
                 if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
                     result = ArrowExtensionArray(
@@ -318,10 +325,15 @@ class StringMethods(NoNewAttributesMixin):
                     .to_numpy()
                     .reshape(len(result), max_len)
                 )
-                result = {
-                    label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(name, result.T, strict=True)
-                }
+                columns = {}
+                for label, res in zip(name, result.T, strict=True):
+                    col = pa.array(res)
+                    if pa.types.is_null(col.type) and not pa.types.is_null(value_type):
+                        # an all-NA column would otherwise land on the null
+                        # type, which no longer supports .str
+                        col = col.cast(value_type)
+                    columns[label] = ArrowExtensionArray(col)
+                result = columns
             elif is_object_dtype(result):
 
                 def cons_row(x):

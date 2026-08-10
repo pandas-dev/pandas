@@ -1309,9 +1309,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
             with option_context("future.distinguish_nan_and_na", False):
-                return obj.convert_dtypes(
-                    infer_objects=False, dtype_backend=self.dtype_backend
-                )
+                return obj.convert_dtypes(dtype_backend=self.dtype_backend)
         else:
             return obj
 
@@ -1412,9 +1410,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         if self.dtype_backend is not lib.no_default:
             with option_context("future.distinguish_nan_and_na", False):
-                return obj.convert_dtypes(
-                    infer_objects=False, dtype_backend=self.dtype_backend
-                )
+                return obj.convert_dtypes(dtype_backend=self.dtype_backend)
         else:
             return obj
 
@@ -1649,32 +1645,93 @@ class Parser:
                 return data
 
         if new_data.dtype == "string":
-            with warnings.catch_warnings():
-                # ignore "Could not infer format" warnings from to_datetime
-                # which is incorrectly raised for non-date strings
-                warnings.simplefilter("ignore", UserWarning)
-                for format in (None, "iso8601", "mixed"):
+            for format in (None, "iso8601", "mixed"):
+                converted = None
+                with warnings.catch_warnings(record=True) as record:
+                    warnings.simplefilter("always")
                     try:
-                        return to_datetime(new_data, errors="raise", format=format)
+                        converted = to_datetime(new_data, errors="raise", format=format)
                     except Exception:
                         pass
+                _reemit_parse_warnings(
+                    record, kept=converted is not None, ignore_user_warnings=True
+                )
+                if converted is not None:
+                    return converted
         else:
             # numeric or mixed objects
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+            kept_record: list[warnings.WarningMessage] = []
             for date_unit in date_units:
-                try:
-                    # In case of multiple possible units, infer the likely unit
-                    # based on the first unit for which the parsed dates fit
-                    # within the nanoseconds bounds
-                    # -> do as_unit cast to ensure OutOfBounds error
-                    data = to_datetime(new_data, errors="raise", unit=date_unit)
-                    _ = data.dt.as_unit("ns")
+                converted = None
+                in_ns_bounds = False
+                with warnings.catch_warnings(record=True) as record:
+                    warnings.simplefilter("always")
+                    try:
+                        # In case of multiple possible units, infer the likely unit
+                        # based on the first unit for which the parsed dates fit
+                        # within the nanoseconds bounds
+                        # -> do as_unit cast to ensure OutOfBounds error
+                        converted = to_datetime(
+                            new_data, errors="raise", unit=date_unit
+                        )
+                        _ = converted.dt.as_unit("ns")
+                        in_ns_bounds = True
+                    except (
+                        OutOfBoundsDatetime,
+                        ValueError,
+                        OverflowError,
+                        TypeError,
+                    ):
+                        pass
+                if converted is None:
+                    _reemit_parse_warnings(record, kept=False)
+                else:
+                    # `data` is returned below even when the bounds check failed,
+                    #  so this attempt counts as kept either way; only the last
+                    #  such attempt survives, so defer its warnings until then
+                    data = converted
+                    kept_record = record
+                if in_ns_bounds:
                     break
-                except OutOfBoundsDatetime:
-                    continue
-                except (ValueError, OverflowError, TypeError):
-                    pass
+            _reemit_parse_warnings(kept_record, kept=True)
         return data
+
+
+# GH#50907; matched on the message too, since Pandas4Warning covers many deprecations
+_QUARTER_DEPR_MSG = "as a quarterly string is deprecated"
+
+
+def _reemit_parse_warnings(
+    record: list[warnings.WarningMessage],
+    *,
+    kept: bool,
+    ignore_user_warnings: bool = False,
+) -> None:
+    """
+    Re-emit the warnings captured from a date parse ``_try_convert_to_date`` may
+    discard.
+
+    GH#50907: it parses the same values several ways and keeps at most one
+    result. The quarterly-string deprecation asks the user to change a call, so
+    it may only be emitted for the parse whose result they actually receive.
+    Unrelated warnings keep the visibility they had before.
+    """
+    for warning in record:
+        if ignore_user_warnings and issubclass(warning.category, UserWarning):
+            # "Could not infer format", incorrectly raised for non-date strings
+            continue
+        if (
+            not kept
+            and issubclass(warning.category, Pandas4Warning)
+            and _QUARTER_DEPR_MSG in str(warning.message)
+        ):
+            continue
+        warnings.warn(
+            warning.message,
+            warning.category,
+            stacklevel=find_stack_level(),
+        )
 
 
 class SeriesParser(Parser):

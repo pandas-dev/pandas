@@ -2035,3 +2035,63 @@ def test_setitem_enlarge_within_int64_range():
 
     expected = Series([1, 2, 2**62], dtype="int64")
     tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Int64", "Float64"),
+        ("UInt64", "Float64"),
+        ("int64[pyarrow]", "double[pyarrow]"),
+        ("uint64[pyarrow]", "double[pyarrow]"),
+    ],
+)
+def test_setitem_enlarge_out_of_int_ea_range(dtype, expected_dtype):
+    # GH#65094 the out-of-range float->int cast saturates instead of raising,
+    #  and the roundtrip check could not see it, since e.g. 2**63 and 2**63 - 1
+    #  are the same float64, so the value was silently stored as the dtype max
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    value = 2.0**64 if dtype.lower().startswith("uint") else 2.0**63
+    ser = Series([1, 2], dtype=dtype)
+
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = value
+
+    expected = Series([1.0, 2.0, value], dtype=expected_dtype)
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, value", [("Sparse[int64]", 2.0**63), ("Sparse[uint64]", 2.0**64)]
+)
+def test_setitem_enlarge_out_of_sparse_int_range(dtype, value):
+    # GH#65094 SparseDtype reaches the same cast, but spells its backing numpy
+    #  dtype `subtype`, so it was skipping the range check and storing the
+    #  saturated value
+    ser = Series([1, 2], dtype=dtype)
+
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="incompatible dtype", raise_on_extra_warnings=False
+    ):
+        ser.loc[2] = value
+
+    expected = Series([1.0, 2.0, value], dtype="Sparse[float64]")
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]", "Sparse[int64]"])
+def test_setitem_enlarge_int_ea_above_2_53(dtype):
+    # GH#65094 an in-range integral float above 2**53 is exact, so the dtype is
+    #  retained.  For ArrowDtype the check used to roundtrip through pyarrow,
+    #  whose int64->double cast rejects anything above 2**53, raising
+    #  ArrowInvalid out of .loc
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    ser = Series([1, 2], dtype=dtype)
+
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = 1.7e18
+
+    expected = Series([1, 2, 1700000000000000000], dtype=dtype)
+    tm.assert_series_equal(ser, expected)

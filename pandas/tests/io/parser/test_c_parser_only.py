@@ -17,9 +17,11 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.compat import WASM
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
@@ -860,6 +862,37 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_non_ascii_eager_wrap_mutable(c_parser_only, kwargs):
+    # GH#66277: the eager wrap that bypasses the ExtensionArray constructor
+    # for non-ASCII columns did not set _cache, so mutating the result raised
+    # AttributeError (reachable with low_memory=False, where the array
+    # reaches the frame without an intermediate concat)
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    result = parser.read_csv(StringIO("a\ncafé\nnaïve\n"), **kwargs)
+    arr = result["a"].array
+    arr[0] = "x"
+    arr.sort()
+    assert list(arr) == ["naïve", "x"]
+
+
+@pytest.mark.parametrize("tail", ["", "café\nnaïve\n" * 4])
+def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
+    # GH#66277: with low_memory=True, deferred string chunks combine into a
+    # single column at the end of the read; all-ASCII chunks take the
+    # zero-copy path while non-ASCII chunks are wrapped eagerly, and either
+    # mix must match a single-chunk read
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    data = "a\n" + "foo\nbar\nNA\nbaz\n" * 8 + tail
+    expected = parser.read_csv(StringIO(data))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv(StringIO(data))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_mutable(kwargs):
     # GH#66619: the fast path builds its result without going through the
     # ExtensionArray constructor, so it must set every attribute the
@@ -1252,3 +1285,75 @@ def test_na_values_leading_nul(c_parser_only):
     assert result["a"].isna().tolist() == [True, False, False]
     assert result["a"][1] == "\x00z"
     assert result["a"][2] == ""
+
+
+def _raise_on_five(value):
+    if value == "5":
+        raise RuntimeError("boom")
+    return value
+
+
+@pytest.mark.parametrize(
+    "data,kwargs,error,match",
+    [
+        (
+            "a,b\n" + "".join(f"{i},{'oops' if i == 5 else i}\n" for i in range(20)),
+            {"dtype": {"b": "int64"}},
+            ValueError,
+            "invalid literal for int",
+        ),
+        (
+            "a,b\n" + "".join(f"{i},{i}\n" for i in range(20)),
+            {"converters": {"b": _raise_on_five}},
+            RuntimeError,
+            "boom",
+        ),
+        (
+            "a,b\n"
+            + "".join(
+                (f"{i},{i},{i}\n" if i == 15 else f"{i},{i}\n") for i in range(20)
+            ),
+            {},
+            ParserError,
+            "Expected 2 fields",
+        ),
+    ],
+)
+def test_read_after_chunk_raised(c_parser_only, data, kwargs, error, match):
+    # GH#66622: a chunk that raised closed the reader, and reading again then
+    # dereferenced the freed tokenizer buffers instead of raising.
+    parser = c_parser_only
+
+    with parser.read_csv(StringIO(data), chunksize=10, **kwargs) as reader:
+        with pytest.raises(error, match=match):
+            for _ in reader:
+                pass
+
+        with pytest.raises(ValueError, match="I/O operation on closed file"):
+            next(reader)
+
+
+def test_read_after_close(c_parser_only):
+    # GH#66622: reading from a closed reader crashed the interpreter.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    with parser.read_csv(StringIO(data), chunksize=10) as reader:
+        assert len(next(reader)) == 10
+
+    with pytest.raises(ValueError, match="I/O operation on closed file"):
+        next(reader)
+
+
+def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
+    # GH#66622: exhausting a reader closes it, but it must keep behaving like a
+    # spent iterator rather than reporting a closed file.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    reader = parser.read_csv(StringIO(data), chunksize=10)
+    assert len(list(reader)) == 2
+
+    for _ in range(2):
+        with pytest.raises(StopIteration):
+            next(reader)

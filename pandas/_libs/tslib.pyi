@@ -20,6 +20,7 @@ def array_to_datetime(
     utc: bool = ...,
     creso: int = ...,
     unit_for_numerics: str | None = ...,
+    warned_quarter: bool = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...
 
 # returned ndarray may be object dtype or datetime64[ns]
@@ -30,4 +31,5 @@ def array_to_datetime_with_tz(
     dayfirst: bool,
     yearfirst: bool,
     creso: int,
+    warned_quarter: bool = ...,
 ) -> npt.NDArray[np.int64]: ...

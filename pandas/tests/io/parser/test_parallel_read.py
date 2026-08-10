@@ -231,15 +231,17 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(parse_dates=None))
         assert _can_parallelize_csv(path, self._kwds(parse_dates=False))
 
-    def test_rejects_low_memory_false(self, tmp_path, monkeypatch):
-        # low_memory=False guarantees whole-file type inference, which the
+    @pytest.mark.parametrize("low_memory", [False, 0, np.False_])
+    def test_rejects_low_memory_false(self, tmp_path, monkeypatch, low_memory):
+        # A falsy low_memory guarantees whole-file type inference, which the
         # per-chunk parallel path cannot honour; low_memory=True (and the unset
         # default) document per-chunk divergence, so they stay eligible
-        # (GH#64347).
+        # (GH#64347).  low_memory is not coerced to bool, so falsy non-False
+        # values must be rejected too (GH#66327).
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-        assert not _can_parallelize_csv(path, self._kwds(low_memory=False))
+        assert not _can_parallelize_csv(path, self._kwds(low_memory=low_memory))
         assert _can_parallelize_csv(path, self._kwds(low_memory=True))
         assert _can_parallelize_csv(path, self._kwds())
 
@@ -1019,19 +1021,57 @@ def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     assert result.loc[0, "col1"] == "0"
 
 
-def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch):
-    # low_memory=False promises whole-file type inference.  A chunk holding only
-    # NA tokens and a uint64-range int hits the C parser's na_filter=0
+def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
+    # dtype_backend="pyarrow" builds pa.string() (int32 offset) pending columns
+    # rather than the large_string ones the default string dtype uses; the
+    # gather must reconcile them to ArrowDtype and match a serial read
+    # (GH#66277).
+    pytest.importorskip("pyarrow")
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"s{i % 13},{i}" for i in range(5000))
+    path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path, dtype_backend="pyarrow")
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path, dtype_backend="pyarrow")
+    tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_deferred_strings_mixed_chunk_dtypes(tmp_path, monkeypatch):
+    # One chunk of a column parses as strings while the rest parse as int64,
+    # so the gather sees pending string columns alongside numeric ones and must
+    # fall back to a serial re-read rather than mixing the two (GH#66277).
+    chunk = "".join(f"{i},{i}\n" for i in range(2000))
+    raw = "col1,col2\n" + chunk + "text,7\n" + chunk
+    path = tmp_path / "mixed_str.csv"
+    path.write_text(raw, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+
+
+@pytest.mark.parametrize("low_memory", [False, 0, np.False_])
+def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch, low_memory):
+    # A falsy low_memory promises whole-file type inference.  A chunk holding
+    # only NA tokens and a uint64-range int hits the C parser's na_filter=0
     # uint64-conflict path (gh-14983) and keeps "nan" as a literal string, while
     # the serial whole-file pass masks it to NaN.  Both chunk results are object
     # dtype, so the per-column dtype-consistency check cannot catch it - the
-    # parallel path must step aside for low_memory=False (GH#64347).
+    # parallel path must step aside (GH#64347).  low_memory is not coerced to
+    # bool and the serial path branches on truthiness, so falsy non-False values
+    # must step aside too (GH#66327).
     raw = b"col\n" + b"hello\n" * 500 + (b"nan\n" + b"9223372036854775808\n") * 3000
     path = tmp_path / "uint64.csv"
     path.write_bytes(raw)
 
-    result = _read_forced_parallel(path, monkeypatch, low_memory=False)
-    expected = read_csv(io.BytesIO(raw), low_memory=False)
+    result = _read_forced_parallel(path, monkeypatch, low_memory=low_memory)
+    expected = read_csv(io.BytesIO(raw), low_memory=low_memory)
     tm.assert_frame_equal(result, expected)
     # serial semantics: every "nan" token is masked to NaN, none survive as text
     assert (result["col"] == "nan").sum() == 0
