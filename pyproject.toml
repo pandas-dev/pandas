@@ -85,7 +85,7 @@ funding = 'https://opencollective.com/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['pytest>=8.3.4', 'pytest-xdist>=3.6.1']
+test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
 pyarrow = ['pyarrow>=13.0.0']
 performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
 computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
@@ -116,6 +116,7 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'fsspec>=2024.10.0',
        'gcsfs>=2024.10.0',
        'html5lib>=1.1',
+       'hypothesis>=6.116.0',
        'jinja2>=3.1.5',
        'lxml>=5.3.0',
        'matplotlib>=3.9.3',
