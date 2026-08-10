@@ -22,6 +22,7 @@ import pytest
 
 from pandas.compat import WASM
 from pandas.errors import (
+    EmptyDataError,
     ParserError,
     ParserWarning,
 )
@@ -614,6 +615,17 @@ class TestReadCsvParallel:
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
+    def test_blank_first_data_line_returns_none(self, tmp_path):
+        # header=None with a blank first data line: name inference parses a
+        # single blank line and raises EmptyDataError, which must be turned
+        # into a serial fallback rather than propagate (GH#66259).
+        path = tmp_path / "blank_first.csv"
+        path.write_text(
+            "\n" + "".join(f"{i},{i * 2}\n" for i in range(5_000)), encoding="utf-8"
+        )
+        kwds = self._base_kwds(path, header=None)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
     def test_quoted_newline_in_header_returns_none(self, tmp_path):
         # A quoted embedded newline in the header makes the physical line
         # count disagree with the logical row count, so data_start would land
@@ -957,6 +969,57 @@ def test_parallel_blank_line_before_header_matches_serial(tmp_path, monkeypatch)
     expected = read_csv(io.BytesIO(raw))
     tm.assert_frame_equal(result, expected)
     assert result["col1"].dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    "preamble,skiprows",
+    [
+        (b"\n", 0),
+        (b"   \n", 0),
+        (b"junk1\njunk2\n\n", 2),
+    ],
+)
+def test_parallel_blank_first_data_line_matches_serial(
+    tmp_path, monkeypatch, preamble, skiprows
+):
+    # header=None puts no header line in the preamble, so a blank first data
+    # line ends up as the single line name inference parses, and that raises
+    # EmptyDataError where the serial path just skips it (GH#66259).  A
+    # whitespace-only line must not tokenize as a single field either: that
+    # would infer one column and silently read the rest as an implicit index.
+    raw = preamble + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "blank_first.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, header=None, skiprows=skiprows)
+    expected = read_csv(io.BytesIO(raw), header=None, skiprows=skiprows)
+    tm.assert_frame_equal(result, expected)
+    assert result.shape == (500, 2)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_all_blank_lines_raises(tmp_path, monkeypatch):
+    # The fallback for a blank first data line must not mask a file that has
+    # no columns at all: serial raises, so the parallel path must too
+    # (GH#66259).
+    path = tmp_path / "blank_only.csv"
+    path.write_bytes(b"\n" * 500)
+
+    returned = []
+
+    def spy(filepath, kwds, n_workers):
+        result = _read_csv_parallel(filepath, kwds, n_workers)
+        returned.append(result)
+        return result
+
+    monkeypatch.setattr("pandas.io.parsers.readers._read_csv_parallel", spy)
+
+    msg = "No columns to parse from file"
+    with pytest.raises(EmptyDataError, match=msg):
+        _read_forced_parallel(path, monkeypatch, header=None)
+    # The serial read raises the same error, so without this the test would
+    # pass even if the parallel path propagated it directly.
+    assert returned == [None], "the parallel path did not fall back"
 
 
 def test_parallel_single_long_line(tmp_path, monkeypatch):
