@@ -995,6 +995,7 @@ def test_parallel_blank_first_data_line_matches_serial(
     assert result.shape == (500, 2)
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_all_blank_lines_raises(tmp_path, monkeypatch):
     # The fallback for a blank first data line must not mask a file that has
     # no columns at all: serial raises, so the parallel path must too
