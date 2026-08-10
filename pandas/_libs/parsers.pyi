@@ -42,6 +42,7 @@ class TextReader:
     header: list[list[int]]  # non-negative integers
     defer_pa_wrap: bool
     trim_after_read: bool
+    warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(
         self,
         source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],

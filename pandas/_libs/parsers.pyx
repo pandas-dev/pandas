@@ -394,6 +394,11 @@ cdef class TextReader:
         # reader turns this off on its workers, whose buffers are reused
         # across chunks and freed at close.
         public bint trim_after_read
+        # When not None, ParserWarnings are appended here as
+        # (message, category) instead of being raised.  The parallel reader
+        # gives every worker the same sink so a warning is raised once rather
+        # than once per chunk (GH#66259).
+        public object warning_sink
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -574,6 +579,7 @@ cdef class TextReader:
         self.defer_pa_wrap = False
         self._pa_target = None
         self.trim_after_read = True
+        self.warning_sink = None
 
         if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
@@ -1038,16 +1044,20 @@ cdef class TextReader:
 
         self._check_tokenize_status(status)
 
+    cdef _warn_parser(self, object msg):
+        if self.warning_sink is not None:
+            self.warning_sink.append((msg, ParserWarning))
+        else:
+            warnings.warn(msg, ParserWarning, stacklevel=find_stack_level())
+
     cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
-            warnings.warn(
+            self._warn_parser(
                 PyUnicode_DecodeUTF8(
                     self.parser.warn_msg,
                     strlen(self.parser.warn_msg),
                     self.encoding_errors
-                ),
-                ParserWarning,
-                stacklevel=find_stack_level()
+                )
             )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
@@ -1159,10 +1169,9 @@ cdef class TextReader:
 
             if conv:
                 if col_dtype is not None:
-                    warnings.warn((f"Both a converter and dtype were specified "
-                                   f"for column {name} - only the converter will "
-                                   f"be used."), ParserWarning,
-                                  stacklevel=find_stack_level())
+                    self._warn_parser(f"Both a converter and dtype were specified "
+                                      f"for column {name} - only the converter will "
+                                      f"be used.")
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
