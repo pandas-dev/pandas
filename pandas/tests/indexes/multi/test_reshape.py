@@ -127,10 +127,10 @@ def test_append_index():
 
     result = midx_lv2.append(midx_lv2)
     expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, check_freq=False)
 
     result = midx_lv2.append(midx_lv3)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, check_freq=False)
 
     result = midx_lv3.append(midx_lv2)
     expected = Index._simple_new(

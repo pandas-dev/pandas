@@ -120,7 +120,7 @@ class TestPeriodArray(base.ExtensionTests):
         super().test_values_for_json(data)
 
     @pytest.mark.xfail(
-        raises=OverflowError, reason="PeriodArray cannot be serialized to JSON"
+        raises=ValueError, reason="PeriodArray cannot be serialized to JSON"
     )
     def test_json_roundtrip(self, data):
         # GH 65127

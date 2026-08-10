@@ -6,6 +6,7 @@ from io import (
 )
 import json
 import os
+from pathlib import Path
 import sys
 import uuid
 
@@ -146,9 +147,10 @@ class TestPandasContainer:
             expected_warning = Pandas4Warning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
-            result = read_json(
-                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
-            )
+            json = StringIO(df.to_json(orient=orient))
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, orient=orient, convert_dates=["x"])
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
@@ -386,7 +388,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_frame_from_json_missing_data(self, orient, convert_axes, dtype):
-        num_df = DataFrame([[1, 2], [4, 5, 6]])
+        num_df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
 
         result = read_json(
             StringIO(num_df.to_json(orient=orient)),
@@ -396,7 +398,7 @@ class TestPandasContainer:
         )
         assert np.isnan(result.iloc[0, 2])
 
-        obj_df = DataFrame([["1", "2"], ["4", "5", "6"]])
+        obj_df = DataFrame([["1", "2", np.nan], ["4", "5", "6"]])
         result = read_json(
             StringIO(obj_df.to_json(orient=orient)),
             orient=orient,
@@ -419,7 +421,7 @@ class TestPandasContainer:
     def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
-        df = DataFrame([[1, 2], [4, 5, 6]])
+        df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
         df.loc[0, 2] = inf
 
         data = StringIO(df.to_json())
@@ -904,7 +906,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(df.to_json(date_unit="ns"))
 
-        result = read_json(json, convert_dates=False)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected["date"] = expected["date"].values.view("i8")
         expected["foo"] = expected["foo"].astype("int64")
@@ -1170,7 +1174,9 @@ class TestPandasContainer:
             df = df.convert_dtypes(dtype_backend=dtype_backend)
 
         json = df.to_json(date_format="iso", date_unit=unit)
-        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
@@ -1196,7 +1202,9 @@ class TestPandasContainer:
         assert list(parsed.values()) == i8
 
         # and the frame round-trips, preserving the original resolution (GH#55827)
-        roundtripped = read_json(StringIO(result), convert_dates=["date"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            roundtripped = read_json(StringIO(result), convert_dates=["date"])
         tm.assert_frame_equal(roundtripped, df)
 
     def test_weird_nested_json(self):
@@ -1254,7 +1262,9 @@ class TestPandasContainer:
     def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(httpserver.url, convert_dates=True)
         for field, dtype in [
             ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
             ["closed_at", "datetime64[us]"],
@@ -2546,12 +2556,14 @@ def test_read_json_lines_rangeindex():
 
 def test_large_number():
     # GH#20608
-    result = read_json(
-        StringIO('["9999999999999999"]'),
-        orient="values",
-        typ="series",
-        convert_dates=False,
-    )
+    depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            StringIO('["9999999999999999"]'),
+            orient="values",
+            typ="series",
+            convert_dates=False,
+        )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
 
@@ -2572,3 +2584,44 @@ def test_large_number_string_column():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_to_json_unsupported_object_gh36211():
+    # GH#36211
+    df = DataFrame({"a": [Path("m1")]})
+    msg = "Unable to serialize object to JSON: encountered an unsupported object type"
+    with pytest.raises(ValueError, match=msg):
+        df.to_json()
+
+
+@pytest.mark.parametrize("other", ['"notadate"', "true"])
+def test_read_json_quarterly_string_discarded_parse_no_warning(other):
+    # GH#50907 _try_convert_to_date parses the column several ways and keeps at
+    # most one result; an attempt the caller never receives must not warn. The
+    # two values reach the string and the object branch respectively, and which
+    # one a str hits depends on the future.infer_string setting.
+    with tm.assert_produces_warning(None):
+        result = read_json(StringIO(f'{{"date":{{"0":"2014Q2","1":{other}}}}}'))
+    assert result["date"].dtype.kind != "M"
+
+
+def test_read_json_quarterly_string_out_of_ns_bounds_warns():
+    # GH#50907 the as_unit("ns") bounds check fails for every unit, but the
+    # to_datetime result is still what the caller gets, so it must warn
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = read_json(StringIO('{"date":{"0":"9999Q4","1":1}}'))
+    assert len(record) == 1
+    assert result["date"][0] == Timestamp("9999-10-01")
+
+
+def test_read_json_quarterly_string_kept_parse_warns_once():
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = read_json(StringIO('{"date":{"0":"2014Q2","1":"2014Q3"}}'))
+    assert len(record) == 1
+    assert result["date"].dtype.kind == "M"
+    assert result["date"][0] == Timestamp("2014-04-01")

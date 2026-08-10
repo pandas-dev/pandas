@@ -801,13 +801,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and isinstance(offset, RelativeDeltaOffset)
             and not offset._use_relativedelta
         ):
-            res_values = self._ndarray + offset._pd_timedelta
-            # GH#64806 offset._pd_timedelta may have finer resolution than
-            # self, promoting res_values to a finer unit; derive the dtype
-            # from the promoted values rather than assuming self.dtype's unit.
-            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
-            res_dtype = tz_to_dtype(self.tz, res_unit)
-            result = type(self)._simple_new(res_values, dtype=res_dtype)
+            # GH#64806 _add_timedeltalike_scalar casts to the finer of the two
+            # resolutions, so the result keeps offset._pd_timedelta's unit when
+            # that is finer than self's.
+            result = self._add_timedeltalike_scalar(offset._pd_timedelta)
             if offset.normalize:
                 result = result.normalize()
             return result
@@ -820,7 +817,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                res_values = res_values.view(values.dtype)
+                # values is tz-naive here, so its dtype is the ndarray's
+                res_values = res_values.view(values._ndarray.dtype)
         except NotImplementedError:
             if config["mode"]["performance_warnings"]:
                 warnings.warn(
@@ -895,6 +893,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         DatetimeIndex.tz : A timezone that has a variable offset from UTC.
         DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        Series.dt.tz : A timezone that has a variable offset from UTC.
+        Series.dt.tz_localize : Localize tz-naive Series datetimes to a given
+            time zone, or remove timezone from tz-aware Series datetimes.
 
         Examples
         --------
@@ -1087,7 +1088,7 @@ default 'raise'
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
@@ -1215,9 +1216,9 @@ default 'raise'
 
         Parameters
         ----------
-        freq : str or Period, optional
-            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
-            or a Period object. Will be inferred by default.
+        freq : str, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`.
+            Will be inferred by default.
 
         Returns
         -------
@@ -3180,9 +3181,7 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    start = Timestamp(start)  # type: ignore[arg-type]
+    start = Timestamp(start)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if start is not NaT:  # type: ignore[comparison-overlap]
@@ -3190,9 +3189,7 @@ def _generate_range(
     else:
         start = None
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    end = Timestamp(end)  # type: ignore[arg-type]
+    end = Timestamp(end)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if end is not NaT:  # type: ignore[comparison-overlap]

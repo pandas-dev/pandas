@@ -91,6 +91,23 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+def _exact_if_integral(other):
+    """
+    Return the exact int equivalent of an integral float, otherwise `other`.
+
+    GH#66551 float64 carries only a 53-bit mantissa, so applying a float operand
+    in floating point rounds results that int64 represents exactly.  An integral
+    float has an exact int equivalent, so the int path can be used instead.
+    inf and nan are not integral and so stay in float64.
+
+    Zero is left alone: it needs no exactness fix, and routing it to the int
+    path would turn division by 0.0 from NaT into a raise.
+    """
+    if lib.is_float(other) and other != 0 and other.is_integer():
+        return int(other)
+    return other
+
+
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
@@ -503,13 +520,15 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
                     "integers instead"
                 )
+            other = _exact_if_integral(other)
             if lib.is_integer(other):
                 # GH#43178: detect int64 overflow rather than silently wrapping
                 #  in the i8 cast below (e.g. a multiplier outside int64 bounds).
                 # TODO(numpy>=2.5): numpy detects this natively (numpy GH-31378)
                 #  but raises OverflowError; once the numpy floor is >= 2.5, drop
                 #  mul_overflowsafe and re-wrap numpy's error as
-                #  OutOfBoundsTimedelta. The float path isn't covered and stays.
+                #  OutOfBoundsTimedelta. The non-integral float path isn't
+                #  covered and stays.
                 other = int(other)
                 if other > lib.i8max or other < -lib.i8max - 1:
                     raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
@@ -645,6 +664,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot divide {type(other).__name__} by {type(self).__name__}"
                 )
 
+            other = _exact_if_integral(other)
             if lib.is_float(other):
                 # GH#43178: raise instead of silently saturating on overflow
                 self._check_float_div_overflow(other)
@@ -890,7 +910,36 @@ class TimedeltaArray(dtl.TimelikeOps):
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
         """
         pps = periods_per_second(self._creso)
-        return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
+        asi8 = self.asi8
+        # Divide the integer-second part and the sub-second residual
+        # separately, mirroring the same divmod split in the scalar
+        # `_Timedelta.total_seconds`, so the result matches it bit-for-bit
+        # (on IEEE-strict platforms; 32-bit x87 excess precision can differ
+        # in the last ulp). A single asi8 / pps division rounds at the tick
+        # magnitude and loses precision for values above 2**53.
+        floor_s, residual = np.divmod(asi8, pps)
+        result = floor_s + residual / pps
+        if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():
+            # Only above 2**53 ticks can the float result round onto an
+            # integer-second boundary; the threshold is unit-independent
+            # because a collapse needs ulp(floor_s) > 2 / pps, i.e.
+            # |asi8| ~ floor_s * pps > 2**53. A sub-second residual puts the
+            # true value strictly inside (floor, floor + 1), so nudge off
+            # either boundary, otherwise bisect-style lookups (e.g. dateutil
+            # DST, GH#31043) misclassify the timestamp as on a transition.
+            # This mirrors the scalar guard in `_Timedelta.total_seconds`,
+            # including its bound: beyond 2**52 seconds float64s are spaced
+            # >= 1 second apart, so every representable value sits on a
+            # boundary and nudging would only add error.
+            fixable = (residual != 0) & (np.abs(floor_s) < 2**52)
+            floor_f = floor_s.astype(np.float64)
+            on_floor = fixable & (result == floor_f)
+            on_ceil = fixable & (result == floor_f + 1.0)
+            if on_floor.any():
+                result = np.where(on_floor, np.nextafter(result, result + 1.0), result)
+            if on_ceil.any():
+                result = np.where(on_ceil, np.nextafter(result, result - 1.0), result)
+        return self._maybe_mask_results(result, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """

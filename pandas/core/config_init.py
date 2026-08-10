@@ -461,10 +461,12 @@ with cf.config_prefix("mode"):
 max_threads_doc = """
 : int or None
     Maximum number of worker threads for parallel operations (e.g. ``read_csv``
-    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``.
-    Set to ``1`` to disable parallel execution, or to a fixed number to raise the
-    cap or to limit thread usage when pandas is embedded in a larger parallel
-    workflow.
+    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``,
+    further limited to the CPUs available to the process (CPU affinity and cgroup
+    limits); on Windows the default is ``1``, as parallel reading is not faster
+    there.  Set to ``1`` to disable parallel execution, or to a fixed number to
+    raise the cap or to limit thread usage when pandas is embedded in a larger
+    parallel workflow.  Ignored on Emscripten/Pyodide, which cannot spawn threads.
 """
 
 
@@ -735,26 +737,41 @@ styler_max_columns = """
 styler_precision = """
 : int
     The precision for floats and complex numbers.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_decimal = """
 : str
     The character representation for the decimal separator for floats and complex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_thousands = """
 : str, optional
     The character representation for thousands separator for floats, int and complex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_na_rep = """
 : str, optional
     The string representation for values identified as missing.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_escape = """
 : str, optional
     Whether to escape certain characters according to the given context; html or latex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_formatter = """

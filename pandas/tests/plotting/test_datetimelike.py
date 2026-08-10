@@ -171,7 +171,7 @@ class TestTSPlot:
         assert conv._get_datevalue(None, "D") is None
         assert conv._get_datevalue(1987, "Y") == 1987
         assert (
-            conv._get_datevalue(Period(1987, "Y"), "M")
+            conv._get_datevalue(Period("1987", "Y"), "M")
             == Period("1987-12", "M").ordinal
         )
         assert conv._get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
@@ -585,7 +585,7 @@ class TestTSPlot:
 
     def test_finder_annual(self):
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
-        xp = [Period(x, freq="Y").ordinal for x in xp]
+        xp = [Period(str(x), freq="Y").ordinal for x in xp]
         rs = []
         for nyears in [5, 10, 19, 49, 99, 199, 599, 1001]:
             rng = period_range("1987", periods=nyears, freq="Y")
@@ -1616,7 +1616,7 @@ class TestTSPlot:
         y = list(range(len(x)))
         _, ax = mpl.pyplot.subplots()
         lines = ax.plot(x, y, label="Y")
-        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x)
+        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x, check_freq=False)
 
     def test_mpl_nopandas(self):
         dates = [date(2008, 12, 31), date(2009, 1, 31)]

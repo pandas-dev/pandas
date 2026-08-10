@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 
 import numpy as np
 
@@ -42,7 +42,7 @@ class TimeTZConvert:
         #  dti = DatetimeIndex(self.i8data, tz=tz)
         #  dti.tz_localize(None)
         if old_sig:
-            tz_convert_from_utc(self.i8data, timezone.utc, tz)
+            tz_convert_from_utc(self.i8data, UTC, tz)
         else:
             tz_convert_from_utc(self.i8data, tz)
 

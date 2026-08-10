@@ -80,7 +80,8 @@ def test_values_multiindex_datetimeindex():
 def test_values_multiindex_periodindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
     ints = np.arange(2007, 2012)
-    pidx = pd.PeriodIndex(ints, freq="D")
+    strs = [str(x) for x in ints]
+    pidx = pd.PeriodIndex(strs, freq="D")
 
     idx = MultiIndex.from_arrays([ints, pidx])
     result = idx.values

@@ -793,6 +793,31 @@ class TestSeriesConstructors:
         with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="uint8")
 
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_constructor_int_above_float64_range(self, reverse):
+        # GH#66519 an int too big for any numeric dtype infers object dtype
+        #  wherever it sits. A list is inferred with convert_numeric=True and
+        #  used to raise OverflowError in either order; an object array stops at
+        #  the first integer, so it only raised with the big value first.
+        huge = 10**400
+        data = [1, huge] if reverse else [huge, 1]
+        arr = np.array(data, dtype=object)
+
+        assert Series(data).dtype == object
+        assert Index(data).dtype == object
+        assert Series(arr).dtype == object
+        assert Index(arr).dtype == object
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_constructor_uint64_int64_conflict_after_none(self, reverse):
+        # GH#66519 a None before either value used to hide the conflict,
+        #  giving a float64 that rounds 2**64 - 1 up to 2**64
+        data = [-1, 2**64 - 1] if reverse else [2**64 - 1, -1]
+
+        result = Series([None, *data])
+        assert result.dtype == object
+        assert result[1] == data[0]
+
     @pytest.mark.parametrize(
         "values",
         [
@@ -1127,7 +1152,7 @@ class TestSeriesConstructors:
 
         exp = DatetimeIndex(result)
         exp = exp.tz_localize("UTC").tz_convert(tz=s.dt.tz)
-        tm.assert_index_equal(dr, exp)
+        tm.assert_index_equal(dr, exp, check_freq=False)
 
         # indexing
         result = s.iloc[0]
@@ -1293,7 +1318,9 @@ class TestSeriesConstructors:
         assert result.dtype == "Period[D]"
 
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
-        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+        msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
 
         val = series[3]
         assert isna(val)

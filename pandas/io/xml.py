@@ -342,44 +342,53 @@ class _XMLFrameParser:
             set(self.iterparse[row_node])
         )
 
-        for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
-            curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
+        parser = iterparse(self.path_or_buffer, events=("start", "end"))
+        try:
+            for event, elem in parser:
+                curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
-            if event == "start":
-                if curr_elem == row_node:
-                    row = {}
+                if event == "start":
+                    if curr_elem == row_node:
+                        row = {}
 
-            if row is not None:
-                if self.names and iterparse_repeats:
-                    for col, nm in zip(
-                        self.iterparse[row_node], self.names, strict=True
-                    ):
-                        if curr_elem == col:
-                            elem_val = elem.text if elem.text else None
-                            if elem_val not in row.values() and nm not in row:
-                                row[nm] = elem_val
+                if row is not None:
+                    if self.names and iterparse_repeats:
+                        for col, nm in zip(
+                            self.iterparse[row_node], self.names, strict=True
+                        ):
+                            if curr_elem == col:
+                                elem_val = elem.text if elem.text else None
+                                if elem_val not in row.values() and nm not in row:
+                                    row[nm] = elem_val
 
-                        if col in elem.attrib:
-                            if elem.attrib[col] not in row.values() and nm not in row:
-                                row[nm] = elem.attrib[col]
-                else:
-                    for col in self.iterparse[row_node]:
-                        if curr_elem == col:
-                            row[col] = elem.text if elem.text else None
-                        if col in elem.attrib:
-                            row[col] = elem.attrib[col]
+                            if col in elem.attrib:
+                                if (
+                                    elem.attrib[col] not in row.values()
+                                    and nm not in row
+                                ):
+                                    row[nm] = elem.attrib[col]
+                    else:
+                        for col in self.iterparse[row_node]:
+                            if curr_elem == col:
+                                row[col] = elem.text if elem.text else None
+                            if col in elem.attrib:
+                                row[col] = elem.attrib[col]
 
-            if event == "end":
-                if curr_elem == row_node and row is not None:
-                    dicts.append(row)
-                    row = None
+                if event == "end":
+                    if curr_elem == row_node and row is not None:
+                        dicts.append(row)
+                        row = None
 
-                elem.clear()
-                if hasattr(elem, "getprevious"):
-                    while (
-                        elem.getprevious() is not None and elem.getparent() is not None
-                    ):
-                        del elem.getparent()[0]
+                    elem.clear()
+                    if hasattr(elem, "getprevious"):
+                        while (
+                            elem.getprevious() is not None
+                            and elem.getparent() is not None
+                        ):
+                            del elem.getparent()[0]
+        finally:
+            if hasattr(parser, "close"):
+                parser.close()
 
         if dicts == []:
             raise ParserError("No result from selected items in iterparse.")
@@ -954,15 +963,18 @@ def read_xml(
         installed and specify 'lxml' as ``parser``. The ``xpath`` must
         reference nodes of transformed XML document generated after XSLT
         transformation and not the original XML document. Only XSLT 1.0
-        scripts and not later versions is currently supported.
+        scripts and not later versions is currently supported. This option
+        cannot be combined with ``iterparse`` and is ignored if ``iterparse``
+        is used.
 
     iterparse : dict, optional
         The nodes or attributes to retrieve in iterparsing of XML document
         as a dict with key being the name of repeating element and value being
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
-        and unlike ``xpath``, descendants do not need to relate to each other but can
-        exist anywhere in document under the repeating element. This memory-
+        and any ``stylesheet`` is ignored, since XSLT requires the whole tree in
+        memory. Unlike ``xpath``, descendants do not need to relate to each other
+        but can exist anywhere in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 
@@ -1117,6 +1129,36 @@ def read_xml(
     ...     StringIO(xml),
     ...     xpath="//doc:row",
     ...     namespaces={"doc": "https://example.com"},
+    ... )
+    >>> df
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
+    >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
+    ... <data xmlns="http://example.com">
+    ...  <row>
+    ...    <shape>square</shape>
+    ...    <degrees>360</degrees>
+    ...    <sides>4.0</sides>
+    ...  </row>
+    ...  <row>
+    ...    <shape>circle</shape>
+    ...    <degrees>360</degrees>
+    ...    <sides/>
+    ...  </row>
+    ...  <row>
+    ...    <shape>triangle</shape>
+    ...    <degrees>180</degrees>
+    ...    <sides>3.0</sides>
+    ...  </row>
+    ... </data>'''
+
+    >>> df = pd.read_xml(
+    ...     StringIO(xml),
+    ...     xpath="//doc:row",
+    ...     namespaces={"doc": "http://example.com"},
     ... )
     >>> df
           shape  degrees  sides

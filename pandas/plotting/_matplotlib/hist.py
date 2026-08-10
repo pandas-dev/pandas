@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -537,7 +538,7 @@ def hist_frame(
         data = data[column]
     # GH32590
     data = data.select_dtypes(
-        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+        include=(np.number, "datetime64", DatetimeTZDtype), exclude="timedelta"
     )
     naxes = len(data.columns)
 
