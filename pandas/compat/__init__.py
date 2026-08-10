@@ -21,6 +21,7 @@ from pandas.compat._constants import (
     PY312,
     PY313,
     PY314,
+    PY315,
     PYPY,
     WASM,
 )
@@ -147,6 +148,7 @@ __all__ = [
     "PY312",
     "PY313",
     "PY314",
+    "PY315",
     "PYARROW_INSTALLED",
     "PYARROW_MIN_VERSION",
     "PYPY",

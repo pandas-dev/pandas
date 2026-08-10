@@ -414,6 +414,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
     _str_zfill = ArrowStringArrayMixin._str_zfill
+    _str_normalize = ArrowStringArrayMixin._str_normalize
 
     @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
@@ -546,6 +547,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         pat, _, _ = self._preprocess_re_pattern(pat, True, 0)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
+
+    def _str_partition(self, sep: str, expand: bool):
+        if expand:
+            # rows of three strings, so a list array rather than Self
+            return ArrowExtensionArray(
+                ArrowStringArrayMixin._str_partition_expand(self, sep)
+            )
+        # expand=False wants tuples, which the object path produces directly
+        return ObjectStringArrayMixin._str_partition(self, sep, expand)
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:

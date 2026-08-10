@@ -39,6 +39,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
+from pandas.compat._cpu import available_cpu_count
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -199,6 +200,12 @@ _python_unsupported = {"low_memory", "float_precision"}
 _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
 # Minimum rows per parallel chunk, bounding how finely a file is split.
 _PARALLEL_MIN_CHUNK_ROWS = 2000
+
+# Ceiling on the *default* parallel-read worker count: parallel CSV reading
+# sees diminishing returns beyond a handful of workers, and a low default
+# avoids oversubscribing the machine.  mode.max_threads overrides it in either
+# direction.
+_MAX_DEFAULT_WORKERS = 4
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -340,26 +347,7 @@ def _read(
     # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
     # and type-conversion code in parsers.pyx runs truly in parallel.
     if not iterator and chunksize is None and nrows is None:
-        _max = get_option("mode.max_threads")
-        if sys.platform == "emscripten":
-            # WASM cannot spawn threads, regardless of mode.max_threads.
-            _n_workers = 1
-        elif _max is not None:
-            _n_workers = _max
-        elif sys.platform == "win32":
-            # Parallel CSV reading does not currently speed up on Windows: even
-            # with the file warm in the OS cache, using more than one thread is
-            # no faster (and slower at two threads).  Default to serial there;
-            # users can still opt in explicitly via mode.max_threads.  See the
-            # benchmark numbers in the GH#64347 discussion:
-            # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
-            _n_workers = 1
-        else:
-            # Cap the default at 4 threads: parallel CSV reading sees
-            # diminishing returns beyond a handful of workers, and a lower
-            # default avoids oversubscribing the machine.  Users who want more
-            # can opt in explicitly via mode.max_threads.
-            _n_workers = min(os.cpu_count() or 1, 4)
+        _n_workers = _default_n_workers()
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             _filepath = stringify_path(filepath_or_buffer)
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
@@ -382,6 +370,41 @@ def _read(
 
     with parser:
         return parser.read(nrows)
+
+
+def _default_n_workers() -> int:
+    """
+    Default worker count for a parallel ``read_csv``.
+
+    ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
+    cannot spawn threads at all).  Otherwise parallel reading is off by default
+    on Windows, and elsewhere is the smallest of the machine's logical CPU
+    count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available to the
+    process (CPU affinity / cgroup limits) -- so that an embedded or
+    containerised pandas does not oversubscribe its allocation.
+    """
+    max_threads = get_option("mode.max_threads")
+    if sys.platform == "emscripten":
+        # WASM cannot spawn threads, regardless of mode.max_threads.
+        return 1
+    if max_threads is not None:
+        return max_threads
+    if sys.platform == "win32":
+        # Parallel CSV reading does not currently speed up on Windows: even
+        # with the file warm in the OS cache, using more than one thread is
+        # no faster (and slower at two threads).  Default to serial there;
+        # users can still opt in explicitly via mode.max_threads.  See the
+        # benchmark numbers in the GH#64347 discussion:
+        # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
+        return 1
+    n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
+    # os.cpu_count() counts the machine's CPUs, not the ones this process may
+    # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
+    # single-CPU container.
+    available = available_cpu_count()
+    if available is not None:
+        n_workers = min(n_workers, available)
+    return n_workers
 
 
 def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
@@ -424,7 +447,8 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       path, and that error must not be masked.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
       chunk-relative (i.e. wrong) line numbers.
-    * The file is at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
+    * Both the file and its data section (i.e. excluding the header preamble)
+      are at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
 
     Note that a chunk boundary landing on a newline embedded inside a quoted
     field leaves that chunk's parser inside an open quote at EOF, which raises
@@ -819,6 +843,11 @@ def _read_csv_parallel(
         # Buffers are reused across the queued chunks and freed at close;
         # trimming between chunks would stall other workers on reallocs.
         reader._engine._reader.trim_after_read = False
+        # Hand back string columns as raw pending handles: the gather below
+        # combines each column's chunks into one ExtensionArray, so the
+        # GIL-held pyarrow wrap happens once per column rather than once per
+        # chunk in every worker.
+        reader._engine.wrap_deferred = False
         workers_readers.append(reader)
         while True:
             try:
@@ -1141,13 +1170,12 @@ def read_csv(
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
-        Character or regex pattern to treat as the delimiter. If ``sep=None``, the
-        C engine cannot automatically detect
-        the separator, but the Python parsing engine can, meaning the latter will
-        be used and automatically detect the separator from only the first valid
-        row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
+        the separator from the first valid row of the file with Python's builtin
+        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
+        engine and must be combined with ``engine='python'`` explicitly.
         In addition, separators longer than 1 character and different from
-        ``'\\s+'`` will be interpreted as regular expressions and will also force
+        ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
@@ -1230,13 +1258,16 @@ def read_csv(
     engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
-        is currently more feature-complete. Multithreading
-        is currently only supported by
-        the pyarrow engine. Some features of the "pyarrow" engine
+        is currently more feature-complete. The pyarrow engine is
+        multithreaded, and the C engine reads sufficiently large files in
+        parallel. Some features of the "pyarrow" engine
         are unsupported or may not work correctly.
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
-        be column labels or column indices.
+        be column labels or column indices. The function is applied to the raw
+        text read from the file, before any missing-value detection: an empty
+        field is passed as an empty string ``''``, and ``na_values`` and
+        ``keep_default_na`` have no effect on a column that has a converter.
     true_values : list, optional
         Values to consider as ``True`` in addition
         to case-insensitive variants of 'True'.
@@ -1739,13 +1770,12 @@ def read_table(
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
-        Character or regex pattern to treat as the delimiter. If ``sep=None``, the
-        C engine cannot automatically detect
-        the separator, but the Python parsing engine can, meaning the latter will
-        be used and automatically detect the separator from only the first valid
-        row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
+        the separator from the first valid row of the file with Python's builtin
+        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
+        engine and must be combined with ``engine='python'`` explicitly.
         In addition, separators longer than 1 character and different from
-        ``'\\s+'`` will be interpreted as regular expressions and will also force
+        ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
@@ -1825,13 +1855,16 @@ def read_table(
     engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
-        is currently more feature-complete. Multithreading is
-        currently only supported by
-        the pyarrow engine. The 'pyarrow' engine is an *experimental* engine,
+        is currently more feature-complete. The pyarrow engine is
+        multithreaded, and the C engine reads sufficiently large files in
+        parallel. The 'pyarrow' engine is an *experimental* engine,
         and some features are unsupported, or may not work correctly, with this engine.
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
-        be column labels or column indices.
+        be column labels or column indices. The function is applied to the raw
+        text read from the file, before any missing-value detection: an empty
+        field is passed as an empty string ``''``, and ``na_values`` and
+        ``keep_default_na`` have no effect on a column that has a converter.
     true_values : list, optional
         Values to consider as ``True`` in addition to
         case-insensitive variants of 'True'.

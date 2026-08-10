@@ -181,7 +181,8 @@ cdef dict _parse_code_table = {"y": 0,
                                "G": 20,
                                "V": 21,
                                "u": 22,
-                               "N": 23}
+                               "N": 23,
+                               "colon_z": 24}
 
 
 cdef _validate_fmt(str fmt):
@@ -470,10 +471,14 @@ def array_strptime(
                     creso = state.creso
                 iresult[i] = get_datetime64_nanos(val, creso)
                 continue
-            elif (
-                    (is_integer_object(val) or is_float_object(val))
-                    and (val != val or val == NPY_NAT)
-            ):
+            elif is_float_object(val) and (val != val or float(val) == NPY_NAT):
+                # GH#56996 widen before the sentinel comparison: a np.float16
+                #  would otherwise cast NPY_NAT down to float16 and warn about
+                #  the overflow. `val` itself must stay un-widened, since the
+                #  numeric branch below stringifies it.
+                iresult[i] = NPY_NAT
+                continue
+            elif is_integer_object(val) and val == NPY_NAT:
                 iresult[i] = NPY_NAT
                 continue
             elif is_integer_object(val) or is_float_object(val):
@@ -705,9 +710,19 @@ cdef tzinfo _parse_with_format(
                 f"time data \"{val}\" doesn't match format \"{fmt}\""
             )
         if len(val) != found.end():
+            rest = val[found.end():]
+            # Specific check for '%:z' directive
+            if (
+                "colon_z" in found.re.groupindex
+                and found.group("colon_z") is not None
+                and rest[0] != ":"
+            ):
+                raise ValueError(
+                    f"Missing colon in %:z before '{rest}', got '{val}'"
+                )
             raise ValueError(
                 "unconverted data remains when parsing with "
-                f"format \"{fmt}\": \"{val[found.end():]}\""
+                f"format \"{fmt}\": \"{rest}\""
             )
 
     else:
@@ -741,6 +756,7 @@ cdef tzinfo _parse_with_format(
         #      worthless without day of the week
         parse_code = _parse_code_table[group_key]
 
+        # if group_key == 'y':
         if parse_code == 0:
             year = int(group_val)
             # Open Group specification for strptime() states that a %y
@@ -752,9 +768,11 @@ cdef tzinfo _parse_with_format(
             else:
                 year += 1900
                 # TODO: not reached in tests 2023-10-28
+        # elif group_key == 'Y':
         elif parse_code == 1:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             year = int(group_val)
+        # elif group_key == 'm':
         elif parse_code == 2:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             month = int(group_val)
@@ -774,6 +792,7 @@ cdef tzinfo _parse_with_format(
         elif parse_code == 6:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             hour = int(group_val)
+        # elif group_key == 'I':
         elif parse_code == 7:
             hour = int(group_val)
             ampm = found_dict.get("p", "").lower()
@@ -797,12 +816,15 @@ cdef tzinfo _parse_with_format(
                     hour += 12
                     # TODO: the implicit `else` branch is not tested 2023-10-28
             # TODO: the implicit `else` branch is not reached 2023-10-28; possible?
+        # elif group_key == 'M':
         elif parse_code == 8:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             minute = int(group_val)
+        # elif group_key == 'S':
         elif parse_code == 9:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             second = int(group_val)
+        # elif group_key == 'f':
         elif parse_code == 10:
             # e.g. val='10:10:10.100'; fmt='%H:%M:%S.%f'
             s = group_val
@@ -824,12 +846,15 @@ cdef tzinfo _parse_with_format(
             us = int(s)
             ns = us % 1000
             us = us // 1000
+        # elif group_key == 'A':
         elif parse_code == 11:
             # e.g val='Tuesday 24 Aug 2021 01:30:48 AM'; fmt='%A %d %b %Y %I:%M:%S %p'
             weekday = f_weekday_lookup[group_val.lower()]
+        # elif group_key == 'a':
         elif parse_code == 12:
             # e.g. val='Tue 24 Aug 2021 01:30:48 AM'; fmt='%a %d %b %Y %I:%M:%S %p'
             weekday = a_weekday_lookup[group_val.lower()]
+        # elif group_key == 'w':
         elif parse_code == 13:
             weekday = int(group_val)
             if weekday == 0:
@@ -838,9 +863,11 @@ cdef tzinfo _parse_with_format(
             else:
                 # e.g. val='2009324'; fmt='%Y%W%w'
                 weekday -= 1
+        # elif group_key == 'j':
         elif parse_code == 14:
             # e.g. val='2009164202000'; fmt='%Y%j%H%M%S'
             julian = int(group_val)
+        # elif group_key in ('U', 'W'):
         elif parse_code == 15 or parse_code == 16:
             week_of_year = int(group_val)
             if group_key == "U":
@@ -854,8 +881,14 @@ cdef tzinfo _parse_with_format(
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
             tz = zoneinfo.ZoneInfo(group_val)
-        elif parse_code == 19:
+        # elif group_key in ('z', 'colon_z'):
+        elif parse_code == 19 or parse_code == 24:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
+            if group_val is None:
+                raise ValueError(
+                    f"time data \"{val}\" doesn't match format \"{fmt}\""
+                )
+
             tz = parse_timezone_directive(group_val)
         elif parse_code == 20:
             # e.g. val='2015-1-7'; fmt='%G-%V-%u'

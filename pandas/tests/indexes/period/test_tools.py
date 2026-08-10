@@ -27,7 +27,7 @@ class TestPeriodRepresentation:
             ("us", "1970-01-01"),
             ("ns", "1970-01-01"),
             ("M", "1970-01"),
-            ("Y", 1970),
+            ("Y", "1970"),
         ],
     )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")

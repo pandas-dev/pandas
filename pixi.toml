@@ -30,20 +30,18 @@ platforms = ["linux-64"]
 dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
 activation = { env = { CC = "clang", CXX = "clang++" } }
 
+# test latest 4 releases + nightly of numpy across the 4 tested Python versions
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
-
-# latest version (currently 2.4) is included in "numpy" feature above, in addition
-# test the 3 minor versions before -> test latest 4 versions of numpy spread
-# across the 4 tested Python versions
-[feature.numpy21.dependencies]
-numpy = "2.1.*"
 
 [feature.numpy22.dependencies]
 numpy = "2.2.*"
 
 [feature.numpy23.dependencies]
 numpy = "2.3.*"
+
+[feature.numpy24.dependencies]
+numpy = "2.4.*"
 
 [feature.numpy-nightly.pypi-dependencies]
 numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -74,8 +72,7 @@ pytest-cov = ">=7.0.0"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
-# TODO: Try changing to boto3 >= instead
-boto3 = "==1.40.46"
+boto3 = ">=1.40.46"
 
 [feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"
@@ -86,14 +83,18 @@ qtpy = ">=2.4.2"
 [feature.pyarrow.dependencies]
 pyarrow = ">=16.0.0"
 
-[feature.pyarrow21.dependencies]
-pyarrow = "21.*"
-
 [feature.pyarrow22.dependencies]
 pyarrow = "22.*"
 
 [feature.pyarrow23.dependencies]
 pyarrow = "23.*"
+
+[feature.pyarrow24.dependencies]
+pyarrow = "24.*"
+
+# To avoid pyarrow=24 for typing
+[feature.pyarrow25.dependencies]
+pyarrow = "25.*"
 
 [feature.pyarrow-nightly.pypi-dependencies]
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -203,9 +204,9 @@ types-pytz = "*"
 types-PyYAML = "*"
 
 [environments]
-py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies", "default-compiler"] }
-py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
-py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
+py311 = { features = ["py311", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
+py312 = { features = ["py312", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
+py313 = { features = ["py313", "numpy24", "test-base", "test-clipboard", "test-network", "pyarrow24", "optional-dependencies", "default-compiler"] }
 py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
@@ -215,8 +216,7 @@ pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"
 downstream = { features = ["py313", "numpy", "test-base", "downstream", "default-compiler"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks", "default-compiler"] }
 doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests", "default-compiler"] }
-# https://github.com/apache/arrow/issues/49831 for "pyarrow23" in typing
-typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing", "default-compiler"] }
+typing = { features = ["py313", "numpy", "test-base", "pyarrow25", "optional-dependencies", "typing", "default-compiler"] }
 docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website", "default-compiler"] }
 mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
 sanitizers = { features = ["py313", "numpy", "test-base", "optional-dependencies", "sanitizers"] }
