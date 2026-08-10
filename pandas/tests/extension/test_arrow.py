@@ -4206,11 +4206,9 @@ class TestGroupbyAggPyArrowNative:
     def test_groupby_take_error_falls_back(
         self, monkeypatch, dtype, values, how, error
     ):
-        # GH#66625 a placement that fails falls back instead of raising. No
-        # routed type reaches that today, so make take report the failure
-        # itself. ArrowNotImplementedError is a NotImplementedError, which
-        # groupby already routes to the fallback; ArrowInvalid is a ValueError
-        # and only the aggregation itself catches it.
+        # GH#66625 a failing placement falls back instead of raising; no
+        # routed type triggers that today, so make take fail. ArrowInvalid is
+        # caught here, ArrowNotImplementedError by groupby (it is one).
         ser = pd.Series(values, dtype=dtype)
         expected = getattr(ser.groupby([1, 1, 2]), how)()
 

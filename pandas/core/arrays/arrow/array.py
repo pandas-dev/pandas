@@ -3435,15 +3435,11 @@ class ArrowExtensionArray(
             )
             result_values = pc.if_else(below_min_count, None, result_values)
 
-        # Place the group results into an output ordered by group id, by
-        # building the inverse permutation: output position i takes the row of
-        # result_values holding group i, or null where group i had no rows.
-        # Only the int64 indices go through NumPy; the values stay in Arrow,
-        # which is what the object-dtype round-trip used to cost.
+        # Place the results in group-id order: the inverse permutation takes
+        # the row holding group i, and is null where group i had no rows.
         group_ids_np = result_group_ids.to_numpy(zero_copy_only=False)
         inverse = np.full(ngroups, -1, dtype=np.int64)
         inverse[group_ids_np] = np.arange(len(group_ids_np))
-        # null marks a group with no rows, which take propagates to the output
         indices = pa.array(inverse, mask=inverse < 0)
 
         try:
@@ -3461,9 +3457,8 @@ class ArrowExtensionArray(
                         pc.is_null(indices), default_value, pa_result
                     )
         except pa.ArrowInvalid:
-            # e.g. a decimal needing more digits than the maximum precision.
-            # ArrowNotImplementedError needs no branch here: it is a
-            # NotImplementedError, which groupby already routes to the fallback.
+            # e.g. a decimal needing more digits than the maximum precision;
+            # ArrowNotImplementedError needs no branch, groupby routes that one
             return None
         return self._from_pyarrow_array(pa_result)
 
