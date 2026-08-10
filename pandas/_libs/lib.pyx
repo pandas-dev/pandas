@@ -2703,14 +2703,14 @@ def maybe_convert_numeric(
             floats[i] = complexes[i] = val
             seen.float_ = True
         else:
+            if convert_to_masked_nullable and isinstance(val, str):
+                if val == "nan" or val == "NaN" or val == "NAN":
+                    fval = NaN
+                    seen.null_ = True
+                    seen.float_ = True
+                    floats[i] = complexes[i] = fval
+                    continue
             try:
-                if convert_to_masked_nullable and PyUnicode_Check(val):
-                    if val == "nan" or val == "NaN" or val == "NAN":
-                        fval = NaN
-                        seen.null_ = True
-                        seen.float_ = True
-                        floats[i] = fval
-                        continue
                 floatify(val, &fval, &maybe_int)
                 if fval in na_values:
                     seen.saw_null()
