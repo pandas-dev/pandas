@@ -440,8 +440,8 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       literal newline would be split mid-field.
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
-    * ``low_memory`` is not ``False`` - ``low_memory=False`` guarantees
-      whole-file type inference, which per-chunk parallel reading cannot honour
+    * ``low_memory`` is truthy - a falsy ``low_memory`` guarantees whole-file
+      type inference, which per-chunk parallel reading cannot honour
       (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
@@ -544,9 +544,12 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if kwds.get("parse_dates"):
         return False
 
-    # low_memory=False guarantees whole-file type inference, which per-chunk
-    # parallel reading cannot honour (GH#64347).
-    if kwds.get("low_memory") is False:
+    # A falsy low_memory guarantees whole-file type inference, which per-chunk
+    # parallel reading cannot honour (GH#64347).  Test truthiness, not identity:
+    # low_memory is not coerced to bool, and the serial path in
+    # CParserWrapper.read also branches on truthiness, so low_memory=0 /
+    # np.False_ must take the serial path too (GH#66327).
+    if not kwds.get("low_memory", True):
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
