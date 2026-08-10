@@ -42,6 +42,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._cpu import available_cpu_count
 from pandas.errors import (
     AbstractMethodError,
+    EmptyDataError,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -697,8 +698,9 @@ def _read_csv_parallel(
 
     Returns ``None`` when parallel reading turns out not to be applicable
     after all (the data section cannot be split, the engine falls back to
-    python, or per-chunk dtype inference disagrees in a way that would not
-    match the serial result); the caller then reads serially.  Splitting is
+    python, the one-line sample used to infer column names has no columns, or
+    per-chunk dtype inference disagrees in a way that would not match the
+    serial result); the caller then reads serially.  Splitting is
     done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
     ``ParserError`` from the affected worker - the caller treats that as a
     serial-fallback signal too.
@@ -760,7 +762,14 @@ def _read_csv_parallel(
         first_line = fd.readline()
 
     name_buf = io.BytesIO(preamble + first_line)
-    name_reader = TextFileReader(name_buf, **base_kwds)
+    try:
+        name_reader = TextFileReader(name_buf, **base_kwds)
+    except EmptyDataError:
+        # The one data line we sliced off is blank (e.g. header=None on a file
+        # whose first physical line is empty), so the name-inference read sees
+        # no columns.  The serial path skips the blank line and reads the file
+        # fine, so fall back rather than propagate.  GH#66259
+        return None
     if not isinstance(name_reader._engine, CParserWrapper):
         # TextFileReader fell back to the python engine for a reason the
         # eligibility checks did not anticipate; load_buffer needs the C engine.
