@@ -496,6 +496,22 @@ class TestTZLocalize:
         with pytest.raises(ValueError, match=msg):
             dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
+    def test_dti_tz_localize_nonexistent_shift_overflow(self):
+        # GH#66697
+        dti = DatetimeIndex(["2011-03-13 02:30"]).as_unit("ns")
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=Timedelta.max)
+
+    def test_dti_tz_localize_nonexistent_shift_utc_overflow(self):
+        # GH#66697
+        ts = Timestamp("2011-03-13 02:30").as_unit("ns")
+        dti = DatetimeIndex([ts, ts])
+        shift = Timestamp.max - ts - Timedelta(hours=1)
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=shift)
+
 
 def test_dti_tz_localize_nonexistent_shift_past_last_transition():
     # GH#66550 a shift landing past the last cached DST transition indexed the
