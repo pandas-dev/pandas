@@ -414,6 +414,38 @@ def test_contains_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_contains_end_of_string_not_at_end_of_pattern(any_string_dtype):
+    # GH#63705 `\Z` is an end-of-string assertion wherever it appears in the
+    # pattern, not only when it is the last thing in it
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["foo", "bar", "foobar"], dtype=any_string_dtype)
+
+    result = ser.str.contains(r"foo\Z|bar")
+    expected = Series([True, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.contains(r"(?:foo\Z)")
+    expected = Series([True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_contains_end_of_string_not_regex(any_string_dtype):
+    # GH#63705 with regex=False the pattern is matched literally, so `\Z` must
+    # not be rewritten to `\z`
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["foo", r"bar\Z", r"bar\z", "baz"], dtype=any_string_dtype)
+
+    result = ser.str.contains(r"bar\Z", regex=False)
+    expected = Series([False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
