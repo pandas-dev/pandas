@@ -1670,3 +1670,21 @@ class TestDataFrameReplaceRegex:
             assert len(df._mgr.blocks) == 2
         else:
             assert len(df._mgr.blocks) == 1
+
+
+@pytest.mark.parametrize(
+    "replace_kwargs",
+    [
+        {"to_replace": {1: "x", 99: "y"}},
+        {"to_replace": [1, 99], "value": ["x", "y"]},
+        {"to_replace": [1, 99, 98], "value": ["x", "y", "z"]},
+    ],
+)
+def test_replace_list_multiple_unchanged_columns(replace_kwargs):
+    # GH#61972 dropping the temporary blocks from the refs popped by stale
+    #  indices, so two or more unchanged columns raised IndexError
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    result = df.replace(**replace_kwargs)
+
+    expected = DataFrame({"a": ["x", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    tm.assert_frame_equal(result, expected)
