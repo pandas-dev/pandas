@@ -919,7 +919,12 @@ class TestiLocBaseIndependent:
         # GH#64230 rows are split across the target columns when one of them is
         # created by the setitem
         df = DataFrame({"a": [0.0, 0.0]})
-        df.loc[:, ["a", "new"]] = [box([1, 2]), box([3, 4])]
+        # spell the rows int64: the row dtype carries into the created column,
+        # and a bare np.array would be int32 on 32-bit platforms
+        df.loc[:, ["a", "new"]] = [
+            box(np.array([1, 2], dtype=np.int64)),
+            box(np.array([3, 4], dtype=np.int64)),
+        ]
 
         expected = DataFrame({"a": [1.0, 3.0], "new": [2, 4]})
         tm.assert_frame_equal(df, expected)
