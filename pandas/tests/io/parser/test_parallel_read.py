@@ -16,12 +16,14 @@ import csv
 import io
 import os
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas.compat import WASM
 from pandas.errors import (
+    EmptyDataError,
     ParserError,
     ParserWarning,
 )
@@ -200,6 +202,16 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(delimiter=";;"))
         assert not _can_parallelize_csv(path, self._kwds(delimiter=None))
         assert _can_parallelize_csv(path, self._kwds(delimiter=r"\s+"))
+
+    def test_rejects_multibyte_sep_and_quotechar(self, tmp_path, monkeypatch):
+        # A separator or quotechar wider than one byte forces the python
+        # engine too, warning as it does so (GH#66259).
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(delimiter="§"))
+        assert not _can_parallelize_csv(path, self._kwds(quotechar="»"))
+        assert _can_parallelize_csv(path, self._kwds(quotechar="'"))
 
     def test_rejects_comment(self, tmp_path, monkeypatch):
         path = tmp_path / "data.csv"
@@ -614,6 +626,17 @@ class TestReadCsvParallel:
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
+    def test_blank_first_data_line_returns_none(self, tmp_path):
+        # header=None with a blank first data line: name inference parses a
+        # single blank line and raises EmptyDataError, which must be turned
+        # into a serial fallback rather than propagate (GH#66259).
+        path = tmp_path / "blank_first.csv"
+        path.write_text(
+            "\n" + "".join(f"{i},{i * 2}\n" for i in range(5_000)), encoding="utf-8"
+        )
+        kwds = self._base_kwds(path, header=None)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
     def test_quoted_newline_in_header_returns_none(self, tmp_path):
         # A quoted embedded newline in the header makes the physical line
         # count disagree with the logical row count, so data_start would land
@@ -957,6 +980,57 @@ def test_parallel_blank_line_before_header_matches_serial(tmp_path, monkeypatch)
     expected = read_csv(io.BytesIO(raw))
     tm.assert_frame_equal(result, expected)
     assert result["col1"].dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    "preamble,skiprows",
+    [
+        (b"\n", 0),
+        (b"   \n", 0),
+        (b"junk1\njunk2\n\n", 2),
+    ],
+)
+def test_parallel_blank_first_data_line_matches_serial(
+    tmp_path, monkeypatch, preamble, skiprows
+):
+    # header=None puts no header line in the preamble, so a blank first data
+    # line ends up as the single line name inference parses, and that raises
+    # EmptyDataError where the serial path just skips it (GH#66259).  A
+    # whitespace-only line must not tokenize as a single field either: that
+    # would infer one column and silently read the rest as an implicit index.
+    raw = preamble + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "blank_first.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, header=None, skiprows=skiprows)
+    expected = read_csv(io.BytesIO(raw), header=None, skiprows=skiprows)
+    tm.assert_frame_equal(result, expected)
+    assert result.shape == (500, 2)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_all_blank_lines_raises(tmp_path, monkeypatch):
+    # The fallback for a blank first data line must not mask a file that has
+    # no columns at all: serial raises, so the parallel path must too
+    # (GH#66259).
+    path = tmp_path / "blank_only.csv"
+    path.write_bytes(b"\n" * 500)
+
+    returned = []
+
+    def spy(filepath, kwds, n_workers):
+        result = _read_csv_parallel(filepath, kwds, n_workers)
+        returned.append(result)
+        return result
+
+    monkeypatch.setattr("pandas.io.parsers.readers._read_csv_parallel", spy)
+
+    msg = "No columns to parse from file"
+    with pytest.raises(EmptyDataError, match=msg):
+        _read_forced_parallel(path, monkeypatch, header=None)
+    # The serial read raises the same error, so without this the test would
+    # pass even if the parallel path propagated it directly.
+    assert returned == [None], "the parallel path did not fall back"
 
 
 def test_parallel_single_long_line(tmp_path, monkeypatch):
@@ -1318,3 +1392,237 @@ def test_parallel_embedded_nul_boolean_column(tmp_path, monkeypatch):
     expected = read_csv(path, engine="python")
     tm.assert_frame_equal(result, expected)
     assert result["a"][200] == "True\x00xyz"
+
+
+def _warnings_from(func, *args, **kwargs):
+    """Run *func*, returning every warning it raises (no de-duplication)."""
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        result = func(*args, **kwargs)
+    return result, recorded
+
+
+def _track_parallel(monkeypatch) -> list[str]:
+    """Record how each parallel attempt ends: used, declined, or raised."""
+    outcomes: list[str] = []
+    original = _readers._read_csv_parallel
+
+    def tracked(*args, **kwargs):
+        try:
+            result = original(*args, **kwargs)
+        except Exception:
+            outcomes.append("raised")
+            raise
+        outcomes.append("used" if result is not None else "declined")
+        return result
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", tracked)
+    return outcomes
+
+
+def _converter_dtype_warning(name: str) -> str:
+    return (
+        f"Both a converter and dtype were specified for column {name} - "
+        "only the converter will be used."
+    )
+
+
+# one column, then two: de-duplicating the collected warnings must not
+# collapse the distinct ones
+@pytest.mark.parametrize("names", [["col1"], ["col1", "col2"]])
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no chunk repeats the warning")
+def test_parallel_converter_dtype_warns_once(tmp_path, monkeypatch, names):
+    # The converter+dtype ParserWarning was raised once per chunk, from a pool
+    # thread whose stacklevel walk lands in threading internals (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "converter.csv"
+    path.write_bytes(raw)
+    kwargs = {
+        "converters": dict.fromkeys(names, int),
+        "dtype": dict.fromkeys(names, "int64"),
+    }
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, **kwargs
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), **kwargs)
+    assert outcomes == ["used"]
+    tm.assert_frame_equal(result, expected)
+    assert [str(warning.message) for warning in recorded] == [
+        _converter_dtype_warning(name) for name in names
+    ]
+    assert recorded[0].category is ParserWarning
+    # the caller's frame, not a worker thread's
+    assert recorded[0].filename == __file__
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_worker_exception_still_warns(tmp_path, monkeypatch):
+    # An exception the caller does not answer with a serial read must not carry
+    # the collected warnings off with it - this read is their only chance to be
+    # raised (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "boom.csv"
+    path.write_bytes(raw)
+
+    def boom(value):
+        if value == "1400":
+            raise RuntimeError("boom")
+        return value
+
+    kwargs = {"converters": {"col1": int, "col2": boom}, "dtype": {"col1": "int64"}}
+    outcomes = _track_parallel(monkeypatch)
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        with pytest.raises(RuntimeError, match="boom"):
+            _read_forced_parallel(path, monkeypatch, **kwargs)
+
+    assert outcomes == ["raised"]
+    assert [str(warning.message) for warning in recorded] == [
+        _converter_dtype_warning("col1")
+    ]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so there is no attempt to decline")
+def test_parallel_fallback_does_not_repeat_c_layer_warning(tmp_path, monkeypatch):
+    # A parallel attempt that hands back to serial must not leave its own copy
+    # of a warning behind: the name-inference read hits the same converter+dtype
+    # warning the replacing serial read raises (GH#66259).
+    raw = (
+        b"col1,col2\n"
+        + b"".join(f"{i},{i * 2}\n".encode() for i in range(950))
+        # col2 is str in the last chunk only, so the per-chunk dtypes disagree
+        # and the parallel path declines after inferring the column names
+        + b"".join(f"{i},x{i}\n".encode() for i in range(50))
+    )
+    path = tmp_path / "fallback.csv"
+    path.write_bytes(raw)
+    kwargs = {"converters": {"col1": int}, "dtype": {"col1": "int64"}}
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, **kwargs
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), **kwargs)
+    assert outcomes == ["declined"]
+    tm.assert_frame_equal(result, expected)
+    assert [str(warning.message) for warning in recorded] == [
+        _converter_dtype_warning("col1")
+    ]
+
+
+@pytest.mark.skipif(
+    WASM, reason="WASM stays serial, so there is no attempt to fall back"
+)
+def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkeypatch):
+    # Same for a warning raised by the Python layer rather than the C parser:
+    # index_col=False with more fields than header names warns in the
+    # name-inference read, and again in the serial read that a worker's
+    # ParserError falls back to (GH#66259).
+    raw = b"col1,col2\n" + b"".join(
+        f"{i},{i * 2},{i * 3}\n".encode() for i in range(500)
+    )
+    path = tmp_path / "mismatch.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, index_col=False
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), index_col=False)
+    assert outcomes == ["raised"]
+    tm.assert_frame_equal(result, expected)
+    assert [str(warning.message) for warning in recorded] == [
+        "Length of header or names does not match length of data. This leads "
+        "to a loss of data with index_col=False."
+    ]
+
+
+@pytest.mark.parametrize("kwargs", [{"quotechar": "»"}, {"sep": "§"}])
+def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
+    # Both force TextFileReader onto the python engine, which warns while
+    # falling back.  The parallel path has to decline them up front: its
+    # name-inference read would raise that warning before it can notice the
+    # engine it got, and the serial read then raises it again (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "multibyte.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, **kwargs
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), **kwargs)
+    assert outcomes == []
+    tm.assert_frame_equal(result, expected)
+    assert len(recorded) == 1
+    assert recorded[0].category is ParserWarning
+    assert "Falling back to the 'python' engine" in str(recorded[0].message)
+
+
+# 2**63 - 1 gathers through pyarrow's checked int-to-double cast; 2**64 does not
+# even fit an integer chunk, so it fails earlier, in a worker's own conversion
+@pytest.mark.parametrize(
+    ("big", "outcome"),
+    [("9223372036854775807", "declined"), ("18446744073709551616", "raised")],
+)
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the chunks never disagree")
+def test_parallel_pyarrow_huge_int_chunk_matches_serial(
+    tmp_path, monkeypatch, big, outcome
+):
+    # A chunk holding only huge integers converts as an integer column, while
+    # the whole-file serial read sees the trailing float too and infers double
+    # (or leaves the column a string).  The parallel path used to propagate the
+    # resulting ArrowInvalid / OverflowError instead of re-reading serially
+    # (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n" + f"{big}\n".encode() * 500 + b"1.5\n"
+    path = tmp_path / "huge_int.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    expected = read_csv(io.BytesIO(raw), dtype_backend="pyarrow")
+    assert outcomes == [outcome]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so nothing infers per chunk")
+def test_parallel_pyarrow_huge_int_column_stays_parallel(tmp_path, monkeypatch):
+    # The guard above must not cost the parallel path columns it handles fine:
+    # with no float row every chunk agrees on int64 and nothing falls back
+    # (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n" + b"9223372036854775807\n" * 500
+    path = tmp_path / "huge_int_only.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    expected = read_csv(io.BytesIO(raw), dtype_backend="pyarrow")
+    assert outcomes == ["used"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no sample line is parsed")
+def test_parallel_huge_int_first_line_matches_serial(tmp_path, monkeypatch):
+    # The name-inference read parses one data line only to learn the column
+    # names, so a value that converts on its own but not for the whole column
+    # must not raise there (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n18446744073709551616\n" + b"".join(
+        f"{i}.5\n".encode() for i in range(500)
+    )
+    path = tmp_path / "huge_first.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    tm.assert_frame_equal(result, read_csv(io.BytesIO(raw), dtype_backend="pyarrow"))
