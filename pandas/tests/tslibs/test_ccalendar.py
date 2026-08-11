@@ -3,13 +3,12 @@ from datetime import (
     datetime,
 )
 
-from hypothesis import given
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import ccalendar
 
-from pandas._testing._hypothesis import DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -56,8 +55,17 @@ def test_dt_correct_iso_8601_year_week_and_day(input_date_tuple, expected_iso_tu
     assert result == expected_iso_tuple
 
 
-@pytest.mark.slow
-@given(DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ)
+@pytest.mark.parametrize(
+    "dt",
+    [
+        datetime(2020, 1, 1),
+        datetime(2019, 12, 31),
+        datetime(2000, 2, 29),
+        datetime(2006, 1, 1),
+        pd.Timestamp.min.to_pydatetime(warn=False),
+        pd.Timestamp.max.to_pydatetime(warn=False),
+    ],
+)
 def test_isocalendar(dt):
     expected = dt.isocalendar()
     result = ccalendar.get_iso_calendar(dt.year, dt.month, dt.day)

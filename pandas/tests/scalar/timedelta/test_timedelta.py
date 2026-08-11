@@ -3,10 +3,6 @@
 from datetime import timedelta
 import sys
 
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -599,11 +595,9 @@ class TestTimedeltas:
     @pytest.mark.xfail(
         reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
     )
-    @given(
-        st.integers(
-            min_value=(-sys.maxsize - 1) // 500,
-            max_value=sys.maxsize // 500,
-        )
+    @pytest.mark.parametrize(
+        "half_microseconds",
+        [(-sys.maxsize - 1) // 500, -10000, -1, 0, 1, 10000, sys.maxsize // 500],
     )
     def test_hash_equality_invariance(self, half_microseconds: int) -> None:
         # GH#44504

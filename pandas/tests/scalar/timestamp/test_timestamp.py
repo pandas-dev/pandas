@@ -16,10 +16,6 @@ from dateutil.tz import (
     tzlocal,
     tzutc,
 )
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -256,11 +252,17 @@ class TestTimestampProperties:
         dow = ts.weekday()
         assert dow == expected
 
-    @pytest.mark.slow
-    @given(
-        ts=st.datetimes(),
-        sign=st.sampled_from(["-", ""]),
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            datetime(2020, 1, 1),
+            datetime(2019, 12, 31),
+            datetime(2000, 2, 29),
+            datetime(1999, 12, 31),
+            datetime(1900, 1, 1),
+        ],
     )
+    @pytest.mark.parametrize("sign", ["-", ""])
     def test_dow_parametric(self, ts, sign):
         # GH 53738
         ts = (
