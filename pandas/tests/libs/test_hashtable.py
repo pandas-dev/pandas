@@ -600,6 +600,33 @@ def test_no_reallocation_StringHashTable(N):
 
 
 @pytest.mark.parametrize(
+    "keys",
+    [
+        ["", "\x00"],
+        ["x\x00y", "x\x00z"],
+        ["a", "a\x00", "a\x00\x00", "\x00a"],
+        ["\x00" * 3, "\x00" * 4],
+    ],
+)
+def test_StringHashTable_embedded_null(keys):
+    # GH#34551 the table used to key on a NUL-terminated C string, so distinct
+    #  values sharing a prefix up to their first NUL collapsed into one entry.
+    arr = np.empty(len(keys), dtype=np.object_)
+    arr[:] = keys
+
+    table = ht.StringHashTable()
+    table.map_locations(arr)
+    assert len(table) == len(keys)
+    for i, key in enumerate(keys):
+        assert table.get_item(key) == i
+
+    tm.assert_numpy_array_equal(
+        table.get_indexer(arr), np.arange(len(keys), dtype=np.intp)
+    )
+    assert list(ht.StringHashTable().unique(arr)) == keys
+
+
+@pytest.mark.parametrize(
     "table_type, dtype",
     [
         (ht.Float64HashTable, np.float64),
@@ -737,6 +764,27 @@ class TestHelpFunctions:
         result = ht.ismember(arr, values)
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_non_unique(self, dtype, writable):
+        N = 43
+        values = np.repeat((np.arange(N) + N).astype(dtype), 3)
+        targets = np.array([N + 1, N, 5], dtype=dtype)
+        values.flags.writeable = writable
+        targets.flags.writeable = writable
+        if dtype in (np.object_, np.complex128, np.complex64):
+            with pytest.raises(TypeError, match="(complex|object)"):
+                ht.get_indexer_non_unique(values, targets, False)
+            return
+        expected = np.array([3, 4, 5, 0, 1, 2, -1], dtype=np.intp)
+        expected_missing = np.array([2], dtype=np.intp)
+        # full-scan path
+        result, missing = ht.get_indexer_non_unique(values, targets, False)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+        # values are sorted, so the searchsorted path gives the same answer
+        result, missing = ht.get_indexer_non_unique(values, targets, True)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
 
     def test_mode(self, dtype, writable):
         if dtype in (np.int8, np.uint8):

@@ -321,8 +321,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"right [{type(right).__name__}] types"
             )
             raise ValueError(msg)
-        if isinstance(left.dtype, CategoricalDtype) or is_string_dtype(left.dtype):
-            # GH 19016
+        if (
+            isinstance(left.dtype, CategoricalDtype)
+            or is_string_dtype(left.dtype)
+            or is_string_dtype(right.dtype)
+        ):
+            # GH 19016, GH 66518: reject unsupported right-side dtypes too.
             msg = (
                 "category, object, and string subtypes are not supported "
                 "for IntervalArray"
@@ -1688,6 +1692,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         value_left, value_right = self._validate_setitem_value(value)
 
         if isinstance(self._left, np.ndarray):

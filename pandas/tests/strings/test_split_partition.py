@@ -6,9 +6,11 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     _testing as tm,
 )
@@ -712,6 +714,64 @@ def test_partition_index_with_name_expand_false():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["partition", {0: ["abc", "d"], 1: ["", ""], 2: ["", ""]}],
+        ["rpartition", {0: ["", ""], 1: ["", ""], 2: ["abc", "d"]}],
+    ],
+)
+def test_partition_to_dataframe_not_split(any_string_dtype, method, exp):
+    # GH#63602 sep is absent, so two of the three columns are empty strings
+    s = Series(["abc", "d"], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame(exp, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["partition", {0: ["é", "ü"], 1: ["_", "_"], 2: ["ü_é", "é"]}],
+        ["rpartition", {0: ["é_ü", "ü"], 1: ["_", "_"], 2: ["é", "é"]}],
+    ],
+)
+def test_partition_to_dataframe_multibyte(any_string_dtype, method, exp):
+    # GH#63602 splitting must happen on character, not byte, boundaries
+    s = Series(["é_ü_é", "ü_é"], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame(exp, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+@pytest.mark.parametrize("expand", [True, False])
+def test_partition_empty_sep(any_string_dtype, method, expand):
+    # GH#63602 every dtype reports an empty separator the way str.partition does
+    s = Series(["a_b"], dtype=any_string_dtype)
+    with pytest.raises(ValueError, match="empty separator"):
+        getattr(s.str, method)("", expand=expand)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+def test_partition_to_dataframe_empty(any_string_dtype, method):
+    # GH#63602 an empty Series expands to no columns at all
+    s = Series([], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+def test_partition_to_dataframe_all_na(any_string_dtype, method):
+    # GH#63602 with no non-null row to take a width from, expand to one
+    #  all-NA column, as the object-dtype implementation does
+    s = Series([None, None], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame({0: [None, None]}, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("method", ["partition", "rpartition"])
 def test_partition_sep_kwarg(any_string_dtype, method):
     # GH 22676; depr kwarg "pat" in favor of "sep"
@@ -776,3 +836,59 @@ def test_get_strings(any_string_dtype):
     result = ser.str.get(2)
     expected = Series([np.nan, np.nan, np.nan, "c"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_split_arrow_dtype_regex_inference():
+    # GH#58321 - ArrowDtype string should infer regex for multi-char patterns
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["230/270/270", "240-290-290"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split(r"/|-", expand=True)
+    expected = DataFrame(
+        {"0": ["230", "240"], "1": ["270", "290"], "2": ["270", "290"]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_split_arrow_dtype_regex_true():
+    # GH#58321 - explicit regex=True should use regex splitting
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["230/270/270", "240-290-290"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split(r"/|-", expand=True, regex=True)
+    expected = DataFrame(
+        {"0": ["230", "240"], "1": ["270", "290"], "2": ["270", "290"]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_split_arrow_dtype_single_char_literal():
+    # GH#58321 - single-char pattern with regex=None should be literal
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["a.b.c"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split(".", expand=True)
+    expected = DataFrame(
+        {"0": ["a"], "1": ["b"], "2": ["c"]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_split_arrow_dtype_regex_false_multichar():
+    # GH#58321 - regex=False with multi-char pattern: "|" is literal, not alternation
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["a|b|c", "d/e/f"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split("|", regex=False, expand=True)
+    expected = DataFrame(
+        {"0": ["a", "d/e/f"], "1": ["b", None], "2": ["c", None]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)

@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from collections import (
-    abc,
-    defaultdict,
-)
+from collections import abc
 import csv
 from io import StringIO
 import re
@@ -11,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     Literal,
     cast,
     final,
@@ -43,7 +39,6 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -56,6 +51,7 @@ from pandas.core.indexes.api import Index
 from pandas.io.common import (
     dedup_names,
     is_potential_multi_index,
+    mangle_dupe_names,
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -642,41 +638,10 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    counts: DefaultDict = defaultdict(int)
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [
-                        i
-                        for i in range(len(this_columns))
-                        if i not in this_unnamed_cols
-                    ] + this_unnamed_cols
-
-                    # This logic is similar to (but not close enough to
-                    # de-duplicate as of 2026-03-31) pandas.io.common.dedup_names
-                    # (see #50371)
-                    for i in col_loop_order:
-                        col = this_columns[i]
-                        old_col = col
-                        cur_count = counts[col]
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_columns:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts[col]
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-                        this_columns[i] = col
-                        counts[col] = cur_count + 1
+                    this_columns = cast(
+                        "list[Scalar | None]",
+                        mangle_dupe_names(this_columns, this_unnamed_cols, self.dtype),
+                    )
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but it's not in our
                     # format so save in the buffer, and create a blank extra

@@ -1644,6 +1644,19 @@ class TestMath:
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect)
 
+    def test_unary_function_integer_argument(self, engine, parser):
+        # GH#20890 a math function applied to an integer literal must not
+        #  truncate the result to an integer
+        result = self.eval("exp(2)", engine=engine, parser=parser)
+        assert result == np.exp(2)
+
+    def test_unary_function_integer_array(self, engine, parser):
+        # GH#20890 the same truncation bug affected a math function over an
+        #  integer array (the manifestation that lingered longest)
+        arr = np.array([1, 2, 3])  # noqa: F841
+        result = self.eval("exp(arr)", engine=engine, parser=parser)
+        tm.assert_numpy_array_equal(np.asarray(result), np.exp(np.array([1, 2, 3])))
+
     @pytest.mark.parametrize("fn", _binary_math_ops)
     def test_binary_functions(self, fn, engine, parser):
         df = DataFrame(
@@ -1880,6 +1893,15 @@ def test_empty_string_raises(engine, parser):
     # GH 13139
     with pytest.raises(ValueError, match="expr cannot be an empty string"):
         pd.eval("", engine=engine, parser=parser)
+
+
+@pytest.mark.parametrize("box", [Series, DataFrame])
+def test_pandas_object_raises(box, engine, parser):
+    # GH#16289 passing a Series/DataFrame parsed its (possibly truncated) repr
+    obj = box(["1 == 1", "2 == 1"] * 1000)
+    msg = "expr must be a string to be evaluated"
+    with pytest.raises(ValueError, match=msg):
+        pd.eval(obj, engine=engine, parser=parser)
 
 
 def test_more_than_one_expression_raises(engine, parser):

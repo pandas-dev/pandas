@@ -434,6 +434,33 @@ def test_array_equivalent_nonnative_complex_bytes():
 
 
 @pytest.mark.parametrize("dtype_equal", [True, False])
+@pytest.mark.parametrize("dtype", ["c16", "c8", ">c16", ">c8"])
+def test_array_equivalent_complex_nan_component(dtype, dtype_equal):
+    # GH#66160 a complex value is NA if either part is NaN, so two elements that
+    # are both NA are equivalent even when their non-NaN parts differ. The
+    # fastpath viewed complex as float pairs and compared parts independently,
+    # returning the wrong answer (and disagreeing with the dtype_equal=False
+    # path) for native complex.
+    left = np.array([complex(1, np.nan)], dtype=dtype)
+    right = np.array([complex(2, np.nan)], dtype=dtype)
+    assert array_equivalent(left, right, dtype_equal=dtype_equal)
+
+    # NaN in the real part, differing imaginary parts -- still both NA
+    left = np.array([complex(np.nan, 1)], dtype=dtype)
+    right = np.array([complex(np.nan, 2)], dtype=dtype)
+    assert array_equivalent(left, right, dtype_equal=dtype_equal)
+
+    # a genuine NA element mixed with an equal finite element
+    left = np.array([1 + 2j, complex(3, np.nan)], dtype=dtype)
+    right = np.array([1 + 2j, complex(9, np.nan)], dtype=dtype)
+    assert array_equivalent(left, right, dtype_equal=dtype_equal)
+
+    # differing finite elements are not equivalent
+    right = np.array([5 + 2j, complex(9, np.nan)], dtype=dtype)
+    assert not array_equivalent(left, right, dtype_equal=dtype_equal)
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
 def test_array_equivalent_tdi(dtype_equal):
     assert array_equivalent(
         TimedeltaIndex([0, np.nan]),

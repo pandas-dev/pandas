@@ -296,6 +296,13 @@ class StringMethods(NoNewAttributesMixin):
                 value_lengths = pa.compute.list_value_length(result._pa_array)
                 max_len = pa.compute.max(value_lengths).as_py()
                 min_len = pa.compute.min(value_lengths).as_py()
+                if max_len is None:
+                    # No non-null rows to take a width from. Match the
+                    # object-dtype path below, which expands an all-NA result
+                    # into a single all-NA column and an empty one into no
+                    # columns at all.
+                    max_len = min_len = 1 if len(result) else 0
+                value_type = result._pa_array.type.value_type
                 if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
                     result = ArrowExtensionArray(
@@ -318,10 +325,15 @@ class StringMethods(NoNewAttributesMixin):
                     .to_numpy()
                     .reshape(len(result), max_len)
                 )
-                result = {
-                    label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(name, result.T, strict=True)
-                }
+                columns = {}
+                for label, res in zip(name, result.T, strict=True):
+                    col = pa.array(res)
+                    if pa.types.is_null(col.type) and not pa.types.is_null(value_type):
+                        # an all-NA column would otherwise land on the null
+                        # type, which no longer supports .str
+                        col = col.cast(value_type)
+                    columns[label] = ArrowExtensionArray(col)
+                result = columns
             elif is_object_dtype(result):
 
                 def cons_row(x):
@@ -331,11 +343,23 @@ class StringMethods(NoNewAttributesMixin):
                         return [x]
 
                 result = [cons_row(x) for x in result]
-                if result and not self._is_string:
-                    # propagate nan values to match longest sequence (GH 18450)
+                if result:
+                    if not self._is_string:
+                        # propagate nan values to match longest sequence
+                        #  (GH 18450)
+                        max_len = max(len(x) for x in result)
+                        result = [
+                            x * max_len if len(x) == 0 or x[0] is np.nan else x
+                            for x in result
+                        ]
+
+                    # GH#65751 right-pad ragged rows to a common length so the
+                    #  DataFrame constructor below isn't relied on to NaN-pad
+                    #  mismatched-length sequences (now deprecated). Filling
+                    #  with None matches the constructor's previous behavior.
                     max_len = max(len(x) for x in result)
                     result = [
-                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        list(x) + [None] * (max_len - len(x)) if len(x) < max_len else x
                         for x in result
                     ]
 
@@ -511,6 +535,11 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
+            Note: when the caller is an :class:`Index`, its *values* are used
+            as the index for alignment, so a ``Series`` or ``DataFrame`` in
+            `others` is aligned against those values rather than positionally.
+            An ``Index`` or ``np.ndarray`` in `others` has no index of its own
+            and is always used positionally.
 
         Returns
         -------
@@ -599,6 +628,19 @@ class StringMethods(NoNewAttributesMixin):
         4    -e
         2    -c
         dtype: str
+
+        When the caller is an :class:`Index`, alignment uses the values of that
+        ``Index``, so concatenating with a ``Series`` whose index is unrelated
+        gives missing values:
+
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]))
+        Index([nan, nan, nan], dtype='object')
+
+        Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
+
+        >>> idx.str.cat(pd.Series(["x", "y", "z"]).to_numpy())
+        Index(['ax', 'by', 'cz'], dtype='str')
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
@@ -762,11 +804,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Use of `regex =False` with a `pat` as a compiled regex will raise an error.
 
@@ -941,11 +988,16 @@ class StringMethods(NoNewAttributesMixin):
 
         - If found splits > `n`,  make first `n` splits only
         - If found splits <= `n`, make all splits
-        - If for a certain row the number of found splits < `n`,
-          append `None` for padding up to `n` if ``expand=True``
+        - If for a certain row the number of found splits is less than the
+          maximum number of splits found across all rows, append `None` for
+          padding if ``expand=True``
 
         If using ``expand=True``, Series and Index callers return DataFrame and
-        MultiIndex objects, respectively.
+        MultiIndex objects, respectively. The number of columns equals the
+        maximum number of splits found in the data plus one and can be less
+        than ``n + 1``; `n` is an upper bound on the number of splits, not a
+        guaranteed output width. To get a fixed number of columns, reindex
+        the result, e.g. ``.reindex(range(n + 1), axis=1)``.
 
         Examples
         --------
@@ -1549,27 +1601,15 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        if flags is not lib.no_default:
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-            if is_re(pat):
-                if pat.flags != flags:
-                    raise ValueError(
-                        "Cannot both specify 'flags' and pass a compiled regexp "
-                        "object with conflicting flags"
-                    )
-            else:
-                pat = re.compile(pat, flags=flags)
-            # set flags=0 to ensure that when we call
-            #  re.compile(pat, flags=flags) the constructor does not raise.
-            flags = 0
-        else:
-            flags = 0
+        # Note: `case` must be resolved before we compile `pat` below, since
+        #  compiling would make is_re(pat) True even for a user-passed string.
+        case_specified = case is not lib.no_default
 
-        if case is lib.no_default:
+        if not case_specified:
             if is_re(pat):
                 case = not bool(pat.flags & re.IGNORECASE)
+            elif flags is not lib.no_default:
+                case = not bool(flags & re.IGNORECASE)
             else:
                 # Case-sensitive default
                 case = True
@@ -1581,6 +1621,35 @@ class StringMethods(NoNewAttributesMixin):
                     "Cannot both specify 'case' and pass a compiled regexp "
                     "object with conflicting case-sensitivity"
                 )
+
+        if flags is not lib.no_default:
+            if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
+                raise ValueError(
+                    "Cannot both specify case=True and pass 'flags' containing "
+                    "re.IGNORECASE"
+                )
+            if not case:
+                # Bake `case` into the flags so that it survives compilation.
+                flags |= re.IGNORECASE
+            if is_re(pat):
+                # Round-trip the requested flags through re.compile so the
+                #  comparison accounts for the fixups it applies: the implicit
+                #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
+                if re.compile(pat.pattern, flags).flags != pat.flags:
+                    raise ValueError(
+                        "Cannot both specify 'flags' and pass a compiled regexp "
+                        "object with conflicting flags"
+                    )
+            elif flags & ~(re.IGNORECASE | re.UNICODE):
+                # Only pre-compile when `flags` carries something `case` cannot.
+                #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
+                #  omitting `flags`, so patterns using RE2 syntax that `re`
+                #  rejects still reach the pyarrow kernels. GH#63108
+                pat = re.compile(pat, flags=flags)
+        # Any `flags` are now carried by `case` or baked into `pat`, so set
+        #  flags=0 to ensure that when we call re.compile(pat, flags=flags)
+        #  downstream the constructor does not raise.
+        flags = 0
 
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -2179,8 +2248,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Notes
         -----
-        Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.
+        Follows the same rules as :meth:`str.zfill`: a leading sign character
+        ('+'/'-') is kept at the front of the string and the '0' padding is
+        inserted after it.
 
         Examples
         --------
@@ -2194,10 +2264,10 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
-        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        special character and the zero is added to the right of it
-        (:meth:`str.zfill` would have moved it to the left). ``1000``
-        remains unchanged as it is longer than `width`.
+        converted to ``NaN``. The minus sign in ``'-1'`` is kept at the front
+        of the string and the '0' padding is inserted after it, the same as
+        :meth:`str.zfill`. ``1000`` remains unchanged as it is longer than
+        `width`.
 
         >>> s.str.zfill(3)
         0     -01

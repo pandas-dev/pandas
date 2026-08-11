@@ -349,7 +349,7 @@ Renaming categories is done by using the
     s = s.cat.rename_categories(new_categories)
     s
     # You can also pass a dict-like object to map the renaming
-    s = s.cat.rename_categories({1: "x", 2: "y", 3: "z"})
+    s = s.cat.rename_categories({"Group a": "x", "Group b": "y", "Group c": "z"})
     s
 
 .. note::
@@ -815,8 +815,8 @@ Merging / concatenation
 By default, combining ``Series`` or ``DataFrames`` which contain the same
 categories results in ``category`` dtype, otherwise results will depend on the
 dtype of the underlying categories. Merges that result in non-categorical
-dtypes will likely have higher memory usage. Use ``.astype`` or
-``union_categoricals`` to ensure ``category`` results.
+dtypes will likely have higher memory usage. Use ``union_categories=True``,
+``.astype`` or ``union_categoricals`` to ensure ``category`` results.
 
 .. ipython:: python
 
@@ -836,6 +836,8 @@ dtypes will likely have higher memory usage. Use ``.astype`` or
    float_cats = pd.Series([3.0, 4.0], dtype="category")
    pd.concat([int_cats, float_cats])
 
+   pd.concat([s1, s3], union_categories=True)
+   pd.concat([int_cats, float_cats], union_categories=True)
    pd.concat([s1, s3]).astype("category")
    union_categoricals([s1.array, s3.array])
 

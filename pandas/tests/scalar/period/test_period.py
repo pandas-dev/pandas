@@ -254,7 +254,9 @@ class TestPeriodConstruction:
         i1 = Period("200701", freq="M")
         assert i1 == expected
 
-        i1 = Period(200701, freq="M")
+        msg = "Passing an integer to Period is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            i1 = Period(200701, freq="M")
         assert i1 == expected
 
         i1 = Period(ordinal=200701, freq="M")
@@ -310,7 +312,9 @@ class TestPeriodConstruction:
                 year=2012, month=3, day=10, freq="3B"
             )
 
-        assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
+        msg = "Passing an integer to Period is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
 
         i1 = Period(ordinal=200701, freq=offsets.MonthEnd())
         i2 = Period(ordinal=200701, freq="M")
@@ -788,6 +792,54 @@ class TestPeriodMethods:
         # GH 24444
         result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
+
+    @pytest.mark.parametrize("freq", ["ns", "1ns", offsets.Nano()])
+    def test_to_timestamp_nanosecond_target(self, freq):
+        # GH#63760 the result unit is derived from the normalized target base,
+        #  so a freq that normalizes to nanoseconds (e.g. "1ns") must give a
+        #  correct nanosecond-unit Timestamp rather than misinterpreting the
+        #  nanosecond ordinal as microseconds
+        per = Period("2020-01-01", freq="D")
+        result = per.to_timestamp(freq)
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01")
+
+    @pytest.mark.parametrize(
+        "freq, unit", [(None, "ns"), ("D", "us"), ("s", "us"), ("us", "us")]
+    )
+    def test_to_timestamp_from_nanosecond_period(self, freq, unit):
+        # GH#63760 a nanosecond Period converted with a coarser (non-ns) target
+        #  must yield a microsecond Timestamp, not reinterpret the microsecond
+        #  value as nanoseconds
+        per = Period("2020-01-01", freq="ns")
+        result = per.to_timestamp(freq)
+        assert result.unit == unit
+        assert result == Timestamp("2020-01-01")
+
+    @pytest.mark.parametrize("freq", ["ns", "1ns", offsets.Nano()])
+    def test_to_timestamp_end_nanosecond_target(self, freq):
+        # GH#63760 how="end" keeps nanosecond precision for a target freq
+        #  that normalizes to nanoseconds
+        per = Period("2020-01-01", freq="D")
+        result = per.to_timestamp(freq, how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01 23:59:59.999999999")
+
+    def test_to_timestamp_end_from_nanosecond_period(self):
+        # GH#63760 a nanosecond Period keeps its nanosecond end bound with a
+        #  coarser target freq
+        per = Period("2020-01-01", freq="ns")
+        result = per.to_timestamp("D", how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01")
+
+    def test_to_timestamp_end_bday_nanosecond_target(self):
+        # GH#63760 the B roll-forward path keeps nanosecond precision too
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per = Period("2020-01-02", freq="B")
+            result = per.to_timestamp("ns", how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-02 23:59:59.999999999")
 
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
@@ -1269,6 +1321,39 @@ def test_period_np_str():
     expected = Period("2023-01", freq="M")
     assert result == expected
 
+
+@pytest.mark.parametrize("value", [2000, np.int64(2000), np.uint16(2000)])
+def test_period_int_deprecated(value):
+    # GH#64227 an integer is currently read as a calendar year; in a future
+    #  version it will be read as an ordinal, matching PeriodArray
+    msg = "Passing an integer to Period is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = Period(value, freq="D")
+    assert result == Period("2000", freq="D")
+
+    # the two unambiguous spellings are unaffected
+    with tm.assert_produces_warning(None):
+        assert Period("2000", freq="D") == result
+        assert Period(ordinal=2000, freq="D").ordinal == 2000
+
+
+def test_period_int_nat_sentinel_not_deprecated():
+    # GH#64227 iNaT means NaT under both the old and new interpretations
+    with tm.assert_produces_warning(None):
+        assert Period(iNaT, freq="D") is NaT
+
     result = Period(np.str_("2023"), freq="Y")
     expected = Period("2023", freq="Y")
     assert result == expected
+
+
+def test_period_quarterly_string_no_deprecation_warning():
+    # GH#50907 Period is the recommended replacement for quarterly-string
+    # parsing in Timestamp, so it must not emit the deprecation warning
+    with tm.assert_produces_warning(None):
+        per = Period("2014Q2")
+    assert per == Period(year=2014, quarter=2, freq="Q-DEC")
+
+    with tm.assert_produces_warning(None):
+        per = Period("2014Q2", freq="Q-FEB")
+    assert per == Period(year=2014, quarter=2, freq="Q-FEB")

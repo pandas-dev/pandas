@@ -1,13 +1,3 @@
-signed-integer-overflow:pandas/_libs/src/vendored/numpy/datetime/np_datetime.c
-signed-integer-overflow:pandas/_libs/groupby.pyx.c
-signed-integer-overflow:pandas/_libs/tslibs/period.pyx.c
-signed-integer-overflow:pandas/_libs/tslibs/tzconversion.pyx.c
-
-alignment:pandas/_libs/lib.pyx.c
-alignment:pandas/_libs/sas.pyx.c
-
-float-cast-overflow:pandas/_libs/lib.pyx.c
-
 function:_cyutility.c
 function:pandas/_libs/algos.pyx.c
 function:pandas/_libs/hashtable.pyx.c

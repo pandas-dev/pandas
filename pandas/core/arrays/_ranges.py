@@ -128,45 +128,59 @@ def generate_daily_offset_range(
     """
     abs_n = freq.n  # caller ensures n >= 1
 
-    # For the periods case, convert to start+end by extending the known
-    # endpoint with a generous Timedelta. The worst-case gap for any
-    # daily-grid offset is 7 calendar days per on-offset day (e.g. Week),
-    # so needed * 7 + 6 is always sufficient.
-    trim_to = None
-    trim_from_end = False
-    if periods is not None:
-        needed_on_offset = (periods - 1) * abs_n + 1
-        buffer_days = needed_on_offset * 7 + 6
-        if end is None:
-            # start is guaranteed non-None by the caller
-            end = (  # type: ignore[assignment]
-                start + Timedelta(days=buffer_days)  # type: ignore[operator]
-            ).as_unit(unit)
-        else:
-            trim_from_end = True
-            start = (end - Timedelta(days=buffer_days)).as_unit(unit)  # pyright: ignore[reportAssignmentType]
-        trim_to = periods
+    # Resolve the endpoints with offset arithmetic so the on-offset count is
+    # exact regardless of holidays/weekmasks. The old ``needed * 7 + 6``-day
+    # buffer assumed >=1 on-offset day per 7 calendar days, which fails for e.g.
+    # a CustomBusinessDay whose holidays blank out whole weeks -- the result was
+    # then silently short (GH#64648 post-merge). Arithmetic runs on normalized
+    # dates with the time-of-day re-attached, so ``normalize=True`` offsets
+    # don't strip it from the output (GH#44025).
+    if periods is not None and end is not None:
+        # end + periods: anchor at the last on-offset date <= end so that
+        # ``periods`` on-offset dates are returned (GH#64834).
+        tod: Timedelta = end - end.normalize()
+        # pyright can't see through the NaT-returning Timestamp constructor.
+        anchor: Timestamp = Timestamp(  # pyright: ignore[reportAssignmentType]
+            freq.rollback(end.normalize())
+        )
+        start = (anchor - (periods - 1) * freq + tod).as_unit(unit)
+        end = (anchor + tod).as_unit(unit)
+    else:
+        # start is guaranteed non-None here by the caller (exactly two of
+        # start/end/periods are given, and this branch is not end+periods).
+        assert start is not None
+        # Roll an off-offset start forward to the first on-offset date (n >= 1).
+        tod = start - start.normalize()
+        anchor = Timestamp(  # pyright: ignore[reportAssignmentType]
+            freq.rollforward(start.normalize())
+        )
+        start = (anchor + tod).as_unit(unit)
+        if periods is not None:
+            # start + periods.
+            end = (anchor + (periods - 1) * freq + tod).as_unit(unit)
+        elif (
+            # start + end. GH#64790: align end's time-of-day to start's so the
+            # last on-offset date isn't dropped when end's is earlier. Mask
+            # offsets preserve time-of-day unless ``freq.normalize``; testing
+            # that attribute rather than probing ``freq._apply(start)`` avoids
+            # raising near Timestamp.max (GH#64648).
+            tod and not freq.normalize and end >= start  # type: ignore[operator]
+        ):
+            try:
+                end = (end.normalize() + tod).as_unit(unit)  # type: ignore[union-attr]
+            except OutOfBoundsDatetime:
+                # the boundary element this alignment would admit is beyond
+                # Timestamp.max, so keeping the raw end excludes it correctly
+                pass
 
     i8values = generate_regular_range(start, end, None, Day(), unit=unit)
     dt64 = i8values.view(f"datetime64[{unit}]")
     i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
 
     if abs_n > 1:
-        # When trimming from the end (end+periods case), the buffer starts
-        # at an arbitrary date (end - buffer_days), so a forward [::abs_n]
-        # stride would anchor there. Reverse first so the stride is anchored
-        # on the last on-offset date <= end, e.g. freq="2B" yields
-        # ..., last-4, last-2, last business day (GH#64648).
-        if trim_from_end:
-            i8values = i8values[::-1][::abs_n][::-1]
-        else:
-            i8values = i8values[::abs_n]
-
-    if trim_to is not None:
-        if trim_from_end:
-            i8values = i8values[-trim_to:]
-        else:
-            i8values = i8values[:trim_to]
+        # start is the first on-offset date and end the last, so a forward
+        # stride anchored at the front lands on end (GH#64648, GH#65604).
+        i8values = i8values[::abs_n]
 
     return i8values
 

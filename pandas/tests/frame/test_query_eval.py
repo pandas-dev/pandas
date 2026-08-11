@@ -140,6 +140,22 @@ class TestDataFrameEval:
         result = (1 - np.isnan(df)).iloc[0:25]
         tm.assert_frame_equal(result, expected)
 
+    def test_eval_method_call_fillna(self):
+        # GH#34045 eval must handle a chained method call such as .fillna(0)
+        df = DataFrame([1, 2], columns=["a"])
+        result = df.eval("((a - 1) / (a - 1)).fillna(0)")
+        expected = Series([0.0, 1.0], name="a")
+        tm.assert_series_equal(result, expected)
+
+    def test_query_method_call_isnull(self, engine):
+        # GH#34251 query must support a method call such as name.isnull().
+        # The crash was numexpr-engine-specific, so exercise both engines
+        # explicitly (the default silently falls back to python without numexpr)
+        df = DataFrame({"id": [0, 1, 2], "name": ["a", None, None]})
+        result = df.query("name.isnull()", engine=engine)
+        expected = df.iloc[[1, 2]]
+        tm.assert_frame_equal(result, expected)
+
     def test_query_non_str(self):
         # GH 11485
         df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "b"]})
@@ -169,6 +185,40 @@ class TestDataFrameEval:
         expect = DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
 
         tm.assert_frame_equal(res, expect)
+
+    def test_query_duplicate_index_label(self, engine, parser):
+        # GH#51815 aligning the terms against a frame whose index has duplicate
+        # labels raised "cannot reindex on an axis with duplicate labels"
+        df = Series([1, 2, 3], index=[1, 1, 2], name="col").to_frame()
+
+        result = df.query("(index == 1) & (col == 2)", engine=engine, parser=parser)
+
+        expected = DataFrame({"col": [2]}, index=[1])
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_datetime_compared_to_string_no_warning(self, engine, parser):
+        # GH#57028 comparing a datetime64 column to a string warned about the
+        # behavior of 'isin', which the expression does not use.
+        # Comparing against a string literal is rewritten to a membership op,
+        # which the python parser does not implement.
+        skip_if_no_pandas_parser(parser)
+        df = DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
+
+        with tm.assert_produces_warning(None):
+            result = df.query("sent == ''", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[:0])
+
+    def test_query_datetime_in_strings_no_warning(self, engine, parser):
+        # GH#57028 the `in` operator does go through isin, and strings no longer
+        # match datetime64 values there, but neither should warn
+        skip_if_no_pandas_parser(parser)
+        df = DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
+
+        with tm.assert_produces_warning(None):
+            result = df.query("sent in ['2024-01-14']", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[:0])
 
     def test_eval_duplicate_column_name(self, engine, parser):
         # GH#65588
@@ -1017,6 +1067,16 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
 
 class TestDataFrameQueryStrings:
+    def test_query_ordered_categorical_comparison(self, parser, engine):
+        # GH#15186 comparing an ordered categorical column against a scalar
+        #  string in .query should work for all engines/parsers
+        bands = [f"{i}AM" for i in range(10)]
+        df = DataFrame({"Time": bands})
+        df["Time"] = df["Time"].astype(pd.CategoricalDtype(bands, ordered=True))
+        result = df.query("Time >= '5AM'", parser=parser, engine=engine)
+        expected = df[df["Time"] >= "5AM"]
+        tm.assert_frame_equal(result, expected)
+
     def test_str_query_method(self, parser, engine):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))

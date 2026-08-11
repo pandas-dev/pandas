@@ -207,9 +207,14 @@ class TestFromDict:
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
     def test_from_dict_scalars_requires_index(self):
-        msg = "If using all scalar values, you must pass an index"
+        # GH#25515 the message must be actionable: from_dict has no index
+        #  parameter, so it points to orient="index" / the DataFrame constructor
+        msg = "If using all scalar values, pass orient='index'"
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(OrderedDict([("b", 8), ("a", 5), ("a", 6)]))
+            DataFrame.from_dict({"a": 0.7})
+
+        with pytest.raises(ValueError, match=msg):
+            DataFrame.from_dict({"b": 8, "a": 6})
 
     def test_from_dict_orient_invalid(self):
         msg = (

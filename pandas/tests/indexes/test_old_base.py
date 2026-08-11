@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import PY315
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
@@ -463,6 +464,8 @@ class TestBase:
         if len(index) == 0:
             # 0 vs 0.5 in error message varies with numpy version
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
+        elif PY315:
+            msg = "slice indices must be integers or have an __index__ method"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
@@ -676,7 +679,7 @@ class TestBase:
 
         result = idx.map(lambda x: x)
         # RangeIndex are equivalent to the similar Index with int64 dtype
-        tm.assert_index_equal(result, idx, exact="equiv")
+        tm.assert_index_equal(result, idx, exact="equiv", check_freq=False)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -728,7 +731,7 @@ class TestBase:
         dtype = CategoricalDtype(ordered=ordered)
         result = idx.astype(dtype, copy=copy)
         expected = CategoricalIndex(idx, name=name, ordered=ordered)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
@@ -737,13 +740,13 @@ class TestBase:
             result = idx.astype(dtype, copy=copy)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = CategoricalIndex(idx, name=name, dtype=dtype)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
             result = idx.astype("category", copy=copy)
             expected = CategoricalIndex(idx, name=name)
-            tm.assert_index_equal(result, expected, exact=True)
+            tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
     def test_is_unique(self, simple_index):
         # initialize a unique index
@@ -850,11 +853,15 @@ class TestBase:
         result = index.append(index)
         assert result.dtype == index.dtype
 
-        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
-        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
+        tm.assert_index_equal(
+            result[:N], index, exact=False, check_exact=True, check_freq=False
+        )
+        tm.assert_index_equal(
+            result[N:], index, exact=False, check_exact=True, check_freq=False
+        )
 
         alt = index.take(list(range(N)) * 2)
-        tm.assert_index_equal(result, alt, check_exact=True)
+        tm.assert_index_equal(result, alt, check_exact=True, check_freq=False)
 
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index

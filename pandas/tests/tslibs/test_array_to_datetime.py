@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     date,
     datetime,
     timedelta,
@@ -199,7 +200,7 @@ def test_parsing_non_iso_timezone_offset():
     expected = np.array([np.datetime64("2013-01-01 00:00:00.000000000")])
 
     tm.assert_numpy_array_equal(result, expected)
-    assert result_tz is timezone.utc
+    assert result_tz is UTC
 
 
 def test_parsing_different_timezone_offsets():

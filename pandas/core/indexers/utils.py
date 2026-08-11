@@ -15,7 +15,7 @@ from pandas._libs import lib
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_integer,
     is_integer_dtype,
@@ -552,7 +552,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
         return indexer
 
     # convert list-likes to array
-    if not is_array_like(indexer):
+    if not is_array_like_deprecate_non_pandas(indexer):
         indexer = pd_array(indexer)
         if len(indexer) == 0:
             # empty list is converted to float array by pd.array

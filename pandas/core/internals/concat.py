@@ -16,9 +16,16 @@ from pandas.core.dtypes.cast import (
     find_common_type,
 )
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.concat import (
+    concat_compat,
+    union_categories_compat,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 
+from pandas.core.arrays import Categorical
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.blocks import (
     ensure_block_shape,
@@ -50,7 +57,11 @@ if TYPE_CHECKING:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
+    mgrs_indexers,
+    axes: list[Index],
+    concat_axis: AxisInt,
+    copy: bool,
+    union_categories: bool = False,
 ) -> BlockManager:
     """
     Concatenate block managers into one.
@@ -61,6 +72,9 @@ def concatenate_managers(
     axes : list of Index
     concat_axis : int
     copy : bool
+    union_categories : bool, default False
+        If True, union the categories of categorical blocks being concatenated
+        rather than falling back to a non-categorical dtype.
 
     Returns
     -------
@@ -124,16 +138,23 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=0, ea_compat_axis=True)
+                values = concat_compat(
+                    vals,
+                    axis=0,
+                    ea_compat_axis=True,
+                    union_categories=union_categories,
+                )
                 values = ensure_block_shape(values, ndim=2)
             else:
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, union_categories=union_categories)
 
             values = ensure_wrapped_if_datetimelike(values)
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, copy=copy)
+            values = _concatenate_join_units(
+                join_units, copy=copy, union_categories=union_categories
+            )
             fastpath = False
 
         if fastpath:
@@ -306,11 +327,15 @@ class JoinUnit:
         return self.block.values
 
 
-def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
+def _concatenate_join_units(
+    join_units: list[JoinUnit],
+    copy: bool,
+    union_categories: bool = False,
+) -> ArrayLike:
     """
     Concatenate values from several join units along axis=1.
     """
-    empty_dtype = _get_empty_dtype(join_units)
+    empty_dtype = _get_empty_dtype(join_units, union_categories=union_categories)
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
     upcasted_na = _dtype_to_na_value(empty_dtype, has_none_blocks)
@@ -329,11 +354,15 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
             t if is_1d_only_ea_dtype(t.dtype) else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
-        concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
+        concat_values = concat_compat(
+            to_concat, axis=0, ea_compat_axis=True, union_categories=union_categories
+        )
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
-        concat_values = concat_compat(to_concat, axis=1)
+        concat_values = concat_compat(
+            to_concat, axis=1, union_categories=union_categories
+        )
 
     return concat_values
 
@@ -361,7 +390,9 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     raise NotImplementedError
 
 
-def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
+def _get_empty_dtype(
+    join_units: Sequence[JoinUnit], union_categories: bool = False
+) -> DtypeObj:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -378,6 +409,14 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
 
     dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
+
+    if union_categories and has_none_blocks and dtypes:
+        if all(isinstance(dt, CategoricalDtype) for dt in dtypes):
+            # GH#14177 give the all-NA filler for missing columns the unioned
+            #  categorical dtype so that concat_compat sees all-categorical
+            #  inputs and unions instead of falling back to the common dtype.
+            empties = [Categorical([], dtype=dt) for dt in dtypes]
+            return union_categories_compat(empties).dtype
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:

@@ -92,11 +92,11 @@ class TestSelectDtypes:
         ei = df[["g"]]
         tm.assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=["datetimetz"])
+        ri = df.select_dtypes(include=[pd.DatetimeTZDtype])
         ei = df[["h", "i"]]
         tm.assert_frame_equal(ri, ei)
 
-        with pytest.raises(NotImplementedError, match=r"^$"):
+        with pytest.raises(TypeError, match="does not support the 'period' string"):
             df.select_dtypes(include=["period"])
 
         if using_infer_string:
@@ -206,7 +206,7 @@ class TestSelectDtypes:
         ei = df[["f"]]
         tm.assert_frame_equal(ri, ei)
 
-        with pytest.raises(NotImplementedError, match=r"^$"):
+        with pytest.raises(TypeError, match="does not support the 'period' string"):
             df.select_dtypes(include="period")
 
         if using_infer_string:
@@ -239,7 +239,7 @@ class TestSelectDtypes:
         ei = df[["a", "b", "c", "d", "e", "g", "h", "i", "j", "k"]]
         tm.assert_frame_equal(ri, ei)
 
-        with pytest.raises(NotImplementedError, match=r"^$"):
+        with pytest.raises(TypeError, match="does not support the 'period' string"):
             df.select_dtypes(exclude="period")
 
     def test_select_dtypes_include_exclude_using_scalars(self):
@@ -692,8 +692,8 @@ def test_select_dtypes_categorical_instance_exact():
 
 
 def test_select_dtypes_period_instance_exact():
-    # GH#40234: a PeriodDtype instance works (the "period" string raises
-    # NotImplementedError) and matches only its own freq
+    # GH#40234: a PeriodDtype instance matches only its own freq, whereas
+    # the PeriodDtype class matches every period column
     df = DataFrame(
         {
             "a": pd.period_range("2016-01-01", periods=2, freq="D"),
@@ -791,6 +791,55 @@ def test_select_dtypes_ea_class_datetimetz():
     )
     with tm.assert_produces_warning(None):
         result = df.select_dtypes(include=pd.DatetimeTZDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+@pytest.mark.parametrize("spec", ["datetimetz", "datetime64tz"])
+@pytest.mark.parametrize("arg", ["include", "exclude"])
+def test_select_dtypes_datetimetz_string_deprecated(spec, arg):
+    # GH#24558
+    df = DataFrame(
+        {
+            "a": pd.date_range("2016-01-01", periods=2, tz="US/Pacific"),
+            "b": pd.date_range("2016-01-01", periods=2),
+        }
+    )
+    msg = f"Passing {spec!r} to select_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(**{arg: spec})
+    expected = df[["a"]] if arg == "include" else df[["b"]]
+    tm.assert_frame_equal(result, expected)
+
+    # the recommended replacement selects the same columns
+    with tm.assert_produces_warning(None):
+        alt = df.select_dtypes(**{arg: pd.DatetimeTZDtype})
+    tm.assert_frame_equal(alt, expected)
+
+
+def test_select_dtypes_datetimetz_string_overlaps_class():
+    # GH#24558: the deprecated string and its replacement resolve to the same
+    # spec, so contradictory include/exclude is caught rather than silently
+    # returning an empty frame
+    df = DataFrame({"a": pd.date_range("2016-01-01", periods=2, tz="UTC")})
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
+            df.select_dtypes(include="datetimetz", exclude=pd.DatetimeTZDtype)
+
+
+def test_select_dtypes_period_string_raises():
+    # GH#24558: the "period" string was never implemented; the error points at
+    # the class spec, which selects every period column
+    df = DataFrame(
+        {
+            "a": pd.period_range("2016-01-01", periods=2, freq="D"),
+            "b": pd.period_range("2016-01-01", periods=2, freq="M"),
+            "c": [1, 2],
+        }
+    )
+    with pytest.raises(TypeError, match="does not support the 'period' string"):
+        df.select_dtypes(include="period")
+
+    result = df.select_dtypes(include=pd.PeriodDtype)
     tm.assert_frame_equal(result, df[["a", "b"]])
 
 
@@ -911,3 +960,62 @@ def test_select_dtypes_arrow_timestamp_string_matches_only_arrow():
     )
     result = df.select_dtypes(include=["timestamp[ns][pyarrow]"])
     tm.assert_frame_equal(result, df[["arrow"]])
+
+
+@pytest.mark.parametrize("spec", ["interval[int64]", pd.IntervalDtype("int64")])
+def test_select_dtypes_interval_subtype_matches_any_closed(spec):
+    # GH#66119, GH#66120: an interval spec with a subtype but no ``closed``
+    # (the string "interval[int64]" or the instance IntervalDtype("int64"),
+    # both of which have closed=None) selects interval columns of that
+    # subtype for any closed value. Previously these matched nothing because
+    # no column ever has closed=None.
+    df = DataFrame(
+        {
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+            "int_left": pd.arrays.IntervalArray.from_breaks(
+                [0, 1, 2, 3], closed="left"
+            ),
+            "float_right": pd.arrays.IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0]),
+            "other": [1, 2, 3],
+        }
+    )
+    result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["int_right", "int_left"]])
+
+    result = df.select_dtypes(exclude=spec)
+    tm.assert_frame_equal(result, df[["float_right", "other"]])
+
+
+@pytest.mark.parametrize(
+    "spec", ["interval[int64, right]", pd.IntervalDtype("int64", "right")]
+)
+def test_select_dtypes_interval_closed_matches_exact(spec):
+    # GH#66119, GH#66120: a fully specified interval spec (subtype and closed)
+    # still matches only that exact closed value
+    df = DataFrame(
+        {
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+            "int_left": pd.arrays.IntervalArray.from_breaks(
+                [0, 1, 2, 3], closed="left"
+            ),
+        }
+    )
+    result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["int_right"]])
+
+
+def test_select_dtypes_interval_family_string_and_bare_instance():
+    # GH#66120: the bare "interval" string and a bare IntervalDtype() instance
+    # both select every interval column regardless of subtype or closed
+    df = DataFrame(
+        {
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+            "float_left": pd.arrays.IntervalArray.from_breaks(
+                [0.0, 1.0, 2.0, 3.0], closed="left"
+            ),
+            "other": [1, 2, 3],
+        }
+    )
+    expected = df[["int_right", "float_left"]]
+    tm.assert_frame_equal(df.select_dtypes(include="interval"), expected)
+    tm.assert_frame_equal(df.select_dtypes(include=pd.IntervalDtype()), expected)

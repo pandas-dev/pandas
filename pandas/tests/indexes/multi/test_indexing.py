@@ -15,6 +15,7 @@ from pandas import (
     Index,
     MultiIndex,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -1049,6 +1050,34 @@ def test_get_locs_list_like_nan_not_in_level():
     idx = MultiIndex.from_product([["a"], [1, 2]])
     with pytest.raises(KeyError, match="nan"):
         idx.get_locs((["a"], [np.nan]))
+
+
+@pytest.mark.parametrize(
+    "level",
+    [
+        date_range("2020-01-01", "2020-03-31", freq="D"),
+        period_range("2020-01-01", "2020-03-31", freq="D"),
+    ],
+)
+@pytest.mark.parametrize("keys", [["2020-02"], ["2020-02", "2020-03"]])
+def test_get_locs_list_like_partial_string(level, keys):
+    # GH#64807 - a list-like of partial-string keys on a level that supports
+    #  partial indexing (Datetime/Period) must match the same rows as the
+    #  scalar key, not just the exact-coerced timestamp.
+    idx = MultiIndex.from_product([level, ["a", "b"]])
+
+    result = idx.get_locs([keys])
+    expected = np.concatenate([idx.get_locs([key]) for key in keys])
+    expected.sort()
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_partial_string_missing_raises():
+    # GH#64807 - a partial-string key absent from the level still raises KeyError
+    level = date_range("2020-01-01", "2020-03-31", freq="D")
+    idx = MultiIndex.from_product([level, ["a", "b"]])
+    with pytest.raises(KeyError, match="2021-01"):
+        idx.get_locs([["2021-01"]])
 
 
 def test_get_indexer_for_multiindex_with_nans(nulls_fixture):

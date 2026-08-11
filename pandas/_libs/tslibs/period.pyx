@@ -881,7 +881,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
     int64_t
     """
     cdef:
-        int64_t sub, factor
+        int64_t periods_per_day, nanos_per_period, periods_since_midnight
         int64_t nanos_in_day = 24 * 3600 * 10**9
 
     freq = get_freq_group(freq)
@@ -890,26 +890,30 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
         return 0
 
     elif freq == FR_NS:
-        factor = 1
+        nanos_per_period = 1
 
     elif freq == FR_US:
-        factor = 10**3
+        nanos_per_period = 10**3
 
     elif freq == FR_MS:
-        factor = 10**6
+        nanos_per_period = 10**6
 
     elif freq == FR_SEC:
-        factor = 10 **9
+        nanos_per_period = 10 **9
 
     elif freq == FR_MIN:
-        factor = 10**9 * 60
+        nanos_per_period = 10**9 * 60
 
     else:
         # We must have freq == FR_HR
-        factor = 10**9 * 3600
+        nanos_per_period = 10**9 * 3600
 
-    sub = ordinal - unix_date * (nanos_in_day / factor)
-    return sub * factor
+    periods_per_day = nanos_in_day // nanos_per_period
+    periods_since_midnight = ordinal % periods_per_day
+    if periods_since_midnight < 0:
+        periods_since_midnight += periods_per_day
+
+    return periods_since_midnight * nanos_per_period
 
 
 cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
@@ -1593,10 +1597,21 @@ def period_ordinals_from_fields(
     ndarray[int64]
     """
     cdef:
-        Py_ssize_t i, n = len(years)
-        int64_t[::1] result = np.empty(n, dtype="i8")
+        Py_ssize_t i, n = years.shape[0]
+        int64_t[::1] result
         npy_datetimestruct dts
 
+    # Guard against out-of-bounds reads below (boundscheck is disabled).
+    if not (
+        months.shape[0] == n
+        and days.shape[0] == n
+        and hours.shape[0] == n
+        and minutes.shape[0] == n
+        and seconds.shape[0] == n
+    ):
+        raise ValueError("Mismatched Period array lengths")
+
+    result = np.empty(n, dtype="i8")
     memset(&dts, 0, sizeof(npy_datetimestruct))
 
     for i in range(n):
@@ -1644,6 +1659,11 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
         else:
             # equiv Period(val, freq=dtype.unit).ordinal, specialized
             #  bc we know val is an integer
+            if not INT32_MIN <= val <= INT32_MAX:
+                # val is used as the year, which lands in the int32
+                #  npy_datetimestruct.year field; out-of-range would silently
+                #  wrap, so raise to match the scalar Period(int) path.
+                raise OutOfBoundsDatetime(f"Out of bounds year: {val}")
             result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
@@ -1662,6 +1682,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
+        bint saw_integer = False
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # if we don't raise here, we'll segfault later!
@@ -1671,17 +1692,32 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, dtype)
+        ordinal = _extract_ordinal(p, dtype, &saw_integer)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if saw_integer:
+        # GH#64227; warn once for the array rather than once per element
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            INT_TO_PERIOD_DEPR_MSG,
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
+cdef int64_t _extract_ordinal(
+    object item, PeriodDtypeBase dtype, bint* saw_integer
+) except? -1:
     """
     See extract_ordinals.
     """
@@ -1691,8 +1727,15 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
-        ordinal = item
+        if item == NPY_NAT:
+            ordinal = NPY_NAT
+        else:
+            # GH#64227 treat integers as calendar years, matching the
+            #  int-array path (from_calendar_ordinals) and Period(int, freq).
+            #  Go through str so we don't emit the scalar deprecation warning
+            #  once per element; extract_ordinals warns once for the array.
+            saw_integer[0] = True
+            ordinal = Period(str(item), freq=dtype).ordinal
     else:
         try:
             ordinal = item.ordinal
@@ -1737,6 +1780,29 @@ def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
+
+
+# GH#64227
+# NB: no one-liner reproduces the current behavior for every input, because
+#  the int-array path (from_calendar_ordinals) reads an int as a calendar
+#  year while the object path parses str(value), and those disagree outside
+#  4-digit years -- e.g. 200701 gives year 200701 vs 2007-01. So we point at
+#  the unambiguous replacement and leave the rest to the user.
+INT_TO_PERIOD_DEPR_MSG = (
+    "Passing integer data to PeriodArray/PeriodIndex is deprecated and will "
+    "change behavior in a future version, when integers will be treated as "
+    "period ordinals instead of calendar years. To get the future behavior "
+    "now, use PeriodIndex.from_ordinals(data, freq=...). To retain the "
+    "current behavior, construct the Period objects explicitly."
+)
+
+INT_TO_PERIOD_SCALAR_DEPR_MSG = (
+    "Passing an integer to Period is deprecated and will change behavior in "
+    "a future version, when the integer will be treated as a period ordinal "
+    "instead of a calendar year. To retain the current behavior, pass a "
+    "string, e.g. Period(str(value), freq=...). To get the future behavior "
+    "now, use Period(ordinal=value, freq=...)."
+)
 
 
 @set_module("pandas.errors")
@@ -2032,6 +2098,19 @@ cdef class _Period(PeriodMixin):
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
+    cdef _period_from_computed_ordinal(self, int64_t ordinal):
+        """
+        Build a Period from an ordinal produced by arithmetic on this one.
+
+        NPY_NAT is INT64_MIN, so an ordinal that lands on it is not NaT but is
+        indistinguishable from it once stored; the Period constructor renders it
+        as NaT.  The neighbouring result one step further out already raises
+        OverflowError, as does the vectorized path. (GH#66552)
+        """
+        if ordinal == NPY_NAT:
+            raise OverflowError("Period ordinal is out of bounds")
+        return Period(ordinal=ordinal, freq=self._freq)
+
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
             int64_t inc, ordinal
@@ -2058,7 +2137,7 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
             ordinal = self._ordinal + inc
-        return Period(ordinal=ordinal, freq=self._freq)
+        return self._period_from_computed_ordinal(ordinal)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -2068,7 +2147,7 @@ cdef class _Period(PeriodMixin):
         self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
-        return Period(ordinal=ordinal, freq=self._freq)
+        return self._period_from_computed_ordinal(ordinal)
 
     @cython.overflowcheck(True)
     def __add__(self, other):
@@ -2080,7 +2159,7 @@ cdef class _Period(PeriodMixin):
             return NaT
         elif util.is_integer_object(other):
             ordinal = self._ordinal + other * self._dtype._n
-            return Period(ordinal=ordinal, freq=self._freq)
+            return self._period_from_computed_ordinal(ordinal)
 
         elif is_period_object(other):
             # can't add datetime-like
@@ -2250,18 +2329,22 @@ cdef class _Period(PeriodMixin):
         """
         how = validate_end_alias(how)
 
-        if self._dtype._dtype_code == PeriodDtypeCode.N or freq == "ns":
-            unit = "ns"
-        else:
-            unit = "us"
-
         end = how == "E"
         if end:
+            if freq is not None:
+                # GH#63760 normalize so e.g. "1ns" is recognized as nanosecond
+                freq = self._maybe_convert_freq(freq)
+            ns_target = (
+                freq is not None and freq._period_dtype_code == PeriodDtypeCode.N
+            )
             if freq == "B" or self._freq == "B":
                 # roll forward to ensure we land on B date
+                stamp = self.to_timestamp(how="start")
+                unit = "ns" if ns_target else stamp.unit
                 adjust = np.timedelta64(1, "D") - np.timedelta64(1, unit)
-                return self.to_timestamp(how="start") + adjust
+                return stamp + adjust
             endpoint = (self + self._freq).to_timestamp(how="start")
+            unit = "ns" if ns_target else endpoint.unit
             return endpoint - np.timedelta64(1, unit)
 
         if freq is None:
@@ -2272,6 +2355,14 @@ cdef class _Period(PeriodMixin):
         else:
             freq = self._maybe_convert_freq(freq)
             base = freq._period_dtype_code
+
+        # GH#63760 period_ordinal_to_dt64 gives nanoseconds only for the
+        #  nanosecond target base and microseconds otherwise, so the result
+        #  unit is determined by the normalized target base.
+        if base == PeriodDtypeCode.N:
+            unit = "ns"
+        else:
+            unit = "us"
 
         val = self.asfreq(freq, how)
 
@@ -3268,6 +3359,18 @@ class Period(_Period):
             if util.is_integer_object(value):
                 if value == NPY_NAT:
                     value = "NaT"
+                else:
+                    # GH#64227
+                    import warnings
+
+                    from pandas.errors import Pandas4Warning
+                    from pandas.util._exceptions import find_stack_level
+
+                    warnings.warn(
+                        INT_TO_PERIOD_SCALAR_DEPR_MSG,
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
                 value = str(value)
             elif type(value) is not str:
@@ -3277,7 +3380,9 @@ class Period(_Period):
 
             freqstr = freq.rule_code if freq is not None else None
             try:
-                dt, reso = parse_datetime_string_with_reso(value, freqstr)
+                dt, reso = parse_datetime_string_with_reso(
+                    value, freqstr, warn_quarter=False,
+                )
             except ValueError as err:
                 match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
                 if match:

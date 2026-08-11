@@ -24,10 +24,10 @@ from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_array_like_deprecate_non_pandas,
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
@@ -78,6 +78,12 @@ def _check_pyarrow_available() -> None:
 
 def _is_string_view(typ):
     return not pa_version_under16p0 and pa.types.is_string_view(typ)
+
+
+# Matches a `\Z` that is an end-of-string assertion rather than an escaped
+# backslash followed by a literal "Z"; the captured group keeps any preceding
+# pairs of escaped backslashes intact.
+_unescaped_end_anchor = re.compile(r"(?<!\\)((?:\\\\)*)\\Z")
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -338,7 +344,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif isinstance(value, type(self)):
             pass
         else:
-            if not is_array_like(value):
+            if not is_array_like_deprecate_non_pandas(value):
                 value = np.asarray(value, dtype=object)
             else:
                 value = np.asarray(value)
@@ -389,6 +395,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     _str_isalnum = ArrowStringArrayMixin._str_isalnum
     _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isascii = ArrowStringArrayMixin._str_isascii
     _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
     _str_isdigit = ArrowStringArrayMixin._str_isdigit
     _str_islower = ArrowStringArrayMixin._str_islower
@@ -417,6 +424,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
+    _str_zfill = ArrowStringArrayMixin._str_zfill
+    _str_normalize = ArrowStringArrayMixin._str_normalize
 
     @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
@@ -445,13 +454,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             pattern = pat
 
-        if (
-            pattern.endswith("\\Z")
-            # Second condition counts the number of `\` that patterns ends with
-            # prior to Z -> needs to be odd to end with an unescaped \Z
-            and (len(pattern) - len(pattern[:-1].rstrip("\\")) + 1) % 2 == 1
-        ):
-            pattern = pattern[:-2] + "\\z"
+        # RE2 spells the end-of-string anchor `\z`; Python's `\Z` is the same
+        # assertion and may appear anywhere in the pattern, not just at the end.
+        pattern = _unescaped_end_anchor.sub(r"\1\\z", pattern)
 
         return pattern, case, flags
 
@@ -467,10 +472,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             flags
             or self._is_re_pattern_with_flags(pat)
             or (regex and self._has_unsupported_regex(pat))
+            # a compiled pattern is not a valid literal; defer to the object path
+            or (not regex and isinstance(pat, re.Pattern))
         ):
             return super()._str_contains(pat, case, flags, na, regex)
 
-        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
+        # with regex=False `pat` is matched literally, so must not be rewritten
+        if regex:
+            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_match(
@@ -543,12 +552,25 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_count(self, pat: str, flags: int = 0):
-        if flags or self._has_unsupported_regex(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_unsupported_regex(pat)
+        ):
             return super()._str_count(pat, flags)
 
-        pat, _, _ = self._preprocess_re_pattern(pat, True, 0)
-        result = pc.count_substring_regex(self._pa_array, pat)
+        pat, case, _ = self._preprocess_re_pattern(pat, True, 0)
+        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
         return self._convert_int_result(result)
+
+    def _str_partition(self, sep: str, expand: bool):
+        if expand:
+            # rows of three strings, so a list array rather than Self
+            return ArrowExtensionArray(
+                ArrowStringArrayMixin._str_partition_expand(self, sep)
+            )
+        # expand=False wants tuples, which the object path produces directly
+        return ObjectStringArrayMixin._str_partition(self, sep, expand)
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:

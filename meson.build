@@ -4,13 +4,18 @@ project(
     'c',
     'cpp',
     'cython',
-    version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
+    version: run_command(
+        find_program('python3', 'python'),
+        'generate_version.py',
+        '--print',
+        check: true,
+    ).stdout().strip(),
     license: 'BSD-3',
     meson_version: '>=1.2.3',
     default_options: [
         'buildtype=release',
         'c_std=c17',
-        'cpp_std=c++17',
+        'cpp_std=c++20',
         'warning_level=2',
     ],
 )

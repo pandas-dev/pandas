@@ -74,6 +74,7 @@ typedef struct {
   PyObject *type_index;
   PyObject *type_nat;
   PyObject *type_na;
+  PyObject *type_dt64tz_dtype;
 } modulestate;
 
 #define modulestate(o) ((modulestate *)PyModule_GetState(o))
@@ -205,6 +206,26 @@ int object_is_na_type(PyObject *obj) {
     return 0;
   }
   int result = PyObject_IsInstance(obj, type_na);
+  if (result == -1) {
+    PyErr_Clear();
+    return 0;
+  }
+  return result;
+}
+
+int object_is_datetimetz_dtype(PyObject *dtype) {
+  PyObject *module = PyState_FindModule(&moduledef);
+  if (module == NULL)
+    return 0;
+  modulestate *state = modulestate(module);
+  if (state == NULL)
+    return 0;
+  PyObject *type_dt64tz_dtype = state->type_dt64tz_dtype;
+  if (type_dt64tz_dtype == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  int result = PyObject_IsInstance(dtype, type_dt64tz_dtype);
   if (result == -1) {
     PyErr_Clear();
     return 0;
@@ -345,6 +366,29 @@ int object_is_na_type(PyObject *obj) {
   return result;
 }
 
+int object_is_datetimetz_dtype(PyObject *dtype) {
+  PyObject *module = PyImport_ImportModule("pandas");
+  if (module == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  PyObject *type_dt64tz_dtype =
+      PyObject_GetAttrString(module, "DatetimeTZDtype");
+  if (type_dt64tz_dtype == NULL) {
+    Py_DECREF(module);
+    PyErr_Clear();
+    return 0;
+  }
+  int result = PyObject_IsInstance(dtype, type_dt64tz_dtype);
+  if (result == -1) {
+    Py_DECREF(module);
+    Py_DECREF(type_dt64tz_dtype);
+    PyErr_Clear();
+    return 0;
+  }
+  return result;
+}
+
 #endif
 
 static int module_traverse(PyObject *m, visitproc visit, void *arg) {
@@ -354,6 +398,7 @@ static int module_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(modulestate(m)->type_index);
   Py_VISIT(modulestate(m)->type_nat);
   Py_VISIT(modulestate(m)->type_na);
+  Py_VISIT(modulestate(m)->type_dt64tz_dtype);
   return 0;
 }
 
@@ -364,6 +409,7 @@ static int module_clear(PyObject *m) {
   Py_CLEAR(modulestate(m)->type_index);
   Py_CLEAR(modulestate(m)->type_nat);
   Py_CLEAR(modulestate(m)->type_na);
+  Py_CLEAR(modulestate(m)->type_dt64tz_dtype);
   return 0;
 }
 
@@ -411,6 +457,11 @@ PyMODINIT_FUNC PyInit__ujson(void) {
     PyObject *type_index = PyObject_GetAttrString(mod_pandas, "Index");
     assert(type_index != NULL);
     modulestate(module)->type_index = type_index;
+
+    PyObject *type_dt64tz_dtype =
+        PyObject_GetAttrString(mod_pandas, "DatetimeTZDtype");
+    assert(type_dt64tz_dtype != NULL);
+    modulestate(module)->type_dt64tz_dtype = type_dt64tz_dtype;
 
     Py_DECREF(mod_pandas);
   }

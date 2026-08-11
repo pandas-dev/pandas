@@ -11,8 +11,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2_3
+from pandas.compat import PY313
 from pandas.errors import (
+    OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
@@ -327,6 +328,86 @@ class TestTimedeltaAdditionSubtraction:
         result = other - td
         tm.assert_numpy_array_equal(result, expected * 0)
 
+    def test_td_add_sub_td64_ndarray_lands_on_nat_sentinel(self, unit):
+        # GH#66552 stepping one unit past the bottom of the range lands on
+        #  iNaT, which is not NaT but is indistinguishable from it once
+        #  stored, so it has to raise rather than come back as NaT
+        td_min = Timedelta(np.timedelta64(-(2**63) + 1, unit))
+        one = np.array([1], dtype=f"m8[{unit}]")
+
+        attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+            unit, "nanosecond"
+        )
+        msg = f"Out of bounds {attrname} timedelta"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td_min - one
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td_min + (-one)
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            (-one) + td_min
+
+        # __rsub__ reaches the sentinel from the other end of the range
+        td_max = Timedelta(np.timedelta64(2**63 - 1, unit))
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            (-one) - td_max
+
+    def test_td_add_sub_td64_ndarray_overflow_in_cast(self):
+        # GH#66552 the promotion to the finer of the two units used to wrap
+        td = Timedelta(10**12, "s")
+        other = np.array([1], dtype="m8[ns]")
+
+        msg = "Cannot cast 11574074 days 01:46:40 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td + other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other - td
+
+        # the coarser operand is the one cast when the Timedelta is finer
+        td = Timedelta(1, "ns")
+        other = np.array([2**62], dtype="m8[s]")
+
+        msg = "Cannot convert 4611686018427387904 seconds to timedelta64"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td + other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other - td
+
+    def test_td_add_sub_td64_ndarray_nat_operand(self):
+        # GH#66552 a missing operand is still missing, not an overflow
+        td = Timedelta(1, "ns")
+        nat = np.timedelta64("NaT", "ns")
+        other = np.array([1, nat], dtype="m8[ns]")
+
+        expected = np.array([2, nat], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+        expected = np.array([0, nat], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(td - other, expected)
+        tm.assert_numpy_array_equal(other - td, expected)
+
+    def test_td_add_sub_td64_ndarray_byteswapped(self, unit):
+        # GH#66552 the values are viewed as i8, which a non-native buffer
+        #  would misread
+        td = Timedelta(1, unit)
+        other = np.array([1, 2], dtype=np.dtype(f"m8[{unit}]").newbyteorder(">"))
+
+        expected = np.array([2, 3], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+    @pytest.mark.parametrize("freq", ["Y", "M"])
+    def test_td_add_sub_td64_ndarray_year_month_unit(self, freq):
+        # GH#66552 numpy itself refuses to combine these with a time unit; we
+        #  leave them to it rather than inventing a common unit
+        other = np.array([1], dtype=f"m8[{freq}]")
+
+        msg = "Cannot get a common metadata divisor"
+        with pytest.raises(TypeError, match=msg):
+            Timedelta(1, "ns") + other
+        with pytest.raises(TypeError, match=msg):
+            other - Timedelta(1, "ns")
+
     def test_td_add_sub_dt64_ndarray(self):
         td = Timedelta("1 day")
         other = np.array(["2000-01-01"], dtype="M8[ns]")
@@ -338,6 +419,145 @@ class TestTimedeltaAdditionSubtraction:
         expected = np.array(["1999-12-31"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(-td + other, expected)
         tm.assert_numpy_array_equal(other - td, expected)
+
+    def test_td_add_sub_dt64_ndarray_out_of_bounds(self, unit):
+        # GH#66552 stepping past the top of the range used to wrap
+        td = Timedelta(1, unit)
+        attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+            unit, "nanosecond"
+        )
+        msg = f"Out of bounds {attrname} timestamp"
+
+        dt_max = np.array([2**63 - 1], dtype=f"M8[{unit}]")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            td + dt_max
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            dt_max + td
+
+        # stepping one unit past the bottom lands on iNaT, which is not NaT but
+        #  is indistinguishable from it once stored, so it has to raise too
+        dt_min = np.array([-(2**63) + 1], dtype=f"M8[{unit}]")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            dt_min - td
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            -td + dt_min
+
+    def test_td_add_sub_dt64_ndarray_out_of_bounds_message_unit(self):
+        # GH#66552 the message names the promoted resolution, not the
+        #  Timedelta's own
+        td = Timedelta(1, "s")
+
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            td + np.array([2**63 - 1], dtype="M8[ns]")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            np.array([-(2**63) + 1], dtype="M8[ns]") - td
+
+    def test_td_add_sub_dt64_ndarray_overflow_in_cast(self):
+        # GH#66552 the promotion to the finer of the two units used to wrap
+        td = Timedelta(1, "ns")
+        other = np.array([2**40], dtype="M8[s]")
+
+        msg = "Out of bounds nanosecond timestamp: 36812-02-20"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            td + other
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            other - td
+
+        # the Timedelta is the one cast when it is the coarser of the two
+        td = Timedelta(10**12, "s")
+        other = np.array([1], dtype="M8[ns]")
+
+        msg = "Cannot cast 11574074 days 01:46:40 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td + other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other - td
+
+    def test_td_add_sub_dt64_ndarray_nat_operand(self):
+        # GH#66552 a missing operand is still missing, not an overflow
+        td = Timedelta(1, "ns")
+        nat = np.datetime64("NaT", "ns")
+        other = np.array([1, nat], dtype="M8[ns]")
+
+        expected = np.array([2, nat], dtype="M8[ns]")
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+        expected = np.array([0, nat], dtype="M8[ns]")
+        tm.assert_numpy_array_equal(other - td, expected)
+
+    def test_td_add_sub_dt64_ndarray_byteswapped(self, unit):
+        # GH#66552 the values are viewed as i8, which a non-native buffer
+        #  would misread
+        td = Timedelta(1, unit)
+        other = np.array([1, 2], dtype=np.dtype(f"M8[{unit}]").newbyteorder(">"))
+
+        expected = np.array([2, 3], dtype=f"M8[{unit}]")
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+        # the cast to a common unit has to survive the non-native buffer too
+        other = np.array(["2000-01-01"], dtype=np.dtype("M8[s]").newbyteorder(">"))
+        expected = np.array(["2000-01-01"], dtype="M8[s]") + td.to_timedelta64()
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+    @pytest.mark.parametrize("freq", ["Y", "M", "W", "D", "h", "m", "s", "ms", "us"])
+    def test_td_add_sub_dt64_ndarray_mixed_units(self, freq, unit):
+        # GH#66552 matching numpy, the operands are cast to the finer of the
+        #  two units; in-bounds results, NaT included, are unchanged
+        td = Timedelta(1, unit)
+        other = np.array(["2000-01-01", "NaT"], dtype=f"M8[{freq}]")
+        m8 = td.to_timedelta64()
+
+        tm.assert_numpy_array_equal(td + other, m8 + other)
+        tm.assert_numpy_array_equal(other + td, m8 + other)
+        tm.assert_numpy_array_equal(other - td, other - m8)
+
+    @pytest.mark.parametrize("freq", ["Y", "M"])
+    def test_td_add_sub_dt64_ndarray_year_month_unit_overflow(self, freq):
+        # GH#66552 numpy casts these to the Timedelta's unit and wraps
+        td = Timedelta(1, "ns")
+        other = np.array(["4940-01-01"], dtype=f"M8[{freq}]")
+
+        msg = "Out of bounds nanosecond timestamp: 4940-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            td + other
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            other - td
+
+    @pytest.mark.parametrize("freq", ["ps", "fs", "as"])
+    def test_td_add_sub_dt64_ndarray_subnano_unit(self, freq):
+        # GH#66552 we have no reso for these, so numpy keeps handling them
+        td = Timedelta(1, "ns")
+        other = np.array([1], dtype=f"M8[{freq}]")
+        m8 = td.to_timedelta64()
+
+        tm.assert_numpy_array_equal(td + other, m8 + other)
+        tm.assert_numpy_array_equal(other + td, m8 + other)
+        tm.assert_numpy_array_equal(other - td, other - m8)
+
+    def test_td_add_sub_dt64_ndarray_generic_unit(self, unit):
+        # GH#66552 numpy reads a generic datetime64 in the other operand's unit
+        td = Timedelta(1, unit)
+        other = np.zeros(2, dtype="M8")
+
+        expected = np.array([1, 1], dtype=f"M8[{unit}]")
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+        expected = np.array([-1, -1], dtype=f"M8[{unit}]")
+        tm.assert_numpy_array_equal(other - td, expected)
+
+    def test_td_sub_dt64_ndarray_invalid(self):
+        # GH#66552 numpy refuses this and so do we
+        td = Timedelta(1, "ns")
+        other = np.array(["2000-01-01"], dtype="M8[ns]")
+
+        msg = "ufunc 'subtract' cannot use operands with types"
+        with pytest.raises(TypeError, match=msg):
+            td - other
 
     def test_td_add_sub_ndarray_0d(self):
         td = Timedelta("1 day")
@@ -423,6 +643,34 @@ class TestTimedeltaMultiplicationDivision:
             # invalid multiply with another timedelta
             op(td, td)
 
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.int32, np.int8])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_integer_overflow(self, op, dtype):
+        # GH#66551 numpy integer scalars used to keep the multiply in the
+        #  operand's own dtype, so an out-of-bounds product wrapped silently
+        #  instead of raising the way a Python int does.
+        td = Timedelta(2**62, unit="ns")
+
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            op(td, dtype(4))
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
+    def test_td_mul_numpy_float_precision(self, op, dtype):
+        # GH#66551 a float32 multiplier used to drag the product down to
+        #  float32 precision, losing 16 seconds here.
+        td = Timedelta(10**18, unit="ns")
+
+        result = op(td, dtype(1.0))
+        assert result == td
+
     def test_td_mul_numeric_ndarray(self):
         td = Timedelta("1 day")
         other = np.array([2])
@@ -433,6 +681,80 @@ class TestTimedeltaMultiplicationDivision:
 
         result = other * td
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_td_mul_int_ndarray_overflow(self, unit):
+        # GH#66552 the product used to be formed in int64 and wrap silently,
+        #  where the TimedeltaIndex equivalent raises
+        td = Timedelta(4, unit)
+        other = np.array([2**62])
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td * other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other * td
+
+        # int64.min is representable but would be misread as NaT
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta(1, unit) * np.array([-(2**63)])
+
+        # one step in from the sentinel is fine
+        result = Timedelta(1, unit) * np.array([-(2**63) + 1])
+        expected = np.array([-(2**63) + 1], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_td_mul_uint64_ndarray_overflow(self):
+        # GH#66552 a multiplier above int64.max wraps negative in the i8 cast
+        td = Timedelta(4, "ns")
+        other = np.array([2**63], dtype=np.uint64)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td * other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other * td
+
+    @pytest.mark.parametrize("factor", [1e30, np.inf, -np.inf])
+    def test_td_mul_float_ndarray_overflow(self, factor):
+        # GH#66552 the product used to saturate to int64.max on the cast, or
+        #  come back as NaT for an infinite multiplier
+        td = Timedelta(4, "ns")
+        other = np.array([factor])
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td * other
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            other * td
+
+    def test_td_mul_float_ndarray_nan(self):
+        # GH#66552 a NaN multiplier is still missing, not an overflow
+        td = Timedelta(4, "ns")
+        other = np.array([np.nan, 2.0])
+
+        expected = np.array([np.timedelta64("NaT", "ns"), np.timedelta64(8, "ns")])
+        tm.assert_numpy_array_equal(td * other, expected)
+        tm.assert_numpy_array_equal(other * td, expected)
+
+    def test_td_mul_float32_ndarray_precision(self):
+        # GH#66552 a float32 multiplier used to drag the product down to
+        #  float32 precision
+        td = Timedelta(10**18, "ns")
+        other = np.array([1.0], dtype=np.float32)
+
+        expected = np.array([10**18], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(td * other, expected)
+        tm.assert_numpy_array_equal(other * td, expected)
+
+    def test_td_mul_numeric_ndarray_byteswapped(self):
+        # GH#66552 a non-native buffer has to be converted before the multiply
+        td = Timedelta(4, "ns")
+        other = np.array([2, 3], dtype=np.dtype("i8").newbyteorder(">"))
+
+        expected = np.array([8, 12], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(td * other, expected)
+        tm.assert_numpy_array_equal(other * td, expected)
 
     def test_td_mul_numeric_ndarray_0d(self):
         td = Timedelta("1 day")
@@ -506,6 +828,31 @@ class TestTimedeltaMultiplicationDivision:
         result = td / 5
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
+
+    @pytest.mark.parametrize(
+        "value, divisor, expected",
+        [
+            (Timedelta.min._value, 1, Timedelta.min._value),
+            (Timedelta.max._value, 1, Timedelta.max._value),
+            (Timedelta.min._value, -1, Timedelta.max._value),
+            (2**53 + 1, 1, 2**53 + 1),
+            # truncation toward zero, matching numpy
+            (36028797018963967, 2, 18014398509481983),
+            (-36028797018963967, 2, -18014398509481983),
+            (36028797018963967, -2, -18014398509481983),
+        ],
+    )
+    def test_td_div_integer_exact(self, value, divisor, expected):
+        # GH#66551 the quotient was computed in float64, whose 53-bit mantissa
+        #  rounds values that int64 holds exactly, so dividing by 1 gave NaT at
+        #  Timedelta.min and raised OverflowError at Timedelta.max.
+        td = Timedelta(value, unit="ns")
+
+        result = td / divisor
+        assert result._value == expected
+
+        # the vectorized path was already exact; the scalar disagreed with it
+        assert (pd.array([td]) / divisor)[0]._value == expected
 
     @pytest.mark.parametrize(
         "nan",
@@ -636,10 +983,10 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
 
-        # NumPy reworded the unexpected-keyword error in 2.3; older NumPy instead
-        # reports the operands cannot be used (boundary confirmed on CI: 2.2 old,
-        # 2.3 new).
-        if np_version_gt2_3:
+        # CPython 3.13 reworded the invalid-keyword error raised by the
+        # np.datetime64 constructor (boundary confirmed on CI: 3.12 old,
+        # 3.13 new; independent of NumPy version).
+        if PY313:
             msg = "this function got an unexpected keyword argument 'dtype'"
         else:
             msg = "|".join(
@@ -1260,3 +1607,101 @@ def test_ops_str_deprecated(box):
             item // td
         with pytest.raises(TypeError, match=floordiv_msg):
             td // item
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("factor", [-(2**63), float(-(2**63))])
+def test_td_mul_lands_on_nat_sentinel(unit, factor):
+    # GH#66551 the result is iNaT, which is not NaT but is indistinguishable
+    #  from it once stored, so it has to raise rather than be constructed.
+    #  The guard used to be a bare `assert`, which `python -O` strips.
+    td = Timedelta(1, unit).as_unit(unit)
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("dtype", ["f8", "f4"])
+def test_td_div_float_ndarray_overflow(unit, dtype):
+    # GH#66552 a quotient outside the int64 range used to saturate on the cast,
+    #  where the TimedeltaIndex equivalent raises
+    td = Timedelta(4, unit)
+    other = np.array([1e-30], dtype=dtype)
+
+    msg = "Overflow in timedelta division"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td / other
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td // other
+
+
+@pytest.mark.parametrize("other", [np.array([0]), np.array([0.0]), np.array([np.nan])])
+def test_td_div_ndarray_zero_or_nan_still_nat(other):
+    # GH#66552 a zero or nan divisor is not an overflow: numpy calls it NaT and
+    #  TimedeltaIndex keeps that, so the overflow check has to exempt it
+    td = Timedelta(4, "ns")
+    nat = np.array([np.timedelta64("NaT", "ns")])
+
+    # a float zero divisor also trips numpy's own zero-division warning, which
+    #  the TimedeltaIndex path suppresses and this one does not
+    with np.errstate(divide="ignore", invalid="ignore"):
+        tm.assert_numpy_array_equal(td / other, nat)
+        tm.assert_numpy_array_equal(td // other, nat)
+
+
+def test_td_div_ndarray_in_bounds():
+    # GH#66552 the overflow check leaves representable quotients alone,
+    #  including the ndim > 1 and empty cases
+    td = Timedelta(12, "ns")
+
+    expected = np.array([[6], [4]], dtype="m8[ns]")
+    tm.assert_numpy_array_equal(td / np.array([[2.0], [3.0]]), expected)
+    tm.assert_numpy_array_equal(td // np.array([[2.0], [3.0]]), expected)
+
+    empty = np.array([], dtype="m8[ns]")
+    tm.assert_numpy_array_equal(td / np.array([], dtype="f8"), empty)
+    tm.assert_numpy_array_equal(td // np.array([], dtype="f8"), empty)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_td_add_sub_lands_on_nat_sentinel(unit):
+    # GH#66552 stepping one unit past Timedelta.min lands on iNaT, which is not
+    #  NaT but is indistinguishable from it once stored, so it has to raise
+    #  rather than come back as NaT.
+    td_min = Timedelta(np.timedelta64(-(2**63) + 1, unit))
+
+    attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
+        unit, "nanosecond"
+    )
+    msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min - Timedelta(1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + Timedelta(-1, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(-1, unit) + td_min
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td_min + np.timedelta64(-1, unit)
+
+
+@pytest.mark.parametrize("op", [operator.mul, operator.truediv, operator.floordiv])
+def test_td_integral_float_op_is_exact(op):
+    # GH#66551 an integral float operand has an exact int equivalent, so it
+    #  takes the int64 path rather than float64.  Timedelta.min is iNaT + 1,
+    #  which float64 used to round down onto iNaT, and Timedelta.max used to
+    #  round up out of the int64 range.
+    assert op(Timedelta.min, 1.0) == Timedelta.min
+    assert op(Timedelta.max, 1.0) == Timedelta.max
+
+    # above 2**53 the float64 mantissa runs out, so the operand had to be
+    #  applied exactly for these to round-trip
+    td = Timedelta(2**53 + 1, "ns")
+    assert op(td, 1.0)._value == 2**53 + 1
+    assert op(td, 1.0) == op(td, 1)

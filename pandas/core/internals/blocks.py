@@ -884,24 +884,51 @@ class Block(PandasObject, libinternals.Block):
                 )
 
                 if i != src_len:
-                    # This is ugly, but we have to get rid of intermediate refs. We
-                    # can simply clear the referenced_blocks if we already copied,
-                    # otherwise we have to remove ourselves
+                    # This is ugly, but we have to get rid of intermediate refs.
                     self_blk_ids = {
-                        id(b()): i for i, b in enumerate(self.refs.referenced_blocks)
+                        id(ref()): idx
+                        for idx, ref in enumerate(self.refs.referenced_blocks)
                     }
-                    for b in result:
-                        if b.refs is self.refs:
-                            # We are still sharing memory with self
-                            if id(b) in self_blk_ids and b is not self:
-                                # Remove ourselves from the refs; we are temporary
-                                self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
-                        else:
-                            # We have already copied, so we can clear the refs to avoid
-                            # future copies
-                            b.refs.referenced_blocks.clear()
+                    # Blocks still sharing memory with self are temporary, so drop
+                    #  them from self's refs. Pop highest index first: popping in
+                    #  ascending order shifts every later index down, so with two or
+                    #  more of them the later pops hit the wrong entry or ran off the
+                    #  end (GH#61972).
+                    drop = {
+                        self_blk_ids[id(res_blk)]
+                        for res_blk in result
+                        if res_blk.refs is self.refs
+                        and id(res_blk) in self_blk_ids
+                        and res_blk is not self
+                    }
+                    for idx in sorted(drop, reverse=True):
+                        self.refs.referenced_blocks.pop(idx)
+                    # Note: blocks whose refs are not self.refs are left alone. Those
+                    #  refs still track every live block sharing that data, which may
+                    #  include sibling sub-blocks from _split on an intermediate
+                    #  block, and always include the block itself. Emptying them would
+                    #  leave those blocks untracked, so writes through a later view
+                    #  would not trigger copy-on-write (GH#58966).
                 new_rb.extend(result)
             rb = new_rb
+
+        # The drop above assumes every block it removes is a short-lived intermediate,
+        #  but a block can survive to the end untouched (a later pair whose mask is
+        #  empty hands it straight back). Re-register whatever we are actually
+        #  returning, otherwise it stays invisible to has_reference() and writes
+        #  through a later view skip copy-on-write (GH#58966).
+        # Blocks split off the same parent share one refs, so cache the ids per refs
+        #  rather than rescanning the list for each of them.
+        registered: dict[int, set[int]] = {}
+        for ret_blk in rb:
+            refs = ret_blk.refs
+            ids = registered.get(id(refs))
+            if ids is None:
+                ids = {id(ref()) for ref in refs.referenced_blocks}
+                registered[id(refs)] = ids
+            if id(ret_blk) not in ids:
+                refs.add_reference(ret_blk)
+                ids.add(id(ret_blk))
         return rb
 
     @final
@@ -1088,10 +1115,17 @@ class Block(PandasObject, libinternals.Block):
         # get_new_values can return a view of self.values on the identity-indexer
         #  fast path (see _Unstacker._make_sorted_values); every other path copies
         #  via take_nd.  Gate on that, then the O(1) may_share_memory, so CoW
-        #  tracks the reference.  GH#65107
-        if unstacker._indexer_is_identity and np.may_share_memory(
-            new_values, self.values
-        ):
+        #  tracks the reference.  GH#65107.  For NDArrayBacked EAs (e.g. tz-aware
+        #  datetime, period) np.asarray boxes to object, so may_share_memory on
+        #  the EA objects is always False; compare the backing ._ndarray instead
+        #  as get_result does, else the shared view goes untracked.  GH#65748
+        if isinstance(self.values, np.ndarray):
+            source, unstacked = self.values, new_values
+        else:
+            values = cast("NDArrayBackedExtensionArray", self.values)
+            source, unstacked = values._ndarray, new_values._ndarray
+
+        if unstacker._indexer_is_identity and np.may_share_memory(unstacked, source):
             refs = self.refs
         else:
             refs = None
@@ -1152,12 +1186,15 @@ class Block(PandasObject, libinternals.Block):
                 casted = setitem_datetimelike_compat(values, num_set, casted)
 
                 if (
-                    isinstance(casted, list)
+                    self.ndim == 1
+                    and isinstance(casted, list)
                     and len(casted) > 0
                     and isinstance(casted[0], (tuple, list, np.ndarray))
                 ):
                     # Prevent numpy from unpacking nested containers
-                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    # (e.g. tuples) into a scalar cell during assignment. GH#37629
+                    # Only for 1D blocks: on a 2D block a list of lists/tuples is
+                    # a genuine 2D value whose rows must not be wrapped. GH#65264
                     casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
@@ -1734,6 +1771,12 @@ class EABackedBlock(Block):
         value = self._maybe_squeeze_arg(value)
 
         values = self.values
+        if values._readonly:
+            # GH#38547 raise here instead of letting the ValueError from
+            #  EA.__setitem__ reach the except clause below, which would
+            #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
+            #  whose __setitem__ does not check the flag.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
@@ -1848,6 +1891,11 @@ class EABackedBlock(Block):
 
         self = self._maybe_copy(inplace=True)
         values = self.values
+        if values._readonly:
+            # GH#38547 as in EABackedBlock.setitem, raise instead of letting
+            #  the except clause below misinterpret the EA-level ValueError
+            #  as a cast failure.
+            raise ValueError("Cannot modify read-only array")
         if values.ndim == 2:
             # GH#64620 Reorient the read-only inputs to the block's storage
             #  layout and putmask into self.values in place. We must not
