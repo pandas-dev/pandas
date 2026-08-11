@@ -9,9 +9,9 @@ can be exercised directly in ``scripts/tests/test_issue_assignment.py``. The
 from __future__ import annotations
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 from typing import (
     Required,
@@ -23,7 +23,7 @@ PR_STALE_DAYS = 14
 PR_CLOSE_DAYS = 7
 
 # Only apply going forward; not retroactively.
-ROLLOUT_CUTOFF = datetime(2026, 7, 27, tzinfo=timezone.utc)
+ROLLOUT_CUTOFF = datetime(2026, 8, 11, tzinfo=UTC)
 
 EXEMPT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 REVIEW_BLOCKING_ASSOCIATIONS = {"OWNER", "MEMBER"}

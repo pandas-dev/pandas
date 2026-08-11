@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 from typing import TYPE_CHECKING
 
@@ -19,7 +19,7 @@ from scripts.issue_assignment import (
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-NOW = datetime(2026, 6, 1, tzinfo=timezone.utc)
+NOW = datetime(2026, 6, 1, tzinfo=UTC)
 
 
 def dt(days_ago: int) -> datetime:
@@ -580,7 +580,7 @@ def activity(
 
 def ago(days: int) -> datetime:
     # The sweeps read the wall clock, so fixtures are relative to real now.
-    return datetime.now(timezone.utc) - timedelta(days=days)
+    return datetime.now(UTC) - timedelta(days=days)
 
 
 def changes(days_ago: int) -> list[core.Review]:

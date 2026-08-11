@@ -8,8 +8,8 @@ from the environment.
 from __future__ import annotations
 
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 import json
 import subprocess
@@ -310,7 +310,7 @@ class GitHubClient:
         ``since`` parameter filters on update time, so it may return comments
         created before ``since`` but can never miss one created after it.
         """
-        since_arg = since.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        since_arg = since.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         out = self._gh(
             [
                 "api",
