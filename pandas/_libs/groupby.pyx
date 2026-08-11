@@ -978,7 +978,7 @@ def group_var(
                         # With group_var, we cannot just use _treat_as_na bc
                         #  datetimelike dtypes get cast to float64 instead of
                         #  to int64.
-                        isna_result = M2[lab, j] == NPY_NAT
+                        isna_result = M2[lab, j] != M2[lab, j]
                     else:
                         isna_result = _treat_as_na(M2[lab, j], is_datetimelike)
 
