@@ -429,12 +429,17 @@ timedelta-like}
                 if shift_delta != 0:
                     # Validate that we don't relocalize on another nonexistent
                     # time
-                    if -1 < shift_delta + remaining_mins < pph:
+                    if -remaining_mins <= shift_delta < pph - remaining_mins:
                         raise ValueError(
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
-                    new_local = val + shift_delta
+                    if checked_add(val, shift_delta, &new_local):
+                        raise_out_of_bounds(
+                            val,
+                            BS_OVERFLOW if shift_delta > 0 else BS_UNDERFLOW,
+                            creso,
+                        )
                 elif shift_forward:
                     new_local = val + (pph - remaining_mins)
                 else:
@@ -455,7 +460,7 @@ timedelta-like}
                         delta = _tz_localize_using_tzinfo_api(
                             new_local, tz, True, creso, NULL, 1
                         )
-                    result[i] = new_local - delta
+                    result[i] = _shift_to_utc(new_local, delta, creso)
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
                     if delta_idx == info.ntrans:
@@ -468,7 +473,7 @@ timedelta-like}
                         delta_idx = info.ntrans - 1
                         while (
                             delta_idx > 0
-                            and new_local - info.deltas[delta_idx]
+                            and _shift_to_utc(new_local, info.deltas[delta_idx], creso)
                             < info.tdata[delta_idx]
                         ):
                             delta_idx -= 1
@@ -481,7 +486,14 @@ timedelta-like}
                         delta_idx = delta_idx - 1
                     else:
                         delta_idx = delta_idx - delta_idx_offset
-                    result[i] = new_local - info.deltas[delta_idx]
+                    delta = info.deltas[delta_idx]
+                    result[i] = _shift_to_utc(new_local, delta, creso)
+                if result[i] == NPY_NAT:
+                    raise_out_of_bounds(
+                        new_local,
+                        BS_UNDERFLOW if delta > 0 else BS_OVERFLOW,
+                        creso,
+                    )
             elif fill_nonexist:
                 result[i] = NPY_NAT
             else:
