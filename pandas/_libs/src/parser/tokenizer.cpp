@@ -22,6 +22,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -105,6 +106,26 @@ static void free_if_not_null(void **ptr) {
     free(*ptr);
     *ptr = NULL;
   }
+}
+
+// Point error_msg at the parser's own fixed buffer.  There is no allocation on
+// any error path, so there is no failure to handle: the NULL-dereference these
+// sites used to risk on a failed malloc cannot occur.  Overwriting a previous
+// message is likewise free, where the old code leaked it.
+static void parser_set_error_msg(parser_t *self, const char *msg) {
+  snprintf(self->error_buf, ERROR_MSG_SIZE, "%s", msg);
+  self->error_msg = self->error_buf;
+}
+
+#if defined(__GNUC__)
+__attribute__((format(printf, 2, 3)))
+#endif
+static void parser_set_error_msgf(parser_t *self, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(self->error_buf, ERROR_MSG_SIZE, fmt, args);
+  va_end(args);
+  self->error_msg = self->error_buf;
 }
 
 /*
@@ -197,8 +218,8 @@ static void parser_cleanup(parser_t *self) {
     return;
   }
 
-  // XXX where to put this
-  free_if_not_null((void **)&self->error_msg);
+  // error_msg points into self->error_buf, so there is nothing to free.
+  self->error_msg = NULL;
   free_if_not_null((void **)&self->warn_msg);
 
   if (self->skipset != NULL) {
@@ -354,10 +375,9 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 
 static int push_char(parser_t *self, char c) {
   if (self->stream_len >= self->stream_cap) {
-    const size_t bufsize = 100;
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    parser_set_error_msg(self,
+                         "Buffer overflow caught - possible malformed input "
+                         "file.\n");
     return PARSER_OUT_OF_MEMORY;
   }
   self->stream[self->stream_len++] = c;
@@ -367,10 +387,9 @@ static int push_char(parser_t *self, char c) {
 static inline int end_field(parser_t *self) {
   // XXX cruft
   if (self->words_len >= self->words_cap) {
-    const size_t bufsize = 100;
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    parser_set_error_msg(self,
+                         "Buffer overflow caught - possible malformed input "
+                         "file.\n");
     return PARSER_OUT_OF_MEMORY;
   }
 
@@ -396,7 +415,9 @@ static void append_warning(parser_t *self, const char *msg) {
 
   if (self->warn_msg == NULL) {
     self->warn_msg = (char *)malloc(length + 1);
-    snprintf(self->warn_msg, length + 1, "%s", msg);
+    if (self->warn_msg != NULL) {
+      snprintf(self->warn_msg, length + 1, "%s", msg);
+    }
   } else {
     const int64_t ex_length = strlen(self->warn_msg);
     char *newptr = (char *)realloc(self->warn_msg, ex_length + length + 1);
@@ -405,6 +426,21 @@ static void append_warning(parser_t *self, const char *msg) {
       snprintf(self->warn_msg + ex_length, length + 1, "%s", msg);
     }
   }
+}
+
+// Format a warning into the parser's own warn_buf and hand it to
+// append_warning, which copies the text out.  Keeping this a call rather than
+// an inlined snprintf matters: end_line runs once per row, and inlining a
+// varargs format into it costs ~5% on the quoted/escaped-quote paths.
+#if defined(__GNUC__)
+__attribute__((format(printf, 2, 3)))
+#endif
+static void parser_append_warningf(parser_t *self, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(self->warn_buf, ERROR_MSG_SIZE, fmt, args);
+  va_end(args);
+  append_warning(self, self->warn_buf);
 }
 
 static int end_line(parser_t *self) {
@@ -451,25 +487,18 @@ static int end_line(parser_t *self) {
 
     // file_lines is now the actual file line number (starting at 1)
     if (self->on_bad_lines == BLHM_ERROR) {
-      const size_t bufsize = 100;
-      self->error_msg = (char *)malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Expected %" PRId64 " fields in line %" PRIu64 ", saw %" PRId64
-               "\n",
-               ex_fields, self->file_lines, fields);
+      parser_set_error_msgf(self,
+                            "Expected %" PRId64 " fields in line %" PRIu64
+                            ", saw %" PRId64 "\n",
+                            ex_fields, self->file_lines, fields);
       return -1;
     } else {
       // simply skip bad lines
       if (self->on_bad_lines == BLHM_WARN) {
-        // pass up error message
-        const size_t bufsize = 100;
-        char *msg = (char *)malloc(bufsize);
-        snprintf(msg, bufsize,
-                 "Skipping line %" PRIu64 ": expected %" PRId64
-                 " fields, saw %" PRId64 "\n",
-                 self->file_lines, ex_fields, fields);
-        append_warning(self, msg);
-        free(msg);
+        parser_append_warningf(self,
+                               "Skipping line %" PRIu64 ": expected %" PRId64
+                               " fields, saw %" PRId64 "\n",
+                               self->file_lines, ex_fields, fields);
       }
     }
   } else {
@@ -477,9 +506,7 @@ static int end_line(parser_t *self) {
     if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
       // might overrun the buffer when closing fields
       if (make_stream_space(self, ex_fields - fields) < 0) {
-        const size_t bufsize = 100;
-        self->error_msg = (char *)malloc(bufsize);
-        snprintf(self->error_msg, bufsize, "out of memory");
+        parser_set_error_msg(self, "out of memory");
         return -1;
       }
 
@@ -495,11 +522,8 @@ static int end_line(parser_t *self) {
 
     // good line, set new start point
     if (self->lines >= self->lines_cap) {
-      const size_t bufsize = 100;
-      self->error_msg = (char *)malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Buffer overflow caught - "
-               "possible malformed input file.\n");
+      parser_set_error_msg(self, "Buffer overflow caught - "
+                                 "possible malformed input file.\n");
       return PARSER_OUT_OF_MEMORY;
     }
     self->line_start[self->lines] =
@@ -547,15 +571,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
   self->datalen = bytes_read;
 
   if (status != REACHED_EOF && self->data == NULL) {
-    const size_t bufsize = 200;
-    self->error_msg = (char *)malloc(bufsize);
-
     if (status == CALLING_READ_FAILED) {
-      snprintf(self->error_msg, bufsize,
-               "Calling read(nbytes) on source failed. "
-               "Try engine='python'.");
+      parser_set_error_msg(self, "Calling read(nbytes) on source failed. "
+                                 "Try engine='python'.");
     } else {
-      snprintf(self->error_msg, bufsize, "Unknown error in IO callback");
+      parser_set_error_msg(self, "Unknown error in IO callback");
     }
     return -1;
   }
@@ -570,10 +590,9 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define PUSH_CHAR(c)                                                           \
   if (slen >= self->stream_cap) {                                              \
-    const size_t bufsize = 100;                                                \
-    self->error_msg = (char *)malloc(bufsize);                                 \
-    snprintf(self->error_msg, bufsize,                                         \
-             "Buffer overflow caught - possible malformed input file.\n");     \
+    parser_set_error_msg(self,                                                 \
+                         "Buffer overflow caught - possible malformed input "  \
+                         "file.\n");                                           \
     return PARSER_OUT_OF_MEMORY;                                               \
   }                                                                            \
   *stream++ = c;                                                               \
@@ -1205,9 +1224,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   // the stream must already hold all remaining input. Field null-terminators
   // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-    const size_t bufsize = 100;
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "out of memory");
+    parser_set_error_msg(self, "out of memory");
     return -1;
   }
 
@@ -1711,8 +1728,6 @@ linelimit:
 }
 
 static int parser_handle_eof(parser_t *self) {
-  const size_t bufsize = 100;
-
   if (self->datalen != 0)
     return -1;
 
@@ -1725,14 +1740,12 @@ static int parser_handle_eof(parser_t *self) {
 
   case ESCAPE_IN_QUOTED_FIELD:
   case IN_QUOTED_FIELD:
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "EOF inside string starting at row %" PRIu64, self->file_lines);
+    parser_set_error_msgf(self, "EOF inside string starting at row %" PRIu64,
+                          self->file_lines);
     return -1;
 
   case ESCAPED_CHAR:
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "EOF following escape character");
+    parser_set_error_msg(self, "EOF following escape character");
     return -1;
 
   case IN_FIELD:
@@ -1841,11 +1854,13 @@ int parser_trim_buffers(parser_t *self) {
   /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
-    self->word_ends =
-        (int64_t *)realloc(self->word_ends, new_cap * sizeof(int64_t));
-    if (self->word_ends == NULL) {
+    // Assigning realloc's result straight to word_ends would leak the old
+    // buffer (and leave the parser with a NULL one) if the shrink fails.
+    void *newptr = realloc(self->word_ends, new_cap * sizeof(int64_t));
+    if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
+    self->word_ends = (int64_t *)newptr;
     self->words_cap = new_cap;
   }
 

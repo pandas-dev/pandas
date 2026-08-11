@@ -24,7 +24,6 @@ from pandas.tests.plotting.common import (
     _check_ticks_props,
     _check_visible,
 )
-from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -38,15 +37,9 @@ def _check_ax_limits(col, ax):
     assert y_max >= col.max()
 
 
-if Version(mpl.__version__) < Version("3.10"):
-    verts: list[dict[str, bool | str]] = [{"vert": False}, {"vert": True}]
-else:
-    verts = [{"orientation": "horizontal"}, {"orientation": "vertical"}]
-
-
-@pytest.fixture(params=verts)
+@pytest.fixture(params=["horizontal", "vertical"])
 def vert(request):
-    return request.param
+    return {"orientation": request.param}
 
 
 class TestDataFramePlots:
@@ -386,12 +379,12 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_no_xlabel_ylabel(self, vert, request):
-        if Version(mpl.__version__) >= Version("3.10") and vert == {
-            "orientation": "horizontal"
-        }:
-            request.applymarker(
-                pytest.mark.xfail(reason=f"{vert} fails starting with matplotlib 3.10")
+        request.applymarker(
+            pytest.mark.xfail(
+                vert == {"orientation": "horizontal"},
+                reason=f"{vert} fails starting with matplotlib 3.10",
             )
+        )
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
