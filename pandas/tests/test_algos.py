@@ -1207,6 +1207,46 @@ class TestIsin:
         expected = Series(False)
         tm.assert_series_equal(result, expected)
 
+    def test_isin_signed_dtype(self):
+        # GH#61676: the mirror of test_isin_unsigned_dtype -- an int64 caller
+        # must not be down-cast to float64 either.
+        ser = Series([1378774140726870442], dtype=np.int64)
+        result = ser.isin([np.uint64(1378774140726870528)])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_int64_vs_float_no_precision_loss(self):
+        # GH#61676: an int64 caller against a float target that a float64 cast
+        # would round it onto.
+        ser = Series([2**60 + 1], dtype="int64")
+        result = ser.isin([float(2**60)])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_int64_vs_exact_range_boundary_target(self):
+        # GH#61676: only an integer caller can hold 2**53 + 1 exactly, and
+        # float64 rounds that onto a target of 2**53, so the exact-range bound
+        # is exclusive for a 64-bit integer caller.
+        ser = Series([2**53 + 1], dtype="int64")
+        result = ser.isin([np.uint64(2**53)])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_int64_vs_small_unsigned_keeps_numeric_path(self, monkeypatch):
+        # GH#61676: a target inside float64's exact integer range cannot
+        # collide with a caller value from outside it, so the fast numeric
+        # path must be kept rather than falling back to object dtype.
+        called = []
+        monkeypatch.setattr(
+            algos,
+            "construct_1d_object_array_from_listlike",
+            lambda values: called.append(values) or np.asarray(values, dtype=object),
+        )
+        ser = Series([5, 2**60], dtype="int64")
+        result = ser.isin([np.uint64(5)])
+        tm.assert_series_equal(result, Series([True, False]))
+        assert called == []  # numeric path, no object cast
+
     def test_isin_uint64_vs_float_no_precision_loss(self):
         # GH#46485: a uint64 magnitude > 2**53 must not be down-cast to float64
         # when checking membership against float targets.

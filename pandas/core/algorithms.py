@@ -47,7 +47,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_signed_integer_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -581,7 +580,6 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if (
             len(values) > 0
             and values.dtype.kind in "iufcb"
-            and not is_signed_integer_dtype(comps)
             and not is_dtype_equal(values, comps)
         ):
             # GH#46485: casting a 64-bit integer to float64 loses precision
@@ -605,23 +603,30 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                     # (complex128 components are float64, so "c" is as lossy
                     # as "f")
                     needs_object = False
+                elif values_dtype.kind in "iu" and values_dtype.itemsize == 8:
+                    # values is the (small) targets list -> cheap to check
+                    # exactly. A target inside float64's exact integer range
+                    # cannot collide with a comps element from outside it,
+                    # since such an element rounds to a magnitude of at least
+                    # 2**53, so the numeric cast is safe even for a 64-bit
+                    # integer comps. The bound is exclusive in that case
+                    # though: only an integer comps holds 2**53 + 1 exactly,
+                    # which float64 rounds onto a target of 2**53.
+                    # values is an ndarray here (it came from the numeric
+                    # branch of _ensure_arraylike above).
+                    values_arr = cast("np.ndarray", values)
+                    exact_max = _FLOAT64_INT_EXACT_MAX
+                    if comps_dtype.kind in "iu" and comps_dtype.itemsize == 8:
+                        exact_max -= 1
+                    needs_object = (
+                        int(values_arr.min()) < -exact_max
+                        or int(values_arr.max()) > exact_max
+                    )
                 elif comps_dtype.kind in "iu" and comps_dtype.itemsize == 8:
                     # comps is the (potentially large) caller and a 64-bit
                     # integer that would be cast down to float64; too costly to
                     # inspect element-wise, so fall back to object to be safe.
                     needs_object = True
-                elif values_dtype.kind in "iu" and values_dtype.itemsize == 8:
-                    # values is the (small) targets list -> cheap to check
-                    # exactly. Only object-cast if a target falls outside
-                    # float64's exact integer range; otherwise the numeric
-                    # cast is lossless and the fast path stays correct.
-                    # values is an ndarray here (it came from the numeric
-                    # branch of _ensure_arraylike above).
-                    values_arr = cast("np.ndarray", values)
-                    needs_object = (
-                        int(values_arr.min()) < -_FLOAT64_INT_EXACT_MAX
-                        or int(values_arr.max()) > _FLOAT64_INT_EXACT_MAX
-                    )
                 else:
                     # float/complex values_dtype means _ensure_arraylike may
                     # already have rounded large ints in a mixed int/float
