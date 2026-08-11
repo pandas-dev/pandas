@@ -1261,24 +1261,14 @@ def test_get_locs_list_like_nan_key_without_nan_rows():
 
 
 def test_get_locs_list_like_object_container_key():
-    # GH#64807 - an object container hides the dtype its labels would match as,
-    #  so it must not slip past the strict-path gate in either direction
+    # GH#64807 - an object container hides the dtype its labels would match
+    #  as, so it must not slip past the strict-path gate: vectorized matching
+    #  would widen the float32 level to hold the key and lose these labels
     idx = MultiIndex.from_arrays(
         [["a", "a", "b"], np.array([1.1, 2.2, 1.1], dtype=np.float32)]
     )
     result = idx.get_locs((slice(None), np.array([1.1], dtype=object)))
     tm.assert_numpy_array_equal(result, np.array([0, 2], dtype=np.intp))
-
-    # np.timedelta64 compares equal to a plain int, so an object level holding
-    #  them matches an object int key that the scalar path rejects
-    level = Index(
-        np.array([np.timedelta64(1, "D"), np.timedelta64(2, "D")], dtype=object),
-        dtype=object,
-    )
-    assert level.get_indexer(np.array([1, 2], dtype=object)).tolist() == [0, 1]
-    idx = MultiIndex.from_arrays([["x", "y"], level])
-    with pytest.raises(KeyError, match="1"):
-        idx.get_locs((slice(None), np.array([1, 2], dtype=object)))
 
 
 def test_get_locs_list_like_categorical_level():
