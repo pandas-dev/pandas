@@ -631,9 +631,23 @@ class TestTimedeltas:
                     ),
                 ),
             ),
+            pytest.param(
+                Timedelta(123, "ns"),
+                np.timedelta64(123, "ns"),
+                marks=pytest.mark.xfail(
+                    reason="Still failing after https://github.com/numpy/numpy/pull/14622",
+                ),
+            ),
+            pytest.param(
+                Timedelta(-42, "ns"),
+                np.timedelta64(-42, "ns"),
+                marks=pytest.mark.xfail(
+                    reason="Still failing after https://github.com/numpy/numpy/pull/14622",
+                ),
+            ),
         ],
     )
-    def test_hash_equality_invariance_no_nanos(self, pandas_timedelta, td) -> None:
+    def test_hash_equality_invariance(self, pandas_timedelta, td) -> None:
         # GH#44504
         assert pandas_timedelta == td
         assert hash(pandas_timedelta) == hash(td)
