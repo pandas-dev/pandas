@@ -1464,7 +1464,14 @@ def searchsorted(
         # Before searching below, we therefore try to give `value` the
         # same dtype as `arr`, while guarding against integer overflows.
         iinfo = np.iinfo(arr.dtype.type)
-        value_arr = np.array([value]) if is_integer(value) else np.array(value)
+
+        if is_integer(value):
+            value_arr = np.array([value], dtype=arr.dtype)
+        elif hasattr(value, "to_numpy"):
+            # If value is a pandas Array with <NA>, cast it int64, (massive value) so we place it at the end of array
+            value_arr = value.to_numpy(dtype=arr.dtype, na_value=iinfo.max)
+        else:
+            value_arr = np.array(value)
         if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
             # value within bounds, so no overflow, so can convert value dtype
             # to dtype of arr
@@ -1476,7 +1483,8 @@ def searchsorted(
             # We know that value is int
             value = cast("int", dtype.type(value))
         else:
-            value = pd_array(cast("ArrayLike", value), dtype=dtype)
+            # uses iinfo.max() so no need for NA conversion
+            value = pd_array(cast("ArrayLike", value_arr), dtype=dtype)
     else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
