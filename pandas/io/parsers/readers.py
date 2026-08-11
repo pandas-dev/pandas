@@ -2671,7 +2671,13 @@ class TextFileReader(abc.Iterator):
 
         sep = options["delimiter"]
 
-        if sep is not None and len(sep) > 1:
+        if sep is None and engine not in ("python", "python-fwf"):
+            # sep=None requests automatic separator detection, which is
+            # implemented only by the python engine (via csv.Sniffer), so fall
+            # back to it (or raise if a non-python engine was requested).
+            fallback_reason = f"the '{engine}' engine does not support sep=None"
+            engine = "python"
+        elif sep is not None and len(sep) > 1:
             if engine == "c" and sep == r"\s+":
                 # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
