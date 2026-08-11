@@ -905,12 +905,6 @@ def _read_csv_chunks(
         "low_memory": False,
     }
 
-    # mmap the file once and pass zero-copy memoryview slices to each thread
-    # instead of having each thread open/seek/read its own copy.  mmap dups
-    # the file descriptor, so the file object can be closed right away.
-    with open(filepath, "rb") as fh:
-        mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
-
     # Each thread reuses one parser to drain the queue, so no worker stalls
     # the gather on a straggler and no chunk pays parser construction.
     chunk_queue: queue.SimpleQueue = queue.SimpleQueue()
@@ -987,6 +981,13 @@ def _read_csv_chunks(
     columns: list[Hashable] = []
     total = 0
     readers_closing = False
+
+    # mmap the file once and pass zero-copy memoryview slices to each thread
+    # instead of having each thread open/seek/read its own copy.  mmap dups
+    # the file descriptor, so the file object can be closed right away.  Map it
+    # last, so that every path out of here runs the close below.  GH#66259
+    with open(filepath, "rb") as fh:
+        mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     try:
         with (
             memoryview(mm) as mv,
@@ -994,6 +995,18 @@ def _read_csv_chunks(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
+
+            # A column of only NA tokens and ints too large for int64 converts
+            # to no numeric dtype, and is then emitted with its NA tokens left
+            # as literal strings (GH#14983).  Which chunks hit that depends on
+            # how the file was split, and the resulting dtype is str either
+            # way, so the reconciliation below cannot see the difference -- the
+            # values would just silently disagree with a serial read.  GH#66259
+            if any(
+                reader._engine._reader.na_left_literal for reader in workers_readers
+            ):
+                return None
+
             # Freeing parser buffers costs a few ms of madvise; run it on the
             # pool, overlapped with the gather copies below.
             close_futures = [pool.submit(reader.close) for reader in workers_readers]
@@ -1081,9 +1094,10 @@ def _read_csv_chunks(
                     reader.close()
                 except Exception:
                     pass
-        # suppress: a worker exception's traceback may still hold a memoryview
-        # export, in which case close() raises BufferError.  The mapping is
-        # unmapped once that traceback is garbage-collected.
+        # The closes above drop the chunk slices the readers hold, so the
+        # mapping is normally unmapped right here.  suppress: a traceback that
+        # still pins a slice would make close() raise BufferError and mask the
+        # exception on its way out; the mapping then goes when it is collected.
         with contextlib.suppress(BufferError):
             mm.close()
 

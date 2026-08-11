@@ -1228,6 +1228,130 @@ def test_match_compiled_regex(any_string_dtype):
     values.str.match(re.compile("ab", flags=re.IGNORECASE), flags=re.IGNORECASE)
 
 
+@pytest.mark.parametrize("flag", [re.MULTILINE, re.DOTALL, re.VERBOSE, re.ASCII])
+def test_match_non_ignorecase_flags(any_string_dtype, flag):
+    # GH#63108 flags other than IGNORECASE must not raise, whether passed via
+    #  `flags` or already baked into a compiled pat
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["ab", "cd"], dtype=any_string_dtype)
+    expected = Series([True, False], dtype=expected_dtype)
+
+    result = values.str.match("^ab", flags=flag)
+    tm.assert_series_equal(result, expected)
+
+    result = values.str.match(re.compile("^ab", flag))
+    tm.assert_series_equal(result, expected)
+
+
+def test_match_non_ignorecase_flags_applied(any_string_dtype):
+    # GH#63108 the flag must actually take effect, not just avoid raising
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["a\nc", "ac"], dtype=any_string_dtype)
+
+    result = values.str.match("a.c", flags=re.DOTALL)
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    # same via a compiled pat, which for arrow-backed dtypes takes the object
+    #  fallback rather than the pyarrow kernel
+    result = values.str.match(re.compile("a.c", re.DOTALL))
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    result = values.str.match("a.c")
+    tm.assert_series_equal(result, Series([False, False], dtype=expected_dtype))
+
+
+def test_match_non_ignorecase_flags_with_case(any_string_dtype):
+    # GH#63108 a string pat combined with both `flags` and `case` must not be
+    #  mistaken for a user-passed compiled regexp
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["AB", "cd"], dtype=any_string_dtype)
+
+    result = values.str.match("^ab", flags=re.MULTILINE, case=False)
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    result = values.str.match("^ab", flags=re.MULTILINE, case=True)
+    tm.assert_series_equal(result, Series([False, False], dtype=expected_dtype))
+
+    result = values.str.match(re.compile("^ab", re.MULTILINE | re.IGNORECASE))
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    msg = "Cannot both specify case=True and pass 'flags' containing re.IGNORECASE"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        values.str.match("ab", flags=re.IGNORECASE, case=True)
+
+
+def test_match_inline_flags_survive(any_string_dtype):
+    # GH#63108 an inline "(?i)" belongs to the pattern; passing `flags` must
+    #  not make it look like a case-sensitivity conflict
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["AB", "cd"], dtype=any_string_dtype)
+    expected = Series([True, False], dtype=expected_dtype)
+
+    tm.assert_series_equal(values.str.match("(?i)ab"), expected)
+    tm.assert_series_equal(values.str.match("(?i)ab", flags=0), expected)
+    tm.assert_series_equal(values.str.match("(?i)ab", flags=re.MULTILINE), expected)
+
+
+def test_match_inline_ascii_flag():
+    # GH#63108 an inline "(?a)" must not collide with the implicit re.U
+    values = Series(["ab", "1b"], dtype=object)
+    expected = Series([True, True], dtype=np.bool_)
+
+    tm.assert_series_equal(values.str.match(r"(?a)\wb"), expected)
+    tm.assert_series_equal(values.str.match(r"(?a)\wb", flags=0), expected)
+    tm.assert_series_equal(values.str.match(r"(?a)\wb", flags=re.MULTILINE), expected)
+
+
+def test_match_re2_pattern_flags_zero():
+    # GH#63108 flags=0 is the documented default, so it must not route the
+    #  pattern through `re`, which rejects RE2 syntax pyarrow accepts
+    pytest.importorskip("pyarrow")
+    values = Series(["ab", "cd"], dtype="string[pyarrow]")
+    expected = Series([True, False], dtype="boolean")
+
+    tm.assert_series_equal(values.str.match(r"\p{L}b"), expected)
+    tm.assert_series_equal(values.str.match(r"\p{L}b", flags=0), expected)
+
+
+def test_match_arrow_dtype_flags():
+    # GH#63108 the accessor pre-compiles pat whenever `flags` is passed, which
+    #  ArrowDtype's _str_match must unwrap rather than choke on
+    pa = pytest.importorskip("pyarrow")
+    values = Series(["ab", "AB", "cd"], dtype=pd.ArrowDtype(pa.string()))
+
+    result = values.str.match("ab", flags=0)
+    tm.assert_series_equal(result, Series([True, False, False], dtype="bool[pyarrow]"))
+
+    result = values.str.match(re.compile("ab"))
+    tm.assert_series_equal(result, Series([True, False, False], dtype="bool[pyarrow]"))
+
+    result = values.str.match("ab", flags=re.IGNORECASE)
+    tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
+
+    # IGNORECASE carried by the pat itself must be folded into `case`, which is
+    #  the only form pyarrow understands
+    result = values.str.match(re.compile("ab", re.IGNORECASE))
+    tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
+
+    # flags pyarrow cannot honor still raise NotImplementedError, as they did
+    #  before GH#63108 and as ``contains`` does today
+    with pytest.raises(NotImplementedError, match="flags"):
+        values.str.match("^ab", flags=re.MULTILINE)
+
+    # fullmatch reaches the same helper with a plain str; unwrapping pat for
+    #  match must not quietly start honoring flags here
+    with pytest.raises(NotImplementedError, match="flags"):
+        values.str.fullmatch("ab", flags=re.IGNORECASE)
+
+
 @pytest.mark.parametrize(
     "pat, case, exp",
     [

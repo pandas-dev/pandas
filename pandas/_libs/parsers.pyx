@@ -399,6 +399,12 @@ cdef class TextReader:
         # gives every worker the same sink so a warning is raised once rather
         # than once per chunk (GH#66259).
         public object warning_sink
+        # Set once a column has been emitted with its NA tokens left as
+        # literal strings despite na_filter being on (the uint64-conflict
+        # branch of _convert_tokens, GH#14983).  Whether that branch is taken
+        # depends on which rows the parser saw, so the parallel reader checks
+        # this and falls back to a serial read (GH#66259).
+        public bint na_left_literal
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -580,6 +586,7 @@ cdef class TextReader:
         self._pa_target = None
         self.trim_after_read = True
         self.warning_sink = None
+        self.na_left_literal = False
 
         if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
@@ -1291,6 +1298,8 @@ cdef class TextReader:
                         col_res, na_count = self._string_convert(
                             i, start, end, 0, na_hashset,
                             allow_pyarrow=col_dtype is None)
+                        if na_filter:
+                            self.na_left_literal = True
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
@@ -1299,6 +1308,8 @@ cdef class TextReader:
                         col_res, na_count = self._string_convert(
                             i, start, end, 0, na_hashset,
                             allow_pyarrow=col_dtype is None)
+                        if na_filter:
+                            self.na_left_literal = True
 
                 if col_res is not None:
                     break
