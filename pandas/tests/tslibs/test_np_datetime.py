@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    add_overflowsafe,
     astype_overflowsafe,
     is_unitless,
     py_get_unit_from_dtype,
@@ -138,6 +140,65 @@ def test_td64_to_tdstruct():
         "nanoseconds": 0,
     }
     assert res4 == exp4
+
+
+# add_overflowsafe switches to a vectorized path once the input is large
+#  enough, so these use an array well past that threshold; the guards have to
+#  hold on both routes.
+LARGE = 5000
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_rejects_int64_overflow(size):
+    left = np.full(size, np.iinfo(np.int64).max, dtype="i8")
+    right = np.array(1, dtype="i8")
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        add_overflowsafe(left, right)
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_rejects_nat_sentinel_result(size):
+    # GH#66552 a sum landing on iNaT is indistinguishable from a missing value
+    left = np.full(size, iNaT + 1, dtype="i8")
+    right = np.array(-1, dtype="i8")
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        add_overflowsafe(left, right)
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_allows_bounds(size):
+    # one step inside the range on either end is fine
+    left = np.full(size, iNaT + 2, dtype="i8")
+    result = add_overflowsafe(left, np.array(-1, dtype="i8"))
+    tm.assert_numpy_array_equal(result, np.full(size, iNaT + 1, dtype="i8"))
+
+    left = np.full(size, np.iinfo(np.int64).max - 1, dtype="i8")
+    result = add_overflowsafe(left, np.array(1, dtype="i8"))
+    expected = np.full(size, np.iinfo(np.int64).max, dtype="i8")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_propagates_nat(size):
+    left = np.full(size, iNaT, dtype="i8")
+    result = add_overflowsafe(left, np.array(1, dtype="i8"))
+    tm.assert_numpy_array_equal(result, np.full(size, iNaT, dtype="i8"))
+
+    left = np.arange(size, dtype="i8")
+    result = add_overflowsafe(left, np.array(iNaT, dtype="i8"))
+    tm.assert_numpy_array_equal(result, np.full(size, iNaT, dtype="i8"))
+
+
+def test_add_overflowsafe_elementwise_right():
+    # a bounds check on the operands has to hold for every pairing, and the
+    #  result keeps the shape of `left`
+    left = np.arange(LARGE, dtype="i8").reshape(50, -1)
+    right = np.full(left.shape, 7, dtype="i8")
+
+    result = add_overflowsafe(left, right)
+    tm.assert_numpy_array_equal(result, left + 7)
 
 
 class TestAstypeOverflowSafe:

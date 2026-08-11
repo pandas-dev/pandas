@@ -426,3 +426,57 @@ constructors using something similar to the following:
 See `the NumPy documentation on byte order
 <https://numpy.org/doc/stable/user/byteswapping.html>`__ for more
 details.
+
+.. _gotchas.nested-lists:
+
+Storing lists inside a ``DataFrame`` or ``Series``
+--------------------------------------------------
+
+It is possible to store Python lists (or other collections) in the cells of
+a ``DataFrame`` or ``Series``, but it is best avoided. A column containing
+lists has ``object`` dtype: each cell holds a reference to a separate Python
+object, so the column uses far more memory than a native-dtype column and no
+operation on it can use pandas' vectorized code paths. Because lists are not
+hashable, such a column also cannot be used as a group or merge key, and
+methods that need to hash the values, like :meth:`~DataFrame.drop_duplicates`,
+raise a ``TypeError``.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "name": ["A.J. Price"] * 3,
+           "opponent": ["76ers", "blazers", "bobcats"],
+       }
+   )
+   df["nearest_neighbors"] = [["Zach LaVine", "Jeremy Lin", "Nate Robinson"]] * 3
+   df
+   df.dtypes
+
+Instead, prefer a "long" format, with one row per list element. Existing
+list-valued cells can be converted with :meth:`~DataFrame.explode`:
+
+.. ipython:: python
+
+   exploded = df.explode("nearest_neighbors")
+   exploded
+   exploded.dtypes
+
+Each element now occupies its own row in a natively-typed column, and the
+usual vectorized operations, grouping, and joining all apply. If a nested
+presentation is needed at the end of a computation, the lists can be
+rebuilt with ``agg(list)``:
+
+.. ipython:: python
+
+   exploded.groupby(["name", "opponent"], sort=False)["nearest_neighbors"].agg(list)
+
+For columns of delimited strings, split directly into columns or indicator
+variables with ``.str`` methods rather than creating lists as an
+intermediate step:
+
+.. ipython:: python
+
+   ser = pd.Series(["a|b", "b", "a|c"])
+   ser.str.split("|", expand=True)
+   ser.str.get_dummies(sep="|")

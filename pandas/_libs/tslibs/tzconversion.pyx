@@ -330,15 +330,24 @@ timedelta-like}
 
     result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
 
+    # NB: both loops below shift via _shift_to_utc rather than a bare subtraction,
+    #  matching the scalar tz_localize_to_utc_single; without it a wall time whose
+    #  UTC instant is out of bounds wraps int64 silently.  Landing exactly on the
+    #  NaT sentinel is out of bounds too, but _shift_to_utc cannot reject it there:
+    #  the Timestamp(..., tz=) constructor shares that helper and relies on catching
+    #  the sentinel downstream to keep its own error message.
     if info.use_tzlocal and not is_zoneinfo(tz):
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = v - _tz_localize_using_tzinfo_api(
+                delta = _tz_localize_using_tzinfo_api(
                     v, tz, to_utc=True, creso=creso
                 )
+                result[i] = _shift_to_utc(v, delta, creso)
+                if result[i] == NPY_NAT:
+                    raise_out_of_bounds(v, BS_UNDERFLOW, creso)
         return result.base  # to return underlying ndarray
 
     elif info.use_fixed:
@@ -348,7 +357,9 @@ timedelta-like}
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = v - delta
+                result[i] = _shift_to_utc(v, delta, creso)
+                if result[i] == NPY_NAT:
+                    raise_out_of_bounds(v, BS_UNDERFLOW, creso)
         return result.base  # to return underlying ndarray
 
     # Determine whether each date lies left of the DST transition (store in
@@ -610,20 +621,34 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
             delta0 = _tz_localize_using_tzinfo_api(val, tz, True, creso, NULL, 0)
             delta1 = _tz_localize_using_tzinfo_api(val, tz, True, creso, NULL, 1)
 
-            v_left = val - delta0
-            v_right = val - delta1
+            # GH#65733 a candidate that wrapped int64 fails the round-trip below
+            #  and leaves both bounds NaT, which the caller reads as "nonexistent
+            #  time" instead of raising OutOfBoundsDatetime.  The cached path's
+            #  NPY_NAT check is not needed here: this branch only runs for
+            #  val > last_trans, which is always far above the sentinel.
+            if checked_sub(val, delta0, &v_left):
+                status_left = BS_UNDERFLOW if delta0 > 0 else BS_OVERFLOW
+            else:
+                status_left = BS_OK
+                local0 = v_left + _tz_localize_using_tzinfo_api(
+                    v_left, tz, to_utc=False, creso=creso
+                )
+                if local0 == val:
+                    result_a[i] = v_left
 
-            local0 = v_left + _tz_localize_using_tzinfo_api(
-                v_left, tz, to_utc=False, creso=creso
-            )
-            local1 = v_right + _tz_localize_using_tzinfo_api(
-                v_right, tz, to_utc=False, creso=creso
-            )
+            if checked_sub(val, delta1, &v_right):
+                status_right = BS_UNDERFLOW if delta1 > 0 else BS_OVERFLOW
+            else:
+                status_right = BS_OK
+                local1 = v_right + _tz_localize_using_tzinfo_api(
+                    v_right, tz, to_utc=False, creso=creso
+                )
+                if local1 == val:
+                    result_b[i] = v_right
 
-            if local0 == val:
-                result_a[i] = v_left
-            if local1 == val:
-                result_b[i] = v_right
+            if result_a[i] == NPY_NAT and result_b[i] == NPY_NAT:
+                if status_left != BS_OK and status_right != BS_OK:
+                    raise_out_of_bounds(val, status_left, creso)
             continue
 
         if checked_sub(val, ppd, &search_value):
