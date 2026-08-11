@@ -153,7 +153,9 @@ class TestSeriesPlots:
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        _check_plot_works(plotting.bootstrap_plot, series=ser, size=10)
+        _check_plot_works(
+            plotting.bootstrap_plot, series=ser, size=10, default_axes=True
+        )
 
 
 class TestDataFramePlots:
