@@ -750,7 +750,11 @@ class TestTimestampResolutionInference:
         assert ts.unit == "us"
 
         # _parse_dateabbr_string path
-        ts = Timestamp("2015Q1")
+        # GH#50907
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="quarterly string is deprecated"
+        ):
+            ts = Timestamp("2015Q1")
         assert ts.unit == "us"
 
         # dateutil_parse path
@@ -1548,3 +1552,18 @@ def test_constructor_nat_sentinel_neighbours():
     assert Timestamp("1677-09-21 00:12:43.145224193")._value == -(2**63) + 1
     assert Timestamp.min._value == -(2**63) + 1
     assert Timestamp(NaT) is NaT
+
+
+@pytest.mark.parametrize(
+    "date_str", ["2014Q2", "2014-Q2", "2Q2014", "2Q-2014", "2Q14", "14Q2"]
+)
+def test_constructor_quarterly_string_deprecated(date_str):
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result = Timestamp(date_str)
+
+    with tm.assert_produces_warning(None):
+        expected = Period(date_str).to_timestamp()
+    assert result == expected

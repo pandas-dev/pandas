@@ -471,10 +471,14 @@ def array_strptime(
                     creso = state.creso
                 iresult[i] = get_datetime64_nanos(val, creso)
                 continue
-            elif (
-                    (is_integer_object(val) or is_float_object(val))
-                    and (val != val or val == NPY_NAT)
-            ):
+            elif is_float_object(val) and (val != val or float(val) == NPY_NAT):
+                # GH#56996 widen before the sentinel comparison: a np.float16
+                #  would otherwise cast NPY_NAT down to float16 and warn about
+                #  the overflow. `val` itself must stay un-widened, since the
+                #  numeric branch below stringifies it.
+                iresult[i] = NPY_NAT
+                continue
+            elif is_integer_object(val) and val == NPY_NAT:
                 iresult[i] = NPY_NAT
                 continue
             elif is_integer_object(val) or is_float_object(val):
