@@ -45,7 +45,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
-    find_common_type,
     maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
@@ -65,7 +64,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
-    IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -4279,83 +4277,33 @@ class MultiIndex(Index):
                                 has_slice = True
 
                     level_index = self.levels[i]
-                    # GH#64807 get_indexer reconciles dtypes that the level's
-                    #  own get_loc will not. It matches an object-dtype key in
-                    #  object space, where 0 == False and "1 days" is just a
-                    #  string, and it promotes an object level of dates to
-                    #  datetimes. Either way it can match a label scalar lookup
-                    #  rejects, or miss one scalar lookup finds, so send such a
-                    #  key down the strict path. An object container holding the
-                    #  level's own kind of label is not at risk and stays
-                    #  vectorized.
-                    #  The same goes for a key that only matches once the level
-                    #  is widened to hold it -- a float key against an int level
-                    #  collides above 2**53, a float64 key never equals a
-                    #  float32 label -- so require the key to fit the level as
-                    #  it stands.
-                    level_dtype = level_index.dtype
-                    level_inferred = level_index.inferred_type
-                    level_unique = level_index._index_as_unique
-                    if isinstance(level_dtype, CategoricalDtype):
-                        # find_common_type never gives back a CategoricalDtype and
-                        #  inferred_type only says "categorical", so both tests
-                        #  below would fire on every key. Compare against what
-                        #  the categories hold, which is what gets matched.
-                        #  Cost only: without this the answers are the same, just
-                        #  ~15x slower.
-                        level_dtype = level_index.categories.dtype
-                        level_inferred = level_index.categories.inferred_type
+                    if isinstance(level_index.dtype, CategoricalDtype):
                         # a CategoricalIndex counts as unique however its
                         #  categories behave, so ask them instead
                         level_unique = level_index.categories._index_as_unique
+                    else:
+                        level_unique = level_index._index_as_unique
                     try:
                         target = ensure_index(k)
                     except (NotImplementedError, ValueError):
                         # GH#64807 an Index cannot hold the key at all (float16,
                         #  or a timedelta64 with a month/year unit), so only the
                         #  per-label path can resolve it
-                        mixed_key = True
+                        unvectorizable = True
                     else:
-                        target_dtype = target.dtype
-                        if isinstance(target_dtype, CategoricalDtype):
-                            target_dtype = target_dtype.categories.dtype
-                        elif target_dtype == object:
-                            # An object container hides the dtype its labels
-                            #  match as. Cost only: leaving it as object just
-                            #  sends every such key down the strict path.
-                            target_dtype = lib.maybe_convert_objects(
-                                np.asarray(target)
-                            ).dtype
-                        if len(target) > 0 and target_dtype != level_dtype:
-                            common_dtype = find_common_type([level_dtype, target_dtype])
-                        else:
-                            common_dtype = level_dtype
-                        mixed_key = (
-                            object in (target.dtype, level_dtype)
-                            and lib.infer_dtype(target, skipna=True) != level_inferred
-                        ) or (
-                            common_dtype != level_dtype
-                            # ...unless the widening is exact. A wider integer
-                            #  holds every value of a narrower one, so every
-                            #  comparison survives. An *unsigned* level does
-                            #  not qualify: get_indexer casts the key down to it
-                            #  unchecked, so 256 finds the 0 label. Nor does a
-                            #  signed level with an unsigned key, whose common
-                            #  type is float -- the >2**53 collision again.
-                            and not (
-                                level_dtype.kind == "i"
-                                and target_dtype.kind in ("i", "u")
-                                and common_dtype.kind in ("i", "u")
-                            )
-                            # Cost only: an IntervalIndex level matches a scalar
-                            #  key by containment, which is what get_indexer is
-                            #  for, so the strict path just costs 60x.
-                            and not isinstance(level_dtype, IntervalDtype)
-                        )
+                        # GH#64807 get_indexer reconciles a signed level and an
+                        #  unsigned key (or the reverse) through float64, which
+                        #  collides two labels above 2**53, so it can pick the
+                        #  wrong row. Flat .loc reaches the same labels through
+                        #  _get_indexer_strict and is unaffected.
+                        unvectorizable = {
+                            level_index.dtype.kind,
+                            target.dtype.kind,
+                        } == {"i", "u"}
                     if (
                         level_index._supports_partial_string_indexing
                         or not level_unique
-                        or mixed_key
+                        or unvectorizable
                         or has_slice
                         or has_unhashable
                     ):

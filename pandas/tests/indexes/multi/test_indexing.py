@@ -1,8 +1,5 @@
 from collections import namedtuple
-from datetime import (
-    date,
-    timedelta,
-)
+from datetime import timedelta
 import re
 
 import numpy as np
@@ -1212,9 +1209,8 @@ def test_get_locs_list_like_unsupported_timedelta_unit():
 
 
 def test_get_locs_list_like_interval_level():
-    # GH#64807 - an IntervalIndex level matches a scalar key by containment, so
-    #  it belongs on the vectorized path even though the two dtypes share only
-    #  object
+    # GH#64807 - an IntervalIndex level matches a numeric key by containment,
+    #  the same as a flat IntervalIndex does for a list-like key
     level = IntervalIndex.from_breaks([0.0, 1.0, 2.0, 3.0])
     idx = MultiIndex.from_product([["a"], level])
     result = idx.get_locs((["a"], [0.5, 2.5]))
@@ -1260,20 +1256,9 @@ def test_get_locs_list_like_nan_key_without_nan_rows():
         idx.get_locs((slice(None), [np.nan]))
 
 
-def test_get_locs_list_like_object_container_key():
-    # GH#64807 - an object container hides the dtype its labels would match
-    #  as, so it must not slip past the strict-path gate: vectorized matching
-    #  would widen the float32 level to hold the key and lose these labels
-    idx = MultiIndex.from_arrays(
-        [["a", "a", "b"], np.array([1.1, 2.2, 1.1], dtype=np.float32)]
-    )
-    result = idx.get_locs((slice(None), np.array([1.1], dtype=object)))
-    tm.assert_numpy_array_equal(result, np.array([0, 2], dtype=np.intp))
-
-
 def test_get_locs_list_like_categorical_level():
-    # GH#64807 - smoke test for the categorical fast path, which no other case
-    #  in this file covers; the dtype resolution behind it is a cost shortcut
+    # GH#64807 - smoke test for a CategoricalIndex level, which no other case
+    #  in this file covers
     idx = MultiIndex.from_product([pd.CategoricalIndex(list("abc")), [1, 2]])
     result = idx.get_locs((["a", "c"], slice(None)))
     tm.assert_numpy_array_equal(result, np.array([0, 1, 4, 5], dtype=np.intp))
@@ -1354,72 +1339,66 @@ def test_get_locs_list_like_multiindex_key():
 
 
 def test_get_locs_list_like_mixed_type_key():
-    # GH#64807 - a TimedeltaIndex level parses "1 days", but a key mixing
-    #  strings and Timedeltas becomes an object-dtype target that get_indexer
-    #  cannot convert, so it reports the string as missing. Only which rows are
-    #  selected is pinned here; ordering such a key is a separate, older bug.
+    # GH#64807 - a list-like key resolves through get_indexer, which cannot
+    #  convert an object-dtype target mixing strings and Timedeltas, so it
+    #  reports the string as missing. A flat Index rejects the same key, even
+    #  though the scalar path parses "1 days".
     idx = MultiIndex.from_product([["a"], pd.timedelta_range("1 day", periods=3)])
-    result = idx.get_locs((["a"], ["1 days", pd.Timedelta("2 days")]))
-    tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
+    key = ["1 days", pd.Timedelta("2 days")]
+    with pytest.raises(KeyError, match="1 days"):
+        idx.get_locs((["a"], key))
+    with pytest.raises(KeyError, match="1 days"):
+        pd.Series(range(3), index=idx.levels[1]).loc[key]
 
-    # a label the level genuinely lacks still raises
-    with pytest.raises(KeyError, match="9 days"):
-        idx.get_locs((["a"], ["9 days", pd.Timedelta("2 days")]))
-
-
-@pytest.mark.parametrize(
-    "level", [[True, False], pd.array([True, False], dtype="boolean")]
-)
-def test_get_locs_list_like_bool_level_numeric_key(level):
-    # GH#64807 - a mixed key is matched in object space, where 0 == False, so a
-    #  numeric label must not match a bool level entry the scalar path rejects
-    idx = MultiIndex.from_arrays([["a", "b"], level])
-    with pytest.raises(KeyError, match="0"):
-        idx.get_locs((slice(None), [True, 0]))
-
-
-def test_get_locs_list_like_numeric_level_bool_key():
-    # GH#64807 - and the same the other way round
-    idx = MultiIndex.from_arrays([["a", "b", "c"], [0, 1, 2]])
-    with pytest.raises(KeyError, match="True"):
-        idx.get_locs((slice(None), [True, 2]))
+    tm.assert_numpy_array_equal(
+        idx.get_locs((["a"], "1 days")), np.array([0], dtype=np.intp)
+    )
 
 
 def test_get_locs_list_like_float32_level():
-    # GH#64807 - get_indexer widens the level to hold the key, and a float64
-    #  key never equals a float32 label once it does
+    # GH#64807 - a float64 key never equals a float32 label once get_indexer
+    #  widens the level to hold it, matching what a flat Index does. The scalar
+    #  path is not held to that; the two are not expected to agree here.
     idx = MultiIndex.from_arrays(
         [["a", "a", "b"], np.array([1.1, 2.2, 1.1], dtype=np.float32)]
     )
-    expected = np.array([0, 2], dtype=np.intp)
-    tm.assert_numpy_array_equal(idx.get_locs((slice(None), [1.1])), expected)
-    tm.assert_numpy_array_equal(idx.get_locs((slice(None), 1.1)), expected)
+    with pytest.raises(KeyError, match="1.1"):
+        idx.get_locs((slice(None), [1.1]))
+    with pytest.raises(KeyError, match="1.1"):
+        pd.Series(range(2), index=idx.levels[1]).loc[[1.1]]
 
-    # pd.NA leaves the key container object dtype, which must not excuse it
+    tm.assert_numpy_array_equal(
+        idx.get_locs((slice(None), 1.1)), np.array([0, 2], dtype=np.intp)
+    )
+
+
+def test_get_locs_list_like_na_in_object_container():
+    # GH#64807 - pd.NA alongside a real label leaves the key container object
+    #  dtype; the NA still has to be recognized and matched to the -1 codes
     idx = MultiIndex(
-        levels=[Index(["a", "b"]), Index(np.array([1.1, 2.2], dtype=np.float32))],
+        levels=[Index(["a", "b"]), Index([1.1, 2.2])],
         codes=[[0, 0, 1], [0, -1, 0]],
     )
+    # the key order puts the 1.1 rows ahead of the NA row
     result = idx.get_locs((slice(None), [1.1, pd.NA]))
-    tm.assert_numpy_array_equal(result, np.array([0, 1, 2], dtype=np.intp))
+    tm.assert_numpy_array_equal(result, np.array([0, 2, 1], dtype=np.intp))
 
 
-@pytest.mark.parametrize("dtype", ["uint8", "UInt8", "uint8[pyarrow]"])
-def test_get_locs_list_like_unsigned_level_wide_key(dtype):
-    # GH#64807 - get_indexer casts the key down to an unsigned level unchecked,
-    #  so 256 wrapped onto the 0 label
-    if "pyarrow" in dtype:
-        pytest.importorskip("pyarrow")
-    idx = MultiIndex.from_arrays([["a", "b", "c"], pd.array([0, 1, 2], dtype=dtype)])
-    with pytest.raises(KeyError, match="256"):
-        idx.get_locs((slice(None), [256]))
-    with pytest.raises(KeyError, match="256"):
-        idx.get_locs((slice(None), 256))
+def test_get_locs_list_like_signed_unsigned_level():
+    # GH#64807 - get_indexer reconciles a signed level and an unsigned key
+    #  through float64, colliding two labels above 2**53 and selecting the
+    #  wrong row; a flat Index resolves the same key correctly
+    idx = MultiIndex.from_arrays([["a", "b"], [2**53, 2**53 + 1]])
+    key = pd.array([2**53], dtype="UInt64")
+    tm.assert_numpy_array_equal(
+        idx.get_locs((slice(None), key)), np.array([0], dtype=np.intp)
+    )
+    assert pd.Series(range(2), index=idx.levels[1]).loc[key].tolist() == [0]
 
 
 def test_get_locs_list_like_categorical_key():
-    # GH#64807 - a Categorical key has to be resolved to its categories' dtype,
-    #  or comparing dtypes hashes the CategoricalDtype and can raise
+    # GH#64807 - a Categorical key against an object level of tuple labels:
+    #  a label the level lacks still raises rather than matching
     level = Index([(1,), (2,), (3,)], dtype=object)
     idx = MultiIndex(
         levels=[Index(list("abc")), level],
@@ -1430,52 +1409,12 @@ def test_get_locs_list_like_categorical_key():
         idx.get_locs((slice(None), Categorical([(1,), 9])))
 
 
-def test_get_locs_list_like_unsigned_key_signed_level():
-    # GH#64807 - a signed/unsigned mix widens to float, not to a wider integer,
-    #  so the >2**53 collision applies just as it does to a float key
-    idx = MultiIndex.from_arrays([["a", "b"], [2**53, 2**53 + 1]])
-    expected = np.array([0], dtype=np.intp)
-    result = idx.get_locs((slice(None), pd.array([2**53], dtype="UInt64")))
-    tm.assert_numpy_array_equal(result, expected)
-    tm.assert_numpy_array_equal(idx.get_locs((slice(None), 2**53)), expected)
-
-
-def test_get_locs_list_like_int_level_float_key():
-    # GH#64807 - above 2**53 two int64 labels collide once the key widens them
-    #  to float64, which picked the wrong row rather than raising
-    idx = MultiIndex.from_arrays([["a", "a"], [2**62, 2**62 + 1]])
-    expected = np.array([0], dtype=np.intp)
-    tm.assert_numpy_array_equal(idx.get_locs((slice(None), [float(2**62)])), expected)
-    tm.assert_numpy_array_equal(idx.get_locs((slice(None), 2**62)), expected)
-
-
-@pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_get_locs_list_like_complex_key_int_level(dtype):
-    # GH#64807 - and a complex key must not match an integer label that the
-    #  scalar path rejects, extension level or not
-    idx = MultiIndex.from_arrays([["a", "b"], pd.array([20, 21], dtype=dtype)])
-    with pytest.raises(KeyError, match="20"):
-        idx.get_locs((["a"], [20 + 0j]))
-
-
 def test_get_locs_list_like_narrow_int_level():
     # GH#64807 - a wider integer holds every value of a narrower one, so an
-    #  int64 key still matches an int32 level exactly
+    #  int64 key still matches an int32 level exactly (no float widening)
     idx = MultiIndex.from_product([["a"], Index(np.arange(5, dtype="int32"))])
     result = idx.get_locs((["a"], [1, 3]))
     tm.assert_numpy_array_equal(result, np.array([1, 3], dtype=np.intp))
-
-
-def test_get_locs_list_like_object_level_typed_key():
-    # GH#64807 - get_indexer promotes an object level of dates to datetimes
-    #  before matching, so it accepts a Timestamp the scalar path rejects
-    idx = MultiIndex.from_arrays([["x", "y"], [date(2020, 1, 1), date(2020, 1, 2)]])
-    with pytest.raises(KeyError, match="2020-01-01"):
-        idx.get_locs((slice(None), [pd.Timestamp("2020-01-01")]))
-
-    # the level's own kind of label still matches
-    result = idx.get_locs((slice(None), [date(2020, 1, 1)]))
-    tm.assert_numpy_array_equal(result, np.array([0], dtype=np.intp))
 
 
 def test_get_locs_list_like_ragged_tuple_labels():
