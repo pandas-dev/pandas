@@ -1043,7 +1043,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     # GH#58517 mutation testing showed no test caught col_idx == -1
-    # vs col_idx < -1 in take_2d_multi's col_mask; this covers the 
+    # vs col_idx < -1 in take_2d_multi's col_mask; this covers the
     # case of missing columns combined with a reordered index
     def test_reindex_multi_missing_column(self):
         df = DataFrame(
