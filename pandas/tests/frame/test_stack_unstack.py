@@ -1425,6 +1425,30 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "levels2",
+    [
+        [np.nan, 8.0, 7.0],
+        [8.0, np.nan, 7.0],
+        [8.0, 7.0, np.nan],
+    ],
+    ids=["nan=first", "nan=second", "nan=last"],
+)
+def test_unstack_sort_false_nan_series(levels2):
+    # GH#66672
+    index = MultiIndex.from_product([["r"], levels2], names=["x", "z"])
+    ser = Series([1.0, 2.0, 3.0], index=index)
+
+    result = ser.unstack(level="z", sort=False)
+
+    expected = DataFrame(
+        [[1.0, 2.0, 3.0]],
+        index=Index(["r"], name="x"),
+        columns=Index(levels2, name="z"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unstack_sort_false_unsorted_with_gaps():
     # Unsorted MI with missing combinations, unstacking non-last level
     # with sort=False. Exercises the identity=False, mask_all=False,
