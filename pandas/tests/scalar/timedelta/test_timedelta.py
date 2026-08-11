@@ -626,6 +626,7 @@ class TestTimedeltas:
                 Timedelta(123, "ns"),
                 np.timedelta64(123, "ns"),
                 marks=pytest.mark.xfail(
+                    np_version_gt2_2,
                     reason="Still failing after https://github.com/numpy/numpy/pull/14622",
                 ),
             ),
@@ -633,6 +634,7 @@ class TestTimedeltas:
                 Timedelta(-42, "ns"),
                 np.timedelta64(-42, "ns"),
                 marks=pytest.mark.xfail(
+                    np_version_gt2_2,
                     reason="Still failing after https://github.com/numpy/numpy/pull/14622",
                 ),
             ),
