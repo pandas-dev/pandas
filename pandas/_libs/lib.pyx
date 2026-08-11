@@ -966,22 +966,28 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
+        ndarray[object] newarr
+
+    if (
+        hasattr(arr, "dtype")
+        and arr.dtype.kind in "mM"
+        # TODO: we should add a custom ArrowExtensionArray.astype implementation
+        # that handles astype(str) specifically, avoiding ending up here and
+        # then we can remove the below check for `_pa_array` (for ArrowEA)
+        and not hasattr(arr, "_pa_array")
+    ):
+        # dtype check to exclude DataFrame
+        # GH#41409 TODO: not a great place for this
+        out = np.asarray(arr.astype(str), dtype=object)
+        if convert_na_value and skipna:
+            if hasattr(arr, "isna"):
+                nans = arr.isna()
+            else:
+                nans = np.isnat(arr)
+            out[nans] = na_value
+        return out
 
     if hasattr(arr, "to_numpy"):
-
-        if (
-            hasattr(arr, "dtype")
-            and arr.dtype.kind in "mM"
-            # TODO: we should add a custom ArrowExtensionArray.astype implementation
-            # that handles astype(str) specifically, avoiding ending up here and
-            # then we can remove the below check for `_pa_array` (for ArrowEA)
-            and not hasattr(arr, "_pa_array")
-        ):
-            # dtype check to exclude DataFrame
-            # GH#41409 TODO: not a great place for this
-            out = arr.astype(str).astype(object)
-            out[arr.isna()] = na_value
-            return out
         arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
         # GH#61155: Guarantee a 1-d result when array is a list of lists
@@ -1029,8 +1035,12 @@ cpdef ndarray[object] ensure_string_array(
 
         return result
 
+    newarr = np.asarray(arr, dtype=object)
+    if not newarr.flags.aligned:
+        newarr = newarr.copy()
+
     for i in range(n):
-        val = arr[i]
+        val = newarr[i]
 
         if isinstance(val, str):
             continue

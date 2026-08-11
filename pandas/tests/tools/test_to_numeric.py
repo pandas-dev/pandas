@@ -1,4 +1,5 @@
 import decimal
+import re
 
 import numpy as np
 from numpy import iinfo
@@ -112,10 +113,10 @@ def test_series_numeric(data):
 @pytest.mark.parametrize(
     "data,msg",
     [
-        ([1, -3.14, "apple"], 'Unable to parse string "apple" at position 2'),
+        ([1, -3.14, "apple"], "Unable to parse string 'apple' at position 2"),
         (
             ["orange", 1, -3.14, "apple"],
-            'Unable to parse string "orange" at position 0',
+            "Unable to parse string 'orange' at position 0",
         ),
     ],
 )
@@ -124,6 +125,27 @@ def test_error(data, msg):
 
     with pytest.raises(ValueError, match=msg):
         to_numeric(ser, errors="raise")
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        # repr()-ing the value itself would carry the numpy wrapper type into
+        # the message, e.g. np.str_('apple')
+        (np.str_("apple"), "'apple'"),
+        (np.bytes_(b"apple"), "b'apple'"),
+        # decoding the bytes to name them would raise on this one
+        (b"\xff\xfe", r"b'\xff\xfe'"),
+    ],
+)
+def test_error_names_the_value_exactly(value, expected):
+    # GH#66524 - the message names the underlying value, so it is neither
+    # widened to the type of the object holding it nor narrowed by a decode.
+    ser = Series([value], dtype=object)
+
+    msg = re.escape(f"Unable to parse string {expected} at position 0")
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(ser)
 
 
 def test_ignore_error():
@@ -137,7 +159,7 @@ def test_ignore_error():
 @pytest.mark.parametrize(
     "errors,exp",
     [
-        ("raise", 'Unable to parse string "apple" at position 2'),
+        ("raise", "Unable to parse string 'apple' at position 2"),
         # Coerces to float.
         ("coerce", [1.0, 0.0, np.nan]),
     ],
@@ -277,7 +299,7 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
     coercing = errors == "coerce"
 
     if errors in (None, "raise") and multiple_elts:
-        msg = 'Unable to parse string "string" at position 1'
+        msg = "Unable to parse string 'string' at position 1"
 
         with pytest.raises(ValueError, match=msg):
             to_numeric(arr, **kwargs)
@@ -321,7 +343,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
 @pytest.mark.parametrize(
     "errors,checker",
     [
-        ("raise", 'Unable to parse string "fail" at position 0'),
+        ("raise", "Unable to parse string 'fail' at position 0"),
         ("coerce", lambda x: np.isnan(x)),
     ],
 )
@@ -922,3 +944,29 @@ def test_large_exponent_coerce():
     result = to_numeric(ser, errors="coerce")
     expected = Series([np.inf])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "1.5\x00xyz",
+        "1e3\x00xyz",
+        "inf\x00xyz",
+        # the long spelling takes a different arm of the infinity check
+        "infinity\x00xyz",
+        # bytes take a different branch for deriving the length than str
+        b"1.5\x00xyz",
+        b"infinity\x00x",
+    ],
+)
+def test_embedded_nul_is_not_a_float(value):
+    # GH#66524 - the float parser stopped at an embedded NUL and reported the
+    # string fully consumed, so the trailing bytes were silently discarded.
+    # The message must name the whole value, not just the part before the NUL.
+    ser = Series([value])
+    msg = re.escape(f"Unable to parse string {value!r} at position 0")
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(ser)
+
+    result = to_numeric(ser, errors="coerce")
+    tm.assert_series_equal(result, Series([np.nan]))

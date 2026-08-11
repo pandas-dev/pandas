@@ -639,3 +639,20 @@ def test_unpickle_timestamp_by_component():
     result = pickle_compat.loads(data)
 
     assert result == pd.Timestamp(2020, 1, 2)
+
+
+@pytest.mark.parametrize("freq", [None, "D", Day()])
+def test_read_pickle_legacy_timestamp_keeps_tz(freq):
+    # GH#31930 the legacy (value, freq, tz) args now raise ValueError out of
+    #  the constructor, so plain pickle.load no longer succeeds and read_pickle
+    #  only reaches the compat unpickler above if it catches that ValueError
+    tz = zoneinfo.ZoneInfo("US/Eastern")
+    expected = pd.Timestamp("2011-01-01", tz=tz)
+
+    data = _legacy_timestamp_pickle((expected.as_unit("ns")._value, freq, tz))
+    with pytest.raises(ValueError, match="Cannot pass both a value to convert"):
+        pickle.loads(data)
+
+    result = pd.read_pickle(io.BytesIO(data))
+    assert result == expected
+    assert result.tz == tz

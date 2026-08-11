@@ -2,6 +2,7 @@ from datetime import (
     UTC,
     datetime,
     timedelta,
+    timezone,
 )
 from io import BytesIO
 import struct
@@ -12,7 +13,12 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime
+from pandas.compat import WASM
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
+import pandas.util._test_decorators as td
 
 from pandas import (
     DatetimeIndex,
@@ -46,6 +52,75 @@ class TestTZLocalize:
         dti = DatetimeIndex([np.datetime64(-(2**63) + lmt_offset, unit)])
         with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
             dti.tz_localize("Asia/Tokyo")
+
+    @pytest.mark.parametrize(
+        "kwargs", [{}, {"nonexistent": "NaT"}, {"nonexistent": "shift_forward"}]
+    )
+    def test_tz_localize_overflow_past_last_cached_transition(self, kwargs):
+        # GH#65733 the zoneinfo fallback used past the last cached DST transition
+        #  wrapped instead of reporting an out-of-bounds UTC instant, so an
+        #  ordinary wall time came back as NaT
+        dti = DatetimeIndex([Timestamp(Timestamp.max._value - 2 * 3600 * 10**9)])
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("America/New_York", **kwargs)
+
+    @pytest.mark.parametrize(
+        "tz", [timezone(timedelta(hours=9)), ZoneInfo("Etc/GMT-9")]
+    )
+    def test_tz_localize_fixed_offset_shift_onto_nat_sentinel(self, tz):
+        # GH#66550 a shift landing exactly on the NaT sentinel is one below the
+        #  minimum representable value, so it underflows.  The fixed-offset loop
+        #  only checked for int64 wrap, so it stored the sentinel and the wall time
+        #  read back as missing data.
+        dti = DatetimeIndex(
+            np.array([-(2**63) + 9 * 3600 * 10**9], dtype="i8").view("M8[ns]")
+        )
+
+        with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+            dti.tz_localize(tz)
+
+    @pytest.mark.parametrize(
+        "tz", [timezone(timedelta(hours=-5)), ZoneInfo("Etc/GMT+5")]
+    )
+    def test_tz_localize_overflow_fixed_offset(self, tz):
+        # GH#65733 the fixed-offset loop in tz_localize_to_utc shifted to UTC with a
+        #  bare subtraction, so a wall time whose UTC instant is past Timestamp.max
+        #  wrapped to a negative year instead of raising.  Needs >= 2 values: for a
+        #  length-1 result DatetimeIndex.tz_localize boxes the lone value, and that
+        #  incidentally catches the overflow downstream.
+        val = Timestamp.max._value - 2 * 3600 * 10**9
+        dti = DatetimeIndex(np.array([val, val - 10**9], dtype="i8").view("M8[ns]"))
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize(tz)
+
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
+    def test_tz_localize_tzlocal_shift_onto_nat_sentinel(self):
+        # GH#66550 the tzlocal loop needs the same sentinel guard as the
+        #  fixed-offset one above.  Pin the ambient zone to +9 so the shift lands
+        #  exactly on the sentinel.
+        dti = DatetimeIndex(
+            np.array([-(2**63) + 9 * 3600 * 10**9], dtype="i8").view("M8[ns]")
+        )
+
+        with tm.set_timezone("Asia/Tokyo"):
+            with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+                dti.tz_localize(dateutil.tz.tzlocal())
+
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
+    @td.skip_if_32bit  # OverflowError inside tzlocal past 2038
+    def test_tz_localize_overflow_tzlocal(self):
+        # GH#65733 same bare-subtraction overflow in the tzlocal loop.  Pin the
+        #  ambient zone: the shift only overflows west of UTC.
+        val = Timestamp.max._value - 2 * 3600 * 10**9
+        dti = DatetimeIndex(np.array([val, val - 10**9], dtype="i8").view("M8[ns]"))
+
+        with tm.set_timezone("US/Eastern"):
+            with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+                dti.tz_localize(dateutil.tz.tzlocal())
 
     def test_tz_localize_invalidates_freq(self):
         # we only preserve freq in unambiguous cases
@@ -120,7 +195,9 @@ class TestTZLocalize:
         result = di.tz_localize(tz, ambiguous="infer")
         expected = dr._with_freq(None)
         tm.assert_index_equal(result, expected)
-        result2 = DatetimeIndex(times, tz=tz, ambiguous="infer").as_unit(unit)
+        depr_msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result2 = DatetimeIndex(times, tz=tz, ambiguous="infer").as_unit(unit)
         tm.assert_index_equal(result2, expected)
 
     def test_dti_tz_localize_ambiguous_infer3(self, tz):
@@ -289,7 +366,9 @@ class TestTZLocalize:
         expected = dr._with_freq(None)
         tm.assert_index_equal(expected, localized, check_freq=False)
 
-        result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
+        depr_msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
@@ -299,7 +378,8 @@ class TestTZLocalize:
         tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test constructor
-        localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test duplicate times where inferring the dst fails
@@ -415,6 +495,22 @@ class TestTZLocalize:
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
             dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
+
+    def test_dti_tz_localize_nonexistent_shift_overflow(self):
+        # GH#66697
+        dti = DatetimeIndex(["2011-03-13 02:30"]).as_unit("ns")
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=Timedelta.max)
+
+    def test_dti_tz_localize_nonexistent_shift_utc_overflow(self):
+        # GH#66697
+        ts = Timestamp("2011-03-13 02:30").as_unit("ns")
+        dti = DatetimeIndex([ts, ts])
+        shift = Timestamp.max - ts - Timedelta(hours=1)
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=shift)
 
 
 def test_dti_tz_localize_nonexistent_shift_past_last_transition():
