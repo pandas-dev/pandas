@@ -429,7 +429,7 @@ timedelta-like}
                 if shift_delta != 0:
                     # Validate that we don't relocalize on another nonexistent
                     # time
-                    if -1 < shift_delta + remaining_mins < pph:
+                    if -remaining_mins <= shift_delta < pph - remaining_mins:
                         raise ValueError(
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
