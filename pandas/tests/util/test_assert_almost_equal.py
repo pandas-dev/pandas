@@ -144,6 +144,32 @@ def test_assert_not_almost_equal_numbers_rtol(a, b):
 
 
 @pytest.mark.parametrize(
+    "a,b",
+    [
+        (2**60 + 1, float(2**60)),
+        (np.int64(2**60 + 1), np.float64(2**60)),
+        (np.uint64(2**63 + 1), np.float64(2**63)),
+        (
+            np.array([2**60 + 1], dtype="int64"),
+            np.array([float(2**60)], dtype="float64"),
+        ),
+    ],
+)
+def test_assert_almost_equal_large_mixed_integer_float_atol(a, b):
+    # GH#66699 float64 cannot represent the one-integer difference.
+    _assert_not_almost_equal_both(a, b, check_dtype=False, rtol=0, atol=0.5)
+    _assert_almost_equal_both(a, b, check_dtype=False, rtol=0, atol=1)
+
+
+def test_assert_almost_equal_large_mixed_integer_float_rtol():
+    a = 2**60 + 1
+    b = float(2**60)
+
+    _assert_not_almost_equal_both(a, b, check_dtype=False, rtol=0.5 / 2**60, atol=0)
+    _assert_almost_equal_both(a, b, check_dtype=False, rtol=1 / 2**60, atol=0)
+
+
+@pytest.mark.parametrize(
     "a,b,rtol",
     [
         (1.00001, 1.00005, 0.001),

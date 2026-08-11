@@ -14,6 +14,8 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
+    is_float_object,
+    is_integer_object,
     is_real_number_object,
 )
 
@@ -136,7 +138,10 @@ cpdef assert_almost_equal(a, b,
                 from pandas._testing import assert_attr_equal
                 assert_attr_equal("dtype", a, b, obj=obj)
 
-            if array_equivalent(a, b, strict_nan=True):
+            if not (
+                (a.dtype.kind in "iu" and b.dtype.kind == "f")
+                or (a.dtype.kind == "f" and b.dtype.kind in "iu")
+            ) and array_equivalent(a, b, strict_nan=True):
                 return True
 
         else:
@@ -190,6 +195,28 @@ cpdef assert_almost_equal(a, b,
         raise AssertionError(f"{a} != {b}")
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")
+
+    # GH#66699 avoid casting a large integer to float64 before applying
+    #  tolerances when the float operand is itself an integer value.
+    if (
+        (
+            is_integer_object(a)
+            and is_float_object(b)
+            and b.is_integer()
+        )
+        or (
+            is_float_object(a)
+            and a.is_integer()
+            and is_integer_object(b)
+        )
+    ) and rtol >= 0 and atol >= 0:
+        ia = int(a)
+        ib = int(b)
+
+        if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
+            assert False, (f"expected {ib:.5f} but got {ia:.5f}, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
 
     if a == b:
         # object comparison

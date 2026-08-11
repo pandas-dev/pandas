@@ -562,6 +562,60 @@ def test_assert_series_equal_int_near_bounds():
         tm.assert_series_equal(ser1, ser2)
 
 
+@pytest.mark.parametrize(
+    "left_values,right_values,left_dtype,right_dtype",
+    [
+        ([2**60 + 1], [float(2**60)], "int64", "float64"),
+        ([2**63 + 1], [float(2**63)], "uint64", "float64"),
+        ([pd.NA, 2**60 + 1], [pd.NA, float(2**60)], "Int64", "Float64"),
+    ],
+)
+def test_assert_series_equal_large_mixed_integer_float_atol(
+    left_values, right_values, left_dtype, right_dtype
+):
+    # GH#66699 comparison must retain integer precision with check_dtype=False.
+    left = Series(left_values, dtype=left_dtype)
+    right = Series(right_values, dtype=right_dtype)
+
+    for first, second in [(left, right), (right, left)]:
+        with pytest.raises(AssertionError, match="Series are different"):
+            tm.assert_series_equal(
+                first,
+                second,
+                check_dtype=False,
+                check_exact=False,
+                rtol=0,
+                atol=0.5,
+            )
+    _assert_series_equal_both(
+        left, right, check_dtype=False, check_exact=False, rtol=0, atol=1
+    )
+
+
+def test_assert_series_equal_large_mixed_integer_float_rtol():
+    left = Series([2**60 + 1], dtype="int64")
+    right = Series([float(2**60)], dtype="float64")
+
+    for first, second in [(left, right), (right, left)]:
+        with pytest.raises(AssertionError, match="Series are different"):
+            tm.assert_series_equal(
+                first,
+                second,
+                check_dtype=False,
+                check_exact=False,
+                rtol=0.5 / 2**60,
+                atol=0,
+            )
+    _assert_series_equal_both(
+        left,
+        right,
+        check_dtype=False,
+        check_exact=False,
+        rtol=1 / 2**60,
+        atol=0,
+    )
+
+
 def test_assert_series_equal_check_like_check_freq():
     # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
     #  the freq check is skipped with check_like=True
