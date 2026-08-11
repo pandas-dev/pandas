@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import io
+import mmap
 import os
 from typing import TYPE_CHECKING
 import warnings
@@ -1535,6 +1536,35 @@ def test_parallel_worker_exception_still_warns(tmp_path, monkeypatch):
     assert [str(warning.message) for warning in recorded] == [
         _converter_dtype_warning("col1")
     ]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_worker_exception_unmaps_the_file(tmp_path, monkeypatch):
+    # A worker exception must not leave the file mapped until its traceback is
+    # collected: the workers hold memoryview slices of the mapping, so they are
+    # closed before it is (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "boom.csv"
+    path.write_bytes(raw)
+
+    mapped: list[mmap.mmap] = []
+
+    class TrackingMmap(mmap.mmap):
+        def __init__(self, *args, **kwargs) -> None:
+            mapped.append(self)
+
+    monkeypatch.setattr(mmap, "mmap", TrackingMmap)
+
+    def boom(value):
+        if value == "1400":
+            raise RuntimeError("boom")
+        return value
+
+    with pytest.raises(RuntimeError, match="boom"):
+        _read_forced_parallel(path, monkeypatch, converters={"col2": boom})
+
+    assert len(mapped) == 1
+    assert mapped[0].closed
 
 
 @pytest.mark.skipif(WASM, reason="WASM stays serial, so there is no attempt to decline")
