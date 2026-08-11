@@ -1152,6 +1152,58 @@ def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch, low_mem
     assert result["col"].isna().sum() == 3000
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"na_values": ["MISSING"]},
+        {"na_values": {"col": ["MISSING"]}},
+        {"dtype_backend": "numpy_nullable"},
+    ],
+)
+def test_parallel_uint64_na_conflict_matches_serial(tmp_path, monkeypatch, kwargs):
+    # A chunk holding only NA tokens and uint64-range ints converts to no
+    # numeric dtype and is emitted with its NA tokens left as literal strings
+    # (gh-14983).  A chunk that also sees ordinary text takes the object branch
+    # and masks them instead, and both results are str dtype, so the gather's
+    # dtype reconciliation cannot tell them apart - the parallel path must step
+    # aside rather than return values a serial read never produces (GH#66259).
+    token = "MISSING" if kwargs.get("na_values") else "nan"
+    body = f"{token}\n9223372036854775808\n" * 3000
+    path = tmp_path / "uint64_default_lm.csv"
+    path.write_text("col\n" + "text\n" * 500 + body, encoding="utf-8")
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_uint64_na_conflict_na_filter_false(tmp_path, monkeypatch):
+    # With na_filter=False the literal NA tokens are what a serial read gives
+    # too, so such a file keeps using the parallel path.  GH#66259
+    body = "nan\n9223372036854775808\n" * 3000
+    path = tmp_path / "uint64_no_filter.csv"
+    path.write_text("col\n" + "text\n" * 500 + body, encoding="utf-8")
+
+    fell_back = []
+    orig = _readers._read_csv_parallel
+
+    def spy(*args, **kwargs):
+        result = orig(*args, **kwargs)
+        fell_back.append(result is None)
+        return result
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", spy)
+
+    result = _read_forced_parallel(path, monkeypatch, na_filter=False)
+    assert fell_back == [False]
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, na_filter=False)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_parallel_quoted_newline_in_header_matches_serial(tmp_path, monkeypatch):
     # A quoted embedded newline in the header shifts data_start mid-header;
     # without a guard, chunk 0 starts inside the header and silently injects

@@ -994,6 +994,18 @@ def _read_csv_chunks(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
+
+            # A column of only NA tokens and ints too large for int64 converts
+            # to no numeric dtype, and is then emitted with its NA tokens left
+            # as literal strings (GH#14983).  Which chunks hit that depends on
+            # how the file was split, and the resulting dtype is str either
+            # way, so the reconciliation below cannot see the difference -- the
+            # values would just silently disagree with a serial read.  GH#66259
+            if any(
+                reader._engine._reader.na_left_literal for reader in workers_readers
+            ):
+                return None
+
             # Freeing parser buffers costs a few ms of madvise; run it on the
             # pool, overlapped with the gather copies below.
             close_futures = [pool.submit(reader.close) for reader in workers_readers]
