@@ -1272,10 +1272,12 @@ def read_csv(
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
-        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
-        the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        Character or regex pattern to treat as the delimiter. If ``sep=None`` and
+        ``engine`` is not explicitly set, the Python parsing engine will be used
+        to automatically detect the separator from only the first valid row of
+        the file by Python's builtin sniffer tool, ``csv.Sniffer``. Explicitly
+        passing ``engine='c'`` or ``engine='pyarrow'`` with ``sep=None`` will
+        raise a ``ValueError``.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -1872,10 +1874,12 @@ def read_table(
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
-        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
-        the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        Character or regex pattern to treat as the delimiter. If ``sep=None`` and
+        ``engine`` is not explicitly set, the Python parsing engine will be used
+        to automatically detect the separator from only the first valid row of
+        the file by Python's builtin sniffer tool, ``csv.Sniffer``. Explicitly
+        passing ``engine='c'`` or ``engine='pyarrow'`` with ``sep=None`` will
+        raise a ``ValueError``.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone

@@ -65,12 +65,13 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. ``sep=None`` detects the separator from the first valid row
-  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
-  is supported only by the Python parsing engine and must be combined with
-  ``engine='python'`` explicitly. In addition, separators longer than 1 character
+  Delimiter to use. If sep is ``None`` and ``engine`` is not explicitly set,
+  pandas will use the Python parsing engine and automatically detect the
+  separator by Python's builtin sniffer tool, :class:`python:csv.Sniffer`.
+  Explicitly passing ``engine='c'`` or ``engine='pyarrow'`` with ``sep=None``
+  will raise a ``ValueError``. In addition, separators longer than 1 character
   and different from ``'\s+'`` will be interpreted as regular expressions and
-  will force the use of the Python parsing engine. Note that regex
+  will also force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
@@ -1422,8 +1423,9 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None`` together
-with ``engine='python'``.
+class of the csv module. For this, you have to specify ``sep=None`` and let
+pandas select the Python parsing engine, or pass ``engine="python"``
+explicitly.
 
 .. ipython:: python
 
@@ -1522,10 +1524,9 @@ the python engine is selected explicitly with ``engine='python'``. Selecting
 the C engine explicitly instead raises a ``ValueError``, as does passing an
 option unsupported by the pyarrow engine together with ``engine='pyarrow'``.
 
-``sep=None``, which sniffs the separator, is an exception to this fallback and
-must be combined with ``engine='python'`` explicitly. The other engines do not
-fall back to Python for it: the C engine raises a ``TypeError``, and the
-pyarrow engine silently parses each line as a single column.
+``sep=None``, which sniffs the separator, also falls back to Python when
+``engine`` is not explicitly set. Selecting ``engine='c'`` or
+``engine='pyarrow'`` explicitly with ``sep=None`` raises a ``ValueError``.
 
 .. _io.csv.parallel:
 
