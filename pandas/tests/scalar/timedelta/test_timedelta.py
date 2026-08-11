@@ -603,10 +603,7 @@ class TestTimedeltas:
                 np.timedelta64(0, "ns"),
                 marks=pytest.mark.skipif(
                     not np_version_gt2_2 or WASM,
-                    reason=(  # type: ignore[arg-type]
-                        "Fixed in https://github.com/numpy/numpy/pull/14622 but "
-                        "not for WASM",
-                    ),
+                    reason="https://github.com/numpy/numpy/pull/14622 (not WASM)",
                 ),
             ),
             pytest.param(
@@ -614,10 +611,7 @@ class TestTimedeltas:
                 np.timedelta64(55, "s"),
                 marks=pytest.mark.skipif(
                     not np_version_gt2_2 or WASM,
-                    reason=(  # type: ignore[arg-type]
-                        "Fixed in https://github.com/numpy/numpy/pull/14622 but "
-                        "not for WASM",
-                    ),
+                    reason="https://github.com/numpy/numpy/pull/14622 (not WASM)",
                 ),
             ),
             pytest.param(
@@ -625,10 +619,7 @@ class TestTimedeltas:
                 np.timedelta64(-44, "us"),
                 marks=pytest.mark.skipif(
                     not np_version_gt2_2 or WASM,
-                    reason=(  # type: ignore[arg-type]
-                        "Fixed in https://github.com/numpy/numpy/pull/14622 but "
-                        "not for WASM",
-                    ),
+                    reason="https://github.com/numpy/numpy/pull/14622 (not WASM)",
                 ),
             ),
             pytest.param(
