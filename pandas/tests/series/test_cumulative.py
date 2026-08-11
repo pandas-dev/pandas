@@ -327,6 +327,43 @@ class TestSeriesCumulativeOps:
             expected = pd.Series([-4.0, None, None], dtype="float64[pyarrow]")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, values, expected_dtype",
+        [
+            ("int8[pyarrow]", [100, 100], "int64[pyarrow]"),
+            ("int16[pyarrow]", [30000, 30000], "int64[pyarrow]"),
+            ("int32[pyarrow]", [1_500_000_000, 1_500_000_000], "int64[pyarrow]"),
+            ("uint8[pyarrow]", [200, 200], "uint64[pyarrow]"),
+            ("uint16[pyarrow]", [60000, 60000], "uint64[pyarrow]"),
+            ("uint32[pyarrow]", [3_000_000_000, 3_000_000_000], "uint64[pyarrow]"),
+        ],
+    )
+    @pytest.mark.parametrize("op", ["cumsum", "cumprod"])
+    def test_cumsum_cumprod_pyarrow_narrow_int_upcasts(
+        self, dtype, values, expected_dtype, op
+    ):
+        # GH#66605
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(values, dtype=dtype)
+
+        result = getattr(ser, op)()
+        expected = getattr(pd.Series(values, dtype=expected_dtype), op)()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "op, values",
+        [
+            ("cumsum", [2**63 - 1, 1]),
+            ("cumprod", [2**62, 8]),
+        ],
+    )
+    def test_cumsum_cumprod_pyarrow_int64_overflow_raises(self, op, values):
+        # GH#66605: the 64-bit boundary keeps raising instead of widening
+        pa = pytest.importorskip("pyarrow")
+        ser = pd.Series(values, dtype="int64[pyarrow]")
+        with pytest.raises(pa.ArrowInvalid, match="overflow"):
+            getattr(ser, op)()
+
 
 def test_td64_cumsum_overflow():
     # GH#66551: a running total leaving int64 bounds used to wrap silently
