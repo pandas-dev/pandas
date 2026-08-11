@@ -548,7 +548,7 @@ cdef class Parser:
         int64_t[::1] data_subheader_offsets
         int64_t[::1] data_subheader_lengths
         uint8_t *cached_page
-        int cached_page_len
+        Py_ssize_t cached_page_len
         int current_row_on_page_index
         int current_page_block_count
         int n_data_subheaders
@@ -557,7 +557,7 @@ cdef class Parser:
         int current_row_in_file_index
         bint blank_missing
         int header_length
-        int row_length
+        Py_ssize_t row_length
         int bit_offset
         int subheader_pointer_length
         int current_page_type
@@ -752,7 +752,8 @@ cdef class Parser:
     cdef bint readline(self) except? True:
 
         cdef:
-            int offset, length, bit_offset, align_correction
+            Py_ssize_t offset, length
+            int bit_offset, align_correction
             int subheader_pointer_length, mn
             bint done, flag
 
@@ -775,10 +776,10 @@ cdef class Parser:
                     if done:
                         return True
                     continue
-                offset = <int>self.data_subheader_offsets[
+                offset = <Py_ssize_t>self.data_subheader_offsets[
                     self.current_row_on_page_index
                 ]
-                length = <int>self.data_subheader_lengths[
+                length = <Py_ssize_t>self.data_subheader_lengths[
                     self.current_row_on_page_index
                 ]
                 self.process_byte_array_with_data(offset, length)
@@ -819,7 +820,9 @@ cdef class Parser:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef void process_byte_array_with_data(self, int offset, int length) except *:
+    cdef void process_byte_array_with_data(
+        self, Py_ssize_t offset, Py_ssize_t length
+    ) except *:
 
         cdef:
             Py_ssize_t j
