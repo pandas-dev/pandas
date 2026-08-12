@@ -204,7 +204,6 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+-----------------+---------+
 | xlsxwriter             | 3.2.5           |    X    |
 +------------------------+-----------------+---------+
->>>>>>> main
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
