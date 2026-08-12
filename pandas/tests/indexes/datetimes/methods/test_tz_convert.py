@@ -290,3 +290,17 @@ class TestTZConvert:
         result = dti.tz_convert("UTC")
         assert (result == dti).all()
         assert result.freq is None
+
+    def test_tz_convert_naive_tz(self):
+        # GH#66389
+        dti = date_range("2020-01-01", periods=3, freq="h")
+        expected = dti.tz_localize("UTC").tz_convert("US/Eastern")
+        result = dti.tz_convert("US/Eastern", naive_tz="UTC")
+        tm.assert_index_equal(result, expected)
+
+    def test_tz_convert_naive_tz_aware(self):
+        # GH#66389 naive_tz has no effect on a tz-aware index
+        dti = date_range("2020-01-01", periods=3, freq="h", tz="UTC")
+        expected = dti.tz_convert("US/Eastern")
+        result = dti.tz_convert("US/Eastern", naive_tz="Asia/Tokyo")
+        tm.assert_index_equal(result, expected)

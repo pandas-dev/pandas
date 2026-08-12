@@ -162,6 +162,22 @@ class TestTimestampTZLocalize:
         with pytest.raises(TypeError, match=msg):
             Timestamp("2011-01-01").tz_convert("Asia/Tokyo")
 
+    def test_tz_convert_naive_tz(self):
+        # GH#66389
+        ts = Timestamp("2011-01-01 00:00")
+        expected = ts.tz_localize("UTC").tz_convert("US/Eastern")
+        result = ts.tz_convert("US/Eastern", naive_tz="UTC")
+        assert result == expected
+        assert str(result.tz) == "US/Eastern"
+
+    def test_tz_convert_naive_tz_aware(self):
+        # GH#66389 naive_tz has no effect on a tz-aware Timestamp
+        ts = Timestamp("2011-01-01 00:00", tz="UTC")
+        expected = ts.tz_convert("US/Eastern")
+        result = ts.tz_convert("US/Eastern", naive_tz="Asia/Tokyo")
+        assert result == expected
+        assert str(result.tz) == "US/Eastern"
+
     @pytest.mark.parametrize("year", ["2015", "2201"])
     @pytest.mark.parametrize(
         "stamp, tz",

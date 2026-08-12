@@ -55,6 +55,27 @@ class TestTZConvert:
         with pytest.raises(TypeError, match="Cannot convert tz-naive"):
             ts.tz_convert("US/Eastern")
 
+    def test_tz_convert_naive_tz(self, frame_or_series):
+        # GH#66389
+        rng = date_range("1/1/2011", periods=3, freq="D")
+        ts = Series(1, index=rng)
+        ts = frame_or_series(ts)
+
+        result = ts.tz_convert("US/Eastern", naive_tz="UTC")
+        expected = Series(1, index=rng.tz_localize("UTC").tz_convert("US/Eastern"))
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
+
+    def test_tz_convert_naive_tz_aware_index(self, frame_or_series):
+        # GH#66389 naive_tz has no effect on a tz-aware index
+        rng = date_range("1/1/2011", periods=3, freq="D", tz="US/Eastern")
+        ts = Series(1, index=rng)
+        ts = frame_or_series(ts)
+
+        result = ts.tz_convert("Europe/Berlin", naive_tz="UTC")
+        expected = ts.tz_convert("Europe/Berlin")
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize("fn", ["tz_localize", "tz_convert"])
     def test_tz_convert_and_localize(self, fn):
         l0 = date_range("20140701", periods=5, freq="D")

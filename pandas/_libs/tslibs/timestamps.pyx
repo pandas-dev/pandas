@@ -3683,7 +3683,7 @@ default 'raise'
         out = type(self)._from_value_and_reso(value, self._creso, tz=tz)
         return out
 
-    def tz_convert(self, tz):
+    def tz_convert(self, tz, naive_tz=None):
         """
         Convert timezone-aware Timestamp to another time zone.
 
@@ -3697,6 +3697,14 @@ default 'raise'
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
+        naive_tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, \
+datetime.tzinfo, default None
+            Time zone to assume for a tz-naive Timestamp before converting to
+            ``tz``. If the Timestamp is tz-naive and ``naive_tz`` is provided,
+            the Timestamp is first localized to ``naive_tz`` and then converted
+            to ``tz``, which is equivalent to
+            ``ts.tz_localize(naive_tz).tz_convert(tz)``. If the Timestamp is
+            tz-aware, ``naive_tz`` has no effect.
 
         Returns
         -------
@@ -3738,10 +3746,12 @@ default 'raise'
         NaT
         """
         if self.tzinfo is None:
-            # tz naive, use tz_localize
-            raise TypeError(
-                "Cannot convert tz-naive Timestamp, use tz_localize to localize"
-            )
+            if naive_tz is None:
+                # tz naive, use tz_localize
+                raise TypeError(
+                    "Cannot convert tz-naive Timestamp, use tz_localize to localize"
+                )
+            return self.tz_localize(naive_tz).tz_convert(tz)
         else:
             # Same UTC timestamp, different time zone
             tz = maybe_get_tz(tz)

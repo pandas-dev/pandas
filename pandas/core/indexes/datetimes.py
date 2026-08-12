@@ -515,7 +515,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         result._freq = freq
         return result
 
-    def tz_convert(self, tz) -> Self:
+    def tz_convert(self, tz, naive_tz=None) -> Self:
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
 
@@ -529,6 +529,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
+        naive_tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, \
+datetime.tzinfo, default None
+            Time zone to assume for tz-naive timestamps before converting to
+            ``tz``. If the index is tz-naive and ``naive_tz`` is provided, the
+            values are first localized to ``naive_tz`` and then converted to
+            ``tz``, which is equivalent to
+            ``dti.tz_localize(naive_tz).tz_convert(tz)``. If the index is
+            tz-aware, ``naive_tz`` has no effect.
 
         Returns
         -------
@@ -538,7 +546,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Raises
         ------
         TypeError
-            If Datetime Array/Index is tz-naive.
+            If Datetime Array/Index is tz-naive and `naive_tz` is not provided.
 
         See Also
         --------
@@ -586,7 +594,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2014-08-01 09:00:00'],
                         dtype='datetime64[us]', freq='h')
         """  # noqa: E501
-        arr = self._data.tz_convert(tz)
+        arr = self._data.tz_convert(tz, naive_tz=naive_tz)
         result = type(self)._simple_new(arr, name=self.name, refs=self._references)
         if isinstance(self.freq, Tick):
             result._freq = self.freq

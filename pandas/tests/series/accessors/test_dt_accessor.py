@@ -464,6 +464,30 @@ class TestSeriesDatetimeValues:
         expected = datetimes.dt.tz_convert(tz)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [None, "pyarrow"])
+    def test_dt_tz_convert_naive_tz(self, dtype):
+        # GH#66389
+        if dtype == "pyarrow":
+            pytest.importorskip("pyarrow")
+            dtype = "timestamp[ns][pyarrow]"
+        ser = Series(date_range("2020-01-01", periods=3, freq="h"), dtype=dtype)
+        expected = ser.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
+        result = ser.dt.tz_convert("US/Eastern", naive_tz="UTC")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [None, "pyarrow"])
+    def test_dt_tz_convert_naive_tz_aware(self, dtype):
+        # GH#66389 naive_tz has no effect on tz-aware values
+        if dtype == "pyarrow":
+            pytest.importorskip("pyarrow")
+            dtype = "timestamp[ns, UTC][pyarrow]"
+        ser = Series(
+            date_range("2020-01-01", periods=3, freq="h", tz="UTC"), dtype=dtype
+        )
+        expected = ser.dt.tz_convert("US/Eastern")
+        result = ser.dt.tz_convert("US/Eastern", naive_tz="Asia/Tokyo")
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("accessor", ["year", "month", "day"])
     def test_dt_other_accessors_categorical(self, accessor):
         # GH 27952

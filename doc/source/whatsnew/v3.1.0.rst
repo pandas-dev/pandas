@@ -54,6 +54,7 @@ Other enhancements
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
 - Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
+- :meth:`Series.dt.tz_convert`, :meth:`DatetimeIndex.tz_convert`, and :meth:`Timestamp.tz_convert` now accept a ``naive_tz`` keyword argument. If the data is tz-naive and ``naive_tz`` is provided, the timestamps are first localized to ``naive_tz`` and then converted to the target timezone, replacing the convert-or-assume pattern of ``x.tz_localize(tz) if x.tz is None else x.tz_convert(tz)`` (:issue:`66389`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:

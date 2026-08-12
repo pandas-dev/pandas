@@ -863,7 +863,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             return self.asi8
         return tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
 
-    def tz_convert(self, tz) -> Self:
+    def tz_convert(self, tz, naive_tz=None) -> Self:
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
 
@@ -877,6 +877,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
+        naive_tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, \
+datetime.tzinfo, default None
+            Time zone to assume for tz-naive timestamps before converting to
+            ``tz``. If the Array/Index is tz-naive and ``naive_tz`` is provided,
+            the values are first localized to ``naive_tz`` and then converted
+            to ``tz``, which is equivalent to
+            ``arr.tz_localize(naive_tz).tz_convert(tz)``. If the Array/Index is
+            tz-aware, ``naive_tz`` has no effect.
 
         Returns
         -------
@@ -886,7 +894,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Raises
         ------
         TypeError
-            If Datetime Array/Index is tz-naive.
+            If Datetime Array/Index is tz-naive and `naive_tz` is not provided.
 
         See Also
         --------
@@ -940,10 +948,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         tz = timezones.maybe_get_tz(tz)
 
         if self.tz is None:
-            # tz naive, use tz_localize
-            raise TypeError(
-                "Cannot convert tz-naive timestamps, use tz_localize to localize"
-            )
+            if naive_tz is None:
+                # tz naive, use tz_localize
+                raise TypeError(
+                    "Cannot convert tz-naive timestamps, use tz_localize to localize"
+                )
+            return self.tz_localize(naive_tz).tz_convert(tz)
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)

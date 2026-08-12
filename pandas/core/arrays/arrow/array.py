@@ -4302,11 +4302,13 @@ class ArrowExtensionArray(
             )
         return self._from_pyarrow_array(result)
 
-    def _dt_tz_convert(self, tz) -> Self:
+    def _dt_tz_convert(self, tz, naive_tz=None) -> Self:
         if self.dtype.pyarrow_dtype.tz is None:
-            raise TypeError(
-                "Cannot convert tz-naive timestamps, use tz_localize to localize"
-            )
+            if naive_tz is None:
+                raise TypeError(
+                    "Cannot convert tz-naive timestamps, use tz_localize to localize"
+                )
+            return self._dt_tz_localize(naive_tz)._dt_tz_convert(tz)
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return self._from_pyarrow_array(result)

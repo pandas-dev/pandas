@@ -11164,6 +11164,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         level=None,
         copy: bool | lib.NoDefault = lib.no_default,
+        naive_tz=None,
     ) -> Self:
         """
         Convert tz-aware axis to target time zone.
@@ -11193,6 +11194,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 (Copy-on-Write). See the `user guide on Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
+        naive_tz : str or tzinfo object, default None
+            Time zone to assume for a tz-naive index before converting to
+            ``tz``. If the axis is tz-naive and ``naive_tz`` is provided, the
+            index is first localized to ``naive_tz`` and then converted to
+            ``tz``, which is equivalent to
+            ``obj.index.tz_localize(naive_tz).tz_convert(tz)``. If the axis is
+            tz-aware, ``naive_tz`` has no effect.
 
         Returns
         -------
@@ -11202,7 +11210,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Raises
         ------
         TypeError
-            If the axis is tz-naive.
+            If the axis is tz-naive and `naive_tz` is not provided.
 
         See Also
         --------
@@ -11241,7 +11249,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
                 ax = DatetimeIndex([], tz=tz)
             else:
-                ax = ax.tz_convert(tz)
+                ax = ax.tz_convert(tz, naive_tz=naive_tz)
             return ax
 
         # if a level is given it must be a MultiIndex level or

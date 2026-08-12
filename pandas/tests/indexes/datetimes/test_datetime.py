@@ -155,3 +155,10 @@ class TestDatetimeIndex:
         result = dti.get_indexer(other)
         expected = np.array([-1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_tz_convert_naive_tz(self):
+        # GH#66389
+        dti = DatetimeIndex(["2017-01-01", "2018-01-01"])
+        expected = dti.tz_localize("UTC").tz_convert("US/Eastern")
+        result = dti.tz_convert("US/Eastern", naive_tz="UTC")
+        tm.assert_index_equal(result, expected)
