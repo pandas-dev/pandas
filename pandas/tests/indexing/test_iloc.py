@@ -1,5 +1,7 @@
 """test positional based indexing with iloc"""
 
+from array import array as std_array
+from collections import deque
 from datetime import datetime
 import re
 
@@ -36,6 +38,26 @@ _slice_iloc_msg = re.escape(
     "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
     "and integer or boolean arrays are valid indices"
 )
+
+
+class DuckSequence:
+    """A sequence implementing only __len__/__getitem__, so not is_list_like."""
+
+    def __init__(self, data) -> None:
+        self.data = list(data)
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+
+class GetitemOnly:
+    """Subscriptable but unsized, so np.asarray treats it as a scalar."""
+
+    def __getitem__(self, key):
+        return key
 
 
 class TestiLoc:
@@ -794,12 +816,17 @@ class TestiLocBaseIndependent:
             else:
                 df.iloc[:, [0, 2]] = value
 
+    @pytest.mark.parametrize(
+        "box",
+        [np.array, Series, Index, array],
+        ids=["ndarray", "Series", "Index", "pd.array"],
+    )
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     @pytest.mark.parametrize("nrows", [2, 3])
-    def test_setitem_split_path_list_of_arrays_is_2d(self, indexer, nrows):
-        # GH#64230 a list of 1-D arrays is a 2D value (a list of rows), just
-        # like a list of lists / an ndarray; the split path used to transpose
-        # it into columns instead.
+    def test_setitem_split_path_list_of_arrays_is_2d(self, indexer, nrows, box):
+        # GH#64230 a list of 1-D array-likes is a 2D value (a list of rows),
+        # just like a list of lists / an ndarray; the split path used to
+        # transpose it into columns instead.
         df = DataFrame(
             {
                 "a": np.zeros(nrows),
@@ -807,31 +834,256 @@ class TestiLocBaseIndependent:
                 "c": np.zeros(nrows),
             }
         )
-        value = [np.array([2 * i + 1, 2 * i + 2]) for i in range(nrows)]
+        rows = [[2 * i + 1, 2 * i + 2] for i in range(nrows)]
+        value = [box(row) for row in rows]
         if indexer == "loc":
             df.loc[:, ["a", "c"]] = value
         else:
             df.iloc[:, [0, 2]] = value
 
-        arr = np.array(value, dtype="float64")
+        arr = np.array(rows, dtype="float64")
         expected = DataFrame(
             {"a": arr[:, 0], "b": np.zeros(nrows, dtype="int64"), "c": arr[:, 1]}
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "value",
+        [
+            [Series([1, 2], index=[5, 6]), Series([3, 4], index=["p", "q"])],
+            # only value[0] decides that this is 2D, but every row gets unwrapped
+            [[1, 2], Series([3, 4], index=["p", "q"])],
+            [Index([1, 2]), Series([3, 4], index=["p", "q"])],
+            # labels that DO resolve positionally, to a different answer: this
+            #  catches a label-based read by the value, not by an exception
+            [Series([1, 2], index=[1, 0]), Series([3, 4], index=[1, 0])],
+        ],
+        ids=["all-series", "list-first", "index-first", "reversed-labels"],
+    )
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
-    def test_setitem_split_path_list_of_arrays_single_column(self, indexer):
-        # GH#64230 a list of 1-D arrays targeting a single column is a shape
-        # mismatch, same as a list of lists; unlike mismatched-length tuples
-        # (GH#65264) arrays are not scalar-like, so no per-cell storage
+    def test_setitem_split_path_list_of_series_not_aligned(self, indexer, value):
+        # GH#64230 Series rows are read positionally, not by label
+        df = DataFrame({"a": [0.0, 0.0], "b": np.zeros(2, dtype="int64")})
+        if indexer == "loc":
+            df.loc[:, ["a", "b"]] = value
+        else:
+            df.iloc[:, [0, 1]] = value
+
+        expected = DataFrame({"a": [1.0, 3.0], "b": [2, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [np.array, Series, Index, array],
+        ids=["ndarray", "Series", "Index", "pd.array"],
+    )
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_arrays_single_column(self, indexer, box):
+        # GH#64230 a list of 1-D array-likes targeting a single column is a
+        # shape mismatch, same as a list of lists; unlike mismatched-length
+        # tuples (GH#65264) arrays are not scalar-like, so no per-cell storage
         df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
-        value = [np.array([1, 2]), np.array([3, 4])]
+        value = [box([1, 2]), box([3, 4])]
         msg = "Must have equal len keys and value when setting with an ndarray"
         with pytest.raises(ValueError, match=msg):
             if indexer == "loc":
                 df.loc[:, ["a"]] = value
             else:
                 df.iloc[:, [0]] = value
+
+    @pytest.mark.parametrize(
+        "box",
+        [np.array, Series, Index, array],
+        ids=["ndarray", "Series", "Index", "pd.array"],
+    )
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_len1_arrays_single_column(self, indexer, box):
+        # GH#64230 len-1 rows into a single column is the shape that *does*
+        # match, the counterpart to the mismatch above
+        df = DataFrame({"a": np.zeros(2), "b": [0, 0]})
+        value = [box([1]), box([2])]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = DataFrame({"a": [1.0, 2.0], "b": [0, 0]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [np.array, Series, Index, array],
+        ids=["ndarray", "Series", "Index", "pd.array"],
+    )
+    def test_setitem_split_path_list_of_arrays_expansion(self, box):
+        # GH#64230 rows are split across the target columns when one of them is
+        # created by the setitem
+        df = DataFrame({"a": [0.0, 0.0]})
+        # spell the rows int64: the row dtype carries into the created column,
+        # and a bare np.array would be int32 on 32-bit platforms
+        df.loc[:, ["a", "new"]] = [
+            box(np.array([1, 2], dtype=np.int64)),
+            box(np.array([3, 4], dtype=np.int64)),
+        ]
+
+        expected = DataFrame({"a": [1.0, 3.0], "new": [2, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "box", [list, deque, tuple], ids=["list", "deque", "tuple"]
+    )
+    def test_setitem_split_path_heterogeneous_rows(self, box):
+        # GH#64230 mixed element types survive the row unwrap, and do so
+        # identically whichever container the row arrives in
+        df = DataFrame(
+            {
+                "a": np.zeros(2, dtype=object),
+                "b": np.zeros(2, dtype=object),
+                "z": np.zeros(2, dtype="int64"),
+            }
+        )
+        df.iloc[:, [0, 1]] = [box([1, "x"]), box([2, "y"])]
+
+        expected = DataFrame(
+            {
+                "a": Series([1, 2], dtype=object),
+                "b": Series(["x", "y"], dtype=object),
+                "z": np.zeros(2, dtype="int64"),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_masked_arrays(self, indexer):
+        # GH#64230 a masked row keeps pd.NA; np.asarray would make it nan
+        df = DataFrame(
+            {"a": Series([0, 0], dtype="Int64"), "b": Series([0, 0], dtype="Int64")}
+        )
+        value = [array([1, NA], dtype="Int64"), array([NA, 4], dtype="Int64")]
+        if indexer == "loc":
+            df.loc[:, ["a", "b"]] = value
+        else:
+            df.iloc[:, [0, 1]] = value
+
+        expected = DataFrame(
+            {"a": array([1, NA], dtype="Int64"), "b": array([NA, 4], dtype="Int64")}
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("chunked", [False, True])
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_pyarrow_arrays(self, indexer, chunked):
+        # GH#64230 a foreign array indexes positionally but hands back a boxed
+        # scalar, so rows go through np.asarray instead of row[i]; with an
+        # object dtype target the boxed scalars would be stored silently
+        pa = pytest.importorskip("pyarrow")
+        if chunked:
+            value = [pa.chunked_array([["p", "q"]]), pa.chunked_array([["r", "s"]])]
+        else:
+            value = [pa.array(["p", "q"]), pa.array(["r", "s"])]
+        # "z" keeps the frame multi-block, so this takes the split path
+        df = DataFrame(
+            {
+                "a": np.zeros(2, dtype=object),
+                "b": np.zeros(2, dtype=object),
+                "z": np.zeros(2, dtype="int64"),
+            }
+        )
+        if indexer == "loc":
+            df.loc[:, ["a", "b"]] = value
+        else:
+            df.iloc[:, [0, 1]] = value
+
+        expected = DataFrame(
+            {
+                "a": Series(["p", "r"], dtype=object),
+                "b": Series(["q", "s"], dtype=object),
+                "z": np.zeros(2, dtype="int64"),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [np.array, Series, Index, array],
+        ids=["ndarray", "Series", "Index", "pd.array"],
+    )
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_arrays_object_cell(self, indexer, box):
+        # GH#64230 being a 2D value takes precedence over the nested-data-into-
+        # a-single-object-cell branch, so this is a shape mismatch rather than
+        # a list stored in df.iloc[0, 0]
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [box([1, 2]), box([3, 4])]
+        msg = "Must have equal len keys and value when setting with an ndarray"
+        with pytest.raises(ValueError, match=msg):
+            if indexer == "loc":
+                df.loc[0, "a"] = value
+            else:
+                df.iloc[0, 0] = value
+
+    @pytest.mark.parametrize(
+        "box",
+        [deque, lambda data: std_array("q", data), DuckSequence],
+        ids=["deque", "array.array", "duck"],
+    )
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_sequences(self, indexer, box):
+        # GH#64230 rows need not be array-likes; any sized, subscriptable,
+        # non-mapping sequence is a row, as it was when this went through
+        # np.asarray
+        df = DataFrame({"a": [0.0, 0.0], "b": np.zeros(2, dtype="int64")})
+        value = [box([1, 2]), box([3, 4])]
+        if indexer == "loc":
+            df.loc[:, ["a", "b"]] = value
+        else:
+            df.iloc[:, [0, 1]] = value
+
+        expected = DataFrame({"a": [1.0, 3.0], "b": [2, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_ranges(self, indexer):
+        # GH#64230 range is a sequence, so a list of them is a list of rows
+        df = DataFrame({"a": [0.0, 0.0], "b": np.zeros(2, dtype="int64")})
+        if indexer == "loc":
+            df.loc[:, ["a", "b"]] = [range(1, 3), range(3, 5)]
+        else:
+            df.iloc[:, [0, 1]] = [range(1, 3), range(3, 5)]
+
+        expected = DataFrame({"a": [1.0, 3.0], "b": [2, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            [{1, 2}, {3, 4}],
+            [dict.fromkeys([1, 2]), dict.fromkeys([3, 4])],
+            # bytes and classes are sized and subscriptable, but np.asarray
+            #  never treated them as rows either
+            [b"ab", b"cd"],
+            [list, dict],
+            [GetitemOnly(), GetitemOnly()],
+        ],
+        ids=["set", "dict", "bytes", "type", "unsized"],
+    )
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_non_sequences(self, indexer, value):
+        # GH#64230 these are not subscriptable non-mapping sequences, so they
+        # are values for one column each rather than rows
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=object)})
+        if indexer == "loc":
+            df.loc[0, ["a", "b"]] = value
+        else:
+            df.iloc[0, [0, 1]] = value
+
+        expected = DataFrame(
+            {
+                "a": np.array([value[0], 0], dtype=object),
+                "b": np.array([value[1], 0], dtype=object),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_list_of_0d_arrays(self, indexer):
