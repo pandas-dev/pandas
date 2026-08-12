@@ -3879,6 +3879,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        excel_sep_hint: bool = ...,
     ) -> str: ...
 
     @overload
@@ -3906,6 +3907,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        excel_sep_hint: bool = ...,
     ) -> None: ...
 
     @final
@@ -3933,6 +3935,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions | None = None,
+        excel_sep_hint: bool = False,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -4123,6 +4126,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            excel_sep_hint=excel_sep_hint,
         )
 
     # ----------------------------------------------------------------------
