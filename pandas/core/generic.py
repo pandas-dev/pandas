@@ -2277,10 +2277,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             details, and for more examples on storage options refer `here
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
-            
-        excel_sep_hint : bool, default False
-            If True, prepend a separator hint to help Microsoft Excel detect
-            the delimiter.
+
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         autofilter : bool, default False
@@ -4048,6 +4045,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             details, and for more examples on storage options refer `here
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
+
+        excel_sep_hint : bool, default False
+            If True, prepend a separator hint to help Microsoft Excel detect
+            the delimiter.
 
         Returns
         -------
