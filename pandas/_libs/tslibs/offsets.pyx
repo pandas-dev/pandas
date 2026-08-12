@@ -1929,13 +1929,12 @@ def delta_to_tick(delta: timedelta) -> Tick:
 # --------------------------------------------------------------------
 
 
-cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
+cdef tuple _match_reso(ndarray dt64arr, _Timedelta delta):
     """
-    Add a Timedelta to a datetime64 ndarray, raising instead of wrapping.
+    Cast a datetime64 ndarray and a Timedelta to the finer of their two units.
 
-    Matching numpy, the operands are cast to the finer of the two units. Unlike
-    numpy, both that cast and the addition itself raise, and a sum landing on
-    the NaT sentinel is rejected rather than passed off as missing (GH#66552).
+    Matching numpy, we cast to the higher resolution. Unlike numpy, we raise
+    instead of silently overflowing during that cast.
     """
     cdef:
         NPY_DATETIMEUNIT reso = get_unit_from_dtype(dt64arr.dtype)
@@ -1946,6 +1945,19 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
         )
     elif reso > delta._creso:
         delta = delta._as_creso(reso)
+
+    return dt64arr, delta
+
+
+cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
+    """
+    Add a Timedelta to a datetime64 ndarray, raising instead of wrapping.
+
+    Matching numpy, the operands are cast to the finer of the two units. Unlike
+    numpy, both that cast and the addition itself raise, and a sum landing on
+    the NaT sentinel is rejected rather than passed off as missing (GH#66552).
+    """
+    dt64arr, delta = _match_reso(dt64arr, delta)
 
     i8result = add_overflowsafe(
         dt64arr.view("i8"), np.array(delta._value, dtype="i8")
@@ -2136,6 +2148,18 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
         kwds = self.kwds
         months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self._n
+        if months and delta._value:
+            # GH#66549 apply both components in one pass, so that an
+            #  out-of-range month-shifted intermediate does not reject a
+            #  representable result the scalar path accepts
+            dt64other, delta = _match_reso(dt64other, delta)
+            shifted = _shift_months_and_add(
+                dt64other.view("i8"),
+                months,
+                delta._value,
+                get_unit_from_dtype(dt64other.dtype),
+            )
+            return shifted.view(dt64other.dtype)
         if months:
             shifted = shift_months(dt64other.view("i8"), months, reso=reso)
             dt64other = shifted.view(dtarr.dtype)
@@ -7825,6 +7849,94 @@ cdef ndarray shift_quarters(
     except OverflowError as err:
         # GH#66549 dts holds the unrepresentable result
         _raise_out_of_bounds(&dts, reso, err)
+
+    return out
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef ndarray _shift_months_and_add(
+    ndarray dtindex,  # int64_t, arbitrary ndim
+    int64_t months,
+    int64_t offset,
+    NPY_DATETIMEUNIT reso,
+):
+    """
+    Shift by `months` and then add `offset`, given in `reso` units, in one pass.
+
+    Doing the two in sequence would store the month-shifted intermediate, so a
+    composed offset whose final result is representable would be rejected when
+    that intermediate is not (GH#66549).
+    """
+    cdef:
+        Py_ssize_t _
+        npy_datetimestruct dts
+        int count = dtindex.size
+        ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
+        int64_t per_day = periods_per_day(reso)
+        int64_t offset_days = offset / per_day
+        int64_t offset_rem = offset - offset_days * per_day
+        int64_t val, res_val, day_val, tod
+        bint overflowed = False
+
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
+
+    if offset_rem < 0:
+        # Split `offset` so that the remainder is a time-of-day, i.e. floor
+        #  rather than truncate towards zero.
+        offset_rem += per_day
+        offset_days -= 1
+
+    try:
+        with nogil:
+            for _ in range(count):
+                # Analogous to: val = dtindex[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    dts.year = year_add_months(dts, months)
+                    dts.month = month_add_months(dts, months)
+                    dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
+
+                    # The month shift leaves the time-of-day alone, so the
+                    #  result is the shifted date plus the original
+                    #  time-of-day plus the offset. Accumulate the date part in
+                    #  days, where no pandas-representable value can overflow.
+                    day_val = npy_datetimestruct_to_datetime(
+                        NPY_DATETIMEUNIT.NPY_FR_D, &dts
+                    ) + offset_days
+                    tod = val % per_day
+                    if tod < 0:
+                        tod += per_day
+                    tod += offset_rem
+                    if tod >= per_day:
+                        tod -= per_day
+                        day_val += 1
+
+                    # Converting the result date rather than the shifted one is
+                    #  what keeps an out-of-range intermediate from being stored
+                    pandas_datetime_to_datetimestruct(
+                        day_val, NPY_DATETIMEUNIT.NPY_FR_D, &dts
+                    )
+                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                    if checked_add(res_val, tod, &res_val) or res_val == NPY_NAT:
+                        overflowed = True
+                        break
+
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        # GH#66549 dts holds the unrepresentable result
+        _raise_out_of_bounds(&dts, reso, err)
+
+    if overflowed:
+        _raise_out_of_bounds(&dts, reso, None)
 
     return out
 

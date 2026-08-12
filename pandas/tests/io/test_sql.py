@@ -94,25 +94,22 @@ def sql_strings():
 
 
 def iris_table_metadata():
-    import sqlalchemy
     from sqlalchemy import (
         Column,
         Double,
-        Float,
         MetaData,
         String,
         Table,
     )
 
-    dtype = Double if Version(sqlalchemy.__version__) >= Version("2.0.0") else Float
     metadata = MetaData()
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", dtype),
-        Column("SepalWidth", dtype),
-        Column("PetalLength", dtype),
-        Column("PetalWidth", dtype),
+        Column("SepalLength", Double),
+        Column("SepalWidth", Double),
+        Column("PetalLength", Double),
+        Column("PetalWidth", Double),
         Column("Name", String(200)),
     )
     return iris
@@ -2289,15 +2286,6 @@ def test_api_chunksize_read(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
-    if conn == "postgresql_adbc_conn":
-        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
-        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="categorical dtype not implemented for ADBC postgres driver",
-                    strict=True,
-                )
-            )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)

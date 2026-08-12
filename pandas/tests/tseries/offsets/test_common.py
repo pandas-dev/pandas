@@ -15,6 +15,7 @@ from pandas.compat import (
 )
 
 from pandas import DatetimeIndex
+import pandas._testing as tm
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -197,6 +198,66 @@ def test_apply_array_out_of_bounds_raises_non_nano():
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds second"):
         dti + MonthEnd()
+
+
+@pytest.mark.parametrize(
+    "offset, expected",
+    [
+        (DateOffset(months=1, days=-31), "2262-04-10 23:47:16.854775807"),
+        (DateOffset(years=1, days=-366), "2262-04-10 23:47:16.854775807"),
+        (DateOffset(months=2, days=-62), "2262-04-10 23:47:16.854775807"),
+        (DateOffset(months=1, hours=-745), "2262-04-10 22:47:16.854775807"),
+    ],
+)
+def test_apply_array_composed_out_of_bounds_intermediate(offset, expected):
+    # GH#66549 the month shift used to be materialized before the timedelta
+    #  component was applied, so a composed offset whose final result is
+    #  representable was rejected on the array path
+    dti = DatetimeIndex([Timestamp.max])
+
+    result = dti + offset
+    expected_dti = DatetimeIndex([Timestamp(expected)])
+    tm.assert_index_equal(result, expected_dti)
+    assert Timestamp.max + offset == expected_dti[0]
+
+
+def test_apply_array_composed_out_of_bounds_intermediate_below_min():
+    # GH#66549 same going the other way off the bottom of the range
+    dti = DatetimeIndex([Timestamp.min])
+    offset = DateOffset(months=-1, days=32)
+
+    result = dti + offset
+    expected = DatetimeIndex([Timestamp("1677-09-22 00:12:43.145224193")])
+    tm.assert_index_equal(result, expected)
+    assert Timestamp.min + offset == expected[0]
+
+
+def test_apply_array_composed_still_out_of_bounds():
+    # GH#66549 a composed offset whose result is genuinely unrepresentable
+    #  still raises, and names the resolution rather than a C source line
+    dti = DatetimeIndex([Timestamp.max])
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+        dti + DateOffset(months=1, days=-1)
+
+
+def test_apply_array_composed_out_of_bounds_intermediate_non_nano():
+    # GH#66549 the intermediate is out of the second-resolution range
+    dti = DatetimeIndex(np.array([np.iinfo(np.int64).max], dtype="M8[s]"))
+
+    result = dti + DateOffset(months=1, days=-31)
+
+    tm.assert_index_equal(result, dti)
+
+
+def test_apply_array_composed_keeps_nat():
+    # GH#66549 the fused path leaves missing values missing
+    dti = DatetimeIndex(["2000-01-31", "NaT"])
+
+    result = dti + DateOffset(months=1, days=1)
+
+    expected = DatetimeIndex(["2000-03-01", "NaT"]).as_unit(result.unit)
+    tm.assert_index_equal(result, expected)
 
 
 def test_offsets_compare_equal(_offset):
