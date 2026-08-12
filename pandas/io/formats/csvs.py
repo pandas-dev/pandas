@@ -245,7 +245,7 @@ class CSVFormatter:
 
         return encoded_labels
 
-   def save(self) -> None:
+    def save(self) -> None:
         """
         Create the writer & save.
         """
