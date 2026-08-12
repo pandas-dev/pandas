@@ -54,6 +54,7 @@ Other enhancements
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
 - Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
+- :class:`Index` and the ``index``/``columns`` arguments of :class:`DataFrame` now document that a ``dict`` is accepted and that its keys are used (:issue:`66742`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:
