@@ -92,6 +92,13 @@ JSON
 
    build_table_schema
 
+.. currentmodule:: pandas.api.typing
+
+.. autosummary::
+   :toctree: api/
+
+   JsonReader
+
 .. currentmodule:: pandas
 
 HTML
@@ -143,11 +150,21 @@ HDFStore: PyTables (HDF5)
    read_hdf
    HDFStore.put
    HDFStore.append
+   HDFStore.append_to_multiple
    HDFStore.get
    HDFStore.select
+   HDFStore.select_as_coordinates
+   HDFStore.select_as_multiple
+   HDFStore.select_column
+   HDFStore.remove
+   HDFStore.create_table_index
+   HDFStore.copy
+   HDFStore.flush
    HDFStore.info
+   HDFStore.is_open
    HDFStore.keys
    HDFStore.groups
+   HDFStore.get_storer
    HDFStore.walk
 
 .. warning::

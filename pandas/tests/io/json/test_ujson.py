@@ -192,10 +192,12 @@ class TestUltraJSONTests:
     def test_invalid_double_precision(self, invalid_val):
         double_input = 30.12345678901234567890
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
-        msg = (
-            r"Invalid value '.*' for option 'double_precision', max is '15'|"
-            r"an integer is required \(got type |"
-            r"object cannot be interpreted as an integer"
+        msg = "|".join(
+            [
+                "Invalid value '.*' for option 'double_precision', max is '15'",
+                r"an integer is required \(got type ",
+                "object cannot be interpreted as an integer",
+            ]
         )
         with pytest.raises(expected_exception, match=msg):
             ujson.ujson_dumps(double_input, double_precision=invalid_val)
@@ -453,9 +455,11 @@ class TestUltraJSONTests:
         ],
     )
     def test_decode_bad_string(self, bad_string):
-        msg = (
-            "Unexpected character found when decoding|"
-            "Unmatched ''\"' when when decoding 'string'"
+        msg = "|".join(
+            [
+                "Unexpected character found when decoding",
+                "Unmatched ''\"' when when decoding 'string'",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(bad_string)
@@ -485,10 +489,12 @@ class TestUltraJSONTests:
         ],
     )
     def test_decode_invalid_dict(self, invalid_dict):
-        msg = (
-            "Key name of object must be 'string' when decoding 'object'|"
-            "No ':' found when decoding object value|"
-            "Expected object or value"
+        msg = "|".join(
+            [
+                "Key name of object must be 'string' when decoding 'object'",
+                "No ':' found when decoding object value",
+                "Expected object or value",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(invalid_dict)
@@ -546,7 +552,7 @@ class TestUltraJSONTests:
 
         with pytest.raises(
             ValueError,
-            match="Value is too big|Value is too small",
+            match="|".join(["Value is too big", "Value is too small"]),
         ):
             assert ujson.ujson_loads(encoding) == bigNum
 
@@ -954,9 +960,12 @@ class TestPandasJSONTests:
         ],
     )
     def test_decode_invalid_array(self, invalid_arr):
-        msg = (
-            "Expected object or value|Trailing data|"
-            "Unexpected character found when decoding array value"
+        msg = "|".join(
+            [
+                "Expected object or value",
+                "Trailing data",
+                "Unexpected character found when decoding array value",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(invalid_arr)
@@ -973,7 +982,7 @@ class TestPandasJSONTests:
     def test_decode_too_extreme_numbers(self, too_extreme_num):
         with pytest.raises(
             ValueError,
-            match="Value is too big|Value is too small",
+            match="|".join(["Value is too big", "Value is too small"]),
         ):
             ujson.ujson_loads(too_extreme_num)
 
@@ -988,7 +997,7 @@ class TestPandasJSONTests:
     def test_decode_array_with_big_int(self, value):
         with pytest.raises(
             ValueError,
-            match="Value is too big|Value is too small",
+            match="|".join(["Value is too big", "Value is too small"]),
         ):
             ujson.ujson_loads(value)
 

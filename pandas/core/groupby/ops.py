@@ -745,7 +745,10 @@ class BaseGrouper:
         ngroups = self.ngroups
         out: np.ndarray | list
         if ngroups:
-            out = np.bincount(ids[ids != -1], minlength=ngroups)
+            if self.has_dropped_na:
+                out = np.bincount(ids + 1, minlength=ngroups + 1)[1:]
+            else:
+                out = np.bincount(ids, minlength=ngroups)
         else:
             out = []
         return Series(out, index=self.result_index, dtype="int64", copy=False)

@@ -260,7 +260,7 @@ def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
         return tz
 
     if timezones.is_utc(tz):
-        return dt.timezone.utc
+        return dt.UTC
 
     if tz.zone is not None:  # type: ignore[attr-defined]
         try:

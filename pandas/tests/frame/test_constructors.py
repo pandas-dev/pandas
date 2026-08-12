@@ -1,12 +1,16 @@
 import array
 from collections import (
     OrderedDict,
+    UserList,
     abc,
     defaultdict,
     namedtuple,
 )
 from collections.abc import Iterator
-from dataclasses import make_dataclass
+from dataclasses import (
+    dataclass,
+    make_dataclass,
+)
 from datetime import (
     date,
     datetime,
@@ -22,8 +26,10 @@ from numpy.ma import mrecords
 import pytest
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -550,9 +556,23 @@ class TestDataFrameConstructors:
         # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
-        assert frame.index is idx
-        assert frame.columns is idx
+        tm.assert_index_equal(frame.index, idx)
+        tm.assert_index_equal(frame.columns, idx)
+        # GH#42934 the two axes must not be the same object, otherwise mutating
+        #  metadata on one (e.g. names) would silently affect the other
+        assert frame.index is not frame.columns
         assert len(frame._series) == 3
+
+    def test_constructor_same_index_and_columns_no_alias(self):
+        # GH#42934 passing one Index as both index and columns should not
+        #  alias the two axes, so mutating names on one leaves the other intact
+        idx = Index(["a", "b"])
+        frame = DataFrame([[1, 2], [3, 4]], index=idx, columns=idx)
+        assert frame.index is not frame.columns
+
+        frame.index.names = ["zzz"]
+        assert frame.columns.names == [None]
+        assert idx.names == [None]
 
     def test_constructor_dict_of_empty_lists(self):
         # with dict of empty list and Series
@@ -1654,6 +1674,17 @@ class TestDataFrameConstructors:
         with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
+    def test_constructor_list_of_list_like_dataclasses(self):
+        # GH#41682 a dataclass that is also list-like (e.g. a UserList subclass)
+        # is treated as list-like, not converted to a dict of its fields
+        @dataclass(frozen=True)
+        class MyList(UserList):
+            data: list
+
+        result = DataFrame([MyList([1, 2, 3]), [4, 5, 6]])
+        expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_dict_order(self):
         # GH10056
         data = [
@@ -2161,6 +2192,48 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_dict_of_series_preserves_byteorder(self):
+        # GH#43042 same-dtype Series get consolidated into one block; the
+        #  non-native byteorder (and the values) must be preserved
+        df = DataFrame(
+            {
+                "a": Series([0, 256], dtype=">i8"),
+                "b": Series([1, 257], dtype=">i4"),
+                "c": Series([2, 258], dtype=">i8"),
+            }
+        )
+        assert df["a"].dtype == np.dtype(">i8")
+        assert df["b"].dtype == np.dtype(">i4")
+        assert df["c"].dtype == np.dtype(">i8")
+        assert df["a"].tolist() == [0, 256]
+        assert df["b"].tolist() == [1, 257]
+        assert df["c"].tolist() == [2, 258]
+
+    def test_constructor_list_of_ragged_arrays_first_shortest(self):
+        # GH#64958 the uniform-dtype fast path must not silently truncate
+        # ragged rows; they should be padded to max width with NaN
+        # (pin int64 so the result dtype matches on 32- and 64-bit platforms)
+        # GH#65751 the ragged padding itself is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame(
+                [np.array([1, 2], dtype=np.int64), np.array([3, 4, 5], dtype=np.int64)]
+            )
+        expected = DataFrame([[1, 2, np.nan], [3, 4, 5]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_ragged_arrays_first_longest(self):
+        # GH#64958 a longer first row must not raise IndexError; ragged rows
+        # should be padded to max width with NaN
+        # GH#65751 the ragged padding itself is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame(
+                [np.array([1, 2, 3], dtype=np.int64), np.array([4, 5], dtype=np.int64)]
+            )
+        expected = DataFrame([[1, 2, 3], [4, 5, np.nan]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_for_list_with_dtypes(self, using_infer_string):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
@@ -2359,9 +2432,32 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
-        expected = DataFrame([list("abc"), list("abdefg")])
+        # GH#65751 ragged input is padded with NaN, which is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = DataFrame([list("abc"), list("abdefg")])
         tm.assert_frame_equal(df, expected)
+
+    def test_construct_ragged_list_deprecated(self):
+        # GH#65751 constructing from sequences of mismatched lengths pads the
+        #  shorter ones with NaN out to the longest, which is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        expected = DataFrame({0: [1, 3], 1: [2, 4], 2: [np.nan, 5]})
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame([[1, 2], [3, 4, 5]])
+        tm.assert_frame_equal(result, expected)
+
+        # list of tuples takes the same code path
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame([(1, 2), (3, 4, 5)])
+        tm.assert_frame_equal(result, expected)
+
+        # equal-length sequences are unaffected
+        with tm.assert_produces_warning(None):
+            DataFrame([[1, 2], [3, 4]])
 
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]
@@ -2529,7 +2625,9 @@ class TestDataFrameConstructors:
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
         dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
-        msg = "Shape of passed values|Passed arrays should have the same length"
+        msg = "|".join(
+            ["Shape of passed values", "Passed arrays should have the same length"]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame(dti, index=range(4))
 
@@ -2556,6 +2654,18 @@ class TestDataFrameConstructors:
             np.random.default_rng(2).standard_normal((4, 4)), columns=index_lists
         )
         assert isinstance(multi.columns, MultiIndex)
+
+    def test_constructor_reindex_integer_multiindex_to_flat(self):
+        # GH#26460 constructing from a unique integer-MultiIndex DataFrame with a
+        #  flat integer index reindexes rather than raising a buffer-dtype error
+        df = DataFrame(
+            np.arange(9.0).reshape(3, 3),
+            columns=[[2, 2, 4], [6, 8, 10]],
+            index=[[4, 4, 8], [8, 10, 12]],
+        )
+        result = DataFrame(df.iloc[[0, 1]], index=[8, 10])
+        expected = DataFrame(np.nan, index=Index([8, 10]), columns=df.columns)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "input_vals",
@@ -3209,9 +3319,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
         tm.assert_frame_equal(result, expected)
 
     # TODO: make this not cast to object in pandas 3.0
-    @pytest.mark.skipif(
-        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
-    )
     @pytest.mark.parametrize(
         "data",
         [

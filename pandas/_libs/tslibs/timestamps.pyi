@@ -1,4 +1,5 @@
 from datetime import (
+    _IsoCalendarDate,
     date as _date,
     datetime,
     time as _time,
@@ -16,6 +17,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs import (
     BaseOffset,
     NaTType,
@@ -40,17 +42,29 @@ class Timestamp(datetime):
 
     resolution: ClassVar[Timedelta]
     _value: int  # np.int64
-    # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
+    #  error: "__new__" must return a class instance (got "Timestamp | NaTType")
     def __new__(  # type: ignore[misc]
         cls: type[Self],
-        ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
+        # null-like input yields NaT; see the Timestamp docstring Notes
+        ts_input: (
+            np.integer
+            | float
+            | str
+            | _date
+            | datetime
+            | np.datetime64
+            | NaTType
+            | NAType
+            | None
+        ) = ...,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
         hour: int | None = ...,
         minute: int | None = ...,
         second: int | None = ...,
-        microsecond: int | None = ...,
+        # the 8th positional argument is pydatetime's tzinfo
+        microsecond: int | _tzinfo | None = ...,
         tzinfo: _tzinfo | None = ...,
         *,
         nanosecond: int | None = ...,
@@ -147,26 +161,24 @@ class Timestamp(datetime):
     def utcoffset(self) -> timedelta | None: ...
     def tzname(self) -> str | None: ...
     def dst(self) -> timedelta | None: ...
-    def __le__(self, other: datetime) -> bool: ...  # type: ignore[override]
-    def __lt__(self, other: datetime) -> bool: ...  # type: ignore[override]
-    def __ge__(self, other: datetime) -> bool: ...  # type: ignore[override]
-    def __gt__(self, other: datetime) -> bool: ...  # type: ignore[override]
+    def __le__(self, other: datetime, /) -> bool: ...  # type: ignore[override]
+    def __lt__(self, other: datetime, /) -> bool: ...  # type: ignore[override]
+    def __ge__(self, other: datetime, /) -> bool: ...  # type: ignore[override]
+    def __gt__(self, other: datetime, /) -> bool: ...  # type: ignore[override]
     # error: Signature of "__add__" incompatible with supertype "date"/"datetime"
     @overload  # type: ignore[override]
-    def __add__(self, other: np.ndarray) -> np.ndarray: ...
+    def __add__(self, other: np.ndarray, /) -> np.ndarray: ...
     @overload
-    def __add__(self, other: timedelta | np.timedelta64 | Tick) -> Self: ...
-    def __radd__(self, other: timedelta) -> Self: ...
+    def __add__(self, other: timedelta | np.timedelta64 | Tick, /) -> Self: ...
+    def __radd__(self, other: timedelta, /) -> Self: ...
     @overload  # type: ignore[override]
-    def __sub__(self, other: datetime) -> Timedelta: ...
+    def __sub__(self, other: datetime, /) -> Timedelta: ...
     @overload
-    def __sub__(self, other: timedelta | np.timedelta64 | Tick) -> Self: ...
+    def __sub__(self, other: timedelta | np.timedelta64 | Tick, /) -> Self: ...
     def __hash__(self) -> int: ...
     def weekday(self) -> int: ...
     def isoweekday(self) -> int: ...
-    # Return type "Tuple[int, int, int]" of "isocalendar" incompatible with return
-    # type "_IsoCalendarDate" in supertype "date"
-    def isocalendar(self) -> tuple[int, int, int]: ...  # type: ignore[override]
+    def isocalendar(self) -> _IsoCalendarDate: ...
     @property
     def is_leap_year(self) -> bool: ...
     @property
@@ -201,9 +213,10 @@ class Timestamp(datetime):
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] = ...,
-        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
-        | timedelta = ...,
-    ) -> Self: ...
+        nonexistent: (
+            Literal["raise", "shift_forward", "shift_backward"] | timedelta
+        ) = ...,
+    ) -> Self | NaTType: ...
     @overload
     def round(
         self,
@@ -216,9 +229,10 @@ class Timestamp(datetime):
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] = ...,
-        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
-        | timedelta = ...,
-    ) -> Self: ...
+        nonexistent: (
+            Literal["raise", "shift_forward", "shift_backward"] | timedelta
+        ) = ...,
+    ) -> Self | NaTType: ...
     @overload
     def floor(
         self,
@@ -231,9 +245,10 @@ class Timestamp(datetime):
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] = ...,
-        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
-        | timedelta = ...,
-    ) -> Self: ...
+        nonexistent: (
+            Literal["raise", "shift_forward", "shift_backward"] | timedelta
+        ) = ...,
+    ) -> Self | NaTType: ...
     @overload
     def ceil(
         self,

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -590,7 +593,8 @@ def test_loc_setitem_single_column_slice():
         index=list("abcd"),
         columns=MultiIndex.from_product([["Main"], ("another", "one")]),
     )
-    df["labels"] = "a"
+    with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+        df["labels"] = "a"
     df.loc[:, "labels"] = df.index
     tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
 
@@ -1084,3 +1088,30 @@ def test_loc_multiindex_with_overlapping_interval_multiple_matches():
     result = ser.loc[("A", 1.5)]
     expected = np.array([10, 20], dtype=result.values.dtype)
     tm.assert_numpy_array_equal(result.values, expected)
+
+
+def test_loc_multiindex_interval_level_inf_break():
+    # GH#46699 - .loc with a tuple/list-of-tuples key on a MultiIndex whose
+    # inner IntervalIndex level has breaks at +/-inf used to raise ValueError
+    # from the engine when the scalar fell in the inf-bounded interval.
+    left = DataFrame(
+        {"Result": [101, 102, 103]},
+        index=pd.IntervalIndex.from_breaks(
+            [-np.inf, 35, 59, np.inf], closed="left", name="age"
+        ),
+    )
+    right = DataFrame(
+        {"Result": [1, 2, 3, 4]},
+        index=pd.IntervalIndex.from_breaks(
+            [-np.inf, 35, 59, 70, np.inf], closed="left", name="age"
+        ),
+    )
+    mapper = pd.concat([left, right], axis=0, keys=[False, True], names=["children"])
+
+    # scalar tuple: 99 falls in the [59, inf) interval of the False group
+    result = mapper.loc[(False, 99)]
+    tm.assert_series_equal(result, mapper.iloc[2])
+
+    # list of tuples, one of which falls in the [59, inf) interval
+    result = mapper.loc[[(False, 45), (False, 99)], :]
+    tm.assert_frame_equal(result, mapper.iloc[[1, 2]])

@@ -195,6 +195,7 @@ class BaseBlockManager(PandasObject):
 
     _blknos: npt.NDArray[np.intp]
     _blklocs: npt.NDArray[np.intp]
+    _dtypes_cache: npt.NDArray[np.object_] | None
     blocks: tuple[Block, ...]
     axes: list[Index]
 
@@ -340,8 +341,12 @@ class BaseBlockManager(PandasObject):
         return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
-        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
-        return dtypes.take(self.blknos)
+        cache = self._dtypes_cache
+        if cache is None:
+            dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
+            cache = dtypes.take(self.blknos)
+            self._dtypes_cache = cache
+        return cache.copy()
 
     @property
     def arrays(self) -> list[ArrayLike]:
@@ -573,6 +578,10 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
+                    # Block.delete in _iset_split_block requires sorted unique
+                    # locs; inverse maps the requested column order onto the
+                    # new block (GH#65446)
+                    blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
                     self._iset_split_block(  # type: ignore[attr-defined]
@@ -583,14 +592,23 @@ class BaseBlockManager(PandasObject):
                     # first block equals values we are setting to -> set to all columns
                     if lib.is_integer(indexer[1]):
                         col_indexer = 0
-                    elif len(blk_loc) > 1:
+                    elif len(inverse) > 1 and lib.is_range_indexer(
+                        inverse, len(blk_loc)
+                    ):
                         col_indexer = slice(None)  # type: ignore[assignment]
                     else:
-                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
+                        col_indexer = inverse  # type: ignore[assignment]
                     indexer[1] = col_indexer
 
                     row_indexer = indexer[0]
-                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                    if isinstance(col_indexer, np.ndarray):
+                        if (
+                            isinstance(row_indexer, np.ndarray)
+                            and row_indexer.ndim == 1
+                        ):
+                            # GH#65446: Make the row indexer 2d to take a cross product
+                            row_indexer = row_indexer[:, None]
+                    elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
                         # numpy cannot handle a 2d indexer in combo with a slice
                         row_indexer = np.squeeze(row_indexer, axis=1)
                     if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
@@ -1302,6 +1320,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             # Check if we can use _iset_single fastpath
             loc = cast("int", loc)
+            if not value_is_extension_type and len(value) > 1:
+                # GH#46544 setting a single column with a 2D value; matches the
+                #  check in self.insert. value has been transposed above, so
+                #  len(value) is the number of columns in the original value.
+                raise ValueError(
+                    f"Expected a 1D array, got an array with shape {value.T.shape}"
+                )
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
@@ -1413,6 +1438,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Invalidate cache before mutating blocks so that a concurrent
             # reader never sees stale cache + new blocks.
             self._interleaved_dtype = None
+            self._dtypes_cache = None
             self._known_consolidated = False
 
             self.blocks += tuple(new_blocks)
@@ -1499,6 +1525,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Invalidate cache before mutating blocks so that a concurrent
         # reader never sees stale cache + new blocks.
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self.blocks = new_blocks
         return
 
@@ -1571,6 +1598,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Invalidate cache before mutating blocks so that a concurrent
         # reader never sees stale cache + new blocks.
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self._known_consolidated = False
         self.blocks += (block,)
 
@@ -2173,7 +2201,9 @@ class SingleBlockManager(BaseBlockManager):
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)
 
-    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> SingleBlockManager:
+    def get_slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> SingleBlockManager:
         # Assertion disabled for performance
         # assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
@@ -2185,7 +2215,8 @@ class SingleBlockManager(BaseBlockManager):
         # TODO this method is only used in groupby SeriesSplitter at the moment,
         # so passing refs is not yet covered by the tests
         block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
-        new_index = self.index._getitem_slice(slobj)
+        if new_index is None:
+            new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
     @property
@@ -2285,9 +2316,6 @@ class SingleBlockManager(BaseBlockManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        # For SingleBlockManager (i.e.Series)
-        if other.ndim != 1:
-            return False
         left = self.blocks[0].values
         right = other.blocks[0].values
         return array_equals(left, right)

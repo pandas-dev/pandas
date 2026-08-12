@@ -17,11 +17,9 @@ from pandas import (
     date_range,
     read_hdf,
 )
+import pandas._testing as tm
 
-from pandas.io.pytables import (
-    Term,
-    _maybe_adjust_name,
-)
+from pandas.io.pytables import Term
 
 pytestmark = [pytest.mark.single_cpu]
 
@@ -167,6 +165,25 @@ def test_invalid_terms_reference(temp_h5_path):
         read_hdf(temp_h5_path, "dfq", where="A>0 or C>0")
 
 
+def test_select_too_many_conditions_raises(temp_hdfstore):
+    # GH#39752 a where with too many comparisons over indexed columns hits
+    # numexpr's input limit; we should raise an actionable message rather than
+    # leak the opaque "too many inputs" ValueError.
+    # 64 clauses x 2 comparisons each exceeds the limit (NPY_MAXARGS-1, i.e.
+    # 31 or 63 depending on the numexpr build).
+    n = 64
+    df = DataFrame(
+        {"A": range(n)},
+        index=MultiIndex.from_arrays([["a"] * n, range(n)], names=("la", "lb")),
+    )
+    temp_hdfstore.put("df", df, format="table", track_times=False)
+
+    where = " | ".join(f"(la == 'a' & lb == {i})" for i in range(n))
+    msg = "too many comparisons"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=where)
+
+
 def test_append_with_diff_col_name_types_raises_value_error(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
     df2 = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
@@ -274,6 +291,32 @@ def test_to_hdf_multiindex_level_named_index_raises(temp_hdfstore):
         temp_hdfstore.put("s", series, format="table", track_times=False)
 
 
+@pytest.mark.parametrize("data_columns", [["index"], True, ["column_1", "index"]])
+def test_to_hdf_data_column_named_index_raises(temp_hdfstore, data_columns):
+    # GH#41437 a data column named 'index' collides with the table format's
+    # implicit row index; surface a clear error instead of the confusing
+    # reshape failure that used to come from write_data
+    df = DataFrame({"column_1": [1, 2], "index": [3, 4]})
+    df.index.name = "something_else"
+    msg = "cannot use a column named 'index' as a data_column"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put(
+            "df", df, format="table", data_columns=data_columns, track_times=False
+        )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, format="table", data_columns=data_columns)
+
+
+def test_to_hdf_column_named_index_without_data_columns(temp_h5_path):
+    # GH#41437 a column named 'index' is fine as long as it is not a
+    # data_column; it round-trips like any other column
+    df = DataFrame({"column_1": [1, 2], "index": [3, 4]})
+    df.index.name = "something_else"
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df)
+
+
 def test_unsupported_hdf_file_error(datapath):
     # GH 9539
     data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
@@ -310,10 +353,3 @@ def test_read_hdf_generic_buffer_errors():
     msg = "Support for generic buffers has not been implemented."
     with pytest.raises(NotImplementedError, match=msg):
         read_hdf(BytesIO(b""), "df")
-
-
-@pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
-def test_maybe_adjust_name_bad_version_raises(bad_version):
-    msg = "Version is incorrect, expected sequence of 3 integers"
-    with pytest.raises(ValueError, match=msg):
-        _maybe_adjust_name("values_block_0", version=bad_version)

@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -17,6 +18,8 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
@@ -637,9 +640,9 @@ def _extract_index(data) -> Index:
         raise ValueError("If using all scalar values, you must pass an index")
 
     if have_series:
-        index = union_indexes(indexes)
+        index, _ = union_indexes(indexes)
     elif have_dicts:
-        index = union_indexes(indexes, sort=False)
+        index, _ = union_indexes(indexes, sort=False)
 
     if have_raw_arrays:
         if len(raw_lengths) > 1:
@@ -825,9 +828,15 @@ def to_arrays(
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
-        # (e.g. timedelta64, pyarrow, Int64, Categorical)
+        # (e.g. timedelta64, pyarrow, Int64, Categorical). Only take this
+        # path for non-ragged rows; ragged rows fall through to the
+        # object/pad path below so they are padded to max width with NaN.
         row_dtypes = {row.dtype for row in data if hasattr(row, "dtype")}
-        if len(row_dtypes) == 1 and all(hasattr(row, "dtype") for row in data):
+        if (
+            len(row_dtypes) == 1
+            and all(hasattr(row, "dtype") for row in data)
+            and len({len(row) for row in data}) == 1
+        ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
             arrays = [
@@ -847,6 +856,21 @@ def to_arrays(
 def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
+
+    # GH#65751 shorter sequences get padded with NaN out to the longest one,
+    #  which is deprecated.  A null scalar counts as length 1, mirroring the
+    #  handling in lib.to_object_array_tuples.
+    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if len(lengths) > 1:
+        warnings.warn(
+            "Constructing a DataFrame from a list of sequences with mismatched "
+            "lengths is deprecated and will raise in a future version. The "
+            "shorter sequences are currently padded with NaN; make all "
+            "sequences the same length before constructing instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     if isinstance(data[0], tuple):
         content = lib.to_object_array_tuples(data)
     else:
@@ -864,7 +888,7 @@ def _list_of_series_to_arrays(
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
-        columns = get_objs_combined_axis(pass_data, sort=False)
+        columns, _ = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache: dict[int, np.ndarray] = {}
 
@@ -969,39 +993,17 @@ def _validate_or_indexify_columns(
 
     Raises
     ------
-    1. AssertionError when content is not composed of list of lists, and if
-        length of columns is not equal to length of content.
-    2. ValueError when content is list of lists, but length of each sub-list
-        is not equal
-    3. ValueError when content is list of lists, but length of sub-list is
-        not equal to length of content
+    AssertionError
+        When the number of columns does not match the number of arrays in
+        content.
     """
     if columns is None:
         columns = default_index(len(content))
-    else:
-        # Add mask for data which is composed of list of lists
-        is_mi_list = isinstance(columns, list) and all(
-            isinstance(col, list) for col in columns
+    elif len(columns) != len(content):  # pragma: no cover
+        # caller's responsibility to check for this...
+        raise AssertionError(
+            f"{len(columns)} columns passed, passed data had {len(content)} columns"
         )
-
-        if not is_mi_list and len(columns) != len(content):  # pragma: no cover
-            # caller's responsibility to check for this...
-            raise AssertionError(
-                f"{len(columns)} columns passed, passed data had {len(content)} columns"
-            )
-        if is_mi_list:
-            # check if nested list column, length of each sub-list should be equal
-            if len({len(col) for col in columns}) > 1:
-                raise ValueError(
-                    "Length of columns passed for MultiIndex columns is different"
-                )
-
-            # if columns is not empty and length of sublist is not equal to content
-            if columns and len(columns[0]) != len(content):
-                raise ValueError(
-                    f"{len(columns[0])} columns passed, passed data had "
-                    f"{len(content)} columns"
-                )
     return columns
 
 

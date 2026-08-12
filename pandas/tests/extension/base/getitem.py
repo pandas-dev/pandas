@@ -371,7 +371,9 @@ class BaseGetitemTests:
         result = empty.take([-1], allow_fill=True)
         assert na_cmp(result[0], na_value)
 
-        msg = "cannot do a non-empty take from an empty axes|out of bounds"
+        msg = "|".join(
+            ["cannot do a non-empty take from an empty axes", "out of bounds"]
+        )
 
         with pytest.raises(IndexError, match=msg):
             empty.take([-1])
@@ -405,7 +407,8 @@ class BaseGetitemTests:
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
 
-        with pytest.raises(IndexError, match="out of bounds|out-of-bounds"):
+        msg = "|".join(["out of bounds", "out-of-bounds"])
+        with pytest.raises(IndexError, match=msg):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
     def test_take_series(self, data):

@@ -1,9 +1,9 @@
 [wrap-file]
-directory = fast_float-8.2.3
+directory = fast_float-8.2.10
 
-source_url = https://github.com/fastfloat/fast_float/archive/refs/tags/v8.2.3.tar.gz
-source_filename = fast_float-8.2.3.tar.gz
-source_hash = fa811076bad7b7151ce826005a7213971c879b192ee4505a7016c8413038c2d0
+source_url = https://github.com/fastfloat/fast_float/archive/refs/tags/v8.2.10.tar.gz
+source_filename = fast_float-8.2.10.tar.gz
+source_hash = 76f958dd97b1cf4d8862d1f0986a47d4bdfa8845252bae15ef0f40de3b95961f
 patch_directory = fast_float
 
 [provide]

@@ -240,12 +240,17 @@ class ObjectStringArrayMixin:
             flags |= re.IGNORECASE
 
         if isinstance(pat, re.Pattern):
-            # We need to check that flags matches pat.flags.
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-
-            if flags != pat.flags:
+            # pat already carries its own flags. IGNORECASE is the only one we
+            #  can contribute (via `case`), so it is the only bit we compare,
+            #  and only in the direction that would *add* it: a pat that is
+            #  already case-insensitive, e.g. via an inline "(?i)", is honored
+            #  as written. Comparing the full flag set would reject a pat
+            #  compiled with e.g. re.MULTILINE (GH#63108).
+            if flags & ~re.IGNORECASE:
+                raise ValueError(
+                    "Cannot pass flags in addition to an already-compiled pat"
+                )
+            if flags & re.IGNORECASE and not pat.flags & re.IGNORECASE:
                 raise ValueError("Cannot pass flags that do not match pat.flags")
             regex = pat
         else:
@@ -385,6 +390,9 @@ class ObjectStringArrayMixin:
         return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n is None or n == 0:
             n = -1
         f = lambda x: x.rsplit(pat, n)

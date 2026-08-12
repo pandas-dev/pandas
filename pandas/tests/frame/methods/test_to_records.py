@@ -30,6 +30,15 @@ class TestDataFrameToRecords:
 
         result = df.to_records(index=False)
 
+    def test_to_records_empty_multiindex(self):
+        # GH#21064 to_records on an empty frame with a MultiIndex must not raise
+        df = DataFrame({"A": [10, -10], "B": [400, 400], "C": ["bla", "bla"]})
+        grouped = DataFrame(df.groupby(["B", "C"])["A"].sum())
+        empty = grouped[grouped["A"] > 1e18]  # no rows match -> empty MI frame
+        result = empty.to_records()
+        assert len(result) == 0
+        assert result.dtype.names == ("B", "C", "A")
+
     def test_to_records_dt64(self):
         df = DataFrame(
             [["one", "two", "three"], ["four", "five", "six"]],

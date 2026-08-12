@@ -1,12 +1,7 @@
 """test the scalar Timedelta"""
 
 from datetime import timedelta
-import sys
 
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -17,6 +12,8 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import WASM
+from pandas.compat.numpy import np_version_gt2_2
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -105,6 +102,13 @@ class TestNonNano:
                 assert res.dtype == "m8[ms]"
             elif unit == NpyDatetimeUnit.NPY_FR_us.value:
                 assert res.dtype == "m8[us]"
+
+    def test_view(self):
+        # GH#66608
+        td = Timedelta(seconds=1)
+        with tm.assert_produces_warning(None):
+            res = td.view(np.int64)
+        assert res == td._value
 
     def test_truediv_timedeltalike(self, td):
         assert td / td == 1
@@ -588,29 +592,58 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    @pytest.mark.slow
-    @pytest.mark.xfail(
-        reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
+    @pytest.mark.parametrize(
+        "pandas_timedelta, td",
+        [
+            (Timedelta(0), timedelta(0)),
+            (Timedelta(-112, "s"), timedelta(seconds=-112)),
+            (Timedelta(99, "us"), timedelta(microseconds=99)),
+            pytest.param(
+                Timedelta(0),
+                np.timedelta64(0, "ns"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2_2 or WASM,
+                    reason="https://github.com/numpy/numpy/pull/14622 (not WASM)",
+                ),
+            ),
+            pytest.param(
+                Timedelta(55, "s"),
+                np.timedelta64(55, "s"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2_2 or WASM,
+                    reason="https://github.com/numpy/numpy/pull/14622 (not WASM)",
+                ),
+            ),
+            pytest.param(
+                Timedelta(-44, "us"),
+                np.timedelta64(-44, "us"),
+                marks=pytest.mark.skipif(
+                    not np_version_gt2_2 or WASM,
+                    reason="https://github.com/numpy/numpy/pull/14622 (not WASM)",
+                ),
+            ),
+            pytest.param(
+                Timedelta(123, "ns"),
+                np.timedelta64(123, "ns"),
+                marks=pytest.mark.xfail(
+                    np_version_gt2_2,
+                    reason="Still failing after https://github.com/numpy/numpy/pull/14622",
+                ),
+            ),
+            pytest.param(
+                Timedelta(-42, "ns"),
+                np.timedelta64(-42, "ns"),
+                marks=pytest.mark.xfail(
+                    np_version_gt2_2,
+                    reason="Still failing after https://github.com/numpy/numpy/pull/14622",
+                ),
+            ),
+        ],
     )
-    @given(
-        st.integers(
-            min_value=(-sys.maxsize - 1) // 500,
-            max_value=sys.maxsize // 500,
-        )
-    )
-    def test_hash_equality_invariance(self, half_microseconds: int) -> None:
+    def test_hash_equality_invariance(self, pandas_timedelta, td) -> None:
         # GH#44504
-
-        nanoseconds = half_microseconds * 500
-
-        pandas_timedelta = Timedelta(nanoseconds)
-        numpy_timedelta = np.timedelta64(nanoseconds)
-
-        # See: https://docs.python.org/3/glossary.html#term-hashable
-        # Hashable objects which compare equal must have the same hash value.
-        assert pandas_timedelta != numpy_timedelta or hash(pandas_timedelta) == hash(
-            numpy_timedelta
-        )
+        assert pandas_timedelta == td
+        assert hash(pandas_timedelta) == hash(td)
 
     def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)
@@ -621,8 +654,10 @@ class TestTimedeltas:
         assert min_td._value == iNaT + 1
         assert max_td._value == lib.i8max
 
-        # Beyond lower limit, a NAT before the Overflow
-        assert (min_td - Timedelta(1, "ns")) is NaT
+        # GH#66552 landing exactly on the NaT sentinel is out of bounds, not NaT
+        msg2 = "Out of bounds nanosecond timedelta: -9223372036854775808"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg2):
+            min_td - Timedelta(1, "ns")
 
         msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):
@@ -651,6 +686,56 @@ class TestTimedeltas:
         assert Timedelta("5.324s").total_seconds() == 5.324
         assert (Timedelta("30s").total_seconds() - 30.0) < 1e-20
         assert (30.0 - Timedelta("30s").total_seconds()) < 1e-20
+
+    def test_total_seconds_includes_nanoseconds(self):
+        # GH#46819 nanosecond component was silently dropped
+        assert Timedelta(nanoseconds=999).total_seconds() == 999e-9
+        assert Timedelta("1us 500ns").total_seconds() == 1.5e-6
+        # negative timedelta with nanosecond residual: previously the
+        # nanos were dropped entirely, so result was off by ~1us
+        result = Timedelta(nanoseconds=-1).total_seconds()
+        assert abs(result - (-1e-9)) < 1e-15
+
+    def test_total_seconds_stays_strictly_inside_integer_seconds(self):
+        # Sub-second components mean the true value is strictly inside
+        # (floor, floor + 1); float rounding must not collapse onto either
+        # boundary, otherwise bisect-based lookups (e.g. dateutil DST,
+        # GH#31043) misclassify the timestamp as on a transition.
+        # 1 ns below 1552212000 s; naive float rounds up to 1552212000.0
+        below = Timedelta(1_552_211_999_999_999_999).total_seconds()
+        assert below < 1_552_212_000
+        # 1 ns above 1552212000 s; sub_ns is below the float ulp at this
+        # magnitude (~238 ns), so naive float rounds down to 1552212000.0
+        above = Timedelta(1_552_212_000_000_000_001).total_seconds()
+        assert above > 1_552_212_000
+        # symmetric negative cases
+        neg_above = Timedelta(-1_552_211_999_999_999_999).total_seconds()
+        assert neg_above > -1_552_212_000
+        neg_below = Timedelta(-1_552_212_000_000_000_001).total_seconds()
+        assert neg_below < -1_552_212_000
+
+    @pytest.mark.parametrize(
+        "value, unit, boundary",
+        [
+            (20_000_000_000_000_001, "us", 20_000_000_000),
+            (2**44 * 1000 + 1, "ms", 2**44),
+        ],
+    )
+    def test_total_seconds_boundary_non_nano(self, value, unit, boundary):
+        # GH#46819 the boundary guard applies at every resolution: here the
+        # sub-second residual is smaller than half an ulp, so the naive sum
+        # collapses onto the integer-second boundary
+        assert Timedelta(value, unit=unit).total_seconds() > boundary
+        assert Timedelta(-value, unit=unit).total_seconds() < -boundary
+
+    def test_total_seconds_above_float64_integer_spacing(self):
+        # Beyond 2**52 seconds every float64 is a whole number of seconds,
+        # so the boundary cannot be avoided; return the nearest value rather
+        # than nudging 2 full seconds away
+        result = Timedelta(2**53 * 1000 + 500, unit="ms").total_seconds()
+        assert result == float(2**53)
+        result = Timedelta(-(2**53) * 1000 - 500, unit="ms").total_seconds()
+        assert result == -float(2**53)
 
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"

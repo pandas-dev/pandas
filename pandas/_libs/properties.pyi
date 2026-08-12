@@ -23,5 +23,5 @@ class AxisProperty:
     @overload
     def __get__(self, obj: None, type: type) -> AxisProperty: ...
     def __set__(
-        self, obj: DataFrame | Series, value: AnyArrayLike | Sequence
+        self, obj: DataFrame | Series, value: AnyArrayLike | Sequence, /
     ) -> None: ...

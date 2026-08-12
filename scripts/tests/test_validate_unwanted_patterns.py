@@ -336,3 +336,73 @@ def test_doesnt_use_pandas_warnings(function, positional, category, pdlint_ignor
         assert result[0][1].startswith(f"Don't use {category}")
     else:
         assert len(result) == 0
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        # already using the explicit join form
+        'msg = "|".join(["first message", "second message"])',
+        'pytest.raises(ValueError, match="|".join(["foo", "bar"]))',
+        # inline alternation correctly wrapped in a group
+        'msg = "cannot (add|subtract)"',
+        'msg = r"index (0|1) out of bounds"',
+        # f-string with a grouped inline alternation
+        'msg = f"cannot cast (object|str) to {dtype}"',
+        # an escaped pipe is a literal "|", not an alternation
+        r'msg = r"value must be one of None\|12"',
+        # pipe inside a character class
+        'msg = "[<|>] not supported"',
+        # match= referring to a name rather than a literal
+        "pytest.raises(ValueError, match=msg)",
+        # no alternation at all
+        'msg = "a single message"',
+    ],
+)
+def test_bare_pipe_alternation_in_message(data) -> None:
+    fd = io.StringIO(data.strip())
+    result = list(validate_unwanted_patterns.bare_pipe_alternation_in_message(fd))
+    assert result == []
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (
+            'msg = "first message|second message"',
+            [(1, validate_unwanted_patterns.BARE_PIPE_MESSAGE)],
+        ),
+        (
+            'pat = "foo|bar|baz"',
+            [(1, validate_unwanted_patterns.BARE_PIPE_MESSAGE)],
+        ),
+        (
+            'pytest.raises(ValueError, match="foo|bar")',
+            [(1, validate_unwanted_patterns.BARE_PIPE_MESSAGE)],
+        ),
+        (
+            # a raw string with escaped parens still has a bare top-level pipe
+            r'msg = r"foo\(s\)|bar"',
+            [(1, validate_unwanted_patterns.BARE_PIPE_MESSAGE)],
+        ),
+        (
+            # substitutions on each side of a bare pipe in an f-string
+            'msg = f"{first}|{second}"',
+            [(1, validate_unwanted_patterns.BARE_PIPE_MESSAGE)],
+        ),
+        (
+            # implicit concatenation across lines
+            """
+msg = (
+    "first message|"
+    "second message"
+)
+""",
+            [(2, validate_unwanted_patterns.BARE_PIPE_MESSAGE)],
+        ),
+    ],
+)
+def test_bare_pipe_alternation_in_message_raises(data, expected) -> None:
+    fd = io.StringIO(data.strip())
+    result = list(validate_unwanted_patterns.bare_pipe_alternation_in_message(fd))
+    assert result == expected

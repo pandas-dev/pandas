@@ -29,7 +29,6 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
-    Union,
     cast,
     final,
     overload,
@@ -165,18 +164,24 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self):
+        def f(self, key):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+
+        return self._groupby._python_apply_plot(f)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
-            def f(self):
-                return getattr(self.plot, name)(*args, **kwargs)
+            def f(self, key):
+                local_kwargs = kwargs.copy()
 
-            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+                if name == "scatter" and kwargs.get("legend"):
+                    local_kwargs.setdefault("label", key)
+
+                return getattr(self.plot, name)(*args, **local_kwargs)
+
+            return self._groupby._python_apply_plot(f)
 
         return attr
 
@@ -870,7 +875,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
 
-        def curried(x):
+        def curried(x, key=None):
             return f(x, *args, **kwargs)
 
         # preserve the name so we can detect it when calling plot methods,
@@ -880,7 +885,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self._python_apply_general(curried, self._selected_obj)
+            return self._python_apply_plot(curried)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -999,9 +1004,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         n_groupings = len(self._grouper.groupings)
 
+        def full_key(name: Hashable) -> Hashable:
+            # GH#17024 expanding MultiIndex columns with a partial key is
+            #  deprecated; pad the key to full length ourselves
+            if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
+                return (name,) + ("",) * (result.columns.nlevels - 1)
+            return name
+
         if qs is not None:
             result.insert(
-                0, f"level_{n_groupings}", np.tile(qs, len(result) // len(qs))
+                0, full_key(f"level_{n_groupings}"), np.tile(qs, len(result) // len(qs))
             )
 
         # zip in reverse so we can always insert at loc 0
@@ -1025,9 +1037,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if name not in result.columns:
                 # if in_axis:
                 if qs is None:
-                    result.insert(0, name, lev)
+                    result.insert(0, full_key(name), lev)
                 else:
-                    result.insert(0, name, Index(np.repeat(lev, len(qs)), copy=False))
+                    result.insert(
+                        0, full_key(name), Index(np.repeat(lev, len(qs)), copy=False)
+                    )
 
         return result
 
@@ -1299,6 +1313,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
+        Each group passed to ``func`` has a ``name`` attribute set to the group
+        key (the value of the grouping for that group). This is useful for
+        identifying the current group, for example when grouping by an external
+        grouper rather than by a column of the object.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
@@ -1440,6 +1459,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             not_indexed_same,
             is_transform,
         )
+
+    @final
+    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+        """
+        Apply a plotting function f group-wise.
+
+        Each Series group gets its group key as the name, which plotting
+        methods use for legend labels. Unlike the general apply path, this
+        labels the group explicitly rather than relying on the name attribute
+        being pinned to the group key as a side effect (GH#41090).
+        """
+        data = self._selected_obj
+        values = []
+        for key, group in self._grouper.get_iterator(data):
+            if group.ndim == 1:
+                group.name = key
+            values.append(f(group, key))
+        # plotting functions return matplotlib objects, never something
+        #  indexed like the group, so this is always not_indexed_same
+        return self._wrap_applied_output(data, values, not_indexed_same=True)
 
     @final
     def _agg_general(
@@ -2718,13 +2757,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if dtype_backend is not None:
-            result = result.convert_dtypes(
-                infer_objects=False,
-                convert_string=False,
-                convert_boolean=False,
-                convert_floating=False,
-                dtype_backend=dtype_backend,
-            )
+            result = result.convert_dtypes(dtype_backend=dtype_backend)
 
         if not self.as_index:
             result = result.rename("size").reset_index()
@@ -2837,6 +2870,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def sum_compat(obj: NDFrameT):
+                # GH#18588: see min_compat below
+                return obj.sum(skipna=skipna)
+
             # If we are grouping on categoricals we want unobserved categories to
             # return zero, rather than the default of NaN which the reindexing in
             # _agg_general() returns. GH #31422
@@ -2845,7 +2883,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     numeric_only=numeric_only,
                     min_count=min_count,
                     alias="sum",
-                    npfunc=np.sum,
+                    npfunc=sum_compat,
                     skipna=skipna,
                 )
 
@@ -2926,12 +2964,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+
+        def prod_compat(obj: NDFrameT):
+            # GH#18588: see min_compat below
+            return obj.prod(skipna=skipna)
+
         return self._agg_general(
             numeric_only=numeric_only,
             min_count=min_count,
             skipna=skipna,
             alias="prod",
-            npfunc=np.prod,
+            npfunc=prod_compat,
         )
 
     @final
@@ -3043,12 +3086,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def min_compat(obj: NDFrameT):
+                # GH#18588: object/string dtypes have no cython group_min_max
+                # and reduce through this alt instead, so it has to apply
+                # skipna itself; np.min would always skip.
+                return obj.min(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="min",
-                npfunc=np.min,
+                npfunc=min_compat,
             )
 
     @final
@@ -3160,12 +3210,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def max_compat(obj: NDFrameT):
+                # GH#18588: see min_compat above
+                return obj.max(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="max",
-                npfunc=np.max,
+                npfunc=max_compat,
             )
 
     @final
@@ -3447,248 +3502,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         include=None,
         exclude=None,
     ) -> NDFrameT:
-        """
-        Generate descriptive statistics.
-
-        Descriptive statistics include those that summarize the central
-        tendency, dispersion and shape of a
-        dataset's distribution, excluding ``NaN`` values.
-
-        Analyzes both numeric and object series, as well
-        as ``DataFrame`` column sets of mixed data types. The output
-        will vary depending on what is provided. Refer to the notes
-        below for more detail.
-
-        Parameters
-        ----------
-        percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should
-            fall between 0 and 1. The default, ``None``, will automatically
-            return the 25th, 50th, and 75th percentiles.
-        include : 'all', list-like of dtypes or None (default), optional
-            A white list of data types to include in the result. Ignored
-            for ``Series`` (deprecated; will be removed in a future
-            version). Here are the options:
-
-            - 'all' : All columns of the input will be included in the output.
-            - A list-like of dtypes : Limits the results to the
-              provided data types.
-              To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to object columns submit
-              the ``numpy.object`` data type. Strings
-              can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
-              select pandas categorical columns, use ``'category'``
-            - None (default) : The result will include all numeric columns.
-        exclude : list-like of dtypes or None (default), optional,
-            A black list of data types to omit from the result. Ignored
-            for ``Series`` (deprecated; will be removed in a future
-            version). Here are the options:
-
-            - A list-like of dtypes : Excludes the provided data types
-              from the result. To exclude numeric types submit
-              ``numpy.number``. To exclude object columns submit the data
-              type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
-              exclude pandas categorical columns, use ``'category'``
-            - None (default) : The result will exclude nothing.
-
-        Returns
-        -------
-        Series or DataFrame
-            Summary statistics of the Series or Dataframe provided.
-
-        See Also
-        --------
-        DataFrame.count: Count number of non-NA/null observations.
-        DataFrame.max: Maximum of the values in the object.
-        DataFrame.min: Minimum of the values in the object.
-        DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the observations.
-        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
-            columns based on their dtype.
-
-        Notes
-        -----
-        For numeric data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
-        upper percentiles. By default the lower percentile is ``25`` and the
-        upper percentile is ``75``. The ``50`` percentile is the
-        same as the median.
-
-        For object data (e.g. strings), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
-        is the most common value. The ``freq`` is the most common value's
-        frequency.
-
-        If multiple object values have the highest count, then the
-        ``count`` and ``top`` results will be arbitrarily chosen from
-        among those with the highest count.
-
-        For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the DataFrame consists
-        only of object and categorical data without any numeric columns, the
-        default is to return an analysis of both the object and categorical
-        columns. If ``include='all'`` is provided as an option, the result
-        will include a union of attributes of each type.
-
-        The `include` and `exclude` parameters can be used to limit
-        which columns in a ``DataFrame`` are analyzed for the output.
-        Passing them when analyzing a ``Series`` is deprecated and will
-        raise in a future version; the parameters are ignored today.
-
-        Examples
-        --------
-        Describing a numeric ``Series``.
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
-        dtype: float64
-
-        Describing a categorical ``Series``.
-
-        >>> s = pd.Series(["a", "a", "b", "c"])
-        >>> s.describe()
-        count     4
-        unique    3
-        top       a
-        freq      2
-        dtype: object
-
-        Describing a timestamp ``Series``.
-
-        >>> s = pd.Series(
-        ...     [
-        ...         np.datetime64("2000-01-01"),
-        ...         np.datetime64("2010-01-01"),
-        ...         np.datetime64("2010-01-01"),
-        ...     ]
-        ... )
-        >>> s.describe()
-        count                      3
-        mean     2006-09-01 08:00:00
-        min      2000-01-01 00:00:00
-        25%      2004-12-31 12:00:00
-        50%      2010-01-01 00:00:00
-        75%      2010-01-01 00:00:00
-        max      2010-01-01 00:00:00
-        dtype: object
-
-        Describing a ``DataFrame``. By default only numeric fields
-        are returned.
-
-        >>> df = pd.DataFrame(
-        ...     {
-        ...         "categorical": pd.Categorical(["d", "e", "f"]),
-        ...         "numeric": [1, 2, 3],
-        ...         "object": ["a", "b", "c"],
-        ...     }
-        ... )
-        >>> df.describe()
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
-
-        Describing all columns of a ``DataFrame`` regardless of data type.
-
-        >>> df.describe(include="all")  # doctest: +SKIP
-               categorical  numeric object
-        count            3      3.0      3
-        unique           3      NaN      3
-        top              f      NaN      a
-        freq             1      NaN      1
-        mean           NaN      2.0    NaN
-        std            NaN      1.0    NaN
-        min            NaN      1.0    NaN
-        25%            NaN      1.5    NaN
-        50%            NaN      2.0    NaN
-        75%            NaN      2.5    NaN
-        max            NaN      3.0    NaN
-
-        Describing a column from a ``DataFrame`` by accessing it as
-        an attribute.
-
-        >>> df.numeric.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
-        Name: numeric, dtype: float64
-
-        Including only numeric columns in a ``DataFrame`` description.
-
-        >>> df.describe(include=[np.number])
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
-
-        Including only string columns in a ``DataFrame`` description.
-
-        >>> df.describe(include=[object])  # doctest: +SKIP
-               object
-        count       3
-        unique      3
-        top         a
-        freq        1
-
-        Including only categorical columns from a ``DataFrame`` description.
-
-        >>> df.describe(include=["category"])
-               categorical
-        count            3
-        unique           3
-        top              d
-        freq             1
-
-        Excluding numeric columns from a ``DataFrame`` description.
-
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
-               categorical object
-        count            3      3
-        unique           3      3
-        top              f      a
-        freq             1      1
-
-        Excluding object columns from a ``DataFrame`` description.
-
-        >>> df.describe(exclude=[object])  # doctest: +SKIP
-               categorical  numeric
-        count            3      3.0
-        unique           3      NaN
-        top              f      NaN
-        freq             1      NaN
-        mean           NaN      2.0
-        std            NaN      1.0
-        min            NaN      1.0
-        25%            NaN      1.5
-        50%            NaN      2.0
-        75%            NaN      2.5
-        max            NaN      3.0
-        """
         obj = self._obj_with_exclusions
 
         if len(obj) == 0:
@@ -3905,6 +3718,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
             the time-period. This is only valid for datetimelike indexes.
+            The offset must correspond to a fixed frequency (for example, ``'2D'``
+            or ``'1h'``); non-fixed frequencies such as ``'B'`` (business day) or
+            ``'ME'`` (month end) are not supported and raise ``ValueError``.
             To learn more about the offsets & frequency strings, please see
             :ref:`this link<timeseries.offset_aliases>`.
 
@@ -5465,7 +5281,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     f"Periods must be integer, but {period} is {type(period)}."
                 )
-            period = cast("int", period)
             if freq is not None:
                 f = lambda x: x.shift(
                     period,
@@ -5499,7 +5314,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )
-            shifted_dataframes.append(cast("Union[Series, DataFrame]", shifted))
+            shifted_dataframes.append(cast("Series | DataFrame", shifted))
 
         return (
             shifted_dataframes[0]
@@ -5691,11 +5506,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        if fill_method is None:  # GH30463
-            op = "ffill"
-        else:
-            op = fill_method
-        filled = getattr(self, op)(limit=0)
+        # fill_method is None (validated above); GH30463
+        filled = self.ffill(limit=0)
         fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
