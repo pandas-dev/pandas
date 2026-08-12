@@ -8,11 +8,11 @@ import collections
 from collections import namedtuple
 from collections.abc import Iterator
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -35,13 +35,13 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas.compat import PY312
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
 from pandas.core.dtypes.common import (
     ensure_int32,
+    is_array_like_deprecate_non_pandas,
     is_bool,
     is_complex,
     is_datetime64_any_dtype,
@@ -292,6 +292,37 @@ def test_is_array_like():
     assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
+
+
+def test_is_array_like_deprecate_non_pandas():
+    # ndarray, ExtensionArray (incl. NumpyExtensionArray), Index, Series
+    #  are not deprecated
+    for obj in [
+        np.array([1, 2, 3]),
+        pd.arrays.NumpyExtensionArray(np.array([1, 2, 3])),
+        pd.array([1, 2, 3], dtype="Int64"),
+        Categorical([1, 2, 3]),
+        Index([1, 2, 3]),
+        Series([1, 2, 3]),
+    ]:
+        with tm.assert_produces_warning(None):
+            assert is_array_like_deprecate_non_pandas(obj)
+
+    # duck-typed array-likes warn but still return True
+    duck = MockNumpyLikeArray(np.array([1, 2, 3]))
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="no longer be treated as array-like"
+    ):
+        assert is_array_like_deprecate_non_pandas(duck)
+
+    # non-array-likes return False without warning
+    with tm.assert_produces_warning(None):
+        assert not is_array_like_deprecate_non_pandas([1, 2, 3])
+        assert not is_array_like_deprecate_non_pandas("foo")
+
+    # 0-dim ndarrays are effective scalars, matching is_array_like
+    with tm.assert_produces_warning(None):
+        assert not is_array_like_deprecate_non_pandas(np.array(5))
 
 
 @pytest.mark.parametrize(
@@ -762,6 +793,51 @@ class TestInference:
         result = lib.maybe_convert_objects(arr)
         tm.assert_numpy_array_equal(arr, result)
 
+    @pytest.mark.parametrize("null", [None, np.nan])
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [2**63, -1],
+            [-1, 2**63],
+            [np.uint8(1), -1],
+            [-1, np.uint8(1)],
+            [np.int8(1), np.uint8(2)],
+        ],
+    )
+    def test_convert_signed_unsigned_conflict_with_null(self, null, data):
+        # GH#66519 a None before either value used to hide the signed/unsigned
+        #  conflict, so these inferred float64 with a null present and object
+        #  without one. The conflict is flagged either by value range (2**63 vs
+        #  -1) or by numpy scalar type (np.uint8 vs np.int8), and neither was
+        #  checked once seen.null_ was set. np.nan never hid it, since it sets
+        #  seen.nan_ rather than seen.null_.
+        bare = np.array(data, dtype=object)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(bare), bare)
+
+        for arr in [
+            np.array([null, *data], dtype=object),
+            # the null only has to come before one of the two
+            np.array([data[0], null, data[1]], dtype=object),
+        ]:
+            tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), arr)
+
+    @pytest.mark.parametrize("huge", [-(10**400), -(2**63) - 1, 2**64, 10**400])
+    @pytest.mark.parametrize("other", [1, None, np.nan, "x"])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_convert_int_overflow_not_alone(self, huge, other, reverse):
+        # GH#66519 an integer too big for any numeric dtype gives object dtype
+        #  wherever it sits in the array. Values beyond the float64 range used
+        #  to raise OverflowError, and one following a null used to give float64.
+        value = [other, huge] if reverse else [huge, other]
+        arr = np.array(value, dtype=object)
+        for kwargs in [
+            {"convert_numeric": True},
+            {"convert_numeric": False, "convert_non_numeric": True},
+            {"convert_to_nullable_dtype": True},
+        ]:
+            result = lib.maybe_convert_objects(arr, **kwargs)
+            tm.assert_numpy_array_equal(result, arr)
+
     @pytest.mark.parametrize(
         "value, expected_value",
         [
@@ -1087,7 +1163,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=UTC), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 
@@ -2121,7 +2197,7 @@ def test_ensure_int32():
         # find a smaller floating dtype
         (300.0, np.uint16),  # for integer floats, we convert them to ints
         (300.1, np.float64),
-        (np.int16(300), np.int16 if np_version_gt2 else np.uint16),
+        (np.int16(300), np.int16),
     ],
 )
 def test_find_result_type_uint_int(right, result):

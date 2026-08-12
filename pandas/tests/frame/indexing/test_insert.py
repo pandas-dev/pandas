@@ -7,6 +7,8 @@ __setitem__.
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -102,7 +104,9 @@ class TestDataFrameInsert:
         # GH#56853
 
         df = DataFrame({("A", Timestamp("2024-01-01")): [0]})
-        df.insert(1, "B", [1])
+        msg = "Setting a new column on a DataFrame with a MultiIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.insert(1, "B", [1])
 
         expected = DataFrame(
             [[0, 1]],

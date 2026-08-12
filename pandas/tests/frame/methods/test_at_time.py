@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     time,
-    timezone,
 )
 import zoneinfo
 
@@ -68,9 +68,7 @@ class TestAtTime:
         rs = ts.at_time("16:00")
         assert len(rs) == 0
 
-    @pytest.mark.parametrize(
-        "hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=timezone.utc)]
-    )
+    @pytest.mark.parametrize("hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=UTC)])
     def test_at_time_errors(self, hour):
         # GH#24043
         dti = date_range("2018", periods=3, freq="h")

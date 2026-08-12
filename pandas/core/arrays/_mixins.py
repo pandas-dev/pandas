@@ -62,6 +62,7 @@ if TYPE_CHECKING:
         ScalarIndexer,
         SequenceIndexer,
         Shape,
+        SortKind,
         TakeIndexer,
         npt,
     )
@@ -230,6 +231,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def unique(self) -> Self:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
+
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        self._ndarray[:] = self._ndarray[sort_indices]
 
     @classmethod
     def _concat_same_type(
@@ -410,6 +425,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             npvalues = self._ndarray.T
             if copy:
                 npvalues = npvalues.copy()
+            elif self._readonly:
+                raise ValueError("Cannot modify read-only array")
             func(npvalues, limit=limit, limit_area=limit_area, mask=mask.T)
             npvalues = npvalues.T
 
@@ -501,6 +518,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         TypeError
             If value cannot be cast to self.dtype.
         """
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         value = self._validate_setitem_value(value)
 
         np.putmask(self._ndarray, mask, value)

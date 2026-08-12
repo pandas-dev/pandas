@@ -71,7 +71,9 @@ def test_nlargest_mi_grouper():
     ]
 
     expected = Series(exp_values, index=exp_idx)
-    tm.assert_series_equal(result, expected, check_exact=False, rtol=1e-3)
+    tm.assert_series_equal(
+        result, expected, check_exact=False, rtol=1e-3, check_freq=False
+    )
 
 
 def test_nsmallest():

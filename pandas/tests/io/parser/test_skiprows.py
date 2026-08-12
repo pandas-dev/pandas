@@ -23,7 +23,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])
 def test_skip_rows_bug(all_parsers, skiprows):
     # see gh-505
@@ -38,6 +37,18 @@ def test_skip_rows_bug(all_parsers, skiprows):
 1/2/2000,4,5,6
 1/3/2000,7,8,9
 """
+    if parser.engine == "pyarrow" and not isinstance(skiprows, int):
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(text),
+                skiprows=skiprows,
+                header=None,
+                index_col=0,
+                parse_dates=True,
+            )
+        return
+
     result = parser.read_csv(
         StringIO(text), skiprows=skiprows, header=None, index_col=0, parse_dates=True
     )
@@ -53,7 +64,6 @@ def test_skip_rows_bug(all_parsers, skiprows):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_deep_skip_rows(all_parsers):
     # see gh-4382
     parser = all_parsers
@@ -64,12 +74,17 @@ def test_deep_skip_rows(all_parsers):
         [",".join([str(i), str(i + 1), str(i + 2)]) for i in [0, 1, 2, 3, 4, 6, 8, 9]]
     )
 
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=[6, 8])
+        return
+
     result = parser.read_csv(StringIO(data), skiprows=[6, 8])
     condensed_result = parser.read_csv(StringIO(condensed_data))
     tm.assert_frame_equal(result, condensed_result)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_skip_rows_blank(all_parsers):
     # see gh-9832
     parser = all_parsers
@@ -131,15 +146,19 @@ line 22",2
         ),
     ],
 )
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_row_with_newline(all_parsers, data, kwargs, expected):
     # see gh-12775 and gh-10911
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
     result = parser.read_csv(StringIO(data), **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_row_with_quote(all_parsers):
     # see gh-12775 and gh-10911
     parser = all_parsers
@@ -147,6 +166,12 @@ def test_skip_row_with_quote(all_parsers):
 1,"line '11' line 12",2
 2,"line '21' line 22",2
 3,"line '31' line 32",1"""
+
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=[1])
+        return
 
     exp_data = [[2, "line '21' line 22", 2], [3, "line '31' line 32", 1]]
     expected = DataFrame(exp_data, columns=["id", "text", "num_lines"])
@@ -181,17 +206,21 @@ def test_skip_row_with_quote(all_parsers):
         ),
     ],
 )
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
     # see gh-12775 and gh-10911
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=[1])
+        return
+
     result = parser.read_csv(StringIO(data), skiprows=[1])
 
     expected = DataFrame(exp_data, columns=["id", "text", "num_lines"])
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 @pytest.mark.parametrize(
     "lineterminator",
     ["\n", "\r\n", "\r"],  # "LF"  # "CRLF"  # "CR"
@@ -222,6 +251,17 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
 
     data = data.replace("\n", lineterminator)
 
+    if parser.engine == "pyarrow":
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                skiprows=1,
+                sep=r"\s+",
+                names=["date", "time", "var", "flag", "oflag"],
+            )
+        return
+
     result = parser.read_csv(
         StringIO(data),
         skiprows=1,
@@ -242,7 +282,6 @@ def test_skiprows_infield_quote(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -254,16 +293,29 @@ def test_skip_rows_callable(all_parsers, kwargs, expected):
     parser = all_parsers
     data = "a\n1\n2\n3\n4\n5"
 
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=lambda x: x % 2 == 0, **kwargs)
+        return
+
     result = parser.read_csv(StringIO(data), skiprows=lambda x: x % 2 == 0, **kwargs)
     expected = DataFrame({expected: [3, 5]})
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_rows_callable_not_in(all_parsers):
     parser = all_parsers
     data = "0,a\n1,b\n2,c\n3,d\n4,e"
     expected = DataFrame([[1, "b"], [3, "d"]])
+
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), header=None, skiprows=lambda x: x not in [1, 3]
+            )
+        return
 
     result = parser.read_csv(
         StringIO(data), header=None, skiprows=lambda x: x not in [1, 3]
@@ -271,27 +323,36 @@ def test_skip_rows_callable_not_in(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_rows_skip_all(all_parsers):
     parser = all_parsers
     data = "a\n1\n2\n3\n4\n5"
     msg = "No columns to parse from file"
 
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=lambda x: True)
+        return
+
     with pytest.raises(EmptyDataError, match=msg):
         parser.read_csv(StringIO(data), skiprows=lambda x: True)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_rows_bad_callable(all_parsers):
     msg = "by zero"
     parser = all_parsers
     data = "a\n1\n2\n3\n4\n5"
 
+    if parser.engine == "pyarrow":
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=lambda x: 1 / 0)
+        return
+
     with pytest.raises(ZeroDivisionError, match=msg):
         parser.read_csv(StringIO(data), skiprows=lambda x: 1 / 0)
 
 
-@xfail_pyarrow  # ValueError: skiprows argument must be an integer
 def test_skip_rows_and_n_rows(all_parsers):
     # GH#44021
     data = """a,b
@@ -305,12 +366,17 @@ def test_skip_rows_and_n_rows(all_parsers):
 8,h
 """
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), nrows=5, skiprows=[2, 4, 6])
+        return
+
     result = parser.read_csv(StringIO(data), nrows=5, skiprows=[2, 4, 6])
     expected = DataFrame({"a": [1, 3, 5, 7, 8], "b": ["a", "c", "e", "g", "h"]})
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_skip_rows_with_chunks(all_parsers):
     # GH 55677
     data = """col_a
@@ -326,6 +392,17 @@ def test_skip_rows_with_chunks(all_parsers):
 100
 """
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                engine=parser,
+                skiprows=lambda x: x in [1, 4, 5],
+                chunksize=4,
+            )
+        return
+
     reader = parser.read_csv(
         StringIO(data), engine=parser, skiprows=lambda x: x in [1, 4, 5], chunksize=4
     )

@@ -25,6 +25,23 @@ class TestTimedeltaIndexFactorize:
         tm.assert_index_equal(idx, exp_idx)
         assert idx.freq == exp_idx.freq
 
+    def test_factorize_monotonic_decreasing_no_freq(self):
+        # GH#66046 fastpath for a monotonic decreasing index without a freq
+        idx = TimedeltaIndex(["3 days", "3 days", "2 days", "1 days"])
+        assert idx.freq is None
+
+        exp_arr = np.array([0, 0, 1, 2], dtype=np.intp)
+        exp_idx = TimedeltaIndex(["3 days", "2 days", "1 days"])
+        arr, result_idx = idx.factorize()
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(result_idx, exp_idx)
+
+        exp_arr = np.array([2, 2, 1, 0], dtype=np.intp)
+        exp_idx = TimedeltaIndex(["1 days", "2 days", "3 days"])
+        arr, result_idx = idx.factorize(sort=True)
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(result_idx, exp_idx)
+
     def test_factorize_preserves_freq(self):
         # GH#38120 freq should be preserved
         idx3 = timedelta_range("1 day", periods=4, freq="s")

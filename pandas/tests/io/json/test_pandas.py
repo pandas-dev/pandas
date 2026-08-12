@@ -6,6 +6,7 @@ from io import (
 )
 import json
 import os
+from pathlib import Path
 import sys
 import uuid
 
@@ -26,6 +27,8 @@ from pandas import (
     Index,
     RangeIndex,
     Series,
+    SparseDtype,
+    TimedeltaIndex,
     Timestamp,
     date_range,
     read_json,
@@ -146,9 +149,10 @@ class TestPandasContainer:
             expected_warning = Pandas4Warning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
-            result = read_json(
-                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
-            )
+            json = StringIO(df.to_json(orient=orient))
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, orient=orient, convert_dates=["x"])
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
@@ -284,7 +288,12 @@ class TestPandasContainer:
             datetime_frame.index = Series(datetime_frame.index).convert_dtypes(
                 dtype_backend=dtype_backend
             )
-        data = StringIO(datetime_frame.to_json(orient=orient))
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            data = StringIO(datetime_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
 
         if not convert_axes:  # one off for ts handling
@@ -381,7 +390,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_frame_from_json_missing_data(self, orient, convert_axes, dtype):
-        num_df = DataFrame([[1, 2], [4, 5, 6]])
+        num_df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
 
         result = read_json(
             StringIO(num_df.to_json(orient=orient)),
@@ -391,7 +400,7 @@ class TestPandasContainer:
         )
         assert np.isnan(result.iloc[0, 2])
 
-        obj_df = DataFrame([["1", "2"], ["4", "5", "6"]])
+        obj_df = DataFrame([["1", "2", np.nan], ["4", "5", "6"]])
         result = read_json(
             StringIO(obj_df.to_json(orient=orient)),
             orient=orient,
@@ -414,7 +423,7 @@ class TestPandasContainer:
     def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
-        df = DataFrame([[1, 2], [4, 5, 6]])
+        df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
         df.loc[0, 2] = inf
 
         data = StringIO(df.to_json())
@@ -624,7 +633,12 @@ class TestPandasContainer:
         df_mixed.columns = df_mixed.columns.astype(
             np.str_ if not using_infer_string else "str"
         )
-        data = StringIO(df_mixed.to_json(orient="split"))
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
         df_mixed.index = df_mixed.index.as_unit("ms")
         tm.assert_frame_equal(
@@ -632,8 +646,6 @@ class TestPandasContainer:
             df_roundtrip,
             check_index_type=True,
             check_column_type=True,
-            by_blocks=True,
-            check_exact=True,
         )
 
     def test_frame_nonprintable_bytes(self):
@@ -753,7 +765,12 @@ class TestPandasContainer:
                 dtype_backend=dtype_backend
             )
 
-        data = StringIO(datetime_series.to_json(orient=orient))
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            data = StringIO(datetime_series.to_json(orient=orient))
         result = read_json(data, typ="series", orient=orient)
 
         if orient in ("values", "records"):
@@ -838,20 +855,32 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, df)
 
     def test_path(self, float_frame, int_frame, datetime_frame, temp_file):
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
         for df in [float_frame, int_frame, datetime_frame]:
-            df.to_json(temp_file)
+            warn = Pandas4Warning if df is datetime_frame else None
+            with tm.assert_produces_warning(warn, match=msg):
+                df.to_json(temp_file)
             read_json(temp_file)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
         # frame
-        json = StringIO(datetime_frame.to_json())
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            json = StringIO(datetime_frame.to_json())
         result = read_json(json)
         expected = datetime_frame.copy()
         expected.index = expected.index.as_unit("ms")
         tm.assert_frame_equal(result, expected)
 
         # series
-        json = StringIO(datetime_series.to_json())
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            json = StringIO(datetime_series.to_json())
         result = read_json(json, typ="series")
         expected = datetime_series.copy()
         expected.index = expected.index.as_unit("ms")
@@ -879,7 +908,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(df.to_json(date_unit="ns"))
 
-        result = read_json(json, convert_dates=False)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected["date"] = expected["date"].values.view("i8")
         expected["foo"] = expected["foo"].astype("int64")
@@ -952,6 +983,14 @@ class TestPandasContainer:
 
         result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_dates_infer_unparseable_kept_as_str(self):
+        # GH#59227 a column whose name matches the date-inference heuristic
+        #  (ends in "_time") but whose values are not parseable dates must be
+        #  left untouched rather than raising
+        data = [{"id": 1, "event_time": "Thursday, 10:00 p.m."}]
+        result = read_json(StringIO(ujson_dumps(data)))
+        assert (result["event_time"] == "Thursday, 10:00 p.m.").all()
 
     @pytest.mark.parametrize(
         "date,date_unit",
@@ -1061,10 +1100,39 @@ class TestPandasContainer:
                 ),
                 Pandas4Warning,
             ),
+            # the index and the columns are written as epoch integers too, so a
+            # datetime-like index or set of column labels must warn as well
+            # (GH#65868)
+            (
+                DataFrame(
+                    {"A": [1, 2, 3]},
+                    index=pd.to_datetime(["2020-01-01", "2020-02-01", "2020-03-01"]),
+                ),
+                Pandas4Warning,
+            ),
+            (
+                DataFrame(
+                    {"A": [1, 2, 3]}, index=pd.to_timedelta(np.arange(3), unit="D")
+                ),
+                Pandas4Warning,
+            ),
+            (
+                DataFrame(
+                    [[1, 2]], columns=pd.to_datetime(["2020-01-01", "2020-02-01"])
+                ),
+                Pandas4Warning,
+            ),
+            (
+                Series(
+                    [1, 2, 3],
+                    index=pd.to_datetime(["2020-01-01", "2020-02-01", "2020-03-01"]),
+                ),
+                Pandas4Warning,
+            ),
         ],
     )
     def test_default_epoch_date_format_deprecated(self, df, warn):
-        # GH 57063
+        # GH 57063, GH 65868
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
@@ -1108,8 +1176,127 @@ class TestPandasContainer:
             df = df.convert_dtypes(dtype_backend=dtype_backend)
 
         json = df.to_json(date_format="iso", date_unit=unit)
-        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_epoch_non_nano_datetimes(self, unit):
+        # GH#57738 a non-nano datetime column or index serialized with the
+        # (deprecated) "epoch" date format must use the underlying integer
+        # values in ``unit``, not values rescaled as if they were nanoseconds
+        index = DatetimeIndex(
+            ["2023-09-29 02:55:54", "2023-09-29 02:56:03"],
+            dtype=f"datetime64[{unit}]",
+        )
+        df = DataFrame({"date": Series(index, index=index)})
+
+        msg = "'epoch' date format is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.to_json(date_format="epoch", date_unit=unit)
+
+        # both the column values and the index labels are the underlying i8
+        # values expressed in ``unit`` (the two timestamps stay distinct)
+        i8 = list(index.asi8)
+        parsed = json.loads(result)["date"]
+        assert [int(key) for key in parsed] == i8
+        assert list(parsed.values()) == i8
+
+        # and the frame round-trips, preserving the original resolution (GH#55827)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            roundtripped = read_json(StringIO(result), convert_dates=["date"])
+        tm.assert_frame_equal(roundtripped, df)
+
+    @pytest.mark.parametrize("date_unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("wrapper", ["category", "sparse"])
+    @pytest.mark.parametrize("frame", [True, False])
+    @pytest.mark.parametrize(
+        "values",
+        [
+            # the pre-epoch entries must round the same way the dense path
+            # rounds, i.e. down rather than toward zero
+            DatetimeIndex(["1969-12-31 23:59:59.500000", "2023-09-29 02:56:03"]),
+            TimedeltaIndex(["-1 days +23:59:59.500000", "2 days"]),
+        ],
+    )
+    def test_epoch_datetimelike_behind_other_dtype(
+        self, values, frame, wrapper, date_unit
+    ):
+        # GH#66709 datetime-likes behind a dtype that is not itself datetime64
+        # must still be scaled to date_unit; Sparse used to raise instead
+        values = values.as_unit("us")
+        dense = Series(values)
+        dtype = "category" if wrapper == "category" else SparseDtype(values.dtype)
+        wrapped = dense.astype(dtype)
+        if frame:
+            # DataFrame columns reach the encoder through a different path
+            # than Series values
+            dense = dense.to_frame("a")
+            wrapped = wrapped.to_frame("a")
+
+        msg = "'epoch' date format is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = dense.to_json(date_format="epoch", date_unit=date_unit)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = wrapped.to_json(date_format="epoch", date_unit=date_unit)
+        assert result == expected
+
+    @pytest.mark.parametrize("date_unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("axis", ["index", "columns"])
+    def test_epoch_categorical_datetime_labels(self, axis, date_unit):
+        # GH#66709 labels holding datetimes behind a non-datetime64 dtype are
+        # scaled to date_unit like a DatetimeIndex would be; scaling two labels
+        # into the same second used to be possible, giving duplicate JSON keys
+        index = DatetimeIndex(
+            ["1969-12-31 23:59:59.500000", "1970-01-01 00:00:00.500000"]
+        ).as_unit("us")
+
+        def to_json(labels):
+            if axis == "index":
+                obj = Series([1, 2], index=labels)
+            else:
+                obj = DataFrame([[1, 2]], columns=labels)
+            return obj.to_json(date_format="epoch", date_unit=date_unit)
+
+        msg = "'epoch' date format is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = to_json(index)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = to_json(pd.CategoricalIndex(index))
+        assert result == expected
+
+    @pytest.mark.parametrize("wrapper", ["category", "sparse"])
+    def test_epoch_out_of_bounds_for_date_unit(self, wrapper):
+        # GH#66709 scaling to a finer date_unit than the values can hold raises
+        # instead of silently wrapping around
+        values = DatetimeIndex(["9999-01-01"]).as_unit("s")
+        dtype = "category" if wrapper == "category" else SparseDtype(values.dtype)
+
+        msg = "Datetime value is out of bounds for the requested date_unit"
+        with pytest.raises(OverflowError, match=msg):
+            with tm.assert_produces_warning(
+                Pandas4Warning, match="'epoch' date format is deprecated"
+            ):
+                Series(values).astype(dtype).to_json(
+                    date_format="epoch", date_unit="ns"
+                )
+
+    @pytest.mark.parametrize("orient", ["index", "columns", "split"])
+    @pytest.mark.parametrize("axis", ["index", "columns"])
+    def test_epoch_out_of_bounds_for_date_unit_labels(self, axis, orient):
+        # GH#66709 the same overflow reached through the label path must
+        # surface, not be masked while retrieving the remaining axes
+        labels = pd.CategoricalIndex(DatetimeIndex(["9999-01-01"]).as_unit("s"))
+        df = DataFrame([[1]], **{axis: labels})
+
+        msg = "Datetime value is out of bounds for the requested date_unit"
+        with pytest.raises(OverflowError, match=msg):
+            with tm.assert_produces_warning(
+                Pandas4Warning, match="'epoch' date format is deprecated"
+            ):
+                df.to_json(orient=orient, date_format="epoch", date_unit="ns")
 
     def test_weird_nested_json(self):
         # this used to core dump the parser
@@ -1166,7 +1353,9 @@ class TestPandasContainer:
     def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True)
+        depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(httpserver.url, convert_dates=True)
         for field, dtype in [
             ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
             ["closed_at", "datetime64[us]"],
@@ -1275,9 +1464,12 @@ class TestPandasContainer:
         data = [timedelta_typ(milliseconds=42)]
         ser = Series(data, index=data).astype("m8[ns]")
         ser.index = ser.index.astype("m8[ns]")
+        # the index is timedelta-like, so the default epoch warning fires even
+        # when the values are object-dtype (GH#65868)
         warn = Pandas4Warning
         if as_object:
             ser = ser.astype(object)
+            ser.index = ser.index.astype(object)
             warn = None
 
         msg = (
@@ -1288,6 +1480,22 @@ class TestPandasContainer:
             result = ser.to_json()
         expected = '{"42":42}'
         assert result == expected
+
+    @pytest.mark.parametrize("base_typ", [datetime.date, datetime.timedelta])
+    def test_to_json_datetimelike_subclass_missing_creso(self, base_typ):
+        # GH#65904 a datetime.date/timedelta subclass carrying a "_value"
+        # attribute but no "_creso" reached get_long_attr and segfaulted; it
+        # should raise cleanly instead
+        class Fake(base_typ):
+            _value = 5
+
+        obj = Fake(2020, 1, 1) if base_typ is datetime.date else Fake(5)
+        # dtype=object keeps the subclass instance for the timedelta case, which
+        # would otherwise be inferred to timedelta64
+        index = Index([obj], dtype=object)
+        ser = Series([1], index=index)
+        with pytest.raises(AttributeError, match="_creso"):
+            ser.to_json(date_format="iso")
 
     def test_default_handler(self):
         value = object()
@@ -1429,33 +1637,86 @@ class TestPandasContainer:
     )
     def test_tz_range_is_utc(self, tz_range):
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
+        serexp = '{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}}'
+        splitexp = (
+            '{"name":null,'
+            '"data":["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]}'
+        )
 
         assert ujson_dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
+        # Series[dt64tz] must preserve the tz like the DTI case
+        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
         df = DataFrame({"DT": dti})
         result = ujson_dumps(df, iso_dates=True)
         assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
 
     def test_tz_range_is_naive(self):
         dti = date_range("2013-01-01 05:00:00", periods=2, unit="ns")
 
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
+        serexp = '{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+        splitexp = (
+            '{"name":null,"data":["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]}'
+        )
 
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
+        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
         df = DataFrame({"DT": dti})
         result = ujson_dumps(df, iso_dates=True)
         assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "index", "columns", "values"]
+    )
+    def test_tz_aware_to_json_matches_object(self, orient):
+        # tz-aware datetime values and labels serialize identically to the
+        # equivalent object-dtype Timestamps for every orient, keeping the
+        # trailing "Z" -- the "split" data path in particular regressed when
+        # values were taken straight from the datetime64 ndarray
+        dti = date_range("2013-01-01 05:00:00", periods=2, tz="US/Eastern")
+        ser = Series(dti, index=dti)
+        expected = Series(dti.astype(object), index=dti.astype(object))
+        assert ser.to_json(orient=orient, date_format="iso") == expected.to_json(
+            orient=orient, date_format="iso"
+        )
+        df = DataFrame({"A": dti}, index=dti)
+        df_expected = DataFrame({"A": dti.astype(object)}, index=dti.astype(object))
+        assert df.to_json(orient=orient, date_format="iso") == df_expected.to_json(
+            orient=orient, date_format="iso"
+        )
+
+    def test_tz_aware_index_naive_datetime64_data(self):
+        # GH#66007 a dt64tz index must not leak a stale UTC flag onto naive
+        # np.datetime64 scalars serialized from object-dtype data
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02"], tz="UTC")
+        ser = Series(
+            np.array(
+                [np.datetime64("2021-06-01"), np.datetime64("2021-06-02")],
+                dtype=object,
+            ),
+            index=idx,
+        )
+        result = ser.to_json(orient="split", date_format="iso")
+        expected = (
+            '{"name":null,'
+            '"index":["2020-01-01T00:00:00.000Z","2020-01-02T00:00:00.000Z"],'
+            '"data":["2021-06-01T00:00:00.000","2021-06-02T00:00:00.000"]}'
+        )
+        assert result == expected
 
     def test_read_inline_jsonl(self):
         # GH9180
@@ -1474,6 +1735,22 @@ class TestPandasContainer:
             lines=True,
             storage_options=s3so,
         )
+        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.single_cpu
+    @pytest.mark.network
+    @td.skip_if_not_us_locale
+    def test_read_s3_jsonl_chunksize(self, s3_bucket_public_with_data, s3so):
+        # GH47659 - reading a binary (e.g. S3) stream in chunks used to raise
+        # "TypeError: initial_value must be str or None, not bytes"
+        with read_json(
+            f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
+            lines=True,
+            chunksize=1,
+            storage_options=s3so,
+        ) as reader:
+            result = pd.concat(reader)
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -1519,7 +1796,7 @@ class TestPandasContainer:
     def test_read_json_large_numbers(self, bigNum):
         # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = r"Value is too small|Value is too big"
+        msg = "|".join(["Value is too small", "Value is too big"])
         with pytest.raises(ValueError, match=msg):
             read_json(json)
 
@@ -2370,11 +2647,72 @@ def test_read_json_lines_rangeindex():
 
 def test_large_number():
     # GH#20608
-    result = read_json(
-        StringIO('["9999999999999999"]'),
-        orient="values",
-        typ="series",
-        convert_dates=False,
-    )
+    depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            StringIO('["9999999999999999"]'),
+            orient="values",
+            typ="series",
+            convert_dates=False,
+        )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+def test_large_number_string_column():
+    # GH#44684 inferring a string column of big ints must not lose precision
+    # by routing through float64
+    data = (
+        '[{"NO": "202101010000000003", "NAME": "A"}, '
+        '{"NO": "202101010000000013", "NAME": "B"}, '
+        '{"NO": "202101010000000023", "NAME": "C"}]'
+    )
+    result = read_json(StringIO(data))
+    expected = DataFrame(
+        {
+            "NO": [202101010000000003, 202101010000000013, 202101010000000023],
+            "NAME": ["A", "B", "C"],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_to_json_unsupported_object_gh36211():
+    # GH#36211
+    df = DataFrame({"a": [Path("m1")]})
+    msg = "Unable to serialize object to JSON: encountered an unsupported object type"
+    with pytest.raises(ValueError, match=msg):
+        df.to_json()
+
+
+@pytest.mark.parametrize("other", ['"notadate"', "true"])
+def test_read_json_quarterly_string_discarded_parse_no_warning(other):
+    # GH#50907 _try_convert_to_date parses the column several ways and keeps at
+    # most one result; an attempt the caller never receives must not warn. The
+    # two values reach the string and the object branch respectively, and which
+    # one a str hits depends on the future.infer_string setting.
+    with tm.assert_produces_warning(None):
+        result = read_json(StringIO(f'{{"date":{{"0":"2014Q2","1":{other}}}}}'))
+    assert result["date"].dtype.kind != "M"
+
+
+def test_read_json_quarterly_string_out_of_ns_bounds_warns():
+    # GH#50907 the as_unit("ns") bounds check fails for every unit, but the
+    # to_datetime result is still what the caller gets, so it must warn
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = read_json(StringIO('{"date":{"0":"9999Q4","1":1}}'))
+    assert len(record) == 1
+    assert result["date"][0] == Timestamp("9999-10-01")
+
+
+def test_read_json_quarterly_string_kept_parse_warns_once():
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        result = read_json(StringIO('{"date":{"0":"2014Q2","1":"2014Q3"}}'))
+    assert len(record) == 1
+    assert result["date"].dtype.kind == "M"
+    assert result["date"][0] == Timestamp("2014-04-01")

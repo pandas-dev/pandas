@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 from dateutil.relativedelta import MO
@@ -129,10 +129,8 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
 
     # Verify that timezone info is preserved.
     assert list(
-        holiday.dates(
-            Timestamp(start_date, tz=timezone.utc), Timestamp(end_date, tz=timezone.utc)
-        )
-    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
+        holiday.dates(Timestamp(start_date, tz=UTC), Timestamp(end_date, tz=UTC))
+    ) == [dt.replace(tzinfo=UTC) for dt in expected]
 
 
 @pytest.mark.parametrize(
@@ -195,11 +193,9 @@ def test_holidays_within_dates(holiday, start, expected):
     assert list(holiday.dates(start, start)) == expected
 
     # Verify that timezone info is preserved.
-    assert list(
-        holiday.dates(
-            Timestamp(start, tz=timezone.utc), Timestamp(start, tz=timezone.utc)
-        )
-    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
+    assert list(holiday.dates(Timestamp(start, tz=UTC), Timestamp(start, tz=UTC))) == [
+        dt.replace(tzinfo=UTC) for dt in expected
+    ]
 
 
 @pytest.mark.parametrize(

@@ -143,6 +143,9 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
+            if isinstance(key, slice):
+                key = range(*key.indices(len(self)))
+
             if not isinstance(value, (type(self), abc.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])

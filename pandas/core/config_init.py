@@ -458,6 +458,35 @@ with cf.config_prefix("mode"):
     )
 
 
+max_threads_doc = """
+: int or None
+    Maximum number of worker threads for parallel operations (e.g. ``read_csv``
+    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``,
+    further limited to the CPUs available to the process (CPU affinity and cgroup
+    limits); on Windows the default is ``1``, as parallel reading is not faster
+    there.  Set to ``1`` to disable parallel execution, or to a fixed number to
+    raise the cap or to limit thread usage when pandas is embedded in a larger
+    parallel workflow.  Ignored on Emscripten/Pyodide, which cannot spawn threads.
+"""
+
+
+def _is_positive_int_or_none(value: Any) -> None:
+    if value is None:
+        return
+    if isinstance(value, int) and value >= 1:
+        return
+    raise ValueError("Value must be a positive integer or None")
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "max_threads",
+        None,
+        max_threads_doc,
+        validator=_is_positive_int_or_none,
+    )
+
+
 string_storage_doc = """
 : string
     The default storage for StringDtype.
@@ -708,26 +737,41 @@ styler_max_columns = """
 styler_precision = """
 : int
     The precision for floats and complex numbers.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_decimal = """
 : str
     The character representation for the decimal separator for floats and complex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_thousands = """
 : str, optional
     The character representation for thousands separator for floats, int and complex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_na_rep = """
 : str, optional
     The string representation for values identified as missing.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_escape = """
 : str, optional
     Whether to escape certain characters according to the given context; html or latex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_formatter = """
@@ -905,6 +949,8 @@ with cf.config_prefix("future"):
         "python_scalars",
         False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
         "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        "Values from object dtype data where the operation coerces them to NumPy "
+        "floats remain NumPy scalars. "
         "Currently experimental, setting to True is not recommended for end users.",
         validator=is_one_of_factory([True, False]),
     )

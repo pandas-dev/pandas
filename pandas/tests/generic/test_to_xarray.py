@@ -13,12 +13,8 @@ from pandas.util.version import Version
 
 xarray = pytest.importorskip("xarray")
 
-if xarray is not None and Version(xarray.__version__) < Version("2025.1.0"):
-    pytestmark = pytest.mark.filterwarnings(
-        "ignore:Converting non-nanosecond precision:UserWarning"
-    )
 
-
+@pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestDataFrameToXArray:
     @pytest.fixture
     def df(self):
@@ -82,14 +78,14 @@ class TestDataFrameToXArray:
         expected["f"] = expected["f"].astype(
             object if not using_infer_string else "str"
         )
-        if Version(xarray.__version__) < Version("2025.1.0"):
-            expected["g"] = expected["g"].astype("M8[ns]")
-            expected["h"] = expected["h"].astype("M8[ns, US/Eastern]")
         expected.columns.name = None
         tm.assert_frame_equal(result, expected)
 
 
 class TestSeriesToXArray:
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_to_xarray_index_types(self, index_flat, request):
         # MultiIndex is tested in test_to_xarray_with_multiindex
         index = index_flat
