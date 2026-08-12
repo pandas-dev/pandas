@@ -245,7 +245,7 @@ class CSVFormatter:
 
         return encoded_labels
 
-    def save(self) -> None:
+   def save(self) -> None:
         """
         Create the writer & save.
         """
@@ -258,6 +258,9 @@ class CSVFormatter:
             compression=self.compression,
             storage_options=self.storage_options,
         ) as handles:
+            if self.excel_sep_hint:
+                handles.handle.write(f"sep={self.sep}{self.lineterminator}")
+
             # Note: self.encoding is irrelevant here
             # error: Argument "quoting" to "writer" has incompatible type "int";
             # expected "Literal[0, 1, 2, 3]"
@@ -274,8 +277,6 @@ class CSVFormatter:
             self._save()
 
     def _save(self) -> None:
-        if self.excel_sep_hint:
-            self.writer.writerow([f"sep={self.sep}"])
         if self._need_to_save_header:
             self._save_header()
         self._save_body()
