@@ -177,6 +177,12 @@ Other API changes
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
 -
 
+.. _whatsnew_310.api_breaking.build:
+
+Build
+^^^^^
+- C++20 is required to build from source (:issue:`66735`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.deprecations:
 
