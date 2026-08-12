@@ -273,10 +273,10 @@ def test_open_file(all_parsers, temp_file):
     msg = "Could not determine delimiter"
     err = csv.Error
     if parser.engine == "c":
-        msg = "object of type 'NoneType' has no len"
-        err = TypeError
+        msg = "the 'c' engine does not support sep=None"
+        err = ValueError
     elif parser.engine == "pyarrow":
-        msg = "'utf-8' codec can't decode byte 0xe4"
+        msg = "the 'pyarrow' engine does not support sep=None"
         err = ValueError
 
     file = Path(temp_file)
