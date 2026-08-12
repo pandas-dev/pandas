@@ -2281,7 +2281,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         excel_sep_hint : bool, default False
             If True, prepend a separator hint to help Microsoft Excel detect
             the delimiter.
-
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         autofilter : bool, default False
