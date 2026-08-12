@@ -36,6 +36,10 @@ from typing import ClassVar
 
 from pandas._libs.properties import cache_readonly
 
+from pandas._libs.portable cimport (
+    checked_add,
+    checked_mul,
+)
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
     is_float_object,
@@ -102,12 +106,6 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
-
-
-cdef extern from "pandas/portable.h":
-    bint checked_add(int64_t a, int64_t b, int64_t *res) noexcept nogil
-    bint checked_mul(int64_t a, int64_t b, int64_t *res) noexcept nogil
-
 
 # ---------------------------------------------------------------------
 # day_opt enum: avoids repeated string comparisons in nogil loops
