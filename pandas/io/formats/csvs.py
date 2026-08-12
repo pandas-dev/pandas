@@ -274,11 +274,11 @@ class CSVFormatter:
             self._save()
 
     def _save(self) -> None:
-    if self.excel_sep_hint:
-        self.writer.writerow([f"sep={self.sep}"])
-    if self._need_to_save_header:
-        self._save_header()
-    self._save_body()
+        if self.excel_sep_hint:
+            self.writer.writerow([f"sep={self.sep}"])
+        if self._need_to_save_header:
+            self._save_header()
+        self._save_body()
 
     def _save_header(self) -> None:
         if not self.has_mi_columns or self._has_aliases:
