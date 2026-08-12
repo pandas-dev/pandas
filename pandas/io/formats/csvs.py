@@ -75,6 +75,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions | None = None,
+        excel_sep_hint: bool = False,
     ) -> None:
         self.fmt = formatter
 
@@ -85,6 +86,7 @@ class CSVFormatter:
         self.compression: CompressionOptions = compression
         self.mode = mode
         self.storage_options = storage_options
+        self.excel_sep_hint = excel_sep_hint
 
         self.sep = sep
         self.index_label = self._initialize_index_label(index_label)
@@ -272,9 +274,11 @@ class CSVFormatter:
             self._save()
 
     def _save(self) -> None:
-        if self._need_to_save_header:
-            self._save_header()
-        self._save_body()
+    if self.excel_sep_hint:
+        self.writer.writerow([f"sep={self.sep}"])
+    if self._need_to_save_header:
+        self._save_header()
+    self._save_body()
 
     def _save_header(self) -> None:
         if not self.has_mi_columns or self._has_aliases:
