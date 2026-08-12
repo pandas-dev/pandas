@@ -101,9 +101,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("engine", ["c", "pyarrow"])
+    @pytest.mark.parametrize(
+        "engine",
+        ["c", pytest.param("pyarrow", marks=pytest.mark.single_cpu)],
+    )
     def test_sep_none_unsupported_for_explicit_non_python_engines(self, engine):
         # GH#66639
+        if engine == "pyarrow":
+            pytest.importorskip("pyarrow")
+
         data = "a;b\n1;2\n"
         msg = f"the {engine!r} engine does not support sep=None"
 
