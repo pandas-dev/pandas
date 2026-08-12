@@ -189,7 +189,6 @@ $1$,$2$
         expected = "sep=;\n" + df.to_csv(sep=";")
     
         assert result == expected
-
     def test_to_csv_na_rep(self):
         # see gh-11553
         #
