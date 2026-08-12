@@ -847,9 +847,8 @@ class TestParquetPyArrow(Base):
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException, temp_file)
 
-    def test_unsupported_float16(self, pa, temp_file):
+    def test_float16(self, pa, temp_file):
         # #44847, #44914
-        # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
         check_round_trip(df, temp_file, pa)
