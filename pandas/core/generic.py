@@ -4045,6 +4045,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             details, and for more examples on storage options refer `here
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
+        excel_sep_hint : bool, default False
+            If True, prepend a ``sep=<delimiter>`` line before the header row
+            so that Microsoft Excel automatically detects the delimiter when
+            opening the file.
 
         Returns
         -------
