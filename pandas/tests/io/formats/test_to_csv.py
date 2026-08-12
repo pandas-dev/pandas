@@ -182,6 +182,14 @@ $1$,$2$
         # same for a multi-index
         assert df.set_index(["a", "b"]).to_csv(float_format="%.2f") == expected
 
+    def test_to_csv_excel_sep_hint():
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+
+    result = df.to_csv(sep=";", excel_sep_hint=True)
+    expected = "sep=;\n" + df.to_csv(sep=";")
+
+    assert result == expected
+
     def test_to_csv_na_rep(self):
         # see gh-11553
         #
