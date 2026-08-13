@@ -7689,16 +7689,17 @@ class Index(IndexOpsMixin, PandasObject):
         Wrapper used to dispatch comparison operations.
         """
         if isinstance(other, Index) and self.is_(other):
-            is_pdna_mask = is_pdna(np.asarray(self))
-            if is_pdna_mask.any():
-                if op in {operator.eq, operator.le, operator.ge}:
-                    arr = np.full(len(self), True, dtype=object)
-                    arr[is_pdna_mask] = NA
-                    return arr
-                elif op is operator.ne:
-                    arr = np.full(len(self), False, dtype=object)
-                    arr[is_pdna_mask] = NA
-                    return arr
+            if getattr(self, "any", False) or not self.any():
+                is_pdna_mask = is_pdna(np.asarray(self))
+                if is_pdna_mask.any():
+                    if op in {operator.eq, operator.le, operator.ge}:
+                        arr = np.full(len(self), True, dtype=object)
+                        arr[is_pdna_mask] = NA
+                        return arr
+                    elif op is operator.ne:
+                        arr = np.full(len(self), False, dtype=object)
+                        arr[is_pdna_mask] = NA
+                        return arr
 
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
