@@ -1472,7 +1472,9 @@ def searchsorted(
             # so we place it at the end of array
             value_arr = value.to_numpy(dtype=object)
         else:
-            value_arr = np.array(value, dtype=object if hasattr(value, "__iter__") else None)
+            value_arr = np.array(
+                value, dtype=object if hasattr(value, "__iter__") else None
+            )
 
         # get mask for NA incase max also in array
         na_mask = isna(value_arr) if not is_integer(value) else np.array([False])
@@ -1482,7 +1484,9 @@ def searchsorted(
 
         # checks all values valid and no overflows
         try:
-            is_in_bounds = (valid_vals >= iinfo.min).all() and (valid_vals <= iinfo.max).all()
+            is_in_bounds = (valid_vals >= iinfo.min).all() and (
+                valid_vals <= iinfo.max
+            ).all()
         except (TypeError, OverflowError):
             is_in_bounds = False
         # value within bounds, so no overflow, so can convert value dtype
