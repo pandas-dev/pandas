@@ -274,7 +274,6 @@ cdef int64_t cast_from_unit(
                 f"cannot convert input {ts} with the unit '{unit}'"
             ) from err
 
-    frac = ts - base
     if p:
         frac = round(frac, p)
 
