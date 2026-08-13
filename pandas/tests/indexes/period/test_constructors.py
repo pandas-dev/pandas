@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -209,6 +212,23 @@ class TestPeriodIndex:
         exp = period_range("2007-01", periods=3, freq="M")
         tm.assert_index_equal(idx, exp)
 
+    @pytest.mark.parametrize("starting_month", range(1, 13))
+    def test_from_fields_quarterly_anchors(self, starting_month):
+        # GH#55784 from_fields rejected any quarterly freq not anchored on
+        # December, even though the equivalent scalar Period works.
+        freq = offsets.QuarterEnd(startingMonth=starting_month)
+        result = PeriodIndex.from_fields(year=[2014], quarter=[3], freq=freq)
+        expected = Period(year=2014, quarter=3, freq=freq)
+        assert result[0] == expected
+        assert result.dtype == PeriodDtype(freq)
+
+    def test_from_fields_quarterly_rejects_non_quarterly_freq(self):
+        # GH#55784 from_fields should reject non-quarterly frequencies
+        # when the ``quarter`` field is supplied.
+        msg = "freq must be a quarterly frequency"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex.from_fields(year=[2014], quarter=[3], freq=offsets.MonthEnd())
+
     def test_constructor_nano(self):
         idx = period_range(
             start=Period(ordinal=1, freq="ns"),
@@ -284,6 +304,30 @@ class TestPeriodIndex:
         with pytest.raises(OverflowError, match="value too large"):
             PeriodIndex.from_fields(**fields, freq="M")
 
+    def test_constructor_field_arrays_tuple(self):
+        # GH#65921 a tuple is array-like and must be treated as such, not
+        #  silently repeated as if it were a scalar
+        result = PeriodIndex.from_fields(year=(2020, 2021), month=[1, 2], freq="M")
+        expected = PeriodIndex(["2020-01", "2021-02"], freq="M")
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_field_arrays_tuple_mismatched_length(self):
+        # GH#65921 a genuinely mismatched tuple length must raise instead of
+        #  reading out of bounds
+        msg = "Mismatched Period array lengths"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex.from_fields(year=(2020, 2021, 2022), month=[1, 2], freq="M")
+
+    @pytest.mark.parametrize(
+        "kwargs", [{"month": [1, 2], "freq": "M"}, {"quarter": [1, 2]}]
+    )
+    def test_constructor_field_arrays_nan_raises(self, kwargs):
+        # GH#65921 NaN must raise rather than silently casting to a garbage
+        #  ordinal (e.g. Period("0-01"))
+        msg = "cannot convert float NaN to integer"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex.from_fields(year=[np.nan, 2020], **kwargs)
+
     def test_period_range_fractional_period(self):
         msg = "periods must be an integer, got 10.5"
         with pytest.raises(TypeError, match=msg):
@@ -300,14 +344,18 @@ class TestPeriodIndex:
         idx = period_range("2007-01", periods=20, freq="M")
 
         # values is an array of Period, thus can retrieve freq
-        tm.assert_index_equal(PeriodIndex(idx.values), idx)
-        tm.assert_index_equal(PeriodIndex(list(idx.values)), idx)
+        vals = np.asarray(idx, dtype=object)
+        tm.assert_index_equal(PeriodIndex(vals), idx)
+        tm.assert_index_equal(PeriodIndex(list(vals)), idx)
 
         msg = "freq not specified and cannot be inferred"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx.asi8)
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx.asi8))
+        depr_msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match=msg):
+                PeriodIndex(idx.asi8)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match=msg):
+                PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
@@ -362,6 +410,29 @@ class TestPeriodIndex:
 
         expected = PeriodIndex(vals.astype("M8[ns]"), freq="D")
         tm.assert_index_equal(pi, expected)
+
+    def test_constructor_int_array_out_of_bounds(self):
+        # GH#64158 integer values are interpreted as years; out-of-int32-range
+        #  values used to silently wrap instead of raising like Period(int)
+        arr = np.array([2**32 + 1985], dtype=np.int64)
+        msg = "Out of bounds year: 4294969281"
+        depr_msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
+                PeriodIndex(arr, freq="Y")
+
+        # negative out-of-range and a nanosecond-epoch-like value also raise
+        for val in [-(2**32), 10**18]:
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                with pytest.raises(OutOfBoundsDatetime, match="Out of bounds year"):
+                    PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
+
+        # int32 boundaries and >4-digit years remain valid; for freq="Y" the
+        #  ordinal is year - 1970
+        for val in [2**31 - 1, -(2**31), 100000]:
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                result = PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
+            assert result.asi8[0] == val - 1970
 
     @pytest.mark.parametrize("box", [None, "series", "index"])
     def test_constructor_datetime64arr_ok(self, box):
@@ -682,11 +753,11 @@ class TestPeriodIndex:
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_recreate_from_data(self, freq):
         org = period_range(start="2001/04/01", freq=freq, periods=1)
-        idx = PeriodIndex(org.values, freq=freq)
+        idx = PeriodIndex(np.asarray(org, dtype=object), freq=freq)
         tm.assert_index_equal(idx, org)
 
     def test_map_with_string_constructor(self):
-        raw = [2005, 2007, 2009]
+        raw = ["2005", "2007", "2009"]
         index = PeriodIndex(raw, freq="Y")
 
         expected = Index([str(num) for num in raw])

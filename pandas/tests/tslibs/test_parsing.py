@@ -19,12 +19,14 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
 #  the same time as the other parsing functions.
 from pandas import (
+    Period,
     Timestamp,
     option_context,
 )
@@ -60,8 +62,15 @@ def test_parsing_tzlocal_deprecated():
 
 
 def test_parse_datetime_string_with_reso():
-    (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
-    (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
 
     assert reso == reso_lower
     assert parsed == parsed_lower
@@ -85,8 +94,15 @@ def test_parse_datetime_string_with_reso_invalid_type():
 )
 def test_parse_time_quarter_with_dash(dashed, normal):
     # see gh-9688
-    (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
-    (parsed, reso) = parse_datetime_string_with_reso(normal)
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed, reso) = parse_datetime_string_with_reso(normal)
 
     assert parsed_dash == parsed
     assert reso_dash == reso
@@ -153,8 +169,51 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
     assert result == expected
+
+
+def test_parsers_quarterly_warn_quarter_false():
+    # GH#50907 Period opts out of the deprecation, since it is the replacement
+    with tm.assert_produces_warning(None):
+        result, reso = parsing.parse_datetime_string_with_reso(
+            "2013Q2", warn_quarter=False
+        )
+    assert reso == "quarter"
+    assert result == datetime(2013, 4, 1)
+
+
+@pytest.mark.parametrize(
+    "freq,period_freq",
+    [
+        (None, None),
+        ("D", None),
+        ("QS-FEB", "Q-FEB"),
+        ("QS-OCT", "Q-OCT"),
+        ("Y-APR", "Q-APR"),
+    ],
+)
+def test_parsers_quarterly_deprecation_suggests_matching_period(freq, period_freq):
+    # GH#50907 the replacement named in the message has to resolve to the value
+    # being deprecated; for an anchored freq that is not the calendar quarter
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        parsed, _ = parsing.parse_datetime_string_with_reso("2013Q2", freq=freq)
+
+    if period_freq is None:
+        suggested = "pd.Period('2013Q2')"
+        expected = Period("2013Q2")
+    else:
+        suggested = f"pd.Period('2013Q2', freq='{period_freq}')"
+        expected = Period("2013Q2", freq=period_freq)
+
+    assert f"Use {suggested}.to_timestamp()" in str(record[0].message)
+    assert expected.to_timestamp() == Timestamp(parsed)
 
 
 @pytest.mark.parametrize(

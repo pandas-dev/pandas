@@ -117,6 +117,10 @@ class TestDatetimeArray(base.ExtensionTests):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
 
+    @pytest.mark.skip("DatetimeArray.round uses a different signature (freq).")
+    def test_round(self, data):
+        pass
+
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["median", "mean", "std"]:
             alt = ser.astype("int64")

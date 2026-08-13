@@ -17,6 +17,8 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
@@ -73,7 +75,8 @@ _params2_doc = """\
 index : identifier of index column
     Identifier of column that should be used as index of the DataFrame.
 encoding : str
-    Encoding for text data.
+    Encoding for text data.  XPORT files do not record an encoding, so
+    'infer' is equivalent to the default ISO-8859-1.
 chunksize : int
     Read file `chunksize` lines at a time, returns iterator."""
 
@@ -236,14 +239,25 @@ def _parse_float_vec(vec):
 class XportReader(SASReader):
     __doc__ = _xport_reader_doc
 
+    _default_encoding = "ISO-8859-1"
+
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         index=None,
-        encoding: str | None = "ISO-8859-1",
+        encoding: str | None | lib.NoDefault = _default_encoding,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
     ) -> None:
+        # lib.no_default is only passed by read_sas, whose default is still
+        # None (raw bytes) but is deprecated in favor of _default_encoding.
+        # XPORT files record no encoding of their own, so "infer" just means
+        # _default_encoding.
+        self._encoding_specified = encoding is not lib.no_default
+        if encoding is lib.no_default:
+            encoding = None
+        elif encoding == "infer":
+            encoding = self._default_encoding
         self._encoding = encoding
         self._lines_read = 0
         self._index = index
@@ -366,6 +380,19 @@ class XportReader(SASReader):
             raise ValueError("Observation header not found.")
 
         self.fields = fields
+        if not self._encoding_specified and any(
+            field["ntype"] == "char" for field in fields
+        ):
+            warnings.warn(
+                "The default value of 'encoding' in read_sas is deprecated. In a "
+                "future version the default will change from None to 'infer', and "
+                "character columns will be decoded rather than returned as bytes "
+                f"(XPORT files record no encoding, so 'infer' means "
+                f"{self._default_encoding!r}). Pass encoding='infer' to adopt the "
+                "future behavior, or encoding=None to keep the current one.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         self.record_length = obs_length
         self.record_start = self.filepath_or_buffer.tell()
 

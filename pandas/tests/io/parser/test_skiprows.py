@@ -24,7 +24,7 @@ pytestmark = pytest.mark.filterwarnings(
 
 
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])
-def test_skip_rows_bug(all_parsers, skiprows, request):
+def test_skip_rows_bug(all_parsers, skiprows):
     # see gh-505
     parser = all_parsers
     text = """#foo,a,b,c
@@ -37,20 +37,17 @@ def test_skip_rows_bug(all_parsers, skiprows, request):
 1/2/2000,4,5,6
 1/3/2000,7,8,9
 """
-    if parser.engine == "pyarrow":
-        if not isinstance(skiprows, int):
-            msg = "skiprows argument must be an integer when using engine='pyarrow'"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(
-                    StringIO(text),
-                    skiprows=skiprows,
-                    header=None,
-                    index_col=0,
-                    parse_dates=True,
-                )
-            return
-        mark = pytest.mark.xfail(reason="AssertionError: DataFrame.index are different")
-        request.applymarker(mark)
+    if parser.engine == "pyarrow" and not isinstance(skiprows, int):
+        msg = "skiprows argument must be an integer when using engine='pyarrow'"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(text),
+                skiprows=skiprows,
+                header=None,
+                index_col=0,
+                parse_dates=True,
+            )
+        return
 
     result = parser.read_csv(
         StringIO(text), skiprows=skiprows, header=None, index_col=0, parse_dates=True
@@ -88,7 +85,6 @@ def test_deep_skip_rows(all_parsers):
     tm.assert_frame_equal(result, condensed_result)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_skip_rows_blank(all_parsers):
     # see gh-9832
     parser = all_parsers

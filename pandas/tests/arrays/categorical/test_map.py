@@ -154,3 +154,29 @@ def test_map_defaultdict_na_action_ignore():
     result = cat.map(mapper, na_action="ignore")
     expected = Index([True, True, np.nan])
     tm.assert_index_equal(result, expected)
+
+
+def test_map_to_tuples(na_action):
+    # mapping categories to tuples used to raise NotImplementedError because
+    # the mapped categories formed a MultiIndex.
+    cat = Categorical(["a", "a", "b", "c"])
+    mapper = {"a": ("x",), "b": ("y",), "c": ("z",)}
+    result = cat.map(mapper, na_action=na_action)
+    expected = Index([("x",), ("x",), ("y",), ("z",)], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_tuples_with_na(na_action):
+    cat = Categorical(["a", "a", None, "b"])
+    mapper = {"a": ("x",), "b": ("y",)}
+    result = cat.map(mapper, na_action=na_action)
+    expected = Index([("x",), ("x",), np.nan, ("y",)], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_multi_element_tuples(na_action):
+    cat = Categorical(["a", "b"])
+    mapper = {"a": ("x", 1), "b": ("y", 2)}
+    result = cat.map(mapper, na_action=na_action)
+    expected = Index([("x", 1), ("y", 2)], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)

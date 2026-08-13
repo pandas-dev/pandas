@@ -46,6 +46,44 @@ class TestGetIndexer:
         expected = np.array([-1, 2, -1, -1, 1, -1, -1, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_int64_min_no_overflow(self):
+        # GH#64148 a target near INT64_MIN overflowed ``target - start`` and was
+        # reported as a spurious (out-of-bounds) match instead of -1
+        index = RangeIndex(10, 13)
+        target = np.array([np.iinfo(np.int64).min, 10, 11, 12, 13], dtype=np.int64)
+        result = index.get_indexer(target)
+        expected = np.array([-1, 0, 1, 2, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_uint64_above_int64_max(self):
+        # GH#64148 uint64 targets above INT64_MAX must not spuriously match
+        index = RangeIndex(0, 3)
+        target = np.array([2**63, 0, 1, 5], dtype=np.uint64)
+        result = index.get_indexer(target)
+        expected = np.array([-1, 0, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_span_exceeds_int64_max(self):
+        # GH#64148 offsets beyond INT64_MAX overflowed the int64 subtraction,
+        # returning garbage indexers (e.g. -2) for genuine members
+        index = RangeIndex(-(2**62) - 1, 2**63 - 1, 2**62)
+        assert list(index) == [-(2**62) - 1, -1, 2**62 - 1]
+        target = np.array([2**62 - 1, -1, 5, -(2**62) - 1], dtype=np.int64)
+        result = index.get_indexer(target)
+        expected = np.array([2, 1, -1, 0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_decreasing_span_exceeds_int64_max(self):
+        # GH#64148 the same overflow through the reversed-range path
+        index = RangeIndex(2**62 - 1, -(2**62) - 2, -(2**62))
+        assert list(index) == [2**62 - 1, -1, -(2**62) - 1]
+        target = np.array(
+            [np.iinfo(np.int64).min, -1, 2**62 - 1, -(2**62) - 1], dtype=np.int64
+        )
+        result = index.get_indexer(target)
+        expected = np.array([-1, 1, 0, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_missing_value_casting_string_dtype(self):
         # GH#55833
         idx = Index(["a", "b", None])

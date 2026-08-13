@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
+from pandas.compat import pa_version_under16p0
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -161,8 +162,9 @@ def get_dummies(
 
     def _is_encodable(arr) -> bool:
         # The columns get_dummies encodes by default: object, string (any
-        # storage), categorical, and the Arrow-backed string/dictionary
-        # equivalents (GH#56273).
+        # storage), categorical, the Arrow-backed string/dictionary
+        # equivalents (GH#56273), and other Arrow types whose numpy fallback
+        # is object (binary, decimal, time32/time64, ...).
         dtype = arr.dtype
         if isinstance(dtype, (StringDtype, CategoricalDtype)):
             return True
@@ -170,21 +172,29 @@ def get_dummies(
             import pyarrow as pa
 
             pa_type = dtype.pyarrow_dtype
-            return (
+            if (
                 pa.types.is_string(pa_type)
                 or pa.types.is_large_string(pa_type)
-                or pa.types.is_string_view(pa_type)
                 or pa.types.is_dictionary(pa_type)
-            )
+                # is_string_view is only available in pyarrow>=16
+                or (not pa_version_under16p0 and pa.types.is_string_view(pa_type))
+            ):
+                return True
+            # Arrow types whose numpy fallback is object (e.g. binary,
+            # decimal, time32/time64) were encoded before GH#66091 decoupled
+            # this from select_dtypes(include="object"); keep encoding them.
+            return dtype.numpy_dtype == np.dtype(object)
         # is_object_dtype last: it raises for ArrowDtypes whose `.type` is
-        # not implemented (e.g. string_view)
+        # not implemented (handled above)
         return is_object_dtype(dtype)
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
         if columns is None:
             mgr = data._mgr._get_data_subset(_is_encodable).copy(deep=False)
-            data_to_encode = data._constructor_from_mgr(mgr, axes=mgr.axes)
+            data_to_encode = data._constructor_from_mgr(
+                mgr, axes=mgr.axes
+            ).__finalize__(data)
         elif not is_list_like(columns):
             raise TypeError("Input must be a list-like for parameter `columns`")
         else:
@@ -232,7 +242,11 @@ def get_dummies(
             rest_mgr = data._mgr._get_data_subset(
                 lambda arr: not _is_encodable(arr)
             ).copy(deep=False)
-            with_dummies = [data._constructor_from_mgr(rest_mgr, axes=rest_mgr.axes)]
+            with_dummies = [
+                data._constructor_from_mgr(rest_mgr, axes=rest_mgr.axes).__finalize__(
+                    data
+                )
+            ]
 
         for col, pre, sep in zip(
             data_to_encode.items(), prefix, prefix_sep, strict=True

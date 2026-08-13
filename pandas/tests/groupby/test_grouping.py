@@ -26,6 +26,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
@@ -1245,3 +1246,57 @@ def test_groupby_any_with_timedelta():
     expected.index = expected.index.astype(np.int64)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize(
+    "idx",
+    [
+        date_range("2020-01-01", periods=5, freq="D"),
+        date_range("2020-01-05", periods=5, freq="-1D"),
+        timedelta_range("1 day", periods=5, freq="D"),
+        timedelta_range("5 days", periods=5, freq="-1D"),
+    ],
+)
+def test_groupby_index_with_freq_retains_freq(idx, sort):
+    # GH#66046 - grouping by a DatetimeIndex/TimedeltaIndex with a freq
+    # retains the freq on the result index
+    df = DataFrame({"a": range(5)})
+
+    result = df.groupby(idx, sort=sort).sum()
+
+    expected_index = idx.sort_values() if sort else idx
+    assert result.index.freq == expected_index.freq
+    tm.assert_index_equal(result.index, expected_index)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("ascending", [True, False])
+@pytest.mark.parametrize(
+    "klass, values",
+    [
+        (
+            pd.DatetimeIndex,
+            ["2020-01-01", "2020-01-01", "2020-01-03", "2020-01-07"],
+        ),
+        (pd.TimedeltaIndex, ["1 day", "1 day", "3 days", "7 days"]),
+    ],
+)
+def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
+    # GH#66046 - monotonic DatetimeIndex/TimedeltaIndex without a freq
+    # with duplicates
+    idx = klass(values)
+    if not ascending:
+        idx = idx[::-1]
+    assert idx.freq is None
+    df = DataFrame({"a": [1, 2, 4, 8]})
+
+    result = df.groupby(idx, sort=sort).sum()
+
+    if ascending:
+        expected = DataFrame({"a": [3, 4, 8]}, index=klass(values[1:]))
+    elif sort:
+        expected = DataFrame({"a": [12, 2, 1]}, index=klass(values[1:]))
+    else:
+        expected = DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
+    tm.assert_frame_equal(result, expected)

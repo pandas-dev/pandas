@@ -19,12 +19,12 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: v0.15.20
     hooks:
-    -   id: ruff
+    -   id: ruff-check
         args: [--exit-non-zero-on-fix]
         exclude: ^pandas/tests/frame/test_query_eval.py
-    -   id: ruff
+    -   id: ruff-check
         # TODO: remove autofix only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
@@ -46,7 +46,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.19.0
+    rev: v0.21.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -70,11 +70,6 @@ repos:
     rev: 9.0.0a3
     hooks:
     -   id: isort
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-    -   id: pyupgrade
-        args: [--py311-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -141,11 +136,11 @@ repos:
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
-        entry: python
+        entry: python -m mypy.stubtest
         language: system
         pass_filenames: false
         types: [pyi]
-        args: [scripts/run_stubtest.py]
+        args: [pandas._libs, --ignore-missing-stub, --ignore-disjoint-base, --concise, --mypy-config-file, pyproject.toml, --allowlist, scripts/stubtest_allowlist.txt]
         stages: [manual]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'

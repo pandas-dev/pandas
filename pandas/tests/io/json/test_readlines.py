@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import gzip
 from io import (
     BytesIO,
     StringIO,
@@ -7,6 +8,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -586,4 +589,179 @@ def test_to_json_append_output_different_columns_reordered(temp_file):
 
     # Read path file
     result = read_json(temp_file, lines=True)
+    tm.assert_frame_equal(result, expected)
+
+
+# ----------------------------------------------------------------------------
+# The pyarrow engine used to silently ignore many read_json options, producing
+# a wrong result instead of an error. They now raise ValueError instead.
+
+
+@pytest.fixture
+def pyarrow_jsonl(temp_file):
+    pytest.importorskip("pyarrow.json")
+    Path(temp_file).write_text(
+        '{"a": 1, "b": "x"}\n{"a": 2, "b": "y"}\n', encoding="utf-8"
+    )
+    return temp_file
+
+
+def test_pyarrow_engine_typ_series(pyarrow_jsonl):
+    msg = "The 'typ' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", typ="series")
+
+
+@pytest.mark.parametrize("convert_dates", [False, ["a"]])
+def test_pyarrow_engine_convert_dates(pyarrow_jsonl, convert_dates):
+    msg = "The 'convert_dates' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", convert_dates=convert_dates
+        )
+
+
+def test_pyarrow_engine_keep_default_dates(pyarrow_jsonl):
+    msg = "The 'keep_default_dates' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", keep_default_dates=False)
+
+
+def test_pyarrow_engine_date_unit(pyarrow_jsonl):
+    msg = "The 'date_unit' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", date_unit="ms")
+
+
+def test_pyarrow_engine_precise_float(pyarrow_jsonl):
+    msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=True)
+
+
+@pytest.mark.parametrize("convert_axes", [True, False])
+def test_pyarrow_engine_convert_axes(pyarrow_jsonl, convert_axes):
+    # convert_axes defaults to None (resolved to True); any explicit value is
+    # rejected, since the pyarrow engine cannot honor it.
+    msg = "The 'convert_axes' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", convert_axes=convert_axes
+        )
+
+
+@pytest.mark.parametrize("dtype", [True, False, "float64"])
+def test_pyarrow_engine_scalar_dtype(pyarrow_jsonl, dtype):
+    # dtype defaults to None (resolved to True); a scalar dtype applies to
+    # every column but is silently ignored by the pyarrow engine.
+    msg = "The 'dtype' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", dtype=dtype)
+
+
+def test_pyarrow_engine_non_arrow_dtype_mapping(pyarrow_jsonl):
+    # GH#59516 only handled ArrowDtype entries; a non-ArrowDtype dtype in the
+    # mapping was silently dropped.
+    msg = "only supports ArrowDtype values in the 'dtype' mapping"
+    with pytest.raises(ValueError, match=msg):
+        read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            dtype={"a": "int64[pyarrow]", "b": "float64"},
+        )
+
+
+def test_pyarrow_engine_encoding(pyarrow_jsonl):
+    # the pyarrow engine assumes UTF-8 and ignores the encoding argument.
+    msg = "The 'encoding' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", encoding="latin-1")
+
+
+def test_pyarrow_engine_encoding_errors(pyarrow_jsonl):
+    msg = "The 'encoding_errors' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", encoding_errors="ignore")
+
+
+def test_pyarrow_engine_storage_options(pyarrow_jsonl):
+    msg = "The 'storage_options' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            storage_options={"anon": True},
+        )
+
+
+@pytest.mark.parametrize("compression", ["gzip", {"method": "gzip"}])
+def test_pyarrow_engine_compression(pyarrow_jsonl, compression):
+    # pyarrow infers compression from the file extension itself; pandas cannot
+    # honor an explicitly-passed method (the default "infer" is allowed).
+    msg = "The 'compression' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", compression=compression)
+
+
+@pytest.mark.parametrize("encoding", [None, "utf-8", "utf8", "UTF-8"])
+def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
+    # Passing the supported defaults explicitly must not raise (though the
+    # deprecated date kwargs warn; GH#59161).
+    depr_msg = "keyword in read_json is deprecated"
+    # check_stacklevel=False: older pyarrow emits its own Pandas4Warning from
+    #  make_block during to_pandas, which the stacklevel check would trip on.
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        result = read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            typ="frame",
+            convert_dates=True,
+            keep_default_dates=True,
+            precise_float=False,
+            date_unit=None,
+            encoding=encoding,
+            encoding_errors="strict",
+            compression="infer",
+        )
+    expected = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_pyarrow_engine_reads_gzip_with_default_compression(tmp_path):
+    # the default compression="infer" is allowed; pyarrow decompresses a
+    # ".gz" file by extension on its own.
+    pytest.importorskip("pyarrow.json")
+    path = tmp_path / "data.json.gz"
+    with gzip.open(path, "wb") as fh:
+        fh.write(b'{"a": 1}\n{"a": 2}\n')
+    result = read_json(str(path), lines=True, engine="pyarrow")
+    expected = DataFrame({"a": [1, 2]})
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_ujson_engine_allows_pyarrow_rejected_options(temp_file):
+    # The new validation is gated on engine="pyarrow"; the default ujson
+    # engine must keep accepting these options (though the deprecated date
+    # kwargs warn; GH#59161).
+    Path(temp_file).write_text('{"a": 1}\n{"a": 2}\n', encoding="utf-8")
+    depr_msg = "keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            temp_file,
+            lines=True,
+            engine="ujson",
+            convert_dates=False,
+            keep_default_dates=False,
+            convert_axes=False,
+            precise_float=True,
+            date_unit="ms",
+            encoding="utf-8",
+            encoding_errors="strict",
+        )
+    expected = DataFrame({"a": [1, 2]})
     tm.assert_frame_equal(result, expected)

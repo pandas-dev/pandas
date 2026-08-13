@@ -44,6 +44,20 @@ class TestFromDict:
         ).reindex(result.index)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("blank", [Series(), {}])
+    def test_from_nested_dict_with_empty_entry(self, blank):
+        # GH#62775 an empty Series/dict should give an all-NA row, not be dropped
+        data = {"good": Series({"a": 1, "b": 2}), "blank": blank}
+
+        result = DataFrame.from_dict(data, orient="index")
+        expected = DataFrame(
+            {
+                "a": {"good": 1.0, "blank": np.nan},
+                "b": {"good": 2.0, "blank": np.nan},
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_series(self):
         data = [
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
@@ -193,9 +207,14 @@ class TestFromDict:
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
     def test_from_dict_scalars_requires_index(self):
-        msg = "If using all scalar values, you must pass an index"
+        # GH#25515 the message must be actionable: from_dict has no index
+        #  parameter, so it points to orient="index" / the DataFrame constructor
+        msg = "If using all scalar values, pass orient='index'"
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(OrderedDict([("b", 8), ("a", 5), ("a", 6)]))
+            DataFrame.from_dict({"a": 0.7})
+
+        with pytest.raises(ValueError, match=msg):
+            DataFrame.from_dict({"b": 8, "a": 6})
 
     def test_from_dict_orient_invalid(self):
         msg = (

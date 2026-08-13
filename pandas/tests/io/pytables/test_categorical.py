@@ -248,6 +248,47 @@ def test_categorical_index_with_nan(fmt, temp_h5_path):
 
 
 @pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_category_equal_nan_rep(fmt, temp_h5_path):
+    # GH#65576 - a genuine "nan" category equals the default nan_rep string.
+    # Reading such a file used to raise "Categorical categories cannot be
+    # null" and permanently brick the key. fixed format stores categories
+    # verbatim and keeps the category; table format encodes categories with
+    # nan_rep, so "nan" decodes to NaN and is dropped, matching how a
+    # categorical *column* behaves (GH#21741).
+    df = DataFrame({"v": [1, 2, 3, 4]}, index=CategoricalIndex(["a", "b", "nan", "a"]))
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+
+    if fmt == "fixed":
+        expected = df
+    else:
+        expected = DataFrame(
+            {"v": [1, 2, 3, 4]},
+            index=CategoricalIndex(["a", "b", np.nan, "a"], categories=["a", "b"]),
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_all_nan(fmt, temp_h5_path):
+    # GH#65576 - an all-NaN CategoricalIndex has zero categories, which cannot
+    # be written as a metadata array. It must still round-trip as categorical
+    # rather than as raw integer codes (table format used to read back
+    # Index([-1, -1])).
+    df = DataFrame({"v": [1, 2]}, index=CategoricalIndex([np.nan, np.nan]))
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+
+    expected = DataFrame(
+        {"v": [1, 2]},
+        index=CategoricalIndex(
+            Categorical.from_codes([-1, -1], categories=Index([], dtype="float64"))
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
 def test_categorical_index_numeric_categories(fmt, temp_h5_path):
     # GH#33909, GH#16118 - non-string categories
     df = DataFrame(

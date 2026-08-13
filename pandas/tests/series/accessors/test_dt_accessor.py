@@ -131,7 +131,9 @@ class TestSeriesDatetimeValues:
 
         tz_result = result.dt.tz
         assert str(tz_result) == "US/Eastern"
-        freq_result = ser.dt.freq
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            freq_result = ser.dt.freq
         assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
         # let's localize, then convert
@@ -140,6 +142,31 @@ class TestSeriesDatetimeValues:
             DatetimeIndex(ser.values).tz_localize("UTC").tz_convert("US/Eastern")
         )
         expected = Series(exp_values, index=ser.index, name="xxx")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [None, "pyarrow"])
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_to_pydatetime_preserves_index_and_name(self, dtype, tz):
+        if dtype == "pyarrow":
+            pytest.importorskip("pyarrow")
+            dtype = (
+                f"timestamp[ns, {tz}][pyarrow]"
+                if tz is not None
+                else "timestamp[ns][pyarrow]"
+            )
+        ser = Series(
+            date_range("2013-01-01", periods=2, tz=tz),
+            index=Index([10, 11]),
+            name="dates",
+            dtype=dtype,
+        )
+        result = ser.dt.to_pydatetime()
+        expected = Series(
+            [value.to_pydatetime() for value in ser],
+            index=ser.index,
+            name=ser.name,
+            dtype=object,
+        )
         tm.assert_series_equal(result, expected)
 
     def test_dt_namespace_accessor_datetime64tz(self):
@@ -168,8 +195,13 @@ class TestSeriesDatetimeValues:
 
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
-        freq_result = ser.dt.freq
-        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            freq_result = ser.dt.freq
+
+        msg = "Series.values returning an ndarray that drops timezone information"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -209,7 +241,9 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, Series)
             assert result.dtype == "float64"
 
-            freq_result = ser.dt.freq
+            msg = "A future version of pandas will return a BaseOffset"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                freq_result = ser.dt.freq
             assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_period(self):
@@ -230,7 +264,9 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        assert freq_result == PeriodIndex(ser.values).freq
+        msg = "Series.values returning an object-dtype ndarray for PeriodDtype"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert freq_result == PeriodIndex(ser.values).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both
@@ -956,3 +992,36 @@ def test_day_attribute_non_nano_beyond_int32():
     result = ser.dt.days
     expected = Series([1579371003, 1559453522, 2839645203, 2586, 27, 42066, 0])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        Series(date_range("2020-01-01", periods=3)),
+        Series(timedelta_range("1 day", periods=3)),
+    ],
+    ids=["datetime64", "timedelta64"],
+)
+def test_dt_freq_deprecated(ser):
+    # GH#55504
+    msg = "A future version of pandas will return a BaseOffset"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.dt.freq
+    assert result == "D"
+
+    with pd.option_context("future.infer_freq_returns_offset", True):
+        with tm.assert_produces_warning(None):
+            result = ser.dt.freq
+    assert result == pd.offsets.Day()
+
+    with pd.option_context("future.infer_freq_returns_offset", False):
+        with tm.assert_produces_warning(None):
+            result = ser.dt.freq
+    assert result == "D"
+
+
+def test_dt_freq_no_warning_when_unable_to_infer():
+    # GH#55504 - no behavior change when the result is None, so no warning
+    ser = Series(pd.to_datetime(["2020-01-01", "2020-03-07", "2020-08-15"]))
+    with tm.assert_produces_warning(None):
+        assert ser.dt.freq is None

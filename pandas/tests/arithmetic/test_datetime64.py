@@ -2,10 +2,10 @@
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
 from datetime import (
+    UTC,
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from itertools import (
     product,
@@ -15,8 +15,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas import (
@@ -1026,7 +1028,7 @@ class TestDatetime64Arithmetic:
     ):
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        dt64vals = dti.values
+        dt64vals = dti.to_numpy(dtype="datetime64[ns]")
 
         dtarr = tm.box_expected(dti, box_with_array)
         msg = "Cannot subtract tz-naive and tz-aware datetime"
@@ -1050,7 +1052,7 @@ class TestDatetime64Arithmetic:
             dti2 = dti.tz_localize(None)
         dtarr = tm.box_expected(dti, box_with_array)
 
-        assert_cannot_add(dtarr, dti.values)
+        assert_cannot_add(dtarr, dti._data._ndarray)
         assert_cannot_add(dtarr, dti)
         assert_cannot_add(dtarr, dtarr)
         assert_cannot_add(dtarr, dti[0])
@@ -1640,6 +1642,38 @@ class TestDatetime64DateOffsetArithmetic:
         pointwise2 = DatetimeIndex([x + offset2 for x in dti2])
         tm.assert_index_equal(result2, pointwise2)
 
+    def test_dt64arr_add_dateoffset_finer_reso(self):
+        # GH#64806 - a pure-timedelta DateOffset with finer resolution than a
+        # tz-aware DatetimeIndex must promote the result unit like the tz-naive
+        # path instead of raising AssertionError, and must match the scalar
+        # Timestamp + DateOffset result (value and unit).
+        dti = DatetimeIndex(["2020-01-01 00:00:00"], tz="US/Eastern").as_unit("s")
+        offset = DateOffset(milliseconds=5)
+
+        result = dti + offset
+        expected = DatetimeIndex(
+            ["2020-01-01 00:00:00.005000-05:00"],
+            dtype="datetime64[ms, US/Eastern]",
+        )
+        tm.assert_index_equal(result, expected)
+        # the tz-aware fast path matches the tz-naive path's unit promotion
+        naive = dti.tz_localize(None) + offset
+        tm.assert_index_equal(result.tz_localize(None), naive)
+        # and it matches the scalar Timestamp + DateOffset path
+        pointwise = DatetimeIndex([ts + offset for ts in dti])
+        tm.assert_index_equal(result, pointwise)
+
+        # promotion still holds when the addition crosses a DST transition
+        dti2 = DatetimeIndex(["2018-03-11 01:59:59"], tz="US/Eastern").as_unit("s")
+        result2 = dti2 + DateOffset(milliseconds=1500)
+        expected2 = DatetimeIndex(
+            ["2018-03-11 03:00:00.500000-04:00"],
+            dtype="datetime64[ms, US/Eastern]",
+        )
+        tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([ts + DateOffset(milliseconds=1500) for ts in dti2])
+        tm.assert_index_equal(result2, pointwise2)
+
 
 class TestDatetime64OverflowHandling:
     # TODO: box + de-duplicate
@@ -1657,6 +1691,25 @@ class TestDatetime64OverflowHandling:
 
         result = left - right
         tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_dt64arr_add_td_lands_on_nat_sentinel(self, unit, box_with_array):
+        # GH#66549 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        dti = DatetimeIndex(np.array([iNaT + 1], dtype=f"M8[{unit}]"))
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, unit)
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - Timedelta(1, unit)
+
+        # the tz-aware path shares the same int64 arithmetic
+        obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, unit)
 
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
@@ -1761,6 +1814,114 @@ class TestDatetime64OverflowHandling:
         t2 = tmax + Timedelta.min - Timedelta("1us")
         with pytest.raises(OverflowError, match=msg):
             tmax - t2
+
+    # DateOffset(days=...) goes through the relativedelta branch of
+    #  RelativeDeltaOffset._apply_array, DateOffset(nanoseconds=...) through
+    #  the timedelta branch and, when tz-aware, through the UTC fast path in
+    #  DatetimeArray._add_offset. All three used to add with a raw numpy add.
+    @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_lands_on_nat_sentinel(
+        self, kwds, tz, box_with_array
+    ):
+        # GH#66552 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        delta = Timedelta(**kwds)
+        dti = DatetimeIndex(np.array([iNaT + delta._value], dtype="M8[ns]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + DateOffset(**{key: -val for key, val in kwds.items()})
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - DateOffset(**kwds)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_reso_promotion_out_of_bounds(
+        self, tz, box_with_array
+    ):
+        # GH#66552 promoting the second-resolution values to the offset's
+        #  nanosecond resolution used to wrap to an unrelated date, where
+        #  adding the equivalent Timedelta already raised
+        dti = DatetimeIndex(np.array(["2500-01-01"], dtype="M8[s]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Out of bounds nanosecond timestamp: 2500-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            obj + DateOffset(nanoseconds=1)
+
+    @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_nat_still_propagates(
+        self, kwds, tz, box_with_array
+    ):
+        # GH#66552 a missing operand is still missing, not an overflow
+        dti = DatetimeIndex([NaT, Timestamp("2000-01-01")]).as_unit("ns")
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        result = obj + DateOffset(**kwds)
+        expected = tm.box_expected(dti + Timedelta(**kwds), box_with_array)
+        tm.assert_equal(result, expected)
+
+    # tz-aware data is the only way to reach Day._apply_array; tz-naive Day
+    #  addition is routed through _add_timedeltalike_scalar. tz is
+    #  parametrized anyway so the two stay in agreement.
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_day_lands_on_nat_sentinel(self, unit, tz, box_with_array):
+        # GH#66552 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        per_day = 86400 if unit == "s" else 86400 * 10**9
+        dti = DatetimeIndex(np.array([iNaT + per_day], dtype=f"M8[{unit}]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + pd.offsets.Day(-1)
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - pd.offsets.Day(1)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_day_out_of_bounds(self, tz, box_with_array):
+        # GH#66552 the tz-aware path wrapped to an unrelated date
+        dti = DatetimeIndex([Timestamp.max])
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj + pd.offsets.Day(1)
+
+    def test_dt64arr_add_day_large_n(self, box_with_array):
+        # GH#66552 n days converted to the array's unit overflows int64 before
+        #  the addition even happens
+        dti = DatetimeIndex(np.array([0], dtype="M8[s]")).tz_localize("UTC")
+        obj = tm.box_expected(dti, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj + pd.offsets.Day(2**60)
+
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    def test_dt64arr_add_day_tzaware_matches_naive(self, unit, box_with_array):
+        # GH#66552 in-bounds results are unchanged and NaT still propagates
+        dti = DatetimeIndex([NaT, Timestamp("2000-01-01")]).as_unit(unit)
+        obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
+
+        result = obj + pd.offsets.Day(3)
+        expected = tm.box_expected(
+            (dti + pd.offsets.Day(3)).tz_localize("UTC"), box_with_array
+        )
+        tm.assert_equal(result, expected)
 
 
 class TestTimestampSeriesArithmetic:
@@ -1897,10 +2058,8 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
-            unit
-        )
-        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=UTC), NaT]).dt.as_unit(unit)
+        dt = datetime(2016, 8, 22, 12, tzinfo=UTC)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)

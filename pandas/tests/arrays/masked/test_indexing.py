@@ -6,6 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+import pandas._testing as tm
 
 
 class TestSetitemValidation:
@@ -21,12 +22,11 @@ class TestSetitemValidation:
         with pytest.raises(TypeError, match=msg):
             arr[[0]] = invalid
 
-        # FIXME: don't leave commented-out
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = [invalid]
+        with pytest.raises(TypeError):
+            arr[[0]] = [invalid]
 
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = np.array([invalid], dtype=object)
+        with pytest.raises(TypeError):
+            arr[[0]] = np.array([invalid], dtype=object)
 
         # Series non-coercion, behavior subject to change
         ser = pd.Series(arr)
@@ -60,6 +60,78 @@ class TestSetitemValidation:
     def test_setitem_validation_scalar_float(self, invalid, float_ea_dtype):
         arr = pd.array([1, 2, None], dtype=float_ea_dtype)
         self._check_setitem_invalid(arr, invalid)
+
+
+@pytest.mark.parametrize(
+    "dtype, value",
+    [
+        ("Int8", 1000),
+        ("Int16", 40000),
+        ("Int32", 2**31),
+        ("UInt8", -1),
+        ("UInt16", -1),
+        ("UInt64", -1),
+    ],
+)
+def test_setitem_listlike_out_of_bounds_raises(dtype, value):
+    # GH#65510 an out-of-bounds list-like value must raise instead of
+    # silently wrapping through a raw astype
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    with pytest.raises(TypeError, match="cannot safely cast"):
+        arr[[0]] = [value]
+    # an NA alongside the out-of-bounds value still raises
+    with pytest.raises(TypeError, match="cannot safely cast"):
+        arr[[0, 1]] = [value, None]
+    # the array is left unchanged
+    assert arr.tolist() == [1, 2, 3]
+
+
+def test_setitem_listlike_tuple():
+    # GH#65510 a tuple value is assigned element-wise rather than raising an
+    # AttributeError from isna returning a scalar for a tuple
+    arr = pd.array([1, 2, 3], dtype="Int64")
+    arr[[0, 1]] = (7, 8)
+    assert arr.tolist() == [7, 8, 3]
+
+    barr = pd.array([True, False, None], dtype="boolean")
+    barr[[0]] = (False,)
+    tm.assert_extension_array_equal(
+        barr, pd.array([False, False, None], dtype="boolean")
+    )
+
+
+def test_setitem_listlike_in_bounds():
+    # GH#65510 an in-bounds list-like value is still assigned
+    arr = pd.array([1, 2, 3], dtype="Int8")
+    arr[[0]] = [100]
+    assert arr.tolist() == [100, 2, 3]
+
+
+@pytest.mark.parametrize(
+    "dtype, value_dtype, value",
+    [
+        ("Int8", "Int64", 1000),
+        ("Int8", "Int16", 1000),
+        ("UInt8", "Int64", -1),
+        ("UInt64", "Int64", -1),
+    ],
+)
+def test_setitem_masked_array_out_of_bounds_raises(dtype, value_dtype, value):
+    # GH#65510 assigning a masked array whose values do not fit the target
+    # dtype must raise instead of silently wrapping through a raw astype
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    value = pd.array([value], dtype=value_dtype)
+    with pytest.raises(TypeError, match="cannot safely cast"):
+        arr[[0]] = value
+    assert arr.tolist() == [1, 2, 3]
+
+
+def test_setitem_masked_array_in_bounds():
+    # GH#65510 an in-bounds masked array of a wider dtype is assigned, and an
+    # NA in the value is preserved
+    arr = pd.array([1, 2, 3], dtype="Int8")
+    arr[[0, 1]] = pd.array([100, None], dtype="Int64")
+    tm.assert_extension_array_equal(arr, pd.array([100, None, 3], dtype="Int8"))
 
 
 @pytest.mark.parametrize(

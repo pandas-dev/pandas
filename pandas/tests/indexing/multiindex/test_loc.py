@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -590,7 +593,8 @@ def test_loc_setitem_single_column_slice():
         index=list("abcd"),
         columns=MultiIndex.from_product([["Main"], ("another", "one")]),
     )
-    df["labels"] = "a"
+    with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+        df["labels"] = "a"
     df.loc[:, "labels"] = df.index
     tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
 

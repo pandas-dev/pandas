@@ -262,8 +262,7 @@ markers = [
 
 [tool.mypy]
 # Import discovery
-mypy_path = "typings"
-files = ["pandas", "typings"]
+files = ["pandas"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
@@ -352,7 +351,7 @@ skip = "pandas/__init__.py"
 [tool.pyright]
 pythonVersion = "3.8"
 typeCheckingMode = "basic"
-include = ["pandas", "typings"]
+include = ["pandas"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
 reportDuplicateImport = true

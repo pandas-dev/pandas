@@ -842,7 +842,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
     ],
 )
 def test_cython_transform_frame_column(
-    request, op, args, targop, df_fix, gb_target, column
+    request, op, args, targop, df_fix, gb_target, column, using_infer_string
 ):
     df = request.getfixturevalue(df_fix)
     gb = df.groupby(group_keys=False, **gb_target)
@@ -852,15 +852,13 @@ def test_cython_transform_frame_column(
         and op != "shift"
         and not (c == "timedelta" and op == "cumsum")
     ):
-        msg = "|".join(
-            [
-                "does not support .* operations",
-                "does not support operation",
-                ".* is not supported for object dtype",
-                "is not implemented for this dtype",
-                ".* is not supported for str dtype",
-            ]
-        )
+        if c == "timedelta":
+            msg = f"timedelta64 type does not support {op} operations"
+        elif c in ("string", "string_missing") and not using_infer_string:
+            msg = f"{op} is not supported for object dtype"
+        else:
+            # datetime, or the string columns under the str dtype
+            msg = "does not support operation"
         with pytest.raises(TypeError, match=msg):
             gb[c].transform(op)
         with pytest.raises(TypeError, match=msg):

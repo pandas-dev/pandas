@@ -71,8 +71,21 @@ cdef inline void import_pandas_datetime() noexcept:
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef str dts_to_iso_string(npy_datetimestruct *dts)
+cdef str dts_to_iso_string_ns(npy_datetimestruct *dts)
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
+
+cdef _raise_nat_sentinel(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit)
+
+
+# Inline so callers pay a compare and a not-taken branch; a cimported cdef would
+#  instead be an indirect call, which the compiler cannot see through.
+cdef inline int check_nat_sentinel(
+    int64_t value, npy_datetimestruct *dts, NPY_DATETIMEUNIT unit
+) except -1:
+    if value == NPY_DATETIME_NAT:
+        _raise_nat_sentinel(dts, unit)
+    return 0
 
 cdef int64_t pydatetime_to_dt64(
     datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
@@ -122,4 +135,7 @@ cdef int64_t convert_reso(
     bint round_ok,
 ) except? -1
 
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=*
+)
+cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right)

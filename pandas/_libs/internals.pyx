@@ -725,6 +725,7 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public object _interleaved_dtype
+        public object _dtypes_cache
         ndarray __blknos, __blklocs
 
     def __cinit__(
@@ -745,10 +746,16 @@ cdef class BlockManager:
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
 
+        # GH#42934 don't share a single Index object across both axes, otherwise
+        #  mutating metadata like df.index.names would also affect df.columns.
+        if len(self.axes) == 2 and self.axes[0] is self.axes[1]:
+            self.axes[1] = self.axes[1].view()
+
         # Populate known_consolidated, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self._blknos = None
         self._blklocs = None
 

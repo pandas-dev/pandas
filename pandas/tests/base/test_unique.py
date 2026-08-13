@@ -13,16 +13,16 @@ def test_unique(index_or_series_obj):
     result = obj.unique()
 
     # dict.fromkeys preserves the order
-    unique_values = list(dict.fromkeys(obj.values))
+    unique_values = list(dict.fromkeys(obj._values))
     if isinstance(obj, pd.MultiIndex):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
         if isinstance(obj.dtype, pd.DatetimeTZDtype):
             expected = expected.normalize()
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
     else:
         expected = np.array(unique_values)
         tm.assert_numpy_array_equal(result, expected)
@@ -55,7 +55,7 @@ def test_unique_null(null_obj, index_or_series_obj, using_nan_is_na):
     obj = klass(repeated_values, dtype=obj.dtype)
     result = obj.unique()
 
-    unique_values_raw = dict.fromkeys(obj.values)
+    unique_values_raw = dict.fromkeys(obj._values)
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     unique_values_not_null = [val for val in unique_values_raw if not pd.isnull(val)]
@@ -119,6 +119,60 @@ def test_unique_bad_unicode(index_or_series):
     else:
         expected = np.array(["\ud83d"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.single_cpu
+def test_unique_distinct_bad_unicode(index_or_series):
+    # GH#34550 distinct non-utf8-encodable values must not collapse together.
+    #  Repeated values can pass even when the underlying buffers dangle.
+    uvals = [chr(0xD800 + i) for i in range(50)]
+    arr = np.empty(len(uvals), dtype=object)
+    arr[:] = uvals
+
+    obj = index_or_series(arr, dtype=object)
+    result = obj.unique()
+
+    assert len(result) == len(uvals)
+    assert set(result) == set(uvals)
+
+    codes, uniques = pd.factorize(arr)
+    tm.assert_numpy_array_equal(codes, np.arange(len(uvals), dtype=np.intp))
+    assert set(uniques) == set(uvals)
+
+
+@pytest.mark.parametrize(
+    "uvals",
+    [
+        ["", "\x00"],
+        ["x\x00y", "x\x00z"],
+        ["a", "a\x00", "a\x00\x00", "\x00a"],
+    ],
+)
+def test_unique_embedded_null(index_or_series, uvals):
+    # GH#34551 object-dtype strings route through StringHashTable, which used
+    #  to key on a NUL-terminated C string and so collapsed distinct values
+    #  sharing a prefix up to their first NUL.
+    #  The values are repeated deliberately: Index.unique short-circuits on
+    #  is_unique for an all-distinct input, so only a duplicated input reaches
+    #  StringHashTable at all.
+    vals = uvals * 2
+    arr = np.empty(len(vals), dtype=object)
+    arr[:] = vals
+
+    result = index_or_series(arr, dtype=object).unique()
+    assert list(result) == uvals
+
+    codes, uniques = pd.factorize(arr)
+    expected = np.tile(np.arange(len(uvals), dtype=np.intp), 2)
+    tm.assert_numpy_array_equal(codes, expected)
+    assert list(uniques) == uvals
+
+    ser = pd.Series(arr, dtype=object)
+    assert ser.nunique() == len(uvals)
+
+    # groupby factorizes through the same table
+    grouped = pd.DataFrame({"key": ser}).groupby("key")
+    assert grouped.ngroups == len(uvals)
 
 
 def test_nunique_dropna(dropna):
