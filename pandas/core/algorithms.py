@@ -1476,7 +1476,7 @@ def searchsorted(
                 value, dtype=object if hasattr(value, "__iter__") else None
             )
 
-        # get mask for NA incase max also in array
+        # get mask for NA in case max also in array
         na_mask = isna(value_arr) if not is_integer(value) else np.array([False])
 
         # gurads to stop overflow with na
