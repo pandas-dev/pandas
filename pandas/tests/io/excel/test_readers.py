@@ -1223,7 +1223,7 @@ class TestReaders:
     def test_read_excel_multiindex_header_index_col_consumes_all_columns(
         self, read_ext, engine, tmp_excel
     ):
-        # GH#66372
+        # GH 66372
         # If `index_col` consumes every data column, the resulting `columns`
         # is a plain (non-Multi) empty Index, so it no longer has one level
         # per `header` row. Applying the popped-out header names to it used
