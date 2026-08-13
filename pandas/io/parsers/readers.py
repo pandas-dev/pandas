@@ -382,10 +382,9 @@ def _default_n_workers() -> int:
     Default worker count for a parallel ``read_csv``.
 
     ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
-    cannot spawn threads at all).  Otherwise parallel reading is off by default
-    on Windows, and elsewhere is the smallest of the machine's logical CPU
-    count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available to the
-    process (CPU affinity / cgroup limits) -- so that an embedded or
+    cannot spawn threads at all).  Otherwise it is the smallest of the machine's
+    logical CPU count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available
+    to the process (CPU affinity / cgroup limits) -- so that an embedded or
     containerised pandas does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
@@ -394,14 +393,6 @@ def _default_n_workers() -> int:
         return 1
     if max_threads is not None:
         return max_threads
-    if sys.platform == "win32":
-        # Parallel CSV reading does not currently speed up on Windows: even
-        # with the file warm in the OS cache, using more than one thread is
-        # no faster (and slower at two threads).  Default to serial there;
-        # users can still opt in explicitly via mode.max_threads.  See the
-        # benchmark numbers in the GH#64347 discussion:
-        # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
-        return 1
     n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
     # os.cpu_count() counts the machine's CPUs, not the ones this process may
     # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
