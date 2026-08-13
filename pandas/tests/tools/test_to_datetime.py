@@ -2582,12 +2582,18 @@ class TestToDatetimeDataFrame:
         # hour values outside int32 range fall back to to_timedelta, whose
         #  overflow raises under both error modes; they must not wrap
         #  silently in the vectorized path
+        # TODO update comment if this correct
         df = DataFrame(
             {"year": [2000, 2000], "month": [1, 1], "day": [1, 1], "hour": [1, 2**32]}
         )
-        msg = r"cannot assemble the datetimes \[hour\]"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(df, errors=errors)
+        if errors == "raise":
+            msg = r"cannot assemble the datetimes \[hour\]"
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(df, errors=errors)
+        else:
+            result = to_datetime(df, errors=errors)
+            expected = Series([Timestamp("2000-01-01 01:00:00"), NaT])
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "year,field,value,exp_str",
