@@ -27,6 +27,7 @@ from pandas import (
     DataFrame,
     Index,
     compat,
+    read_csv,
 )
 import pandas._testing as tm
 
@@ -72,6 +73,17 @@ def test_read_csv_local(all_parsers, csv1):
     )
     if parser.engine == "pyarrow":
         expected.index = expected.index.astype("M8[s]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sep_none_without_explicit_engine_falls_back_to_python():
+    # GH#66639
+    data = "a;b\n1;2\n"
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    with tm.assert_produces_warning(ParserWarning):
+        result = read_csv(StringIO(data), sep=None)
+
     tm.assert_frame_equal(result, expected)
 
 
