@@ -178,7 +178,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
             x = left[i]
             y = right[i]
 
-            if isinstance(x, complex) or isinstance(y, complex):
+            if (flag != Py_EQ) and (isinstance(x, complex) or isinstance(y, complex)):
                 symbol = {
                     "lt": "<", "le": "<=",
                     "gt": ">", "ge": ">=",
