@@ -434,10 +434,18 @@ cpdef array_to_datetime(
     else:
         abbrev = npy_unit_to_abbrev(creso)
 
-    if unit_for_numerics is None or unit_for_numerics == "ns":
-        unit_for_numerics = "ns"
+    if unit_for_numerics is None:
+        # if no unit specified specifically for numeric input, then either
+        # use the specified output unit or if inferring, default to ns
+        unit_for_numerics = abbrev
+        if infer_reso:
+            int_reso = NPY_FR_ns
+        else:
+            int_reso = creso
+    elif unit_for_numerics == "ns":
         int_reso = NPY_FR_ns
     else:
+        # for any other numeric input unit, infer as 'us' for the output unit
         int_reso = NPY_DATETIMEUNIT.NPY_FR_us
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
