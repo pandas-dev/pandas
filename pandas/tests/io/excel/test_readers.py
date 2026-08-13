@@ -1228,6 +1228,9 @@ class TestReaders:
         # is a plain (non-Multi) empty Index, so it no longer has one level
         # per `header` row. Applying the popped-out header names to it used
         # to raise `ValueError: Length of new names must be 1, got 2`.
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
         DataFrame({"A": ["A1", "A2"]}).to_excel(tmp_excel, index=False, header=False)
         result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0, engine=engine)
         expected = DataFrame(
