@@ -555,8 +555,32 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+        cls,
+        scalars,
+        *,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        cast_values: bool = False,
     ) -> Self:
+        if (
+            cast_values
+            and isinstance(dtype, CategoricalDtype)
+            and dtype.categories is not None
+            and len(scalars)
+            and scalars.dtype != dtype.categories.dtype
+        ):
+            from pandas import Index
+
+            na_mask = isna(scalars)
+            values = Index(scalars[~na_mask], copy=False).astype(
+                dtype.categories.dtype, copy=False
+            )
+            if na_mask.any():
+                result = np.asarray(scalars, dtype=object)
+                result[~na_mask] = values
+                scalars = result
+            else:
+                scalars = values
         return cls(scalars, dtype=dtype, copy=copy)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:

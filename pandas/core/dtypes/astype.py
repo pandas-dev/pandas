@@ -178,6 +178,13 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
             return values.copy()
         return values
 
+    if isinstance(dtype, CategoricalDtype) and not isinstance(
+        values.dtype, CategoricalDtype
+    ):
+        return dtype.construct_array_type()._from_sequence(
+            values, dtype=dtype, copy=copy, cast_values=True
+        )
+
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         values = values.astype(dtype, copy=copy)
