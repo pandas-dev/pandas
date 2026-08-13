@@ -389,7 +389,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_td64_ndarray_byteswapped(self, unit):
         # GH#66552 the values are viewed as i8, which a non-native buffer
         #  would misread
-        td = Timedelta(1, unit)
+        td = Timedelta(1, unit).as_unit(unit)
         other = np.array([1, 2], dtype=np.dtype(f"m8[{unit}]").newbyteorder(">"))
 
         expected = np.array([2, 3], dtype=f"m8[{unit}]")
@@ -422,7 +422,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_dt64_ndarray_out_of_bounds(self, unit):
         # GH#66552 stepping past the top of the range used to wrap
-        td = Timedelta(1, unit)
+        td = Timedelta(1, unit).as_unit(unit)
         attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
             unit, "nanosecond"
         )
@@ -490,7 +490,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_dt64_ndarray_byteswapped(self, unit):
         # GH#66552 the values are viewed as i8, which a non-native buffer
         #  would misread
-        td = Timedelta(1, unit)
+        td = Timedelta(1, unit).as_unit(unit)
         other = np.array([1, 2], dtype=np.dtype(f"M8[{unit}]").newbyteorder(">"))
 
         expected = np.array([2, 3], dtype=f"M8[{unit}]")
@@ -540,7 +540,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_dt64_ndarray_generic_unit(self, unit):
         # GH#66552 numpy reads a generic datetime64 in the other operand's unit
-        td = Timedelta(1, unit)
+        td = Timedelta(1, unit).as_unit(unit)
         other = np.zeros(2, dtype="M8")
 
         expected = np.array([1, 1], dtype=f"M8[{unit}]")
@@ -686,7 +686,7 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_mul_int_ndarray_overflow(self, unit):
         # GH#66552 the product used to be formed in int64 and wrap silently,
         #  where the TimedeltaIndex equivalent raises
-        td = Timedelta(4, unit)
+        td = Timedelta(4, unit).as_unit(unit)
         other = np.array([2**62])
 
         msg = "Overflow in int64 multiplication"
@@ -697,10 +697,10 @@ class TestTimedeltaMultiplicationDivision:
 
         # int64.min is representable but would be misread as NaT
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta(1, unit) * np.array([-(2**63)])
+            Timedelta(1, unit).as_unit(unit) * np.array([-(2**63)])
 
         # one step in from the sentinel is fine
-        result = Timedelta(1, unit) * np.array([-(2**63) + 1])
+        result = Timedelta(1, unit).as_unit(unit) * np.array([-(2**63) + 1])
         expected = np.array([-(2**63) + 1], dtype=f"m8[{unit}]")
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1682,11 +1682,11 @@ def test_td_add_sub_lands_on_nat_sentinel(unit):
     )
     msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td_min - Timedelta(1, unit)
+        td_min - Timedelta(1, unit).as_unit(unit)
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td_min + Timedelta(-1, unit)
+        td_min + Timedelta(-1, unit).as_unit(unit)
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(-1, unit) + td_min
+        Timedelta(-1, unit).as_unit(unit) + td_min
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         td_min + np.timedelta64(-1, unit)
 

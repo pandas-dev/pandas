@@ -1966,7 +1966,7 @@ class TestToDatetimeUnit:
         assert Timestamp(dtype(1), unit="D") == expected
 
         result = to_datetime([dtype(1)], unit="D", cache=cache)
-        tm.assert_index_equal(result, DatetimeIndex([expected], dtype="M8[s]"))
+        tm.assert_index_equal(result, DatetimeIndex([expected], dtype="M8[us]"))
 
         # mixing in a nanosecond value forces "ns", so the unit factor is
         #  86400 * 10**9 and the 32-bit dtypes overflow it too
