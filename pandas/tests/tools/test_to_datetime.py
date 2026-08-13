@@ -3908,7 +3908,7 @@ class TestOrigin:
 
         msg = "cannot add values to origin"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            to_datetime([1, 2, 10**9], unit="D", origin=origin)
+            to_datetime([1, 2, 10**8], unit="D", origin=origin.as_unit("ns"))
 
     def test_origin_errors_coerce_overflow_boundary(self):
         # GH#63419 exact boundary: with origin 16801 days past the epoch, the
