@@ -998,10 +998,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @classmethod
     def _get_plot_converter(
         cls,
-    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]]:
+    ) -> list[tuple[type_t, type_t[matplotlib.units.ConversionInterface]]]:
         from pandas.plotting._matplotlib.converter import DatetimeConverter
 
-        return cls.type, DatetimeConverter
+        return [(cls.type, DatetimeConverter)]
 
 
 @register_extension_dtype
@@ -1248,10 +1248,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     @classmethod
     def _get_plot_converter(
         cls,
-    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]]:
+    ) -> list[tuple[type_t, type_t[matplotlib.units.ConversionInterface]]]:
         from pandas.plotting._matplotlib.converter import PeriodConverter
 
-        return cls.type, PeriodConverter
+        return [(cls.type, PeriodConverter)]
 
 
 @register_extension_dtype

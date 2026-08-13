@@ -7,6 +7,7 @@ from datetime import (
     tzinfo,
 )
 import functools
+from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -75,10 +76,12 @@ _mpl_units: dict = {}  # Cache for units overwritten by us
 
 def plottable_ea_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
     """Return a list of (type, Converter) pairs of all plottable ExtensionDtypes."""
-    converter_pairs = [
-        dtype._get_plot_converter() for dtype in _ea_dtypes_registry.dtypes
-    ]
-    return [pair for pair in converter_pairs if pair is not None]
+    converter_pairs = list(
+        chain.from_iterable(
+            dtype._get_plot_converter() for dtype in _ea_dtypes_registry.dtypes
+        )
+    )
+    return converter_pairs
 
 
 def plottable_types() -> list[type]:
@@ -93,7 +96,7 @@ def plottable_types() -> list[type]:
         pydt.timedelta,
     ]
     # Get the types supported by ExtensionDtypes that are plottable
-    types.extend([tpl[0] for tpl in plottable_ea_pairs()])
+    types.extend([pair[0] for pair in plottable_ea_pairs()])
     return types
 
 

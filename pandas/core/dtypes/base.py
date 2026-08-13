@@ -476,18 +476,21 @@ class ExtensionDtype:
     @classmethod
     def _get_plot_converter(
         cls,
-    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]] | None:
+    ) -> list[tuple[type_t, type_t[matplotlib.units.ConversionInterface]]]:
         """
         If dtype is plottable, return the type and converter to use for plotting.
 
         By default only numeric ExtensionDtypes are plottable. In other cases, this
-        function just returns None and ExtensionArrays of this dtype are filtered out
-        during plotting.
-        If the dtype is plottable, this function shall return a tuple of the type and a
-        converter. The returned type is likely the same as ``cls._type``. The returned
-        converter should be a subclass of ``matplotlib.units.ConversionInterface``.
+        function just returns an empty list and ExtensionArrays of this dtype are
+        filtered out during plotting.
+        If the dtype is plottable, this function shall return a list of tuples of
+        the type and a converter. The returned type is likely the same as
+        ``cls._type``. The returned converter should be a subclass of
+        ``matplotlib.units.ConversionInterface``. If a dtype supports multiple types,
+        e.g. ``ArrowDtype``, then this function can return multiple tuples inside the
+        list, where each tuple is a pair of a type and corresponding converter.
         """
-        return None
+        return []
 
 
 class StorageExtensionDtype(ExtensionDtype):
