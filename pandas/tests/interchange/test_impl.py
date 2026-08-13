@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import numpy as np
@@ -513,8 +513,8 @@ def test_non_str_names_w_duplicates():
         ),
         (
             [
-                datetime(2020, 1, 1, tzinfo=timezone.utc),
-                datetime(2020, 1, 2, tzinfo=timezone.utc),
+                datetime(2020, 1, 1, tzinfo=UTC),
+                datetime(2020, 1, 2, tzinfo=UTC),
                 None,
             ],
             "timestamp[us, Asia/Kathmandu][pyarrow]",
@@ -581,9 +581,9 @@ def test_pandas_nullable_with_missing_values(
         ),
         (
             [
-                datetime(2020, 1, 1, tzinfo=timezone.utc),
-                datetime(2020, 1, 2, tzinfo=timezone.utc),
-                datetime(2020, 1, 3, tzinfo=timezone.utc),
+                datetime(2020, 1, 1, tzinfo=UTC),
+                datetime(2020, 1, 2, tzinfo=UTC),
+                datetime(2020, 1, 3, tzinfo=UTC),
             ],
             "timestamp[us, Asia/Kathmandu][pyarrow]",
             "timestamp[us, tz=Asia/Kathmandu]",

@@ -509,7 +509,7 @@ class NpyDatetimeUnit(Enum):
     NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
 
 
-cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
+cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso) noexcept nogil:
     # If we have an unsupported reso, return the nearest supported reso.
     if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # TODO: or raise ValueError? trying this gives unraisable errors, but

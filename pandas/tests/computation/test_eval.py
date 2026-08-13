@@ -1644,6 +1644,19 @@ class TestMath:
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect)
 
+    def test_unary_function_integer_argument(self, engine, parser):
+        # GH#20890 a math function applied to an integer literal must not
+        #  truncate the result to an integer
+        result = self.eval("exp(2)", engine=engine, parser=parser)
+        assert result == np.exp(2)
+
+    def test_unary_function_integer_array(self, engine, parser):
+        # GH#20890 the same truncation bug affected a math function over an
+        #  integer array (the manifestation that lingered longest)
+        arr = np.array([1, 2, 3])  # noqa: F841
+        result = self.eval("exp(arr)", engine=engine, parser=parser)
+        tm.assert_numpy_array_equal(np.asarray(result), np.exp(np.array([1, 2, 3])))
+
     @pytest.mark.parametrize("fn", _binary_math_ops)
     def test_binary_functions(self, fn, engine, parser):
         df = DataFrame(

@@ -183,6 +183,59 @@ class TestPivotTable:
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
+    def test_pivot_table_string_join_aggfunc_with_none_raises(self):
+        # GH#33849 a string-join aggfunc over a values column containing None
+        # must raise rather than silently produce nonsense output
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "bar", "bar"],
+                "B": ["one", "two", "one", None],
+                "C": ["small", "large", "small", "large"],
+            }
+        )
+        with pytest.raises(TypeError, match="expected str instance"):
+            df.pivot_table(
+                index="A", columns="C", values="B", aggfunc=lambda x: " ".join(x)
+            )
+
+    def test_pivot_table_string_join_aggfunc_without_none(self):
+        # GH#33849 with no None the join must produce the actual grouped values,
+        # not the aggregated column names (the original nonsense output)
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "bar", "bar"],
+                "B": ["one", "two", "one", "two"],
+                "C": ["small", "large", "small", "large"],
+            }
+        )
+        result = df.pivot_table(
+            index="A", columns="C", values="B", aggfunc=lambda x: " ".join(x)
+        )
+        assert result.loc["foo", "large"] == "two"
+        assert result.loc["foo", "small"] == "one"
+
+    def test_pivot_table_margins_dropna_false(self):
+        # GH#14072 with dropna=False the bottom-left grand-total "All" cell
+        #  must be consistent with the retained NaN column and rows
+        df = DataFrame(
+            [[1, "a", "A"], [1, "b", "B"], [1, "c", None]], columns=["x", "y", "z"]
+        )
+        result = df.pivot_table(
+            values="x",
+            index="y",
+            columns="z",
+            aggfunc="sum",
+            fill_value=0,
+            margins=True,
+            dropna=False,
+        )
+        expected = DataFrame(
+            [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 1, 3]],
+            index=Index(["a", "b", "c", "All"], name="y"),
+            columns=Index(["A", "B", np.nan, "All"], name="z"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_categorical(self):
         cat1 = Categorical(
             ["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True
@@ -442,7 +495,7 @@ class TestPivotTable:
         )
         res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="ME"))
         exp_columns = MultiIndex.from_arrays(
-            [["A"], pd.DatetimeIndex(["2011-01-31"], dtype="M8[ns]")],
+            [["A"], pd.DatetimeIndex(["2011-01-31"], dtype="M8[ns]", freq="ME")],
             names=[None, "dt"],
         )
         exp = DataFrame(
@@ -1655,7 +1708,9 @@ class TestPivotTable:
             values="Quantity",
             aggfunc="sum",
         )
-        tm.assert_frame_equal(result, expected.T)
+        # result columns carry a freq on the datetimelike MultiIndex levels that
+        #  the from_tuples expected does not; freq is not what this test checks
+        tm.assert_frame_equal(result, expected.T, check_freq=False)
 
     def test_pivot_datetime_tz(self):
         dates1 = pd.DatetimeIndex(
@@ -3191,3 +3246,37 @@ class TestPivot:
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+def test_pivot_non_column_label_raises_gh35785():
+    # GH#35785
+    df = DataFrame.from_records(
+        [{"date": datetime(2016, 3, 2), "col1": 1, "col2": 2}], index=["date"]
+    )
+
+    # the frame's Index object; its values are not columns
+    msg = "The following 'index' labels are not columns of the DataFrame"
+    with pytest.raises(KeyError, match=msg):
+        df.pivot(index=df.index, columns="col1")
+    with pytest.raises(KeyError, match=msg):
+        df.pivot(index=df.index, columns="col1", values="col2")
+
+    # a bare missing scalar label for each parameter
+    with pytest.raises(KeyError, match="'index' labels are not columns"):
+        df.pivot(index="missing", columns="col1")
+    with pytest.raises(KeyError, match="'columns' labels are not columns"):
+        df.pivot(index="col2", columns="missing")
+    with pytest.raises(KeyError, match="'values' labels are not columns"):
+        df.pivot(index="col2", columns="col1", values="missing")
+
+    # valid usage with real column labels is unaffected
+    valid = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+    result = valid.pivot(index="foo", columns="bar", values="baz")
+    expected = DataFrame(
+        {"A": [1.0, 3.0], "B": [2.0, np.nan]},
+        index=Index(["one", "two"], name="foo"),
+    )
+    expected.columns.name = "bar"
+    tm.assert_frame_equal(result, expected)

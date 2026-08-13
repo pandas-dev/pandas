@@ -899,6 +899,22 @@ def pivot(
     """
     columns_listlike = com.convert_to_list_like(columns)
 
+    # GH#35785 without this, downstream label arithmetic raises cryptically.
+    labels_to_check: list[tuple[str, list]] = [("columns", list(columns_listlike))]
+    if index is not lib.no_default:
+        labels_to_check.append(("index", list(com.convert_to_list_like(index))))
+    if values is not lib.no_default and not isinstance(values, tuple):
+        # GH#17160 a tuple ``values`` is a single (MultiIndex) label; the
+        #  existing lookup already raises a KeyError naming it.
+        labels_to_check.append(("values", list(com.convert_to_list_like(values))))
+    for param_name, labels in labels_to_check:
+        missing = [label for label in labels if label not in data.columns]
+        if missing:
+            raise KeyError(
+                f"The following '{param_name}' labels are not columns of the "
+                f"DataFrame: {missing}"
+            )
+
     # If columns is None we will create a MultiIndex level with None as name
     # which might cause duplicated names because None is the default for
     # level names
@@ -1030,8 +1046,10 @@ def crosstab(
     categories included in the cross-tabulation, even if the actual data does
     not contain any instances of a particular category.
 
-    In the event that there aren't overlapping indexes an empty DataFrame will
-    be returned.
+    Series arguments are aligned on their index before tabulating; rows where
+    any value is missing after alignment (e.g. index labels not present in
+    all Series) are dropped. In the event that there aren't overlapping
+    indexes an empty DataFrame will be returned.
 
     Reference :ref:`the user guide <reshaping.crosstabulations>` for more examples.
 
@@ -1091,6 +1109,16 @@ def crosstab(
     a
     bar    1     2    1     0
     foo    2     2    1     2
+
+    When `values` and `aggfunc` are passed, the values are aggregated within
+    each group instead of counted:
+
+    >>> vals = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    >>> pd.crosstab(a, b, values=vals, aggfunc="sum", rownames=["a"], colnames=["b"])
+    b    one  two
+    a
+    bar   18    8
+    foo   17   23
 
     Here 'c' and 'f' are not represented in the data and will not be
     shown in the output because dropna is True by default. Set
@@ -1240,7 +1268,14 @@ def _normalize(
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
             index_margin = index_margin / index_margin.sum()
-            index_margin.loc[margins_name] = 1
+            margin_key: Hashable
+            if isinstance(index_margin.index, MultiIndex):
+                # GH#17024 expanding with a partial key is deprecated
+                nlevels = index_margin.index.nlevels
+                margin_key = (margins_name,) + ("",) * (nlevels - 1)
+            else:
+                margin_key = margins_name
+            index_margin.loc[margin_key] = 1
             table = concat([table, column_margin], axis=1)
             table = table._append_internal(index_margin, ignore_index=True)
 

@@ -8,6 +8,7 @@ from typing import (
     Literal,
     Self,
 )
+import unicodedata
 
 import numpy as np
 
@@ -168,6 +169,25 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(
             pa_pad(self._pa_array, width=width, padding=fillchar)
         )
+
+    def _str_zfill(self, width: int) -> Self:
+        if pa_version_under21p0:
+            predicate = lambda val: val.zfill(width)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
+
+    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
+        if form not in ("NFC", "NFD", "NFKC", "NFKD"):
+            raise ValueError("invalid normalization form")
+        if form in ("NFC", "NFKC"):
+            # GH#64359 pc.utf8_normalize only decomposes; it skips the canonical
+            #  composition step, so for the composing forms it returns decomposed
+            #  output. Fall back to unicodedata for these.
+            predicate = lambda val: unicodedata.normalize(form, val)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
@@ -395,16 +415,29 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if pat.startswith("^"):
-            pat = pat[1:]
-        pat = f"^({pat})"
+        if isinstance(pat, re.Pattern):
+            # GH#63108 the accessor pre-compiles `pat` whenever the user passes
+            #  `flags`, so unwrap it here; pyarrow only supports IGNORECASE,
+            #  which it spells as `case`. Confined to this branch so that
+            #  _str_fullmatch, which reaches us with a plain str, is unaffected.
+            flags |= pat.flags & ~re.UNICODE
+            if flags & re.IGNORECASE:
+                case = False
+                flags &= ~re.IGNORECASE
+            pattern = pat.pattern
+        else:
+            pattern = pat
+
+        if pattern.startswith("^"):
+            pattern = pattern[1:]
+        pattern = f"^({pattern})"
         return ArrowStringArrayMixin._str_contains(
-            self, pat, case, flags, na, regex=True
+            self, pattern, case, flags, na, regex=True
         )
 
     def _str_fullmatch(
@@ -423,12 +456,14 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if not pc.all(pc.string_is_ascii(self._pa_array)).as_py():
+        # min_count=0 so that an empty or all-null array reports True instead of
+        #  null, keeping it on the pyarrow path below
+        if not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py():
             # GH#64123 - pc.find_substring returns byte offsets instead of
             # character offsets for multi-byte UTF-8 characters, so we fall back
             # to Python str.find which correctly returns character offsets.
             res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
-            return self._convert_int_result(pa.chunked_array(res_list))
+            return self._convert_int_result(pa.chunked_array(res_list, type=pa.int64()))
 
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
@@ -438,7 +473,9 @@ class ArrowStringArrayMixin:
                 res_list = self._apply_elementwise(
                     lambda val: val.find(sub, start, end)
                 )
-                return self._convert_int_result(pa.chunked_array(res_list))
+                return self._convert_int_result(
+                    pa.chunked_array(res_list, type=pa.int64())
+                )
             if start is None:
                 start_offset = 0
                 start = 0
@@ -454,3 +491,67 @@ class ArrowStringArrayMixin:
             result = pc.if_else(found, offset_result, -1)
         result = result.cast(pa.int64())
         return self._convert_int_result(result)
+
+    def _str_partition_expand(self, sep: str) -> pa.ChunkedArray:
+        """
+        Split each string on the first occurrence of ``sep``.
+
+        Returns a ``list<string>`` array holding one three-element list per row
+        -- the part before the separator, the separator, and the part after --
+        which ``StringMethods._wrap_result`` expands into three columns. Rows
+        without ``sep`` get two empty strings, matching ``str.partition``.
+
+        The caller wraps this in an :class:`ArrowExtensionArray`; the rows are
+        lists, so it is not of the calling array's own type.
+        """
+        if not sep:
+            # pyarrow reports this as "Empty separator"; keep str.partition's
+            #  wording so every dtype raises the same way
+            raise ValueError("empty separator")
+
+        str_type = self._pa_array.type
+        chunks = [
+            self._partition_chunk(chunk, sep, str_type)
+            for chunk in self._pa_array.chunks
+        ]
+        return pa.chunked_array(chunks, type=pa.list_(str_type))
+
+    @staticmethod
+    def _partition_chunk(chunk: pa.Array, sep: str, str_type: pa.DataType) -> pa.Array:
+        """
+        Build the ``list<string>`` rows for one chunk of :meth:`_str_partition_expand`.
+
+        Working a chunk at a time keeps the concatenation below within the
+        offset width of ``str_type``, which matters for columns near the 2 GiB
+        limit of 32-bit ``string``.
+        """
+        # max_splits=1 gives [before] when sep is absent, else [before, after];
+        #  padding to a fixed two elements makes the tail null in the first case
+        split = pc.split_pattern(chunk, sep, max_splits=1)
+        pieces = pc.list_slice(split, 0, 2, return_fixed_size_list=True)
+
+        before = pc.list_element(pieces, 0)
+        tail = pc.list_element(pieces, 1)
+        after = pc.fill_null(tail, pa.scalar("", type=str_type))
+        middle = pc.if_else(
+            pc.is_valid(tail),
+            pa.scalar(sep, type=str_type),
+            pa.scalar("", type=str_type),
+        )
+
+        n = len(chunk)
+        # Interleave the three columns into [before[0], sep[0], after[0],
+        #  before[1], ...]. Arrow has no kernel that zips arrays into rows, so
+        #  take from their concatenation. Both ranges below are plain index
+        #  arithmetic: NumPy builds them in one strided pass, while pyarrow has
+        #  no arange at all before 21.0 and would need four kernels for the
+        #  interleave, so they stay NumPy at every supported version.
+        values = pa.concat_arrays([before, middle, after])
+        indices = np.arange(3 * n, dtype=np.int64).reshape(3, n).T.reshape(-1)
+        values = values.take(pa.array(indices))
+        # int32 rather than int64 offsets, but built wide so that a chunk with
+        #  more than 2**31 / 3 rows raises instead of wrapping around
+        offsets = pa.array(np.arange(0, 3 * n + 1, 3, dtype=np.int64), type=pa.int32())
+        # a null string partitions to a null row, not to a row of nulls
+        mask = pc.is_null(before) if before.null_count else None
+        return pa.ListArray.from_arrays(offsets, values, mask=mask)

@@ -1,0 +1,27 @@
+name: PR Issue Assignment Gate
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions: {}
+
+jobs:
+  gate:
+    if: github.repository_owner == 'pandas-dev'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts
+          persist-credentials: false
+      # Warn-only at first; add --close-enabled to start closing flagged
+      # pull requests.
+      - run: >-
+          python3 -m scripts.issue_assignment.gate
+          --repo "$GITHUB_REPOSITORY" --event-path "$GITHUB_EVENT_PATH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

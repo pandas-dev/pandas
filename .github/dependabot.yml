@@ -7,3 +7,8 @@ updates:
     labels:
       - "CI"
       - "Dependencies"
+    groups:
+      # init/autobuild/analyze must stay on the same version or CodeQL errors out
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"

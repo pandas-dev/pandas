@@ -730,7 +730,9 @@ def merge_asof(
     -------
     DataFrame
         A DataFrame of the two merged objects, containing all rows from the
-        left DataFrame and the nearest matches from the right DataFrame.
+        left DataFrame and the nearest matches from the right DataFrame. The
+        key column holds the left DataFrame's values; the right DataFrame's
+        key column is retained only if it has a different name.
 
     See Also
     --------
@@ -1295,7 +1297,13 @@ class _MergeOperation:
                                 else lib.has_sentinel(left_indexer, -1)
                             )
 
-                        if left_has_missing:
+                        right_key_dtype = self.right_join_keys[i].dtype
+                        needs_resolution_cast = (
+                            result[name].dtype.kind == "M"
+                            and right_key_dtype.kind == "M"
+                            and result[name].dtype != right_key_dtype
+                        )
+                        if left_has_missing or needs_resolution_cast:
                             take_right = self.right_join_keys[i]
 
                             if result[name].dtype != self.left[name].dtype:
@@ -1309,7 +1317,13 @@ class _MergeOperation:
                                 else lib.has_sentinel(right_indexer, -1)
                             )
 
-                        if right_has_missing:
+                        left_key_dtype = self.left_join_keys[i].dtype
+                        needs_resolution_cast = (
+                            result[name].dtype.kind == "M"
+                            and left_key_dtype.kind == "M"
+                            and result[name].dtype != left_key_dtype
+                        )
+                        if right_has_missing or needs_resolution_cast:
                             take_left = self.left_join_keys[i]
 
                             if result[name].dtype != self.right[name].dtype:
@@ -1360,8 +1374,9 @@ class _MergeOperation:
                         and rvals.dtype.kind == "M"
                         and result_dtype.kind == "O"
                     ):
-                        # TODO(non-nano) Workaround for common_type not dealing
-                        # with different resolutions
+                        # find_common_type returns object for datetimes with
+                        # different timezones; keep the combined datetime key
+                        # dtype instead of degrading to object.
                         result_dtype = key_col.dtype
 
                 if result._is_label_reference(name):
@@ -2076,16 +2091,22 @@ def get_join_indexers(
     lkey: ArrayLike
     rkey: ArrayLike
     if len(left_keys) > 1:
-        # get left & right join labels and num. of levels at each location
-        mapped = (
-            _factorize_keys(left_keys[n], right_keys[n], sort=sort)
-            for n in range(len(left_keys))
-        )
-        zipped = zip(*mapped, strict=True)
-        llab, rlab, shape = (list(x) for x in zipped)
+        fused = _fuse_int64_keys(left_keys, right_keys)
+        if fused is not None:
+            # combine integer-like keys in a single pass, avoiding a
+            #  hashtable factorization per column
+            lkey, rkey = fused
+        else:
+            # get left & right join labels and num. of levels at each location
+            mapped = (
+                _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+                for n in range(len(left_keys))
+            )
+            zipped = zip(*mapped, strict=True)
+            llab, rlab, shape = (list(x) for x in zipped)
 
-        # get flat i8 keys from label lists
-        lkey, rkey = _get_join_keys(llab, rlab, tuple(shape), sort)
+            # get flat i8 keys from label lists
+            lkey, rkey = _get_join_keys(llab, rlab, tuple(shape), sort)
     else:
         lkey = left_keys[0]
         rkey = right_keys[0]
@@ -2677,19 +2698,30 @@ class _AsOfMerge(_OrderedMerge):
                 left_join_keys = self.left_join_keys[0:-1]
                 right_join_keys = self.right_join_keys[0:-1]
 
-            mapped = [
-                _factorize_keys(
-                    left_join_keys[n],
-                    right_join_keys[n],
-                    sort=False,
-                )
-                for n in range(len(left_join_keys))
-            ]
-
             if len(left_join_keys) == 1:
-                left_by_values = mapped[0][0]
-                right_by_values = mapped[0][1]
+                lby = left_join_keys[0]
+                rby = right_join_keys[0]
+                if isinstance(lby, np.ndarray) and lby.dtype.kind in "biumM":
+                    # Matching dtypes are enforced in
+                    #  _maybe_require_matching_dtypes, and the int64
+                    #  representation preserves equality, so these values
+                    #  can be used as group keys directly without
+                    #  factorizing.
+                    left_by_values = lby.astype(np.int64, copy=False)
+                    right_by_values = rby.astype(np.int64, copy=False)
+                else:
+                    left_by_values, right_by_values, _ = _factorize_keys(
+                        lby, rby, sort=False
+                    )
             else:
+                mapped = [
+                    _factorize_keys(
+                        left_join_keys[n],
+                        right_join_keys[n],
+                        sort=False,
+                    )
+                    for n in range(len(left_join_keys))
+                ]
                 arrs = [np.concatenate(m[:2]) for m in mapped]
                 shape = tuple(m[2] for m in mapped)
                 group_index = get_group_index(
@@ -2953,14 +2985,7 @@ def _factorize_keys(
                 count += 1
             return llab, rlab, count
 
-        if not isinstance(lk, BaseMaskedArray) and not (
-            # exclude arrow dtypes that would get cast to object
-            isinstance(lk.dtype, ArrowDtype)
-            and (
-                is_numeric_dtype(lk.dtype.numpy_dtype)
-                or (is_string_dtype(lk.dtype) and not sort)
-            )
-        ):
+        if not isinstance(lk, BaseMaskedArray):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
@@ -3147,6 +3172,116 @@ def _get_join_keys(
     shape = (count, *shape[nlev:])
 
     return _get_join_keys(llab, rlab, shape, sort)
+
+
+def _fuse_key_view(arr: ArrayLike) -> np.ndarray | None:
+    """
+    Integer-valued view of a key column for fusing, or None if unsupported.
+    """
+    dtype = arr.dtype
+    if isinstance(dtype, np.dtype):
+        if dtype.kind in "mM":
+            # raw ndarray or numpy-backed DatetimeArray/TimedeltaArray
+            values = (
+                arr if isinstance(arr, np.ndarray) else getattr(arr, "_ndarray", None)
+            )
+            if isinstance(values, np.ndarray) and values.dtype.isnative:
+                return values.view(np.int64)
+        elif isinstance(arr, np.ndarray):
+            if dtype.kind in "iu":
+                return arr
+            if dtype.kind == "b":
+                return arr.view(np.uint8)
+    elif isinstance(dtype, DatetimeTZDtype):
+        i8values = getattr(arr, "_ndarray", None)
+        if isinstance(i8values, np.ndarray):
+            return i8values.view(np.int64)
+    return None
+
+
+def _shift_to_int64(
+    values: np.ndarray, cmin: int, stride: int
+) -> npt.NDArray[np.int64]:
+    """
+    Compute (values - cmin) * stride as int64, given that the true results
+    all lie in [0, 2**63), so any intermediate wraparound is exact mod-2**64
+    arithmetic.
+    """
+    if cmin >= 2**63:
+        # uint64-only value; wrap to the int64 representation
+        cmin -= 2**64
+    result = values.astype(np.int64)  # always copies, so in-place ops are safe
+    if cmin != 0:
+        result -= np.int64(cmin)
+    if stride != 1:
+        result *= stride
+    return result
+
+
+def _fuse_int64_keys(
+    left_keys: list[ArrayLike], right_keys: list[ArrayLike]
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]] | None:
+    """
+    Fuse integer-like key columns into a single int64 key per side.
+
+    Combining the raw values arithmetically lets the composite key be
+    factorized in a single hash pass, instead of one hash pass per column
+    plus another over the combined codes. The fused keys are ordered like
+    the lexicographic order of the key tuples, so both sort=True and the
+    monotonic fast paths behave the same as with per-column factorization.
+
+    Returns None (caller falls back to per-column factorization) if the
+    keys are not all integer-viewable numpy arrays or the combined key
+    space does not fit in int64.
+    """
+    if len(left_keys[0]) == 0 or len(right_keys[0]) == 0:
+        # min/max below need non-empty arrays; not a perf-relevant case
+        return None
+
+    lviews = []
+    rviews = []
+    for lk, rk in zip(left_keys, right_keys, strict=True):
+        if lk.dtype != rk.dtype and not (
+            isinstance(lk.dtype, np.dtype)
+            and isinstance(rk.dtype, np.dtype)
+            and lk.dtype.kind in "iu"
+            and rk.dtype.kind in "iu"
+            and np.promote_types(lk.dtype, rk.dtype).kind in "iu"
+        ):
+            # fuse mismatched dtypes only if they promote losslessly to a
+            #  numpy integer; e.g. uint64 with a signed dtype would go
+            #  through float64 in the fallback path
+            return None
+        lview = _fuse_key_view(lk)
+        rview = _fuse_key_view(rk)
+        if lview is None or rview is None:
+            return None
+        lviews.append(lview)
+        rviews.append(rview)
+
+    mins = []
+    spans = []
+    total = 1
+    for lview, rview in zip(lviews, rviews, strict=True):
+        cmin = min(int(lview.min()), int(rview.min()))
+        cmax = max(int(lview.max()), int(rview.max()))
+        mins.append(cmin)
+        spans.append(cmax - cmin + 1)
+        total *= cmax - cmin + 1
+        if total >= lib.i8max:
+            # combined key space does not fit in int64
+            return None
+
+    stride = total // spans[0]
+    lkey = _shift_to_int64(lviews[0], mins[0], stride)
+    rkey = _shift_to_int64(rviews[0], mins[0], stride)
+    for lview, rview, cmin, span in zip(
+        lviews[1:], rviews[1:], mins[1:], spans[1:], strict=True
+    ):
+        stride //= span
+        lkey += _shift_to_int64(lview, cmin, stride)
+        rkey += _shift_to_int64(rview, cmin, stride)
+    return lkey, rkey
 
 
 def _should_fill(lname, rname) -> bool:

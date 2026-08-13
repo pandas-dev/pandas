@@ -4,7 +4,12 @@ project(
     'c',
     'cpp',
     'cython',
-    version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
+    version: run_command(
+        find_program('python3', 'python'),
+        'generate_version.py',
+        '--print',
+        check: true,
+    ).stdout().strip(),
     license: 'BSD-3',
     meson_version: '>=1.2.3',
     default_options: [

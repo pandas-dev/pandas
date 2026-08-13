@@ -50,6 +50,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_array_like_deprecate_non_pandas,
     is_hashable,
     is_integer,
     is_iterator,
@@ -68,7 +69,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -856,6 +856,13 @@ class MultiIndex(Index):
         it filters out all rows of the level C, MultiIndex.levels will still
         return A, B, C.
 
+        When a ``MultiIndex`` is built by the standard constructors (e.g.
+        :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_tuples`),
+        missing values (``NaN``) are not stored in ``levels``; they are
+        represented by a code of ``-1`` in :attr:`MultiIndex.codes`, so
+        ``levels`` does not contain ``NaN`` even when the corresponding
+        level of the ``MultiIndex`` does.
+
         See Also
         --------
         MultiIndex.codes : The codes of the levels in the MultiIndex.
@@ -1058,7 +1065,7 @@ class MultiIndex(Index):
 
         if isinstance(levels, Index):
             pass
-        elif is_array_like(levels):
+        elif is_array_like_deprecate_non_pandas(levels):
             levels = Index(levels)
         elif is_list_like(levels):
             levels = list(levels)
@@ -3330,8 +3337,10 @@ class MultiIndex(Index):
             else:
                 try:
                     target = MultiIndex.from_tuples(target)
-                except TypeError:
+                except (TypeError, ValueError):
                     # not all tuples, see test_constructor_dict_multiindex_reindex_flat
+                    # ValueError: non-object target dtype (e.g. int), so the
+                    #  entries can't be tuples (GH#26460)
                     return target
 
         target = self._maybe_preserve_names(target, preserve_names)
@@ -4820,6 +4829,21 @@ class MultiIndex(Index):
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
+                # GH#20252, GH#26622 from_tuples silently gives wrong results
+                #  for elements that aren't tuple-likes of length nlevels.
+                for position, value in enumerate(values):
+                    if is_list_like(value) and len(value) == self.nlevels:
+                        continue
+                    if is_list_like(value):
+                        got = f"an element of length {len(value)}"
+                    else:
+                        got = f"a scalar ({value!r})"
+                    raise ValueError(
+                        "MultiIndex.isin expects an iterable of tuples of "
+                        f"length {self.nlevels} (the number of levels); got "
+                        f"{got} at position {position}. To match on a single "
+                        "level, pass the level= argument."
+                    )
                 values = MultiIndex.from_tuples(values)
             return values.unique().get_indexer_for(self) != -1
         else:

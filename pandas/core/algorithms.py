@@ -1609,6 +1609,11 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
 # Helper functions
 
 
+# Minimum number of values before safe_sort's counting-sort path is worth it.
+# Below this, argsort's n*log(n) is cheaper than the linear counting work.
+_MIN_COUNTING_SORT_LEN = 5_000
+
+
 # Note: safe_sort is in algorithms.py instead of sorting.py because it is
 #  low-dependency, is used in this module, and used private methods from
 #  this module.
@@ -1669,7 +1674,24 @@ def safe_sort(
     sorter = None
     ordered: AnyArrayLike
 
+    # For integer values spanning a modest range, the codes remapping below
+    #  can rank each value within that range (a counting sort) instead of
+    #  argsorting.
+    use_counting = False
+    vmin = rng_size = 0
     if (
+        codes is not None
+        and isinstance(values, np.ndarray)
+        and values.dtype.kind in "iu"
+        and len(values) >= _MIN_COUNTING_SORT_LEN
+    ):
+        vmin = int(values.min())
+        rng_size = int(values.max()) - vmin + 1
+        use_counting = rng_size <= 4 * len(values)
+
+    if use_counting:
+        ordered = np.sort(cast("np.ndarray", values))
+    elif (
         not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
@@ -1711,27 +1733,46 @@ def safe_sort(
         )
     codes = ensure_platform_int(np.asarray(codes))
 
-    if not assume_unique and not len(unique(values)) == len(values):
-        raise ValueError("values should be unique if codes is not None")
-
     # ranks[i] gives the position of values[i] in `ordered`
-    if sorter is not None:
-        # sorter is a permutation, so scatter is a faster equivalent to
-        #  `ranks = sorter.argsort()`
-        ranks = np.empty(len(sorter), dtype=np.intp)
-        ranks[sorter] = np.arange(len(sorter), dtype=np.intp)
+    if use_counting:
+        arr = cast("np.ndarray", values)
+        if arr.dtype.kind == "i":
+            # go through int64 so differences don't overflow narrower signed
+            #  dtypes; int64 wraparound is exact since the true differences
+            #  are within rng_size
+            shifted = arr.astype(np.int64, copy=False) - vmin
+        else:
+            # unsigned: differences always fit the unsigned dtype
+            shifted = arr - vmin
+        present = np.zeros(rng_size, dtype=bool)
+        present[shifted] = True
+        counts = present.cumsum(dtype=np.intp)
+        # the counting pass gives the uniqueness check for free
+        if not assume_unique and counts[-1] != len(values):
+            raise ValueError("values should be unique if codes is not None")
+        ranks = counts[shifted]
+        ranks -= 1
     else:
-        # mixed types
-        # error: Argument 1 to "_get_hashtable_algo" has incompatible type
-        # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
-        # "ndarray[Any, Any]"
-        hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
-        t = hash_klass(len(values))
-        # error: Argument 1 to "map_locations" of "HashTable" has incompatible
-        # type "ExtensionArray | ndarray[Any, Any] | Index | Series";
-        # expected "ndarray"
-        t.map_locations(ordered)  # type: ignore[arg-type]
-        ranks = ensure_platform_int(t.lookup(values))
+        if not assume_unique and not len(unique(values)) == len(values):
+            raise ValueError("values should be unique if codes is not None")
+
+        if sorter is not None:
+            # sorter is a permutation, so scatter is a faster equivalent to
+            #  `ranks = sorter.argsort()`
+            ranks = np.empty(len(sorter), dtype=np.intp)
+            ranks[sorter] = np.arange(len(sorter), dtype=np.intp)
+        else:
+            # mixed types
+            # error: Argument 1 to "_get_hashtable_algo" has incompatible type
+            # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
+            # "ndarray[Any, Any]"
+            hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
+            t = hash_klass(len(values))
+            # error: Argument 1 to "map_locations" of "HashTable" has incompatible
+            # type "ExtensionArray | ndarray[Any, Any] | Index | Series";
+            # expected "ndarray"
+            t.map_locations(ordered)  # type: ignore[arg-type]
+            ranks = ensure_platform_int(t.lookup(values))
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1

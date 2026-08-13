@@ -134,6 +134,18 @@ def test_reindex_not_all_tuples():
     tm.assert_numpy_array_equal(indexer, expected)
 
 
+def test_reindex_flat_non_object_target():
+    # GH#26460 reindexing a unique MultiIndex with a non-object (e.g. integer)
+    #  flat target that matches nothing should return the flat target, not raise
+    mi = MultiIndex.from_tuples([(4, 8), (4, 10)])
+    idx = Index([8, 10])
+    res, indexer = mi.reindex(idx)
+
+    tm.assert_index_equal(res, idx)
+    expected = np.array([-1, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(indexer, expected)
+
+
 def test_reindex_limit_arg_with_multiindex():
     # GH21247
 

@@ -149,6 +149,7 @@ from pandas.core.sorting import (
 from pandas.core.strings.accessor import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
+from pandas.io._util import arrow_table_to_pandas
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
     SeriesInfo,
@@ -2033,7 +2034,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             pa_array = data
 
-        ser = pa_array.to_pandas()
+        ser = arrow_table_to_pandas(pa.table({"col": pa_array}))["col"]
+
+        # for pyarrow, preserve to_pandas() behaviour of using a field name
+        name = None
+        try:
+            name = pa_array._name
+        except AttributeError:
+            pass
+        ser.name = name
+
         return ser
 
     def _set_name(self, name, inplace: bool = False) -> Series:
@@ -2417,6 +2427,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             * Interval
             * Sparse
             * IntegerNA
+            * String
 
         See Examples section.
 
@@ -2513,6 +2524,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.duplicated : Related method on Series, indicating duplicate
             Series values.
         Series.unique : Return unique values as an array.
+        Index.duplicated : Indicate duplicate index values.
 
         Examples
         --------
@@ -2558,6 +2570,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1       cow
         3    beetle
         5     hippo
+        Name: animal, dtype: str
+
+        Only the values are considered, not the index. To drop entries with a
+        duplicate index label, use :meth:`Index.duplicated` with boolean
+        indexing.
+
+        >>> s.index = ["a", "b", "b", "c", "c", "d"]
+        >>> s[~s.index.duplicated(keep="first")]
+        a     llama
+        b       cow
+        c    beetle
+        d     hippo
         Name: animal, dtype: str
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -4827,7 +4851,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
         sort : bool, default True
-            Sort the level(s) in the resulting MultiIndex columns.
+            Sort the level(s) in the resulting MultiIndex columns. This also
+            orders the rows of the result: sorted by the remaining levels if
+            ``True``, in order of first appearance if ``False``.
 
         Returns
         -------
@@ -5674,6 +5700,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+            Filling is based on the position of each new label relative to the
+            existing labels. For example, with ``method='ffill'`` and a
+            monotonically increasing index, a new label is filled from the
+            nearest existing label that sorts before it.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
@@ -5695,8 +5725,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 for more details.
 
         level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
+            Match index values on the specified level of a MultiIndex.
+            The MultiIndex may be on either the calling object or the
+            target index; using ``level`` when both are MultiIndexes is
+            ambiguous and raises a ``TypeError``. The new labels are
+            aligned against the values of that single level while the
+            other levels are left unchanged; passing a flat index with
+            ``level`` does not form the Cartesian product of the
+            remaining levels. See :ref:`advanced.advanced_reindex` for
+            the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -5859,6 +5896,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original DataFrame, use the ``fillna()`` method.
+
+        Because ``method="bfill"`` fills each new label from the next entry
+        present in the original index, the trailing entry at 2010-01-07 stays
+        ``NaN``: there is no original index entry after it. Conversely,
+        ``method="ffill"`` would leave the leading entries (before the first
+        original index entry) unfilled.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """
@@ -7372,11 +7415,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7436,11 +7479,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7501,11 +7544,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7568,11 +7611,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7636,11 +7679,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7704,11 +7747,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7769,11 +7812,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7833,11 +7876,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7897,11 +7940,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -7963,11 +8006,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8031,11 +8074,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8104,11 +8147,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8167,11 +8210,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8235,11 +8278,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8302,11 +8345,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8367,11 +8410,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8429,11 +8472,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8494,11 +8537,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8559,11 +8602,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8624,11 +8667,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8689,11 +8732,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
@@ -8760,11 +8803,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : None or float value, default None (NaN)
-            Fill existing missing (NaN) values, and any new element needed for
-            successful Series alignment, with this value before computation.
-            If data in both corresponding Series locations is missing
-            the result of filling (at that location) will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 

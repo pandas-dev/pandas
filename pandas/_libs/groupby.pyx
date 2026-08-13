@@ -53,6 +53,12 @@ from pandas._libs.dtypes cimport (
 )
 from pandas._libs.missing cimport checknull
 
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
+
+
+cdef extern from "pandas/portable.h":
+    int checked_add(int64_t a, int64_t b, int64_t *res) noexcept nogil
+
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -731,6 +737,8 @@ def group_sum(
         sum_t val, t, y, nan_val
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
+        int64_t[:, ::1] carry
+        uint8_t[:, ::1] na_result
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
         bint isna_entry, isna_result
@@ -748,6 +756,10 @@ def group_sum(
         assert sum_t is object
         sumx = np.full((<object>out).shape, initial, dtype=object)
         # object code path does not use `compensation`
+
+    if sum_t is int64_t:
+        carry = np.zeros((<object>out).shape, dtype=np.int64)
+        na_result = np.zeros((<object>out).shape, dtype=np.uint8)
 
     N, K = (<object>values).shape
     if uses_mask:
@@ -779,6 +791,16 @@ def group_sum(
                 if not skipna:
                     if uses_mask:
                         isna_result = result_mask[lab, j]
+                    elif sum_t is int64_t and is_datetimelike:
+                        # GH#66551: track NA-ness explicitly rather than reading
+                        #  it back off sumx, which cannot tell a group holding a
+                        #  real NaT from one whose running total merely landed on
+                        #  NPY_NAT.  The latter must keep accumulating.
+                        isna_result = na_result[lab, j]
+                        if isna_entry:
+                            # marked after the read so this entry still falls
+                            #  through to set sumx to nan_val
+                            na_result[lab, j] = 1
                     else:
                         isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
 
@@ -798,6 +820,17 @@ def group_sum(
                             # i.e. we haven't added anything yet; avoid TypeError
                             #  if e.g. val is a str and sumx[lab, j] is 0
                             t = val
+                        elif sum_t is int64_t and is_datetimelike:
+                            # GH#66551: int64 addition is modular, so a wrapped
+                            #  intermediate does not corrupt the total; keep the
+                            #  wrapped value and track the net carry instead.  The
+                            #  total is representable iff the carry is back to zero
+                            #  at the end, which makes this independent of the
+                            #  order values arrive in.
+                            if checked_add(sumx[lab, j], val, &t):
+                                t = <int64_t>(<uint64_t>sumx[lab, j] +
+                                              <uint64_t>val)
+                                carry[lab, j] += 1 if val > 0 else -1
                         else:
                             t = sumx[lab, j] + val
                         sumx[lab, j] = t
@@ -835,6 +868,19 @@ def group_sum(
                         result_mask[lab, j] = True
                     else:
                         sumx[lab, j] = nan_val
+
+    if sum_t is int64_t:
+        if is_datetimelike:
+            for i in range(ncounts):
+                for j in range(K):
+                    if na_result[i, j] or nobs[i, j] < min_count:
+                        # discarded downstream, so exempt from the bounds check
+                        continue
+                    # representable totals are (NPY_NAT, i8max]
+                    if carry[i, j] != 0 or sumx[i, j] == NPY_NAT:
+                        raise OutOfBoundsTimedelta(
+                            "overflow in timedelta operation"
+                        )
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, sumx
