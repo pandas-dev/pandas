@@ -7692,12 +7692,13 @@ class Index(IndexOpsMixin, PandasObject):
             is_pdna_mask = is_pdna(np.asarray(self))
             if is_pdna_mask.any():
                 if op in {operator.eq, operator.le, operator.ge}:
-                    fill_value = True
+                    arr = np.full(len(self), True, dtype=object)
+                    arr[is_pdna_mask] = NA
+                    return arr
                 elif op is operator.ne:
-                    fill_value = False
-                arr = np.full(len(self), fill_value, dtype=object)
-                arr[is_pdna_mask] = NA
-                return arr
+                    arr = np.full(len(self), False, dtype=object)
+                    arr[is_pdna_mask] = NA
+                    return arr
 
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
