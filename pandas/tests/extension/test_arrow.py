@@ -3579,6 +3579,88 @@ def test_setitem_na_chunked_string_if_else():
 
 
 @pytest.mark.parametrize(
+    "pa_type", [pa.binary(), pa.large_binary(), pa.string(), pa.large_string()]
+)
+@pytest.mark.parametrize("extra_chunk", [True, False])
+def test_setitem_na_sliced_chunk_if_else(pa_type, extra_chunk):
+    # GH#64320
+    values = ["a", "bb", "ccc", "dddd", "eeeee"]
+    if pa.types.is_binary(pa_type) or pa.types.is_large_binary(pa_type):
+        values = [val.encode() for val in values]
+    chunk = pa.array(values, type=pa_type)
+    # the first chunk carries a non-zero offset, which pc.if_else mishandles
+    chunks = [chunk.slice(3), chunk] if extra_chunk else [chunk.slice(3)]
+    arr = ArrowExtensionArray(pa.chunked_array(chunks))
+    expected_values = [None, values[4]] + (values if extra_chunk else [])
+    expected = ArrowExtensionArray(pa.array(expected_values, type=pa_type))
+
+    arr[[0]] = None
+
+    arr._pa_array.validate(full=True)
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
+@pytest.mark.parametrize("chunked", [True, False])
+def test_from_sequence_of_strings_duration_sliced(chunked, pa_type):
+    # GH#64320: the non-ns duration path routes strings through pc.if_else,
+    # which truncated them when they were read through a non-zero offset
+    values = ["11", "22", "33", "444444444", None]
+    # seconds, not the nanoseconds to_timedelta would infer from a bare integer
+    seconds = [11, 22, 33, 444444444, None]
+    strings = pa.array(values, type=pa_type)
+    if chunked:
+        strings = pa.chunked_array([strings.slice(3), strings])
+        expected_seconds = seconds[3:] + seconds
+    else:
+        strings = strings.slice(3)
+        expected_seconds = seconds[3:]
+
+    dtype = ArrowDtype(pa.duration("s"))
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array(expected_seconds, type=pa.duration("s")))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", [pa.null(), pa.dictionary(pa.int32(), pa.string()), pa.int64()]
+)
+def test_from_sequence_of_strings_duration_non_varbinary(pa_type):
+    # GH#64320: only the four affected layouts may route through
+    # replace_with_mask. Diverting the rest is at best pointless and at worst
+    # wrong: it aborts on the null type, and its numpy fallback drops nulls for
+    # dictionary. int64 is unharmed, and is here to pin that it stays that way.
+    if pa.types.is_null(pa_type):
+        values, expected_seconds = [None, None, None], [None, None, None]
+    elif pa.types.is_integer(pa_type):
+        values, expected_seconds = [1, 2, None], [1, 2, None]
+    else:
+        values, expected_seconds = ["1", "2", None], [1, 2, None]
+    strings = pa.chunked_array([pa.array(values, type=pa_type)])
+
+    result = ArrowExtensionArray._from_sequence_of_strings(
+        strings, dtype=ArrowDtype(pa.duration("s"))
+    )
+
+    expected = ArrowExtensionArray(pa.array(expected_seconds, type=pa.duration("s")))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_astype_duration_from_sliced_arrow_strings():
+    # GH#64320
+    ser = pd.Series(["11", "22", "33", "444444444"], dtype="string[pyarrow]")[2:]
+
+    result = ser.astype("duration[s][pyarrow]")
+
+    expected = pd.Series(
+        [pd.Timedelta(seconds=33), pd.Timedelta(seconds=444444444)],
+        dtype="duration[s][pyarrow]",
+        index=[2, 3],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data, arrow_dtype",
     [
         ([b"a", b"b"], pa.large_binary()),
