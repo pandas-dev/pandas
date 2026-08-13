@@ -400,7 +400,7 @@ static const char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc,
     *outLen = 0;
     Py_DECREF(str);
     if (!PyErr_Occurred()) {
-      PyErr_SetString(PyExc_ValueError, "Failed to convert time");
+      PyErr_SetString(PyExc_TypeError, "isoformat() must return str");
     }
     ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
     return NULL;

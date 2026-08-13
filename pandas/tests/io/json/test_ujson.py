@@ -388,7 +388,7 @@ class TestUltraJSONTests:
             def isoformat(self):
                 return 1
 
-        with pytest.raises(ValueError, match="Failed to convert time"):
+        with pytest.raises(TypeError, match=re.escape("isoformat() must return str")):
             ujson.ujson_dumps(InvalidTime())
 
     def test_encode_to_utf8(self):
