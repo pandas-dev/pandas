@@ -371,7 +371,7 @@ def array_to_timedelta64(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
-        NPY_DATETIMEUNIT item_reso
+        NPY_DATETIMEUNIT item_reso, int_reso
         ResoState state = ResoState(creso)
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
@@ -2726,15 +2726,17 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
 
-            int_item = int(value)
-            if value == int_item:
+            # GH#63275 use is_integer() (not int(value)) so that non-finite
+            #  floats fall through to _numeric_to_td64ns, which raises a clear
+            #  OutOfBoundsTimedelta rather than a bare OverflowError.
+            if value.is_integer():
                 # round float -> treat like an int
                 out_reso = (
                     NPY_DATETIMEUNIT.NPY_FR_ns
                     if unit == "ns"
                     else NPY_DATETIMEUNIT.NPY_FR_us
                 )
-                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                value = _numeric_to_td64ns(int(value), unit, out_reso=out_reso)
                 return cls._from_value_and_reso(value, reso=out_reso)
 
             # with fractional parts -> still default to nanoseconds
