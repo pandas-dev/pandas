@@ -353,7 +353,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_td64_ndarray_overflow_in_cast(self):
         # GH#66552 the promotion to the finer of the two units used to wrap
-        td = Timedelta(10**12, "s")
+        td = Timedelta(np.timedelta64(10**12, "s"))
         other = np.array([1], dtype="m8[ns]")
 
         msg = "Cannot cast 11574074 days 01:46:40 to unit='ns' without overflow"
@@ -507,7 +507,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_dt64_ndarray_mixed_units(self, freq, unit):
         # GH#66552 matching numpy, the operands are cast to the finer of the
         #  two units; in-bounds results, NaT included, are unchanged
-        td = Timedelta(1, unit)
+        td = Timedelta(1, unit).as_unit(unit)
         other = np.array(["2000-01-01", "NaT"], dtype=f"M8[{freq}]")
         m8 = td.to_timedelta64()
 
@@ -1632,7 +1632,7 @@ def test_td_mul_lands_on_nat_sentinel(unit, factor):
 def test_td_div_float_ndarray_overflow(unit, dtype):
     # GH#66552 a quotient outside the int64 range used to saturate on the cast,
     #  where the TimedeltaIndex equivalent raises
-    td = Timedelta(4, unit)
+    td = Timedelta(4, unit).as_unit(unit)
     other = np.array([1e-30], dtype=dtype)
 
     msg = "Overflow in timedelta division"
