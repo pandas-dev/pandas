@@ -1260,8 +1260,11 @@ def read_csv(
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        sniffer tool, ``csv.Sniffer``. Sniffing is only implemented by the Python
+        parsing engine, so ``sep=None`` selects that engine automatically and
+        emits a ``ParserWarning`` unless ``engine='python'`` is passed explicitly;
+        pairing ``sep=None`` with a non-Python engine such as ``'c'`` raises a
+        ``ValueError``.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -1860,8 +1863,11 @@ def read_table(
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        sniffer tool, ``csv.Sniffer``. Sniffing is only implemented by the Python
+        parsing engine, so ``sep=None`` selects that engine automatically and
+        emits a ``ParserWarning`` unless ``engine='python'`` is passed explicitly;
+        pairing ``sep=None`` with a non-Python engine such as ``'c'`` raises a
+        ``ValueError``.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
