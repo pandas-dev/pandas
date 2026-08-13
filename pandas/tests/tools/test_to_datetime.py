@@ -1839,9 +1839,14 @@ class TestToDatetime:
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
-    @pytest.mark.parametrize("item", [150, float(150)])
+    @pytest.mark.parametrize(
+        "item", [150, float(150), np.int64(150), np.int32(150), np.int8(15)]
+    )
     def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
+        # GH#56996 np.datetime64() rejects *any* NumPy integer scalar, so the
+        #  object path used to raise ValueError for these until cast_from_unit
+        #  started widening to a Python int first
         ts = Timestamp(item, unit=unit)
         dtype = "M8[s]"
         expected = DatetimeIndex([ts], dtype=dtype)
@@ -1949,6 +1954,48 @@ class TestToDatetimeUnit:
         arr = np.array([1.434692e18, 1.432766e18]).astype(dtype)
         result = to_datetime(arr, errors=errors, cache=cache)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.int8, np.int16, np.int32, np.uint8, np.uint16, np.uint32, np.int64],
+    )
+    def test_unit_subint64_scalars(self, dtype, cache):
+        # GH#56996 cast_from_unit did base/frac arithmetic in the input's own
+        #  narrow dtype, so `frac * m` overflowed and raised OutOfBoundsDatetime
+        #  on the object path below. The scalar constructor casts to int64 up
+        #  front so it never hit this, but is checked here to keep it that way.
+        expected = Timestamp("1970-01-02")
+        assert Timestamp(dtype(1), unit="D") == expected
+
+        result = to_datetime([dtype(1)], unit="D", cache=cache)
+        tm.assert_index_equal(result, DatetimeIndex([expected], dtype="M8[s]"))
+
+        # mixing in a nanosecond value forces "ns", so the unit factor is
+        #  86400 * 10**9 and the 32-bit dtypes overflow it too
+        other = Timestamp("1970-01-01 00:00:00.000000001")
+        result = to_datetime([dtype(1), other], unit="D", cache=cache)
+        tm.assert_index_equal(result, DatetimeIndex([expected, other], dtype="M8[ns]"))
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_unit_narrow_float_scalars(self, dtype, cache):
+        # GH#56996 np.float32(1.5) with unit="D" picked up bogus sub-second
+        #  digits from float32-precision arithmetic; np.float16 overflowed
+        expected = Timestamp("1970-01-02 12:00:00")
+        assert Timestamp(dtype(1.5), unit="D") == expected
+
+        result = to_datetime([dtype(1.5)], unit="D", cache=cache)
+        tm.assert_index_equal(result, DatetimeIndex([expected], dtype="M8[ns]"))
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_unit_float_neg_inf_raises(self, dtype, cache):
+        # GH#56996 NPY_NAT (-2**63) saturates to -inf when cast down to float16,
+        #  so the NaT-sentinel check matched and np.float16("-inf") silently
+        #  became NaT instead of raising like the wider float dtypes
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            Timestamp(dtype("-inf"), unit="D")
+
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            to_datetime([dtype("-inf")], unit="D", cache=cache)
 
     @pytest.mark.parametrize(
         "exp, arr, warning",
@@ -4452,6 +4499,17 @@ def test_to_datetime_missing_component_no_runtime_warning():
         result = to_datetime(df)
 
     assert result.iloc[1] is NaT
+
+
+def test_to_datetime_narrow_float_with_format_no_runtime_warning():
+    # GH#56996 the NaT-sentinel check compared the raw np.float16 against the
+    #  int64 sentinel, which cast the sentinel down to float16 and emitted a
+    #  spurious RuntimeWarning before the value reached the parser
+    arr = np.array([np.float16(1970)], dtype=object)
+    with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+        result = to_datetime(arr, format="%Y", errors="coerce")
+
+    assert result[0] is NaT
 
 
 def test_to_datetime_format_N_directive():

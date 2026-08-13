@@ -1589,8 +1589,8 @@ def _range_from_fields(
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != FreqGroup.FR_QTR.value:
-                raise AssertionError("base must equal FR_QTR")
+            if FreqGroup.from_period_dtype_code(base) != FreqGroup.FR_QTR:
+                raise ValueError("freq must be a quarterly frequency")
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
