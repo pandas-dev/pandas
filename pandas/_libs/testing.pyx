@@ -138,11 +138,19 @@ cpdef assert_almost_equal(a, b,
                 from pandas._testing import assert_attr_equal
                 assert_attr_equal("dtype", a, b, obj=obj)
 
-            if not (
-                (a.dtype.kind in "iu" and b.dtype.kind == "f")
-                or (a.dtype.kind == "f" and b.dtype.kind in "iu")
-            ) and array_equivalent(a, b, strict_nan=True):
-                return True
+            if array_equivalent(a, b, strict_nan=True):
+                if a.dtype.kind in "iu" and b.dtype.kind == "f":
+                    int_arr = a
+                elif a.dtype.kind == "f" and b.dtype.kind in "iu":
+                    int_arr = b
+                else:
+                    return True
+
+                if not int_arr.size or (
+                    int_arr.max() <= 2**53
+                    and (int_arr.dtype.kind == "u" or int_arr.min() >= -(2**53))
+                ):
+                    return True
 
         else:
             na, nb = len(a), len(b)

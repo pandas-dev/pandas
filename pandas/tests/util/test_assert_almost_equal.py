@@ -153,6 +153,14 @@ def test_assert_not_almost_equal_numbers_rtol(a, b):
             np.array([2**60 + 1], dtype="int64"),
             np.array([float(2**60)], dtype="float64"),
         ),
+        (
+            np.array([2**53 + 1], dtype="int64"),
+            np.array([float(2**53)], dtype="float64"),
+        ),
+        (
+            np.array([-(2**53) - 1], dtype="int64"),
+            np.array([float(-(2**53))], dtype="float64"),
+        ),
     ],
 )
 def test_assert_almost_equal_large_mixed_integer_float_atol(a, b):
