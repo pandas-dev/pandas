@@ -1423,8 +1423,9 @@ class _MergeOperation:
                     # numpy (Int64/int64) stays on the right numpy type.
                     # For duplicate-key reindexes, numeric key asymmetry
                     # (int64/float64) uses the common (right-wider) dtype;
-                    # otherwise keep the dtype already on result (e.g.
-                    # StringDtype from categorical/object join construction).
+                    # otherwise keep the dtype already on result (column or
+                    # index level; e.g. StringDtype from categorical/object
+                    # join construction).
                     key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     if no_reindex_needed:
                         result_dtype = rvals.dtype
@@ -1432,8 +1433,12 @@ class _MergeOperation:
                         rvals.dtype
                     ):
                         result_dtype = find_common_type([lvals.dtype, rvals.dtype])
-                    else:
+                    elif name in result.columns:
                         result_dtype = result[name].dtype
+                    elif name in result.index.names:
+                        result_dtype = result.index.get_level_values(name).dtype
+                    else:
+                        result_dtype = rvals.dtype
                 else:
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     if mask_left is not None:
