@@ -434,7 +434,14 @@ timedelta-like}
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
-                    new_local = val + shift_delta
+                    # GH#66697 use checked arithmetic; a large timedelta can
+                    # push the shifted wall time past the representable range
+                    if checked_add(val, shift_delta, &new_local):
+                        raise_out_of_bounds(
+                            val,
+                            BS_OVERFLOW if shift_delta > 0 else BS_UNDERFLOW,
+                            creso,
+                        )
                 elif shift_forward:
                     new_local = val + (pph - remaining_mins)
                 else:
@@ -455,7 +462,7 @@ timedelta-like}
                         delta = _tz_localize_using_tzinfo_api(
                             new_local, tz, True, creso, NULL, 1
                         )
-                    result[i] = new_local - delta
+                    result[i] = _shift_to_utc(new_local, delta, creso)
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
                     if delta_idx == info.ntrans:
@@ -481,7 +488,7 @@ timedelta-like}
                         delta_idx = delta_idx - 1
                     else:
                         delta_idx = delta_idx - delta_idx_offset
-                    result[i] = new_local - info.deltas[delta_idx]
+                    result[i] = _shift_to_utc(new_local, info.deltas[delta_idx], creso)
             elif fill_nonexist:
                 result[i] = NPY_NAT
             else:

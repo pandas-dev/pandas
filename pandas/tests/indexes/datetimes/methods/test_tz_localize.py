@@ -122,6 +122,23 @@ class TestTZLocalize:
             with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
                 dti.tz_localize(dateutil.tz.tzlocal())
 
+    def test_tz_localize_nonexistent_timedelta_overflow(self, unit):
+        # GH#66697 a large timedelta nonexistent shift silently wrapped int64
+        # instead of raising OutOfBoundsDatetime.
+        # 2011-03-13 02:30 is a nonexistent time in US/Eastern.
+        dti = DatetimeIndex(["2011-03-13 02:30"]).as_unit(unit)
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=Timedelta.max)
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=Timedelta(days=100_000))
+
+        # Backward shift: underflows past Timestamp.min
+        dti_min = DatetimeIndex(["2011-03-13 02:30"]).as_unit(unit)
+        with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+            dti_min.tz_localize("US/Eastern", nonexistent=-Timedelta.max)
+
     def test_tz_localize_invalidates_freq(self):
         # we only preserve freq in unambiguous cases
 
