@@ -1470,20 +1470,36 @@ def searchsorted(
         elif hasattr(value, "to_numpy"):
             # If value is a pandas Array with <NA>, cast it int64, (massive value)
             # so we place it at the end of array
-            value_arr = value.to_numpy(dtype=arr.dtype, na_value=iinfo.max)
+            value_arr = value.to_numpy(dtype=object)
         else:
-            value_arr = np.array(value)
-        if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
-            # value within bounds, so no overflow, so can convert value dtype
-            # to dtype of arr
-            dtype = arr.dtype
-        else:
-            dtype = value_arr.dtype
+            value_arr = np.array(value, dtype=object if hasattr(value, "__iter__") else None)
 
+        # get mask for NA incase max also in array
+        na_mask = isna(value_arr) if not is_integer(value) else np.array([False])
+
+        # gurads to stop overflow with na
+        valid_vals = value_arr[~na_mask] if na_mask.any() else value_arr
+
+        # checks all values valid and no overflows
+        try:
+            is_in_bounds = (valid_vals >= iinfo.min).all() and (valid_vals <= iinfo.max).all()
+        except (TypeError, OverflowError):
+            is_in_bounds = False
+        # value within bounds, so no overflow, so can convert value dtype
+        # to dtype of arr
+        dtype = arr.dtype if is_in_bounds else value_arr.dtype
+
+        # non NA turned to dtype without uninsigned bit issue
         if is_integer(value):
-            # We know that value is int
-            value = cast("int", dtype.type(value))
+            value = cast("int", dtype.type(value)) if is_in_bounds else value
         else:
+            if na_mask.any():
+                # Replace NAs with a placeholder inside bounds just for searchsorted,
+                # then explicitly force NA insertion points to len(arr)
+                clean_vals = np.where(na_mask, iinfo.min, value_arr).astype(dtype)
+                res = arr.searchsorted(clean_vals, side=side, sorter=sorter)
+                res[na_mask] = len(arr)
+                return res
             # uses iinfo.max() so no need for NA conversion
             value = pd_array(cast("ArrayLike", value_arr), dtype=dtype)
     else:
