@@ -124,9 +124,12 @@ def _plot(
 class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
 
-    @pytest.fixture
-    def plot_data(self, data: ExtensionArray) -> pd.DataFrame:
-        return pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))}).dropna()
+    @pytest.fixture(params=[True, False], ids=["skipna", "no_skipna"])
+    def plot_data(self, data: ExtensionArray, request) -> pd.DataFrame:
+        df = pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))})
+        if request.param:
+            df = df.dropna()
+        return df
 
     def skip_if_no_matplotlib(self):
         """Skips a test if matplotlib dependency not fulfilled.
