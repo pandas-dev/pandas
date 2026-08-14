@@ -496,6 +496,32 @@ class TestTZLocalize:
         with pytest.raises(ValueError, match=msg):
             dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
+    def test_dti_tz_localize_nonexistent_shift_overflow(self):
+        # GH#66697
+        dti = DatetimeIndex(["2011-03-13 02:30"]).as_unit("ns")
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize("US/Eastern", nonexistent=Timedelta.max)
+
+    @pytest.mark.parametrize(
+        "tz, start_ts",
+        [
+            # US/Eastern has a DST rule past the last cached transition and
+            #  America/Sao_Paulo does not, so the two reach the offset that
+            #  applies by different routes
+            ("US/Eastern", "2011-03-13 02:30"),
+            ("America/Sao_Paulo", "2018-11-04 00:30"),
+        ],
+    )
+    def test_dti_tz_localize_nonexistent_shift_utc_overflow(self, tz, start_ts):
+        # GH#66697
+        ts = Timestamp(start_ts).as_unit("ns")
+        dti = DatetimeIndex([ts, ts])
+        shift = Timestamp.max - ts - Timedelta(hours=1)
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize(tz, nonexistent=shift)
+
 
 def test_dti_tz_localize_nonexistent_shift_past_last_transition():
     # GH#66550 a shift landing past the last cached DST transition indexed the
@@ -510,6 +536,18 @@ def test_dti_tz_localize_nonexistent_shift_past_last_transition():
     expected = DatetimeIndex([dti[0] + shift]).tz_localize(tz)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(result, dti.tz_localize(tz, nonexistent=shift))
+
+
+def test_dti_tz_localize_nonexistent_timedelta_shift_onto_nat_sentinel():
+    # GH#66697 shifting a nonexistent time to a wall time whose UTC instant is
+    #  exactly the NaT sentinel, one below Timestamp.min, used to come back as a
+    #  missing value.  Asia/Tokyo's +9 offset is what makes the two line up.
+    dti = DatetimeIndex([Timestamp("1948-05-02 00:30")]).as_unit("ns")
+    jst = 9 * 3600 * 10**9
+    shift = Timedelta(Timestamp.min._value - 1 + jst - dti.asi8[0], "ns")
+
+    with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+        dti.tz_localize("Asia/Tokyo", nonexistent=shift)
 
 
 def _make_tzfile_ending_in_spring_forward(filename):

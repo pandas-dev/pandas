@@ -223,6 +223,12 @@ Other API changes
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
 -
 
+.. _whatsnew_310.api_breaking.build:
+
+Build
+^^^^^
+- C++20 is required to build from source (:issue:`66735`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.deprecations:
 
@@ -527,10 +533,12 @@ Timezones
 - Bug in :meth:`DatetimeIndex.tz_localize` and :meth:`Series.dt.tz_localize` with a ``nonexistent`` shift that moves a timestamp past the last cached DST transition of the timezone returning a wrong result, which could differ between two identical calls (:issue:`66550`)
 - Bug in :meth:`DatetimeIndex.tz_localize`, :meth:`Series.dt.tz_localize` and :meth:`Timestamp.tz_localize` reporting a wall time within a few hours of :attr:`Timestamp.max` as a nonexistent time, or silently returning ``NaT`` with ``nonexistent="NaT"``, instead of raising ``OutOfBoundsDatetime`` when localizing to a ``zoneinfo`` timezone that observes DST (:issue:`65733`)
 - Bug in :meth:`DatetimeIndex.tz_localize`, :meth:`Series.dt.tz_localize` and :meth:`Timestamp.tz_localize` silently returning a wildly wrong timestamp, or ``NaT``, instead of raising ``OutOfBoundsDatetime`` when localizing a wall time near :attr:`Timestamp.min` or :attr:`Timestamp.max` to a fixed-offset or machine-local timezone (:issue:`66550`)
+- Bug in :meth:`DatetimeIndex.tz_localize`, :meth:`Series.dt.tz_localize`, and :meth:`Timestamp.tz_localize` with a timedelta ``nonexistent`` shift silently wrapping and returning an incorrect timestamp instead of raising :class:`OutOfBoundsDatetime` when the shift leaves the representable range (:issue:`66697`)
 - Bug in :meth:`Series.dt.tz_localize` and :meth:`Series.dt.tz_convert` (and their :class:`DatetimeIndex` counterparts) returning incorrect results for non-nanosecond resolutions (e.g. ``"s"``, ``"ms"``, ``"us"``) on timestamps before roughly 1677 (:issue:`66252`)
 - Bug in :meth:`Timestamp.isoformat`, ``str(Timestamp)``, and the rendering of :class:`Series` and :class:`DatetimeIndex` (including ``repr``, ``astype(str)``, and :meth:`DataFrame.to_csv`) splicing the fractional seconds into the middle of the UTC offset for timestamps in a timezone whose offset is not a whole number of minutes, such as any zone in its pre-standardization era (e.g. ``Asia/Tokyo`` before 1888) (:issue:`66547`)
 - Bug in :meth:`Timestamp.to_julian_date` and :meth:`DatetimeIndex.to_julian_date` returning the Julian date of the local wall clock for timezone-aware inputs instead of the underlying UTC instant (:issue:`54763`)
 - Bug in constructing a :class:`DatetimeIndex` with a ``freq``, or setting ``freq`` on an existing one, incorrectly raising ``ValueError`` for timezone-aware data spanning a DST transition when the frequency preserves wall time (e.g. ``"D"``) (:issue:`55499`)
+- Bug in timezone-aware :class:`DatetimeIndex` and :class:`Series` where a UTC instant near :attr:`Timestamp.min` or :attr:`Timestamp.max` whose local wall time is outside the representable range silently reported a wall time roughly 585 years off, or ``NaT``, instead of raising :class:`OutOfBoundsDatetime`; this affected ``tz_localize(None)``, field accessors such as ``.year``, ``strftime``, ``round``/``floor``/``ceil``, and conversion to :class:`PeriodIndex` (:issue:`66550`)
 
 Numeric
 ^^^^^^^
@@ -572,6 +580,9 @@ Strings
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 - Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
+- Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising ``AttributeError`` for :class:`ArrowDtype` when ``flags`` was passed or ``pat`` was a compiled ``re.Pattern`` (:issue:`63108`)
+- Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising for regex flags other than ``re.IGNORECASE`` (e.g. ``re.MULTILINE``, ``re.DOTALL``, ``re.ASCII``), whether passed via ``flags`` or carried by a compiled ``re.Pattern`` (:issue:`63108`)
+- Bug in :meth:`Series.str.match` and :meth:`Index.str.match` where passing ``flags=0`` was not equivalent to omitting ``flags``, raising for patterns using PyArrow-only regex syntax such as ``\p{L}`` or an inline flag such as ``(?i)`` (:issue:`63108`)
 - Bug in :meth:`Series.str.partition` and :meth:`Series.str.split` with ``expand=True`` raising for :class:`ArrowDtype` when the :class:`Series` was empty or held only null values; an empty :class:`Series` now expands to no columns and an all-null one to a single all-NA column, matching object dtype (:issue:`63602`)
 - Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
 - Bug in :meth:`Series.str.split` with :class:`ArrowDtype` ``string`` not inferring regex for multi-character patterns when ``regex=None``, causing the pattern to be treated as a literal instead of a regular expression (:issue:`58321`)
@@ -722,6 +733,7 @@ I/O
 - Fixed :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` to round-trip a :class:`CategoricalIndex` in both ``"fixed"`` and ``"table"`` formats; previously raised ``AssertionError`` (:issue:`33909`, :issue:`16118`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``date_format="epoch"`` where datetime or timedelta values held behind another dtype, such as :class:`CategoricalDtype` or :class:`SparseDtype`, were written in their own resolution instead of ``date_unit``, and where :class:`SparseDtype` raised ``AttributeError`` (:issue:`66709`)
 - Bug in :meth:`Series.to_json` with ``date_format="iso"`` where a timezone-aware datetime :class:`Series` was serialized without the trailing ``Z`` marker, losing the timezone information that is retained for an equivalent :class:`DatetimeIndex` or :class:`DataFrame` column (:issue:`65744`)
+- Fixed :meth:`DataFrame.from_arrow` to be consistent with other methods (such as :func:`read_parquet`) in the conversion from PyArrow to pandas, e.g. consistently using the default string dtype regardless of the PyArrow version (:issue:`65696`)
 - Fixed bug in :func:`read_hdf` where a store it had opened was left open if reading failed with an error other than ``ValueError``, ``TypeError``, or ``LookupError`` (e.g. ``AssertionError``), so a subsequent attempt to reopen the file for writing raised "file is already opened" (:issue:`28430`)
 - Fixed bug in :meth:`DataFrame.to_parquet` (``pyarrow`` engine) where a local file path was opened twice, once by pandas and again by pyarrow, wasting a syscall and silently truncating output to 0 bytes on filesystems that finalize a file's contents on close (:issue:`65810`)
 - Fixed bug in :meth:`HDFStore.get_storer` where ``.shape`` reported a phantom row for a fixed-format :class:`Series` or :class:`DataFrame` stored with no rows (:issue:`37235`)
