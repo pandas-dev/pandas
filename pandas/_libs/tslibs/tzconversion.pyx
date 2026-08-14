@@ -43,6 +43,10 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+from pandas._libs.portable cimport (
+    checked_add,
+    checked_sub,
+)
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -51,11 +55,6 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     is_zoneinfo,
 )
-
-
-cdef extern from "pandas/portable.h":
-    int checked_add(int64_t a, int64_t b, int64_t *res)
-    int checked_sub(int64_t a, int64_t b, int64_t *res)
 
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
