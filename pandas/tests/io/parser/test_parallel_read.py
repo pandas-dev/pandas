@@ -1119,7 +1119,7 @@ def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
     # fixed-width token copy the serial path uses, so widths straddling that
     # copy's 16- and 32-byte tiers have to survive a chunked read too --
     # including at each chunk's last row, where the copy stops overshooting
-    # (GH#66277).
+    # (GH#66756).
     pytest.importorskip("pyarrow")
     widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
     values = ["".join(chr(ord("a") + i % 26) for i in range(w)) for w in widths]

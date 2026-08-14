@@ -950,7 +950,7 @@ def test_pyarrow_string_iterator_dtype_stable_across_chunks():
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
-    # GH#66277: the fast path copies a short token at a compile-time-constant
+    # GH#66756: the fast path copies a short token at a compile-time-constant
     # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
     # one byte either side of a tier boundary is where a mis-sized copy would
     # truncate the value or trail the following token's bytes into it.  Column
@@ -968,7 +968,7 @@ def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
-    # GH#66277: the fast path sizes its data buffer from the column's leading
+    # GH#66756: the fast path sizes its data buffer from the column's leading
     # tokens and grows it mid-pass when that estimate falls short, re-copying
     # what it has already written.  A column whose first rows are far narrower
     # than the rest takes that path repeatedly, where a stale buffer pointer or
