@@ -114,11 +114,12 @@ def test_resample_group_keys():
     tm.assert_frame_equal(result, expected)
 
     # group_keys=True
-    expected.index = pd.MultiIndex.from_arrays(
-        [
-            pd.to_datetime(["2000-01-01", "2000-01-06"]).as_unit("ns").repeat(5),
+    expected.index = pd.MultiIndex(
+        levels=[
+            pd.DatetimeIndex(["2000-01-01", "2000-01-06"], freq="5D", dtype="M8[ns]"),
             expected.index,
-        ]
+        ],
+        codes=[[0] * 5 + [1] * 5, range(10)],
     )
     g = df.resample("5D", group_keys=True)
     result = g.apply(lambda x: x)

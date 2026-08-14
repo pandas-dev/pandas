@@ -823,7 +823,7 @@ class TestTableOrientReader:
                 [
                     pd.date_range(
                         "2020-08-30", freq="D", periods=2, tz="US/Central", unit="ns"
-                    ),
+                    )._with_freq(None),
                     ["x", "y"],
                 ],
             ),
