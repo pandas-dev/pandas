@@ -1104,6 +1104,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_plot_on_x_axis(self, plot_data):
         # GH 64535
+        self.skip_if_no_matplotlib()
         # Setup expected exception and message for expected failures
         err_cls = None
         err_msg = ""
@@ -1139,6 +1140,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_plot_on_y_axis(self, plot_data):
         # GH 64535
+        self.skip_if_no_matplotlib()
         # Setup expected exception and message for expected failures
         err_cls = None
         err_msg = ""
