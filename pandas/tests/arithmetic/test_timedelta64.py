@@ -792,10 +792,10 @@ class TestAddSubNaTMasking:
 
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
-            tdi - Timedelta(1, unit)
+            tdi - Timedelta(1, unit).as_unit(unit)
 
         with pytest.raises(OverflowError, match=msg):
-            tdi + Timedelta(-1, unit)
+            tdi + Timedelta(-1, unit).as_unit(unit)
 
 
 class TestTimedeltaArraylikeAddSubOps:

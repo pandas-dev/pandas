@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_supported_dtype,
     iNaT,
     is_supported_dtype,
     periods_per_second,
@@ -562,16 +561,16 @@ def _to_datetime_with_unit(
                         arg, unit, name, utc, errors, dayfirst, yearfirst
                     )
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
-            dtype = get_supported_dtype(arr.dtype)
-            try:
-                arr = astype_overflowsafe(arr, dtype, copy=False)
-            except OutOfBoundsDatetime:
-                if errors == "raise":
-                    raise
-                arg = arg.astype(object)
-                return _to_datetime_with_unit(
-                    arg, unit, name, utc, errors, dayfirst, yearfirst
-                )
+            if unit not in ["us", "ns"]:
+                try:
+                    arr = astype_overflowsafe(arr, np.dtype("M8[us]"), copy=False)
+                except OutOfBoundsDatetime:
+                    if errors == "raise":
+                        raise
+                    arg = arg.astype(object)
+                    return _to_datetime_with_unit(
+                        arg, unit, name, utc, errors, dayfirst, yearfirst
+                    )
             tz_parsed = None
 
         elif arg.dtype.kind == "f":

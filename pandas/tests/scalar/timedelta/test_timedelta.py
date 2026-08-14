@@ -725,16 +725,16 @@ class TestTimedeltas:
         # GH#46819 the boundary guard applies at every resolution: here the
         # sub-second residual is smaller than half an ulp, so the naive sum
         # collapses onto the integer-second boundary
-        assert Timedelta(value, unit=unit).total_seconds() > boundary
-        assert Timedelta(-value, unit=unit).total_seconds() < -boundary
+        assert Timedelta(np.timedelta64(value, unit)).total_seconds() > boundary
+        assert Timedelta(np.timedelta64(-value, unit)).total_seconds() < -boundary
 
     def test_total_seconds_above_float64_integer_spacing(self):
         # Beyond 2**52 seconds every float64 is a whole number of seconds,
         # so the boundary cannot be avoided; return the nearest value rather
         # than nudging 2 full seconds away
-        result = Timedelta(2**53 * 1000 + 500, unit="ms").total_seconds()
+        result = Timedelta(np.timedelta64(2**53 * 1000 + 500, "ms")).total_seconds()
         assert result == float(2**53)
-        result = Timedelta(-(2**53) * 1000 - 500, unit="ms").total_seconds()
+        result = Timedelta(np.timedelta64(-(2**53) * 1000 - 500, "ms")).total_seconds()
         assert result == -float(2**53)
 
     def test_resolution_string(self):
