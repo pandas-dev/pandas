@@ -38,9 +38,9 @@ different: in issues, pull requests, and review comments, do not use AI to speak
 AI-written replies does not count as engaging with a reviewer, and human-to-human communication is essential for
 the project to thrive.
 
-Translation and grammar editing are an explicit exception, and need no disclosure. If English is not your first
-language, you are welcome to use these tools to help you say what you mean. What we ask is that the thoughts are
-yours, not that the English is unaided.
+Translation and grammar editing are an explicit exception to the rule above. If English is not your first language,
+you are welcome to use these tools to help you say what you mean. What we ask is that the thoughts are yours, not
+that the English is unaided. Disclosure still applies, so say that you used a tool.
 
 If you need to quote the output of an AI tool as evidence, for example a traceback or a suggested diff, mark it
 clearly by quoting it with ``>`` or wrapping it in a triple-backtick code fence, so readers can tell which parts
