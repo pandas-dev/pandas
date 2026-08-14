@@ -327,10 +327,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     Parameters
     ----------
-    data : array-like, dict, or 1D object
-        An array-like structure containing the data for the index. If a dict
-        is provided, the keys will be used as the index values. This could be a
-        Python list, a NumPy array, or a pandas Series.
+    data : array-like or iterable
+        An array-like structure containing the data for the index. This could be a
+        Python list, a NumPy array, a pandas Series, or any iterable object
+        (including dict, where keys become the index values).
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
