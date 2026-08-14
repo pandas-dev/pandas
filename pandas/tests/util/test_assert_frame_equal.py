@@ -459,6 +459,23 @@ def test_assert_frame_equal_check_freq_columns():
         tm.assert_frame_equal(df1, df2, check_freq=False)
 
 
+def test_assert_frame_equal_check_freq_multiindex():
+    # GH#66761
+    dates = pd.date_range("2012-01-01", periods=3)
+    midx1 = pd.MultiIndex.from_arrays([dates, [1, 2, 3]])
+    midx2 = pd.MultiIndex.from_arrays([dates._with_freq(None), [1, 2, 3]])
+    df1 = DataFrame({"a": [1, 2, 3]}, index=midx1)
+    df2 = DataFrame({"a": [1, 2, 3]}, index=midx2)
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_frame_equal(df1, df2)
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(df1, df2, check_freq=True)
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(df1, df2, check_freq=False)
+
+
 @pytest.mark.parametrize(
     "left,right",
     [

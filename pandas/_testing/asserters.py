@@ -1456,7 +1456,7 @@ def assert_frame_equal(
         check_exact=_check_exact,
         check_categorical=check_categorical,
         check_order=not check_like,
-        check_freq=_check_freq,
+        check_freq=check_freq if isinstance(left.index, MultiIndex) else _check_freq,
         rtol=_rtol,
         atol=_atol,
         obj=f"{obj}.index",
