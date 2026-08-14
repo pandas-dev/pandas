@@ -326,15 +326,10 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_string(pa_dtype) or pa.types.is_decimal(pa_dtype):
-            if pa.types.is_string(pa_dtype):
-                reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
-            else:
-                reason = f"pyarrow.type_for_alias cannot infer {pa_dtype}"
-
+        if pa.types.is_string(pa_dtype):
             request.applymarker(
                 pytest.mark.xfail(
-                    reason=reason,
+                    reason="ArrowDtype(pa.string()) != StringDtype('pyarrow')",
                 )
             )
         super().test_from_dtype(data)
@@ -584,16 +579,8 @@ class TestArrowArray(base.ExtensionTests):
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
 
-    def test_construct_from_string_own_name(self, dtype, request):
+    def test_construct_from_string_own_name(self, dtype):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_decimal(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-
         if pa.types.is_string(pa_dtype):
             # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
             msg = r"string\[pyarrow\] should be constructed by StringDtype"
@@ -604,19 +591,12 @@ class TestArrowArray(base.ExtensionTests):
 
         super().test_construct_from_string_own_name(dtype)
 
-    def test_is_dtype_from_name(self, dtype, request):
+    def test_is_dtype_from_name(self, dtype):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_string(pa_dtype):
             # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
             assert not type(dtype).is_dtype(dtype.name)
         else:
-            if pa.types.is_decimal(pa_dtype):
-                request.applymarker(
-                    pytest.mark.xfail(
-                        raises=NotImplementedError,
-                        reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                    )
-                )
             super().test_is_dtype_from_name(dtype)
 
     def test_construct_from_string_another_type_raises(self, dtype):
@@ -661,14 +641,7 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, dtype_backend, request, using_nan_is_na):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_decimal(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Parameterized types {pa_dtype} not supported.",
-                )
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
             request.applymarker(
                 pytest.mark.xfail(
                     raises=ValueError,
@@ -1302,6 +1275,71 @@ def test_arrowdtype_construct_from_string_supports_dt64tz():
     dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
     expected = ArrowDtype(pa.timestamp("s", "UTC"))
     assert dtype == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.list_(pa.int64()),
+        # a list written to parquet comes back with its child named "element"
+        pa.list_(pa.field("element", pa.int64())),
+        pa.list_(pa.field("item", pa.int64(), nullable=False)),
+        pa.list_(pa.int64(), 3),
+        pa.list_(pa.timestamp("us", tz="UTC")),
+        pa.list_(pa.decimal128(10, 2)),
+        pa.list_(pa.struct([("id", pa.int64()), ("value", pa.float64())])),
+        pa.list_(pa.list_(pa.int64())),
+        pa.large_list(pa.string()),
+        pa.list_(pa.map_(pa.string(), pa.float64())),
+        pa.large_list(pa.map_(pa.string(), pa.float64())),
+        pa.map_(pa.string(), pa.float64()),
+        pa.map_(pa.int64(), pa.float64()),
+        pa.map_(pa.string(), pa.int64(), keys_sorted=True),
+        pa.map_(pa.string(), pa.list_(pa.int64())),
+        pa.struct([("a", pa.int64()), ("b", pa.float64())]),
+        pa.struct([pa.field("a", pa.int64(), nullable=False)]),
+        pa.struct([("ts", pa.timestamp("us", tz="US/Pacific"))]),
+        pa.struct([("d", pa.decimal128(10, 2))]),
+        pa.struct(
+            [
+                ("outer", pa.int64()),
+                (
+                    "inner",
+                    pa.struct(
+                        [("int_list", pa.list_(pa.int64())), ("text", pa.string())]
+                    ),
+                ),
+            ]
+        ),
+        pa.dictionary(pa.int32(), pa.string()),
+        pa.dictionary(pa.int8(), pa.int64(), ordered=True),
+        pa.decimal128(10, 2),
+        pa.decimal256(40, 5),
+        pa.binary(16),
+        pa.run_end_encoded(pa.int32(), pa.int64()),
+        pa.sparse_union([pa.field("a", pa.int64()), pa.field("b", pa.string())]),
+        pa.dense_union([pa.field("a", pa.int64())]),
+    ],
+)
+def test_arrowdtype_construct_from_string_nested_and_parametrized(pa_type):
+    # GH#57411 these strings are what pandas metadata records for these dtypes
+    dtype = ArrowDtype(pa_type)
+    assert ArrowDtype.construct_from_string(str(dtype)) == dtype
+    assert pandas_dtype(str(dtype)) == dtype
+
+
+def test_arrowdtype_construct_from_string_field_name_with_colon():
+    # GH#57411 the type is separated from the name by the *last* top-level ": "
+    dtype = ArrowDtype(pa.struct([("a: b", pa.int64())]))
+    assert ArrowDtype.construct_from_string(str(dtype)) == dtype
+
+
+def test_arrowdtype_construct_from_string_ambiguous_field_name():
+    # GH#57411 a comma in a field name is not recoverable from pyarrow's repr,
+    #  so raise rather than construct the wrong type
+    dtype = ArrowDtype(pa.struct([("a,b", pa.int64()), ("c", pa.string())]))
+    with pytest.raises(TypeError, match="is not a valid pyarrow data type"):
+        ArrowDtype.construct_from_string(str(dtype))
 
 
 def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
@@ -3518,6 +3556,15 @@ def test_from_sequence_of_strings_boolean():
     strings = ["True", "foo"]
     with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_decimal():
+    # GH#57411 converting through float64 would not fit all decimals
+    dtype = ArrowDtype(pa.decimal128(30, 20))
+    strings = ["1.23456789012345678901", None]
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = pd.array([Decimal("1.23456789012345678901"), None], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_concat_empty_arrow_backed_series(dtype):
