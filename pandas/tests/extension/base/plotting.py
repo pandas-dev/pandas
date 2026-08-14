@@ -33,23 +33,6 @@ from pandas.tests.plotting.common import _check_plot_works
 from pandas.util.version import Version
 
 
-def _get_plot_df(data: ExtensionArray) -> pd.DataFrame:
-    """Helper function to create a DataFrame for plotting tests.
-
-    Parameters
-    ----------
-    data : ExtensionArray
-        The ExtensionArray to be used as the 'Data' column in the DataFrame.
-
-    Returns
-    -------
-    pd.DataFrame
-        A DataFrame with two columns: 'Data' containing the provided ExtensionArray and
-        'Numeric' containing a range of integers.
-    """
-    return pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))}).dropna()
-
-
 def _check_plot_data(
     ax: maxes.Axes,
     ser: pd.Series,
@@ -94,7 +77,7 @@ def _check_plot_data(
 
 
 def _plot(
-    data: ExtensionArray,
+    plot_data: pd.DataFrame,
     x: str,
     y: str,
     **kwargs,
@@ -103,8 +86,8 @@ def _plot(
 
     Parameters
     ----------
-    data : ExtensionArray
-        The ExtensionArray to plot.
+    data : DataFrame
+        A DataFrame with an ExtensionArray in a "Data" column.
     x : str
         The name of the column to use for the x-axis.
     y : str
@@ -114,20 +97,17 @@ def _plot(
     **kwargs
         Additional keyword arguments to pass to the plot function.
     """
-    # Create a DataFrame for plotting using the provided ExtensionArray data
-    plot_df = _get_plot_df(data)
-
     # Set include_bool flag for boolean dtypes
-    if is_bool_dtype(data.dtype) and "include_bool" not in kwargs:
+    if is_bool_dtype(plot_data["Data"].dtype) and "include_bool" not in kwargs:
         kwargs["include_bool"] = True
 
     # Check that the plot works with the specified x and y columns and any additional
     # keyword arguments
-    ax = _check_plot_works(plot_df.plot, x=x, y=y, **kwargs)
+    ax = _check_plot_works(plot_data.plot, x=x, y=y, **kwargs)
 
     # Check that the data plotted on the specified axes matches the expected data from
     # the DataFrame
-    x_dtype = plot_df[x].dtype
+    x_dtype = plot_data[x].dtype
     for axis, col in zip(["x", "y"], [x, y], strict=True):
         # Skip checking the x-axis if the data type is not numeric, period, or datetime
         # as pandas uses just numeric values for all other types and use the actual
@@ -138,11 +118,15 @@ def _plot(
             or is_datetime64_any_dtype(x_dtype)
         ):
             continue
-        _check_plot_data(ax, plot_df[col], axis)  # type: ignore[arg-type]
+        _check_plot_data(ax, plot_data[col], axis)  # type: ignore[arg-type]
 
 
 class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
+
+    @pytest.fixture
+    def plot_data(self, data: ExtensionArray) -> pd.DataFrame:
+        return pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))}).dropna()
 
     def skip_if_no_matplotlib(self):
         """Skips a test if matplotlib dependency not fulfilled.
@@ -169,12 +153,12 @@ class BasePlottingTests:
             )
         pytest.importorskip("matplotlib", reason="test requires matplotlib")
 
-    def test_plot_on_x_axis(self, data):
+    def test_plot_on_x_axis(self, plot_data):
         """Test that EA data can be plotted on the x-axis."""
         self.skip_if_no_matplotlib()
-        _plot(data, x="Data", y="Numeric")
+        _plot(plot_data, x="Data", y="Numeric")
 
-    def test_plot_on_y_axis(self, data, **kwargs):
+    def test_plot_on_y_axis(self, plot_data, **kwargs):
         """Test that EA data can be plotted on the y-axis."""
         self.skip_if_no_matplotlib()
-        _plot(data, x="Numeric", y="Data", **kwargs)
+        _plot(plot_data, x="Numeric", y="Data", **kwargs)

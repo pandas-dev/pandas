@@ -1102,14 +1102,14 @@ class TestArrowArray(base.ExtensionTests):
         else:
             super().test_json_roundtrip(data)
 
-    def test_plot_on_y_axis(self, data):
+    def test_plot_on_y_axis(self, plot_data):
         # GH 64535
         # Setup expected exception and message for expected failures
         err_cls = None
         msg = ""
 
-        # Set expected values and kwargs for certain dtypes
-        pa_dtype = data.dtype.pyarrow_dtype
+        # Set expected values for certain dtypes
+        pa_dtype = plot_data["Data"].dtype.pyarrow_dtype
 
         # str and binary are supported by matplotlib, but not pandas at the moment
         if pa.types.is_string(pa_dtype):
@@ -1122,9 +1122,9 @@ class TestArrowArray(base.ExtensionTests):
         # Call test, errors should only be raised for unsupported dtypes set above
         if err_cls:
             with pytest.raises(err_cls, match=msg):
-                super().test_plot_on_y_axis(data)
+                super().test_plot_on_y_axis(plot_data)
         else:
-            super().test_plot_on_y_axis(data)
+            super().test_plot_on_y_axis(plot_data)
 
 
 class TestLogicalOps:
