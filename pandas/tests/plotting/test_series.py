@@ -128,7 +128,7 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("kwargs", [{}, {"layout": (-1, 1)}, {"layout": (1, -1)}])
     def test_plot_6951(self, ts, kwargs):
         # GH 6951
-        ax = _check_plot_works(ts.plot, subplots=True, **kwargs)
+        ax = _check_plot_works(ts.plot, default_axes=True, subplots=True, **kwargs)
         _check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
     def test_plot_figsize_and_title(self, series):

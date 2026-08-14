@@ -17,6 +17,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs import (
     BaseOffset,
     NaTType,
@@ -44,14 +45,26 @@ class Timestamp(datetime):
     #  error: "__new__" must return a class instance (got "Timestamp | NaTType")
     def __new__(  # type: ignore[misc]
         cls: type[Self],
-        ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
+        # null-like input yields NaT; see the Timestamp docstring Notes
+        ts_input: (
+            np.integer
+            | float
+            | str
+            | _date
+            | datetime
+            | np.datetime64
+            | NaTType
+            | NAType
+            | None
+        ) = ...,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
         hour: int | None = ...,
         minute: int | None = ...,
         second: int | None = ...,
-        microsecond: int | None = ...,
+        # the 8th positional argument is pydatetime's tzinfo
+        microsecond: int | _tzinfo | None = ...,
         tzinfo: _tzinfo | None = ...,
         *,
         nanosecond: int | None = ...,

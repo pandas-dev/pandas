@@ -19,7 +19,6 @@ from typing import (
     Literal,
     Self,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -259,6 +258,13 @@ def read_excel(
         ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
         missing values use ``set_index`` after reading the data instead of
         ``index_col``.
+
+        When ``header`` is a list of two or more rows (``MultiIndex``
+        columns), the row after the last header row is expected to hold the
+        index name(s) — blank if the index is unnamed — as written by
+        ``to_excel``. A file lacking this separator row can lose its first
+        data row to the index name(s); see :ref:`the user guide
+        <io.excel.reading_multiindex>` for details.
     usecols : str, list-like, or callable, default None
         * If None, then parse all columns.
         * If str, then indicates comma separated list of Excel column letters
@@ -271,6 +277,12 @@ def read_excel(
           column if the callable returns ``True``.
 
         Returns a subset of the columns according to behavior above.
+        Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+        To instantiate a :class:`~pandas.DataFrame` with element order preserved
+        use ``pd.read_excel(path, usecols=['foo', 'bar'])[['foo', 'bar']]`` for
+        columns in ``['foo', 'bar']`` order or
+        ``pd.read_excel(path, usecols=['foo', 'bar'])[['bar', 'foo']]`` for
+        ``['bar', 'foo']`` order.
     dtype : Type name or dict of column -> type, default None
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
         Use ``object`` to preserve data as stored in Excel and not interpret dtype,
@@ -762,7 +774,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast("Union[list[int], list[str]]", list(dict.fromkeys(sheets).keys()))
+        sheets = cast("list[int] | list[str]", list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -1020,7 +1032,15 @@ class ExcelWriter(Generic[_WorkbookT]):
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
-        File mode to use (write or append). Append does not work with fsspec URLs.
+        File mode to use (write or append). Append does not work with fsspec
+        URLs.
+
+        .. warning::
+
+           In append mode the existing workbook is read and completely
+           rewritten by the engine, so any content the engine cannot
+           represent (e.g. VBA macros in ``.xlsm`` files, charts or images)
+           is silently lost and the workbook may be otherwise altered.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -1754,6 +1774,13 @@ class ExcelFile:
             ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
             missing values use ``set_index`` after reading the data instead of
             ``index_col``.
+
+            When ``header`` is a list of two or more rows (``MultiIndex``
+            columns), the row after the last header row is expected to hold
+            the index name(s) — blank if the index is unnamed — as written by
+            ``to_excel``. A file lacking this separator row can lose its first
+            data row to the index name(s); see :ref:`the user guide
+            <io.excel.reading_multiindex>` for details.
         usecols : str, list-like, or callable, default None
             * If None, then parse all columns.
             * If str, then indicates comma separated list of Excel column letters
@@ -1766,6 +1793,13 @@ class ExcelFile:
               column if the callable returns ``True``.
 
             Returns a subset of the columns according to behavior above.
+            Element order is ignored, so ``usecols=[0, 1]`` is the same as
+            ``[1, 0]``. To instantiate a :class:`~pandas.DataFrame` with element
+            order preserved use
+            ``pd.read_excel(path, usecols=['foo', 'bar'])[['foo', 'bar']]`` for
+            columns in ``['foo', 'bar']`` order or
+            ``pd.read_excel(path, usecols=['foo', 'bar'])[['bar', 'foo']]`` for
+            ``['bar', 'foo']`` order.
         converters : dict, default None
             Dict of functions for converting values in certain columns. Keys can
             either be integers or column labels, values are functions that take one

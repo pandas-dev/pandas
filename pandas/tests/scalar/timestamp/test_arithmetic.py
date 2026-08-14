@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
     timezone,
@@ -13,6 +14,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
+    iNaT,
     offsets,
     to_offset,
 )
@@ -82,6 +84,44 @@ class TestTimestampArithmetic:
         # but we're OK for timestamp and datetime.datetime
         assert (a - b.to_pydatetime()) == (a.to_pydatetime() - b)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_sub_lands_on_nat_sentinel_raises(self, unit):
+        # GH#66552 the difference fits in int64 but equals iNaT, which cannot be
+        #  stored as a Timedelta; previously this tripped a bare assert, and with
+        #  `python -O` produced a Timedelta whose _value was iNaT
+        left = Timestamp(np.datetime64(iNaT + 1, unit))
+        right = Timestamp(np.datetime64(1, unit))
+        assert left._value - right._value == iNaT
+
+        msg = "Result is too large"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            left - right
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            left.to_datetime64() - right
+
+        # the neighbor one step further out already raised
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            left - Timestamp(np.datetime64(2, unit))
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_addsub_td_lands_on_nat_sentinel_raises(self, unit):
+        # GH#66549 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        ts = Timestamp(np.datetime64(iNaT + 1, unit))
+
+        msg = "Out of bounds .* timestamp: -9223372036854775808"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts + Timedelta(-1, input_unit=unit)
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts - Timedelta(1, input_unit=unit)
+
+        # the neighbor one step further out already raised
+        msg = "Out of bounds .* timestamp: -9223372036854775809"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts + Timedelta(-2, input_unit=unit)
+
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
@@ -110,7 +150,7 @@ class TestTimestampArithmetic:
 
     def test_subtract_tzaware_datetime(self):
         t1 = Timestamp("2020-10-22T22:00:00+00:00")
-        t2 = datetime(2020, 10, 22, 22, tzinfo=timezone.utc)
+        t2 = datetime(2020, 10, 22, 22, tzinfo=UTC)
 
         result = t1 - t2
 
@@ -193,7 +233,7 @@ class TestTimestampArithmetic:
         ],
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ts = Timestamp(now).as_unit("ns")
         result = ts + other
         valdiff = result._value - ts._value
@@ -255,6 +295,59 @@ class TestTimestampArithmetic:
         msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             other - ts
+
+    @pytest.mark.parametrize("subtract", [False, True])
+    def test_addsub_m8ndarray_overflow_in_cast(self, subtract):
+        # GH#66552 the promotion to the finer of the two units used to wrap
+        ts = Timestamp("2500-01-01").as_unit("s")
+        other = np.array([1], dtype="m8[ns]")
+
+        msg = "Cannot cast 2500-01-01 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts - other if subtract else ts + other
+
+        # the coarser operand is the one cast when the Timestamp is finer
+        ts = Timestamp("2000-01-01").as_unit("ns")
+        other = np.array([2**62], dtype="m8[s]")
+
+        msg = "Cannot convert 4611686018427387904 seconds to timedelta64"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            ts - other if subtract else ts + other
+
+    @pytest.mark.parametrize("subtract", [False, True])
+    def test_addsub_m8ndarray_overflow(self, subtract):
+        # GH#66552 the addition itself used to wrap
+        ts = Timestamp("2000-01-01").as_unit("ns")
+        other = np.array([9 * 10**18], dtype="m8[ns]")
+        if subtract:
+            other = -other
+
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts - other if subtract else ts + other
+
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    def test_addsub_m8ndarray_byteswapped(self, unit):
+        # GH#66552 the overflow check reads the values as int64
+        ts = Timestamp("2000-01-01").as_unit("s")
+        other = np.array([1], dtype=f">m8[{unit}]")
+
+        expected = ts.as_unit(unit).asm8 + np.array([1], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(ts + other, expected)
+
+        expected = ts.as_unit(unit).asm8 - np.array([1], dtype=f"m8[{unit}]")
+        tm.assert_numpy_array_equal(ts - other, expected)
+
+    def test_addsub_m8ndarray_nat_operand(self):
+        # GH#66552 a NaT operand still propagates rather than raising
+        ts = Timestamp("2000-01-01").as_unit("s")
+        other = np.array([np.timedelta64("NaT", "s"), np.timedelta64(1, "s")])
+
+        expected = np.array(["NaT", "2000-01-01 00:00:01"], dtype="M8[s]")
+        tm.assert_numpy_array_equal(ts + other, expected)
+
+        expected = np.array(["NaT", "1999-12-31 23:59:59"], dtype="M8[s]")
+        tm.assert_numpy_array_equal(ts - other, expected)
 
     @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray_tzaware(self, shape):

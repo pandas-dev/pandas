@@ -45,11 +45,9 @@ try:
     import fastparquet
 
     _HAVE_FASTPARQUET = True
-    _fp_version_lt_2025 = Version(fastparquet.__version__) < Version("2025.12.0")
     _fp_version_lt_2026_5 = Version(fastparquet.__version__) < Version("2026.5.0")
 except ImportError:
     _HAVE_FASTPARQUET = False
-    _fp_version_lt_2025 = False
     _fp_version_lt_2026_5 = False
 
 
@@ -390,11 +388,8 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
 
 
 @pytest.mark.xfail(
-    using_string_dtype()
-    and _HAVE_PYARROW
-    and not _fp_version_lt_2025
-    and _fp_version_lt_2026_5,
-    reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+    reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
 )
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
@@ -520,6 +515,22 @@ class TestBasic(Base):
         index = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
         df.index = index
         check_round_trip(df, temp_file, engine)
+
+    @pytest.mark.xfail(
+        using_string_dtype() and pa_version_under19p0,
+        reason="With pyarrow<19 we pass a types_mapper to Table.to_pandas, which "
+        "makes pyarrow drop the extension dtype of MultiIndex levels",
+    )
+    @pytest.mark.parametrize("freq", ["D", "M"])
+    def test_write_multiindex_period_level(self, pa, temp_file, freq):
+        # GH#49641 a PeriodIndex level of a MultiIndex round-tripped as the
+        # underlying integer ordinals
+        df = pd.DataFrame({"VALUE": [11, 22, 33]})
+        periods = pd.period_range("2020-01-01", periods=3, freq=freq)
+        df.index = pd.MultiIndex.from_arrays(
+            [["A", "B", "C"], periods], names=["ID", "DATE"]
+        )
+        check_round_trip(df, temp_file, pa)
 
     def test_multiindex_with_columns(self, pa, temp_file):
         engine = pa
@@ -1324,6 +1335,16 @@ class TestParquetPyArrow(Base):
         with pytest.raises(OSError, match=msg):
             df.to_parquet(path, engine=pa)
 
+    def test_read_parquet_with_self_destruct(self, pa, temp_file):
+        # GH#66509
+        df = pd.DataFrame({0: [0.25]})
+        check_round_trip(
+            df,
+            temp_file,
+            engine=pa,
+            read_kwargs={"to_pandas_kwargs": {"self_destruct": True}},
+        )
+
     def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
         # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
         # be routed through it because pyarrow cannot fetch them
@@ -1409,11 +1430,8 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
@@ -1427,8 +1445,8 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.xfail(
-        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW,
+        reason="fastparquet can't write ArrowStringArray",
     )
     @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_bucket_public, s3so, fp, temp_file):
@@ -1443,11 +1461,8 @@ class TestParquetFastParquet(Base):
         )
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
@@ -1466,11 +1481,8 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 2
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
@@ -1489,11 +1501,8 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 1
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283

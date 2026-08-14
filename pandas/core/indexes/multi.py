@@ -3337,18 +3337,11 @@ class MultiIndex(Index):
             else:
                 try:
                     target = MultiIndex.from_tuples(target)
-                except TypeError:
+                except (TypeError, ValueError):
                     # not all tuples, see test_constructor_dict_multiindex_reindex_flat
+                    # ValueError: non-object target dtype (e.g. int), so the
+                    #  entries can't be tuples (GH#26460)
                     return target
-                except ValueError as err:
-                    # GH#26460 from_tuples on a non-object (e.g. integer) flat
-                    #  target fails the Cython buffer check.
-                    raise ValueError(
-                        "cannot reindex a MultiIndex with a flat "
-                        f"'{target.dtype}' index; the reindex target must "
-                        f"contain tuples of length {self.nlevels} (the number "
-                        "of levels)"
-                    ) from err
 
         target = self._maybe_preserve_names(target, preserve_names)
         return target

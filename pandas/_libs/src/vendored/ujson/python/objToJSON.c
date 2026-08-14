@@ -318,6 +318,76 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
   return ret;
 }
 
+/* Number of nanoseconds in one step of ``unit``, or -1 for units that are not
+ * a fixed number of nanoseconds (years, months) or do not fit in an int64. */
+static int64_t nanosPerUnit(NPY_DATETIMEUNIT unit) {
+  switch (unit) {
+  case NPY_FR_W:
+    return 604800000000000LL;
+  case NPY_FR_D:
+    return 86400000000000LL;
+  case NPY_FR_h:
+    return 3600000000000LL;
+  case NPY_FR_m:
+    return 60000000000LL;
+  case NPY_FR_s:
+    return 1000000000LL;
+  case NPY_FR_ms:
+    return 1000000LL;
+  case NPY_FR_us:
+    return 1000LL;
+  case NPY_FR_ns:
+    return 1LL;
+  default:
+    return -1;
+  }
+}
+
+/*
+ * Function: scaleDatetimeUnit
+ * ---------------------------
+ *
+ * Rescales an integer datetime/timedelta value from ``fromUnit`` to
+ * ``toUnit``, e.g. for writing epoch values in the unit requested by
+ * ``date_unit``. Mutates the provided value directly. Returns 0 on success,
+ * -1 (with an exception set) on error.
+ */
+static int scaleDatetimeUnit(int64_t *value, NPY_DATETIMEUNIT fromUnit,
+                             NPY_DATETIMEUNIT toUnit) {
+  if (fromUnit == toUnit) {
+    return 0;
+  }
+
+  const int64_t fromNanos = nanosPerUnit(fromUnit);
+  const int64_t toNanos = nanosPerUnit(toUnit);
+  if (fromNanos == -1 || toNanos == -1) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Cannot write datetime64 or timedelta64 values with this "
+                    "resolution as epoch values");
+    return -1;
+  }
+
+  if (fromNanos < toNanos) {
+    // round toward negative infinity, matching the .dt.as_unit conversion
+    // used for plain datetime64 values; C division truncates toward zero,
+    // which would round pre-epoch values up to the following second
+    const int64_t factor = toNanos / fromNanos;
+    const int64_t remainder = *value % factor;
+    *value = *value / factor - (remainder < 0 ? 1 : 0);
+  } else {
+    const int64_t factor = fromNanos / toNanos;
+    if (*value > INT64_MAX / factor || *value < INT64_MIN / factor) {
+      PyErr_SetString(PyExc_OverflowError,
+                      "Datetime value is out of bounds for the requested "
+                      "date_unit");
+      return -1;
+    }
+    *value *= factor;
+  }
+
+  return 0;
+}
+
 static npy_int64 get_long_attr(PyObject *o, const char *attr) {
   // NB we are implicitly assuming that o is a Timedelta or Timestamp, or NaT
 
@@ -1100,6 +1170,11 @@ static int Index_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   if (!GET_TC(tc)->cStr) {
     return 0;
   }
+  if (PyErr_Occurred()) {
+    // stop rather than fetch the next attribute with an exception pending,
+    // which would mask it
+    return 0;
+  }
 
   if (index == 0) {
     strcpy(GET_TC(tc)->cStr, "name");
@@ -1151,6 +1226,11 @@ static int Series_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
   if (!GET_TC(tc)->cStr) {
+    return 0;
+  }
+  if (PyErr_Occurred()) {
+    // stop rather than fetch the next attribute with an exception pending,
+    // which would mask it
     return 0;
   }
 
@@ -1207,6 +1287,11 @@ static int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
   if (!GET_TC(tc)->cStr) {
+    return 0;
+  }
+  if (PyErr_Occurred()) {
+    // stop rather than fetch the next attribute with an exception pending,
+    // which would mask it
     return 0;
   }
 
@@ -1432,14 +1517,18 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else {
           int size_of_cLabel = 21; // 21 chars for int 64
           cLabel = PyObject_Malloc(size_of_cLabel);
-          if (!from_numpy) {
-            // numpy arrays are already scaled to the correct unit
-            // only need to scale if coming from a datetime/timedelta object
-            if (scaleNanosecToUnit(&i8date, targetUnit) == -1) {
-              NpyArr_freeLabels(ret, num);
-              ret = 0;
-              break;
-            }
+          // numpy values are scaled from the array's own unit; datetime and
+          // timedelta objects were converted to nanos above and keep the
+          // conversion they have always used
+          const int scaled =
+              from_numpy ? scaleDatetimeUnit(&i8date, valueUnit, targetUnit)
+                         : scaleNanosecToUnit(&i8date, targetUnit);
+          if (scaled == -1) {
+            PyObject_Free(cLabel);
+            Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
           }
           snprintf(cLabel, size_of_cLabel, "%" PRId64, i8date);
           len = strlen(cLabel);
@@ -1542,8 +1631,16 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         pc->longValue = longVal;
         tc->type = JT_UTF8;
       } else {
-        // numpy array was already scaled to unit, so just use int value for
-        // epoch
+        // GH#66709 the values may already have been scaled to date_unit up
+        // front (see to_json), but not for datetime-likes hidden behind
+        // another dtype (e.g. Categorical, Sparse), so scale from the array's
+        // own unit here.
+        if (scaleDatetimeUnit(&longVal, enc->valueUnit, enc->datetimeUnit) ==
+            -1) {
+          enc->npyCtxtPassthru = NULL;
+          enc->npyType = -1;
+          goto INVALID;
+        }
         pc->longValue = longVal;
         tc->type = JT_LONG;
       }
@@ -1895,6 +1992,11 @@ ISITERABLE:
       pc->rowLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
                                           pc->rowLabelsLen, values_is_utc);
       Py_DECREF(tmpObj);
+      if (!pc->rowLabels) {
+        // the pending exception from encoding the labels would otherwise be
+        // overwritten while retrieving the other axis
+        goto INVALID;
+      }
       tmpObj =
           (enc->outputFormat == INDEX ? PyObject_GetAttrString(obj, "columns")
                                       : PyObject_GetAttrString(obj, "index"));
@@ -2144,6 +2246,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
       .npyValue = NULL,
       .datetimeIso = 0,
       .datetimeUnit = NPY_FR_ms,
+      .valueUnit = NPY_FR_ns,
       .outputFormat = COLUMNS,
       .defaultHandler = NULL,
   };

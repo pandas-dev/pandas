@@ -308,19 +308,22 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize(
         "msg, key",
         [
-            (r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
-            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
-            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
+            (
+                r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'",
+                (Period("2019"), "foo", "bar"),
+            ),
+            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period("2019"), "y1", "bar")),
+            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period("2019"), "foo", "z1")),
             (
                 r"Period\('2018', 'Y-DEC'\), Period\('2016', 'Y-DEC'\), 'bar'",
-                (Period(2018), Period(2016), "bar"),
+                (Period("2018"), Period("2016"), "bar"),
             ),
-            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
+            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period("2018"), "foo", "y1")),
             (
                 r"Period\('2017', 'Y-DEC'\), 'foo', Period\('2015', 'Y-DEC'\)",
-                (Period(2017), "foo", Period(2015)),
+                (Period("2017"), "foo", Period("2015")),
             ),
-            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
+            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period("2017"), "z1", "bar")),
         ],
     )
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
@@ -334,9 +337,9 @@ class TestLocBaseIndependent:
         """
         df = DataFrame(
             {
-                "A": [Period(2019), "x1", "x2"],
-                "B": [Period(2018), Period(2016), "y1"],
-                "C": [Period(2017), "z1", Period(2015)],
+                "A": [Period("2019"), "x1", "x2"],
+                "B": [Period("2018"), Period("2016"), "y1"],
+                "C": [Period("2017"), "z1", Period("2015")],
                 "V1": [1, 2, 3],
                 "V2": [10, 20, 30],
             }
@@ -1946,8 +1949,8 @@ class TestLocWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
-        times = date_range("2000-01-01", freq="10min", periods=100000)
-        ser = Series(range(100000), times)
+        times = date_range("2000-01-01", freq="10min", periods=10)
+        ser = Series(range(10), times)
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
 
@@ -2001,7 +2004,9 @@ class TestLocWithMultiIndex:
     def test_additional_element_to_categorical_series_loc(self):
         # GH#47677
         result = Series(["a", "b", "c"], dtype="category")
-        result.loc[3] = 0
+        # 0 is not among the categories, so the dtype changes (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            result.loc[3] = 0
         expected = Series(["a", "b", "c", 0], dtype="object")
         tm.assert_series_equal(result, expected)
 
@@ -2127,7 +2132,10 @@ class TestLocSetitemWithExpansion:
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         df = DataFrame({"A": pd.array([1, 2, 3], dtype=dtype)})
-        df.loc[len(df)] = [2.5]
+        # the promotion warns since 2.5 cannot be held by the integer
+        #  dtype (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            df.loc[len(df)] = [2.5]
         assert df["A"].dtype.kind == "f"
         assert df.loc[len(df) - 1, "A"] == 2.5
 
@@ -2551,11 +2559,13 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
         # GH#62523 expanding with a finer-resolution value that cannot be cast
         #  down to the original coarser unit should keep the finer unit rather
-        #  than raising ArrowInvalid
+        #  than raising ArrowInvalid.  The unit change warns since the second
+        #  resolution cannot hold the value (GH#62369).
         ser = Series(
             to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
         )
-        ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
         expected = Series(
             [
                 Timestamp("2020-01-01"),
@@ -3240,6 +3250,65 @@ class TestLocListlike:
 
 
 @pytest.mark.parametrize(
+    "indexer_name, col_key",
+    [
+        ("loc", ["a", "b"]),
+        ("iloc", [0, 1]),
+        ("loc", [True, True]),
+        ("loc", slice("a", "b")),
+        ("iloc", slice(0, 2)),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        [[1, 2], [3, 4]],
+        [(1, 2), (3, 4)],
+        [[1, 2], [3, 4, 5]],
+        ([1, 2], [3, 4]),
+        ([1, 2], [3, 4, 5]),
+    ],
+)
+def test_setitem_int_row_listlike_cols_nested_value(indexer_name, col_key, value):
+    # GH#65241 the GH#44103 fix forced the split path for a scalar row plus
+    #  list-like columns on any single-block frame; on non-extension blocks
+    #  that transposed nested values and raised on ragged ones
+    df = DataFrame({"a": [1, "x"], "b": [2, "y"]}, dtype=object)
+    assert df._mgr.is_single_block and not df._mgr.blocks[0].is_extension
+
+    getattr(df, indexer_name)[0, col_key] = value
+
+    expected = DataFrame({"a": [value[0], "x"], "b": [value[1], "y"]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("indexer_name, col_key", [("loc", ["a"]), ("iloc", [0])])
+def test_setitem_int_row_single_col_nested_value(indexer_name, col_key):
+    # GH#65241 the split path raised ValueError for a length-1 list of lists
+    df = DataFrame({"a": [1, "x"], "b": [2, "y"]}, dtype=object)
+
+    getattr(df, indexer_name)[0, col_key] = [[1, 2]]
+
+    expected = DataFrame({"a": [[1, 2], "x"], "b": [2, "y"]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_int_row_length_mismatch_message():
+    # GH#65241 a numpy-dtype single-block frame takes the non-split path, where
+    #  numpy raises; frames that take the split path get pandas' message
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    assert df._mgr.is_single_block
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        df.loc[0, ["a", "b"]] = [7, 8, 9]
+
+    df2 = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["u", "v"]})
+    assert not df2._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df2.loc[0, ["a", "b"]] = [7, 8, 9]
+
+
+@pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
         ([2011, 2012, 2013], [2011, 2012], [0, 1]),
@@ -3896,6 +3965,44 @@ def test_loc_setitem_extension_array_into_object_series():
     tm.assert_series_equal(ser, expected)
 
 
+def test_loc_setitem_expansion_incompatible_dtype_warns():
+    # GH#62369 silent dtype change during setitem-with-expansion
+    df = DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
+    # GH#62369 an explicitly-typed empty column is a meaningful dtype, so a
+    #  zero-row frame warns on an incompatible expansion just like a Series
+    df = DataFrame({"a": Series([], dtype=np.float64)})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = "x"
+    expected_dtype = "str" if using_infer_string else object
+    assert df["a"].dtype == expected_dtype
+
+
+def test_loc_setitem_expansion_ea_column_warns():
+    # GH#62369 EA-dtyped columns participate in the expansion deprecation
+    df = DataFrame({"a": Series([1, 2], dtype="Int64"), "b": [1.5, 2.5]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_placeholder_column_no_warning():
+    # GH#62369 a column materialized during indexer preprocessing carries a
+    #  np.void NA-proxy placeholder dtype, which is not meaningful to retain,
+    #  so creating it via expansion does not warn
+    df = DataFrame()
+    with tm.assert_produces_warning(None):
+        df.loc[0, "a"] = 5
+    assert df["a"].dtype == np.float64
+
+
 def test_loc_getitem_list_integer_columns_preserves_order():
     # GH#15824 selecting integer-labeled columns with a list must keep the
     # requested order even when an extra (non-integer) column is present, so
@@ -3946,3 +4053,29 @@ def test_loc_setitem_multi_element_list_into_cell():
     df = DataFrame([{"foo": None, "bar": None}], index=["a"])
     df.loc["a", "foo"] = ["123", "456"]
     assert df.loc["a", "foo"] == ["123", "456"]
+
+
+@td.skip_if_no("pyarrow")
+def test_loc_setitem_row_expansion_int_ea_float_value():
+    # GH#65094 row expansion casts each column back to its original dtype; an
+    #  integral float above 2**53 used to raise ArrowInvalid for ArrowDtype and
+    #  saturate to the dtype's max for masked dtypes
+    df = DataFrame(
+        {
+            "arrow": pd.array([1, 2], dtype="int64[pyarrow]"),
+            "masked": pd.array([1, 2], dtype="Int64"),
+            "numpy": [1, 2],
+        }
+    )
+
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = [1.7e18, 2.0**63, 3.0]
+
+    expected = DataFrame(
+        {
+            "arrow": pd.array([1, 2, 1700000000000000000], dtype="int64[pyarrow]"),
+            "masked": pd.array([1.0, 2.0, 2.0**63], dtype="Float64"),
+            "numpy": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(df, expected)

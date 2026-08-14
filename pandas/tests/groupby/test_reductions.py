@@ -1,11 +1,13 @@
 import builtins
 import datetime as dt
+from decimal import Decimal
 from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -20,8 +22,8 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.tests.extension.decimal import DecimalArray
 from pandas.tests.groupby import get_groupby_method_args
-from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
@@ -530,6 +532,84 @@ def test_first_last_skipna_ea_types(how, skipna):
             index=pd.Index([1, 2], name="g"),
         )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["min", "max"])
+@pytest.mark.parametrize(
+    "dtype",
+    [object, "str", pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_min_max_skipna_false_string_dtypes(how, dtype):
+    # GH#18588: string and object dtypes have no cython group_min_max, so they
+    # reduce through the pure-python fallback, which used to drop skipna
+    df = DataFrame({"g": [1, 1, 2, 2], "v": Series(["a", None, "y", "z"], dtype=dtype)})
+    result = getattr(df.groupby("g")["v"], how)(skipna=False)
+    expected = Series(
+        # np.nan rather than None: each group reduces to a scalar NA, which
+        # matters when "str" is plain object
+        [np.nan, "y" if how == "min" else "z"],
+        # the fallback re-infers an object result, so strings come back as str
+        dtype="str" if dtype is object else dtype,
+        index=pd.Index([1, 2], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_prod_skipna_false_object():
+    # GH#4147/GH#18588: object has no cython group_prod, so it takes the
+    # pure-python fallback, which dropped skipna; the underlying Series.prod
+    # then raised on the object NA.  (object *sum* has a cython implementation
+    # and already honoured skipna.)
+    df = DataFrame({"g": [1, 1, 2, 2], "v": Series([2, None, 3, 4], dtype=object)})
+    result = df.groupby("g")["v"].prod(skipna=False)
+    assert isna(result.loc[1])
+    assert result.loc[2] == 12
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+def test_sum_prod_skipna_false_ea_fallback(how):
+    # GH#18588: an extension dtype whose _groupby_op raises NotImplementedError
+    # reduces through the same fallback for sum as well as prod
+    values = DecimalArray(
+        [Decimal(2), Decimal("NaN"), Decimal(3), Decimal(4)],
+    )
+    df = DataFrame({"g": [1, 1, 2, 2], "v": values})
+    result = getattr(df.groupby("g")["v"], how)(skipna=False)
+    assert isna(result.loc[1])
+    assert result.loc[2] == (7 if how == "sum" else 12)
+
+
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_min_max_skipna_false_frame_object_block(how):
+    # GH#18588: DataFrameGroupBy on an object column reaches _agg_py_fallback
+    # through its 2D branch, unlike the 1D SeriesGroupBy one.  That branch also
+    # keeps object dtype rather than re-inferring str, as it does for skipna=True.
+    df = DataFrame(
+        {"g": [1, 1, 2, 2], "v": Series(["a", None, "y", "z"], dtype=object)}
+    )
+    result = getattr(df.groupby("g"), how)(skipna=False)
+    expected = DataFrame(
+        {"v": [np.nan, "y" if how == "min" else "z"]},
+        index=pd.Index([1, 2], name="g"),
+        dtype=object,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_min_max_skipna_false_interval_dtype(how):
+    # GH#18588: any EA whose _groupby_op raises NotImplementedError takes the
+    # same pure-python fallback
+    intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), None, (2, 3), (4, 5)])
+    df = DataFrame({"g": [1, 1, 2, 2], "v": intervals})
+    result = getattr(df.groupby("g")["v"], how)(skipna=False)
+    expected = Series(
+        pd.arrays.IntervalArray.from_tuples([None, (2, 3) if how == "min" else (4, 5)]),
+        index=pd.Index([1, 2], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_mean_no_overflow():
@@ -1456,6 +1536,72 @@ def test_groupby_sum_timedelta_with_nat():
     res = gb["b"].sum(min_count=2)
     expected = Series([td3, pd.NaT], dtype="m8[us]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
+
+
+def test_groupby_sum_timedelta_overflow():
+    # GH#66551: a running total that leaves the int64 range used to wrap
+    #  silently; Series.sum on the same group already raised
+    msg = "overflow in timedelta operation"
+    ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.Timedelta("1D")])
+
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        ser.groupby([0, 0, 1]).sum()
+
+    # the group that does not overflow is not enough to make the whole
+    #  aggregation succeed, matching DataFrame.sum
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        DataFrame({"a": ser}).groupby([0, 0, 1]).sum()
+
+    # groups that stay in range are unaffected
+    ser = Series([pd.Timedelta.max, pd.Timedelta("1D"), pd.Timedelta("2D")])
+    res = ser.groupby([0, 1, 1]).sum()
+    expected = Series(
+        [pd.Timedelta.max, pd.Timedelta("3D")], index=pd.Index([0, 1], dtype=np.intp)
+    )
+    tm.assert_series_equal(res, expected)
+
+
+def test_groupby_sum_timedelta_overflow_sentinel():
+    # GH#66551: a total landing exactly on iNaT is not a missing value
+    mx, mn = pd.Timedelta.max, pd.Timedelta.min
+    ser = Series([mn, pd.Timedelta(-1, input_unit="ns")])
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
+        ser.groupby([0, 0]).sum()
+
+    # ... but an intermediate that merely passes through the sentinel is fine,
+    #  so the result must not depend on the order values arrive in
+    for order in ([mx, mn, mx], [mx, mx, mn], [mn, mx, mx]):
+        res = Series(order).groupby([0, 0, 0]).sum()
+        tm.assert_series_equal(
+            res,
+            Series([mx + mn + mx], index=pd.Index([0], dtype=np.intp)),
+            check_dtype=False,
+        )
+
+
+def test_groupby_sum_timedelta_overflow_na_result():
+    # GH#66551: a group whose result is NA anyway must not raise, matching
+    #  Series.sum
+    ser = Series([pd.Timedelta.max, pd.Timedelta.max])
+
+    res = ser.groupby([0, 0]).sum(min_count=3)
+    tm.assert_series_equal(
+        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+    )
+
+    ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.NaT])
+    res = ser.groupby([0, 0, 0]).sum(skipna=False)
+    tm.assert_series_equal(
+        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+    )
+
+
+def test_groupby_sum_int64_still_wraps():
+    # GH#66551: only the datetimelike path is checked; plain int64 keeps
+    #  wrapping like NumPy
+    ser = Series([2**62] * 4)
+    res = ser.groupby([0] * 4).sum()
+    tm.assert_series_equal(res, Series([0], index=pd.Index([0], dtype=np.intp)))
 
 
 @pytest.mark.parametrize(

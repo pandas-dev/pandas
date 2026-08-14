@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
     timezone,
@@ -550,8 +551,8 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, expected)
         assert result.tz == left.tz
         if len(result):
-            assert result[0].tz is timezone.utc
-            assert result[-1].tz is timezone.utc
+            assert result[0].tz is UTC
+            assert result[-1].tz is UTC
 
     def test_dti_union_mixed(self):
         # GH#21671

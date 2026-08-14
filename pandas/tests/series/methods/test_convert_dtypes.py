@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -200,7 +201,8 @@ class TestSeriesConvertDtypes:
         else:
             series = pd.Series(data)
 
-        result = series.convert_dtypes(*params)
+        with tm.assert_produces_warning(Pandas4Warning):
+            result = series.convert_dtypes(*params)
 
         param_names = [
             "infer_objects",
@@ -283,7 +285,8 @@ class TestSeriesConvertDtypes:
     def test_convert_dtype_object_with_na(self, infer_objects, dtype):
         # GH#48791
         ser = pd.Series([1, pd.NA])
-        result = ser.convert_dtypes(infer_objects=infer_objects)
+        with tm.assert_produces_warning(Pandas4Warning):
+            result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
@@ -293,7 +296,8 @@ class TestSeriesConvertDtypes:
     def test_convert_dtype_object_with_na_float(self, infer_objects, dtype):
         # GH#48791
         ser = pd.Series([1.5, pd.NA])
-        result = ser.convert_dtypes(infer_objects=infer_objects)
+        with tm.assert_produces_warning(Pandas4Warning):
+            result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1.5, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)
 

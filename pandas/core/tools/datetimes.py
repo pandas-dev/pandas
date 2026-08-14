@@ -445,7 +445,9 @@ def _convert_listlike_datetimes(
     elif input_unit is not None:
         if format is not None:
             raise ValueError("cannot specify both format and input_unit")
-        return _to_datetime_with_unit(arg, input_unit, name, utc, errors)
+        return _to_datetime_with_unit(
+            arg, input_unit, name, utc, errors, dayfirst=dayfirst, yearfirst=yearfirst
+        )
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, datetime, list, tuple, 1-d array, or Series"
@@ -520,7 +522,15 @@ def _array_strptime_with_fallback(
     return Index(result, dtype=result.dtype, name=name, copy=False)
 
 
-def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Index:
+def _to_datetime_with_unit(
+    arg,
+    input_unit,
+    name,
+    utc: bool,
+    errors: str,
+    dayfirst,
+    yearfirst,
+) -> Index:
     """
     to_datetime specalized to the case where a 'input_unit' is passed.
     """
@@ -549,7 +559,9 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                         )
 
                     arg = arg.astype(object)
-                    return _to_datetime_with_unit(arg, input_unit, name, utc, errors)
+                    return _to_datetime_with_unit(
+                        arg, input_unit, name, utc, errors, dayfirst, yearfirst
+                    )
             arr = arg.astype(f"datetime64[{input_unit}]", copy=False)
             dtype = get_supported_dtype(arr.dtype)
             try:
@@ -558,7 +570,9 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                 if errors == "raise":
                     raise
                 arg = arg.astype(object)
-                return _to_datetime_with_unit(arg, input_unit, name, utc, errors)
+                return _to_datetime_with_unit(
+                    arg, input_unit, name, utc, errors, dayfirst, yearfirst
+                )
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
@@ -580,6 +594,8 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                     name=name,
                     utc=utc,
                     errors=errors,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
                 )
                 result._data[mask] = NaT
                 return result
@@ -591,7 +607,13 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                 except OutOfBoundsDatetime as err:
                     if errors != "raise":
                         return _to_datetime_with_unit(
-                            arg.astype(object), input_unit, name, utc, errors
+                            arg.astype(object),
+                            input_unit,
+                            name,
+                            utc,
+                            errors,
+                            dayfirst,
+                            yearfirst,
                         )
                     raise OutOfBoundsDatetime(
                         f"cannot convert input with input_unit '{input_unit}'"
@@ -605,6 +627,8 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                 arg,
                 utc=utc,
                 errors=errors,
+                dayfirst=dayfirst,
+                yearfirst=yearfirst,
                 unit_for_numerics=input_unit,
             )
 
@@ -1163,6 +1187,8 @@ def to_datetime(
             stacklevel=find_stack_level(),
         )
         input_unit = unit
+    if errors not in ("raise", "coerce"):
+        raise ValueError("errors must be one of 'raise', or 'coerce'.")
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if arg is None:
@@ -1229,7 +1255,7 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             argc = cast(
-                "Union[list, tuple, ExtensionArray, np.ndarray, Series, Index]", arg
+                "list | tuple | ExtensionArray | np.ndarray | Series | Index", arg
             )
             cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
         except OutOfBoundsDatetime:
