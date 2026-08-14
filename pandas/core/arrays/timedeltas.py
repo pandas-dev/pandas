@@ -1287,8 +1287,8 @@ def sequence_to_td64ns(
             mask = np.isnan(data)
 
         if unit is not None and unit != "ns":
-            # if all non-NaN entries are round, treat these like ints and give
-            #  back the requested unit (or closest-supported)
+            # if all non-NaN entries are round, treat these like ints
+            # (which results in 'us' unit instead of 'ns')
             with np.errstate(invalid="ignore"):
                 int_data = data.astype(np.int64)
             # On ARM, float-to-int64 overflow saturates to INT64_MAX

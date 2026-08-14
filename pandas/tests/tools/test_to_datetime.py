@@ -2579,10 +2579,8 @@ class TestToDatetimeDataFrame:
 
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_dataframe_hour_outside_int32(self, errors):
-        # hour values outside int32 range fall back to to_timedelta, whose
-        #  overflow raises under both error modes; they must not wrap
-        #  silently in the vectorized path
-        # TODO update comment if this correct
+        # hour values outside int32 range fall back to to_timedelta, but should
+        # still correctly raise / coerce to NaT
         df = DataFrame(
             {"year": [2000, 2000], "month": [1, 1], "day": [1, 1], "hour": [1, 2**32]}
         )
