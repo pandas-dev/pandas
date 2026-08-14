@@ -949,6 +949,39 @@ def test_pyarrow_string_iterator_dtype_stable_across_chunks():
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
+    # GH#66277: the fast path copies a short token at a compile-time-constant
+    # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
+    # one byte either side of a tier boundary is where a mis-sized copy would
+    # truncate the value or trail the following token's bytes into it.  Column
+    # "b" is last in each row, which puts its final token at the end of the
+    # parser stream -- the one place the overshoot is not taken.
+    pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = ["".join(chr(ord("a") + i % 26) for i in range(w)) for w in widths]
+    data = "a,b\n" + "".join(f"{v},{v.upper()}\n" for v in values)
+    with option_context("future.infer_string", True):
+        result = read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    assert result["a"].tolist() == values
+    assert result["b"].tolist() == [v.upper() for v in values]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
+    # GH#66277: the fast path sizes its data buffer from the column's leading
+    # tokens and grows it mid-pass when that estimate falls short, re-copying
+    # what it has already written.  A column whose first rows are far narrower
+    # than the rest takes that path repeatedly, where a stale buffer pointer or
+    # an undersized grow would corrupt everything written before it.
+    pytest.importorskip("pyarrow")
+    values = ["ab"] * 20 + [f"{i:x}" * 900 for i in range(1, 200)]
+    data = "a\n" + "".join(f"{v}\n" for v in values)
+    with option_context("future.infer_string", True):
+        result = read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    assert result["a"].tolist() == values
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("prefix_len", [1, 200])
 def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
     # GH#66415: the pyarrow string fast path computed token lengths with

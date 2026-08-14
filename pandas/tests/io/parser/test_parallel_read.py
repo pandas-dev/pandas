@@ -1114,6 +1114,28 @@ def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
     tm.assert_frame_equal(parallel, serial)
 
 
+def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
+    # The deferred string path fills each chunk's data buffer with the same
+    # fixed-width token copy the serial path uses, so widths straddling that
+    # copy's 16- and 32-byte tiers have to survive a chunked read too --
+    # including at each chunk's last row, where the copy stops overshooting
+    # (GH#66277).
+    pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = ["".join(chr(ord("a") + i % 26) for i in range(w)) for w in widths]
+    path = tmp_path / "tiers.csv"
+    rows = "".join(f"{v},{v.upper()}\n" for v in values * 400)
+    path.write_text("a,b\n" + rows, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+    assert serial["a"].tolist() == values * 400
+
+
 def test_parallel_deferred_strings_mixed_chunk_dtypes(tmp_path, monkeypatch):
     # One chunk of a column parses as strings while the rest parse as int64,
     # so the gather sees pending string columns alongside numeric ones and must
