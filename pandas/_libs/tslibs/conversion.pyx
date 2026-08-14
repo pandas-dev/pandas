@@ -265,15 +265,6 @@ cdef int64_t cast_from_unit(
         ) from err
 
     frac = ts - base
-
-    if frac == 0:
-        try:
-            return base * m
-        except OverflowError as err:
-            raise OutOfBoundsDatetime(
-                f"cannot convert input {ts} with the unit '{unit}'"
-            ) from err
-
     if p:
         frac = round(frac, p)
 
