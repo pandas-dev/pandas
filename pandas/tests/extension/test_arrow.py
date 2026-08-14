@@ -1029,7 +1029,7 @@ class TestArrowArray(base.ExtensionTests):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_values_for_json(self, data, request):
         # GH 65127
@@ -1053,7 +1053,7 @@ class TestArrowArray(base.ExtensionTests):
             super().test_values_for_json(data)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_json_roundtrip(self, data, request):
         # GH 65127

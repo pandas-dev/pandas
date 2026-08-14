@@ -2697,8 +2697,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 dtypes = [self.dtype, self.index.dtype]
             if any(dtype.kind in "mM" for dtype in dtypes):
                 warnings.warn(
-                    "The default 'epoch' date format is deprecated and will be removed "
-                    "in a future version, please use 'iso' date format instead.",
+                    "The default formatting of datetime/timedelta values will change "
+                    'from numbers ("epoch") to strings ("iso") in a future version. '
+                    'Specify `date_format="iso"` explicitly in the `to_json()` call '
+                    "to opt-in to the future behaviour and silence this warning.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
