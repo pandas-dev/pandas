@@ -21,6 +21,9 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
+from matplotlib.collections import PolyCollection
+from matplotlib.lines import Line2D
+from matplotlib.path import Path
 import numpy as np
 
 from pandas._libs import lib
@@ -532,7 +535,14 @@ class MPLPlot(ABC):
     @staticmethod
     def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
-        return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
+        return (
+            len(ax.lines) != 0
+            or len(ax.artists) != 0
+            or len(ax.containers) != 0
+            # a wide line plot draws into a collection rather than into lines
+            # (GH#61532), as do scatter and area plots
+            or len(ax.collections) != 0
+        )
 
     @final
     def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:
@@ -1567,7 +1577,178 @@ class LinePlot(MPLPlot):
         if self.stacked:
             self.data = self.data.fillna(value=0)
 
+    # kwds a LineCollection can reproduce exactly; anything else has to be
+    # drawn per column, since dropping it would silently change the plot
+    _collection_kwds = frozenset({"linewidth", "lw", "linestyle", "ls", "alpha"})
+
+    def _collection_data(self) -> tuple[np.ndarray, np.ndarray] | None:
+        """
+        The x values and 2D y values to draw as one collection, or None
+        to draw one ``Line2D`` per column instead (GH#61532).
+
+        One collection is far cheaper to build and draw than one artist per
+        column, but it is not free: matplotlib's Agg renderer binds
+        ``draw_path_collection`` straight to its C++ renderer, and that -- unlike
+        the ``draw_path`` a ``Line2D`` goes through -- never applies draw-time
+        path simplification. Once the columns are long enough for matplotlib to
+        simplify them, losing that costs more than the collection saves, so we
+        only take it while matplotlib would not have simplified anyway.
+        ``Path.should_simplify`` is matplotlib's own answer to that question,
+        which keeps the cutoff matplotlib's rather than one of ours.
+        """
+        if not (
+            # subclasses such as AreaPlot override _plot to draw something
+            # other than a plain line
+            self._kind == "line"
+            and self.nseries > 1
+            and not self.subplots
+            and not self.stacked
+            and not self.secondary_y
+            and self.style is None
+            and not com.any_not_none(*self.errors.values())
+            and not self._is_ts_plot()
+            # a collection draws segments only -- no markers, and only the
+            # styling we can hand over intact
+            and not self.kwds.keys() - self._collection_kwds
+        ):
+            return None
+
+        if mpl.rcParams["lines.marker"] not in ("None", "none", " ", "", None):
+            # every column would carry markers, which a collection cannot draw
+            return None
+
+        # Only color varies per column in a collection. If the axes cycles
+        # anything else -- a linestyle or a marker per column -- the per-column
+        # draw would look different, so leave it to that path. An unreadable
+        # cycle (a matplotlib that no longer exposes it) counts as unknown.
+        # error: "Axes" has no attribute "_get_lines"
+        prop_cycle = self._get_ax(0)._get_lines  # type: ignore[attr-defined]
+        cycler_items = getattr(prop_cycle, "_cycler_items", None)
+        if cycler_items is None or any(set(item) - {"color"} for item in cycler_items):
+            return None
+
+        if Path(np.empty((len(self.data), 2))).should_simplify:
+            # matplotlib would simplify the per-column paths, and a collection
+            # would not get that
+            return None
+
+        # one homogeneous numeric array each side, or the segments cannot be
+        # stacked the way matplotlib would have drawn the columns one by one
+        dtypes = self.data.dtypes
+        if not (
+            all(dtype.kind in "iuf" for dtype in dtypes)
+            or all(dtype.kind == "b" for dtype in dtypes)
+        ):
+            return None
+        values = self.data.values
+        if values.dtype.kind not in "iufb":
+            # empty extension-dtype columns report a numeric kind but stack to
+            # object
+            return None
+        x = np.asarray(self._get_xticks())
+        if x.dtype.kind not in "iuf":
+            return None
+        return x, values
+
+    def _make_plot_collection(self, x: np.ndarray, values: np.ndarray) -> None:
+        """
+        Draw every column as a single ``LineCollection`` (GH#61532).
+
+        The columns stop being individually addressable artists, so
+        ``ax.get_lines()`` no longer reports them; they live in
+        ``ax.collections`` instead. Legend entries get proxy ``Line2D`` handles
+        so the legend itself is unchanged.
+        """
+        ax = self._get_ax(0)
+        colors = self._get_colors()
+
+        kwds = self.kwds.copy()
+        if self.color is not None:
+            kwds["color"] = self.color
+
+        labels = []
+        seg_colors = []
+        for i, col in enumerate(self.data.columns):
+            _, col_kwds = self._apply_style_colors(colors, kwds.copy(), i, col)
+            color = col_kwds.get("color")
+            if color is None:
+                # nothing told us what color to use, so the per-column draw
+                # would have taken the next one off the axes property cycle
+                # error: "Axes" has no attribute "_get_lines"
+                color = ax._get_lines.get_next_color()  # type: ignore[attr-defined]
+            seg_colors.append(color)
+            labels.append(pprint_thing(col))
+
+        # NaNs stay in as-is: matplotlib breaks the line at a NaN vertex, which
+        # is the gap the per-column draw shows. Masking them out would join the
+        # two sides instead.
+        segments = np.empty((values.shape[1], values.shape[0], 2), dtype="float64")
+        segments[:, :, 0] = x
+        segments[:, :, 1] = values.T
+
+        linewidth = kwds.get("linewidth", kwds.get("lw"))
+        if linewidth is None:
+            linewidth = mpl.rcParams["lines.linewidth"]
+        linestyle = kwds.get("linestyle", kwds.get("ls"))
+        alpha = kwds.get("alpha")
+        # An unclosed, unfilled PolyCollection draws exactly what a
+        # LineCollection would, but matplotlib's automatic legend placement can
+        # see it: Legend._auto_legend_data reads a PolyCollection's paths, while
+        # for a plain Collection it only reads offsets, which a LineCollection
+        # does not have. Using one here would leave "best" blind to the data and
+        # drop the legend on top of the lines.
+        collection = PolyCollection(
+            list(segments),
+            closed=False,
+            facecolors="none",
+            edgecolors=seg_colors,
+            linewidths=linewidth,
+            linestyles=mpl.rcParams["lines.linestyle"]
+            if linestyle is None
+            else linestyle,
+            alpha=alpha,
+            antialiaseds=mpl.rcParams["lines.antialiased"],
+        )
+        # A Line2D caps and joins its segments with the lines.* rcParams; a
+        # LineCollection defaults to the backend's instead, which renders
+        # visibly differently at every vertex.
+        dashed = linestyle is not None and linestyle not in ("-", "solid")
+        collection.set_capstyle(
+            mpl.rcParams["lines.dash_capstyle" if dashed else "lines.solid_capstyle"]
+        )
+        collection.set_joinstyle(
+            mpl.rcParams["lines.dash_joinstyle" if dashed else "lines.solid_joinstyle"]
+        )
+        # a collection defaults to zorder 0, which puts it under the grid; a
+        # Line2D draws at 2
+        collection.set_zorder(Line2D.zorder)
+        # autolim would run the vertices through transData, and on a log axes
+        # -- which is already set by this point -- that records the limits in
+        # log space. Feed the raw points in instead, as the per-column draw
+        # does, so the scaling and the minimum positive value both come out
+        # the same.
+        ax.add_collection(collection, autolim=False)
+        ax.update_datalim(segments.reshape(-1, 2))
+        ax.autoscale_view()
+
+        for label, color in zip(labels, seg_colors, strict=True):
+            proxy = Line2D(
+                [],
+                [],
+                color=color,
+                label=label,
+                linewidth=linewidth,
+                linestyle=linestyle if linestyle is not None else "-",
+                alpha=alpha,
+            )
+            self._append_legend_handles_labels(proxy, label)
+
     def _make_plot(self, fig: Figure) -> None:
+        collection_data = self._collection_data()
+        if collection_data is not None:
+            self._make_plot_collection(*collection_data)
+            return
+
         is_ts = self._is_ts_plot()
         if is_ts:
             ax0 = self._get_ax(0)

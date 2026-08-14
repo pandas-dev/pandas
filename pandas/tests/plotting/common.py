@@ -131,6 +131,56 @@ def _get_colors_mapped(series, colors):
     return [mapped[v] for v in series.values]
 
 
+def _get_line_collection(ax):
+    """
+    The ``PolyCollection`` a wide line plot drew its columns into, if any.
+
+    A line plot draws every column as one collection rather than one
+    ``Line2D`` each when it can (GH#61532), so ``ax.get_lines()`` comes back
+    empty for those plots and the per-column state has to be read off the
+    collection instead.
+    """
+    from matplotlib.collections import PolyCollection
+
+    if ax.get_lines():
+        return None
+    collections = [
+        collection
+        for collection in ax.collections
+        if isinstance(collection, PolyCollection)
+    ]
+    return collections[0] if len(collections) == 1 else None
+
+
+def _get_line_xydata(ax):
+    """(x, y) data of each drawn column, whichever artist the plot used."""
+    collection = _get_line_collection(ax)
+    if collection is None:
+        return [line.get_xydata() for line in ax.get_lines()]
+    return [path.vertices for path in collection.get_paths()]
+
+
+def _get_line_ydata(ax):
+    """y data of each drawn column, whichever artist the plot used."""
+    return [xydata[:, 1] for xydata in _get_line_xydata(ax)]
+
+
+def _check_line_colors(ax, linecolors):
+    """Check the per-column colors of a line plot, however it was drawn."""
+    from matplotlib import colors
+
+    collection = _get_line_collection(ax)
+    if collection is None:
+        _check_colors(ax.get_lines(), linecolors=linecolors)
+        return
+
+    conv = colors.ColorConverter
+    edgecolors = collection.get_edgecolor()
+    assert len(edgecolors) == len(linecolors)
+    for result, color in zip(edgecolors, linecolors, strict=True):
+        assert tuple(result) == conv.to_rgba(color)
+
+
 def _check_colors(collections, linecolors=None, facecolors=None, mapping=None):
     """
     Check each artist has expected line colors and face colors

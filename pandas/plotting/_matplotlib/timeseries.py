@@ -285,8 +285,10 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    # do not use tsplot if irregular was plotted first
-    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+    # do not use tsplot if irregular was plotted first. A wide line plot draws
+    # into a collection rather than into lines (GH#61532), so both count as
+    # something already having been plotted.
+    elif (ax_freq is None) and (len(ax.get_lines()) > 0 or len(ax.collections) > 0):
         return False
 
     if freq is None:
