@@ -166,4 +166,14 @@ def test_spss_metadata(datapath):
         "modification_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
         "mr_sets": {},
     }
-    tm.assert_dict_equal(df.attrs, metadata)
+
+    # GH 66750: pyreadstat >= 1.3.6 exposes an additional
+    # "original_variable_informats" metadata key that older versions did not.
+    # Only assert its value when present, then drop it so the remaining
+    # metadata can still be compared for exact equality.
+    result_attrs = dict(df.attrs)
+    if "original_variable_informats" in result_attrs:
+        assert result_attrs.pop("original_variable_informats") == {
+            "VAR00002": None
+        }
+    tm.assert_dict_equal(result_attrs, metadata)
