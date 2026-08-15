@@ -1815,6 +1815,25 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
     pc->longValue = value;
     return;
+  } else if (PyArray_IsScalar(obj, UnsignedInteger)) {
+    // GH#66142 casting to int64 would silently wrap values above int64 max;
+    // hand those to JT_BIGNUM, which prints the exact digits via str().
+    npy_uint64 uintValue;
+    PyArray_CastScalarToCtype(obj, &uintValue,
+                              PyArray_DescrFromType(NPY_UINT64));
+
+    if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+      goto INVALID;
+    }
+
+    if (uintValue > (npy_uint64)NPY_MAX_INT64) {
+      tc->type = JT_BIGNUM;
+    } else {
+      pc->longValue = (JSINT64)uintValue;
+      tc->type = JT_LONG;
+    }
+
+    return;
   } else if (PyArray_IsScalar(obj, Integer)) {
     tc->type = JT_LONG;
     PyArray_CastScalarToCtype(obj, &(pc->longValue),
