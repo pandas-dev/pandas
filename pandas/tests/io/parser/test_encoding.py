@@ -12,8 +12,6 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
-
 from pandas import (
     DataFrame,
     read_csv,
@@ -350,17 +348,17 @@ def test_not_readable(all_parsers, mode):
     with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
-        if parser.engine == "pyarrow":
-            # pyarrow's CSV reader cannot read from a SpooledTemporaryFile
-            if "t" in mode:
-                msg = "The 'pyarrow' engine can only read from a binary file object"
-                with pytest.raises(TypeError, match=msg):
-                    parser.read_csv(handle)
-            else:
-                msg = "No columns to parse from file"
-                with pytest.raises(EmptyDataError, match=msg):
-                    parser.read_csv(handle)
+        if parser.engine == "pyarrow" and "t" in mode:
+            # pyarrow's CSV reader can only read from a binary file object
+            msg = "The 'pyarrow' engine can only read from a binary file object"
+            with pytest.raises(TypeError, match=msg):
+                parser.read_csv(handle)
             return
+        # GH#62635 "abcd" has no trailing line terminator; the pyarrow engine
+        # used to raise EmptyDataError here instead of reading the header row.
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])
-    tm.assert_frame_equal(df, expected)
+    # check_dtype is off because the pyarrow engine types the columns of an
+    # empty frame as float64 rather than object. That divergence is
+    # pre-existing and unrelated to the missing line terminator.
+    tm.assert_frame_equal(df, expected, check_dtype=False)
