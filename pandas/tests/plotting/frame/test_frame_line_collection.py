@@ -188,6 +188,17 @@ def test_collection_keeps_left_axis_visible_with_secondary_y():
     assert ax.right_ax.get_yaxis().get_visible()
 
 
+def test_secondary_y_keeps_left_axis_for_collection_plots():
+    # the same fix applies to any plot whose data is a collection, not just to
+    # wide line plots
+    _, ax = plt.subplots()
+    DataFrame({"x": np.arange(10.0), "y": np.arange(10.0)}).plot.scatter(
+        x="x", y="y", ax=ax
+    )
+    Series(np.arange(10.0), name="s").plot(secondary_y=True, ax=ax)
+    assert ax.get_yaxis().get_visible()
+
+
 def test_collection_keeps_irregular_index_rotation(monkeypatch):
     # the tick rotation depends on nothing having been plotted yet, which a
     # collection has to report just as lines do
