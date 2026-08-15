@@ -435,6 +435,24 @@ def test_to_numpy_dtype(as_series):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_to_numpy_unitless_dtype_tzaware(index_or_series_or_array, unit):
+    # GH#59772 a unit-less "datetime64" keeps the object's own unit and
+    #  preserves NaT, instead of going out through object dtype
+    box = index_or_series_or_array
+    dti = pd.DatetimeIndex(["2000-01-01 00:00:00.123456789", "NaT"]).as_unit(unit)
+    obj = box(dti.tz_localize("US/Eastern"))
+
+    result = obj.to_numpy(dtype="datetime64")
+    expected = np.array(["2000-01-01T05:00:00.123456789", "NaT"], dtype="M8[ns]")
+    expected = expected.astype(f"M8[{unit}]")
+    tm.assert_numpy_array_equal(result, expected)
+
+    # same unit the tz-naive path gives
+    naive = box(dti).to_numpy(dtype="datetime64")
+    assert naive.dtype == result.dtype
+
+
 @pytest.mark.parametrize(
     "values, dtype, na_value, expected",
     [

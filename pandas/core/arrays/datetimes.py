@@ -677,6 +677,22 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         return super().__array__(dtype=dtype, copy=copy)
 
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        if dtype is not None:
+            npdtype = pandas_dtype(dtype)
+            if lib.is_np_dtype(npdtype, "M") and is_unitless(npdtype):
+                # GH#59772 numpy discards a unit-less datetime64 dtype before
+                #  calling __array__, so tz-aware values would go out as objects
+                #  and come back truncated to microseconds, or raise on NaT.
+                dtype = self._ndarray.dtype
+
+        return super().to_numpy(dtype, copy=copy, na_value=na_value)
+
     def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
         return ints_to_pydatetime(
             data.view("i8"), tz=self.tz, box="timestamp", reso=self._creso
