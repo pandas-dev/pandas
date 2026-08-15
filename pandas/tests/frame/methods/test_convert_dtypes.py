@@ -258,6 +258,18 @@ class TestConvertDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_convert_dtypes_int_out_of_range(self):
+        # GH#66517 only the column that overflows int64/uint64 stays object
+        df = pd.DataFrame({"a": [2**64, 1], "b": [1, 2]}, dtype=object)
+        result = df.convert_dtypes()
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([2**64, 1], dtype=object),
+                "b": pd.Series([1, 2], dtype="Int64"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "kwarg",
         [
