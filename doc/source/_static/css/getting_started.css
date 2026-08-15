@@ -39,6 +39,7 @@
 }
 
 .gs-data .card-body {
+  --bs-card-color: var(--pst-color-text-base);
   color: var(--pst-color-text-base);
 }
 
