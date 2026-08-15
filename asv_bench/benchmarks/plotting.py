@@ -72,6 +72,21 @@ class FramePlotting:
         self.df.plot(x="x", y="y", kind=kind)
 
 
+class WideFramePlotting:
+    # a wide line plot draws its columns as one collection rather than one
+    # Line2D each, but only while matplotlib would not simplify the per-column
+    # paths, so the tall shapes here stay on the per-column draw (GH#61532)
+    params = [[(20, 5000), (50, 2000), (100, 500), (1000, 500)]]
+    param_names = ["shape"]
+
+    def setup(self, shape):
+        nrows, ncols = shape
+        self.df = DataFrame(np.random.randn(nrows, ncols))
+
+    def time_wide_line_plot(self, shape):
+        self.df.plot(kind="line", legend=False)
+
+
 class TimeseriesPlotting:
     def setup(self):
         N = 2000
