@@ -13,5 +13,4 @@ function:pandas/_libs/tslibs/offsets.pyx.c
 function:pandas/_libs/tslibs/period.pyx.c
 function:pandas/_libs/tslibs/timedeltas.pyx.c
 function:pandas/_libs/tslibs/timezones.pyx.c
-function:timezones.pyx.c
 function:pandas/_libs/tslibs/vectorized.pyx.c
