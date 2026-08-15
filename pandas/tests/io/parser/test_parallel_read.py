@@ -1359,6 +1359,7 @@ def _assert_chunk_starts_at(seen: list, boundary: int) -> None:
     assert boundary in seen[0], f"{boundary} is not a chunk start in {seen[0]}"
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_ragged_line_at_chunk_start_raises(tmp_path, monkeypatch):
     # A line with extra fields sitting exactly at a chunk boundary: the chunk
     # worker's first line used to be exempt from the field-count check, so
@@ -1372,6 +1373,7 @@ def test_parallel_ragged_line_at_chunk_start_raises(tmp_path, monkeypatch):
     _assert_chunk_starts_at(seen, boundary)
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_ragged_line_at_chunk_start_skip_matches_serial(tmp_path, monkeypatch):
     # Same layout with on_bad_lines="skip": the chunk worker must skip the
     # bad line just like serial, not keep a truncated version of it.
