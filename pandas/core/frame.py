@@ -15024,8 +15024,9 @@ class DataFrame(NDFrame, OpsMixin):
         lsuffix: str | lib.NoDefault = lib.no_default,
         rsuffix: str | lib.NoDefault = lib.no_default,
         sort: bool = False,
-        suffixes: Suffixes | lib.NoDefault = lib.no_default,
         validate: JoinValidate | None = None,
+        *,
+        suffixes: Suffixes | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -15076,13 +15077,6 @@ class DataFrame(NDFrame, OpsMixin):
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
-        suffixes : tuple of (str, str), default ("_x", "_y")
-            A length-2 sequence where each element is optionally a string
-            indicating the suffix to add to overlapping column names in
-            ``left`` and ``right`` respectively. Pass a value of ``None``
-            instead of a string to indicate that the column name from
-            ``left`` or ``right`` should be left as-is, with no suffix.
-            At least one of the values must not be None.
         validate : str, optional
             If specified, checks if join is of specified type.
 
@@ -15091,6 +15085,14 @@ class DataFrame(NDFrame, OpsMixin):
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
+
+        suffixes : tuple of (str, str), default ("", "")
+            A length-2 sequence where each element is optionally a string
+            indicating the suffix to add to overlapping column names in
+            the caller and ``other`` respectively. Pass a value of ``None``
+            instead of a string to indicate that the column name from
+            the caller or ``other`` should be left as-is, with no suffix.
+            At least one of the values must not be None.
 
         Returns
         -------
