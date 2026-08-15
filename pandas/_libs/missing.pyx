@@ -316,7 +316,7 @@ def is_pdna_or_none(values: ndarray) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_pdna(values: ndarray) -> ndarray:
+def is_pdna(values: ndarray[object]) -> ndarray:
     cdef:
         ndarray[uint8_t] result
         Py_ssize_t i, N
