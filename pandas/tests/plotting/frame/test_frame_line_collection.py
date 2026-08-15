@@ -225,6 +225,22 @@ def test_collection_not_used(kwargs):
     assert _get_line_collection(ax) is None
 
 
+def test_collection_known_limitations():
+    # Documented in whatsnew: without per-column artists these matplotlib APIs
+    # cannot see the drawn data. Pinned here so any change to them is a
+    # deliberate one rather than a silent regression.
+    ax = _frame().plot()
+
+    # matplotlib does not support collections in relim
+    ax.relim()
+    assert not np.isfinite(ax.dataLim.get_points()).any()
+
+    # so a bare ax.legend() finds no labelled artists
+    handles, labels = ax.get_legend_handles_labels()
+    assert handles == []
+    assert labels == []
+
+
 def test_collection_not_used_for_single_column():
     assert len(_frame(ncols=1).plot().collections) == 0
     assert len(Series(np.arange(20.0)).plot().collections) == 0
