@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 from pandas import (
     DataFrame,
+    StringDtype,
     option_context,
     read_csv,
 )
@@ -1112,6 +1113,49 @@ def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
     with option_context("mode.max_threads", 4):
         parallel = read_csv(path, dtype_backend="pyarrow")
     tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
+    # The deferred string path fills each chunk's data buffer with the same
+    # fixed-width token copy the serial path uses, so widths straddling that
+    # copy's 16- and 32-byte tiers have to survive a chunked read too, where
+    # each worker sizes and fills its own chunk's buffer (GH#66756).
+    pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = [
+        "".join(chr(ord("a") + pos % 26) for pos in range(width)) for width in widths
+    ]
+    path = tmp_path / "tiers.csv"
+    rows = "".join(f"{value},{value.upper()}\n" for value in values * 400)
+    path.write_text("a,b\n" + rows, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    # Both options are pinned rather than inherited: the fast path needs
+    # infer_string on *and* pyarrow storage, and under either default flipped
+    # (PANDAS_FUTURE_INFER_STRING=0, mode.string_storage="python") the columns
+    # would come back from the object path instead; the dtype check below
+    # fails loudly if that happens.
+    with option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        1,
+    ):
+        serial = read_csv(path)
+    with option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        4,
+    ):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+    assert serial["a"].dtype == StringDtype("pyarrow", na_value=np.nan)
+    assert serial["a"].tolist() == values * 400
 
 
 def test_parallel_deferred_strings_mixed_chunk_dtypes(tmp_path, monkeypatch):
