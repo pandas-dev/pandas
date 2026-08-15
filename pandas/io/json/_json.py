@@ -875,6 +875,14 @@ def read_json(
     limitation is encountered with a :class:`MultiIndex` and any names
     beginning with ``'level_'``.
 
+    When reading JSON written by :func:`to_json` with its default
+    ``date_format='epoch'``, datetime values are stored as numbers in the unit
+    selected by ``to_json``'s ``date_unit`` argument (default ``'ms'``).
+    ``read_json`` infers the unit from the magnitude of the values, which can
+    disagree with the unit used when writing and silently shift the parsed
+    dates. Pass the matching ``date_unit`` explicitly on both sides, or prefer
+    ``to_json(..., date_format='iso')``, for lossless round-trips.
+
     Examples
     --------
     >>> from io import StringIO

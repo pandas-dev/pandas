@@ -2524,6 +2524,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         This stores the version of `pandas` used in the latest revision of the
         schema.
 
+        When ``date_format='epoch'`` (the default for all orients except
+        ``'table'``), datetime values are written as numbers in the unit
+        selected by ``date_unit``. Round-tripping such output with
+        :func:`read_json` is only lossless when the unit read on the other
+        side matches ``date_unit``, since :func:`read_json` infers the unit
+        from the magnitude of the values and may pick a different one. Pass a
+        matching ``date_unit`` to both methods, or use ``date_format='iso'``
+        (the default for ``orient='table'``), to round-trip datetimes without
+        loss.
+
         Examples
         --------
         >>> from json import loads, dumps
