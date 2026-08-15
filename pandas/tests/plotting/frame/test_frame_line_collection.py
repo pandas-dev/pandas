@@ -307,6 +307,10 @@ def test_collection_not_used_when_cycle_carries_more_than_color(prop_cycle):
         if "color" not in prop_cycle:
             pytest.skip("a colorless cycle is unsupported for other reasons")
         assert _get_line_collection(_frame().plot()) is None
+    # a cycle we cannot read is skipped just the same, so pin that a color-only
+    # one is still read as such rather than passing the check vacuously
+    with mpl.rc_context({"axes.prop_cycle": plt.cycler(color=["r", "g"])}):
+        assert _get_line_collection(_frame().plot()) is not None
 
 
 def test_collection_follows_axes_prop_cycle(monkeypatch):
@@ -314,6 +318,10 @@ def test_collection_follows_axes_prop_cycle(monkeypatch):
     _, ax = plt.subplots()
     ax.set_prop_cycle(color=["r", "g"], linestyle=["-", "--"])
     assert _get_line_collection(_frame().plot(ax=ax)) is None
+
+    _, ax = plt.subplots()
+    ax.set_prop_cycle(color=["r", "g"])
+    assert _get_line_collection(_frame().plot(ax=ax)) is not None
 
 
 def test_collection_continues_axes_color_cycle(monkeypatch):

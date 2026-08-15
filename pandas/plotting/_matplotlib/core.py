@@ -1623,6 +1623,8 @@ class LinePlot(MPLPlot):
         # cycle (a matplotlib that no longer exposes it) counts as unknown.
         # error: "Axes" has no attribute "_get_lines"
         prop_cycle = self._get_ax(0)._get_lines  # type: ignore[attr-defined]
+        # matplotlib 3.11 moved the expanded cycle onto a _PropCycle helper
+        prop_cycle = getattr(prop_cycle, "_prop_cycle", prop_cycle)
         cycler_items = getattr(prop_cycle, "_cycler_items", None)
         if cycler_items is None or any(set(item) - {"color"} for item in cycler_items):
             return None
