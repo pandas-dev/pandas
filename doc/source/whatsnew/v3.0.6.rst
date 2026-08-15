@@ -26,6 +26,8 @@ Fixed regressions
   :issue:`66255`)
 - Regression in :meth:`Series.interpolate` with ``method="linear"`` and a pyarrow-backed dtype leaving consecutive and trailing missing values unfilled, and truncating interpolated values for integer dtypes; the result now matches the equivalent masked (e.g. ``Int64``) dtype, including the upcast to ``float64[pyarrow]`` (:issue:`65345`)
 
+- Fixed regression in :func:`read_csv` where ``sep=None`` raised ``TypeError: object of type 'NoneType' has no len()`` instead of sniffing the separator with the ``python`` engine; passing ``sep=None`` together with ``engine="c"`` or ``engine="pyarrow"``, which cannot sniff the separator, again raises an informative ``ValueError`` instead of raising ``TypeError`` or silently parsing each line as a single column (:issue:`66639`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.bug_fixes:
 

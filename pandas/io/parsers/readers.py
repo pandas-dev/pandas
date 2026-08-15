@@ -425,11 +425,10 @@ def read_csv(
         By file-like object, we refer to objects with a ``read()`` method, such as
         a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
-        Character or regex pattern to treat as the delimiter. If ``sep=None``, the
-        C engine cannot automatically detect
-        the separator, but the Python parsing engine can, meaning the latter will
-        be used and automatically detect the separator from only the first valid
-        row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
+        the separator from the first valid row of the file with Python's builtin
+        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
+        engine, which will be used automatically.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will also force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -992,11 +991,10 @@ def read_table(
         By file-like object, we refer to objects with a ``read()`` method, such as
         a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
-        Character or regex pattern to treat as the delimiter. If ``sep=None``, the
-        C engine cannot automatically detect
-        the separator, but the Python parsing engine can, meaning the latter will
-        be used and automatically detect the separator from only the first valid
-        row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+        Character or regex pattern to treat as the delimiter. ``sep=None`` detects
+        the separator from the first valid row of the file with Python's builtin
+        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
+        engine, which will be used automatically.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will also force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -1731,7 +1729,12 @@ class TextFileReader(abc.Iterator):
 
         sep = options["delimiter"]
 
-        if sep is not None and len(sep) > 1:
+        if sep is None:
+            # sniffing the separator with csv.Sniffer is python-engine only
+            if engine in ("c", "pyarrow"):
+                fallback_reason = f"the '{engine}' engine does not support sep=None"
+                engine = "python"
+        elif len(sep) > 1:
             if engine == "c" and sep == r"\s+":
                 # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
@@ -1744,7 +1747,7 @@ class TextFileReader(abc.Iterator):
                     r"different from '\s+' are interpreted as regex)"
                 )
                 engine = "python"
-        elif sep is not None:
+        else:
             encodeable = True
             encoding = sys.getfilesystemencoding() or "utf-8"
             try:
