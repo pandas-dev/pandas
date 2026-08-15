@@ -9,7 +9,6 @@ import threading
 from typing import (
     TYPE_CHECKING,
     Any,
-    ContextManager,
 )
 
 import numpy as np
@@ -89,6 +88,7 @@ if TYPE_CHECKING:
         Iterable,
         Sequence,
     )
+    from contextlib import AbstractContextManager
 
     from pandas._typing import (
         Dtype,
@@ -382,7 +382,9 @@ def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
     return sep.join(rows_list) + sep
 
 
-def external_error_raised(expected_exception: type[Exception]) -> ContextManager:
+def external_error_raised(
+    expected_exception: type[Exception],
+) -> AbstractContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 

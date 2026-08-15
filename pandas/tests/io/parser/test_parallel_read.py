@@ -14,14 +14,17 @@ from __future__ import annotations
 
 import csv
 import io
+import mmap
 import os
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas.compat import WASM
 from pandas.errors import (
+    EmptyDataError,
     ParserError,
     ParserWarning,
 )
@@ -31,14 +34,17 @@ if TYPE_CHECKING:
 
 from pandas import (
     DataFrame,
+    StringDtype,
     option_context,
     read_csv,
 )
 import pandas._testing as tm
 
+from pandas.io.parsers import readers as _readers
 from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import (
     _can_parallelize_csv,
+    _default_n_workers,
     _find_chunk_byte_offsets,
     _find_data_start_offset,
     _read_csv_parallel,
@@ -88,8 +94,6 @@ class TestCanParallelizeCsv:
         return base
 
     def test_eligible_large_file(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "big.csv"
         _make_large_csv(path)
         # Lower the threshold so the test file qualifies regardless of its size.
@@ -98,8 +102,6 @@ class TestCanParallelizeCsv:
 
     def test_accepts_default_engine(self, tmp_path, monkeypatch):
         """engine=None (the default) should be treated the same as engine='c'."""
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -156,8 +158,6 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(engine="pyarrow"))
 
     def test_rejects_custom_lineterminator(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         # The chunk splitter always scans for \n; a different lineterminator
@@ -176,8 +176,6 @@ class TestCanParallelizeCsv:
         # UTF-16/32 encode \n as a multi-byte sequence (e.g. b"\x0a\x00" in
         # UTF-16LE).  Splitting on raw \n bytes would misalign chunks and
         # silently corrupt data.
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -189,8 +187,6 @@ class TestCanParallelizeCsv:
         # words as UTF-8; only UTF-8-compatible encodings are byte-safe.  "ascii"
         # is excluded too: the workers would decode a non-ASCII byte as UTF-8 and
         # succeed, masking the UnicodeDecodeError serial raises (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -202,8 +198,6 @@ class TestCanParallelizeCsv:
     def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
         # Multi-char/regex seps (other than r"\s+") and sep=None force the
         # python engine inside TextFileReader (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -211,17 +205,23 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(delimiter=None))
         assert _can_parallelize_csv(path, self._kwds(delimiter=r"\s+"))
 
-    def test_rejects_comment(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
+    def test_rejects_multibyte_sep_and_quotechar(self, tmp_path, monkeypatch):
+        # A separator or quotechar wider than one byte forces the python
+        # engine too, warning as it does so (GH#66259).
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(delimiter="§"))
+        assert not _can_parallelize_csv(path, self._kwds(quotechar="»"))
+        assert _can_parallelize_csv(path, self._kwds(quotechar="'"))
 
+    def test_rejects_comment(self, tmp_path, monkeypatch):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(comment="#"))
 
     def test_rejects_escapechar(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -231,16 +231,12 @@ class TestCanParallelizeCsv:
         # dialect is merged into the kwds inside TextFileReader, i.e. after
         # this check runs; a dialect-specified escapechar would otherwise
         # bypass the escapechar check above (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(dialect="excel"))
 
     def test_rejects_parse_dates(self, tmp_path, monkeypatch):
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -249,17 +245,17 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(parse_dates=None))
         assert _can_parallelize_csv(path, self._kwds(parse_dates=False))
 
-    def test_rejects_low_memory_false(self, tmp_path, monkeypatch):
-        # low_memory=False guarantees whole-file type inference, which the
+    @pytest.mark.parametrize("low_memory", [False, 0, np.False_])
+    def test_rejects_low_memory_false(self, tmp_path, monkeypatch, low_memory):
+        # A falsy low_memory guarantees whole-file type inference, which the
         # per-chunk parallel path cannot honour; low_memory=True (and the unset
         # default) document per-chunk divergence, so they stay eligible
-        # (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
+        # (GH#64347).  low_memory is not coerced to bool, so falsy non-False
+        # values must be rejected too (GH#66327).
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-        assert not _can_parallelize_csv(path, self._kwds(low_memory=False))
+        assert not _can_parallelize_csv(path, self._kwds(low_memory=low_memory))
         assert _can_parallelize_csv(path, self._kwds(low_memory=True))
         assert _can_parallelize_csv(path, self._kwds())
 
@@ -275,8 +271,6 @@ class TestCanParallelizeCsv:
     def test_rejects_on_bad_lines_warn(self, tmp_path, monkeypatch):
         # "warn" includes line numbers in its warnings; chunk workers would
         # report chunk-relative (i.e. wrong) ones (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -288,8 +282,6 @@ class TestCanParallelizeCsv:
     def test_rejects_blank_line_in_preamble(self, tmp_path, monkeypatch):
         # A blank line before the header shifts where pandas locates the
         # header relative to the physical line count (GH#64347).
-        import pandas.io.parsers.readers as _readers
-
         path = tmp_path / "data.csv"
         path.write_text("\na,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -636,6 +628,17 @@ class TestReadCsvParallel:
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
+    def test_blank_first_data_line_returns_none(self, tmp_path):
+        # header=None with a blank first data line: name inference parses a
+        # single blank line and raises EmptyDataError, which must be turned
+        # into a serial fallback rather than propagate (GH#66259).
+        path = tmp_path / "blank_first.csv"
+        path.write_text(
+            "\n" + "".join(f"{i},{i * 2}\n" for i in range(5_000)), encoding="utf-8"
+        )
+        kwds = self._base_kwds(path, header=None)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
     def test_quoted_newline_in_header_returns_none(self, tmp_path):
         # A quoted embedded newline in the header makes the physical line
         # count disagree with the logical row count, so data_start would land
@@ -734,8 +737,6 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     read_csv() transparently uses the parallel path for large local files.
     Result must match the serial read obtained via engine='python'.
     """
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     # Lower the threshold so any file triggers the parallel path.
@@ -754,8 +755,6 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     For a file that exceeds the threshold, the parallel result equals the
     result from a direct serial C-engine read (with parallelism forced off).
     """
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     # Lower the threshold so any file triggers the parallel path.
@@ -776,14 +775,14 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     warm in the OS cache, so the default is serial there; users opt in via
     ``mode.max_threads`` (which is honoured on every platform).
     """
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     # Pin the non-Windows default so the test does not depend on the host's
-    # actual core count.
+    # actual core count, or on how many CPUs a container/affinity mask leaves
+    # the runner -- one usable CPU would make the default serial everywhere.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     # Stub the parallel reader so this exercises only the platform-gating
     # decision.  Calling the real one would start threads, which fails on
@@ -807,14 +806,15 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     """The default worker count is capped at 4, regardless of core count."""
-    import pandas.io.parsers.readers as _readers
-
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
     # More cores than the cap: the default should clamp down to 4.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
+    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
+    # and this test measures the runner, not the cap.
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     workers = []
 
@@ -832,6 +832,64 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     with option_context("mode.max_threads", 8):
         read_csv(path)
     assert workers == [8]
+
+
+# ---------------------------------------------------------------------------
+# _default_n_workers
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultNWorkers:
+    """Unit tests for the default worker count."""
+
+    @pytest.mark.parametrize(
+        "cpu_count, available, expected",
+        [
+            (2, None, 2),  # unconstrained, below the cap -> logical CPU count
+            (16, None, 4),  # cap binds
+            (16, 1, 1),  # single-CPU container
+            (16, 2, 2),  # cgroup/affinity tighter than the cap
+            (16, 8, 4),  # allocation looser than the cap -> cap still binds
+            (2, 8, 2),  # allocation looser than the machine
+        ],
+    )
+    def test_combines_cap_and_allocation(
+        self, monkeypatch, cpu_count, available, expected
+    ):
+        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS).
+        assert _readers._MAX_DEFAULT_WORKERS == 4
+        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
+        monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
+        with option_context("mode.max_threads", None):
+            assert _default_n_workers() == expected
+
+    def test_windows_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_readers.sys, "platform", "win32")
+        with option_context("mode.max_threads", None):
+            assert _default_n_workers() == 1
+
+    def test_wasm_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+        # WASM stays serial even if a worker count is requested explicitly.
+        with option_context("mode.max_threads", 8):
+            assert _default_n_workers() == 1
+
+    def test_max_threads_exceeds_cap(self, monkeypatch):
+        # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default*
+        # only.  The mode.max_threads docs promise an explicit setting still
+        # wins.
+        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
+        monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
+        with option_context("mode.max_threads", 32):
+            assert _default_n_workers() == 32
+
+    @pytest.mark.parametrize("platform_name", ["linux", "win32"])
+    def test_max_threads_wins(self, monkeypatch, platform_name):
+        monkeypatch.setattr(_readers.sys, "platform", platform_name)
+        with option_context("mode.max_threads", 3):
+            assert _default_n_workers() == 3
 
 
 # ---------------------------------------------------------------------------
@@ -926,6 +984,57 @@ def test_parallel_blank_line_before_header_matches_serial(tmp_path, monkeypatch)
     assert result["col1"].dtype == np.int64
 
 
+@pytest.mark.parametrize(
+    "preamble,skiprows",
+    [
+        (b"\n", 0),
+        (b"   \n", 0),
+        (b"junk1\njunk2\n\n", 2),
+    ],
+)
+def test_parallel_blank_first_data_line_matches_serial(
+    tmp_path, monkeypatch, preamble, skiprows
+):
+    # header=None puts no header line in the preamble, so a blank first data
+    # line ends up as the single line name inference parses, and that raises
+    # EmptyDataError where the serial path just skips it (GH#66259).  A
+    # whitespace-only line must not tokenize as a single field either: that
+    # would infer one column and silently read the rest as an implicit index.
+    raw = preamble + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "blank_first.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, header=None, skiprows=skiprows)
+    expected = read_csv(io.BytesIO(raw), header=None, skiprows=skiprows)
+    tm.assert_frame_equal(result, expected)
+    assert result.shape == (500, 2)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_all_blank_lines_raises(tmp_path, monkeypatch):
+    # The fallback for a blank first data line must not mask a file that has
+    # no columns at all: serial raises, so the parallel path must too
+    # (GH#66259).
+    path = tmp_path / "blank_only.csv"
+    path.write_bytes(b"\n" * 500)
+
+    returned = []
+
+    def spy(filepath, kwds, n_workers):
+        result = _read_csv_parallel(filepath, kwds, n_workers)
+        returned.append(result)
+        return result
+
+    monkeypatch.setattr("pandas.io.parsers.readers._read_csv_parallel", spy)
+
+    msg = "No columns to parse from file"
+    with pytest.raises(EmptyDataError, match=msg):
+        _read_forced_parallel(path, monkeypatch, header=None)
+    # The serial read raises the same error, so without this the test would
+    # pass even if the parallel path propagated it directly.
+    assert returned == [None], "the parallel path did not fall back"
+
+
 def test_parallel_single_long_line(tmp_path, monkeypatch):
     # A data section with no interior newlines cannot be split; this must
     # fall back to serial instead of raising (GH#64347).
@@ -988,23 +1097,156 @@ def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     assert result.loc[0, "col1"] == "0"
 
 
-def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch):
-    # low_memory=False promises whole-file type inference.  A chunk holding only
-    # NA tokens and a uint64-range int hits the C parser's na_filter=0
+def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
+    # dtype_backend="pyarrow" builds pa.string() (int32 offset) pending columns
+    # rather than the large_string ones the default string dtype uses; the
+    # gather must reconcile them to ArrowDtype and match a serial read
+    # (GH#66277).
+    pytest.importorskip("pyarrow")
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"s{i % 13},{i}" for i in range(5000))
+    path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path, dtype_backend="pyarrow")
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path, dtype_backend="pyarrow")
+    tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
+    # The deferred string path fills each chunk's data buffer with the same
+    # fixed-width token copy the serial path uses, so widths straddling that
+    # copy's 16- and 32-byte tiers have to survive a chunked read too, where
+    # each worker sizes and fills its own chunk's buffer (GH#66756).
+    pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = [
+        "".join(chr(ord("a") + pos % 26) for pos in range(width)) for width in widths
+    ]
+    path = tmp_path / "tiers.csv"
+    rows = "".join(f"{value},{value.upper()}\n" for value in values * 400)
+    path.write_text("a,b\n" + rows, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    # Both options are pinned rather than inherited: the fast path needs
+    # infer_string on *and* pyarrow storage, and under either default flipped
+    # (PANDAS_FUTURE_INFER_STRING=0, mode.string_storage="python") the columns
+    # would come back from the object path instead; the dtype check below
+    # fails loudly if that happens.
+    with option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        1,
+    ):
+        serial = read_csv(path)
+    with option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        4,
+    ):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+    assert serial["a"].dtype == StringDtype("pyarrow", na_value=np.nan)
+    assert serial["a"].tolist() == values * 400
+
+
+def test_parallel_deferred_strings_mixed_chunk_dtypes(tmp_path, monkeypatch):
+    # One chunk of a column parses as strings while the rest parse as int64,
+    # so the gather sees pending string columns alongside numeric ones and must
+    # fall back to a serial re-read rather than mixing the two (GH#66277).
+    chunk = "".join(f"{i},{i}\n" for i in range(2000))
+    raw = "col1,col2\n" + chunk + "text,7\n" + chunk
+    path = tmp_path / "mixed_str.csv"
+    path.write_text(raw, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 1):
+        serial = read_csv(path)
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+
+
+@pytest.mark.parametrize("low_memory", [False, 0, np.False_])
+def test_parallel_low_memory_false_matches_serial(tmp_path, monkeypatch, low_memory):
+    # A falsy low_memory promises whole-file type inference.  A chunk holding
+    # only NA tokens and a uint64-range int hits the C parser's na_filter=0
     # uint64-conflict path (gh-14983) and keeps "nan" as a literal string, while
     # the serial whole-file pass masks it to NaN.  Both chunk results are object
     # dtype, so the per-column dtype-consistency check cannot catch it - the
-    # parallel path must step aside for low_memory=False (GH#64347).
+    # parallel path must step aside (GH#64347).  low_memory is not coerced to
+    # bool and the serial path branches on truthiness, so falsy non-False values
+    # must step aside too (GH#66327).
     raw = b"col\n" + b"hello\n" * 500 + (b"nan\n" + b"9223372036854775808\n") * 3000
     path = tmp_path / "uint64.csv"
     path.write_bytes(raw)
 
-    result = _read_forced_parallel(path, monkeypatch, low_memory=False)
-    expected = read_csv(io.BytesIO(raw), low_memory=False)
+    result = _read_forced_parallel(path, monkeypatch, low_memory=low_memory)
+    expected = read_csv(io.BytesIO(raw), low_memory=low_memory)
     tm.assert_frame_equal(result, expected)
     # serial semantics: every "nan" token is masked to NaN, none survive as text
     assert (result["col"] == "nan").sum() == 0
     assert result["col"].isna().sum() == 3000
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"na_values": ["MISSING"]},
+        {"na_values": {"col": ["MISSING"]}},
+        {"dtype_backend": "numpy_nullable"},
+    ],
+)
+def test_parallel_uint64_na_conflict_matches_serial(tmp_path, monkeypatch, kwargs):
+    # A chunk holding only NA tokens and uint64-range ints converts to no
+    # numeric dtype and is emitted with its NA tokens left as literal strings
+    # (gh-14983).  A chunk that also sees ordinary text takes the object branch
+    # and masks them instead, and both results are str dtype, so the gather's
+    # dtype reconciliation cannot tell them apart - the parallel path must step
+    # aside rather than return values a serial read never produces (GH#66259).
+    token = "MISSING" if kwargs.get("na_values") else "nan"
+    body = f"{token}\n9223372036854775808\n" * 3000
+    path = tmp_path / "uint64_default_lm.csv"
+    path.write_text("col\n" + "text\n" * 500 + body, encoding="utf-8")
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_uint64_na_conflict_na_filter_false(tmp_path, monkeypatch):
+    # With na_filter=False the literal NA tokens are what a serial read gives
+    # too, so such a file keeps using the parallel path.  GH#66259
+    body = "nan\n9223372036854775808\n" * 3000
+    path = tmp_path / "uint64_no_filter.csv"
+    path.write_text("col\n" + "text\n" * 500 + body, encoding="utf-8")
+
+    fell_back = []
+    orig = _readers._read_csv_parallel
+
+    def spy(*args, **kwargs):
+        result = orig(*args, **kwargs)
+        fell_back.append(result is None)
+        return result
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", spy)
+
+    result = _read_forced_parallel(path, monkeypatch, na_filter=False)
+    assert fell_back == [False]
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, na_filter=False)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_parallel_quoted_newline_in_header_matches_serial(tmp_path, monkeypatch):
@@ -1111,15 +1353,24 @@ def test_parallel_multichar_sep_matches_serial(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
-def _write_with_line_at_chunk_start(path, replacement: bytes) -> None:
+def _write_with_line_at_chunk_start(path, replacement: bytes, monkeypatch) -> int:
     """Write a fixed-width CSV, then overwrite the line at the second chunk
-    boundary with *replacement* (same byte length, so offsets stay valid)."""
+    boundary with *replacement* (same byte length, so offsets stay valid).
+
+    Returns the boundary, for :func:`_assert_chunk_starts_at` to check against
+    the split the read actually plans - hard-coding a count here that the read
+    does not use would put the line in the middle of a chunk instead.
+    """
     rows = [f"{i:06d},{i * 2:06d}" for i in range(4000)]
     # write bytes so line endings stay "\n" on every platform - the byte-offset
     # math below assumes single-byte terminators (Windows text mode adds "\r")
     path.write_bytes(("a,b\n" + "\n".join(rows) + "\n").encode("utf-8"))
+    # 4000 rows is only two chunks' worth at the row floor, and the split has to
+    # be finer than that for a boundary to land mid-file.  _read_forced_parallel
+    # uses 4 workers, so this yields the 4 * 3 oversubscription.
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_MIN_CHUNK_ROWS", 1)
     data_start = _find_data_start_offset(str(path), 0, 0)
-    offsets = _find_chunk_byte_offsets(str(path), 4, data_start)
+    offsets = _find_chunk_byte_offsets(str(path), 12, data_start)
     boundary = offsets[1]
     raw = path.read_bytes()
     line_end = raw.index(b"\n", boundary)
@@ -1127,30 +1378,59 @@ def _write_with_line_at_chunk_start(path, replacement: bytes) -> None:
     with open(path, "r+b") as fd:
         fd.seek(boundary)
         fd.write(replacement)
+    return boundary
 
 
+def _spy_on_chunk_offsets(monkeypatch) -> list:
+    """Record the byte offsets each planned split actually uses."""
+    seen: list = []
+    real = _find_chunk_byte_offsets
+
+    def spy(filepath, n_chunks, data_start):
+        offsets = real(filepath, n_chunks, data_start)
+        seen.append(offsets)
+        return offsets
+
+    monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+    return seen
+
+
+def _assert_chunk_starts_at(seen: list, boundary: int) -> None:
+    # Without this the tests below still pass on a coarser split - a ragged line
+    # raises (and a skipped one is skipped) wherever it sits - while no longer
+    # placing it at the chunk start that is the point of the fixture.
+    assert seen, "the parallel path did not run"
+    assert boundary in seen[0], f"{boundary} is not a chunk start in {seen[0]}"
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_ragged_line_at_chunk_start_raises(tmp_path, monkeypatch):
     # A line with extra fields sitting exactly at a chunk boundary: the chunk
     # worker's first line used to be exempt from the field-count check, so
     # parallel silently truncated the row while serial raised (GH#64347).
     path = tmp_path / "ragged.csv"
-    _write_with_line_at_chunk_start(path, b"11,22,33,4444")
+    boundary = _write_with_line_at_chunk_start(path, b"11,22,33,4444", monkeypatch)
+    seen = _spy_on_chunk_offsets(monkeypatch)
 
     with pytest.raises(ParserError, match="Expected 2 fields"):
         _read_forced_parallel(path, monkeypatch)
+    _assert_chunk_starts_at(seen, boundary)
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_ragged_line_at_chunk_start_skip_matches_serial(tmp_path, monkeypatch):
     # Same layout with on_bad_lines="skip": the chunk worker must skip the
     # bad line just like serial, not keep a truncated version of it.
     path = tmp_path / "ragged.csv"
-    _write_with_line_at_chunk_start(path, b"11,22,33,4444")
+    boundary = _write_with_line_at_chunk_start(path, b"11,22,33,4444", monkeypatch)
+    seen = _spy_on_chunk_offsets(monkeypatch)
 
     with option_context("mode.max_threads", 1):
         expected = read_csv(path, on_bad_lines="skip")
     result = _read_forced_parallel(path, monkeypatch, on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
     assert len(result) == 3999
+    _assert_chunk_starts_at(seen, boundary)
 
 
 def test_parallel_bom_bytes_mid_file_match_serial(tmp_path, monkeypatch):
@@ -1226,9 +1506,291 @@ def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
     bad = "\n".join("x,y,z,w,v" for _ in range(5000))
     path.write_text("a,b\n" + rows + "\n" + bad + "\n" + rows + "\n", encoding="utf-8")
     monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    # The good rows sit at both ends of the file, so at the two chunks the row
+    # floor allows here every chunk has something to parse and the all-skipped
+    # chunk this is about never happens.
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_MIN_CHUNK_ROWS", 1)
 
     with option_context("mode.max_threads", 1):
         expected = read_csv(path, on_bad_lines="skip")
     with option_context("mode.max_threads", 4):
         result = read_csv(path, on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_embedded_nul_boolean_column(tmp_path, monkeypatch):
+    # GH#66524: a NUL-bearing field must not match a true/false value on its
+    # pre-NUL prefix in the parallel path either, which feeds the tokenizer
+    # through load_buffer() rather than parser_buffer_bytes().
+    path = tmp_path / "nul_bool.csv"
+    path.write_bytes(b"a\n" + b"True\n" * 200 + b'"True\x00xyz"\n' + b"False\n" * 200)
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)
+    expected = read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"][200] == "True\x00xyz"
+
+
+def _warnings_from(func, *args, **kwargs):
+    """Run *func*, returning every warning it raises (no de-duplication)."""
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        result = func(*args, **kwargs)
+    return result, recorded
+
+
+def _track_parallel(monkeypatch) -> list[str]:
+    """Record how each parallel attempt ends: used, declined, or raised."""
+    outcomes: list[str] = []
+    original = _readers._read_csv_parallel
+
+    def tracked(*args, **kwargs):
+        try:
+            result = original(*args, **kwargs)
+        except Exception:
+            outcomes.append("raised")
+            raise
+        outcomes.append("used" if result is not None else "declined")
+        return result
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", tracked)
+    return outcomes
+
+
+def _converter_dtype_warning(name: str) -> str:
+    return (
+        f"Both a converter and dtype were specified for column {name} - "
+        "only the converter will be used."
+    )
+
+
+# one column, then two: de-duplicating the collected warnings must not
+# collapse the distinct ones
+@pytest.mark.parametrize("names", [["col1"], ["col1", "col2"]])
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no chunk repeats the warning")
+def test_parallel_converter_dtype_warns_once(tmp_path, monkeypatch, names):
+    # The converter+dtype ParserWarning was raised once per chunk, from a pool
+    # thread whose stacklevel walk lands in threading internals (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "converter.csv"
+    path.write_bytes(raw)
+    kwargs = {
+        "converters": dict.fromkeys(names, int),
+        "dtype": dict.fromkeys(names, "int64"),
+    }
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, **kwargs
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), **kwargs)
+    assert outcomes == ["used"]
+    tm.assert_frame_equal(result, expected)
+    assert [str(warning.message) for warning in recorded] == [
+        _converter_dtype_warning(name) for name in names
+    ]
+    assert recorded[0].category is ParserWarning
+    # the caller's frame, not a worker thread's
+    assert recorded[0].filename == __file__
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_worker_exception_still_warns(tmp_path, monkeypatch):
+    # An exception the caller does not answer with a serial read must not carry
+    # the collected warnings off with it - this read is their only chance to be
+    # raised (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "boom.csv"
+    path.write_bytes(raw)
+
+    def boom(value):
+        if value == "1400":
+            raise RuntimeError("boom")
+        return value
+
+    kwargs = {"converters": {"col1": int, "col2": boom}, "dtype": {"col1": "int64"}}
+    outcomes = _track_parallel(monkeypatch)
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        with pytest.raises(RuntimeError, match="boom"):
+            _read_forced_parallel(path, monkeypatch, **kwargs)
+
+    assert outcomes == ["raised"]
+    assert [str(warning.message) for warning in recorded] == [
+        _converter_dtype_warning("col1")
+    ]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_worker_exception_unmaps_the_file(tmp_path, monkeypatch):
+    # A worker exception must not leave the file mapped until its traceback is
+    # collected: the workers hold memoryview slices of the mapping, so they are
+    # closed before it is (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "boom.csv"
+    path.write_bytes(raw)
+
+    mapped: list[mmap.mmap] = []
+
+    class TrackingMmap(mmap.mmap):
+        def __init__(self, *args, **kwargs) -> None:
+            mapped.append(self)
+
+    monkeypatch.setattr(mmap, "mmap", TrackingMmap)
+
+    def boom(value):
+        if value == "1400":
+            raise RuntimeError("boom")
+        return value
+
+    with pytest.raises(RuntimeError, match="boom"):
+        _read_forced_parallel(path, monkeypatch, converters={"col2": boom})
+
+    assert len(mapped) == 1
+    assert mapped[0].closed
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so there is no attempt to decline")
+def test_parallel_fallback_does_not_repeat_c_layer_warning(tmp_path, monkeypatch):
+    # A parallel attempt that hands back to serial must not leave its own copy
+    # of a warning behind: the name-inference read hits the same converter+dtype
+    # warning the replacing serial read raises (GH#66259).
+    raw = (
+        b"col1,col2\n"
+        + b"".join(f"{i},{i * 2}\n".encode() for i in range(950))
+        # col2 is str in the last chunk only, so the per-chunk dtypes disagree
+        # and the parallel path declines after inferring the column names
+        + b"".join(f"{i},x{i}\n".encode() for i in range(50))
+    )
+    path = tmp_path / "fallback.csv"
+    path.write_bytes(raw)
+    kwargs = {"converters": {"col1": int}, "dtype": {"col1": "int64"}}
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, **kwargs
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), **kwargs)
+    assert outcomes == ["declined"]
+    tm.assert_frame_equal(result, expected)
+    assert [str(warning.message) for warning in recorded] == [
+        _converter_dtype_warning("col1")
+    ]
+
+
+@pytest.mark.skipif(
+    WASM, reason="WASM stays serial, so there is no attempt to fall back"
+)
+def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkeypatch):
+    # Same for a warning raised by the Python layer rather than the C parser:
+    # index_col=False with more fields than header names warns in the
+    # name-inference read, and again in the serial read that a worker's
+    # ParserError falls back to (GH#66259).
+    raw = b"col1,col2\n" + b"".join(
+        f"{i},{i * 2},{i * 3}\n".encode() for i in range(500)
+    )
+    path = tmp_path / "mismatch.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, index_col=False
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), index_col=False)
+    assert outcomes == ["raised"]
+    tm.assert_frame_equal(result, expected)
+    assert [str(warning.message) for warning in recorded] == [
+        "Length of header or names does not match length of data. This leads "
+        "to a loss of data with index_col=False."
+    ]
+
+
+@pytest.mark.parametrize("kwargs", [{"quotechar": "»"}, {"sep": "§"}])
+def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
+    # Both force TextFileReader onto the python engine, which warns while
+    # falling back.  The parallel path has to decline them up front: its
+    # name-inference read would raise that warning before it can notice the
+    # engine it got, and the serial read then raises it again (GH#66259).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "multibyte.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result, recorded = _warnings_from(
+        _read_forced_parallel, path, monkeypatch, **kwargs
+    )
+
+    expected, _ = _warnings_from(read_csv, io.BytesIO(raw), **kwargs)
+    assert outcomes == []
+    tm.assert_frame_equal(result, expected)
+    assert len(recorded) == 1
+    assert recorded[0].category is ParserWarning
+    assert "Falling back to the 'python' engine" in str(recorded[0].message)
+
+
+# 2**63 - 1 gathers through pyarrow's checked int-to-double cast; 2**64 does not
+# even fit an integer chunk, so it fails earlier, in a worker's own conversion
+@pytest.mark.parametrize(
+    ("big", "outcome"),
+    [("9223372036854775807", "declined"), ("18446744073709551616", "raised")],
+)
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the chunks never disagree")
+def test_parallel_pyarrow_huge_int_chunk_matches_serial(
+    tmp_path, monkeypatch, big, outcome
+):
+    # A chunk holding only huge integers converts as an integer column, while
+    # the whole-file serial read sees the trailing float too and infers double
+    # (or leaves the column a string).  The parallel path used to propagate the
+    # resulting ArrowInvalid / OverflowError instead of re-reading serially
+    # (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n" + f"{big}\n".encode() * 500 + b"1.5\n"
+    path = tmp_path / "huge_int.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    expected = read_csv(io.BytesIO(raw), dtype_backend="pyarrow")
+    assert outcomes == [outcome]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so nothing infers per chunk")
+def test_parallel_pyarrow_huge_int_column_stays_parallel(tmp_path, monkeypatch):
+    # The guard above must not cost the parallel path columns it handles fine:
+    # with no float row every chunk agrees on int64 and nothing falls back
+    # (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n" + b"9223372036854775807\n" * 500
+    path = tmp_path / "huge_int_only.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    expected = read_csv(io.BytesIO(raw), dtype_backend="pyarrow")
+    assert outcomes == ["used"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no sample line is parsed")
+def test_parallel_huge_int_first_line_matches_serial(tmp_path, monkeypatch):
+    # The name-inference read parses one data line only to learn the column
+    # names, so a value that converts on its own but not for the whole column
+    # must not raise there (GH#66259).
+    pytest.importorskip("pyarrow")
+    raw = b"col1\n18446744073709551616\n" + b"".join(
+        f"{i}.5\n".encode() for i in range(500)
+    )
+    path = tmp_path / "huge_first.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
+
+    tm.assert_frame_equal(result, read_csv(io.BytesIO(raw), dtype_backend="pyarrow"))

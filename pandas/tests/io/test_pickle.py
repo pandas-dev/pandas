@@ -27,11 +27,15 @@ import tarfile
 from typing import Any
 import uuid
 import zipfile
+import zoneinfo
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import (
+    is_platform_little_endian,
+    pickle_compat,
+)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -94,15 +98,6 @@ def test_pickles(datapath):
         for typ, dv in data.items():
             for dt, result in dv.items():
                 expected = current_data[typ][dt]
-
-                if (
-                    typ == "timestamp"
-                    and dt in ("tz", "both")
-                    and legacy_version < Version("1.3.0")
-                ):
-                    # convert to wall time
-                    # (bug since pandas 2.0 that tz gets dropped for older pickle files)
-                    expected = expected.tz_convert(None)
 
                 if legacy_version < Version("3.0.0.dev0"):
                     # before 3.0, we had:
@@ -588,3 +583,76 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
+
+
+def _legacy_timestamp_pickle(args: tuple) -> bytes:
+    # Emulate pandas<=1.2, whose Timestamp.__reduce__ returned
+    #  (Timestamp, (value, freq, tz)).
+    inner = pickle.dumps(args, protocol=0)
+    return (
+        b"cpandas._libs.tslibs.timestamps\nTimestamp\n"
+        + inner.removesuffix(pickle.STOP)
+        + pickle.REDUCE
+        + pickle.STOP
+    )
+
+
+@pytest.mark.parametrize("freq", [None, "D", Day()])
+def test_unpickle_legacy_timestamp_keeps_tz(freq):
+    # GH#61792 the removal of Timestamp.freq turned the legacy (value, freq, tz)
+    #  reduce args into (ts_input, year, month), silently dropping the tz
+    tz = zoneinfo.ZoneInfo("US/Eastern")
+    expected = pd.Timestamp("2011-01-01", tz=tz)
+
+    data = _legacy_timestamp_pickle((expected.as_unit("ns")._value, freq, tz))
+    result = pickle_compat.loads(data)
+
+    assert result == expected
+    assert result.tz == tz
+
+
+@pytest.mark.parametrize("freq", [None, "D", Day()])
+def test_unpickle_legacy_timestamp_naive(freq):
+    # GH#61792
+    expected = pd.Timestamp("2011-01-01")
+
+    data = _legacy_timestamp_pickle((expected.as_unit("ns")._value, freq, None))
+    result = pickle_compat.loads(data)
+
+    assert result == expected
+    assert result.tz is None
+
+
+def test_unpickle_legacy_timestamp_aware_input():
+    # GH#61792 forwarding an explicit tz=None would reject a tz-aware ts_input
+    dt = datetime.datetime(2011, 1, 1, tzinfo=zoneinfo.ZoneInfo("US/Eastern"))
+    data = _legacy_timestamp_pickle((dt, None, None))
+    result = pickle_compat.loads(data)
+
+    assert result == pd.Timestamp(dt)
+
+
+def test_unpickle_timestamp_by_component():
+    # GH#61792 a genuine by-component reduce must not be mistaken for the
+    #  legacy (value, freq, tz) form
+    data = _legacy_timestamp_pickle((2020, 1, 2))
+    result = pickle_compat.loads(data)
+
+    assert result == pd.Timestamp(2020, 1, 2)
+
+
+@pytest.mark.parametrize("freq", [None, "D", Day()])
+def test_read_pickle_legacy_timestamp_keeps_tz(freq):
+    # GH#31930 the legacy (value, freq, tz) args now raise ValueError out of
+    #  the constructor, so plain pickle.load no longer succeeds and read_pickle
+    #  only reaches the compat unpickler above if it catches that ValueError
+    tz = zoneinfo.ZoneInfo("US/Eastern")
+    expected = pd.Timestamp("2011-01-01", tz=tz)
+
+    data = _legacy_timestamp_pickle((expected.as_unit("ns")._value, freq, tz))
+    with pytest.raises(ValueError, match="Cannot pass both a value to convert"):
+        pickle.loads(data)
+
+    result = pd.read_pickle(io.BytesIO(data))
+    assert result == expected
+    assert result.tz == tz

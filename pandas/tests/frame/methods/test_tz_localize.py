@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 
 import numpy as np
 import pytest
@@ -25,7 +25,7 @@ class TestTZLocalize:
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
         expected = tm.get_obj(expected, frame_or_series)
 
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
         tm.assert_equal(result, expected)
 
     def test_tz_localize_axis1(self):
@@ -35,7 +35,7 @@ class TestTZLocalize:
 
         df = df.T
         result = df.tz_localize("utc", axis=1)
-        assert result.columns.tz is timezone.utc
+        assert result.columns.tz is UTC
 
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
 

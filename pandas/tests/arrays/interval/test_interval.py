@@ -271,6 +271,13 @@ def test_fillna_non_scalar_raises():
         arr.fillna([1, 1])
 
 
+def test_endpoint_dtype_mismatch_raises():
+    # GH 66518
+    msg = "category, object, and string subtypes are not supported for IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        IntervalArray([Interval(0, 2**64)])
+
+
 @pytest.mark.parametrize("dtype", [np.float32, np.int32, np.uint32])
 @pytest.mark.parametrize("constructor", [IntervalArray, IntervalIndex])
 def test_sub64bit_dtype_preserved(constructor, dtype):

@@ -199,7 +199,7 @@ Building main branch documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When pull requests are merged into the pandas ``main`` branch, the main parts of
-the documentation are also built by Travis-CI. These docs are then hosted `here
+the documentation are also built by Github Actions. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :any:`Continuous Integration <contributing.ci>` section.
 

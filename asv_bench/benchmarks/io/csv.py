@@ -411,6 +411,30 @@ class ReadCSVFloatPrecision(StringIORewind):
         )
 
 
+class ReadCSVInts(StringIORewind):
+    # Integer columns at default settings, over digit counts that bracket the
+    # C parser's behavior: it consumes eight digits at a time, so the
+    # per-token fixed cost dominates for short values and amortizes for long
+    # ones. 18 digits is the widest that always fits in int64 for both signs,
+    # so every case here is inferred as an integer column.
+    params = ([1, 3, 9, 18], [False, True])
+    param_names = ["num_digits", "negative"]
+
+    def setup(self, num_digits, negative):
+        ints = [
+            ("-" if negative else "")
+            + random.choice(string.digits[1:])
+            + "".join(random.choice(string.digits) for _ in range(num_digits - 1))
+            for _ in range(15)
+        ]
+        rows = ",".join(["{}"] * 3) + "\n"
+        data = (rows * 5).format(*ints) * 2000  # 10000 x 3 ints csv
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv(self, num_digits, negative):
+        read_csv(self.data(self.StringIO_input), header=None, names=list("abc"))
+
+
 class ReadCSVEngine(StringIORewind):
     params = ["c", "python", "pyarrow"]
     param_names = ["engine"]
