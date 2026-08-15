@@ -203,6 +203,19 @@ def test_assert_almost_equal_large_mixed_integer_float_rtol():
     _assert_almost_equal_both(a, b, check_dtype=False, rtol=1 / 2**60, atol=0)
 
 
+def test_assert_almost_equal_large_mixed_integer_float_message():
+    integer = 2**60 + 1
+    floating = float(2**60)
+
+    with pytest.raises(AssertionError) as exc_info:
+        tm.assert_almost_equal(integer, floating, rtol=0, atol=0.5)
+
+    assert str(exc_info.value) == (
+        "expected 1152921504606846976.00000 but got 1152921504606846977, "
+        "with rtol=0, atol=0.5"
+    )
+
+
 @pytest.mark.parametrize(
     "a,b,rtol",
     [

@@ -222,7 +222,9 @@ cpdef assert_almost_equal(a, b,
         ib = int(b)
 
         if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
-            assert False, (f"expected {ib:.5f} but got {ia:.5f}, "
+            expected = str(ib) if is_integer_object(b) else f"{b:.5f}"
+            actual = str(ia) if is_integer_object(a) else f"{a:.5f}"
+            assert False, (f"expected {expected} but got {actual}, "
                            f"with rtol={rtol}, atol={atol}")
         return True
 
