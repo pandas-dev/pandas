@@ -295,7 +295,6 @@ cdef extern from "pandas/parser/tokenizer.h":
         int seen_uint
         int seen_null
 
-    const char *coliter_next(coliter_t *) nogil
     const char *coliter_next_with_idx(coliter_t *, c_int64_t *) nogil
 
     double precise_xstrtod_with_end(const char *p, char **q, char decimal,
@@ -2707,21 +2706,54 @@ cdef inline void _copy_token(char *dst, const char *src, int64_t seg,
     bytes it moves, so copy a compile-time-constant 16 bytes instead -- which
     the compiler turns into a single vector move -- and let the overshoot land
     in slack.  The destination has ``WILDCOPY_SLACK`` spare bytes;
-    ``wild_limit`` is the last source address from which a 32-byte read stays
-    inside the parser's stream allocation (``stream_cap`` is exactly the size
-    of that allocation, so the guard makes the overshoot provably in bounds).
+    ``wild_limit`` is an exclusive bound on source addresses from which a
+    32-byte read stays inside the parser's stream allocation (``stream_cap``
+    is exactly the size of that allocation).  The caller clamps it to
+    ``parser.stream`` when ``stream_cap < WILDCOPY_SLACK`` (reachable:
+    ``parser_trim_buffers`` shrinks ``stream_cap`` to
+    ``_next_pow2(stream_len) + 1``): forming ``stream + stream_cap -
+    WILDCOPY_SLACK`` would then point before the allocation, and the clamped
+    bound fails the strict compare for every token, as it must -- no 32-byte
+    read fits anywhere in such an allocation.  The guard stays one pointer
+    compare because it is paid per token; an offset-based variant cost a
+    measurable 2.7% on short-token files.
 
     Keep both fixed-width copies inside one guarded block.  Splitting them into
     separate ``return``ing branches lets the compiler tail-merge all three
     ``memcpy`` sites into a single variable-length call, which silently undoes
     the whole optimization.
     """
-    if seg <= 32 and src <= wild_limit:
+    if seg <= 32 and src < wild_limit:
         memcpy(dst, src, 16)
         if seg > 16:
             memcpy(dst + 16, src + 16, 16)
         return
     memcpy(dst, src, <size_t>seg)
+
+
+cdef inline Py_ssize_t _clamp_data_cap(int64_t want, parser_t *parser,
+                                       bint large) noexcept nogil:
+    """
+    Narrow a proposed data-buffer capacity to what the column can ever fill.
+
+    Takes ``want`` as ``int64_t`` because both callers can overflow
+    ``Py_ssize_t`` on a 32-bit build -- the initial estimate extrapolates a
+    16-token probe over every row, and the grow path doubles -- and a wrapped
+    negative would slip past both clamps into ``malloc``.
+
+    Every token is NUL-packed in the parser stream, so ``stream_len`` bounds
+    this column's total bytes, and it is a live allocation's length so the
+    result always fits ``Py_ssize_t``.  For the int32-offset target the caller
+    breaks with ``overflow`` before ``total_bytes`` reaches ``INT32_MAX``, so
+    reserving past that only allocates bytes the column will never fill -- and
+    a failure there raises ``MemoryError``, which the ``except OverflowError``
+    fallback to the object path in ``_string_convert`` does not catch.
+    """
+    if want > <int64_t>parser.stream_len:
+        want = <int64_t>parser.stream_len
+    if not large and want > <int64_t>INT32_MAX:
+        want = <int64_t>INT32_MAX
+    return <Py_ssize_t>want
 
 
 # -> tuple[ExtensionArray | _PendingStringColumn, int]
@@ -2756,6 +2788,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         Py_ssize_t total_bytes = 0
         Py_ssize_t data_cap = 0
+        int64_t data_est = 0
         Py_ssize_t probe, probe_seen, probe_bytes = 0
         int64_t wlen
         c_int64_t token_idx = 0
@@ -2777,6 +2810,8 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         Py_ssize_t nwords, block_start, block_end, jw
         const char *wild_limit = (
             parser.stream + parser.stream_cap - WILDCOPY_SLACK
+            if parser.stream_cap >= WILDCOPY_SLACK
+            else parser.stream
         )
         _PendingStringColumn pending
 
@@ -2834,9 +2869,13 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 coliter_next_with_idx(&probe_it, &token_idx)
                 probe_bytes += _token_len(parser, token_idx)
                 probe_seen += 1
+            # Unclamped this extrapolates the probe over every row, which a
+            # column whose leading rows are much wider than the rest turns into
+            # a reservation bounded by nothing in the file.
             if probe:
-                data_cap = lines * (probe_bytes // probe + 1)
-            data_cap += (data_cap >> 2) + 64
+                data_est = <int64_t>lines * (probe_bytes // probe + 1)
+            data_est += (data_est >> 2) + 64
+            data_cap = _clamp_data_cap(data_est, parser, large)
             data_ptr = <char *>malloc(data_cap + WILDCOPY_SLACK)
             malloc_failed = data_ptr == NULL
 
@@ -2862,7 +2901,13 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 break
 
             if total_bytes + wlen > data_cap:
-                data_cap = data_cap * 2 + wlen
+                # Same bounds as the initial reservation.  Neither clamp can
+                # undersize the buffer: total_bytes + wlen never exceeds
+                # stream_len, and for the int32 target the overflow break above
+                # has already fired if it exceeds INT32_MAX.
+                data_cap = _clamp_data_cap(
+                    <int64_t>data_cap * 2 + wlen, parser, large
+                )
                 grown = <char *>realloc(data_ptr, data_cap + WILDCOPY_SLACK)
                 if grown == NULL:
                     malloc_failed = True
@@ -2886,12 +2931,12 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
             if total_bytes < data_cap >> 1:
                 # Less than half the reservation was used, so the leading rows
                 # this column was sized from are far wider than the rest of it.
-                # Give the tail back: untouched pages cost no RSS, but the
-                # reservation itself is unbounded in this case and outlives the
-                # read.  A normal column keeps its buffer -- one malloc per
-                # (column, chunk), no more heap traffic in a worker than the
-                # exact-size allocation this replaced.  Failure just means we
-                # keep the larger block.
+                # Give the tail back: untouched pages cost no RSS, but in this
+                # case the reservation is bounded only by the chunk's whole
+                # stream length, and it outlives the read.  A normal column
+                # keeps its buffer -- one malloc per (column, chunk), no more
+                # heap traffic in a worker than the exact-size allocation this
+                # replaced.  Failure just means we keep the larger block.
                 grown = <char *>realloc(data_ptr,
                                         total_bytes + WILDCOPY_SLACK)
                 if grown != NULL:
