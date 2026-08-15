@@ -415,16 +415,29 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if pat.startswith("^"):
-            pat = pat[1:]
-        pat = f"^({pat})"
+        if isinstance(pat, re.Pattern):
+            # GH#63108 the accessor pre-compiles `pat` whenever the user passes
+            #  `flags`, so unwrap it here; pyarrow only supports IGNORECASE,
+            #  which it spells as `case`. Confined to this branch so that
+            #  _str_fullmatch, which reaches us with a plain str, is unaffected.
+            flags |= pat.flags & ~re.UNICODE
+            if flags & re.IGNORECASE:
+                case = False
+                flags &= ~re.IGNORECASE
+            pattern = pat.pattern
+        else:
+            pattern = pat
+
+        if pattern.startswith("^"):
+            pattern = pattern[1:]
+        pattern = f"^({pattern})"
         return ArrowStringArrayMixin._str_contains(
-            self, pat, case, flags, na, regex=True
+            self, pattern, case, flags, na, regex=True
         )
 
     def _str_fullmatch(

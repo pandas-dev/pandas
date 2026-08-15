@@ -49,6 +49,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.portable cimport checked_sub
 from pandas._libs.tslibs.conversion cimport (
     get_datetime64_nanos,
     parse_pydatetime,
@@ -76,10 +77,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 import_pandas_datetime()
-
-
-cdef extern from "pandas/portable.h":
-    int checked_sub(int64_t a, int64_t b, int64_t *res)
 
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime

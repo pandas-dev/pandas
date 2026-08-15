@@ -143,6 +143,32 @@ def test_assert_not_almost_equal_numbers_rtol(a, b):
     _assert_not_almost_equal_both(a, b, rtol=0.05)
 
 
+@pytest.mark.parametrize("dtype", [int, np.int64, np.uint64])
+def test_assert_almost_equal_large_integers_within_atol(dtype):
+    # GH#66400 these land on float64s 256 apart, so the comparison used to
+    #  report a difference that is not there
+    a = 1450804465901089690
+    b = 1450804465901089614  # 76 apart
+
+    _assert_almost_equal_both(dtype(a), dtype(b), rtol=0, atol=100)
+
+
+@pytest.mark.parametrize("dtype", [int, np.int64, np.uint64])
+def test_assert_not_almost_equal_large_integers_outside_atol(dtype):
+    # GH#66400 these land on the same float64, so the comparison used to pass
+    a = 1450804465901089690
+    b = a + 100
+
+    _assert_not_almost_equal_both(dtype(a), dtype(b), rtol=0, atol=10)
+
+
+@pytest.mark.parametrize("kwargs", [{"rtol": -1}, {"atol": -1}])
+def test_assert_almost_equal_integers_negative_tolerance(kwargs):
+    # GH#66400 the integer path must not swallow the math.isclose validation
+    with pytest.raises(ValueError, match="tolerances must be non-negative"):
+        tm.assert_almost_equal(1, 2, **kwargs)
+
+
 @pytest.mark.parametrize(
     "a,b",
     [

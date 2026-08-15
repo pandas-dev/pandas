@@ -411,7 +411,9 @@ class TestDataFrameGroupByPlots:
 
     def test_boxplot_legacy1_return_type(self, hist_df):
         grouped = hist_df.groupby(by="gender")
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
+        axes = _check_plot_works(
+            grouped.boxplot, default_axes=True, subplots=False, return_type="axes"
+        )
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @pytest.mark.slow
@@ -434,7 +436,9 @@ class TestDataFrameGroupByPlots:
             index=MultiIndex.from_tuples(tuples),
         )
         grouped = df.groupby(level=1)
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
+        axes = _check_plot_works(
+            grouped.boxplot, default_axes=True, subplots=False, return_type="axes"
+        )
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     def test_grouped_plot_fignums(self):
@@ -717,7 +721,11 @@ class TestDataFrameGroupByPlots:
         grouped = df.groupby("cat")
 
         axes = _check_plot_works(
-            grouped.boxplot, subplots=False, column=col, return_type="axes"
+            grouped.boxplot,
+            default_axes=True,
+            subplots=False,
+            column=col,
+            return_type="axes",
         )
 
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
@@ -754,7 +762,7 @@ class TestDataFrameGroupByPlots:
         grouped = df.groupby("gender")
         msg = "boxplot method requires numerical columns, nothing to plot"
         with pytest.raises(ValueError, match=msg):
-            _check_plot_works(grouped.boxplot, subplots=False)
+            _check_plot_works(grouped.boxplot, default_axes=True, subplots=False)
 
     def test_boxplot_multiindex_column(self):
         # GH 16748
