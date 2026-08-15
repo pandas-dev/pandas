@@ -1,4 +1,5 @@
 import functools
+import uuid
 
 import numpy as np
 import pytest
@@ -7,6 +8,19 @@ import pandas as pd
 import pandas._testing as tm
 
 pytest.importorskip("odf")
+
+
+@pytest.fixture
+def ext():
+    return ".ods"
+
+
+@pytest.fixture
+def tmp_excel(ext, tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}{ext}"
+    tmp.touch()
+    return str(tmp)
+
 
 from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import (
@@ -80,9 +94,8 @@ def test_read_cell_annotation():
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_covered_table_cell_value(tmp_path):
-    path = tmp_path / "covered_cell_value.ods"
-
+def test_read_covered_table_cell_value(tmp_excel):
+    # GH#66579
     doc = OpenDocumentSpreadsheet()
     sheet = Table(name="Sheet1")
     doc.spreadsheet.addElement(sheet)
@@ -97,9 +110,9 @@ def test_read_covered_table_cell_value(tmp_path):
     row1.addElement(CoveredTableCell(valuetype="float", value="42"))
     row1.addElement(TableCell(valuetype="float", value="200"))
 
-    doc.save(str(path))
+    doc.save(tmp_excel)
 
-    result = pd.read_excel(path, header=None)
+    result = pd.read_excel(tmp_excel, engine="odf", header=None)
 
     expected = pd.DataFrame([[1, 100], [42, 200]])
 
