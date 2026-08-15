@@ -3005,6 +3005,82 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
         return super().__getitem__(key)
 
+    def select(self, *args, **kwargs) -> DataFrameGroupBy:
+        """
+        Select columns.
+
+        Return a new DataFrameGroupBy over the same groups, but only
+        containing the specified columns. Columns can be computed via
+        :func:`pandas.col` expressions, or callables passed as keyword
+        arguments; both are evaluated row-wise against the ungrouped
+        DataFrame (including the grouping key columns) before regrouping.
+
+        .. versionadded:: 3.1.0
+
+        Parameters
+        ----------
+        *args : hashable, Expression, or a single list of these
+            Column labels to select, or expressions evaluated against the
+            ungrouped DataFrame, as in :meth:`DataFrame.select`. If a
+            single list or other non-tuple sequence is provided, its
+            elements are the items to select; a sequence cannot be mixed
+            with further positional arguments.
+        **kwargs : callable, Expression, Series, scalar, array-like, or dict
+            Additional computed columns as in :meth:`DataFrame.select`,
+            where the keyword is the resulting column name.
+
+        Returns
+        -------
+        DataFrameGroupBy
+            A new DataFrameGroupBy with the selected columns. A
+            DataFrameGroupBy is returned even if a single column is
+            requested.
+
+        See Also
+        --------
+        DataFrame.select : Select a subset of columns from a DataFrame.
+        DataFrame.groupby : Group DataFrame using a mapper or by a Series
+            of columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "species": ["beluga", "beluga", "narwhal"],
+        ...         "speed": [100, 110, 120],
+        ...         "depth": [30, 40, 50],
+        ...     }
+        ... )
+        >>> df.groupby("species").select("speed").mean()
+                 speed
+        species
+        beluga   105.0
+        narwhal  120.0
+
+        Columns can be computed with :func:`pandas.col` expressions:
+
+        >>> df.groupby("species").select(ratio=pd.col("speed") / pd.col("depth")).max()
+                    ratio
+        species
+        beluga   3.333333
+        narwhal  2.400000
+        """
+        if self._selection is not None:
+            raise IndexError(f"Column(s) {self._selection} already selected")
+        subset = self.obj.select(*args, **kwargs)
+        return DataFrameGroupBy(
+            subset,
+            self.keys,
+            level=self.level,
+            grouper=self._grouper,
+            exclusions=frozenset(),
+            as_index=self.as_index,
+            sort=self.sort,
+            group_keys=self.group_keys,
+            observed=self.observed,
+            dropna=self.dropna,
+        )
+
     def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define

@@ -108,6 +108,7 @@ groupby_other_methods = frozenset(
         "plot",
         "resample",
         "rolling",
+        "select",
         "tail",
         "take",
         "transform",

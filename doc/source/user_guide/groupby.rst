@@ -422,6 +422,25 @@ You can also include the grouping columns if you want to operate on them.
    after the operation. This change ensures consistency in syntax between different
    column selection methods within groupby operations.
 
+Alternatively, :meth:`.DataFrameGroupBy.select` performs the same column
+selection. Columns can be given either as individual arguments or
+as a single list:
+
+.. ipython:: python
+
+   df.groupby("A").select("C", "D").sum()
+   df.groupby("A").select(["C", "D"]).sum()
+
+Columns can also be computed via :func:`pandas.col` expressions, or callables
+passed as keyword arguments, evaluated row-wise against the ungrouped DataFrame
+(including the grouping key columns) before regrouping. A positional expression
+keeps the name of the underlying column, while a keyword argument names the
+resulting column:
+
+.. ipython:: python
+
+   df.groupby("A").select(pd.col("C") * 2, D_half=pd.col("D") / 2).sum()
+
 .. _groupby.iterating-label:
 
 Iterating through groups

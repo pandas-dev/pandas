@@ -105,6 +105,7 @@ Function application
    DataFrameGroupBy.resample
    DataFrameGroupBy.rolling
    DataFrameGroupBy.sample
+   DataFrameGroupBy.select
    DataFrameGroupBy.sem
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
