@@ -1833,7 +1833,9 @@ def _planned_chunk_count(
 def _write_grid(path, n_rows, n_cols, field="7") -> None:
     header = ",".join(f"c{i}" for i in range(n_cols))
     row = ",".join(field for _ in range(n_cols))
-    path.write_text(header + "\n" + "".join(f"{row}\n" for _ in range(n_rows)))
+    path.write_text(
+        header + "\n" + "".join(f"{row}\n" for _ in range(n_rows)), encoding="utf-8"
+    )
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
