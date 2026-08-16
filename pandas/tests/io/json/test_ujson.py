@@ -1,12 +1,15 @@
 import calendar
 import datetime
 import decimal
+import gc
 import json
 import locale
 import math
 import re
 import sys
 import time
+import tracemalloc
+import weakref
 
 import dateutil
 import numpy as np
@@ -1106,3 +1109,195 @@ class TestPandasJSONTests:
         p = PeriodIndex(["2022-04-06", "2022-04-07"], freq="D")
         df = DataFrame(index=p)
         assert df.to_json() == "{}"
+
+
+LONE_SURROGATE = "\ud800"
+
+
+class _LoneSurrogateStr:
+    def __str__(self) -> str:
+        return LONE_SURROGATE
+
+    def __hash__(self) -> int:
+        return 1
+
+
+def test_encode_dict_key_lone_surrogate():
+    # GH#66356
+    with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+        ujson.ujson_dumps({LONE_SURROGATE: "value"})
+
+
+def test_encode_dict_key_str_lone_surrogate():
+    # GH#66356
+    with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+        ujson.ujson_dumps({_LoneSurrogateStr(): "value"})
+
+
+def test_encode_dict_key_large_int():
+    # GH#66356
+    # the key has more digits than sys.get_int_max_str_digits() allows, so
+    # str() on it raises. Set the limit explicitly so the test does not depend
+    # on the interpreter default (PYTHONINTMAXSTRDIGITS can disable it).
+    cur_limit = sys.get_int_max_str_digits()
+    sys.set_int_max_str_digits(1000)
+    try:
+        with pytest.raises(ValueError, match="Exceeds the limit"):
+            ujson.ujson_dumps({1 << 1_000_000: "value"})
+    finally:
+        sys.set_int_max_str_digits(cur_limit)
+
+
+def test_encode_object_dir_raises():
+    # GH#66356
+    class _TestObj:
+        def __dir__(self):
+            raise TypeError("I raise you one exception")
+
+    with pytest.raises(TypeError, match="I raise you one exception"):
+        ujson.ujson_dumps(_TestObj())
+
+
+def test_encode_object_dir_lone_surrogate():
+    # GH#66356
+    class _TestObj:
+        def __dir__(self):
+            return [LONE_SURROGATE]
+
+    with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+        ujson.ujson_dumps(_TestObj())
+
+
+def test_encode_object_dir_non_str():
+    # GH#66356
+    class _TestObj:
+        def __dir__(self):
+            return [42]
+
+    with pytest.raises(TypeError, match="must return str entries, not int"):
+        ujson.ujson_dumps(_TestObj())
+
+
+def test_encode_set_iter_raises():
+    # GH#66356
+    class _TestSet(set):
+        def __iter__(self):
+            raise TypeError("I raise you one exception")
+
+    with pytest.raises(TypeError, match="I raise you one exception"):
+        ujson.ujson_dumps(_TestSet([1, 2, 3]))
+
+
+def test_encode_labels_lone_surrogate():
+    # GH#66356
+    df = DataFrame({_LoneSurrogateStr(): [1, 2, 3]})
+    with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
+        ujson.ujson_dumps(df)
+
+
+def test_encode_set_iter_raises_midway():
+    # GH#66489
+    class _TestSet(set):
+        def __iter__(self):
+            yield 1
+            raise TypeError("I raise you one exception")
+
+    with pytest.raises(TypeError, match="I raise you one exception"):
+        ujson.ujson_dumps([_TestSet([1, 2]), _TestSet([1, 2])])
+
+
+class _Plain:
+    attr = 1
+
+
+class _OrderedSet(set):
+    # a plain one-element set would be exhausted before the guard in
+    # Set_iterNext is reached, so drive the iteration order explicitly
+    def __iter__(self):
+        return iter([np.complex128(1 + 2j), _Plain()])
+
+
+@pytest.mark.parametrize(
+    "container",
+    [
+        [np.complex128(1 + 2j), _Plain()],
+        (np.complex128(1 + 2j), _Plain()),
+        {"first": np.complex128(1 + 2j), "second": _Plain()},
+        _OrderedSet([1, 2]),
+    ],
+)
+def test_encode_error_not_masked_by_sibling(container):
+    # GH#66356
+    # the plain object encoded after the unserializable one clears the pending
+    # exception while looking for a to_dict/__json__ attribute, so iteration
+    # has to stop instead; otherwise ujson_dumps returned invalid JSON such as
+    # '[,{"attr":1}]' without raising
+    with pytest.raises(TypeError, match="is not JSON serializable"):
+        ujson.ujson_dumps(container)
+
+
+def test_to_json_error_not_masked_by_sibling():
+    # GH#66356
+    ser = Series([[np.complex128(1 + 2j), _Plain()]])
+    with pytest.raises(TypeError, match="is not JSON serializable"):
+        ser.to_json()
+
+
+def _deeply_nested():
+    outer = current = []
+    for _ in range(2000):
+        nested = []
+        current.append(nested)
+        current = nested
+    return outer
+
+
+@pytest.mark.parametrize(
+    "bad, error",
+    [
+        # raises a Python exception
+        (np.complex128(1j), TypeError),
+        # sets the encoder's own errorMsg instead
+        (_deeply_nested(), OverflowError),
+    ],
+)
+def test_encode_failure_frees_grown_buffer(bad, error):
+    # GH#66356
+    # the two failure modes leave the encoder by different exits, and both
+    # leaked the output buffer once it had outgrown the one the encoder starts
+    # with. The buffer is allocated with PyObject_Malloc, so tracemalloc sees
+    # it; a leak here would be ~50 * 256 KiB.
+    payload = ["x" * 1000] * 200 + [bad]
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot()
+    for _ in range(50):
+        with pytest.raises(error):
+            ujson.ujson_dumps(payload)
+    after = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+    assert grew < 100_000
+
+
+def test_to_json_bad_label_frees_values():
+    # GH#66356
+    # the labels failed to encode, so Object_beginTypeContext bails out via
+    # JT_INVALID; that exit used to drop the reference it had taken on the
+    # values array
+    index = Index([_LoneSurrogateStr()], dtype=object)
+    ser = Series(np.arange(1), index=index)
+    values = ser._mgr.blocks[0].values
+    # the encoder reaches the values through _values_for_json; if that ever
+    # starts handing back a fresh object the check below would pass vacuously
+    assert ser.array._values_for_json() is values
+
+    ref = weakref.ref(values)
+    for _ in range(5):
+        with pytest.raises(UnicodeEncodeError):
+            ser.to_json()
+
+    del ser, values
+    gc.collect()
+    # a reference held by the failed encodes would keep this alive
+    assert ref() is None
