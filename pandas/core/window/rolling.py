@@ -1786,8 +1786,8 @@ class RollingAndExpandingMixin(BaseWindow):
             numeric_only=numeric_only,
         )
 
-    def skew(self, numeric_only: bool = False):
-        window_func = window_aggregations.roll_skew
+    def skew(self, numeric_only: bool = False, bias: bool = False):
+        window_func = partial(window_aggregations.roll_skew, bias=bias)
         return self._apply(
             window_func,
             name="skew",
@@ -1801,8 +1801,8 @@ class RollingAndExpandingMixin(BaseWindow):
             self.count(numeric_only=numeric_only)
         ).pow(0.5)
 
-    def kurt(self, numeric_only: bool = False):
-        window_func = window_aggregations.roll_kurt
+    def kurt(self, numeric_only: bool = False, bias: bool = False):
+        window_func = partial(window_aggregations.roll_kurt, bias=bias)
         return self._apply(
             window_func,
             name="kurt",
@@ -2921,17 +2921,23 @@ class Rolling(RollingAndExpandingMixin):
             engine_kwargs=engine_kwargs,
         )
 
-    def skew(self, numeric_only: bool = False):
+    def skew(self, numeric_only: bool = False, bias: bool = False):
         """
-        Calculate the rolling unbiased skewness.
+        Calculate the rolling skewness, optionally corrected for statistical bias.
 
         This is equivalent to applying ``scipy.stats.skew`` over each rolling
         window. A minimum of three periods is required.
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         Returns
         -------
@@ -2962,8 +2968,16 @@ class Rolling(RollingAndExpandingMixin):
         4    0.670284
         5    1.652317
         dtype: float64
+        >>> ser.rolling(3).skew(bias=True).round(6)
+        0         NaN
+        1         NaN
+        2    0.528005
+        3   -0.239063
+        4    0.273642
+        5    0.674555
+        dtype: float64
         """
-        return super().skew(numeric_only=numeric_only)
+        return super().skew(numeric_only=numeric_only, bias=bias)
 
     def sem(self, ddof: int = 1, numeric_only: bool = False):
         """
@@ -3013,18 +3027,23 @@ class Rolling(RollingAndExpandingMixin):
             self.count(numeric_only)
         ).pow(0.5)
 
-    def kurt(self, numeric_only: bool = False):
+    def kurt(self, numeric_only: bool = False, bias: bool = False):
         """
-        Calculate the rolling Fisher's definition of kurtosis without bias.
+        Calculate the rolling kurtosis, optionally corrected for statistical bias.
 
-        This is equivalent to applying ``scipy.stats.kurtosis`` (with
-        ``bias=False``) over each rolling window. A minimum of four periods
-        is required.
+        This is equivalent to applying ``scipy.stats.kurtosis`` over each
+        rolling window. A minimum of four periods is required.
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         Returns
         -------
@@ -3062,8 +3081,19 @@ class Rolling(RollingAndExpandingMixin):
         3   -1.200000
         4    3.999946
         dtype: float64
+        >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=True):.6f}")
+        -1.360000
+        >>> print(f"{scipy.stats.kurtosis(arr[1:], bias=True):.6f}")
+                -0.666674
+        >>> s.rolling(4).kurt(bias=True)
+                0         NaN
+                1         NaN
+                2         NaN
+                3   -1.360000
+                4   -0.666674
+                dtype: float64
         """
-        return super().kurt(numeric_only=numeric_only)
+        return super().kurt(numeric_only=numeric_only, bias=bias)
 
     def first(self, numeric_only: bool = False):
         """

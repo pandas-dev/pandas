@@ -26,6 +26,16 @@ def test_series(series, sp_func, roll_func):
 
 
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+@pytest.mark.parametrize("bias", [True, False])
+def test_series_bias(series, sp_func, roll_func, bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+    compare_func = partial(getattr(sp_stats, sp_func), bias=bias)
+    result = getattr(series.rolling(50), roll_func)(bias=bias)
+    assert isinstance(result, Series)
+    tm.assert_almost_equal(result.iloc[-1], compare_func(series[-50:]))
+
+
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_frame(raw, frame, sp_func, roll_func):
     sp_stats = pytest.importorskip("scipy.stats")
 

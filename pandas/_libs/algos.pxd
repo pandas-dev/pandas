@@ -70,7 +70,7 @@ cdef extern from "pandas/moments.h":
 
 @cython.cdivision(True)
 cdef inline float64_t calc_skew(
-    int64_t nobs, float64_t m2, float64_t m3
+    int64_t nobs, float64_t m2, float64_t m3, bint bias,
 ) noexcept nogil:
     cdef:
         float64_t moments_ratio, correction, dnobs
@@ -81,13 +81,15 @@ cdef inline float64_t calc_skew(
     dnobs = <float64_t>nobs
 
     moments_ratio = m3 / (m2 * sqrt(m2))
+    if bias:
+        return moments_ratio * sqrt(dnobs)
     correction = (dnobs * sqrt(dnobs - 1.0)) / (dnobs - 2.0)
     return moments_ratio * correction
 
 
 @cython.cdivision(True)
 cdef inline float64_t calc_kurt(
-    int64_t nobs, float64_t m2, float64_t m4
+    int64_t nobs, float64_t m2, float64_t m4, bint bias,
 ) noexcept nogil:
     cdef:
         float64_t result, dnobs, term1, term2, inner, correction
@@ -97,6 +99,8 @@ cdef inline float64_t calc_kurt(
         return NAN
     dnobs = <float64_t>nobs
     moments_ratio = m4 / (m2 * m2)
+    if bias:
+        return moments_ratio * dnobs - 3.0
     term1 = dnobs * (dnobs + 1.0) * moments_ratio
     term2 = 3.0 * (dnobs - 1.0)
     inner = term1 - term2

@@ -273,6 +273,50 @@ class TestSeriesStatReductions:
             else:
                 assert isinstance(s.kurt(), np.float64)  # GH53482
 
+    @pytest.mark.parametrize("bias", [True, False])
+    def test_skew_bias(self, bias):
+        sp_stats = pytest.importorskip("scipy.stats")
+
+        string_series = Series([1.0, 2.0, 2.0, 3.0, 10.0], name="series")
+
+        result = string_series.skew(bias=bias)
+        expected = sp_stats.skew(string_series, bias=bias)
+        tm.assert_almost_equal(result, expected)
+
+        df = DataFrame({"a": string_series, "b": string_series * 2})
+        result = df.skew(bias=bias)
+        expected = Series(
+            [sp_stats.skew(df[c], bias=bias) for c in df.columns], index=df.columns
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = df.skew(axis=None, bias=bias)
+        flat = np.concatenate([df["a"].to_numpy(), df["b"].to_numpy()])
+        expected = sp_stats.skew(flat, bias=bias)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("bias", [True, False])
+    def test_kurt_bias(self, bias):
+        sp_stats = pytest.importorskip("scipy.stats")
+
+        string_series = Series([1.0, 2.0, 2.0, 3.0, 10.0], name="series")
+
+        result = string_series.kurt(bias=bias)
+        expected = sp_stats.kurtosis(string_series, bias=bias)
+        tm.assert_almost_equal(result, expected)
+
+        df = DataFrame({"a": string_series, "b": string_series * 2})
+        result = df.kurt(bias=bias)
+        expected = Series(
+            [sp_stats.kurtosis(df[c], bias=bias) for c in df.columns], index=df.columns
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = df.kurt(axis=None, bias=bias)
+        flat = np.concatenate([df["a"].to_numpy(), df["b"].to_numpy()])
+        expected = sp_stats.kurtosis(flat, bias=bias)
+        tm.assert_almost_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "opname",

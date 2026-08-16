@@ -551,7 +551,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
 
 
 def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint bias) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t val
@@ -606,7 +606,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
 
                 numerically_unstable = False
 
-            output[i] = NaN if nobs < minp else calc_skew(nobs, m2, m3)
+            output[i] = NaN if nobs < minp else calc_skew(nobs, m2, m3, bias)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -674,7 +674,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
 
 
 def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint bias) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t mean, m2, m3, m4
@@ -726,7 +726,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
                     add_kurt(values[j], &nobs, &mean, &m2, &m3, &m4,
                              &numerically_unstable)
 
-            output[i] = NaN if nobs < minp else calc_kurt(nobs, m2, m4)
+            output[i] = NaN if nobs < minp else calc_kurt(nobs, m2, m4, bias)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0

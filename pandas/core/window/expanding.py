@@ -951,17 +951,23 @@ class Expanding(RollingAndExpandingMixin):
         """
         return super().sem(ddof=ddof, numeric_only=numeric_only)
 
-    def skew(self, numeric_only: bool = False):
+    def skew(self, numeric_only: bool = False, bias: bool = False):
         """
-        Calculate the expanding unbiased skewness.
+        Calculate the expanding skewness, optionally corrected for statistical bias.
 
         Computes the third standardized moment over all data points seen
         so far, measuring the asymmetry of the distribution.
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         Returns
         -------
@@ -990,20 +996,33 @@ class Expanding(RollingAndExpandingMixin):
         d    1.414214
         e    0.315356
         dtype: float64
+        >>> ser.expanding().skew(bias=True)
+        a         NaN
+        b         NaN
+        c    0.381802
+        d    0.816497
+        e    0.211547
+        dtype: float64
         """
-        return super().skew(numeric_only=numeric_only)
+        return super().skew(numeric_only=numeric_only, bias=bias)
 
-    def kurt(self, numeric_only: bool = False):
+    def kurt(self, numeric_only: bool = False, bias: bool = False):
         """
-        Calculate the expanding Fisher's definition of kurtosis without bias.
+        Calculate the expanding kurtosis, optionally corrected for statistical bias.
 
         Measures the tailedness of the distribution over all data points
         seen so far. A minimum of four periods is required.
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         Returns
         -------
@@ -1041,8 +1060,19 @@ class Expanding(RollingAndExpandingMixin):
         3   -1.200000
         4    4.999874
         dtype: float64
+        >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=True):.6f}")
+        -1.360000
+        >>> print(f"{scipy.stats.kurtosis(arr, bias=True):.6f}")
+                0.249969
+        >>> s.expanding(4).kurt(bias=True)
+                0         NaN
+                1         NaN
+                2         NaN
+                3   -1.360000
+                4    0.249969
+                dtype: float64
         """
-        return super().kurt(numeric_only=numeric_only)
+        return super().kurt(numeric_only=numeric_only, bias=bias)
 
     def first(self, numeric_only: bool = False):
         """

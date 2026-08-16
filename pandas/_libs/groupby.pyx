@@ -1071,6 +1071,7 @@ def group_skew(
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint skipna=True,
+    bint bias = False,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
@@ -1124,7 +1125,7 @@ def group_skew(
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
+                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j], bias)
                 if result_mask is not None and nobs[i, j] < 3:
                     result_mask[i, j] = 1
 
@@ -1141,6 +1142,7 @@ def group_kurt(
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint skipna=True,
+    bint bias = False,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
@@ -1196,7 +1198,7 @@ def group_kurt(
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
+                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j], bias)
                 if result_mask is not None and nobs[i, j] < 4:
                     result_mask[i, j] = 1
 

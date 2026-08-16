@@ -25,8 +25,14 @@ def _get_rolling_aggregations():
             for ddof in [0, 1]
         ]
         + [
-            ("roll_skew", window_aggregations.roll_skew),
-            ("roll_kurt", window_aggregations.roll_kurt),
+            (
+                "roll_skew",
+                partial(window_aggregations.roll_skew, bias=False),
+            ),
+            (
+                "roll_kurt",
+                partial(window_aggregations.roll_kurt, bias=False),
+            ),
             ("roll_median_c", window_aggregations.roll_median_c),
             ("roll_max", window_aggregations.roll_max),
             ("roll_min", window_aggregations.roll_min),
