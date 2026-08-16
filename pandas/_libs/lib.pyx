@@ -2703,12 +2703,21 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             if convert_to_masked_nullable and isinstance(val, str):
-                if val == "nan" or val == "NaN" or val == "NAN":
-                    fval = NaN
-                    seen.null_ = True
-                    seen.float_ = True
-                    floats[i] = complexes[i] = fval
-                    continue
+                val_lower = val.lower()
+                value_is_na = false
+                if distinguish_nan_and_na:
+                    # non float pd so NA will be masked via floatify
+                    if val_lower in ("<NA>", "NA", ""):
+                        value_is_na = True
+                else:
+                    # Legacy so pd NAN NA
+                    if val_lower in ("nan", "-nan", "+nan", "<na>", "na", ""):
+                        value_is_na = True
+                fval = NaN
+                seen.null_ = True
+                seen.float_ = True
+                floats[i] = complexes[i] = fval
+                continue
             try:
                 floatify(val, &fval, &maybe_int)
                 if fval in na_values:
