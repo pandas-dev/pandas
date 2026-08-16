@@ -393,6 +393,8 @@ ignore = [
   "RUF059",
   # pytest-raises-ambiguous-pattern
   "RUF043",
+  # implicit-string-concatenation-in-collection-litera
+  "ISC004",
 ]
 
 exclude = [
