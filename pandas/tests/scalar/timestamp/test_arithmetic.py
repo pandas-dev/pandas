@@ -104,6 +104,24 @@ class TestTimestampArithmetic:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             left - Timestamp(np.datetime64(2, unit))
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_addsub_td_lands_on_nat_sentinel_raises(self, unit):
+        # GH#66549 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        ts = Timestamp(np.datetime64(iNaT + 1, unit))
+
+        msg = "Out of bounds .* timestamp: -9223372036854775808"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts + Timedelta(-1, unit)
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts - Timedelta(1, unit)
+
+        # the neighbor one step further out already raised
+        msg = "Out of bounds .* timestamp: -9223372036854775809"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts + Timedelta(-2, unit)
+
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)

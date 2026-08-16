@@ -69,7 +69,7 @@ def to_feather(
         path, "wb", storage_options=storage_options, is_text=False
     ) as handles:
         # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
-        # suppress until we migrate the implementation (GH#66169)
+        # suppress until we migrate the implementation (GH#66177)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
@@ -167,7 +167,7 @@ def read_feather(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
         # pyarrow>=24 deprecates feather.read_table in favor of pyarrow.ipc;
-        # suppress until we migrate the implementation (GH#66169)
+        # suppress until we migrate the implementation (GH#66177)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",

@@ -682,6 +682,20 @@ def _fast_string_path_available() -> bool:
     )
 
 
+# Sized per file to be the largest chunk that still lands boundaries in all four
+# positions the parser distinguishes: starting mid-page, spanning a page, falling
+# wholly inside a data page, and a short final chunk. Chunking these row counts
+# any finer only repeats those four at a few hundred chunks apiece.
+_string_path_chunksizes = {
+    "test1": 7,
+    "test2": 7,
+    "test3": 7,
+    "test16": 7,
+    "load_log": 250,
+    "productsales": 50,
+}
+
+
 # cp037 is EBCDIC: the one encoding here whose bytes below 0x80 are not their
 # own utf-8, so it is what exercises the parser's non-ascii_identity path.
 @pytest.mark.parametrize(
@@ -690,17 +704,16 @@ def _fast_string_path_available() -> bool:
 )
 # test2 and test3 are the RLE- and RDC-compressed copies of test1, where the
 # parser reads cells out of the decompression buffer rather than the page.
-@pytest.mark.parametrize(
-    "name", ["test1", "test2", "test3", "test16", "load_log", "productsales"]
-)
-@pytest.mark.parametrize("chunksize", [None, 7])
+@pytest.mark.parametrize("name", list(_string_path_chunksizes))
+@pytest.mark.parametrize("chunked", [False, True])
 def test_string_fast_path_matches_object_path(
-    datapath, monkeypatch, encoding, name, chunksize
+    datapath, monkeypatch, encoding, name, chunked
 ):
     # GH#47339 string columns are built as pyarrow arrays directly rather than
     # via an object-dtype array of bytes; the two must agree, including on
     # which files fail to decode.
     fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    chunksize = _string_path_chunksizes[name] if chunked else None
     if not _fast_string_path_available():
         expected_mode = const.string_mode_object
     elif encoding == "utf-8":

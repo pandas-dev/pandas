@@ -562,6 +562,24 @@ def test_assert_series_equal_int_near_bounds():
         tm.assert_series_equal(ser1, ser2)
 
 
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_assert_series_equal_large_int_atol(dtype):
+    # GH#66400 an explicitly passed atol must be honored above 2**53 too;
+    #  GH#40719 covers the default, which never reaches the tolerance check
+    val = 1450804465901089690
+    ser = Series([val], dtype=dtype)
+
+    tm.assert_series_equal(
+        ser, Series([val - 76], dtype=dtype), check_exact=False, rtol=0, atol=100
+    )
+
+    msg = "Series are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(
+            ser, Series([val + 100], dtype=dtype), check_exact=False, rtol=0, atol=10
+        )
+
+
 def test_assert_series_equal_check_like_check_freq():
     # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
     #  the freq check is skipped with check_like=True

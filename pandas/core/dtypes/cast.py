@@ -972,7 +972,15 @@ def convert_dtypes(
                 and input_array.dtype == object
                 and (isinstance(inferred_dtype, str) and inferred_dtype == "integer")
             ):
-                inferred_dtype = target_int_dtype
+                # GH#66517 the values need not fit in int64; ask for the dtype
+                #  that can actually hold them and retain object if there is none
+                maybe_casted = lib.maybe_convert_objects(
+                    input_array.ravel(), convert_to_nullable_dtype=True
+                )
+                if isinstance(maybe_casted.dtype, BaseMaskedDtype):
+                    inferred_dtype = maybe_casted.dtype
+                else:
+                    inferred_dtype = input_array.dtype
 
         if convert_floating:
             if input_array.dtype.kind in "fb":
