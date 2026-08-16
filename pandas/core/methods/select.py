@@ -20,6 +20,7 @@ from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
+    from typing import Any
 
     from pandas import DataFrame
 
@@ -75,7 +76,7 @@ def select(df: DataFrame, args: tuple, kwargs: dict[str, Any]) -> DataFrame:
             chunks.append(df.take(indexer, axis=1))
             labels.clear()
 
-    def make_chunk(name: Hashable, value) -> DataFrame:
+    def make_chunk(name: Hashable, value: Any) -> DataFrame:
         chunk = df.iloc[:, :0]
         chunk[name] = value
         return chunk

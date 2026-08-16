@@ -71,7 +71,8 @@ def test_select_chained(df):
 
 def test_select_chained_missing_raises(df):
     # https://github.com/pandas-dev/pandas/issues/40322
-    msg = re.escape("None of [Index(['b'], dtype='str')] are in the [columns]")
+    # dtype depends on PANDAS_FUTURE_INFER_STRING
+    msg = r"None of \[Index\(\['b'\], dtype=.*\)\] are in the \[columns\]"
     with pytest.raises(KeyError, match=msg):
         df.groupby("g").select("a").select("b")
 

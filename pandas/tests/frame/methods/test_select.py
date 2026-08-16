@@ -314,9 +314,15 @@ def test_select_expression_unnamed_raises(df):
         df.select(pd.col("a") + pd.col("b"))
 
 
-def test_select_expression_scalar_raises(df):
+def test_select_expression_scalar_raises(df, using_python_scalars):
     # https://github.com/pandas-dev/pandas/issues/61522
-    msg = re.escape("expression col('b').sum() evaluated to an object of type float64")
+    if using_python_scalars:
+        result_type = "float"
+    else:
+        result_type = "float64"
+    msg = re.escape(
+        f"expression col('b').sum() evaluated to an object of type {result_type}"
+    )
     with pytest.raises(TypeError, match=msg):
         df.select(pd.col("b").sum())
 
