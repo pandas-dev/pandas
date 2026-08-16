@@ -39,7 +39,10 @@ from cython cimport (
 )
 from libc.string cimport memcmp
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    using_string_dtype,
+    get_option
+)
 
 from pandas._libs.missing import check_na_tuples_nonequal
 from pandas.compat import PYARROW_INSTALLED
@@ -2583,9 +2586,11 @@ def maybe_convert_numeric(
     if len(values) == 0:
         return (np.array([], dtype="i8"), None)
 
-    # fastpath for ints - try to convert all based on first value
     cdef:
+        # fastpath for ints - try to convert all based on first value
         object val = values[0]
+        # fastpath for distinguish_nan_and_na for float na and non float no
+        bint distinguish_nan_and_na = get_option("future.distinguish_nan_and_na")
 
     if util.is_integer_object(val):
         try:
@@ -2702,19 +2707,18 @@ def maybe_convert_numeric(
             floats[i] = complexes[i] = val
             seen.float_ = True
         else:
-            if convert_to_masked_nullable and isinstance(val, str):
-                val_lower = val.lower()
-                value_is_na = false
-                if distinguish_nan_and_na:
-                    # non float pd so NA will be masked via floatify
-                    if val_lower in ("<NA>", "NA", ""):
-                        value_is_na = True
-                else:
-                    # Legacy so pd NAN NA
-                    if val_lower in ("nan", "-nan", "+nan", "<na>", "na", ""):
-                        value_is_na = True
+            val_lower = val.lower()
+            if val_lower in ("nan", "-nan", "+nan"):
                 fval = NaN
-                seen.null_ = True
+                seen.float_ = True
+                if not distinguish_nan_and_na:
+                    seen.null_ = True  # Legacy: treat "nan" string as logical pd.NA
+                floats[i] = complexes[i] = fval
+                continue
+
+            elif val_lower in ("<na>", "na", "", "null", "none"):
+                fval = NaN
+                seen.null_ = True      # Logical NA strings are ALWAYS pd.NA
                 seen.float_ = True
                 floats[i] = complexes[i] = fval
                 continue
