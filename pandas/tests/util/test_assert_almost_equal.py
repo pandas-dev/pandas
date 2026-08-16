@@ -211,7 +211,7 @@ def test_assert_almost_equal_large_mixed_integer_float_message():
         tm.assert_almost_equal(integer, floating, rtol=0, atol=0.5)
 
     assert str(exc_info.value) == (
-        "expected 1152921504606846976.00000 but got 1152921504606846977, "
+        "expected 1152921504606846976.00000 but got 1152921504606846977.00000, "
         "with rtol=0, atol=0.5"
     )
 

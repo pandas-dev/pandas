@@ -206,7 +206,7 @@ cpdef assert_almost_equal(a, b,
 
     # GH#66699 avoid casting a large integer to float64 before applying
     #  tolerances when the float operand is itself an integer value.
-    if (
+    if rtol >= 0 and atol >= 0 and (
         (
             is_integer_object(a)
             and is_float_object(b)
@@ -217,20 +217,12 @@ cpdef assert_almost_equal(a, b,
             and a.is_integer()
             and is_integer_object(b)
         )
-    ) and rtol >= 0 and atol >= 0:
+    ):
         ia = int(a)
         ib = int(b)
 
         if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
-            expected = (
-                str(ib) if is_integer_object(b) and abs(ib) > 2**53
-                else f"{b:.5f}"
-            )
-            actual = (
-                str(ia) if is_integer_object(a) and abs(ia) > 2**53
-                else f"{a:.5f}"
-            )
-            assert False, (f"expected {expected} but got {actual}, "
+            assert False, (f"expected {ib}.00000 but got {ia}.00000, "
                            f"with rtol={rtol}, atol={atol}")
         return True
 
