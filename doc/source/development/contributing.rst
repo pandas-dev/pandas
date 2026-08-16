@@ -128,9 +128,9 @@ description, for example ``closes #1234``.
 
 Your pull request must be linked to an issue that is **assigned to you**. If you
 open one linked to an issue you haven't claimed, the bot adds the
-``Needs Issue Assignment`` label and comments with what to do next: comment
-``/take`` on the issue to claim it, then reopen your pull request (you can reopen
-it yourself — nothing is lost).
+``Needs Issue Assignment`` label, closes the pull request, and comments with
+what to do next: comment ``/take`` on the issue to claim it, then reopen your
+pull request (you can reopen it yourself — nothing is lost).
 
 Review and staleness
 --------------------
