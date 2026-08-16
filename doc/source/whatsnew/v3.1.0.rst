@@ -768,6 +768,7 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :meth:`DataFrame.plot.bar` and :meth:`Series.plot.bar` where passing ``xticks`` (or ``yticks`` for :meth:`DataFrame.plot.barh`) used the values as raw axis positions instead of mapping them to the corresponding bar positions (:issue:`55508`)
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``secondary_y`` hiding the primary y-axis when the data already on the axes was drawn as a collection rather than as lines, e.g. by :meth:`DataFrame.plot.scatter` (:issue:`66789`)
 - Bug in :meth:`Series.plot`, :meth:`DataFrame.plot`, :meth:`DataFrame.plot.scatter`, :meth:`Series.hist`, :meth:`DataFrame.hist`, :func:`plotting.lag_plot` and :func:`plotting.parallel_coordinates` with timezone-aware data labelling the axis in UTC instead of in the data's own timezone (:issue:`64613`)
