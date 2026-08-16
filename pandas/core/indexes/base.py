@@ -7709,7 +7709,9 @@ class Index(IndexOpsMixin, PandasObject):
                 else:
                     raise TypeError
             except TypeError:
-                # exclude calling asarray on costly all-False dtypes
+                # exclude calling asarray on costly all-False dtypes and
+                # other cases where the `any` operation isn't supported,
+                # e.g., Categorical, IntervalArray.
                 pass
 
             # fastpath
