@@ -99,14 +99,10 @@ jobs:
           - [macos-15, macosx_arm64]
           - [windows-2025, win_amd64]
           - [windows-11-arm, win_arm64]
-        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14", ["cp315", "3.15"], ["cp315t", "3.15"]]]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
             python: ["cp312", "3.12"]
-        exclude:
-          # BackendUnavailable: Cannot import 'mesonpy'
-          - buildplat: [windows-11-arm, win_arm64]
-            python: ["cp313t", "3.13"]
 
     steps:
       - name: Checkout pandas
@@ -143,8 +139,7 @@ jobs:
           python-version: '3.14'
 
       - name: Install wheel
-        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
-        run: python -m pip install wheel cryptography==46.0.3
+        run: python -m pip install wheel
 
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
