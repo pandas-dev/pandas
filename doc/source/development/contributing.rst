@@ -23,9 +23,28 @@ Contributors may use automated tools such as AI coding assistants while contribu
 to pandas as long as it's used **responsibly**. Any use of these tools in a contribution must abide by all of the
 following guidelines:
 
-* You must disclose that you used an automated tool in the contribution.
+* You must disclose that you used an automated tool in the contribution, and be specific about which one.
 * You must fully review and modify the result of the automated tool.
 * You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
+* You must not use AI to speak for you when interacting with the community.
+
+A useful disclosure names the tool, the model and version it ran, and any reasoning-effort or thinking setting, so
+that reviewers know how much scrutiny to apply: ``claude opus 4.8 (xhigh)`` tells us something, ``claude`` does not.
+Not every tool exposes an effort setting, so give what applies. If you used more than one tool or model, say which
+parts of the contribution each was responsible for.
+
+Using these tools to help write the code, tests, and documentation in a contribution is fine. Discussion is
+different: in issues, pull requests, and review comments, do not use AI to speak for you. Copying and pasting
+AI-written replies does not count as engaging with a reviewer, and human-to-human communication is essential for
+the project to thrive.
+
+Translation and grammar editing are an explicit exception to the rule above. If English is not your first language,
+you are welcome to use these tools to help you say what you mean. What we ask is that the thoughts are yours, not
+that the English is unaided. Disclosure still applies, so say that you used a tool.
+
+If you need to quote the output of an AI tool as evidence, for example a traceback or a suggested diff, mark it
+clearly by quoting it with ``>`` or wrapping it in a triple-backtick code fence, so readers can tell which parts
+are your own words.
 
 This policy applies to any contribution made to pandas, including submitted issues or pull requests. Maintainers
 reserve the right to discern whether automated tooling was used and reject contributions that do not follow all of

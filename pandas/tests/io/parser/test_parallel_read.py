@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 from pandas import (
     DataFrame,
+    StringDtype,
     option_context,
     read_csv,
 )
@@ -1114,6 +1115,49 @@ def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
     tm.assert_frame_equal(parallel, serial)
 
 
+def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
+    # The deferred string path fills each chunk's data buffer with the same
+    # fixed-width token copy the serial path uses, so widths straddling that
+    # copy's 16- and 32-byte tiers have to survive a chunked read too, where
+    # each worker sizes and fills its own chunk's buffer (GH#66756).
+    pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = [
+        "".join(chr(ord("a") + pos % 26) for pos in range(width)) for width in widths
+    ]
+    path = tmp_path / "tiers.csv"
+    rows = "".join(f"{value},{value.upper()}\n" for value in values * 400)
+    path.write_text("a,b\n" + rows, encoding="utf-8")
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+
+    # Both options are pinned rather than inherited: the fast path needs
+    # infer_string on *and* pyarrow storage, and under either default flipped
+    # (PANDAS_FUTURE_INFER_STRING=0, mode.string_storage="python") the columns
+    # would come back from the object path instead; the dtype check below
+    # fails loudly if that happens.
+    with option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        1,
+    ):
+        serial = read_csv(path)
+    with option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        4,
+    ):
+        parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
+    assert serial["a"].dtype == StringDtype("pyarrow", na_value=np.nan)
+    assert serial["a"].tolist() == values * 400
+
+
 def test_parallel_deferred_strings_mixed_chunk_dtypes(tmp_path, monkeypatch):
     # One chunk of a column parses as strings while the rest parse as int64,
     # so the gather sees pending string columns alongside numeric ones and must
@@ -1309,15 +1353,24 @@ def test_parallel_multichar_sep_matches_serial(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
-def _write_with_line_at_chunk_start(path, replacement: bytes) -> None:
+def _write_with_line_at_chunk_start(path, replacement: bytes, monkeypatch) -> int:
     """Write a fixed-width CSV, then overwrite the line at the second chunk
-    boundary with *replacement* (same byte length, so offsets stay valid)."""
+    boundary with *replacement* (same byte length, so offsets stay valid).
+
+    Returns the boundary, for :func:`_assert_chunk_starts_at` to check against
+    the split the read actually plans - hard-coding a count here that the read
+    does not use would put the line in the middle of a chunk instead.
+    """
     rows = [f"{i:06d},{i * 2:06d}" for i in range(4000)]
     # write bytes so line endings stay "\n" on every platform - the byte-offset
     # math below assumes single-byte terminators (Windows text mode adds "\r")
     path.write_bytes(("a,b\n" + "\n".join(rows) + "\n").encode("utf-8"))
+    # 4000 rows is only two chunks' worth at the row floor, and the split has to
+    # be finer than that for a boundary to land mid-file.  _read_forced_parallel
+    # uses 4 workers, so this yields the 4 * 3 oversubscription.
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_MIN_CHUNK_ROWS", 1)
     data_start = _find_data_start_offset(str(path), 0, 0)
-    offsets = _find_chunk_byte_offsets(str(path), 4, data_start)
+    offsets = _find_chunk_byte_offsets(str(path), 12, data_start)
     boundary = offsets[1]
     raw = path.read_bytes()
     line_end = raw.index(b"\n", boundary)
@@ -1325,30 +1378,59 @@ def _write_with_line_at_chunk_start(path, replacement: bytes) -> None:
     with open(path, "r+b") as fd:
         fd.seek(boundary)
         fd.write(replacement)
+    return boundary
 
 
+def _spy_on_chunk_offsets(monkeypatch) -> list:
+    """Record the byte offsets each planned split actually uses."""
+    seen: list = []
+    real = _find_chunk_byte_offsets
+
+    def spy(filepath, n_chunks, data_start):
+        offsets = real(filepath, n_chunks, data_start)
+        seen.append(offsets)
+        return offsets
+
+    monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+    return seen
+
+
+def _assert_chunk_starts_at(seen: list, boundary: int) -> None:
+    # Without this the tests below still pass on a coarser split - a ragged line
+    # raises (and a skipped one is skipped) wherever it sits - while no longer
+    # placing it at the chunk start that is the point of the fixture.
+    assert seen, "the parallel path did not run"
+    assert boundary in seen[0], f"{boundary} is not a chunk start in {seen[0]}"
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_ragged_line_at_chunk_start_raises(tmp_path, monkeypatch):
     # A line with extra fields sitting exactly at a chunk boundary: the chunk
     # worker's first line used to be exempt from the field-count check, so
     # parallel silently truncated the row while serial raised (GH#64347).
     path = tmp_path / "ragged.csv"
-    _write_with_line_at_chunk_start(path, b"11,22,33,4444")
+    boundary = _write_with_line_at_chunk_start(path, b"11,22,33,4444", monkeypatch)
+    seen = _spy_on_chunk_offsets(monkeypatch)
 
     with pytest.raises(ParserError, match="Expected 2 fields"):
         _read_forced_parallel(path, monkeypatch)
+    _assert_chunk_starts_at(seen, boundary)
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_ragged_line_at_chunk_start_skip_matches_serial(tmp_path, monkeypatch):
     # Same layout with on_bad_lines="skip": the chunk worker must skip the
     # bad line just like serial, not keep a truncated version of it.
     path = tmp_path / "ragged.csv"
-    _write_with_line_at_chunk_start(path, b"11,22,33,4444")
+    boundary = _write_with_line_at_chunk_start(path, b"11,22,33,4444", monkeypatch)
+    seen = _spy_on_chunk_offsets(monkeypatch)
 
     with option_context("mode.max_threads", 1):
         expected = read_csv(path, on_bad_lines="skip")
     result = _read_forced_parallel(path, monkeypatch, on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
     assert len(result) == 3999
+    _assert_chunk_starts_at(seen, boundary)
 
 
 def test_parallel_bom_bytes_mid_file_match_serial(tmp_path, monkeypatch):
@@ -1424,6 +1506,10 @@ def test_parallel_bad_line_run_skip(tmp_path, monkeypatch):
     bad = "\n".join("x,y,z,w,v" for _ in range(5000))
     path.write_text("a,b\n" + rows + "\n" + bad + "\n" + rows + "\n", encoding="utf-8")
     monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    # The good rows sit at both ends of the file, so at the two chunks the row
+    # floor allows here every chunk has something to parse and the all-skipped
+    # chunk this is about never happens.
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_MIN_CHUNK_ROWS", 1)
 
     with option_context("mode.max_threads", 1):
         expected = read_csv(path, on_bad_lines="skip")
