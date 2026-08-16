@@ -8763,9 +8763,9 @@ class DataFrame(NDFrame, OpsMixin):
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. The sort order is deterministic for a given input.
-            `mergesort` and `stable` are the only stable algorithms, which preserve
-            the relative order of equal keys. For DataFrames, this option is only
-            applied when sorting on a single column or label.
+            'mergesort' and 'stable' are the only stable algorithms, which preserve
+            the relative order of equal keys. This option is ignored when sorting on a
+            MultiIndex or when a `level` is specified.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
             Not implemented for MultiIndex.
