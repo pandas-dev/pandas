@@ -391,8 +391,17 @@ class Grouper:
                     raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        # Only binning groupers (those with a freq, i.e. TimeGrouper) need the
+        # object itself reordered, since binning requires a monotonic axis.
+        # For a plain Grouper the group order is already handled by passing
+        # sort through to Grouping, and reordering here desynchronises the
+        # codes from the object when this result is discarded (GH#61943).
         indexer: npt.NDArray[np.intp] | None = None
-        if (self.sort or sort) and not ax.is_monotonic_increasing:
+        if (
+            self.freq is not None
+            and (self.sort or sort)
+            and not ax.is_monotonic_increasing
+        ):
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self._indexer_deprecated = ax.array.argsort(

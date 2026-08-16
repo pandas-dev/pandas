@@ -1300,3 +1300,50 @@ def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
     else:
         expected = DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
     tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_sort_true_in_list_key():
+    # GH#61943 - a Grouper with sort=True passed inside a list sorted the
+    # grouping axis but the reordered frame was not propagated back out of
+    # get_grouper, so sorted codes were applied to unsorted values and the
+    # aggregation silently returned wrong numbers.
+    df = DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
+
+    result = df.groupby([Grouper(key="k", sort=True)]).mean()
+    expected = df.groupby("k").mean()
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_sort_true_in_list_level():
+    # GH#61943 - same desync via level= on a MultiIndex.
+    df = DataFrame(
+        {
+            "outer": ["a", "a", "a", "b", "b", "b"],
+            "inner": [1, 2, 3, 1, 2, 3],
+            "A": np.arange(6),
+        }
+    )
+    ser = df.set_index(["outer", "inner"])["A"]
+
+    result = ser.groupby([Grouper(level="inner", sort=True)]).mean()
+    expected = ser.groupby(level="inner").mean()
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_grouper_sort_true_in_list_multiple_keys():
+    # GH#61943 - also wrong when the sorting Grouper is combined with a
+    # second grouping key.
+    df = DataFrame(
+        {
+            "k": [1, 2, 3, 1, 2, 3],
+            "g": ["x", "x", "x", "y", "y", "y"],
+            "A": np.arange(6),
+        }
+    )
+
+    result = df.groupby([Grouper(key="k", sort=True), "g"]).mean()
+    expected = df.groupby(["k", "g"]).mean()
+
+    tm.assert_frame_equal(result, expected)
