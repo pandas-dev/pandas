@@ -125,9 +125,13 @@ def test_no_circular_reference(klass, registrar):
 
 def test_cached_accessor_deprecation():
     # GH#66215
+    from pandas.errors import Pandas4Warning
+
     with tm.assert_produces_warning(
-        FutureWarning, match="CachedAccessor is deprecated"
+        Pandas4Warning, match="CachedAccessor is deprecated"
     ):
         from pandas.core.accessor import CachedAccessor
 
         _ = CachedAccessor
+
+    assert CachedAccessor is accessor.Accessor

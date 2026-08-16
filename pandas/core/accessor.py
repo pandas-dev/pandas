@@ -14,6 +14,7 @@ from typing import (
 )
 import warnings
 
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     set_module,
 )
@@ -233,14 +234,10 @@ class Accessor:
 # Alias kept for downstream libraries
 def __getattr__(name: str):
     if name == "CachedAccessor":
-        import warnings
-
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use pandas.core.accessor.Accessor instead.",
-            FutureWarning,  # pdlint: ignore[warning_class]
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         return Accessor
