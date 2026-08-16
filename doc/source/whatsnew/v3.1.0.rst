@@ -776,7 +776,6 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - :meth:`DataFrame.ewm` and :meth:`Series.ewm` now raise an informative ``NotImplementedError`` instead of a confusing ``AttributeError`` when ``agg``/``aggregate`` is passed an arbitrary callable (:issue:`41700`)
-- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` silently returning incorrect results when a :class:`Grouper` with ``sort=True`` was passed inside a list, because the grouping codes were derived from a sorted copy of the axis while the aggregation ran against the original, unsorted values (:issue:`61943`)
 - Bug in :class:`PeriodIndex` resampling to a finer frequency where aggregation methods returned the original values instead of aggregating, e.g. ``count`` returned the data values rather than the number of observations per bin; empty bins now contain the method's identity value (e.g. ``0`` for ``sum`` instead of ``NaN``), consistent with :class:`DatetimeIndex` resampling (:issue:`42763`)
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
 - Bug in :meth:`.DataFrameGroupBy.agg` would operate on the group as a whole when ``args`` or ``kwargs`` are supplied for the provided ``func``; now this method only operates on each Series of the group (:issue:`39169`)
@@ -801,6 +800,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for low-variance windows (:issue:`62946`)
 - Bug in :meth:`.Rolling.sum`, :meth:`.Rolling.mean`, :meth:`.Rolling.median`, :meth:`.Rolling.min`, and :meth:`.Rolling.max` with ``method="table"``, ``engine="numba"``, and ``engine_kwargs={"parallel": True}`` could cause a segfault (:issue:`40454`)
 - Bug in :meth:`.SeriesGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`65140`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` silently returning incorrect results when a :class:`Grouper` with ``sort=True`` was passed inside a list, because the grouping codes were derived from a sorted copy of the axis while the aggregation ran against the original, unsorted values (:issue:`61943`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` with a timezone-naive index where using a ``Day`` frequency (e.g. ``"7D"``) produced different bin edges than the equivalent ``Hour`` frequency (e.g. ``"168h"``), and where ``origin`` and ``offset`` were ignored (:issue:`44996`, :issue:`62200`)
 - Bug in :meth:`DataFrame.resample` dropping the result index name when resampling ``on`` a column with a pyarrow-backed datetime or duration dtype (:issue:`59823`)
