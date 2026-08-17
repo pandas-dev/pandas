@@ -132,7 +132,6 @@ jobs:
           html
 
     - name: Build the interactive terminal
-      working-directory: web/interactive_terminal
       run: |
         pixi run \
           --environment docs-and-web \
