@@ -1,16 +1,27 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
 import dateutil.tz
 from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    iNaT,
+    timezones,
+)
+from pandas.compat import WASM
+from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
 
 from pandas import (
     DatetimeIndex,
     Index,
     NaT,
+    Period,
     Timestamp,
     date_range,
     offsets,
@@ -290,3 +301,129 @@ class TestTZConvert:
         result = dti.tz_convert("UTC")
         assert (result == dti).all()
         assert result.freq is None
+
+
+def _utc_dti(value):
+    # Build a UTC-labelled index without going through the eager scalar
+    #  constructor, so that the UTC->local shift is what raises.
+    return DatetimeIndex(np.array([value], dtype="i8").view("M8[ns]")).tz_localize(
+        "UTC"
+    )
+
+
+@pytest.mark.parametrize(
+    "tz",
+    [
+        "Europe/Berlin",  # zoneinfo tz-rule fast path, val past the last transition
+        gettz("Europe/Berlin"),  # dateutil, so the transition bisect instead
+        "Etc/GMT-9",  # fixed offset
+    ],
+)
+def test_dti_utc_to_local_overflow(tz):
+    # GH#66550 the UTC->local shift was a bare add, so a UTC instant whose wall
+    #  time in tz is past Timestamp.max wrapped by 585 years instead of raising.
+    #  The scalar path already refuses the same conversion.
+    dti = _utc_dti(Timestamp.max._value).tz_convert(tz)
+
+    with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+        dti.tz_localize(None)
+
+
+def test_dti_utc_to_local_underflow():
+    # GH#66550 the same wrap at the bottom of the range.  US/Pacific is west of
+    #  UTC, so Timestamp.min's wall time there is below Timestamp.min.
+    dti = _utc_dti(Timestamp.min._value).tz_convert("US/Pacific")
+
+    with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+        dti.tz_localize(None)
+
+
+def test_dti_utc_to_local_overflow_message_names_the_target_tz():
+    # GH#66550 the only value left to render is the in-bounds UTC instant, so
+    #  without the target tz the message complains about a value that looks fine.
+    dti = _utc_dti(Timestamp.max._value).tz_convert("Etc/GMT-9")
+
+    msg = "Converting 2262-04-11 23:47:16 to Etc/GMT-9 overflows past"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        dti.tz_localize(None)
+
+
+@td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+@pytest.mark.skipif(WASM, reason="`tm.set_timezone` does not work on WASM")
+@td.skip_if_32bit  # OverflowError inside tzlocal past 2038
+def test_dti_utc_to_local_overflow_tzlocal():
+    # GH#66550 the tzlocal branch of the shift needs the same guard.  Pin the
+    #  ambient zone: the wall time only overflows east of UTC.
+    dti = _utc_dti(Timestamp.max._value)
+
+    with tm.set_timezone("Asia/Tokyo"):
+        dti = dti.tz_convert(dateutil.tz.tzlocal())
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            dti.tz_localize(None)
+
+
+def test_dti_utc_to_local_at_the_boundary_still_converts():
+    # GH#66550 one step in from the wrap, and eastward, must keep working
+    dti = _utc_dti(Timestamp.max._value - 2 * 3600 * 10**9).tz_convert("Europe/Berlin")
+
+    result = dti.tz_localize(None)
+    expected = DatetimeIndex([Timestamp("2262-04-11 23:47:16.854775807")])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.fixture
+def dti_local_on_sentinel():
+    # A UTC instant that is representable, but whose wall time one hour west of
+    #  UTC is exactly the NaT sentinel.
+    return (
+        DatetimeIndex(np.array([iNaT + 3600 * 10**9], dtype="i8").view("M8[ns]"))
+        .tz_localize("UTC")
+        .tz_convert(timezone(timedelta(hours=-1)))
+    )
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda dti: dti.tz_localize(None),
+        lambda dti: dti.year,
+        lambda dti: dti.floor("D"),
+        lambda dti: dti.to_period("ns"),
+    ],
+    ids=["tz_localize", "year", "floor", "to_period_ns"],
+)
+@pytest.mark.filterwarnings("ignore:Converting to PeriodArray:UserWarning")
+def test_dti_local_on_sentinel_raises_where_stored(dti_local_on_sentinel, func):
+    # GH#66550 the wall time is fine to render, but these consumers store it in
+    #  an i8 buffer where the sentinel reads back as NaT -- tz_localize(None) and
+    #  to_period("ns") silently returned NaT, and the field accessors returned -1.
+    with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+        func(dti_local_on_sentinel)
+
+
+@pytest.mark.filterwarnings("ignore:Converting to PeriodArray:UserWarning")
+def test_dti_local_on_sentinel_still_renders(dti_local_on_sentinel):
+    # GH#66550 ... but the consumers that only render it are correct today and
+    #  must stay that way.
+    dti = dti_local_on_sentinel
+    # datetime has no nanoseconds, so to_pydatetime stops at the microsecond
+    assert str(dti.to_pydatetime()[0]).startswith("1677-09-21 00:12:43.145224")
+    assert str(dti.astype(object)[0]).startswith("1677-09-21 00:12:43.145224192")
+    assert dti.strftime("%Y-%m-%d")[0] == "1677-09-21"
+    assert dti.to_period("D")[0] == Period("1677-09-21", "D")
+    assert dti.resolution == "nanosecond"
+    assert not dti.is_normalized
+
+
+@pytest.mark.parametrize(
+    "tz", [None, "UTC", "US/Pacific", "Etc/GMT-9", timezone(timedelta(hours=-1))]
+)
+def test_dti_all_nat_is_normalized(tz):
+    # GH#66550 is_date_array_normalized is the one Localizer loop that does not
+    #  skip NaT before shifting, so the guarded shift needs an explicit exit that
+    #  keeps reporting False rather than flipping an all-NaT array to True.
+    dti = DatetimeIndex([NaT, NaT])
+    if tz is not None:
+        dti = dti.tz_localize(tz)
+
+    assert not dti.is_normalized
