@@ -1843,9 +1843,9 @@ def _planned_chunk_count(
 def _write_grid(path, n_rows, n_cols, field="7") -> None:
     header = ",".join(f"c{i}" for i in range(n_cols))
     row = ",".join(field for _ in range(n_cols))
-    path.write_text(
-        header + "\n" + "".join(f"{row}\n" for _ in range(n_rows)), encoding="utf-8"
-    )
+    # Bytes, not text: text mode would write "\r\n" on Windows, growing each
+    # fixture by its row count and skewing the byte-budget comparisons below.
+    path.write_bytes((header + "\n" + f"{row}\n" * n_rows).encode())
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
@@ -1878,7 +1878,7 @@ def test_parallel_chunk_count_bounded_by_column_pieces(tmp_path, monkeypatch):
     narrow = tmp_path / "narrow.csv"
     wide = tmp_path / "wide.csv"
     _write_grid(narrow, 130_000, 4)
-    _write_grid(wide, 5_200, 100)
+    _write_grid(wide, 5_300, 100)
 
     narrow_n = _planned_chunk_count(
         narrow, monkeypatch, chunk_bytes=4096, min_chunk_rows=1
