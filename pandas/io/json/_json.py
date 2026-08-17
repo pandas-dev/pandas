@@ -1697,7 +1697,7 @@ class Parser:
                         TypeError,
                     ):
                         pass
-                if in_ns_bounds:
+                if converted is not None and in_ns_bounds:
                     _reemit_parse_warnings(record)
                     data = converted
                     break
