@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     NaT,
@@ -195,6 +197,7 @@ def test_drop_duplicates_tuple():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop_duplicates")
 @pytest.mark.parametrize(
     "df",
     [
@@ -327,6 +330,7 @@ def test_drop_duplicates_NA_for_take_all():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop_duplicates")
 def test_drop_duplicates_inplace():
     orig = DataFrame(
         {
@@ -407,6 +411,7 @@ def test_drop_duplicates_inplace():
     assert return_value is None
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop_duplicates")
 @pytest.mark.parametrize("inplace", [True, False])
 @pytest.mark.parametrize(
     "origin_dict, output_dict, ignore_index, output_index",
@@ -525,3 +530,28 @@ def test_drop_duplicates_with_empty_missing():
         data={"A": ["a", "b", "", None], "B": ["b", "b", "b", "b"]}, index=[0, 1, 2, 4]
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_drop_duplicates_inplace_depr():
+    msg = "The inplace keyword in DataFrame.drop_duplicates is deprecated"
+
+    df = DataFrame({"A": [1, 2, 2, 3]})
+    df_orig = df.copy()
+    expected = DataFrame({"A": [1, 2, 3]}, index=[0, 1, 3])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.drop_duplicates()
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.drop_duplicates(inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.drop_duplicates(inplace=True)
+    tm.assert_frame_equal(df, expected)

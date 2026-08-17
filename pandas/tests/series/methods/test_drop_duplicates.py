@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -9,6 +11,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
 @pytest.mark.parametrize(
     "keep, expected",
     [
@@ -31,6 +34,7 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
     tm.assert_series_equal(sc, tc[~expected])
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
 @pytest.mark.parametrize(
     "keep, expected",
     [
@@ -93,6 +97,7 @@ class TestSeriesDropDuplicates:
         tc1 = Series(cat)
         return tc1
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool(self, cat_series_unused_category):
         tc1 = cat_series_unused_category
 
@@ -109,6 +114,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool_keeplast(
         self, cat_series_unused_category
     ):
@@ -127,6 +133,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool_keepfalse(
         self, cat_series_unused_category
     ):
@@ -157,6 +164,7 @@ class TestSeriesDropDuplicates:
         tc2 = Series(cat)
         return tc2
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool2(self, cat_series):
         tc2 = cat_series
 
@@ -173,6 +181,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool2_keeplast(self, cat_series):
         tc2 = cat_series
 
@@ -189,6 +198,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool2_keepfalse(self, cat_series):
         tc2 = cat_series
 
@@ -205,6 +215,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_bool(self, ordered):
         tc = Series(
             Categorical(
@@ -273,3 +284,28 @@ class TestSeriesDropDuplicates:
         result = ser.drop_duplicates()
         expected = Series(["a"], dtype=pd.ArrowDtype(pa.string()))
         tm.assert_series_equal(result, expected)
+
+
+def test_drop_duplicates_inplace_depr():
+    msg = "The inplace keyword in Series.drop_duplicates is deprecated"
+
+    ser = Series([1, 2, 2, 3])
+    ser_orig = ser.copy()
+    expected = Series([1, 2, 3], index=[0, 1, 3])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.drop_duplicates()
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.drop_duplicates(inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.drop_duplicates(inplace=True)
+    tm.assert_series_equal(ser, expected)
