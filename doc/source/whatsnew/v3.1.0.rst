@@ -326,7 +326,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns (:issue:`65767`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns with default settings (:issue:`66239`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and string columns (:issue:`65350`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default except on Windows and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across the machine's physical cores (respecting CPU affinity and cgroup limits, and capped at 16); this is enabled by default (except on Windows) and can be controlled with the ``mode.max_threads`` option (:issue:`64347`, :issue:`66152`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, growing with the number of columns in the file (:issue:`66619`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, largest for files of short strings such as codes, categories and identifiers; concurrent reads from multiple threads also scale better (:issue:`66756`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, particularly when strings do not repeat (:issue:`65283`)
