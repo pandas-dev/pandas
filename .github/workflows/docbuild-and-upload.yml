@@ -159,8 +159,9 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: pandas-dev/pandas-dev.github.io
-        token: ${{ secrets.PANDAS_DEV_GITHUB_IO_TOKEN }}
+        ssh-key: ${{ secrets.PANDAS_DEV_GITHUB_IO_DEPLOY_KEY }}
         path: pandas-dev.github.io
+        persist-credentials: true
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true'
 
     - name: Upload web
@@ -172,7 +173,7 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload prod docs
-      run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/version/${{ env.PANDAS_DOCS_VERSION }}
+      run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/version/${PANDAS_DOCS_VERSION}
       if: env.PUBLISH_PROD == 'true'
 
     - name: Commit and push to pandas-dev.github.io
