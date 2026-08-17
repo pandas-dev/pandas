@@ -978,6 +978,6 @@ def test_string_nan_and_specific_na():
     with pd.option_context("future.distinguish_nan_and_na", True):
         res = to_numeric(ser, dtype_backend="numpy_nullable")
         expected = Series([1.0, np.nan, pd.NA], dtype="Float64")
-        tm.assert_series_equal(res, expected) 
+        tm.assert_series_equal(res, expected)
         assert np.isnan(res.iloc[1])
         assert res.iloc[2] is pd.NA

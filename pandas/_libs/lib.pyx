@@ -40,8 +40,8 @@ from cython cimport (
 from libc.string cimport memcmp
 
 from pandas._config import (
+    get_option,
     using_string_dtype,
-    get_option
 )
 
 from pandas._libs.missing import check_na_tuples_nonequal
