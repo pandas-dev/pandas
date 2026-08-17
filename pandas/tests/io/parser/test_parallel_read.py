@@ -742,8 +742,9 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     # Lower the threshold so any file triggers the parallel path.
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
 
-    # Force the parallel path regardless of the platform default (it is off by
-    # default on Windows) so this exercises parallel == serial on every platform.
+    # Force the parallel path regardless of the host's CPU allocation (a
+    # single usable CPU defaults to serial) so this exercises parallel ==
+    # serial everywhere.
     with option_context("mode.max_threads", 4):
         result = read_csv(path)  # auto-selects parallel path for C engine
     expected = read_csv(path, engine="python")
@@ -761,26 +762,21 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
 
     serial = read_csv(path, engine="python")
-    # Force the parallel path so this runs on every platform (off by default on
-    # Windows).
+    # Force the parallel path so this runs even on a single-CPU allocation.
     with option_context("mode.max_threads", 4):
         parallel = read_csv(path, engine="c")
     tm.assert_frame_equal(parallel, serial)
 
 
-def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
-    """The parallel path is off by default on Windows but on elsewhere.
-
-    Windows shows no speedup (and a slowdown at two threads) even with the file
-    warm in the OS cache, so the default is serial there; users opt in via
-    ``mode.max_threads`` (which is honoured on every platform).
-    """
+@pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])
+def test_parallel_on_by_default(tmp_path, monkeypatch, platform_name):
+    """The parallel path is on by default on every threaded platform."""
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-    # Pin the non-Windows default so the test does not depend on the host's
-    # actual core count, or on how many CPUs a container/affinity mask leaves
-    # the runner -- one usable CPU would make the default serial everywhere.
+    # Pin the default so the test does not depend on the host's actual core
+    # count, or on how many CPUs a container/affinity mask leaves the runner --
+    # one usable CPU would make the default serial everywhere.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
@@ -794,14 +790,31 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
         return DataFrame()
 
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
+    monkeypatch.setattr(_readers.sys, "platform", platform_name)
 
-    monkeypatch.setattr(_readers.sys, "platform", "win32")
     read_csv(path)
-    assert calls == []  # serial by default on Windows
+    assert len(calls) == 1
 
-    monkeypatch.setattr(_readers.sys, "platform", "linux")
+
+def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
+    """Emscripten cannot spawn threads, so it stays serial."""
+    path = tmp_path / "big.csv"
+    _make_large_csv(path)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
+
+    calls = []
+
+    def stub(*args, **kwargs):
+        calls.append(args)
+        return DataFrame()
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
+    monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+
     read_csv(path)
-    assert len(calls) == 1  # parallel by default elsewhere
+    assert calls == []
 
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
@@ -842,6 +855,7 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
 class TestDefaultNWorkers:
     """Unit tests for the default worker count."""
 
+    @pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])
     @pytest.mark.parametrize(
         "cpu_count, available, expected",
         [
@@ -854,20 +868,16 @@ class TestDefaultNWorkers:
         ],
     )
     def test_combines_cap_and_allocation(
-        self, monkeypatch, cpu_count, available, expected
+        self, monkeypatch, cpu_count, available, expected, platform_name
     ):
-        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS).
+        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS),
+        # on every threaded platform.
         assert _readers._MAX_DEFAULT_WORKERS == 4
-        monkeypatch.setattr(_readers.sys, "platform", "linux")
+        monkeypatch.setattr(_readers.sys, "platform", platform_name)
         monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
         monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
         with option_context("mode.max_threads", None):
             assert _default_n_workers() == expected
-
-    def test_windows_is_serial(self, monkeypatch):
-        monkeypatch.setattr(_readers.sys, "platform", "win32")
-        with option_context("mode.max_threads", None):
-            assert _default_n_workers() == 1
 
     def test_wasm_is_serial(self, monkeypatch):
         monkeypatch.setattr(_readers.sys, "platform", "emscripten")
