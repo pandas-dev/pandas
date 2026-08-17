@@ -72,11 +72,11 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
-          - name: "Future configs legacy values (Linux)"
+          - name: "Future configs legacy values"
             environment: py313
             pandas_future: "legacy"
             platform: ubuntu-24.04
-          - name: "Future configs upcoming values (Linux)"
+          - name: "Future configs upcoming values"
             environment: py313
             pandas_future: "upcoming"
             platform: ubuntu-24.04
@@ -217,23 +217,12 @@ jobs:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
         environment: [py311, py312, py313, py314]
-        # Prevent the include jobs from overriding other jobs
-        pandas_future: ["default"]
-        include:
-          - name: "Future configs legacy values (macOS)"
-            os: macos-15
-            environment: py313
-            pandas_future: "legacy"
-          - name: "Future configs legacy values (Windows)"
-            os: windows-2025
-            environment: py313
-            pandas_future: "legacy"
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.name || format('{0} {1}', matrix.os, matrix.environment) }}
+    name: ${{ format('{0} {1}', matrix.os, matrix.environment) }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.os }}-${{ matrix.pandas_future }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.os }}
       cancel-in-progress: true
 
     steps:
@@ -268,7 +257,6 @@ jobs:
           numprocesses: 'auto'
           pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
           pytest_target: 'pandas'
-          pandas_future: ${{ matrix.pandas_future || 'default' }}
 
   Linux-32-bit:
     runs-on: ubuntu-24.04
