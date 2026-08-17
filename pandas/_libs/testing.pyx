@@ -14,6 +14,7 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
+    is_integer_object,
     is_real_number_object,
 )
 
@@ -193,6 +194,20 @@ cpdef assert_almost_equal(a, b,
 
     if a == b:
         # object comparison
+        return True
+
+    # GH#66400 float64 cannot hold integers above 2**53 exactly, so the
+    #  tolerance below would be applied to rounded values. Negative tolerances
+    #  are left to math.isclose, which rejects them.
+    if (is_integer_object(a) and is_integer_object(b)
+            and rtol >= 0 and atol >= 0):
+        ia = int(a)
+        ib = int(b)
+
+        if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
+            # whole numbers render the same as the ".5f" used below
+            assert False, (f"expected {ib}.00000 but got {ia}.00000, "
+                           f"with rtol={rtol}, atol={atol}")
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):

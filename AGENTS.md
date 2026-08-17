@@ -46,3 +46,17 @@
 - Pull request descriptions should follow the template, and **succinctly** describe the change being made. Usually a few sentences is sufficient.
 - Pull requests that resolve an existing GitHub issue should include a link to the issue in the PR description.
 - Do not add summaries or additional comments to individual commit messages. The single PR description is sufficient.
+- Check the "I used AI to develop this pull request" box in the pull request template, and disclose your model
+  metadata in the description: the tool, the model and version, and the reasoning-effort setting, e.g.
+  `claude opus 4.8 (xhigh)` rather than `claude`. Report what you are actually running as; if you are not certain of
+  your model version or effort setting, ask rather than guessing.
+
+## Comments on issues and pull requests
+- Helping write the code, tests, and documentation in a pull request is fine. Comments are different: see the
+  automated contributions policy in `doc/source/development/contributing.rst`.
+- Do not post comments on GitHub issues or pull requests, and do not reply to reviewers, on behalf of the user.
+- Do not write the user's side of a discussion for them to paste. Summarize your analysis in chat and let the user
+  respond in their own words.
+- When you quote tool output as evidence, such as a traceback or a suggested diff, mark it with `>` or triple
+  backticks so readers can tell which parts are the user's own words.
+- Translation and grammar editing are an exception to the rule above, but must still be disclosed.
