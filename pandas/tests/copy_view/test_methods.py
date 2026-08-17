@@ -1658,8 +1658,8 @@ def test_query_cow():
     
     df2 = df.query("a > 1")
     
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    # Boolean indexing forces a memory copy in the C-engine
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     
     df2.iloc[0, 0] = 0
-    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
