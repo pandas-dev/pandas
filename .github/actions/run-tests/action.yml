@@ -15,18 +15,19 @@ inputs:
     required: true
   pandas_future:
     description: >-
-      Which values to use for the PANDAS_FUTURE_* environment variables.
-      "default" uses the default value of every config, "legacy" sets configs
-      whose default has changed back to their old values, and "upcoming"
-      enables configs whose default has not yet changed.
+      Value for the PANDAS_FUTURE environment variable. "default" uses the
+      default value of every future config, "legacy" sets configs whose
+      default has changed back to their old values, and "upcoming" enables
+      configs whose default has not yet changed. Configs whose non-default
+      values do not yet pass the test suite are exempt; see
+      _register_future_option in pandas/core/config_init.py.
     default: 'default'
 runs:
   using: composite
   steps:
     - name: Test
       env:
-        PANDAS_FUTURE_INFER_STRING: ${{ inputs.pandas_future == 'legacy' && '0' || '1' }}
-        PANDAS_FUTURE_PYTHON_SCALARS: ${{ inputs.pandas_future == 'upcoming' && '1' || '0' }}
+        PANDAS_FUTURE: ${{ inputs.pandas_future }}
         MESONPY_EDITABLE_VERBOSE: 1
         PYTHONDEVMODE: 1
         PYTHONWARNDEFAULTENCODING: 1
