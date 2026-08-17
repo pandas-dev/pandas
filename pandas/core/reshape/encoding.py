@@ -408,8 +408,8 @@ def _get_dummies_1d(
 @set_module("pandas")
 def from_dummies(
     data: DataFrame,
-    sep: None | str = None,
-    default_category: None | Hashable | dict[str, Hashable] = None,
+    sep: str | None = None,
+    default_category: Hashable | dict[str, Hashable] | None = None,
 ) -> DataFrame:
     """
     Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.

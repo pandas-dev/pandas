@@ -168,9 +168,9 @@ class MPLPlot(ABC):
         include_bool: bool = False,
         column: IndexLabel | None = None,
         *,
-        logx: bool | None | Literal["sym"] = False,
-        logy: bool | None | Literal["sym"] = False,
-        loglog: bool | None | Literal["sym"] = False,
+        logx: bool | Literal["sym"] | None = False,
+        logy: bool | Literal["sym"] | None = False,
+        loglog: bool | Literal["sym"] | None = False,
         mark_right: bool = True,
         stacked: bool = False,
         label: Hashable | None = None,
@@ -327,8 +327,8 @@ class MPLPlot(ABC):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         if (
             value is None
             or isinstance(value, bool)
@@ -532,7 +532,14 @@ class MPLPlot(ABC):
     @staticmethod
     def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
-        return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
+        return (
+            len(ax.lines) != 0
+            or len(ax.artists) != 0
+            or len(ax.containers) != 0
+            # scatter and area plots draw their data into a collection rather
+            # than into lines
+            or len(ax.collections) != 0
+        )
 
     @final
     def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:
@@ -2178,8 +2185,8 @@ class PiePlot(MPLPlot):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         super()._validate_log_kwd(kwd=kwd, value=value)
         if value is not False:
             warnings.warn(
