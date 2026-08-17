@@ -20,12 +20,11 @@ from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
-    from typing import Any
 
     from pandas import DataFrame
 
 
-def parse_select_args(args: tuple) -> list:
+def _parse_select_args(args: tuple) -> list:
     """
     Parse the positional arguments of DataFrame.select and
     DataFrameGroupBy.select.
@@ -64,7 +63,7 @@ def select(df: DataFrame, args: tuple, kwargs: dict[str, Any]) -> DataFrame:
     """
     from pandas.core.reshape.concat import concat
 
-    items = parse_select_args(args)
+    items = _parse_select_args(args)
     nlevels = df.columns.nlevels
 
     chunks: list[DataFrame] = []
