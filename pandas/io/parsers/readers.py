@@ -1275,7 +1275,7 @@ def read_csv(
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
         sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        engine, which will be used automatically.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -1875,7 +1875,7 @@ def read_table(
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
         sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        engine, which will be used automatically.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -2685,7 +2685,12 @@ class TextFileReader(abc.Iterator):
 
         sep = options["delimiter"]
 
-        if sep is not None and len(sep) > 1:
+        if sep is None:
+            # sniffing the separator with csv.Sniffer is python-engine only
+            if engine in ("c", "pyarrow"):
+                fallback_reason = f"the '{engine}' engine does not support sep=None"
+                engine = "python"
+        elif len(sep) > 1:
             if engine == "c" and sep == r"\s+":
                 # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
@@ -2697,7 +2702,7 @@ class TextFileReader(abc.Iterator):
                     "separators > 1 char, including regex separators"
                 )
                 engine = "python"
-        elif sep is not None:
+        else:
             encodeable = True
             encoding = sys.getfilesystemencoding() or "utf-8"
             try:

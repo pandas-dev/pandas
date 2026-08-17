@@ -532,7 +532,14 @@ class MPLPlot(ABC):
     @staticmethod
     def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
-        return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
+        return (
+            len(ax.lines) != 0
+            or len(ax.artists) != 0
+            or len(ax.containers) != 0
+            # scatter and area plots draw their data into a collection rather
+            # than into lines
+            or len(ax.collections) != 0
+        )
 
     @final
     def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:

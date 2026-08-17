@@ -1669,18 +1669,15 @@ class Parser:
                         converted = to_datetime(new_data, errors="raise", format=format)
                     except Exception:
                         pass
-                _reemit_parse_warnings(
-                    record, kept=converted is not None, ignore_user_warnings=True
-                )
                 if converted is not None:
+                    _reemit_parse_warnings(record, ignore_user_warnings=True)
                     return converted
         else:
             # numeric or mixed objects
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
-            kept_record: list[warnings.WarningMessage] = []
+            converted = None
+            in_ns_bounds = False
             for date_unit in date_units:
-                converted = None
-                in_ns_bounds = False
                 with warnings.catch_warnings(record=True) as record:
                     warnings.simplefilter("always")
                     try:
@@ -1700,28 +1697,23 @@ class Parser:
                         TypeError,
                     ):
                         pass
-                if converted is None:
-                    _reemit_parse_warnings(record, kept=False)
-                else:
-                    # `data` is returned below even when the bounds check failed,
-                    #  so this attempt counts as kept either way; only the last
-                    #  such attempt survives, so defer its warnings until then
+                if converted is not None and in_ns_bounds:
+                    _reemit_parse_warnings(record)
                     data = converted
-                    kept_record = record
-                if in_ns_bounds:
                     break
-            _reemit_parse_warnings(kept_record, kept=True)
+            else:
+                if converted is not None:
+                    # all units failed to cast to ns (eg with mixed string / int)
+                    # but to_datetime still returned a result -> use this this
+                    # result (with the last unit) and re-emit any warning
+                    _reemit_parse_warnings(record)
+                    data = converted
         return data
-
-
-# GH#50907; matched on the message too, since Pandas4Warning covers many deprecations
-_QUARTER_DEPR_MSG = "as a quarterly string is deprecated"
 
 
 def _reemit_parse_warnings(
     record: list[warnings.WarningMessage],
     *,
-    kept: bool,
     ignore_user_warnings: bool = False,
 ) -> None:
     """
@@ -1736,12 +1728,6 @@ def _reemit_parse_warnings(
     for warning in record:
         if ignore_user_warnings and issubclass(warning.category, UserWarning):
             # "Could not infer format", incorrectly raised for non-date strings
-            continue
-        if (
-            not kept
-            and issubclass(warning.category, Pandas4Warning)
-            and _QUARTER_DEPR_MSG in str(warning.message)
-        ):
             continue
         warnings.warn(
             warning.message,
