@@ -597,3 +597,14 @@ def test_assert_series_equal_check_index_false_ignores_freq():
     right = Series([1, 2, 3], index=idx._with_freq(None))
     with tm.assert_produces_warning(None):
         tm.assert_series_equal(left, right, check_index=False)
+
+
+def test_series_equal_interval_dtype_tolerance():
+    # GH#43913 rtol/atol were not propagated to interval dtype
+    ser1 = Series(pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)]))
+    ser2 = Series(pd.arrays.IntervalArray.from_tuples([(1.0000000000001, 2.0)]))
+
+    tm.assert_series_equal(ser1, ser2, check_exact=False, rtol=10.0, atol=10.0)
+
+    with pytest.raises(AssertionError, match="IntervalArray.left are different"):
+        tm.assert_series_equal(ser1, ser2, check_exact=False, rtol=0, atol=1e-14)
