@@ -559,7 +559,7 @@ def test_dti_tz_localize_nonexistent_shift_past_last_transition():
 def test_dti_tz_localize_nonexistent_timedelta_shift_across_transition(
     tz, start_ts, shift_hours, unit
 ):
-    # GH#66826 the offset to apply was picked by bisecting the shifted *wall*
+    # GH#66820 the offset to apply was picked by bisecting the shifted *wall*
     #  time against the *UTC* transition instants, so any shift large enough to
     #  clear the transition took the offset from the wrong side of it and the
     #  result came back off by the DST delta.  One-hour shifts happened to land
@@ -579,7 +579,7 @@ def test_dti_tz_localize_nonexistent_timedelta_shift_across_transition(
 
 
 def test_tz_localize_nonexistent_timedelta_shift_scalar_matches_index():
-    # GH#66826 the scalar path routes through the same block
+    # GH#66820 the scalar path routes through the same block
     ts = Timestamp("2011-03-27 02:30")
     shift = Timedelta(hours=-2)
 
