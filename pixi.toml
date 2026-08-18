@@ -288,6 +288,7 @@ cmd = [
   "manual",
   "--all-files",
 ]
+default-environment = "typing"
 
 [tasks.ci-scripts-tests]
 cmd = [
@@ -368,6 +369,7 @@ cmd = [
   "--warnings-are-errors",
   "{{ doc_type }}",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-website]
 cmd = [
@@ -394,3 +396,4 @@ cmd = [
   "build",
 ]
 cwd = "web/interactive_terminal/"
+default-environment = "docs-and-web"
