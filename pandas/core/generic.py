@@ -4611,9 +4611,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
-            monotonically increasing/decreasing index. For a DataFrame it is
-            applied to the index only; columns of ``other`` that are missing
-            here are filled with NaN.
+            monotonically increasing/decreasing index. For a DataFrame,
+            ``method`` applies only to the index.
 
             .. deprecated:: 3.0.0
 
@@ -5367,8 +5366,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index. When both ``index`` and
-            ``columns`` are reindexed it is applied to the index only; labels
-            missing from the columns are filled with ``fill_value``.
+            ``columns`` are passed, ``method`` applies only to the index.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
@@ -5627,15 +5625,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """Perform the reindex for all the axes."""
         obj = self
-        # GH#31002: with more than one axis, `method` (and the `limit`/`tolerance`
-        #  qualifying it) describes filling holes along the index only.
-        index_only = common.count_not_none(*axes.values()) > 1
+        reindexing_both_axes = common.count_not_none(*axes.values()) > 1
         for a in self._AXIS_ORDERS:
             labels = axes[a]
             if labels is None:
                 continue
 
-            if index_only and a != "index":
+            # GH 31002
+            if reindexing_both_axes and a != "index":
                 ax_method, ax_limit, ax_tolerance = None, None, None
             else:
                 ax_method, ax_limit, ax_tolerance = method, limit, tolerance

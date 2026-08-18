@@ -33,9 +33,7 @@ class TestDataFrameReindexLike:
 
     @pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill", "nearest"])
     def test_reindex_like_method_not_applied_to_columns(self, method):
-        # GH#31002 method fills holes along the index; a column that is absent
-        #  here is NaN whatever the method, rather than being filled from an
-        #  unrelated column or raising for "nearest" on non-numeric columns
+        # GH 31002
         df = DataFrame([4, 5, 6], index=[0.5, 1.5, 2.5], columns=["b"])
         other = DataFrame([1, 2, 3], columns=["a"])
 
@@ -45,13 +43,17 @@ class TestDataFrameReindexLike:
         expected = DataFrame({"a": [np.nan, np.nan, np.nan]}, index=other.index)
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex_like_method_partial_column_overlap(self):
-        # GH#31002 shared columns are still filled along the index
+    @pytest.mark.parametrize(
+        "method, kwargs",
+        [("bfill", {"limit": 1}), ("nearest", {"tolerance": 1})],
+    )
+    def test_reindex_like_method_partial_column_overlap(self, method, kwargs):
+        # GH 31002
         df = DataFrame({"a": [4, 5, 6], "c": [7, 8, 9]}, index=[0.5, 1.5, 2.5])
         other = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}, index=[0, 1, 2])
 
         with tm.assert_produces_warning(Pandas4Warning):
-            result = df.reindex_like(other, method="bfill")
+            result = df.reindex_like(other, method=method, **kwargs)
 
         expected = DataFrame(
             {"a": [4, 5, 6], "b": [np.nan, np.nan, np.nan]}, index=[0, 1, 2]

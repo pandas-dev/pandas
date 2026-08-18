@@ -750,13 +750,12 @@ class TestDataFrameSelectReindex:
 
     @pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill", "nearest"])
     def test_reindex_method_both_axes(self, method):
-        # GH#31002 with both axes reindexed at once, method applies to the
-        #  index only; the columns are reindexed as if no method was passed
+        # GH 31002
         df = DataFrame([4, 5, 6], index=[0.5, 1.5, 2.5], columns=["b"])
 
-        result = df.reindex(index=[0, 1, 2], columns=["a"], method=method)
+        result = df.reindex(index=[0, 1, 2], columns=["a"], method=method, fill_value=0)
 
-        expected = DataFrame({"a": [np.nan, np.nan, np.nan]}, index=[0, 1, 2])
+        expected = DataFrame({"a": [0, 0, 0]}, index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_axes(self):
