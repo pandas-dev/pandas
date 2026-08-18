@@ -356,7 +356,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("val", [np.inf, -np.inf])
     def test_to_timedelta_object_inf(self, val):
-        # GH#63275 non-finite floats in an object array used to raise a bare
+        # GH#66247 non-finite floats in an object array used to raise a bare
         #  OverflowError from int(item); coerce should give NaT and the
         #  default should raise OutOfBoundsTimedelta.
         arr = np.array([1.0, val, 3.0], dtype=object)

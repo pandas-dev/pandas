@@ -510,7 +510,7 @@ def array_to_timedelta64(
                     ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif is_float_object(item):
-                # GH#63275 use is_integer() (not int(item)) so that non-finite
+                # GH#66247 use is_integer() (not int(item)) so that non-finite
                 #  floats fall through to _numeric_to_td64ns, which raises a
                 #  clear OutOfBoundsTimedelta rather than a bare OverflowError.
                 if item.is_integer():
@@ -2726,7 +2726,7 @@ class Timedelta(_Timedelta):
                     try:
                         td = np.timedelta64(value, unit)
                     except OverflowError as err:
-                        # GH#63275 e.g. Timedelta(10**19, unit="s"); numpy
+                        # GH#66247 e.g. Timedelta(10**19, unit="s"); numpy
                         #  raises a bare OverflowError, so re-raise as
                         #  OutOfBoundsTimedelta for consistency.
                         raise OutOfBoundsTimedelta(
@@ -2736,7 +2736,7 @@ class Timedelta(_Timedelta):
                 value = _numeric_to_td64ns(value, unit)
 
         elif is_float_object(value):
-            # GH#63275 use is_integer() (not int(value)) so that non-finite
+            # GH#66247 use is_integer() (not int(value)) so that non-finite
             #  floats fall through to _numeric_to_td64ns, which raises a clear
             #  OutOfBoundsTimedelta rather than a bare OverflowError.
             if value.is_integer():
