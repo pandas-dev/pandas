@@ -450,6 +450,15 @@ timedelta-like}
                     # nonexistent times
                     new_local = val - remaining_mins - 1
 
+                if new_local == NPY_NAT:
+                    # GH#66697 the shift landed on the NaT sentinel, one below
+                    #  Timestamp.min, so the wall time it names is not
+                    #  representable.  checked_add does not flag it, since the
+                    #  sum fits in an int64, and the transition lookup below
+                    #  has no meaningful answer for it: the sentinel sorts to
+                    #  the left of every real transition.
+                    raise_out_of_bounds(val, BS_UNDERFLOW, creso)
+
                 if (
                     info.use_zoneinfo
                     and info.has_tz_rule

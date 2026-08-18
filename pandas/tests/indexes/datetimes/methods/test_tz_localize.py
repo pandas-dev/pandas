@@ -602,6 +602,32 @@ def test_dti_tz_localize_nonexistent_timedelta_shift_onto_nat_sentinel():
         dti.tz_localize("Asia/Tokyo", nonexistent=shift)
 
 
+@pytest.mark.parametrize(
+    "tz, wall",
+    [
+        # the earliest offset of both zones is negative, which is what sent the
+        #  transition lookup off the front of the offsets array
+        ("Pacific/Honolulu", "1933-04-30 02:30"),
+        ("US/Eastern", "1918-03-31 02:30"),
+    ],
+)
+def test_dti_tz_localize_nonexistent_shift_wall_time_onto_nat_sentinel(tz, wall):
+    # GH#66697 a shift landing the *wall* time itself on the NaT sentinel, one
+    #  below Timestamp.min, used to reach the transition lookup, which resolved
+    #  it against the zone's earliest offset and handed back the sentinel
+    #  shifted by that offset instead of reporting it as out of range
+    ts = Timestamp(wall).as_unit("ns")
+    # NB: two entries so that DatetimeIndex.tz_localize does not box element 0
+    #  to test it against NaT, which raises on its own and would mask a bogus
+    #  value coming back from tz_localize_to_utc
+    dti = DatetimeIndex([ts, ts])
+    shift = Timedelta(Timestamp.min._value - 1 - ts._value, "ns")
+
+    msg = f"Converting {ts} underflows past"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        dti.tz_localize(tz, nonexistent=shift)
+
+
 def _make_tzfile_ending_in_spring_forward(filename):
     """
     Build a UTC+11/UTC+12 zone whose final transition is a spring-forward.
