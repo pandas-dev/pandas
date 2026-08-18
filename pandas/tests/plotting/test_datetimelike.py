@@ -1948,6 +1948,51 @@ class TestTSPlot:
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
 
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_datetime_index_inferred_freq(self, kind):
+        # GH#66771 - the index freq attribute is unset but inferable, so the
+        # bar plot must resolve the freq instead of raising AttributeError
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        assert idx.freq is None
+        df = DataFrame({"A": [1, 2, 3]}, index=idx)
+
+        ax = df.plot(kind=kind)
+
+        ax.get_figure().canvas.draw()
+        axis = ax.get_yaxis() if kind == "barh" else ax.get_xaxis()
+        labels = [t.get_text() for t in axis.get_ticklabels()]
+        assert labels == [
+            "2020-01-01 00:00:00",
+            "2020-01-02 00:00:00",
+            "2020-01-03 00:00:00",
+        ]
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_datetime_index_freq_from_axes(self, kind):
+        # GH#66771 - the index carries no freq of its own, but the axes was
+        # already decorated by a line plot; that freq is stored as a period
+        # alias string, so it has to be normalized to an offset before it
+        # reaches the converter
+        _, ax = plt.subplots()
+        Series(
+            np.arange(10.0), index=date_range("2020-01-01", periods=10, freq="D")
+        ).plot(ax=ax)
+
+        idx = DatetimeIndex(["2020-01-02", "2020-01-05"])
+        assert idx.freq is None
+        assert idx.inferred_freq is None
+        Series([1.0, 2.0], index=idx).plot(kind=kind, ax=ax)
+
+        # the bars are centered on the same daily ordinals as the line
+        if kind == "bar":
+            centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        else:
+            centers = [p.get_y() + p.get_height() / 2 for p in ax.patches]
+        assert centers == [
+            Period("2020-01-02", freq="D").ordinal,
+            Period("2020-01-05", freq="D").ordinal,
+        ]
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     fig = plt.gcf()

@@ -1657,6 +1657,24 @@ class TestPandasContainer:
             orient=orient, date_format="iso"
         )
 
+    @pytest.mark.parametrize("tz", ["Asia/Tokyo", "US/Pacific"])
+    def test_tz_aware_sub_minute_offset(self, tz):
+        # local mean time offsets carry seconds (Asia/Tokyo is +09:18:59 before
+        # 1888, US/Pacific is -07:52:58 before 1883); those seconds used to be
+        # truncated away, shifting the serialized UTC instant by up to 59s
+        dti = DatetimeIndex(["1800-01-01"], tz="UTC").tz_convert(tz)
+        assert dti[0].utcoffset().total_seconds() % 60 != 0
+
+        for frame in [DataFrame({"a": dti}), DataFrame({"a": dti.astype(object)})]:
+            result = frame.to_json(date_format="iso", date_unit="s")
+            assert result == '{"a":{"0":"1800-01-01T00:00:00Z"}}'
+
+        # the same conversion runs for index labels
+        result = DataFrame({"a": [1]}, index=dti.astype(object)).to_json(
+            date_format="iso", date_unit="s"
+        )
+        assert result == '{"a":{"1800-01-01T00:00:00Z":1}}'
+
     def test_tz_aware_index_naive_datetime64_data(self):
         # GH#66007 a dt64tz index must not leak a stale UTC flag onto naive
         # np.datetime64 scalars serialized from object-dtype data

@@ -178,6 +178,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+-----------------+---------+
 | numexpr                | 2.11.0          |    X    |
 +------------------------+-----------------+---------+
+| pyarrow                | 16.0.0          |    X    |
++------------------------+-----------------+---------+
 | PyQt5                  | 5.15.11         |    X    |
 +------------------------+-----------------+---------+
 | pyiceberg              | 0.9.1           |    X    |
@@ -326,7 +328,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns (:issue:`65767`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns with default settings (:issue:`66239`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and string columns (:issue:`65350`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default except on Windows and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, growing with the number of columns in the file (:issue:`66619`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, largest for files of short strings such as codes, categories and identifiers; concurrent reads from multiple threads also scale better (:issue:`66756`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, particularly when strings do not repeat (:issue:`65283`)
@@ -717,6 +719,7 @@ I/O
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
 - Bug in :meth:`DataFrame.__repr__` raising ``TypeError`` for a column with a NumPy structured dtype (e.g. produced by :meth:`DataFrame.from_records` from a structured ``ndarray``) (:issue:`55011`)
 - Bug in :meth:`DataFrame.__repr__` where horizontally truncated output could exceed the terminal width by up to 4 characters (:issue:`32461`)
+- Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` silently shifting the serialized instant by up to 59 seconds for a timezone whose UTC offset is not a whole number of minutes, such as any zone in its pre-standardization local mean time era (``Asia/Tokyo`` is ``+09:18:59`` before 1888) (:issue:`66818`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``orient="table"`` silently dropping the timezone of columns with a fixed-offset timezone (e.g. ``datetime.timezone(timedelta(hours=1))``), so the offset was lost on round-trip through :func:`read_json` (:issue:`39537`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` writing unsigned NumPy integer scalars stored in ``object`` dtype as negative numbers when they exceeded the signed ``int64`` maximum (:issue:`66142`)
 - Bug in :meth:`DataFrame.to_stata` raising ``KeyError`` when column names require renaming and ``convert_dates`` is specified for a different column (:issue:`60536`)
@@ -769,6 +772,7 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :meth:`DataFrame.plot.bar` and :meth:`DataFrame.plot.barh` raising ``AttributeError`` for a regularly-spaced :class:`DatetimeIndex` whose ``freq`` attribute is unset (:issue:`66771`)
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``secondary_y`` hiding the primary y-axis when the data already on the axes was drawn as a collection rather than as lines, e.g. by :meth:`DataFrame.plot.scatter` (:issue:`66789`)
 - Bug in :meth:`Series.plot`, :meth:`DataFrame.plot`, :meth:`DataFrame.plot.scatter`, :meth:`Series.hist`, :meth:`DataFrame.hist`, :func:`plotting.lag_plot` and :func:`plotting.parallel_coordinates` with timezone-aware data labelling the axis in UTC instead of in the data's own timezone (:issue:`64613`)

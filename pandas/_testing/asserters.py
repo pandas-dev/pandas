@@ -541,10 +541,7 @@ def assert_attr_equal(
         and type(left_attr) is type(right_attr)
     ):
         # MultiIndex labels (tuples) and Index.names (FrozenList) can contain
-        # NA values that == does not treat as equal. Build the arrays with
-        # construct_1d_object_array_from_listlike: np.asarray would read
-        # equal-length nested sequences as a second dimension, discarding the
-        # nested types that == distinguishes.
+        # NA values that == does not treat as equal.
         try:
             result = array_equivalent(
                 construct_1d_object_array_from_listlike(left_attr),
