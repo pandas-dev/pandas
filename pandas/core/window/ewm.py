@@ -609,13 +609,14 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
 
-            deltas = None if self.times is None else self._deltas
+            # Always pass row-to-row deltas (all ones when times is omitted)
+            # so the times and no-times paths share one decay formula.
             window_func = partial(
                 window_aggregations.ewm,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=deltas,
+                deltas=self._deltas,
                 normalize=True,
             )
             return self._apply(window_func, name="mean", numeric_only=numeric_only)
@@ -700,13 +701,12 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
 
-            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewm,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=deltas,
+                deltas=self._deltas,
                 normalize=False,
             )
             return self._apply(window_func, name="sum", numeric_only=numeric_only)

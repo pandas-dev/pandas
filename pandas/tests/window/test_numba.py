@@ -363,6 +363,24 @@ class TestEWM:
         expected = DataFrame({"B": [1.0, 1.0, 11 / 3]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_times_ignore_na_true_is_skipped_row_step(
+        self, method, nogil, parallel
+    ):
+        # GH#66523 ignore_na=True is a skipped row-step (3.0), not dropna (4.0)
+        df = DataFrame({"B": [1.0, np.nan, 5.0]})
+        times = to_datetime(["2000-01-01", "2000-01-02", "2000-01-03"])
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        result = df.ewm(
+            halflife="1D",
+            times=times,
+            adjust=False,
+            ignore_na=True,
+            method=method,
+        ).mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = DataFrame({"B": [1.0, 1.0, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("grouper", ["None", "groupby"])
     def test_cython_vs_numba_times(self, grouper, nogil, parallel, ignore_na):
         # GH 40951

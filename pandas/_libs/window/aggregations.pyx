@@ -2256,6 +2256,7 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
 
         with nogil:
             for i in range(1, win_size):
+                # One row-to-row interval. Missing that array means unit steps.
                 step_delta = 1.
                 cur = sub_vals[i]
                 is_observation = cur == cur
@@ -2266,19 +2267,18 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                         if normalize:
                             if use_deltas:
                                 step_delta = sub_deltas[i - 1]
-                                old_wt *= old_wt_factor ** step_delta
-                            else:
-                                old_wt *= old_wt_factor
+                            old_wt *= old_wt_factor ** step_delta
                         else:
                             weighted = old_wt_factor * weighted
                         if is_observation:
                             if normalize:
+                                if not adjust:
+                                    # this row-to-row interval only; decay
+                                    # from ignore_na=False NaN rows stays in
+                                    # old_wt (GH#31178, GH#66523)
+                                    new_wt = 1. - old_wt_factor ** step_delta
                                 # avoid numerical errors on constant series
                                 if weighted != cur:
-                                    if not adjust:
-                                        # current-step interval only; NaN decay
-                                        # stays in old_wt (GH#31178, GH#66523)
-                                        new_wt = 1. - old_wt_factor ** step_delta
                                     weighted = old_wt * weighted + new_wt * cur
                                     weighted /= (old_wt + new_wt)
                                 if adjust:
