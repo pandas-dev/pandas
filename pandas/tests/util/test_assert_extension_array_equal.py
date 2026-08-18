@@ -6,6 +6,7 @@ from pandas import (
     array,
 )
 import pandas._testing as tm
+from pandas.arrays import IntervalArray
 from pandas.core.arrays.sparse import SparseArray
 
 
@@ -123,3 +124,16 @@ def test_assert_extension_array_equal_time_units():
 
     tm.assert_extension_array_equal(naive, utc, check_dtype=False)
     tm.assert_extension_array_equal(utc, naive, check_dtype=False)
+
+
+def test_assert_extension_array_equal_interval_tolerance():
+    # GH#43913 rtol/atol were not propagated to interval dtype
+    arr1 = IntervalArray.from_tuples([(1.0, 2.0)])
+    arr2 = IntervalArray.from_tuples([(1.0000000000001, 2.0)])
+
+    tm.assert_extension_array_equal(arr1, arr2, check_exact=False, rtol=10.0, atol=10.0)
+
+    with pytest.raises(AssertionError, match="ExtensionArray are different"):
+        tm.assert_extension_array_equal(
+            arr1, arr2, check_exact=False, rtol=0, atol=1e-14
+        )

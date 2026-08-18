@@ -491,3 +491,14 @@ def test_assert_frame_equal_check_like_check_freq():
     df = DataFrame({"a": [1, 2, 3]}, index=idx)
     with tm.assert_produces_warning(None):
         tm.assert_frame_equal(df.iloc[[2, 0, 1]], df, check_like=True)
+
+
+def test_frame_equal_interval_dtype_tolerance():
+    # GH#43913 rtol/atol were not propagated to interval dtype
+    df1 = DataFrame({0: pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)])})
+    df2 = DataFrame({0: pd.arrays.IntervalArray.from_tuples([(1.0000000000001, 2.0)])})
+
+    tm.assert_frame_equal(df1, df2, check_exact=False, rtol=10.0, atol=10.0)
+
+    with pytest.raises(AssertionError, match=r"IntervalArray\.left are different"):
+        tm.assert_frame_equal(df1, df2, check_exact=False, rtol=0, atol=1e-14)
