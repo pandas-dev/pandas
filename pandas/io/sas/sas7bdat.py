@@ -316,6 +316,7 @@ class SAS7BDATReader(SASReader):
         self._column_data_lengths: list[int] = []
         self._column_data_offsets: list[int] = []
         self._column_types: list[bytes] = []
+        self._validated_state: tuple[int, int] | None = None
 
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
@@ -352,9 +353,19 @@ class SAS7BDATReader(SASReader):
         # The column offsets, lengths and types come straight out of the file's
         # column-attributes subheader, and every row is then read at those
         # positions out of a buffer only row_length bytes long. Validate them
-        # once here rather than per row: a corrupt or hostile file would
-        # otherwise read past the end of that buffer. These are Python ints, so
-        # unlike the int64 the parser holds them in, the sum cannot overflow.
+        # here rather than per row: a corrupt or hostile file would otherwise
+        # read past the end of that buffer. These are Python ints, so unlike
+        # the int64 the parser holds them in, the sum cannot overflow.
+        #
+        # A metadata page may appear after the one the header parse stopped on,
+        # so this runs again before each chunk's Parser. The row-size subheader
+        # only overwrites row_length and the column-attributes one only appends
+        # to the column lists, so an unchanged snapshot of those two means the
+        # columns below have all been checked already.
+        state = (self.row_length, len(self._column_data_offsets))
+        if state == self._validated_state:
+            return
+        self._validated_state = state
         for index, (offset, length, ctype) in enumerate(
             zip(
                 self._column_data_offsets,
@@ -833,6 +844,11 @@ class SAS7BDATReader(SASReader):
         self._setup_string_buffers(ns, nrows)
 
         self._current_row_in_chunk_index = 0
+        try:
+            self._validate_column_data_ranges()
+        except Exception:
+            self.close()
+            raise
         p = Parser(self)
         p.read(nrows)
         if self._str_mode != const.string_mode_object:

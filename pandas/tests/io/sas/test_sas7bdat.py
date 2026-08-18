@@ -654,6 +654,58 @@ def test_column_offset_near_int64_max_raises(datapath, bad_offset):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+@pytest.mark.parametrize(
+    "test_file, rowsize_offset, rowsize_length, int_len, page_length, victim_offset",
+    [
+        # byte offset and length of the row-size subheader on the file's first
+        # metadata page, the file's word size, its page size, and the byte offset
+        # of a data page further in that the parser only reaches while reading
+        ("productsales.sas7bdat", 8736, 480, 4, 8192, 1024 + 3 * 8192),  # 32-bit
+        ("load_log.sas7bdat", 130264, 808, 8, 65536, 65536 + 3 * 65536),  # 64-bit
+    ],
+)
+def test_late_metadata_page_shrinking_row_length_raises(
+    datapath,
+    test_file,
+    rowsize_offset,
+    rowsize_length,
+    int_len,
+    page_length,
+    victim_offset,
+):
+    # GH#47339 a metadata page can also turn up past the pages the header parse
+    # walked, and shrink row_length under column offsets that were validated
+    # against the previous one. Every chunk builds a fresh Parser off those
+    # attributes, so the next one read every row out of bounds.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    fmt = "<Q" if int_len == 8 else "<I"
+    subheader = data[rowsize_offset : rowsize_offset + rowsize_length]
+    struct.pack_into(fmt, subheader, const.row_length_offset_multiplier * int_len, 8)
+
+    # A metadata page carrying just that one rewritten row-size subheader,
+    # replacing a data page the parser reaches part way through the file.
+    bit_offset = 32 if int_len == 8 else 16
+    page = bytearray(page_length)
+    place = page_length - rowsize_length
+    page[place:] = subheader
+    struct.pack_into(
+        "<H", page, bit_offset + const.page_type_offset, const.page_meta_type
+    )
+    struct.pack_into("<H", page, bit_offset + const.subheader_count_offset, 1)
+    pointer = bit_offset + const.subheader_pointers_offset
+    struct.pack_into(fmt, page, pointer, place)
+    struct.pack_into(fmt, page, pointer + int_len, rowsize_length)
+    data[victim_offset : victim_offset + page_length] = page
+
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", encoding=None, chunksize=1
+    ) as reader:
+        with pytest.raises(ValueError, match="the file is corrupt"):
+            for _ in reader:
+                pass
+
+
 def test_0x40_control_byte(datapath):
     # GH 31243
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
