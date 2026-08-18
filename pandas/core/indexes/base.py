@@ -7700,10 +7700,12 @@ class Index(IndexOpsMixin, PandasObject):
                     if is_pdna_mask.any():
                         if op in {operator.eq, operator.le, operator.ge}:
                             arr = np.full(len(self), True, dtype=object)
+                            arr[self.isna()] = False
                             arr[is_pdna_mask] = NA
                             return arr
                         elif op is operator.ne:
                             arr = np.full(len(self), False, dtype=object)
+                            arr[self.isna()] = True
                             arr[is_pdna_mask] = NA
                             return arr
                 else:
