@@ -1366,6 +1366,23 @@ def test_dateoffset_days_vs_n_near_dst_transition(warsaw, n):
 
 
 @pytest.mark.parametrize("n", [1, 2, -1])
+@pytest.mark.parametrize("start", ["2022-10-30", "2022-03-26 12:00"])
+def test_dateoffset_n_scalar_near_dst_transition(warsaw, start, n):
+    # GH#61870 the scalar path for a bare DateOffset(n) added a plain
+    #  timedelta, which kept pytz's pre-transition DstTzInfo instead of
+    #  re-localizing, so the result was an hour off across a DST boundary
+    ts = Timestamp(start, tz=warsaw)
+
+    result = ts + offsets.DateOffset(n)
+    expected = ts + offsets.DateOffset(days=n)
+    assert result == expected
+    assert result.utcoffset() == expected.utcoffset()
+
+    # the vectorized path is a separate implementation
+    assert (DatetimeIndex([ts]) + offsets.DateOffset(n))[0] == result
+
+
+@pytest.mark.parametrize("n", [1, 2, -1])
 @pytest.mark.parametrize("box", [DatetimeIndex, Series])
 def test_dateoffset_n_vectorized_near_dst_transition(box, n):
     # GH#61870 bare DateOffset(n) was a no-op on the vectorized (array) path
