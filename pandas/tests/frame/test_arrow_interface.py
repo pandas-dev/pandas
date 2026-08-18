@@ -1,9 +1,8 @@
 import ctypes
+import zoneinfo
 
-import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under19p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -66,17 +65,13 @@ class ArrowStreamWrapper:
         return self.stream.__arrow_c_stream__(requested_schema)
 
 
-@td.skip_if_no("pyarrow", min_version="14.0")
-def test_dataframe_from_arrow(using_infer_string):
+@td.skip_if_no("pyarrow")
+def test_dataframe_from_arrow():
     # objects with __arrow_c_stream__
     table = pa.table({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
     result = pd.DataFrame.from_arrow(table)
     expected = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
-    if not using_infer_string:
-        expected["b"] = expected["b"].astype(pd.StringDtype(na_value=np.nan))
-    elif pa_version_under19p0:
-        expected["b"] = expected["b"].astype(object)
     tm.assert_frame_equal(result, expected)
 
     # not only pyarrow object are supported
@@ -95,3 +90,18 @@ def test_dataframe_from_arrow(using_infer_string):
     # only accept actual Arrow objects
     with pytest.raises(TypeError, match="Expected an Arrow-compatible tabular object"):
         pd.DataFrame.from_arrow({"a": [1, 2, 3], "b": ["a", "b", "c"]})
+
+
+@td.skip_if_no("pyarrow", min_version="14.0")
+def test_dataframe_from_arrow_custom_conversion():
+    # ensuring that we use our custom conversion and not the default pyarrow to_pandas
+    table = pa.table(
+        {"a": pa.array([1, 2, 3], type=pa.timestamp("ns", tz="America/New_York"))}
+    )
+    result = pd.DataFrame.from_arrow(table)
+    assert isinstance(result["a"].dtype.tz, zoneinfo.ZoneInfo)
+
+    table = pa.table({"a": pa.array(["a", "b", "c"])})
+    with pd.option_context("future.infer_string", False):
+        result = pd.DataFrame.from_arrow(table)
+    assert result["a"].dtype == "object"

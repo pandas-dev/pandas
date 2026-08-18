@@ -1264,6 +1264,25 @@ def test_match_non_ignorecase_flags_applied(any_string_dtype):
     tm.assert_series_equal(result, Series([False, False], dtype=expected_dtype))
 
 
+@pytest.mark.parametrize(
+    "method, pat", [["match", r"\w+"], ["fullmatch", r"\w+"], ["contains", r"^\w+$"]]
+)
+def test_ascii_flag_applied(any_string_dtype, method, pat):
+    # GH#66348 re.ASCII and re.UNICODE are mutually exclusive, so re.UNICODE must
+    #  not be added on the user's behalf
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["abc", "éxy"], dtype=any_string_dtype)
+    expected = Series([True, False], dtype=expected_dtype)
+
+    result = getattr(values.str, method)(pat, flags=re.ASCII)
+    tm.assert_series_equal(result, expected)
+
+    result = getattr(values.str, method)(re.compile(pat, re.ASCII))
+    tm.assert_series_equal(result, expected)
+
+
 def test_match_non_ignorecase_flags_with_case(any_string_dtype):
     # GH#63108 a string pat combined with both `flags` and `case` must not be
     #  mistaken for a user-passed compiled regexp
@@ -1341,15 +1360,12 @@ def test_match_arrow_dtype_flags():
     result = values.str.match(re.compile("ab", re.IGNORECASE))
     tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
 
-    # flags pyarrow cannot honor still raise NotImplementedError, as they did
-    #  before GH#63108 and as ``contains`` does today
-    with pytest.raises(NotImplementedError, match="flags"):
-        values.str.match("^ab", flags=re.MULTILINE)
+    # GH#66348 flags pyarrow cannot honor are evaluated with `re` instead
+    result = values.str.match("^ab", flags=re.MULTILINE)
+    tm.assert_series_equal(result, Series([True, False, False], dtype="bool[pyarrow]"))
 
-    # fullmatch reaches the same helper with a plain str; unwrapping pat for
-    #  match must not quietly start honoring flags here
-    with pytest.raises(NotImplementedError, match="flags"):
-        values.str.fullmatch("ab", flags=re.IGNORECASE)
+    result = values.str.fullmatch("ab", flags=re.IGNORECASE)
+    tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
 
 
 @pytest.mark.parametrize(

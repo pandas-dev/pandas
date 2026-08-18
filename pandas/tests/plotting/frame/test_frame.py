@@ -219,7 +219,9 @@ class TestDataFramePlots:
         # GH 6951
         # Test with single column
         df = DataFrame({"x": np.random.default_rng(2).random(10)})
-        axes = _check_plot_works(df.plot.bar, subplots=True, layout=layout)
+        axes = _check_plot_works(
+            df.plot.bar, default_axes=True, subplots=True, layout=layout
+        )
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @pytest.mark.slow

@@ -17,6 +17,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     NaT,
+    Timedelta,
     Timestamp,
 )
 import pandas._testing as tm
@@ -397,6 +398,13 @@ class TestTimestampTZLocalize:
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz, nonexistent=timedelta(seconds=offset))
+
+    def test_timestamp_tz_localize_nonexistent_shift_overflow(self):
+        # GH#66697
+        ts = Timestamp("2011-03-13 02:30").as_unit("ns")
+
+        with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
+            ts.tz_localize("US/Eastern", nonexistent=Timedelta.max)
 
     @pytest.mark.parametrize("year", ["2015", "2201"])
     def test_timestamp_tz_localize_nonexistent_NaT(self, year, warsaw, unit):
