@@ -654,6 +654,207 @@ def test_column_offset_near_int64_max_raises(datapath, bad_offset):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+def _dates_null_with_late_metadata_page(
+    datapath,
+    sub_offset,
+    sub_length,
+    patches,
+    total_rows=6,
+    tail_page_type=const.page_data_type,
+):
+    """
+    dates_null.sas7bdat, with a metadata page inserted after its data rows.
+
+    dates_null is a 64-bit uncompressed file: a 65536-byte header followed by
+    one 65536-byte mix page holding two 16-byte rows. The copy built here claims
+    more rows than that page holds and continues with a metadata page carrying a
+    patched copy of the subheader at ``sub_offset``, so that the patch is
+    processed only once the parser has read past the mix page, and then with a
+    data page for the rows it still owes.
+    """
+    page_length = header_length = 65536
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+
+    rowsize = header_length + 64728
+    # row_count, and the number of rows the mix page is said to hold: enough
+    # rows are owed to reach the appended pages, and the mix page's own two are
+    # all it hands out.
+    struct.pack_into("<q", data, rowsize + 6 * 8, total_rows)
+    struct.pack_into("<q", data, rowsize + 15 * 8, 2)
+
+    # page type, block count and subheader count are the first three fields of
+    # a page header, and the pointers to its subheaders follow them
+    bit_offset = const.page_bit_offset_x64
+    pointers = bit_offset + const.subheader_pointers_offset
+
+    meta_page = bytearray(page_length)
+    struct.pack_into("<HHH", meta_page, bit_offset, const.page_meta_type, 0, 1)
+    sub_position = 4096
+    # the page's single subheader pointer: offset then length
+    struct.pack_into("<qq", meta_page, pointers, sub_position, sub_length)
+    subheader = bytearray(data[header_length + sub_offset :][:sub_length])
+    for field_offset, value in patches:
+        struct.pack_into("<q", subheader, field_offset, value)
+    meta_page[sub_position : sub_position + sub_length] = subheader
+
+    data_page = bytearray(page_length)
+    struct.pack_into("<HHH", data_page, bit_offset, tail_page_type, 4, 0)
+
+    return bytes(data) + bytes(meta_page) + bytes(data_page)
+
+
+@pytest.mark.parametrize(
+    "sub_offset, sub_length, patches",
+    [
+        # The row-size subheader, whose row_length the columns are laid out in.
+        #  Shrinking it leaves them hanging off the end of the row -- and, for
+        #  the last row on a page, off the page; growing it reads every column
+        #  from the wrong bytes. row_count and the mix page's share of it are
+        #  kept as page 0 declares them.
+        (64728, 808, [(5 * 8, 8), (6 * 8, 6), (15 * 8, 2)]),
+        (64728, 808, [(5 * 8, 4096), (6 * 8, 6), (15 * 8, 2)]),
+        # The column-size subheader. Above the number of columns the file
+        #  describes, the parser walks the offset and length arrays off their
+        #  ends; below it, a column the parser did read is dropped from the
+        #  frame and comes back all-NaN.
+        (64704, 24, [(8, 4096)]),
+        (64704, 24, [(8, 1)]),
+        # row_count, which each chunk's size is taken from: too many and the
+        #  reader keeps going past what the file holds, too few and it stops
+        #  short of rows the file does hold. The mix page's own share of it
+        #  moves the boundary between the pages the rows come from.
+        (64728, 808, [(5 * 8, 16), (6 * 8, 12), (15 * 8, 2)]),
+        (64728, 808, [(5 * 8, 16), (6 * 8, 2), (15 * 8, 2)]),
+        (64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 9999)]),
+        # Replaying the column-name and column-attributes subheaders verbatim,
+        #  which append rather than overwrite: the file ends up describing each
+        #  of its columns twice.
+        (63960, 44, []),
+        (63900, 60, []),
+    ],
+    ids=[
+        "row_length shrunk",
+        "row_length grown",
+        "count grown",
+        "count shrunk",
+        "row_count grown",
+        "row_count shrunk",
+        "mix page row count",
+        "column names repeated",
+        "column attributes repeated",
+    ],
+)
+def test_late_metadata_page_changing_layout_raises(
+    datapath, sub_offset, sub_length, patches
+):
+    # GH#47339 the column ranges are validated against row_length when the file
+    #  is opened, but a metadata page may follow the first data page and rewrite
+    #  the layout the reader was built around.
+    data = _dates_null_with_late_metadata_page(
+        datapath, sub_offset, sub_length, patches
+    )
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+    ) as reader:
+        # the chunk that walks onto the metadata page is the one that reports it
+        with pytest.raises(ValueError, match="changes the layout it declared"):
+            reader.read()
+
+
+def test_late_metadata_page_reached_mid_chunk_raises(datapath):
+    # GH#47339 the parser re-read the mix page's row count from the reader for
+    #  every row it took from such a page, so a metadata page reached partway
+    #  through a chunk moved the page-advance boundary for the rest of that same
+    #  chunk -- reading off the end of the page and failing an internal bounds
+    #  assertion, rather than being reported when the chunk ended.
+    data = _dates_null_with_late_metadata_page(
+        datapath,
+        64728,
+        808,
+        [(5 * 8, 16), (6 * 8, 5000), (15 * 8, 9999)],
+        total_rows=5000,
+        tail_page_type=const.page_mix_type,
+    )
+    with pytest.raises(ValueError, match="changes the layout it declared"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+def test_mix_page_row_count_too_large_to_reach_raises(datapath):
+    # GH#47339 the mix page's row count bounds a row index the parser holds in
+    #  an int, so a count that does not fit one has to be rejected rather than
+    #  leave that boundary unreachable and the rest of the page handed out as
+    #  rows. What the file gets is an error, not which error.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    # the row-size subheader's row_count and mix-page row count
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 2**31)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2**31)
+    with pytest.raises(OverflowError, match="too large to convert"):
+        pd.read_sas(
+            io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+        ).read()
+
+
+def test_late_metadata_page_repeating_layout_reads(datapath):
+    # GH#47339 the check above must not fire on a metadata page that follows the
+    #  data pages and restates the layout the file was opened with -- the parser
+    #  advances onto the next page as soon as it takes the last row of the one
+    #  it is on, so a trailing metadata page is walked routinely.
+    data = _dates_null_with_late_metadata_page(
+        datapath, 64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 2)]
+    )
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+    ) as reader:
+        assert len(reader.read()) == 2
+        assert len(reader.read()) == 2
+
+
+def _dates_null_with_overrun_data_page(datapath):
+    # a data page claiming far more rows than fit on it, so that the parser
+    # walks off the end of the page
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 100000)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2)
+    data_page = bytearray(65536)
+    struct.pack_into(
+        "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 60000, 0
+    )
+    return bytes(data) + bytes(data_page)
+
+
+@pytest.mark.parametrize(
+    "build, expected, match",
+    [
+        (
+            lambda datapath: _dates_null_with_late_metadata_page(
+                datapath, 64704, 24, [(8, 1)]
+            ),
+            ValueError,
+            "changes the layout it declared",
+        ),
+        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read"),
+    ],
+    ids=["layout redefined", "page overrun"],
+)
+def test_chunked_read_closes_the_file_it_rejects(
+    datapath, tmp_path, build, expected, match
+):
+    # GH#47339 GH#56127 read_sas closes the file for the caller only when it
+    #  reads the whole of it itself, so a chunked reader that gives up on a file
+    #  has to close it however it gave up. Read from a path, not a buffer: a
+    #  buffer the caller opened is deliberately left to the caller.
+    path = tmp_path / "rejected.sas7bdat"
+    path.write_bytes(build(datapath))
+    reader = pd.read_sas(path, format="sas7bdat", chunksize=2, encoding=None)
+    with pytest.raises(expected, match=match):
+        while not reader.read().empty:
+            pass
+    assert reader.handles.handle.closed
+
+
 def test_0x40_control_byte(datapath):
     # GH 31243
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")

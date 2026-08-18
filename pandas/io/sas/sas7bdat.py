@@ -347,6 +347,28 @@ class SAS7BDATReader(SASReader):
         except Exception:
             self.close()
             raise
+        self._metadata_at_open = self._metadata_signature()
+
+    def _metadata_signature(self) -> tuple:
+        """
+        Everything the parser and ``_chunk_to_dataframe`` read out of the file's
+        metadata, in one comparable value.
+
+        The column lists are only ever appended to, so their lengths stand in
+        for their contents and this stays O(1) rather than O(ncols). The
+        compression is in here for completeness rather than because a file can
+        change it: only the first column-text subheader is read for it, and a
+        file with none of those cannot be opened at all.
+        """
+        return (
+            self.row_length,
+            self.row_count,
+            self._mix_page_row_count,
+            self.column_count,
+            self.compression,
+            len(self._column_data_offsets),
+            len(self.column_names),
+        )
 
     def _validate_column_data_ranges(self) -> None:
         # The column offsets, lengths and types come straight out of the file's
@@ -833,15 +855,37 @@ class SAS7BDATReader(SASReader):
         self._setup_string_buffers(ns, nrows)
 
         self._current_row_in_chunk_index = 0
-        p = Parser(self)
-        p.read(nrows)
-        if self._str_mode != const.string_mode_object:
-            self._str_values = p.string_values()
-        # Release the growable parse buffers before building the DataFrame, so
-        # that their spare capacity is not held alongside the copies above.
-        del p
+        try:
+            p = Parser(self)
+            p.read(nrows)
+            # A metadata page can follow the data pages, and its subheaders
+            # rewrite the layout the rows just read were parsed with -- and that
+            # the next chunk would be parsed with. The reader cannot reshape
+            # itself mid-file, so a file that redefines its own layout is corrupt
+            # however the redefinition reads: too wide a row and the columns come
+            # from the wrong bytes, too few columns and one comes back all-NaN,
+            # too many and the parser walks off the ends of the offset and length
+            # arrays, and a rewritten row count pads the result with unread rows
+            # or truncates it.
+            if self._metadata_signature() != self._metadata_at_open:
+                raise ValueError(
+                    "The file changes the layout it declared partway through; "
+                    "the file is corrupt"
+                )
+            if self._str_mode != const.string_mode_object:
+                self._str_values = p.string_values()
+            # Release the growable parse buffers before building the DataFrame,
+            # so that their spare capacity is not held alongside the copies above.
+            del p
 
-        rslt = self._chunk_to_dataframe()
+            rslt = self._chunk_to_dataframe()
+        except Exception:
+            # However this chunk failed -- a page that does not hold what it
+            # claims, a layout the file redefined, a cell that cannot be
+            # represented -- the reader is no longer usable, and read_sas only
+            # closes it for the caller when it reads the whole file itself.
+            self.close()
+            raise
         if self.index is not None:
             rslt = rslt.set_index(self.index)
 

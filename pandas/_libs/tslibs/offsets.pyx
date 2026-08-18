@@ -2025,10 +2025,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 other_nanos = other.nanosecond
                 other = other.to_pydatetime(warn=False)
 
-        # GH#61870: bare DateOffset(n) (empty kwds) means n days and must take
-        #  this same path; adding a plain timedelta left pytz's stale
-        #  DstTzInfo in place, so results near a DST transition disagreed with
-        #  both DateOffset(days=n) and the vectorized path.
+        # GH#61870 Do not shortcut the empty-kwds case: a bare DateOffset(n)
+        #  carries its n-days default in self._offset, and adding that outside
+        #  the tz round-trip below left pytz results on the stale UTC offset.
         tzinfo = getattr(other, "tzinfo", None)
         if tzinfo is not None and self._use_relativedelta:
             # perform calculation in UTC

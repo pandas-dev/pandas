@@ -9188,8 +9188,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         between_time : Select values between particular times of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day.
 
@@ -9260,8 +9258,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         at_time : Select values at a particular time of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day.
 

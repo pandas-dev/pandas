@@ -178,6 +178,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+-----------------+---------+
 | numexpr                | 2.11.0          |    X    |
 +------------------------+-----------------+---------+
+| pyarrow                | 16.0.0          |    X    |
++------------------------+-----------------+---------+
 | PyQt5                  | 5.15.11         |    X    |
 +------------------------+-----------------+---------+
 | pyiceberg              | 0.9.1           |    X    |
@@ -508,9 +510,11 @@ Timedelta
 ^^^^^^^^^
 - Bug in :attr:`TimedeltaIndex.resolution` raising when the index has no frequency (:issue:`65186`)
 - Bug in :class:`DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions (:issue:`61862`)
-- Bug in :class:`Timedelta` constructor and :func:`to_timedelta` raising a bare ``OverflowError`` instead of :class:`OutOfBoundsTimedelta` for infinite or overflowing float input, which also prevented ``errors="coerce"`` from returning ``NaT`` (:issue:`63275`)
+- Bug in :class:`Timedelta` constructor and :func:`to_timedelta` raising a bare ``OverflowError`` instead of :class:`OutOfBoundsTimedelta` for infinite or overflowing float input, which also prevented ``errors="coerce"`` from returning ``NaT`` (:issue:`66247`)
 - Bug in :class:`Timedelta` constructor and :func:`to_timedelta` where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Timedelta` constructor where keyword arguments (e.g. ``days=365000``) that exceeded nanosecond int64 bounds raised ``OutOfBoundsTimedelta`` instead of falling back to a coarser resolution (:issue:`46587`)
+- Bug in :class:`Timedelta` constructor with keyword arguments raising a bare ``OverflowError`` for infinite float input, e.g. ``Timedelta(days=np.inf)``, instead of :class:`OutOfBoundsTimedelta` (:issue:`66823`)
+- Bug in :func:`to_timedelta` with ``errors="coerce"`` raising :class:`OutOfBoundsTimedelta` instead of returning ``NaT`` for out-of-bounds or infinite values in float-dtype input, e.g. ``to_timedelta(np.array([1.5, 1e30]), unit="s", errors="coerce")``; this also affected :func:`to_datetime` assembling from a :class:`DataFrame` with a float time-unit column (:issue:`66823`)
 - Bug in :func:`to_timedelta`, :class:`TimedeltaIndex`, and :class:`Series`/:class:`DataFrame` construction or ``astype`` on object-dtype input, where a ``numpy.timedelta64`` ``NaT`` whose unit differed from the array's inferred resolution raised :class:`OutOfBoundsTimedelta` instead of being preserved as ``NaT``, e.g. ``to_timedelta([np.timedelta64("NaT", "D")])`` (:issue:`63018`)
 - Bug in :func:`to_timedelta`, :class:`TimedeltaIndex`, and :class:`Series`/:class:`DataFrame` construction or ``astype`` on object-dtype input, where a timedelta string such as ``"1 days"`` silently became a value 1000 times too small if an earlier element carried nanosecond resolution, e.g. ``to_timedelta([Timedelta(1, "ns"), "1 days"])`` (:issue:`63196`)
 - Bug in :meth:`Series.cumsum` and :meth:`DataFrame.cumsum` on ``timedelta64`` data where a running total that left the representable range silently wrapped to an unrelated value instead of raising :class:`OutOfBoundsTimedelta` (:issue:`66551`)
@@ -669,6 +673,7 @@ I/O
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
 - :func:`read_json` with ``engine="pyarrow"`` now raises ``ValueError`` when passed an option the engine cannot apply -- such as ``typ="series"``, ``convert_dates``, ``keep_default_dates``, ``date_unit``, ``precise_float``, ``convert_axes``, ``encoding``, ``encoding_errors``, ``storage_options``, an explicit ``compression``, or a non-``ArrowDtype`` ``dtype`` -- instead of silently ignoring it and returning an incorrect result (:issue:`66144`)
+- :func:`read_sas` now raises an informative ``ValueError`` for a SAS7BDAT file that changes the column layout it declared partway through, instead of parsing the rest of the file with metadata that no longer describes it -- reading past the end of a row and returning unrelated memory as data, reading every column from the wrong bytes, silently emptying a column to all-NaN, or padding the result with rows the file does not hold (:issue:`47339`)
 - :func:`read_sas` now raises an informative ``ValueError`` for a SAS7BDAT file whose column metadata does not fit the rows it describes -- a column extending past the end of a row, or a numeric column wider than 8 bytes -- instead of reading or writing past the end of the row buffer and returning unrelated memory as data or crashing (:issue:`47339`)
 - :func:`read_sas` now raises an informative ``ValueError`` for a SAS7BDAT file whose header declares a ``row_length`` larger than the page size, instead of segfaulting (:issue:`66475`)
 - :func:`read_sas` now recognizes more of the encodings a SAS7BDAT file can record, including the "no encoding" and "US-ASCII" markers written by most SAS sessions (:issue:`66470`)
@@ -716,6 +721,7 @@ I/O
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
 - Bug in :meth:`DataFrame.__repr__` raising ``TypeError`` for a column with a NumPy structured dtype (e.g. produced by :meth:`DataFrame.from_records` from a structured ``ndarray``) (:issue:`55011`)
 - Bug in :meth:`DataFrame.__repr__` where horizontally truncated output could exceed the terminal width by up to 4 characters (:issue:`32461`)
+- Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` silently shifting the serialized instant by up to 59 seconds for a timezone whose UTC offset is not a whole number of minutes, such as any zone in its pre-standardization local mean time era (``Asia/Tokyo`` is ``+09:18:59`` before 1888) (:issue:`66818`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``orient="table"`` silently dropping the timezone of columns with a fixed-offset timezone (e.g. ``datetime.timezone(timedelta(hours=1))``), so the offset was lost on round-trip through :func:`read_json` (:issue:`39537`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` writing unsigned NumPy integer scalars stored in ``object`` dtype as negative numbers when they exceeded the signed ``int64`` maximum (:issue:`66142`)
 - Bug in :meth:`DataFrame.to_stata` raising ``KeyError`` when column names require renaming and ``convert_dates`` is specified for a different column (:issue:`60536`)
@@ -758,6 +764,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
+- Bug in :class:`Period`, :class:`PeriodIndex` and :meth:`DatetimeIndex.to_period` silently returning the 1970 epoch for dates the frequency cannot represent, e.g. ``Period("2300-01-01", freq="ns")``; these now raise ``OutOfBoundsDatetime`` (:issue:`66248`)
 - Bug in :meth:`DatetimeIndex.to_period` where anchored offsets ``YS``, ``BYS``, ``QS``, ``BQS``, ``BYE``, and ``BQE`` produced incorrect period frequencies, losing the month anchor (:issue:`36939`)
 - Bug in :meth:`Period.strftime` where unknown format directives (e.g. ``"%Q"``) silently produced platform-dependent output and crashed the Python process on Windows; an ``Invalid format string`` ``ValueError`` is now raised on all platforms (:issue:`53562`)
 - Bug in :meth:`Period.to_timestamp` and :meth:`PeriodIndex.to_timestamp` returning incorrect timestamps when the target frequency normalized to nanoseconds (e.g. ``"1ns"``) or when converting a nanosecond ``Period`` to a coarser target frequency (:issue:`63760`)
