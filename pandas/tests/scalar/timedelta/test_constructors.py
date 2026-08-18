@@ -275,7 +275,7 @@ def test_construct_from_kwargs_overflow():
 )
 @pytest.mark.parametrize("val", [np.inf, -np.inf])
 def test_construct_from_kwargs_inf(kwarg, val):
-    # GH#63275 int() of a non-finite float raised a bare OverflowError, unlike
+    # GH#66823 int() of a non-finite float raised a bare OverflowError, unlike
     #  the positional path, which gives OutOfBoundsTimedelta
     with pytest.raises(OutOfBoundsTimedelta, match="Cannot construct Timedelta"):
         Timedelta(**{kwarg: val})

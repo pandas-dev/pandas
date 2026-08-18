@@ -2588,7 +2588,7 @@ class Timedelta(_Timedelta):
                     + seconds
                 )
             except OverflowError as err:
-                # GH#63275 int() of an infinite float raises a bare OverflowError
+                # GH#66823 int() of an infinite float raises a bare OverflowError
                 raise OutOfBoundsTimedelta(
                     f"Cannot construct Timedelta from {kwargs}"
                 ) from err

@@ -1313,7 +1313,7 @@ def sequence_to_td64ns(
         except OutOfBoundsDatetime as err:
             if errors == "raise":
                 raise OutOfBoundsTimedelta(*err.args) from err
-            # GH#63275 fall back to the element-wise path, which honors
+            # GH#66823 fall back to the element-wise path, which honors
             #  errors="coerce", like the integer branch above does.
             data = np.where(mask, np.nan, data)
             data = _objects_to_td64ns(data.astype(object), unit=unit, errors=errors)

@@ -2628,7 +2628,7 @@ class TestToDatetimeDataFrame:
 
     def test_dataframe_infinite_float_time_field(self):
         # an inf hour goes through to_timedelta, which raises under errors="raise"
-        #  and coerces to NaT under errors="coerce" (GH#63275)
+        #  and coerces to NaT under errors="coerce" (GH#66823)
         df = DataFrame(
             {
                 "year": [2000.0, 2000.0],

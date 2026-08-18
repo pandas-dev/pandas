@@ -649,7 +649,7 @@ def test_from_timedelta_arrow_dtype(unit):
     "box", [np.array, Series, lambda x: pd.array(x, dtype="Float64")]
 )
 def test_to_timedelta_float_array_coerce_out_of_bounds(values, unit, box):
-    # GH#63275 the float branch raised unconditionally, so errors="coerce" gave
+    # GH#66823 the float branch raised unconditionally, so errors="coerce" gave
     #  OutOfBoundsTimedelta instead of NaT for float ndarray/Series/masked input,
     #  diverging from the equivalent list (object-dtype) input.
     kwargs = {} if unit is None else {"unit": unit}
