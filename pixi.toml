@@ -393,3 +393,4 @@ cmd = [
   "lite",
   "build",
 ]
+cwd = "web/interactive_terminal/"

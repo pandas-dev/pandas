@@ -11,7 +11,7 @@ import pandas._testing as tm
 pa = pytest.importorskip("pyarrow")
 
 
-@td.skip_if_no("pyarrow", min_version="14.0")
+@td.skip_if_no("pyarrow")
 def test_dataframe_arrow_interface(using_infer_string):
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
@@ -34,7 +34,7 @@ def test_dataframe_arrow_interface(using_infer_string):
     assert table.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="15.0")
+@td.skip_if_no("pyarrow")
 def test_dataframe_to_arrow(using_infer_string):
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
@@ -92,7 +92,7 @@ def test_dataframe_from_arrow():
         pd.DataFrame.from_arrow({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
 
-@td.skip_if_no("pyarrow", min_version="14.0")
+@td.skip_if_no("pyarrow")
 def test_dataframe_from_arrow_custom_conversion():
     # ensuring that we use our custom conversion and not the default pyarrow to_pandas
     table = pa.table(
