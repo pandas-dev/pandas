@@ -1280,6 +1280,51 @@ class _MergeOperation:
 
         assert all(isinstance(x, _known) for x in self.left_join_keys)
 
+        # GH#56454 A left join keeps self.left's key dtype when there is
+        # nothing to fill. A right join should be symmetric and keep
+        # self.right's, but the shared join-key column is only retained
+        # from self.left upstream (see _get_merge_keys).
+        #
+        # Two no-fill cases:
+        # - both indexers are None (1:1 alignment)
+        # - indexers introduce no NA (duplicate keys permute/repeat rows).
+        #   One side may still be None. Empty indexers from empty-frame
+        #   joins are excluded (non-None but length 0).
+        #
+        # The three use_right_key_dtype sites below (enter reconciliation,
+        # take right values, assign key values) must stay in lockstep.
+        no_reindex_needed = left_indexer is None and right_indexer is None
+
+        def _indexer_without_fill(idx: npt.NDArray[np.intp] | None) -> bool:
+            if idx is None:
+                return True
+            if len(idx) == 0:
+                return False
+            return not lib.has_sentinel(idx, -1)
+
+        if self.how == "right" and not no_reindex_needed:
+            reindex_without_fill = _indexer_without_fill(
+                left_indexer
+            ) and _indexer_without_fill(right_indexer)
+            if (
+                reindex_without_fill
+                and left_indexer is not None
+                and len(left_indexer) > 0
+            ):
+                left_has_missing = False
+            if (
+                reindex_without_fill
+                and right_indexer is not None
+                and len(right_indexer) > 0
+            ):
+                right_has_missing = False
+        else:
+            reindex_without_fill = False
+
+        use_right_key_dtype = self.how == "right" and (
+            no_reindex_needed or reindex_without_fill
+        )
+
         keys = zip(self.join_names, self.left_on, self.right_on, strict=True)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
@@ -1288,7 +1333,11 @@ class _MergeOperation:
             take_left, take_right = None, None
 
             if name in result:
-                if left_indexer is not None or right_indexer is not None:
+                if (
+                    left_indexer is not None
+                    or right_indexer is not None
+                    or use_right_key_dtype
+                ):
                     if name in self.left:
                         if left_has_missing is None:
                             left_has_missing = (
@@ -1303,7 +1352,11 @@ class _MergeOperation:
                             and right_key_dtype.kind == "M"
                             and result[name].dtype != right_key_dtype
                         )
-                        if left_has_missing or needs_resolution_cast:
+                        if (
+                            left_has_missing
+                            or needs_resolution_cast
+                            or use_right_key_dtype
+                        ):
                             take_right = self.right_join_keys[i]
 
                             if result[name].dtype != self.left[name].dtype:
@@ -1364,6 +1417,28 @@ class _MergeOperation:
                 elif right_indexer is not None and (right_indexer == -1).all():
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     result_dtype = lvals.dtype
+                elif use_right_key_dtype:
+                    # Values come from the right frame. For the 1:1 (None
+                    # indexer) path keep the right dtype exactly so EA vs
+                    # numpy (Int64/int64) stays on the right numpy type.
+                    # For duplicate-key reindexes, numeric key asymmetry
+                    # (int64/float64) uses the common (right-wider) dtype;
+                    # otherwise keep the dtype already on result (column or
+                    # index level; e.g. StringDtype from categorical/object
+                    # join construction).
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=False)
+                    if no_reindex_needed:
+                        result_dtype = rvals.dtype
+                    elif is_numeric_dtype(lvals.dtype) and is_numeric_dtype(
+                        rvals.dtype
+                    ):
+                        result_dtype = find_common_type([lvals.dtype, rvals.dtype])
+                    elif name in result.columns:
+                        result_dtype = result[name].dtype
+                    elif name in result.index.names:
+                        result_dtype = result.index.get_level_values(name).dtype
+                    else:
+                        result_dtype = rvals.dtype
                 else:
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     if mask_left is not None:
