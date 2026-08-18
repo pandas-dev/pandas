@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -411,28 +413,26 @@ class TestPeriodIndex:
         expected = PeriodIndex(vals.astype("M8[ns]"), freq="D")
         tm.assert_index_equal(pi, expected)
 
-    def test_constructor_int_array_out_of_bounds(self):
-        # GH#64158 integer values are interpreted as years; out-of-int32-range
-        #  values used to silently wrap instead of raising like Period(int)
-        arr = np.array([2**32 + 1985], dtype=np.int64)
-        msg = "Out of bounds year: 4294969281"
+    @pytest.mark.parametrize(
+        "val", [2**32 + 1985, 10**18, 2**31 - 1, -(2**32), 100000, 999]
+    )
+    def test_constructor_int_array_out_of_bounds(self, val):
+        # GH#64158 an integer that Period(int) rejects is rejected here too,
+        #  with the same error; these used to silently wrap or give a bogus
+        #  year. The parser's wording moves with the dateutil and python
+        #  version, so take the scalar's error as the expected one.
+        try:
+            Period(str(val), freq="Y")
+        except ValueError as err:
+            expected = err
+        else:
+            raise AssertionError(f"Period({val}) did not raise")
+
+        arr = np.array([val], dtype=np.int64)
         depr_msg = "Passing integer data"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            with pytest.raises(OutOfBoundsDatetime, match=msg):
+            with pytest.raises(type(expected), match=re.escape(str(expected))):
                 PeriodIndex(arr, freq="Y")
-
-        # negative out-of-range and a nanosecond-epoch-like value also raise
-        for val in [-(2**32), 10**18]:
-            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-                with pytest.raises(OutOfBoundsDatetime, match="Out of bounds year"):
-                    PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
-
-        # int32 boundaries and >4-digit years remain valid; for freq="Y" the
-        #  ordinal is year - 1970
-        for val in [2**31 - 1, -(2**31), 100000]:
-            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-                result = PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
-            assert result.asi8[0] == val - 1970
 
     @pytest.mark.filterwarnings(
         "ignore:Passing integer data:pandas.errors.Pandas4Warning"
@@ -446,6 +446,19 @@ class TestPeriodIndex:
         msg = "Out of bounds nanosecond timestamp: 2300-01-01"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             PeriodIndex(arr, freq="ns")
+
+    @pytest.mark.parametrize("dtype", [np.int64, object])
+    @pytest.mark.parametrize("val", [2000, 200701, 20000101])
+    def test_constructor_int_array_matches_scalar(self, val, dtype):
+        # GH#64158 the int64-array path read the integer as a literal calendar
+        #  year, so it disagreed with Period(int, freq) and with the
+        #  object-dtype path for anything but a four-digit year
+        expected = PeriodIndex([Period(str(val), freq="D")])
+
+        depr_msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = PeriodIndex(np.array([val], dtype=dtype), freq="D")
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("box", [None, "series", "index"])
     def test_constructor_datetime64arr_ok(self, box):

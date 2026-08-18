@@ -1759,18 +1759,20 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
         val = values[i]
         if val == NPY_NAT:
             result[i] = NPY_NAT
-        else:
-            # equiv Period(val, freq=dtype.unit).ordinal, specialized
-            #  bc we know val is an integer
-            if not INT32_MIN <= val <= INT32_MAX:
-                # val is used as the year, which lands in the int32
-                #  npy_datetimestruct.year field; out-of-range would silently
-                #  wrap, so raise to match the scalar Period(int) path.
-                raise OutOfBoundsDatetime(f"Out of bounds year: {val}")
+        elif 1000 <= val <= 9999:
+            # Fast path: for a four-digit value str(val) parses as that
+            #  calendar year, so this is Period(val, freq=dtype).ordinal
+            #  without the parsing.
             dts.year = val
             if check_bounds and not min_year <= val <= max_year:
                 check_dts_bounds(&dts, unit)
             result[i] = get_period_ordinal_unchecked(&dts, freq)
+        else:
+            # Outside four digits reading val as the year disagrees with
+            #  Period(val, freq) -- 200701 is 2001-07-20, not year 200701 --
+            #  so use the parser the scalar and object-dtype paths use, which
+            #  also raises for the values they reject.
+            result[i] = Period(str(val), freq=dtype).ordinal
 
     return result.base
 
@@ -1889,17 +1891,15 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
 
 
 # GH#64227
-# NB: no one-liner reproduces the current behavior for every input, because
-#  the int-array path (from_calendar_ordinals) reads an int as a calendar
-#  year while the object path parses str(value), and those disagree outside
-#  4-digit years -- e.g. 200701 gives year 200701 vs 2007-01. So we point at
-#  the unambiguous replacement and leave the rest to the user.
+# NB: astype(str) reproduces the current behavior because every integer path
+#  parses str(value); the exception is the iNaT sentinel, which the integer
+#  paths read as NaT.
 INT_TO_PERIOD_DEPR_MSG = (
     "Passing integer data to PeriodArray/PeriodIndex is deprecated and will "
     "change behavior in a future version, when integers will be treated as "
     "period ordinals instead of calendar years. To get the future behavior "
     "now, use PeriodIndex.from_ordinals(data, freq=...). To retain the "
-    "current behavior, construct the Period objects explicitly."
+    "current behavior, pass strings, e.g. data.astype(str)."
 )
 
 INT_TO_PERIOD_SCALAR_DEPR_MSG = (
