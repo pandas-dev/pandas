@@ -163,7 +163,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     return value
 
 
-def maybe_box_native(value: Scalar | None | NAType) -> Scalar | None | NAType:
+def maybe_box_native(value: Scalar | NAType | None) -> Scalar | NAType | None:
     """
     If passed a scalar cast the scalar to a python native type.
 
