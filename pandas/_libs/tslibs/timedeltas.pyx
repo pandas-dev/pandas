@@ -968,8 +968,8 @@ cdef _addsub_timedelta64_array(
         or other_reso < NPY_FR_W
         or other_reso > NPY_FR_ns
     ):
-        # an ndarray subclass, whose semantics the i8 view below would drop
-        #  (e.g. a MaskedArray's mask); a unit multiplier such as m8[10s],
+        # an ndarray subclass, whose semantics would be dropped by the i8 view
+        #  below (e.g. a MaskedArray's mask); a unit multiplier such as m8[10s],
         #  which our resolutions cannot express; year/month, which numpy
         #  itself refuses to add to a time unit; or sub-nanosecond units,
         #  which we have no reso for. Leave all of them to numpy.
@@ -1040,8 +1040,8 @@ cdef _addsub_datetime64_array(
         or get_unit_count_from_dtype(other.dtype) != 1
         or other_reso > NPY_FR_ns
     ):
-        # an ndarray subclass, whose semantics the i8 view below would drop
-        #  (e.g. a MaskedArray's mask); a unit multiplier such as M8[10s],
+        # an ndarray subclass, whose semantics would be dropped by the i8 view
+        #  below (e.g. a MaskedArray's mask); a unit multiplier such as M8[10s],
         #  which our resolutions cannot express; or sub-nanosecond units,
         #  which we have no reso for. Leave all of them to numpy.
         m8 = td.to_timedelta64()

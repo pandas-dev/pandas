@@ -1746,11 +1746,15 @@ def test_td_mul_ndarray_subclass(dtype):
     assert_masked_array_equal(other * td, other * m8)
 
 
-# numpy's own MaskedArray.__array_wrap__ trips this, m8 divisor or not
 @pytest.mark.filterwarnings("ignore:__array_wrap__:DeprecationWarning")
 def test_td_div_ndarray_subclass():
     # GH#66552 the overflow guard reduces with np.max(..., initial=, where=),
-    #  which dispatches to a subclass' own max() and raised there
+    #  which dispatches to a subclass' own max() and raised there.
+    # NB: numpy's own MaskedArray.__array_wrap__ is broken on this path, with
+    #  an m8 divisor or not: it drops the mask and emits the DeprecationWarning
+    #  filtered above. So the expected values are not meaningful on their own;
+    #  they are taken from numpy so that what is pinned is only that Timedelta
+    #  does not diverge from timedelta64.
     td = Timedelta(4, "ns")
     other = np.ma.MaskedArray(np.array([2.0, 4.0]), mask=[False, True])
     m8 = td.to_timedelta64()
