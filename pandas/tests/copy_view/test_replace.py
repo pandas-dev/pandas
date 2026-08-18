@@ -4,6 +4,8 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
+    Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -368,4 +370,142 @@ def test_replace_listlike_inplace():
     df_orig = df.copy()
     df.replace([200, 3], [10, 11], inplace=True)
     assert not np.shares_memory(get_array(df, "a"), arr)
+    tm.assert_frame_equal(view, df_orig)
+
+
+@pytest.mark.parametrize(
+    "to_replace, value",
+    [
+        # matching pair before a no-op pair
+        ([2, 200], [20, 10]),
+        # every pair matches
+        ([2, 3], [20, 30]),
+        # more than two pairs
+        ([2, 200, 201], [20, 10, 10]),
+    ],
+)
+def test_replace_listlike_inplace_keeps_tracking_copies(to_replace, value):
+    # GH#58966 replace_list dropped the block's self-reference once it had
+    #  copied, so views taken afterwards were no longer copy-on-write protected
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    view = df[:]
+    df.replace(to_replace, value, inplace=True)
+    # the copy triggered by ``view`` must not have leaked the original values
+    tm.assert_frame_equal(view, DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}))
+
+    df_orig = df.copy()
+    view2 = df[:]
+    df.iloc[0, 0] = 999
+    assert not np.shares_memory(get_array(df, "a"), get_array(view2, "a"))
+    tm.assert_frame_equal(view2, df_orig)
+
+
+def test_replace_dictlike_inplace_keeps_tracking_copies():
+    # GH#58966
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    view = df[:]
+    df.replace({2: 20, 3: 30}, inplace=True)
+    tm.assert_frame_equal(view, DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}))
+
+    df_orig = df.copy()
+    view2 = df[:]
+    df.iloc[0, 0] = 999
+    assert not np.shares_memory(get_array(df, "a"), get_array(view2, "a"))
+    tm.assert_frame_equal(view2, df_orig)
+
+
+def test_replace_object_inplace_keeps_tracking_copies():
+    # GH#58966
+    ser = Series(["a", "b", "c"], dtype=object)
+    view = ser[:]
+    ser.replace(["b", "z"], ["B", "Z"], inplace=True)
+    tm.assert_series_equal(view, Series(["a", "b", "c"], dtype=object))
+
+    ser_orig = ser.copy()
+    view2 = ser[:]
+    ser.iloc[0] = "x"
+    assert not np.shares_memory(get_array(ser), get_array(view2))
+    tm.assert_series_equal(view2, ser_orig)
+
+
+def test_replace_listlike_inplace_upcast_keeps_tracking_copies():
+    # GH#58966 no pre-existing reference is needed: the upcast to object mints
+    #  fresh refs, which were then emptied
+    ser = Series([1, 2, 3])
+    ser.replace([2, 200], ["x", "y"], inplace=True)
+
+    ser_orig = ser.copy()
+    view = ser[:]
+    ser.iloc[0] = "Q"
+    assert not np.shares_memory(get_array(ser), get_array(view))
+    tm.assert_series_equal(view, ser_orig)
+
+
+def test_replace_regex_inplace_keeps_tracking_copies():
+    # GH#58966
+    ser = Series(["ab", "bc", "cd"], dtype=object)
+    view = ser[:]
+    ser.replace(["^a", "^z"], ["A", "Z"], regex=True, inplace=True)
+    tm.assert_series_equal(view, Series(["ab", "bc", "cd"], dtype=object))
+
+    ser_orig = ser.copy()
+    view2 = ser[:]
+    ser.iloc[0] = "Q"
+    assert not np.shares_memory(get_array(ser), get_array(view2))
+    tm.assert_series_equal(view2, ser_orig)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "datetime64[ns]"])
+def test_replace_listlike_inplace_ea_keeps_tracking_copies(dtype):
+    # GH#58966 EABackedBlock, not just NumpyBlock
+    to_replace = [2, 200]
+    value = [20, 10]
+    new_val = 999
+    if dtype == "datetime64[ns]":
+        to_replace = [Timestamp(val) for val in to_replace]
+        value = [Timestamp(val) for val in value]
+        new_val = Timestamp(new_val)
+
+    ser = Series([1, 2, 3]).astype(dtype)
+    orig = ser.copy()
+    view = ser[:]
+    ser.replace(to_replace, value, inplace=True)
+    tm.assert_series_equal(view, orig)
+
+    ser_orig = ser.copy()
+    view2 = ser[:]
+    ser.iloc[0] = new_val
+    assert not np.shares_memory(get_array(ser), get_array(view2))
+    tm.assert_series_equal(view2, ser_orig)
+
+
+@pytest.mark.parametrize(
+    "to_replace, value",
+    [
+        ([1, 2], ["s0", "s1"]),
+        ([1, 2, 3], ["s0", "s1", "s2"]),
+    ],
+)
+def test_replace_listlike_inplace_split_keeps_tracking_copies(to_replace, value):
+    # GH#58966 upcasting one column of a multi-column block splits it; the
+    #  untouched sibling survives the pair loop and must stay registered
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df.replace(to_replace, value, inplace=True)
+
+    df_orig = df.copy()
+    view = df[:]
+    df.iloc[0, 1] = 999
+    assert not np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+    tm.assert_frame_equal(view, df_orig)
+
+
+def test_replace_dictlike_inplace_split_keeps_tracking_copies():
+    # GH#58966
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df.replace({1: "s0", 2: "s1"}, inplace=True)
+
+    df_orig = df.copy()
+    view = df[:]
+    df.iloc[0, 1] = 999
+    assert not np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     tm.assert_frame_equal(view, df_orig)

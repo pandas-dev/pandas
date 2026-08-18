@@ -13,7 +13,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -42,7 +41,7 @@ from pandas.core import (
 )
 from pandas.tests.extension.decimal import DecimalArray
 
-is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
+is_windows_np2_or_is32 = not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 
@@ -2556,6 +2555,40 @@ def test_sum_timedelta64_all_nat_skipna_false(axis):
     result = df.sum(axis=axis, skipna=False)
     assert result.dtype == "m8[ns]"
     assert result.isna().all()
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_exact(axis):
+    # GH#66551: the sum used to accumulate in float64, whose 53-bit mantissa
+    #  silently rounded results above 2**53
+    arr = np.array([2**53 + 1, 0], dtype="m8[ns]")
+    df = DataFrame({"a": arr, "b": arr[::-1]})
+
+    result = df.sum(axis=axis)
+    expected = Series(
+        np.array([2**53 + 1] * 2, dtype="m8[ns]"), index=df.axes[1 - axis]
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_overflow_only_in_exempt_slice(axis):
+    # GH#66551: the check applies per reduced slice, and a slice that reduces to
+    #  NaT under skipna=False is exempt even though its entries overflow
+    df = DataFrame(
+        {
+            "a": [pd.Timedelta(1, "ns"), pd.Timedelta(2, "ns")],
+            "b": [pd.Timedelta.max, pd.NaT],
+        }
+    )
+    if axis == 1:
+        df = df.T
+
+    result = df.sum(axis=axis, skipna=False)
+    expected = Series(
+        [pd.Timedelta(3, "ns"), pd.NaT], index=df.axes[1 - axis], dtype="m8[ns]"
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_mixed_frame_with_integer_sum():

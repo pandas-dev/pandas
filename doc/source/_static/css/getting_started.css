@@ -38,6 +38,10 @@
  border: none;
 }
 
+.gs-data .card-body {
+  color: var(--pst-color-text-base);
+}
+
 /* note/alert properties */
 
 .alert-heading {

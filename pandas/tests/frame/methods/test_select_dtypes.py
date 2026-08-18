@@ -92,11 +92,11 @@ class TestSelectDtypes:
         ei = df[["g"]]
         tm.assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=["datetimetz"])
+        ri = df.select_dtypes(include=[pd.DatetimeTZDtype])
         ei = df[["h", "i"]]
         tm.assert_frame_equal(ri, ei)
 
-        with pytest.raises(NotImplementedError, match=r"^$"):
+        with pytest.raises(TypeError, match="does not support the 'period' string"):
             df.select_dtypes(include=["period"])
 
         if using_infer_string:
@@ -206,7 +206,7 @@ class TestSelectDtypes:
         ei = df[["f"]]
         tm.assert_frame_equal(ri, ei)
 
-        with pytest.raises(NotImplementedError, match=r"^$"):
+        with pytest.raises(TypeError, match="does not support the 'period' string"):
             df.select_dtypes(include="period")
 
         if using_infer_string:
@@ -239,7 +239,7 @@ class TestSelectDtypes:
         ei = df[["a", "b", "c", "d", "e", "g", "h", "i", "j", "k"]]
         tm.assert_frame_equal(ri, ei)
 
-        with pytest.raises(NotImplementedError, match=r"^$"):
+        with pytest.raises(TypeError, match="does not support the 'period' string"):
             df.select_dtypes(exclude="period")
 
     def test_select_dtypes_include_exclude_using_scalars(self):
@@ -692,8 +692,8 @@ def test_select_dtypes_categorical_instance_exact():
 
 
 def test_select_dtypes_period_instance_exact():
-    # GH#40234: a PeriodDtype instance works (the "period" string raises
-    # NotImplementedError) and matches only its own freq
+    # GH#40234: a PeriodDtype instance matches only its own freq, whereas
+    # the PeriodDtype class matches every period column
     df = DataFrame(
         {
             "a": pd.period_range("2016-01-01", periods=2, freq="D"),
@@ -791,6 +791,55 @@ def test_select_dtypes_ea_class_datetimetz():
     )
     with tm.assert_produces_warning(None):
         result = df.select_dtypes(include=pd.DatetimeTZDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+@pytest.mark.parametrize("spec", ["datetimetz", "datetime64tz"])
+@pytest.mark.parametrize("arg", ["include", "exclude"])
+def test_select_dtypes_datetimetz_string_deprecated(spec, arg):
+    # GH#24558
+    df = DataFrame(
+        {
+            "a": pd.date_range("2016-01-01", periods=2, tz="US/Pacific"),
+            "b": pd.date_range("2016-01-01", periods=2),
+        }
+    )
+    msg = f"Passing {spec!r} to select_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(**{arg: spec})
+    expected = df[["a"]] if arg == "include" else df[["b"]]
+    tm.assert_frame_equal(result, expected)
+
+    # the recommended replacement selects the same columns
+    with tm.assert_produces_warning(None):
+        alt = df.select_dtypes(**{arg: pd.DatetimeTZDtype})
+    tm.assert_frame_equal(alt, expected)
+
+
+def test_select_dtypes_datetimetz_string_overlaps_class():
+    # GH#24558: the deprecated string and its replacement resolve to the same
+    # spec, so contradictory include/exclude is caught rather than silently
+    # returning an empty frame
+    df = DataFrame({"a": pd.date_range("2016-01-01", periods=2, tz="UTC")})
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
+            df.select_dtypes(include="datetimetz", exclude=pd.DatetimeTZDtype)
+
+
+def test_select_dtypes_period_string_raises():
+    # GH#24558: the "period" string was never implemented; the error points at
+    # the class spec, which selects every period column
+    df = DataFrame(
+        {
+            "a": pd.period_range("2016-01-01", periods=2, freq="D"),
+            "b": pd.period_range("2016-01-01", periods=2, freq="M"),
+            "c": [1, 2],
+        }
+    )
+    with pytest.raises(TypeError, match="does not support the 'period' string"):
+        df.select_dtypes(include="period")
+
+    result = df.select_dtypes(include=pd.PeriodDtype)
     tm.assert_frame_equal(result, df[["a", "b"]])
 
 
