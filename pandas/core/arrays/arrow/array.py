@@ -3794,22 +3794,28 @@ class ArrowExtensionArray(
             )
         predicate = lambda val: val.partition(sep)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(pa.string()))
+        )
 
     def _str_rpartition(self, sep: str, expand: bool) -> Self:
         predicate = lambda val: val.rpartition(sep)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(pa.string()))
+        )
 
     def _str_casefold(self) -> Self:
         predicate = lambda val: val.casefold()
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _str_encode(self, encoding: str, errors: str = "strict") -> Self:
         predicate = lambda val: val.encode(encoding, errors)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.binary()))
 
     def _str_extract(self, pat: str | re.Pattern, flags: int = 0, expand: bool = True):
         compiled = self._compile_re_fallback(pat, flags=flags)
@@ -3848,7 +3854,9 @@ class ArrowExtensionArray(
         regex = re.compile(pat, flags=flags)
         predicate = lambda val: regex.findall(val)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(pa.string()))
+        )
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
@@ -3877,17 +3885,17 @@ class ArrowExtensionArray(
     def _str_index(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.index(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_rindex(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.rindex(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_split(
         self,
@@ -3928,14 +3936,18 @@ class ArrowExtensionArray(
     def _str_translate(self, table: dict[int, str]) -> Self:
         predicate = lambda val: val.translate(table)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _str_wrap(self, width: int, **kwargs) -> Self:
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _dt_zero_or_null_int32(self) -> Self:
         """
