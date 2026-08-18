@@ -260,6 +260,27 @@ def test_construct_from_kwargs_overflow():
         Timedelta(days=10**15)
 
 
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        "weeks",
+        "days",
+        "hours",
+        "minutes",
+        "seconds",
+        "milliseconds",
+        "microseconds",
+        "nanoseconds",
+    ],
+)
+@pytest.mark.parametrize("val", [np.inf, -np.inf])
+def test_construct_from_kwargs_inf(kwarg, val):
+    # GH#63275 int() of a non-finite float raised a bare OverflowError, unlike
+    #  the positional path, which gives OutOfBoundsTimedelta
+    with pytest.raises(OutOfBoundsTimedelta, match="Cannot construct Timedelta"):
+        Timedelta(**{kwarg: val})
+
+
 def test_construct_from_kwargs_non_nano():
     # GH#46587 - kwargs that overflow nanosecond resolution should
     # fall back to coarser resolutions instead of raising

@@ -2567,25 +2567,31 @@ class Timedelta(_Timedelta):
             # create the timedelta. This ensures that any potential
             # nanosecond contributions from kwargs parsed as floats
             # are taken into consideration.
-            seconds = int((
-                (
-                    (kwargs.get("days", 0) + kwargs.get("weeks", 0) * 7) * 24
-                    + kwargs.get("hours", 0)
-                ) * 3600
-                + kwargs.get("minutes", 0) * 60
-                + kwargs.get("seconds", 0)
-                ) * 1_000_000_000
-            )
-
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
-            total_ns = (
-                int(ns)
-                + int(us * 1_000)
-                + int(ms * 1_000_000)
-                + seconds
-            )
+            try:
+                seconds = int((
+                    (
+                        (kwargs.get("days", 0) + kwargs.get("weeks", 0) * 7) * 24
+                        + kwargs.get("hours", 0)
+                    ) * 3600
+                    + kwargs.get("minutes", 0) * 60
+                    + kwargs.get("seconds", 0)
+                    ) * 1_000_000_000
+                )
+
+                total_ns = (
+                    int(ns)
+                    + int(us * 1_000)
+                    + int(ms * 1_000_000)
+                    + seconds
+                )
+            except OverflowError as err:
+                # GH#63275 int() of an infinite float raises a bare OverflowError
+                raise OutOfBoundsTimedelta(
+                    f"Cannot construct Timedelta from {kwargs}"
+                ) from err
 
             try:
                 value = np.timedelta64(total_ns, "ns")
