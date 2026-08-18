@@ -485,7 +485,7 @@ class ExtensionDtype:
         filtered out during plotting.
         If the dtype is plottable, this function shall return a list of tuples of
         the type and a converter. The returned type is likely the same as
-        ``cls._type``. The returned converter should be a subclass of
+        ``cls.type``. The returned converter should be a subclass of
         ``matplotlib.units.ConversionInterface``. If a dtype supports multiple types,
         e.g. ``ArrowDtype``, then this function can return multiple tuples inside the
         list, where each tuple is a pair of a type and corresponding converter.

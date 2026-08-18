@@ -131,13 +131,13 @@ class TestPeriodArray(base.ExtensionTests):
         # raises=ConversionError,
         reason="Failed to convert value(s) to axis units"
     )
-    def test_plot_on_y_axis(self, data):
+    def test_plot_on_y_axis(self, plot_data):
         # GH 64535
         # PeriodArray can be plotted on the x-axis, but on the y-axis `freq` is not set
         # leading to a ConversionError when trying to set the y-axis limits. That it is
         # even considered plottable is due to moving PeriodConverter to the
         # PeriodDtype._get_plot_converter() method, which is used for both axes.
-        super().test_plot_on_y_axis(data)
+        super().test_plot_on_y_axis(plot_data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):
