@@ -15,7 +15,10 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
-from libc.stdint cimport INT64_MAX
+from libc.stdint cimport (
+    INT64_MAX,
+    INT64_MIN,
+)
 
 import warnings
 
@@ -8127,7 +8130,13 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     if month == 0:
         month = 12
         dy -= 1
-    year = dts.year + dy
+
+    # Python ints, since `dts.year + dy` is precisely the sum that overflows
+    #  for a `months` this large (GH#66549)
+    new_year = int(dts.year) + int(dy)
+    if not INT64_MIN <= new_year <= INT64_MAX:
+        raise OutOfBoundsDatetime(f"Out of bounds timestamp: year {new_year}")
+    year = new_year
 
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)

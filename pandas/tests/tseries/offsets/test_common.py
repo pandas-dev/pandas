@@ -228,6 +228,15 @@ def test_apply_array_quarters_large_n_names_same_year_as_scalar():
         dti[0] + offset
 
 
+def test_shift_month_year_overflow_names_shifted_year():
+    # GH#66549 the scalar path formed `dts.year + dy` in int64, so an n this
+    #  large wrapped the year negative in the error message
+    ts = Timestamp("1970-06-15")
+
+    with pytest.raises(OutOfBoundsDatetime, match="year 9223372036854777776"):
+        ts + BYearEnd(2**63 - 1)
+
+
 def test_apply_array_quarters_large_n_keeps_nat():
     # GH#66549 a representable shift is unaffected by the overflow check
     dti = DatetimeIndex(["1970-06-15", "NaT"])
