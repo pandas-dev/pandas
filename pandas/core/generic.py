@@ -2407,26 +2407,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 - default is 'index'
                 - allowed values are: {'split', 'records', 'index', 'table'}.
-                - with 'records', the result is a JSON array of the Series
-                  values only; the index labels are not included.
+                - the format of the JSON string:
+
+                  - 'split' : dict like {'name' -> name, 'index' -> [index],
+                    'data' -> [values]}
+                  - 'records' : list like [value, ... , value]; the index
+                    labels and the Series name are not included
+                  - 'index' : dict like {index -> value}
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
                 - default is 'columns'
                 - allowed values are: {'split', 'records', 'index', 'columns',
                   'values', 'table'}.
+                - the format of the JSON string:
 
-            * The format of the JSON string:
+                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                    'data' -> [values]}
+                  - 'records' : list like [{column -> value}, ... , {column -> value}]
+                  - 'index' : dict like {index -> {column -> value}}
+                  - 'columns' : dict like {column -> {index -> value}}
+                  - 'values' : just the values array
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
-                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}
-                - 'records' : list like [{column -> value}, ... , {column -> value}]
-                - 'index' : dict like {index -> {column -> value}}
-                - 'columns' : dict like {column -> {index -> value}}
-                - 'values' : just the values array
-                - 'table' : dict like {'schema': {schema}, 'data': {data}}
-
-                Describing the data, where data component is like ``orient='records'``.
+            For ``orient='table'``, the data component is like ``orient='records'``.
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -2579,6 +2584,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> ser.to_json(orient="records", lines=True)
         '1\\n2\\n3\\n'
 
+        For a Series, the default ``orient="index"`` maps index labels to
+        values, and ``orient="split"`` has a 'name' entry in place of a
+        DataFrame's 'columns':
+
+        >>> ser.to_json()
+        '{"0":1,"1":2,"2":3}'
+        >>> ser.to_json(orient="split")
+        '{"name":null,"index":[0,1,2],"data":[1,2,3]}'
+
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
         >>> result = df.to_json(orient="index")
@@ -2683,8 +2697,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 dtypes = [self.dtype, self.index.dtype]
             if any(dtype.kind in "mM" for dtype in dtypes):
                 warnings.warn(
-                    "The default 'epoch' date format is deprecated and will be removed "
-                    "in a future version, please use 'iso' date format instead.",
+                    "The default formatting of datetime/timedelta values will change "
+                    'from numbers ("epoch") to strings ("iso") in a future version. '
+                    'Specify `date_format="iso"` explicitly in the `to_json()` call '
+                    "to opt-in to the future behaviour and silence this warning.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
@@ -2731,7 +2747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None | lib.NoDefault = lib.no_default,
+        dropna: bool | lib.NoDefault | None = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -6877,11 +6893,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def convert_dtypes(
         self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
+        infer_objects: bool | lib.NoDefault = lib.no_default,
+        convert_string: bool | lib.NoDefault = lib.no_default,
+        convert_integer: bool | lib.NoDefault = lib.no_default,
+        convert_boolean: bool | lib.NoDefault = lib.no_default,
+        convert_floating: bool | lib.NoDefault = lib.no_default,
         dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Self:
         """
@@ -6895,16 +6911,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         infer_objects : bool, default True
             Whether object dtypes should be converted to the best possible types.
+
+            .. deprecated:: 3.1.0
+                The ``infer_objects`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_string : bool, default True
             Whether object dtypes should be converted to ``StringDtype()``.
+
+            .. deprecated:: 3.1.0
+                The ``convert_string`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_integer : bool, default True
             Whether, if possible, conversion can be done to integer extension types.
+
+            .. deprecated:: 3.1.0
+                The ``convert_integer`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_boolean : bool, defaults True
             Whether object dtypes should be converted to ``BooleanDtypes()``.
+
+            .. deprecated:: 3.1.0
+                The ``convert_boolean`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_floating : bool, defaults True
             Whether, if possible, conversion can be done to floating extension types.
             If `convert_integer` is also True, preference will be give to integer
             dtypes if the floats can be faithfully casted to integers.
+
+            .. deprecated:: 3.1.0
+                The ``convert_floating`` keyword is deprecated and will be removed
+                in a future version.
+
         dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
@@ -7017,6 +7058,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
+        deprecated_args = {
+            "infer_objects": infer_objects,
+            "convert_string": convert_string,
+            "convert_integer": convert_integer,
+            "convert_boolean": convert_boolean,
+            "convert_floating": convert_floating,
+        }
+        for arg_name, arg_val in deprecated_args.items():
+            if arg_val is not lib.no_default:
+                warnings.warn(
+                    f"The {arg_name} keyword in {type(self).__name__}."
+                    f"convert_dtypes is deprecated and will be removed in a "
+                    f"future version.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
+        # Resolve no_default to the current default values (True)
+        infer_objects = infer_objects if infer_objects is not lib.no_default else True
+        convert_string = (
+            convert_string if convert_string is not lib.no_default else True
+        )
+        convert_integer = (
+            convert_integer if convert_integer is not lib.no_default else True
+        )
+        convert_boolean = (
+            convert_boolean if convert_boolean is not lib.no_default else True
+        )
+        convert_floating = (
+            convert_floating if convert_floating is not lib.no_default else True
+        )
+
         new_mgr = self._mgr.convert_dtypes(
             infer_objects=infer_objects,
             convert_string=convert_string,
@@ -7036,9 +7109,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         method: Literal["ffill", "bfill", "pad", "backfill"],
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ):
         if axis is None:
@@ -7317,9 +7390,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def ffill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7422,9 +7495,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def bfill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -12343,17 +12416,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         com : float, optional
             Specify decay in terms of center of mass
 
-            :math:`\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
+            :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
 
         span : float, optional
             Specify decay in terms of span
 
-            :math:`\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
+            :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
 
         halflife : float, str, timedelta, optional
             Specify decay in terms of half-life
 
-            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`,
             for :math:`halflife > 0`.
 
             If ``times`` is specified, a timedelta convertible unit over which an
@@ -12363,7 +12436,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         alpha : float, optional
             Specify smoothing factor :math:`\alpha` directly
 
-            :math:`0 < \alpha \\leq 1`.
+            :math:`0 < \alpha \leq 1`.
 
         min_periods : int, default 0
             Minimum number of observations in window required to have a value;
@@ -12390,7 +12463,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 \begin{split}
                     y_0 &= x_0\\
                     y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
-                \\end{split}
+                \end{split}
 
         ignore_na : bool, default False
             Ignore missing values when calculating weights.

@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from scripts.validate_min_versions_in_sync import (
+    get_operator_from,
     get_toml_map_from,
     get_versions_from_ci,
     get_yaml_map_from,
@@ -60,6 +61,11 @@ def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml) -> Non
     assert result_yaml_file == dummy_yaml_expected_file_1
 
 
+def test_get_operator_from_excluded_version() -> None:
+    result = get_operator_from("!=24.*")
+    assert result == "!="
+
+
 def test_get_versions_from_ci_parses_pixi_toml() -> None:
     content = dedent(
         """
@@ -90,7 +96,7 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
         qtpy = ">=2.4.2"
 
         [feature.pyarrow.dependencies]
-        pyarrow = ">=13.0.0"
+        pyarrow = ">=16.0.0"
 
         [feature.pyarrow21.dependencies]
         pyarrow = "21.*"
@@ -112,7 +118,7 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
     assert optional == {
         "beautifulsoup4": "4.12.3",
         "hypothesis": "6.116.0",
-        "pyarrow": "13.0.0",
+        "pyarrow": "16.0.0",
         "pytest": "8.3.4",
         "pytables": "3.10.1",
         "qtpy": "2.4.2",

@@ -21,7 +21,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
@@ -95,25 +94,22 @@ def sql_strings():
 
 
 def iris_table_metadata():
-    import sqlalchemy
     from sqlalchemy import (
         Column,
         Double,
-        Float,
         MetaData,
         String,
         Table,
     )
 
-    dtype = Double if Version(sqlalchemy.__version__) >= Version("2.0.0") else Float
     metadata = MetaData()
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", dtype),
-        Column("SepalWidth", dtype),
-        Column("PetalLength", dtype),
-        Column("PetalWidth", dtype),
+        Column("SepalLength", Double),
+        Column("SepalWidth", Double),
+        Column("PetalLength", Double),
+        Column("PetalWidth", Double),
         Column("Name", String(200)),
     )
     return iris
@@ -1025,14 +1021,12 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     )
 
     if "adbc" in conn:
+        exp_warning = None
+        msg = ""
+
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-            msg = "is_sparse is deprecated"
-        else:
-            exp_warning = None
-            msg = ""
+
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -1952,10 +1946,7 @@ def test_api_timedelta(conn, request):
         )
 
     if "adbc" in conn_name:
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-        else:
-            exp_warning = None
+        exp_warning = None
     else:
         exp_warning = UserWarning
 
@@ -2295,15 +2286,6 @@ def test_api_chunksize_read(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
-    if conn == "postgresql_adbc_conn":
-        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
-        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="categorical dtype not implemented for ADBC postgres driver",
-                    strict=True,
-                )
-            )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)

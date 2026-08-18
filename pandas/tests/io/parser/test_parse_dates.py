@@ -998,6 +998,37 @@ def test_parse_dates_c_fastpath_out_of_bounds_offset(low_memory):
     assert result.iloc[0] == "2262-04-11T20:00:00.000000000-11:00"
 
 
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_nat_sentinel(low_memory):
+    # GH#66510 this renders onto iNaT, which the fastpath cannot tell apart from
+    # a missing value. It falls back to the raw strings like any other date the
+    # fastpath cannot represent, rather than emitting a bogus NaT.
+    data = "a\n1677-09-21 00:12:43.145224192\n"
+    result = read_csv(StringIO(data), parse_dates=["a"], low_memory=low_memory)["a"]
+    expected = read_csv(StringIO(data), parse_dates=["a"], engine="python")["a"]
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[0] == "1677-09-21 00:12:43.145224192"
+
+
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_nat_sentinel_shifts_into_range(low_memory):
+    # GH#66510 the wall time renders onto iNaT but the westward shift moves it
+    # back in bounds, so the column still parses
+    data = "a\n1677-09-21 00:12:43.145224192-01:00\n"
+    result = read_csv(StringIO(data), parse_dates=["a"], low_memory=low_memory)["a"]
+    expected = read_csv(StringIO(data), parse_dates=["a"], engine="python")["a"]
+    tm.assert_series_equal(result, expected)
+    assert result.array.asi8[0] == -(2**63) + 3600 * 10**9
+
+
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_nat_sentinel_neighbour(low_memory):
+    # GH#66510 one nanosecond later is representable and must still parse
+    data = "a\n1677-09-21 00:12:43.145224193\n"
+    result = read_csv(StringIO(data), parse_dates=["a"], low_memory=low_memory)["a"]
+    assert result.iloc[0] == Timestamp("1677-09-21 00:12:43.145224193")
+
+
 def _multichunk_csv(date_strings):
     # wide enough that 20k rows span several low_memory chunks
     num_extra_cols = 63

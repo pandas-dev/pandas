@@ -283,7 +283,7 @@ class SAS7BDATReader(SASReader):
         convert_dates: bool = True,
         blank_missing: bool = True,
         chunksize: int | None = None,
-        encoding: str | None | lib.NoDefault = lib.no_default,
+        encoding: str | lib.NoDefault | None = lib.no_default,
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
@@ -614,6 +614,11 @@ class SAS7BDATReader(SASReader):
             offset + const.row_length_offset_multiplier * int_len,
             int_len,
         )
+        if self.row_length > self._page_length:
+            raise ValueError(
+                f"row_length ({self.row_length}) exceeds the page size "
+                f"({self._page_length}); the file is corrupt"
+            )
         self.row_count = self._read_uint(
             offset + const.row_count_offset_multiplier * int_len,
             int_len,

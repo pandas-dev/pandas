@@ -34,6 +34,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.portable cimport checked_sub
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
@@ -47,8 +48,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
+    check_nat_sentinel,
     convert_reso,
     dts_to_iso_string,
+    dts_to_iso_string_ns,
     get_conversion_factor,
     get_datetime64_unit,
     get_implementation_bounds,
@@ -65,17 +68,16 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 
-cdef extern from "pandas/portable.h":
-    int checked_sub(int64_t a, int64_t b, int64_t *res)
-
-
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.parsing cimport parse_datetime_string
+from pandas._libs.tslibs.parsing cimport (
+    parse_datetime_string,
+    warn_quarter_deprecated,
+)
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
@@ -215,6 +217,15 @@ cdef int64_t cast_from_unit(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso
+
+    # GH#56996 the base/frac arithmetic below stays in `ts`'s own dtype, so a
+    #  numpy scalar narrower than int64/float64 does it at that width: under
+    #  NEP 50 `frac * m` then overflows (int8) or rounds (float32/float16).
+    #  Widen to Python int/float up front so the math matches the builtin case.
+    if is_float_object(ts):
+        ts = float(ts)
+    elif is_integer_object(ts):
+        ts = int(ts)
 
     if unit in ["Y", "M"]:
         if is_float_object(ts) and not ts.is_integer():
@@ -444,7 +455,8 @@ cdef class _TSObject:
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
-                                   bint dayfirst, bint yearfirst, int32_t nanos=0):
+                                   bint dayfirst, bint yearfirst, int32_t nanos=0,
+                                   bint* warned_quarter=NULL):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -470,7 +482,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if type(ts) is not str:
             # GH#48974 np.str_ object
             ts = str(ts)
-        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
+        return convert_str_to_tsobject(
+            ts, tz, dayfirst, yearfirst, warned_quarter=warned_quarter
+        )
 
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
@@ -492,6 +506,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                 obj.value = tz_localize_to_utc_single(
                     obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
                 )
+                # GH#66510 the shift to UTC must not land on the NaT sentinel
+                check_nat_sentinel(obj.value, &obj.dts, reso)
     elif is_integer_object(ts) or (is_float_object(ts) and ts.is_integer()):
         try:
             ts = <int64_t>ts
@@ -510,6 +526,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             obj.creso = reso
             pandas_datetime_to_datetimestruct(ts, reso, &obj.dts)
     elif is_float_object(ts):
+        # GH#56996 widen first: comparing e.g. a np.float16 against NPY_NAT
+        #  casts the sentinel down to float16 and warns about the overflow.
+        ts = float(ts)
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
@@ -584,7 +603,7 @@ cdef _TSObject convert_datetime_to_tsobject(
     """
     cdef:
         _TSObject obj = _TSObject()
-        int64_t pps
+        int64_t pps, offset_val
 
     obj.creso = reso
     obj.fold = ts.fold
@@ -622,8 +641,18 @@ cdef _TSObject convert_datetime_to_tsobject(
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
         pps = periods_per_second(reso)
-        obj.value -= int(offset.total_seconds() * pps)
+        # utcoffset is bounded by +/-24h, so this cannot itself overflow
+        offset_val = int(offset.total_seconds() * pps)
+        # GH#66510 the shift to UTC must not wrap int64 silently
+        if checked_sub(obj.value, offset_val, &obj.value):
+            attrname = npy_unit_to_attrname[reso]
+            raise OutOfBoundsDatetime(
+                f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(&obj.dts)}"
+            )
 
+    # GH#66510. NB: after the shift rather than before, since a wall time that
+    #  renders onto the sentinel can still shift to a representable UTC value.
+    check_nat_sentinel(obj.value, &obj.dts, reso)
     check_overflows(obj, reso)
     return obj
 
@@ -672,7 +701,8 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
 
 cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=False,
-                                       bint yearfirst=False):
+                                       bint yearfirst=False,
+                                       bint* warned_quarter=NULL):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -692,6 +722,10 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
     yearfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "01/05/09"
         as "May 9, 2001", as opposed to the default "Jan 5, 2009"
+    warned_quarter : bint*, default NULL
+        Tracks whether the quarterly-string deprecation has already been
+        emitted, so that array callers warn once per call instead of once
+        per element. NULL means "warn unconditionally".
 
     Returns
     -------
@@ -704,6 +738,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         int64_t ival, nanos = 0
         NPY_DATETIMEUNIT out_bestunit, reso
         _TSObject obj
+        bint is_quarter = 0
 
     if len(ts) == 0 or ts in nat_strings:
         obj = _TSObject()
@@ -749,6 +784,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                         raise OutOfBoundsDatetime(
                             f"Out of bounds {attrname} timestamp: {ts}"
                         )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(obj.value, &dts, reso)
                     if tz is None:
                         check_overflows(obj, reso)
                         return obj
@@ -760,6 +797,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                         ival = tz_localize_to_utc_single(
                             ival, tz, ambiguous="raise", nonexistent=None, creso=reso
                         )
+                        # GH#66510 the shift must not land on the NaT sentinel
+                        check_nat_sentinel(ival, &dts, reso)
                     obj.value = ival
                     maybe_localize_tso(obj, tz, obj.creso)
                     return obj
@@ -770,7 +809,13 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             yearfirst=yearfirst,
             out_bestunit=&out_bestunit,
             nanos=&nanos,
+            out_is_quarter=&is_quarter,
         )
+        if is_quarter and (warned_quarter == NULL or not warned_quarter[0]):
+            # GH#50907; this path has no freq, so the quarter is calendar-anchored
+            warn_quarter_deprecated(ts, None)
+            if warned_quarter != NULL:
+                warned_quarter[0] = 1
         reso = get_supported_reso(out_bestunit)
         if reso < NPY_FR_us:
             reso = NPY_FR_us
