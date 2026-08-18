@@ -62,7 +62,6 @@ Function application
    DataFrameGroupBy.pipe
    DataFrameGroupBy.filter
    SeriesGroupBy.filter
-   DataFrameGroupBy.select
 
 ``DataFrameGroupBy`` computations / descriptive stats
 -----------------------------------------------------

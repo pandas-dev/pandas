@@ -26,8 +26,7 @@ if TYPE_CHECKING:
 
 def _parse_select_args(args: tuple) -> list:
     """
-    Parse the positional arguments of DataFrame.select and
-    DataFrameGroupBy.select.
+    Parse the positional arguments of DataFrame.select.
 
     A single list-like argument (other than a tuple, which is a single
     column label) is treated as the sequence of items to select; otherwise

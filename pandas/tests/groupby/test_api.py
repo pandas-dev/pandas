@@ -91,7 +91,6 @@ def test_tab_completion(multiindex_dataframe_random_data):
         "expanding",
         "pipe",
         "sample",
-        "select",
         "ewm",
         "value_counts",
     }
