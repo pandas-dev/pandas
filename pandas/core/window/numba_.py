@@ -142,10 +142,12 @@ def generate_numba_ewm_func(
                         if normalize:
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
-                            old_wt *= old_wt_factor ** deltas[start + j - 1]
-                            if not adjust and com == 1:
-                                # update in case of irregular-interval time series
-                                new_wt = 1.0 - old_wt
+                            step_delta = deltas[start + j - 1]
+                            old_wt *= old_wt_factor**step_delta
+                            if not adjust:
+                                # current-step interval only; NaN decay stays
+                                # in old_wt (GH#31178, GH#66523)
+                                new_wt = 1.0 - old_wt_factor**step_delta
                         else:
                             weighted = old_wt_factor * weighted
                         if is_observation:
@@ -312,16 +314,18 @@ def generate_numba_ewm_table_func(
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
+            # note that len(deltas) = len(vals) - 1 and deltas[i]
+            # is to be used in conjunction with vals[i+1]
+            step_delta = deltas[i - 1]
+            if not adjust:
+                # current-step interval only (GH#31178, GH#66523). Shared
+                # across columns: depends only on this row's elapsed interval.
+                new_wt = 1.0 - old_wt_factor**step_delta
             for j in numba.prange(len(cur)):  # type: ignore[attr-defined]
                 if not np.isnan(weighted[j]):
                     if is_observations[j] or not ignore_na:
                         if normalize:
-                            # note that len(deltas) = len(vals) - 1 and deltas[i]
-                            # is to be used in conjunction with vals[i+1]
-                            old_wt[j] *= old_wt_factor ** deltas[i - 1]
-                            if not adjust and com == 1:
-                                # update in case of irregular-interval time series
-                                new_wt = 1.0 - old_wt[j]
+                            old_wt[j] *= old_wt_factor**step_delta
                         else:
                             weighted[j] = old_wt_factor * weighted[j]
                         if is_observations[j]:

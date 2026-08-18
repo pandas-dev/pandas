@@ -635,6 +635,13 @@ whereas if ``ignore_na=True`` it would be calculated as
    that recursion directly to the values on either side of a missing entry does
    not reproduce the result.
 
+   When ``times`` is also provided, the new observation is weighted by the
+   elapsed interval of the current step, :math:`1 - (1-\alpha)^{\delta}`,
+   while decay accumulated across intermediate nulls (``ignore_na=False``)
+   stays in the running weight and is renormalized. Equally spaced ``times``
+   are therefore equivalent to omitting ``times``, including on data that
+   contains nulls.
+
 .. ipython:: python
 
    ser = pd.Series([3, np.nan, 5])

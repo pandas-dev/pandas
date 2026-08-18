@@ -92,13 +92,25 @@ def test_ewma_halflife_without_times(halflife_with_times):
     ],
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
-def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
+def test_ewma_with_times_equal_spacing(
+    halflife_with_times, times, min_periods, adjust, ignore_na
+):
+    # GH#66523 equally spaced times must match no-times for every
+    # adjust/ignore_na combination, including on NaN data.
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data})
-    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    result = df.ewm(
+        halflife=halflife,
+        min_periods=min_periods,
+        times=times,
+        adjust=adjust,
+        ignore_na=ignore_na,
+    ).mean()
+    expected = df.ewm(
+        halflife=1.0, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -435,6 +447,56 @@ def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
         # check that ignore_na defaults to False
         result = s.ewm(com=2.0, adjust=adjust).mean()
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"com": 1}, {"span": 3}, {"alpha": 0.5}, {"halflife": 1}]
+)
+def test_ewma_nan_handling_adjust_false_com1(kwargs):
+    # GH#31178 / GH#66523: com=1 (and equivalent spellings) must use the
+    # documented ignore_na=False recursion, not a convex combination over
+    # the accumulated gap. alpha = 0.5, so
+    # y[2] = ((1-alpha)**2 * 1 + alpha * 5) / ((1-alpha)**2 + alpha) = 11/3
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(adjust=False, ignore_na=False, **kwargs).mean()
+    expected = Series([1.0, 1.0, 11 / 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_ewma_nan_handling_adjust_false_com1_continuous():
+    # GH#31178 the com=1 result must be continuous in alpha
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(com=1, adjust=False, ignore_na=False).mean()
+    for com in (1 - 1e-9, 1 + 1e-9):
+        neighbor = ser.ewm(com=com, adjust=False, ignore_na=False).mean()
+        tm.assert_series_equal(result, neighbor, atol=1e-8, rtol=0)
+
+
+def test_ewma_times_equal_spacing_nan_adjust_false():
+    # GH#66523 equally spaced times with a NaN gap use the documented
+    # ignore_na=False recursion (11/3), not the convex-over-gap value 4.0.
+    ser = Series([1.0, np.nan, 5.0])
+    times = date_range("2000", freq="D", periods=3)
+    result = ser.ewm(halflife="1D", times=times, adjust=False, ignore_na=False).mean()
+    expected = ser.ewm(com=1, adjust=False, ignore_na=False).mean()
+    tm.assert_series_equal(result, expected)
+    tm.assert_almost_equal(result.iloc[2], 11 / 3)
+
+
+def test_ewma_times_variable_spacing_with_nan():
+    # GH#66523 elapsed time of the *current* step is convex; decay
+    # accumulated across an ignore_na=False NaN row stays in old_wt and is
+    # renormalized. times are 0, 1, 3 days with values [1, NaN, 5]:
+    #   old_wt = 0.5 * 0.5**2 = 0.125
+    #   new_wt = 1 - 0.5**2 = 0.75
+    #   y = (0.125 * 1 + 0.75 * 5) / (0.125 + 0.75) = 31/7
+    # The convex-over-accumulated-gap form would give 4.5; treating the
+    # whole 0-to-3 day span as one normalized delta=3 step would give 4.2.
+    times = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"])
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(halflife="1D", times=times, adjust=False, ignore_na=False).mean()
+    expected = Series([1.0, 1.0, 31 / 7])
+    tm.assert_series_equal(result, expected)
 
 
 def test_ewm_alpha():
