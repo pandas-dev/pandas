@@ -434,6 +434,19 @@ class TestPeriodIndex:
                 result = PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
             assert result.asi8[0] == val - 1970
 
+    @pytest.mark.filterwarnings(
+        "ignore:Passing integer data:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.parametrize("dtype", [np.int64, object])
+    def test_constructor_int_array_out_of_bounds_ordinal(self, dtype):
+        # GH#64158 year 2300 is representable at most freqs but its nanosecond
+        #  ordinal overflows int64; the overflow used to be swallowed, giving
+        #  a 1970 epoch entry in the middle of valid ones
+        arr = np.array([2000, 2300, 2001], dtype=dtype)
+        msg = "Out of bounds nanosecond timestamp: 2300-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            PeriodIndex(arr, freq="ns")
+
     @pytest.mark.parametrize("box", [None, "series", "index"])
     def test_constructor_datetime64arr_ok(self, box):
         # https://github.com/pandas-dev/pandas/issues/23438
