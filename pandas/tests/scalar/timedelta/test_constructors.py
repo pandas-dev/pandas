@@ -1,5 +1,6 @@
 from datetime import timedelta
 from itertools import product
+import re
 
 import numpy as np
 import pytest
@@ -873,3 +874,28 @@ def test_timedelta_resolution_consistent_arg_styles():
     td_keyword = Timedelta(seconds=1 / 128)
     assert td_positional == td_keyword
     assert td_positional.unit == td_keyword.unit
+
+
+@pytest.mark.parametrize(
+    "value", ["3:25:00 AM", "3:25:00 pm", "1 days 12:30:00 PM", "3:25:00.5 AM"]
+)
+def test_construction_am_pm_raises(value):
+    # GH#18793 AM/PM used to be silently dropped, so that "3:25:00 PM"
+    #  parsed the same as "3:25:00"
+    msg = f"AM/PM is not supported by Timedelta, received: {value}"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        Timedelta(value)
+
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        to_timedelta([value])
+
+    result = to_timedelta([value], errors="coerce")
+    tm.assert_index_equal(result, TimedeltaIndex([NaT]))
+
+
+@pytest.mark.parametrize("value", ["3:25:00 foo", "3:25:00xyz", "3:25:00 A"])
+def test_construction_trailing_characters_raises(value):
+    # GH#18793 trailing characters after hh:mm:ss used to be silently dropped
+    msg = f"unexpected characters after hh:mm:ss format, received: {value}"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        Timedelta(value)

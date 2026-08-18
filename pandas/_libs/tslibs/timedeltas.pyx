@@ -761,6 +761,18 @@ cdef int64_t parse_timedelta_string(
     elif current_unit is not None:
         if current_unit != "m":
             raise ValueError("expected hh:mm:ss format")
+        if len(unit):
+            # trailing characters after the seconds field, e.g. the "AM" in
+            #  "3:25:00 AM".  Silently ignoring these means "3:25:00 PM"
+            #  parses as three hours rather than fifteen (GH#18793).
+            leftover = "".join(unit)
+            if leftover.upper() in ("AM", "PM"):
+                raise ValueError(
+                    f"AM/PM is not supported by Timedelta, received: {ts}"
+                )
+            raise ValueError(
+                f"unexpected characters after hh:mm:ss format, received: {ts}"
+            )
         m = 1000000000
         r = <int64_t>int("".join(number)) * m
         result += timedelta_as_neg(r, neg)
