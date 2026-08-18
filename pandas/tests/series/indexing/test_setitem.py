@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     IndexingError,
     Pandas4Warning,
@@ -1468,16 +1467,7 @@ class TestCoercionFloat64(CoercionTest):
     "val,exp_dtype,raises",
     [
         (1, np.float32, False),
-        pytest.param(
-            1.1,
-            np.float32,
-            False,
-            marks=pytest.mark.xfail(
-                not np_version_gt2,
-                reason="np.float32(1.1) ends up as 1.100000023841858, so "
-                "np_can_hold_element raises and we cast to float64",
-            ),
-        ),
+        (1.1, np.float32, False),
         (1 + 1j, np.complex128, True),
         (True, object, True),
         (np.uint8(2), np.float32, False),
@@ -1494,29 +1484,6 @@ class TestCoercionFloat32(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series([1.1, 2.2, 3.3, 4.4], dtype=np.float32)
-
-    def test_slice_key(self, obj, key, expected, raises, val, indexer_sli, is_inplace):
-        super().test_slice_key(obj, key, expected, raises, val, indexer_sli, is_inplace)
-
-        if isinstance(val, float):
-            # the xfail would xpass bc test_slice_key short-circuits
-            raise AssertionError("xfail not relevant for this test.")
-
-    def test_index_where(self, obj, key, expected, raises, val):
-        super().test_index_where(obj, key, expected, raises, val)
-
-        if isinstance(val, float) and not np_version_gt2:
-            # Index.where delegates to Series.where, so the comparison is
-            #  trivially satisfied and the xfail would xpass
-            raise AssertionError("xfail not relevant for this test.")
-
-    def test_index_putmask(self, obj, key, expected, raises, val):
-        super().test_index_putmask(obj, key, expected, raises, val)
-
-        if isinstance(val, float) and not np_version_gt2:
-            # Index.putmask delegates to Series.where, so the comparison is
-            #  trivially satisfied and the xfail would xpass
-            raise AssertionError("xfail not relevant for this test.")
 
 
 @pytest.mark.parametrize(
