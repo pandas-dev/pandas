@@ -4,7 +4,7 @@ from datetime import date
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_long
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -31,7 +31,7 @@ class TestDatetimeIndex:
         # (which has value 1e9) and since the max value for np.int32 is ~2e9,
         # and since those machines won't promote np.int32 to np.int64, we get
         # overflow.
-        periods = np_long(1000)
+        periods = np.long(1000)
 
         idx1 = date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
@@ -70,7 +70,9 @@ class TestDatetimeIndex:
 
     def assert_index_parameters(self, index):
         assert index.freq == "40960ns"
-        assert index.inferred_freq == "40960ns"
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400

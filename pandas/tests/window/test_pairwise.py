@@ -61,6 +61,146 @@ def test_rolling_corr(series):
     tm.assert_almost_equal(result.iloc[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
 
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("corr", [np.nan] * 5),
+        ("cov", [np.nan, np.nan, np.nan, np.nan, 0.0]),
+    ],
+)
+def test_rolling_cov_corr_degenerate(method, expected_values):
+    # GH#24019
+    a = Series([1e5, 0, 0, 0, 0])
+    b = Series([9.45] * 5)
+    wind = a.rolling(5)
+    result = getattr(wind, method)(b)
+    expected = Series(expected_values)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected_last",
+    [("cov", 50.0), ("corr", 1.0)],
+)
+def test_rolling_cov_corr_nan_gap_recovery(method, expected_last):
+    # GH#65739 a window whose valid-pair count drops to 0 must not poison
+    # subsequent overlapping windows with NaN
+    a = Series([1.0, 10.0, 20.0, 30.0])
+    b = Series([1.0, np.nan, 20.0, 30.0])
+    result = getattr(a.rolling(2), method)(b)
+    expected = Series([np.nan, np.nan, np.nan, expected_last])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+@pytest.mark.parametrize("swap_xy", [False, True])
+@pytest.mark.parametrize("offset_y", [0.0, 1e13])
+def test_rolling_cov_corr_outlier_exit(method, swap_xy, offset_y):
+    # GH#65739 once a large value leaves the window, the running accumulators
+    # keep round-off garbage on the scale of that value; every later window was
+    # silently wrong. swap_xy covers the value landing in either operand, and
+    # offset_y the case where the other operand is dominated by a shared offset,
+    # which used to cost precision in every deviation taken against its mean.
+    window = 9
+    values_x = [3, 3, 7, 9, 3, 3, 3.8e12, 3, 8, 2, 2, 8, 6, 7, 7, 3, 8, 4]
+    values_y = [
+        offset_y + value
+        for value in [6, 3, 3, 5, 9, 1, 2, 9, 2, 1, 4, 6, 6, 9, 7, 9, 3, 5]
+    ]
+    if swap_xy:
+        values_x, values_y = values_y, values_x
+    series_x = Series(values_x, dtype="float64")
+    series_y = Series(values_y, dtype="float64")
+
+    result = getattr(series_x.rolling(window), method)(series_y)
+
+    # oracle: NumPy's two-pass computation over each window on its own, which
+    # shares no code with the incremental accumulators under test. Both results
+    # are unchanged by translation, so each window is recentred first -- without
+    # that the oracle itself loses ~1e-8 on the offset_y case.
+    pairwise = np.cov if method == "cov" else np.corrcoef
+    array_x = series_x.to_numpy()
+    array_y = series_y.to_numpy()
+    expected = [np.nan] * (window - 1)
+    for stop in range(window, len(values_x) + 1):
+        chunk_x = array_x[stop - window : stop]
+        chunk_y = array_y[stop - window : stop]
+        expected.append(pairwise(chunk_x - chunk_x[0], chunk_y - chunk_y[0])[0, 1])
+    tm.assert_series_equal(result, Series(expected), rtol=1e-12, atol=0)
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+@pytest.mark.parametrize("offset", [1e10, 1e14])
+def test_rolling_cov_corr_shared_offset(method, offset):
+    # GH#65739 an offset shared by the whole series left almost no significant
+    # digits in the deviations the accumulators are built from, so results were
+    # wrong with no outlier anywhere in the data -- e.g. prices, or epoch
+    # timestamps around 1.7e18
+    window = 5
+    series_x = Series([1, 2, 4, 7, 3, 5, 9, 2, 6, 8], dtype="float64") + offset
+    series_y = Series([2, 1, 5, 3, 8, 4, 7, 9, 1, 6], dtype="float64") + offset
+
+    result = getattr(series_x.rolling(window), method)(series_y)
+
+    pairwise = np.cov if method == "cov" else np.corrcoef
+    array_x = series_x.to_numpy()
+    array_y = series_y.to_numpy()
+    expected = [np.nan] * (window - 1)
+    for stop in range(window, len(series_x) + 1):
+        chunk_x = array_x[stop - window : stop]
+        chunk_y = array_y[stop - window : stop]
+        expected.append(pairwise(chunk_x - chunk_x[0], chunk_y - chunk_y[0])[0, 1])
+    tm.assert_series_equal(result, Series(expected), rtol=1e-12, atol=0)
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+def test_rolling_cov_corr_outlier_exit_no_nan(method):
+    # GH#65739 cancellation could drive ssqdm_x negative, so calc_corr took the
+    # square root of a negative number and returned NaN for every later window
+    window = 3
+    series_x = Series([1.0, 2.0, 1e12, 1e7, 6.0, 5.0, 8.0, 7.0])
+    series_y = Series([2.0, 1.0, 3.0, -1e12, 4.0, 7.0, 6.0, 9.0])
+
+    result = getattr(series_x.rolling(window), method)(series_y)
+
+    assert not result.iloc[window - 1 :].isna().any()
+
+    # rtol here is the tolerance the incremental update is designed to hold to,
+    # not float64 noise: some of these windows still contain 1e12
+    pairwise = np.cov if method == "cov" else np.corrcoef
+    array_x = series_x.to_numpy()
+    array_y = series_y.to_numpy()
+    expected = [np.nan] * (window - 1)
+    for stop in range(window, len(series_x) + 1):
+        chunk_x = array_x[stop - window : stop]
+        chunk_y = array_y[stop - window : stop]
+        expected.append(pairwise(chunk_x - chunk_x[0], chunk_y - chunk_y[0])[0, 1])
+    tm.assert_series_equal(result, Series(expected), rtol=1e-5, atol=0)
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+def test_rolling_cov_corr_extreme_range_recovers(method):
+    # GH#65739 a window spanning nearly the whole float64 range must not leave
+    # the accumulators holding NaN, which would blank every later window
+    window = 5
+    series_x = Series([1e308, 1.0, 2.0, 3.0, -1e308, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
+    series_y = Series([0.2, 0.1, 0.5, 0.3, 0.8, 0.4, 0.9, 0.6, 0.7, 0.2, 0.5])
+
+    result = getattr(series_x.rolling(window), method)(series_y)
+
+    assert not result.iloc[window - 1 :].isna().any()
+
+    # once the extreme values leave, the windows are ordinary data and exact
+    pairwise = np.cov if method == "cov" else np.corrcoef
+    array_x = series_x.to_numpy()
+    array_y = series_y.to_numpy()
+    for stop in range(10, len(series_x) + 1):
+        expected = pairwise(
+            array_x[stop - window : stop], array_y[stop - window : stop]
+        )[0, 1]
+        assert result.iloc[stop - 1] == pytest.approx(expected, rel=1e-12)
+
+
 def test_rolling_corr_bias_correction():
     # test for correct bias correction
     a = Series(

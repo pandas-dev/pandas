@@ -137,3 +137,14 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data):
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+    @pytest.mark.xfail(
+        raises=AssertionError,
+        reason="IntervalArray does not support roundtrip as Interval cannot be created "
+        "from dictionary created in JSON serialization",
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # IntervalArray does not support roundtrip as Interval cannot be created from
+        # dictionary created in JSON serialization
+        super().test_json_roundtrip(data)

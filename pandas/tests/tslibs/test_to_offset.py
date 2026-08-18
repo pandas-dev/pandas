@@ -94,6 +94,20 @@ def test_to_offset_invalid(freqstr):
         to_offset(freqstr)
 
 
+@pytest.mark.parametrize(
+    "freqstr,alias",
+    [
+        ("2.5foo", "foo"),
+        ("2.5FOO", "FOO"),
+    ],
+)
+def test_to_offset_fractional_invalid_alias(freqstr, alias):
+    msg = rf"Invalid frequency: {alias}"
+
+    with pytest.raises(ValueError, match=msg):
+        to_offset(freqstr)
+
+
 def test_to_offset_no_evaluate():
     msg = str(("", ""))
     with pytest.raises(TypeError, match=msg):
@@ -233,9 +247,19 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("freq", ["2H", "2BH", "2S"])
-def test_to_offset_uppercase_frequency_raises(freq):
-    msg = f"Invalid frequency: {freq}"
+@pytest.mark.parametrize(
+    "freq,expected",
+    [
+        ("2H", "h"),
+        ("2BH", "bh"),
+        ("2S", "s"),
+        ("2.5H", "h"),
+        ("2.5BH", "bh"),
+        ("2.5S", "s"),
+    ],
+)
+def test_to_offset_uppercase_frequency_raises(freq, expected):
+    msg = f"Invalid frequency: {re.escape(freq)}.*Did you mean {expected}"
 
     with pytest.raises(ValueError, match=msg):
         to_offset(freq)

@@ -5,7 +5,6 @@ specific classification into the other test modules.
 
 from datetime import datetime
 from io import StringIO
-import os
 
 import pytest
 
@@ -146,7 +145,6 @@ bar,two,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "data,columns,header",
     [
@@ -159,17 +157,28 @@ bar,two,12,13,14,15
     ],
 )
 @pytest.mark.parametrize("round_trip", [True, False])
-def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip):
+def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip, request):
     # see gh-14545
     parser = all_parsers
     expected = DataFrame(columns=columns)
     data = expected.to_csv(index=False) if round_trip else data
 
+    if parser.engine == "pyarrow":
+        if len(header) > 1:
+            with pytest.raises(ValueError, match="does not support a list of integers"):
+                parser.read_csv(StringIO(data), header=header)
+            return
+        # header=[0] is a singleton, so it behaves like header=0, but the
+        # empty-frame dtypes still differ for the pyarrow engine
+        mark = pytest.mark.xfail(
+            reason="empty frame dtypes differ; apache/arrow#38676 without newline"
+        )
+        request.applymarker(mark)
+
     result = parser.read_csv(StringIO(data), header=header)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.columns are different
 def test_no_unnamed_index(all_parsers):
     parser = all_parsers
     data = """ id c0 c1 c2
@@ -241,9 +250,9 @@ bar,12,13,14,15
 
 
 @skip_pyarrow
-def test_read_csv_no_index_name(all_parsers, csv_dir_path):
+def test_read_csv_no_index_name(all_parsers, datapath):
     parser = all_parsers
-    csv2 = os.path.join(csv_dir_path, "test2.csv")
+    csv2 = datapath("io", "parser", "data", "test2.csv")
     result = parser.read_csv(csv2, index_col=0, parse_dates=True)
 
     expected = DataFrame(

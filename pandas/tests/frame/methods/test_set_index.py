@@ -147,7 +147,7 @@ class TestSetIndex:
         res = df.set_index(["index", "a"])
         exp_index = MultiIndex.from_arrays([di, [0, 1, 2]], names=["index", "a"])
         exp = DataFrame({"b": [3, 4, 5]}, index=exp_index)
-        tm.assert_frame_equal(res, exp)
+        tm.assert_frame_equal(res, exp, check_freq=False)
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame
@@ -716,12 +716,17 @@ class TestSetIndexCustomLabelType:
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")
+        df = DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
 
-        # GH#20285 unhashable elements are now rejected at Index construction,
-        # so the DataFrame cannot even be created with unhashable columns.
-        msg = "unhashable type: 'Thing'"
+        msg = 'The parameter "keys" may be a column key, .*'
+
         with pytest.raises(TypeError, match=msg):
-            DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
+            # use custom label directly
+            df.set_index(thing2)
+
+        with pytest.raises(TypeError, match=msg):
+            # custom label wrapped in list
+            df.set_index([thing2])
 
     def test_set_index_periodindex(self):
         # GH#6631

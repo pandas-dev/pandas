@@ -22,8 +22,68 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include <optional>
+#include <string_view>
+#include <system_error>
+
+#include "fast_float/fast_float.h"
+
+// Arch selection comes from the build-time SIMD config (pandas/_libs/simd),
+// which sets exactly one of PANDAS_HAVE_NEON / PANDAS_HAVE_SSE2 /
+// PANDAS_HAVE_SCALAR from the host CPU family. Pull in the matching intrinsics
+// header for whichever applies; the scalar case defines neither and falls back
+// to the byte-at-a-time scan.
+#include "pandas_simd_config.h"
+
+#if defined(PANDAS_HAVE_NEON)
+#  include <arm_neon.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#elif defined(PANDAS_HAVE_SSE2)
+#  include <emmintrin.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#endif
+
+// Portable count-trailing-zeros, defined only for the architecture that uses
+// it: pandas_ctzll for NEON (64-bit lane), pandas_ctz for SSE2 (32-bit
+// movemask). The __builtin_ctz* form is preferred where available (including
+// clang-cl and mingw on Windows); MSVC falls back to _BitScanForward*.
+#ifndef __has_builtin
+#  define __has_builtin(x) 0
+#endif
+
+#if defined(PANDAS_HAVE_NEON)
+static inline int pandas_ctzll(unsigned long long mask) {
+#  if __has_builtin(__builtin_ctzll)
+  return __builtin_ctzll(mask);
+#  elif defined(_MSC_VER)
+  unsigned long index;
+  _BitScanForward64(&index, mask);
+  return (int)index;
+#  else
+#    error "no count-trailing-zeros builtin available"
+#  endif
+}
+#elif defined(PANDAS_HAVE_SSE2)
+static inline int pandas_ctz(unsigned int mask) {
+#  if __has_builtin(__builtin_ctz)
+  return __builtin_ctz(mask);
+#  elif defined(_MSC_VER)
+  unsigned long index;
+  _BitScanForward(&index, mask);
+  return (int)index;
+#  else
+#    error "no count-trailing-zeros builtin available"
+#  endif
+}
+#endif
 
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
@@ -35,7 +95,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
   // column i, starting at 0
-  self->words = parser->words;
+  self->stream = parser->stream;
+  self->word_ends = parser->word_ends;
   self->col = i;
   self->line_start = parser->line_start + start;
 }
@@ -47,6 +108,26 @@ static void free_if_not_null(void **ptr) {
   }
 }
 
+// Point error_msg at the parser's own fixed buffer.  There is no allocation on
+// any error path, so there is no failure to handle: the NULL-dereference these
+// sites used to risk on a failed malloc cannot occur.  Overwriting a previous
+// message is likewise free, where the old code leaked it.
+static void parser_set_error_msg(parser_t *self, const char *msg) {
+  snprintf(self->error_buf, ERROR_MSG_SIZE, "%s", msg);
+  self->error_msg = self->error_buf;
+}
+
+#if defined(__GNUC__)
+__attribute__((format(printf, 2, 3)))
+#endif
+static void parser_set_error_msgf(parser_t *self, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(self->error_buf, ERROR_MSG_SIZE, fmt, args);
+  va_end(args);
+  self->error_msg = self->error_buf;
+}
+
 /*
 
   Parser / tokenizer
@@ -56,26 +137,35 @@ static void free_if_not_null(void **ptr) {
 static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
                          int64_t space, int64_t elsize, int *error) {
   uint64_t cap = *capacity;
-  void *newbuffer = buffer;
 
-  // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
-  while ((length + space >= cap) && (newbuffer != NULL)) {
-    cap = cap ? cap << 1 : 2;
-    buffer = newbuffer;
-    newbuffer = realloc(newbuffer, elsize * cap);
+  // Can we already fit length + space (tokens + null terminators)?
+  if (length + space < cap) {
+    *error = 0;
+    return buffer;
   }
 
+  // Compute the final power-of-two capacity first, then realloc *once*.
+  // Doubling with a realloc inside the loop reallocs (and copies) at every
+  // step; the up-front stream reservation in tokenize_bytes grows the buffer
+  // from its initial size to the whole chunk in a single call, so that would
+  // be ~log2(chunk / init) copying reallocs.  On allocators with a single
+  // process-wide heap lock (notably the Windows UCRT heap) those extra
+  // reallocs serialize the parallel read_csv workers against each other, so
+  // we size the buffer in one shot instead.
+  uint64_t newcap = cap ? cap : 2;
+  while (length + space >= newcap) {
+    newcap <<= 1;
+  }
+
+  void *newbuffer = realloc(buffer, elsize * newcap);
   if (newbuffer == NULL) {
     // realloc failed so don't change *capacity, set *error to errno
-    // and return the last good realloc'd buffer so it can be freed
+    // and return the still-valid old buffer so it can be freed
     *error = errno;
-    newbuffer = buffer;
-  } else {
-    // realloc worked, update *capacity and set *error to 0
-    // sigh, multiple return values
-    *capacity = cap;
-    *error = 0;
+    return buffer;
   }
+  *capacity = newcap;
+  *error = 0;
   return newbuffer;
 }
 
@@ -101,6 +191,7 @@ void parser_set_default_options(parser_t *self) {
 
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
+  self->preloaded = 0;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -114,17 +205,22 @@ void parser_set_default_options(parser_t *self) {
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 static void parser_clear_data_buffers(parser_t *self) {
-  free_if_not_null((void *)&self->stream);
-  free_if_not_null((void *)&self->words);
-  free_if_not_null((void *)&self->word_starts);
-  free_if_not_null((void *)&self->line_start);
-  free_if_not_null((void *)&self->line_fields);
+  free_if_not_null((void **)&self->stream);
+  free_if_not_null((void **)&self->word_ends);
+  free_if_not_null((void **)&self->line_start);
+  free_if_not_null((void **)&self->line_fields);
 }
 
 static void parser_cleanup(parser_t *self) {
-  // XXX where to put this
-  free_if_not_null((void *)&self->error_msg);
-  free_if_not_null((void *)&self->warn_msg);
+  // self can be NULL when cleanup runs on a TextReader whose __cinit__
+  // raised before parser_new() was called (GH#53131).
+  if (self == NULL) {
+    return;
+  }
+
+  // error_msg points into self->error_buf, so there is nothing to free.
+  self->error_msg = NULL;
+  free_if_not_null((void **)&self->warn_msg);
 
   if (self->skipset != NULL) {
     kh_destroy_int64((kh_int64_t *)self->skipset);
@@ -144,15 +240,14 @@ int parser_init(parser_t *self) {
   */
 
   self->stream = NULL;
-  self->words = NULL;
-  self->word_starts = NULL;
+  self->word_ends = NULL;
   self->line_start = NULL;
   self->line_fields = NULL;
   self->error_msg = NULL;
   self->warn_msg = NULL;
 
   // token stream
-  self->stream = malloc(STREAM_INIT_SIZE);
+  self->stream = (char *)malloc(STREAM_INIT_SIZE);
   if (self->stream == NULL) {
     parser_cleanup(self);
     return PARSER_OUT_OF_MEMORY;
@@ -160,28 +255,26 @@ int parser_init(parser_t *self) {
   self->stream_cap = STREAM_INIT_SIZE;
   self->stream_len = 0;
 
-  // word pointers and metadata
-  _Static_assert(STREAM_INIT_SIZE / 10 > 0,
-                 "STREAM_INIT_SIZE must be defined and >= 10");
+  // word metadata
+  static_assert(STREAM_INIT_SIZE / 10 > 0,
+                "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
-  self->words = malloc(sz * sizeof(char *));
-  self->word_starts = malloc(sz * sizeof(int64_t));
+  self->word_ends = (int64_t *)malloc(sz * sizeof(int64_t));
   self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
 
   // line pointers and metadata
-  self->line_start = malloc(sz * sizeof(int64_t));
+  self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
 
-  self->line_fields = malloc(sz * sizeof(int64_t));
+  self->line_fields = (int64_t *)malloc(sz * sizeof(int64_t));
 
   self->lines_cap = sz;
   self->lines = 0;
   self->file_lines = 0;
 
-  if (self->stream == NULL || self->words == NULL ||
-      self->word_starts == NULL || self->line_start == NULL ||
-      self->line_fields == NULL) {
+  if (self->stream == NULL || self->word_ends == NULL ||
+      self->line_start == NULL || self->line_fields == NULL) {
     parser_cleanup(self);
 
     return PARSER_OUT_OF_MEMORY;
@@ -194,7 +287,6 @@ int parser_init(parser_t *self) {
   self->line_start[0] = 0;
   self->line_fields[0] = 0;
 
-  self->pword_start = self->stream;
   self->word_start = 0;
 
   self->state = START_RECORD;
@@ -222,7 +314,6 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
   */
 
   int status;
-  char *orig_ptr = (void *)self->stream;
   self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
                                      &self->stream_cap, nbytes * 2, 1, &status);
 
@@ -230,20 +321,12 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     return PARSER_OUT_OF_MEMORY;
   }
 
-  // realloc sets errno when moving buffer?
-  if (self->stream != orig_ptr) {
-    self->pword_start = self->stream + self->word_start;
-
-    for (uint64_t i = 0; i < self->words_len; ++i) {
-      self->words[i] = self->stream + self->word_starts[i];
-    }
-  }
+  // Words are tracked as stream offsets (word_ends), so nothing needs
+  // rebasing when the stream buffer moves.
 
   /*
     WORD VECTORS
   */
-
-  const uint64_t words_cap = self->words_cap;
 
   /**
    * If we are reading in chunks, we need to be aware of the maximum number
@@ -257,23 +340,12 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
                               ? self->max_words_cap - nbytes - 1
                               : self->words_len;
 
-  self->words =
-      (char **)grow_buffer((void *)self->words, length, &self->words_cap,
-                           nbytes, sizeof(char *), &status);
+  self->word_ends =
+      (int64_t *)grow_buffer((void *)self->word_ends, length, &self->words_cap,
+                             nbytes, sizeof(int64_t), &status);
 
   if (status != 0) {
     return PARSER_OUT_OF_MEMORY;
-  }
-
-  // realloc took place
-  if (words_cap != self->words_cap) {
-    int64_t *newptr = (int64_t *)realloc(self->word_starts,
-                                         sizeof(int64_t) * self->words_cap);
-    if (newptr == NULL) {
-      return PARSER_OUT_OF_MEMORY;
-    } else {
-      self->word_starts = newptr;
-    }
   }
 
   /*
@@ -303,10 +375,9 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 
 static int push_char(parser_t *self, char c) {
   if (self->stream_len >= self->stream_cap) {
-    const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    parser_set_error_msg(self,
+                         "Buffer overflow caught - possible malformed input "
+                         "file.\n");
     return PARSER_OUT_OF_MEMORY;
   }
   self->stream[self->stream_len++] = c;
@@ -316,26 +387,24 @@ static int push_char(parser_t *self, char c) {
 static inline int end_field(parser_t *self) {
   // XXX cruft
   if (self->words_len >= self->words_cap) {
-    const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    parser_set_error_msg(self,
+                         "Buffer overflow caught - possible malformed input "
+                         "file.\n");
     return PARSER_OUT_OF_MEMORY;
   }
 
   // null terminate token
   push_char(self, '\0');
 
-  // set pointer and metadata
-  self->words[self->words_len] = self->pword_start;
-  self->word_starts[self->words_len] = self->word_start;
+  // record the NUL's offset; the word's start is the previous word's
+  // end + 1 (or 0 for the first word)
+  self->word_ends[self->words_len] = (int64_t)self->stream_len - 1;
   self->words_len++;
 
   // increment line field count
   self->line_fields[self->lines]++;
 
-  // New field begin in stream
-  self->pword_start = self->stream + self->stream_len;
+  // New field begins in stream
   self->word_start = self->stream_len;
 
   return 0;
@@ -345,8 +414,10 @@ static void append_warning(parser_t *self, const char *msg) {
   const int64_t length = strlen(msg);
 
   if (self->warn_msg == NULL) {
-    self->warn_msg = malloc(length + 1);
-    snprintf(self->warn_msg, length + 1, "%s", msg);
+    self->warn_msg = (char *)malloc(length + 1);
+    if (self->warn_msg != NULL) {
+      snprintf(self->warn_msg, length + 1, "%s", msg);
+    }
   } else {
     const int64_t ex_length = strlen(self->warn_msg);
     char *newptr = (char *)realloc(self->warn_msg, ex_length + length + 1);
@@ -355,6 +426,21 @@ static void append_warning(parser_t *self, const char *msg) {
       snprintf(self->warn_msg + ex_length, length + 1, "%s", msg);
     }
   }
+}
+
+// Format a warning into the parser's own warn_buf and hand it to
+// append_warning, which copies the text out.  Keeping this a call rather than
+// an inlined snprintf matters: end_line runs once per row, and inlining a
+// varargs format into it costs ~5% on the quoted/escaped-quote paths.
+#if defined(__GNUC__)
+__attribute__((format(printf, 2, 3)))
+#endif
+static void parser_append_warningf(parser_t *self, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(self->warn_buf, ERROR_MSG_SIZE, fmt, args);
+  va_end(args);
+  append_warning(self, self->warn_buf);
 }
 
 static int end_line(parser_t *self) {
@@ -384,8 +470,12 @@ static int end_line(parser_t *self) {
     return 0;
   }
 
-  if (!(self->lines <= self->header_end + 1) && (fields > ex_fields) &&
-      !(self->usecols)) {
+  /* The first line is normally exempt from the field-count check: it is the
+   * header, or it defines the table width (implicit-index inference).  In
+   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
+   * the first line is plain data, so the exemption must not apply. */
+  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
+      (fields > ex_fields) && !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -397,25 +487,18 @@ static int end_line(parser_t *self) {
 
     // file_lines is now the actual file line number (starting at 1)
     if (self->on_bad_lines == BLHM_ERROR) {
-      const size_t bufsize = 100;
-      self->error_msg = malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Expected %" PRId64 " fields in line %" PRIu64 ", saw %" PRId64
-               "\n",
-               ex_fields, self->file_lines, fields);
+      parser_set_error_msgf(self,
+                            "Expected %" PRId64 " fields in line %" PRIu64
+                            ", saw %" PRId64 "\n",
+                            ex_fields, self->file_lines, fields);
       return -1;
     } else {
       // simply skip bad lines
       if (self->on_bad_lines == BLHM_WARN) {
-        // pass up error message
-        const size_t bufsize = 100;
-        char *msg = (char *)malloc(bufsize);
-        snprintf(msg, bufsize,
-                 "Skipping line %" PRIu64 ": expected %" PRId64
-                 " fields, saw %" PRId64 "\n",
-                 self->file_lines, ex_fields, fields);
-        append_warning(self, msg);
-        free(msg);
+        parser_append_warningf(self,
+                               "Skipping line %" PRIu64 ": expected %" PRId64
+                               " fields, saw %" PRId64 "\n",
+                               self->file_lines, ex_fields, fields);
       }
     }
   } else {
@@ -423,9 +506,7 @@ static int end_line(parser_t *self) {
     if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
       // might overrun the buffer when closing fields
       if (make_stream_space(self, ex_fields - fields) < 0) {
-        const size_t bufsize = 100;
-        self->error_msg = malloc(bufsize);
-        snprintf(self->error_msg, bufsize, "out of memory");
+        parser_set_error_msg(self, "out of memory");
         return -1;
       }
 
@@ -441,11 +522,8 @@ static int end_line(parser_t *self) {
 
     // good line, set new start point
     if (self->lines >= self->lines_cap) {
-      const size_t bufsize = 100;
-      self->error_msg = malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Buffer overflow caught - "
-               "possible malformed input file.\n");
+      parser_set_error_msg(self, "Buffer overflow caught - "
+                                 "possible malformed input file.\n");
       return PARSER_OUT_OF_MEMORY;
     }
     self->line_start[self->lines] =
@@ -493,15 +571,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
   self->datalen = bytes_read;
 
   if (status != REACHED_EOF && self->data == NULL) {
-    const size_t bufsize = 200;
-    self->error_msg = malloc(bufsize);
-
     if (status == CALLING_READ_FAILED) {
-      snprintf(self->error_msg, bufsize,
-               "Calling read(nbytes) on source failed. "
-               "Try engine='python'.");
+      parser_set_error_msg(self, "Calling read(nbytes) on source failed. "
+                                 "Try engine='python'.");
     } else {
-      snprintf(self->error_msg, bufsize, "Unknown error in IO callback");
+      parser_set_error_msg(self, "Unknown error in IO callback");
     }
     return -1;
   }
@@ -516,10 +590,9 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define PUSH_CHAR(c)                                                           \
   if (slen >= self->stream_cap) {                                              \
-    const size_t bufsize = 100;                                                \
-    self->error_msg = malloc(bufsize);                                         \
-    snprintf(self->error_msg, bufsize,                                         \
-             "Buffer overflow caught - possible malformed input file.\n");     \
+    parser_set_error_msg(self,                                                 \
+                         "Buffer overflow caught - possible malformed input "  \
+                         "file.\n");                                           \
     return PARSER_OUT_OF_MEMORY;                                               \
   }                                                                            \
   *stream++ = c;                                                               \
@@ -614,6 +687,458 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
+#ifdef PANDAS_HAVE_NEON
+
+// Scan data for any special character using NEON.
+// Returns the byte offset of the first special character,
+// or the number of bytes scanned (all clean) if none found.
+static inline size_t fast_scan_simd(const char *data, size_t len,
+                                    uint8x16_t vdelim, uint8x16_t vterm,
+                                    uint8x16_t vcr, uint8x16_t vquote,
+                                    uint8x16_t vescape, uint8x16_t vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vdelim);
+    m = vorrq_u8(m, vceqq_u8(chunk, vterm));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcr));
+    m = vorrq_u8(m, vceqq_u8(chunk, vquote));
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcomment));
+
+    // Each matching byte is 0xFF, non-matching is 0x00. NEON has no movemask,
+    // so narrow each byte to a nibble (shift-right-narrow by 4): byte k becomes
+    // nibble k of a single u64, 0xF if matched else 0x0. ctzll/4 is the offset.
+    const uint8x8_t m8 = vshrn_n_u16(vreinterpretq_u16_u8(m), 4);
+    const uint64_t matches = vget_lane_u64(vreinterpret_u64_u8(m8), 0);
+    if (matches)
+      return i + pandas_ctzll(matches) / 4;
+  }
+  return i;
+}
+
+// Lighter scan for quoted fields: only check quote and escape chars.
+static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
+                                           uint8x16_t vquote,
+                                           uint8x16_t vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vquote);
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+
+    const uint8x8_t m8 = vshrn_n_u16(vreinterpretq_u16_u8(m), 4);
+    const uint64_t matches = vget_lane_u64(vreinterpret_u64_u8(m8), 0);
+    if (matches)
+      return i + pandas_ctzll(matches) / 4;
+  }
+  return i;
+}
+
+#elif defined(PANDAS_HAVE_SSE2)
+
+static inline size_t fast_scan_simd(const char *data, size_t len,
+                                    __m128i vdelim, __m128i vterm, __m128i vcr,
+                                    __m128i vquote, __m128i vescape,
+                                    __m128i vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vdelim);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vterm));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcr));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vquote));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcomment));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + pandas_ctz(mask);
+  }
+  return i;
+}
+
+static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
+                                           __m128i vquote, __m128i vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vquote);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + pandas_ctz(mask);
+  }
+  return i;
+}
+
+#endif
+
+// Per-byte match masks for the block fast lane. On NEON the mask carries
+// 4 bits (one nibble) per input byte; on SSE2 one bit per byte. The
+// block_mask_* helpers hide that difference.
+#ifdef PANDAS_HAVE_NEON
+typedef uint64_t block_mask_t;
+static block_mask_t block_movemask(uint8x16_t m) {
+  return vget_lane_u64(
+      vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(m), 4)), 0);
+}
+static unsigned block_mask_pos(block_mask_t mask) {
+  return pandas_ctzll(mask) >> 2;
+}
+static block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
+  return mask & ~(0xFULL << (pos * 4));
+}
+static bool block_mask_test(block_mask_t mask, unsigned pos) {
+  return ((mask >> (pos * 4)) & 0xFULL) != 0;
+}
+#elif defined(PANDAS_HAVE_SSE2)
+typedef uint32_t block_mask_t;
+static unsigned block_mask_pos(block_mask_t mask) { return pandas_ctz(mask); }
+static block_mask_t block_mask_clear(block_mask_t mask, unsigned pos) {
+  return mask & ~(1U << pos);
+}
+static bool block_mask_test(block_mask_t mask, unsigned pos) {
+  return ((mask >> pos) & 1U) != 0;
+}
+#endif
+
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+// Loop-invariant configuration for block_fast_lane, built once per
+// tokenize_bytes call so entering the lane costs no per-character setup.
+typedef struct {
+#  ifdef PANDAS_HAVE_NEON
+  uint8x16_t vdelim;
+  uint8x16_t vterm;
+  uint8x16_t vcr;
+  uint8x16_t vquote;
+  uint8x16_t vescape;
+  uint8x16_t vcomment;
+#  elif defined(PANDAS_HAVE_SSE2)
+  __m128i vdelim;
+  __m128i vterm;
+  __m128i vcr;
+  __m128i vquote;
+  __m128i vescape;
+  __m128i vcomment;
+#  endif
+  char delimiter;
+  char lineterminator;
+  bool has_quote;
+  bool has_carriage;
+  bool has_escape;
+  bool has_comment;
+} block_lane_config;
+
+// Match masks for one 16-byte block: specials = field/line boundaries the
+// lane emits itself (delimiters + terminators, plus \r when active).
+typedef struct {
+  block_mask_t specials;
+  block_mask_t terms;
+  block_mask_t crs;
+} block_scan_masks;
+
+// Try to scan the 16 bytes at buf into *masks. Returns false (and leaves
+// *masks untouched) when the block holds a quote, escape or comment byte,
+// meaning the state machine must take over before consuming any of it.
+#  ifdef PANDAS_HAVE_NEON
+static bool try_scan_block(const block_lane_config *config, const char *buf,
+                           block_scan_masks *masks) {
+  const uint8x16_t chunk = vld1q_u8((const uint8_t *)buf);
+  const uint8x16_t eq_delim = vceqq_u8(chunk, config->vdelim);
+  const uint8x16_t eq_term = vceqq_u8(chunk, config->vterm);
+  uint8x16_t dirty = vdupq_n_u8(0);
+  if (config->has_quote)
+    dirty = vorrq_u8(dirty, vceqq_u8(chunk, config->vquote));
+  if (config->has_escape)
+    dirty = vorrq_u8(dirty, vceqq_u8(chunk, config->vescape));
+  if (config->has_comment)
+    dirty = vorrq_u8(dirty, vceqq_u8(chunk, config->vcomment));
+  if (block_movemask(dirty))
+    return false;
+  masks->crs =
+      config->has_carriage ? block_movemask(vceqq_u8(chunk, config->vcr)) : 0;
+  masks->terms = block_movemask(eq_term);
+  masks->specials = block_movemask(vorrq_u8(eq_delim, eq_term)) | masks->crs;
+  return true;
+}
+#  elif defined(PANDAS_HAVE_SSE2)
+static bool try_scan_block(const block_lane_config *config, const char *buf,
+                           block_scan_masks *masks) {
+  const __m128i chunk = _mm_loadu_si128((const __m128i *)buf);
+  const __m128i eq_delim = _mm_cmpeq_epi8(chunk, config->vdelim);
+  const __m128i eq_term = _mm_cmpeq_epi8(chunk, config->vterm);
+  __m128i dirty = _mm_setzero_si128();
+  if (config->has_quote)
+    dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, config->vquote));
+  if (config->has_escape)
+    dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, config->vescape));
+  if (config->has_comment)
+    dirty = _mm_or_si128(dirty, _mm_cmpeq_epi8(chunk, config->vcomment));
+  if (_mm_movemask_epi8(dirty))
+    return false;
+  masks->crs =
+      config->has_carriage
+          ? (block_mask_t)_mm_movemask_epi8(_mm_cmpeq_epi8(chunk, config->vcr))
+          : 0;
+  masks->terms = (block_mask_t)_mm_movemask_epi8(eq_term);
+  masks->specials =
+      (block_mask_t)_mm_movemask_epi8(_mm_or_si128(eq_delim, eq_term)) |
+      masks->crs;
+  return true;
+}
+#  endif
+
+typedef enum {
+  BLOCK_LANE_DONE,         // lane finished; resume the state machine at *ip
+  BLOCK_LANE_PARSINGERROR, // end_field/end_line failed; goto parsingerror
+  BLOCK_LANE_LINELIMIT,    // line_limit reached; goto linelimit
+} block_lane_status;
+
+// Shared exit for every path that hands control back to the state machine:
+// publish the resume position through *ip and set self->state to match
+// where the lane stopped.
+static block_lane_status block_lane_finish(parser_t *self, int64_t lane_start_i,
+                                           int64_t i, int64_t *ip) {
+  if (i != lane_start_i) {
+    // Only reset the state when the lane consumed input; a no-progress
+    // exit must preserve states like the post-WHITESPACE_LINE
+    // START_FIELD, or the machine and the lane ping-pong forever.
+    if (self->stream_len != (uint64_t)self->word_start) {
+      self->state = IN_FIELD;
+    } else if (self->line_fields[self->lines] > 0) {
+      self->state = START_FIELD;
+    } else {
+      self->state = START_RECORD;
+    }
+  }
+  *ip = i;
+  return BLOCK_LANE_DONE;
+}
+
+typedef enum {
+  BLOCK_EMIT_DONE,         // all of the block's boundaries emitted
+  BLOCK_EMIT_DEFER,        // hand the input at *exit_i back to the machine
+  BLOCK_EMIT_PARSINGERROR, // end_field/end_line failed at *exit_i
+  BLOCK_EMIT_LINELIMIT,    // line_limit reached at *exit_i
+} block_emit_status;
+
+// After end_line for the terminator at block offset pos: check the line
+// limit, restore the copy invariant if the write position diverged from the
+// input position, and probe the next line's first byte for the
+// whitespace-line deferral.
+static block_emit_status
+block_after_line(parser_t *self, const block_lane_config *config,
+                 const char *buf, int64_t i, unsigned pos, int term_extra,
+                 uint64_t line_limit, uint64_t start_lines,
+                 uint64_t *block_base, bool *at_line_edge, int64_t *exit_i) {
+  if (line_limit > 0 && self->lines == start_lines + line_limit) {
+    // Must run before the tail re-copy bail below: end_line has already
+    // counted this line, and the state machine's ==-based limit checks
+    // would never match again.
+    self->state = START_RECORD;
+    // index of the terminator's last byte; the caller's linelimit label
+    // increments one past it
+    *exit_i = i + pos + term_extra;
+    return BLOCK_EMIT_LINELIMIT;
+  }
+  if (term_extra || self->stream_len != *block_base + (pos + 1)) {
+    // The write position no longer tracks the input position: the
+    // terminator consumed an extra input byte (\r\n), or end_line moved
+    // stream_len (synthetic trailing fields for a short row, or a skipped
+    // bad row). Re-copy the unconsumed tail of the block after the new
+    // position and rebase so block_base + pos stays correct for later
+    // specials.
+    if (self->stream_len + 16 > self->stream_cap) {
+      // Not enough slack for the unchecked tail re-copy; hand the rest
+      // of the input back to the state machine, whose writes are
+      // capacity-checked.
+      *exit_i = i + pos + 1 + term_extra;
+      return BLOCK_EMIT_DEFER;
+    }
+    memcpy(self->stream + self->stream_len, buf + pos + 1 + term_extra,
+           (size_t)(15 - pos - term_extra));
+    *block_base = self->stream_len - (pos + 1 + term_extra);
+  }
+  if (pos + 1 + term_extra < 16) {
+    const char nxt = buf[pos + 1 + term_extra];
+    if ((nxt == ' ' || nxt == '\t') && nxt != config->delimiter) {
+      // Next line starts with a blank: defer to the state machine (see
+      // the whitespace-line check at block top).
+      *exit_i = i + pos + 1 + term_extra;
+      return BLOCK_EMIT_DEFER;
+    }
+  } else {
+    // Line ends exactly at the block edge: probe the next line's first
+    // byte at the next block top.
+    *at_line_edge = true;
+  }
+  return BLOCK_EMIT_DONE;
+}
+
+// Emit end_field/end_line for every boundary in masks->specials, lowest
+// offset first. On BLOCK_EMIT_DONE the whole block was consumed and
+// stream_len points one past its copy; every other status leaves stream_len
+// current and the resume input position in *exit_i.
+static block_emit_status
+block_emit_boundaries(parser_t *self, const block_lane_config *config,
+                      const block_scan_masks *masks, const char *buf, int64_t i,
+                      uint64_t line_limit, uint64_t start_lines,
+                      bool *at_line_edge, int64_t *exit_i) {
+  uint64_t block_base = self->stream_len;
+  // Boundaries not yet emitted, consumed lowest-bit-first.
+  block_mask_t remaining = masks->specials;
+  while (remaining) {
+    const unsigned pos = block_mask_pos(remaining);
+    bool is_term = block_mask_test(masks->terms, pos);
+    // Extra input bytes the terminator consumes (1 for the \n of a \r\n
+    // pair; the field's NUL replaces the \r).
+    int term_extra = 0;
+    if (config->has_carriage && block_mask_test(masks->crs, pos)) {
+      if (pos >= 15 || buf[pos + 1] != config->lineterminator) {
+        // \r\n split across blocks, or a lone \r: defer to the state
+        // machine's EAT_CRNL handling.
+        self->stream_len = block_base + pos;
+        *exit_i = i + pos;
+        return BLOCK_EMIT_DEFER;
+      }
+      is_term = true;
+      term_extra = 1;
+    }
+    if (is_term && self->line_fields[self->lines] == 0 &&
+        block_base + pos == (uint64_t)self->word_start) {
+      // Line terminator with no line content: defer to the state
+      // machine, which knows about skip_empty_lines.
+      self->stream_len = block_base + pos;
+      *exit_i = i + pos;
+      return BLOCK_EMIT_DEFER;
+    }
+    self->stream_len = block_base + pos;
+    if (end_field(self) < 0) {
+      *exit_i = i + pos;
+      return BLOCK_EMIT_PARSINGERROR;
+    }
+    if (is_term) {
+      if (end_line(self) < 0) {
+        *exit_i = i + pos;
+        return BLOCK_EMIT_PARSINGERROR;
+      }
+      const block_emit_status line_status =
+          block_after_line(self, config, buf, i, pos, term_extra, line_limit,
+                           start_lines, &block_base, at_line_edge, exit_i);
+      if (line_status != BLOCK_EMIT_DONE) {
+        return line_status;
+      }
+      if (term_extra) {
+        remaining = block_mask_clear(remaining, pos + 1); // the pair's \n
+      }
+    }
+    remaining = block_mask_clear(remaining, pos);
+  }
+  self->stream_len = block_base + 16;
+  return BLOCK_EMIT_DONE;
+}
+
+// Block fast lane: while the next 16 bytes contain only ordinary characters,
+// delimiters and line terminators, copy them to the stream in one shot and
+// emit every field/line boundary from the SIMD match mask, bypassing the
+// per-character state machine in tokenize_bytes. The block is copied
+// verbatim; end_field()'s NUL then lands exactly on the copied
+// delimiter/terminator byte, so the stream layout is identical to the state
+// machine's.
+//
+// Only called with self->state in {START_RECORD, START_FIELD, IN_FIELD} and
+// with self->stream_len synced to tokenize_bytes' local slen. *ip is the
+// scan position (tokenize_bytes' i, which tracks buf == self->data + i); on
+// return it holds the resume position and self->stream_len is current, so
+// the caller re-derives its buf/stream/slen locals.
+static block_lane_status block_fast_lane(parser_t *self,
+                                         const block_lane_config *config,
+                                         uint64_t line_limit,
+                                         uint64_t start_lines, int64_t *ip) {
+  int64_t i = *ip;
+  const int64_t lane_start_i = i;
+  const char *buf = self->data + i;
+  // True when the next byte to scan is the first byte of a line (and
+  // nothing of it is buffered yet). Tracked across blocks so the
+  // whitespace-line probe below runs once per line, not once per block;
+  // line ends that fall inside a block are probed in the specials loop.
+  bool at_line_edge = (self->line_fields[self->lines] == 0 &&
+                       self->stream_len == (uint64_t)self->word_start);
+  // The 16-byte block copy and the <=15-byte tail re-copy below are the
+  // lane's only unchecked stream writes; requiring 32 bytes of slack per
+  // block keeps them within stream_cap no matter how end_line moves
+  // stream_len (checked writes inside end_field/end_line error out on
+  // their own).
+  while (i + 16 <= self->datalen && self->stream_len + 32 <= self->stream_cap) {
+    if (at_line_edge && (*buf == ' ' || *buf == '\t') &&
+        *buf != config->delimiter) {
+      // A line starting with a blank may be a whitespace-only line
+      // (WHITESPACE_LINE handling); defer to the state machine.
+      break;
+    }
+    at_line_edge = false;
+    block_scan_masks masks;
+    if (!try_scan_block(config, buf, &masks))
+      break;
+    memcpy(self->stream + self->stream_len, buf, 16);
+    if (!masks.specials) {
+      self->stream_len += 16;
+      buf += 16;
+      i += 16;
+      continue;
+    }
+    int64_t exit_i = i;
+    const block_emit_status emit_status =
+        block_emit_boundaries(self, config, &masks, buf, i, line_limit,
+                              start_lines, &at_line_edge, &exit_i);
+    if (emit_status == BLOCK_EMIT_DEFER) {
+      // Resume the state machine mid-block; the loop-exit block_lane_finish
+      // below publishes exit_i and sets the resume state.
+      i = exit_i;
+      break;
+    }
+    if (emit_status == BLOCK_EMIT_PARSINGERROR) {
+      *ip = exit_i;
+      return BLOCK_LANE_PARSINGERROR;
+    }
+    if (emit_status == BLOCK_EMIT_LINELIMIT) {
+      *ip = exit_i;
+      return BLOCK_LANE_LINELIMIT;
+    }
+    buf += 16;
+    i += 16;
+  }
+  return block_lane_finish(self, lane_start_i, i, ip);
+}
+#else
+// Scalar builds get no-op stubs so the tokenize_bytes call site compiles
+// without an #if; use_block_lane is constant false there, so the compiler
+// discards the whole lane block as dead code.
+typedef struct {
+  char unused;
+} block_lane_config;
+
+typedef enum {
+  BLOCK_LANE_DONE,
+  BLOCK_LANE_PARSINGERROR,
+  BLOCK_LANE_LINELIMIT,
+} block_lane_status;
+
+static block_lane_status block_fast_lane(parser_t *self,
+                                         const block_lane_config *config,
+                                         uint64_t line_limit,
+                                         uint64_t start_lines, int64_t *ip) {
+  (void)self;
+  (void)config;
+  (void)line_limit;
+  (void)start_lines;
+  (void)ip;
+  return BLOCK_LANE_DONE;
+}
+#endif
+
 static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
@@ -633,10 +1158,73 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
                          self->skip_first_N_rows >= 0);
 
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+  // The block fast lane models plain fields separated by single-char
+  // delimiters/terminators; configurations that transform field content at
+  // tokenize time fall back to the state machine entirely. Quotes, escapes,
+  // carriage returns and comment chars are handled per block: any block
+  // containing one is left to the state machine.
+  const bool use_block_lane =
+      !delim_whitespace && !has_skip && !self->skipinitialspace;
+#else
+  const bool use_block_lane = false;
+#endif
+
+#ifdef PANDAS_HAVE_NEON
+  const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
+  const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
+  const uint8x16_t vcr =
+      has_carriage ? vdupq_n_u8((uint8_t)carriage_symbol) : vterm;
+  const uint8x16_t vquote = (self->quoting != QUOTE_NONE)
+                                ? vdupq_n_u8((uint8_t)self->quotechar)
+                                : vterm;
+  // Fall back to vquote (not vterm) so the quoted-field scan is not
+  // broken by line terminators inside quoted fields.
+  const uint8x16_t vescape = (self->escapechar != '\0')
+                                 ? vdupq_n_u8((uint8_t)self->escapechar)
+                                 : vquote;
+  const uint8x16_t vcomment = (self->commentchar != '\0')
+                                  ? vdupq_n_u8((uint8_t)self->commentchar)
+                                  : vterm;
+#elif defined(PANDAS_HAVE_SSE2)
+  const __m128i vdelim = _mm_set1_epi8(delimiter);
+  const __m128i vterm = _mm_set1_epi8(lineterminator);
+  const __m128i vcr = has_carriage ? _mm_set1_epi8(carriage_symbol) : vterm;
+  const __m128i vquote =
+      (self->quoting != QUOTE_NONE) ? _mm_set1_epi8(self->quotechar) : vterm;
+  // Fall back to vquote (not vterm) so the quoted-field scan is not
+  // broken by line terminators inside quoted fields.
+  const __m128i vescape =
+      (self->escapechar != '\0') ? _mm_set1_epi8(self->escapechar) : vquote;
+  const __m128i vcomment =
+      (self->commentchar != '\0') ? _mm_set1_epi8(self->commentchar) : vterm;
+#endif
+
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+  const block_lane_config lane_config = {
+      .vdelim = vdelim,
+      .vterm = vterm,
+      .vcr = vcr,
+      .vquote = vquote,
+      .vescape = vescape,
+      .vcomment = vcomment,
+      .delimiter = delimiter,
+      .lineterminator = lineterminator,
+      .has_quote = (self->quoting != QUOTE_NONE),
+      .has_carriage = has_carriage,
+      .has_escape = has_escape,
+      .has_comment = has_comment,
+  };
+#else
+  const block_lane_config lane_config = {0};
+#endif
+
+  // Reserve worst-case stream space up front: the bulk-scan copies below
+  // (scalar and SIMD) write input data 1:1 with no per-copy capacity check, so
+  // the stream must already hold all remaining input. Field null-terminators
+  // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-    const size_t bufsize = 100;
-    self->error_msg = malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "out of memory");
+    parser_set_error_msg(self, "out of memory");
     return -1;
   }
 
@@ -680,13 +1268,37 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     breaks_field_scan[index] |= 0x2;
   }
 
-  if (self->file_lines == 0) {
+  if (self->file_lines == 0 && !self->preloaded) {
+    /* In preloaded mode the buffer usually starts mid-file, where a BOM
+     * byte sequence is real data; load_buffer strips a leading BOM itself
+     * when the buffer really is the start of the file. */
     CHECK_FOR_BOM();
   }
 
   char c;
   int64_t i;
   for (i = self->datapos; i < self->datalen; ++i) {
+    if (use_block_lane &&
+        (self->state == START_FIELD || self->state == IN_FIELD ||
+         self->state == START_RECORD)) {
+      self->stream_len = slen;
+      const block_lane_status lane_status =
+          block_fast_lane(self, &lane_config, line_limit, start_lines, &i);
+      slen = self->stream_len;
+      stream = self->stream + slen;
+      // The lane advances its input pointer and i in lockstep, preserving
+      // the loop's buf == self->data + i invariant.
+      buf = self->data + i;
+      if (lane_status == BLOCK_LANE_PARSINGERROR) {
+        goto parsingerror;
+      }
+      if (lane_status == BLOCK_LANE_LINELIMIT) {
+        goto linelimit;
+      }
+      if (i >= self->datalen) {
+        break;
+      }
+    }
     // next character in file
     c = *buf++;
 
@@ -922,8 +1534,27 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-        // Bulk scan: copy remaining ordinary characters directly,
-        // bypassing the per-char state machine overhead.
+        // SIMD bulk scan: process 16 bytes at a time, copying
+        // normal characters directly without state-machine overhead.
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+        if (!self->delim_whitespace) {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip = fast_scan_simd(buf, remaining, vdelim, vterm, vcr,
+                                         vquote, vescape, vcomment);
+            if (skip > 0) {
+              // in-bounds; see stream reservation at loop start
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#endif
+        // Scalar bulk scan fallback: copy remaining ordinary characters
+        // directly, bypassing the per-char state machine overhead.
         while (i + 1 < self->datalen &&
                !(breaks_field_scan[(uint8_t)*buf] & 0x1)) {
           *stream++ = *buf++;
@@ -950,8 +1581,26 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-        // Bulk scan: copy remaining ordinary characters directly,
-        // bypassing the per-char state machine overhead.
+        // SIMD bulk scan for quoted fields: only quote and escape
+        // chars are special, so use a lighter scan.
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
+        {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip =
+                fast_scan_quoted_simd(buf, remaining, vquote, vescape);
+            if (skip > 0) {
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#endif
+        // Scalar bulk scan fallback: copy remaining ordinary characters
+        // directly, bypassing the per-char state machine overhead.
         while (i + 1 < self->datalen &&
                !(breaks_field_scan[(uint8_t)*buf] & 0x2)) {
           *stream++ = *buf++;
@@ -1079,8 +1728,6 @@ linelimit:
 }
 
 static int parser_handle_eof(parser_t *self) {
-  const size_t bufsize = 100;
-
   if (self->datalen != 0)
     return -1;
 
@@ -1093,14 +1740,12 @@ static int parser_handle_eof(parser_t *self) {
 
   case ESCAPE_IN_QUOTED_FIELD:
   case IN_QUOTED_FIELD:
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "EOF inside string starting at row %" PRIu64, self->file_lines);
+    parser_set_error_msgf(self, "EOF inside string starting at row %" PRIu64,
+                          self->file_lines);
     return -1;
 
   case ESCAPED_CHAR:
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "EOF following escape character");
+    parser_set_error_msg(self, "EOF following escape character");
     return -1;
 
   case IN_FIELD:
@@ -1133,12 +1778,18 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
 
-  /* if word_deletions == 0 (i.e. this case) then char_count must
-   * be 0 too, as no data needs to be skipped */
-  const uint64_t char_count =
-      word_deletions >= 1 ? (self->word_starts[word_deletions - 1] +
-                             strlen(self->words[word_deletions - 1]) + 1)
-                          : 0;
+  uint64_t char_count;
+  if (word_deletions < 1) {
+    /* nothing deleted, so no data needs to be skipped */
+    char_count = 0;
+  } else if ((uint64_t)word_deletions < self->words_len) {
+    /* start of the first surviving word, which equals the end (past the
+     * trailing '\0') of the last deleted word */
+    char_count = (uint64_t)(self->word_ends[word_deletions - 1] + 1);
+  } else {
+    /* every word is being deleted */
+    char_count = self->stream_len;
+  }
 
   /* move stream, only if something to move */
   if (char_count < self->stream_len) {
@@ -1155,13 +1806,11 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   for (uint64_t i = 0; i < self->words_len - word_deletions; ++i) {
     offset = i + word_deletions;
 
-    self->words[i] = self->words[offset] - char_count;
-    self->word_starts[i] = self->word_starts[offset] - char_count;
+    self->word_ends[i] = self->word_ends[offset] - char_count;
   }
   self->words_len -= word_deletions;
 
-  /* move current word pointer to stream */
-  self->pword_start -= char_count;
+  /* move current word start position */
   self->word_start -= char_count;
 
   /* move line metadata */
@@ -1202,41 +1851,27 @@ int parser_trim_buffers(parser_t *self) {
     self->max_words_cap = self->words_cap;
   }
 
-  /* trim words, word_starts */
+  /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
-    self->words = realloc(self->words, new_cap * sizeof(char *));
-    if (self->words == NULL) {
+    // Assigning realloc's result straight to word_ends would leak the old
+    // buffer (and leave the parser with a NULL one) if the shrink fails.
+    void *newptr = realloc(self->word_ends, new_cap * sizeof(int64_t));
+    if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
-    self->word_starts = realloc(self->word_starts, new_cap * sizeof(int64_t));
-    if (self->word_starts == NULL) {
-      return PARSER_OUT_OF_MEMORY;
-    }
+    self->word_ends = (int64_t *)newptr;
     self->words_cap = new_cap;
   }
 
-  /* trim stream */
+  /* trim stream; words are stream offsets, so nothing needs rebasing */
   new_cap = _next_pow2(self->stream_len) + 1;
   if (new_cap < self->stream_cap) {
     void *newptr = realloc(self->stream, new_cap);
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      // Update the pointers in the self->words array (char **) if
-      // `realloc`
-      //  moved the `self->stream` buffer. This block mirrors a similar
-      //  block in
-      //  `make_stream_space`.
-      if (self->stream != newptr) {
-        self->pword_start = (char *)newptr + self->word_start;
-
-        for (uint64_t i = 0; i < self->words_len; ++i) {
-          self->words[i] = (char *)newptr + self->word_starts[i];
-        }
-      }
-
-      self->stream = newptr;
+      self->stream = (char *)newptr;
       self->stream_cap = new_cap;
     }
   }
@@ -1248,13 +1883,13 @@ int parser_trim_buffers(parser_t *self) {
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      self->line_start = newptr;
+      self->line_start = (int64_t *)newptr;
     }
     newptr = realloc(self->line_fields, new_cap * sizeof(int64_t));
     if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     } else {
-      self->line_fields = newptr;
+      self->line_fields = (int64_t *)newptr;
       self->lines_cap = new_cap;
     }
   }
@@ -1281,6 +1916,16 @@ static int _tokenize_helper(parser_t *self, uint64_t nrows, int all,
       break;
 
     if (self->datapos == self->datalen) {
+      if (self->source == NULL) {
+        /* Pre-loaded buffer mode: the entire chunk has been consumed.
+         * Signal EOF without invoking the Python I/O callback so the
+         * GIL is never re-acquired during tokenisation. */
+        self->datalen = 0;
+        status = parser_handle_eof(self);
+        self->state = FINISHED;
+        break;
+      }
+
       status = parser_buffer_bytes(self, self->chunksize, encoding_errors);
 
       if (status == REACHED_EOF) {
@@ -1319,24 +1964,42 @@ int tokenize_all_rows(parser_t *self, const char *encoding_errors) {
  *
  * Validate if item should be recognized as a boolean field.
  *
- * item: const char* representing parsed text
- * val : pointer to a uint8_t of boolean representation
+ * item  : const char* representing parsed text
+ * length: byte length of item, which may contain an embedded NUL
+ * val   : pointer to a uint8_t of boolean representation
  *
  * If item is determined to be boolean, this method will set
  * the appropriate value of val and return 0. A non-zero exit
  * status means that item was not inferred to be boolean, and
  * leaves the value of *val unmodified.
  */
-int to_boolean(const char *item, uint8_t *val) {
-  if (strcasecmp(item, "TRUE") == 0) {
+int to_boolean(const char *item, int64_t length, uint8_t *val) {
+  if (length == 4 && strncasecmp(item, "TRUE", 4) == 0) {
     *val = 1;
     return 0;
-  } else if (strcasecmp(item, "FALSE") == 0) {
+  } else if (length == 5 && strncasecmp(item, "FALSE", 5) == 0) {
     *val = 0;
     return 0;
   }
 
   return -1;
+}
+
+int infinity_sign(const char *item, int64_t length) {
+  int sign = 1;
+
+  if (length > 0 && (*item == '+' || *item == '-')) {
+    sign = *item == '-' ? -1 : 1;
+    ++item;
+    --length;
+  }
+
+  if ((length == 3 && strncasecmp(item, "inf", 3) == 0) ||
+      (length == 8 && strncasecmp(item, "infinity", 8) == 0)) {
+    return sign;
+  }
+
+  return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -1378,14 +2041,15 @@ int to_boolean(const char *item, uint8_t *val) {
 //
 // -----------------------------------------------------------------------
 
-// Defined in fast_float_strtod.cpp — provides IEEE 754 correctly-rounded
+// Defined in fast_float_wrappers.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
-int fast_float_strtod(const char *start, const char *end, double *value,
-                      const char **endptr, char decimal);
+extern "C" int fast_float_strtod(const char *start, const char *end,
+                                 double *value, const char **endptr,
+                                 char decimal);
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error,
-                       int *maybe_int) {
+double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
+                                char sci, char tsep, int skip_trailing,
+                                int *error, int *maybe_int, const char *end) {
   // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
   if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
@@ -1402,10 +2066,15 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL).
-    const char *end = p;
-    while (*end && !isspace_ascii(*end))
-      end++;
+    // Find end of token (next whitespace or NUL) unless the caller passed
+    // it; fast_float stops at the first non-numeric byte regardless, so a
+    // looser end bound is harmless.
+    if (end == NULL) {
+      const char *scan = p;
+      while (*scan && !isspace_ascii(*scan))
+        scan++;
+      end = scan;
+    }
 
     double value;
     const char *parsed_end;
@@ -1590,6 +2259,13 @@ fallback:
   return number;
 }
 
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
+  return precise_xstrtod_with_end(str, endptr, decimal, sci, tsep,
+                                  skip_trailing, error, maybe_int, NULL);
+}
+
 // End of xstrtod code
 // ---------------------------------------------------------------------------
 
@@ -1604,9 +2280,14 @@ int uint64_conflict(uint_state *self) {
 }
 
 /* Copy a numeric token without `tsep` into `output`.
+ *
+ * Returns the number of bytes written (excluding NUL), or -1 on overflow.
+ * `*endptr` is set to the position in `str` where copying stopped (the first
+ * non-digit / non-tsep char or the end of input) so the caller can detect
+ * trailing garbage like "1 ," (GH#64631).
  */
 static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, char **endptr,
+                                    const char *str, const char **endptr,
                                     size_t str_len, char tsep) {
   const char *p = str;
   const char *end = str + str_len;
@@ -1628,63 +2309,133 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
 
   output[bytes_written] = '\0';
   if (endptr != NULL) {
-    *endptr = (char *)p;
+    *endptr = p;
   }
-  return 0;
+  return (int)bytes_written;
 }
 
-int64_t str_to_int64(const char *p_item, int *error, char tsep) {
+/* Fast path for the common case: an optional sign followed by 1-18 digits
+ * filling the whole token. 18 digits cannot overflow int64, and a pure-digit
+ * span can contain no spaces or trailing junk — and no thousands separator
+ * either, except in the degenerate (but accepted) case where tsep is itself
+ * a digit, which therefore disqualifies the fast path. Digit validation and
+ * parsing use fast_float's 8-digits-at-a-time helpers, which inline here and
+ * skip the leading-zero and overflow bookkeeping that makes the general
+ * from_chars parse slower on short tokens. Returns nullopt on any
+ * disqualifier so the caller falls through to the general path. */
+static std::optional<int64_t> swar_try_parse_int64(std::string_view item,
+                                                   char tsep) {
+  if (item.empty() || isdigit_ascii(tsep)) {
+    return std::nullopt;
+  }
+  const bool neg = item.front() == '-';
+  if (neg || item.front() == '+') {
+    item.remove_prefix(1);
+  }
+  if (item.empty() || item.size() > 18) {
+    return std::nullopt;
+  }
+  uint64_t acc = 0;
+  while (item.size() >= 8) {
+    const uint64_t block = fast_float::read8_to_u64(item.data());
+    if (!fast_float::is_made_of_eight_digits_fast(block)) {
+      return std::nullopt;
+    }
+    acc = acc * 100000000ULL + fast_float::parse_eight_digits_unrolled(block);
+    item.remove_prefix(8);
+  }
+  for (const char chr : item) {
+    const unsigned char digit = static_cast<unsigned char>(chr - '0');
+    if (digit > 9) {
+      return std::nullopt;
+    }
+    acc = acc * 10 + digit;
+  }
+  const auto magnitude = static_cast<int64_t>(acc);
+  return neg ? -magnitude : magnitude;
+}
+
+int64_t str_to_int64(const char *p_item, int64_t length, int *error,
+                     char tsep) {
+  // length < 0 means "not precomputed" (the general path strlens below); the
+  // fast path needs a known span.
+  if (length > 0) {
+    const std::string_view item{p_item, static_cast<size_t>(length)};
+    if (const auto parsed = swar_try_parse_int64(item, tsep)) {
+      *error = 0;
+      return *parsed;
+    }
+  }
+
   const char *p = p_item;
-  char *number_end = NULL;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
   }
 
-  // Handle sign.
+  // Handle sign. fast_float::from_chars accepts '-' but rejects '+', so strip
+  // '+' after verifying the following char is a digit (not another sign).
   const bool has_sign = *p == '-' || *p == '+';
-  // Handle sign.
   const char *digit_start = has_sign ? p + 1 : p;
-
-  // Check that there is a first digit.
   if (!isdigit_ascii(*digit_start)) {
-    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
+  if (*p == '+') {
+    ++p;
+  }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
+  // The token may contain an embedded NUL, so completion is "reached this
+  // pointer", not "reached a NUL" (GH#66524).
+  const char *const token_end = p + str_len;
+  const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status =
+    const int written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (status != 0) {
+    if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
+    str_len = (size_t)written;
   }
 
-  char *endptr;
-  int64_t number = strtoll(p, &endptr, 10);
+  int64_t number;
+  // On result_out_of_range, from_chars still leaves ptr past the final digit,
+  // so the caller can tell a pure overflow from one with trailing junk.
+  const auto result = fast_float::from_chars(p, p + str_len, number, 10);
+  const char *endptr = result.ptr;
   if (number_end != NULL) {
+    // GH#64631: detect trailing junk in the original input that
+    // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=','). Its
+    // endptr indexes the original token, so it shares token_end.
     endptr = number_end;
   }
-
-  if (errno == ERANGE) {
-    *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
-    errno = 0;
+  if (result.ec == std::errc::result_out_of_range) {
+    // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
+    // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
+    // at the end) → OVERFLOW (caller retries as uint64).
+    *error = endptr != token_end ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
+    return 0;
+  }
+  if (result.ec != std::errc()) {
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
   // Skip trailing spaces.
-  while (isspace_ascii(*endptr)) {
+  while (endptr < token_end && isspace_ascii(*endptr)) {
     ++endptr;
   }
 
   // Did we use up all the characters?
-  if (*endptr) {
+  if (endptr != token_end) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
@@ -1693,10 +2444,9 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
-                       char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep) {
   const char *p = p_item;
-  char *number_end = NULL;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
@@ -1713,43 +2463,53 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
 
   // Check that there is a first digit.
   if (!isdigit_ascii(*p)) {
-    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
+  // See str_to_int64: completion is "reached token_end", not "reached a NUL".
+  const char *const token_end = p + str_len;
+  const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status =
+    const int written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (status != 0) {
+    if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
+    str_len = (size_t)written;
   }
 
-  char *endptr;
-  uint64_t number = strtoull(p, &endptr, 10);
+  uint64_t number;
+  const auto result = fast_float::from_chars(p, p + str_len, number, 10);
+  const char *endptr = result.ptr;
   if (number_end != NULL) {
+    // GH#64631: detect trailing junk in the original input.
     endptr = number_end;
   }
-
-  if (errno == ERANGE) {
-    *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
-    errno = 0;
+  if (result.ec == std::errc::result_out_of_range) {
+    *error = endptr != token_end ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
+    return 0;
+  }
+  if (result.ec != std::errc()) {
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
   // Skip trailing spaces.
-  while (isspace_ascii(*endptr)) {
+  while (endptr < token_end && isspace_ascii(*endptr)) {
     ++endptr;
   }
 
   // Did we use up all the characters?
-  if (*endptr) {
+  if (endptr != token_end) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }

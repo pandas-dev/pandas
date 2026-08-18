@@ -981,13 +981,14 @@ def test_resample_empty():
         )
     )
     expected = DataFrame(
-        index=pd.to_datetime(
+        index=pd.DatetimeIndex(
             [
                 "2018-01-01 00:00:00",
                 "2018-01-01 08:00:00",
                 "2018-01-01 16:00:00",
                 "2018-01-02 00:00:00",
-            ]
+            ],
+            freq="8h",
         )
     )
     result = df.resample("8h").mean()

@@ -144,7 +144,7 @@ def _align_core(terms):
                 obj = ti.reindex(reindexer, axis=axis)
                 terms[i].update(obj)
 
-        terms[i].update(terms[i].value.values)
+        terms[i].update(terms[i].value._values)
 
     return typ, _zip_axes_from_type(typ, axes)
 

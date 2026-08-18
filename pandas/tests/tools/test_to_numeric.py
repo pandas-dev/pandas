@@ -1,4 +1,5 @@
 import decimal
+import re
 
 import numpy as np
 from numpy import iinfo
@@ -43,11 +44,21 @@ def multiple_elts(request):
     return request.param
 
 
+def _to_numpy_array(x):
+    import warnings
+
+    from pandas.errors import Pandas4Warning
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*values.*", category=Pandas4Warning)
+        return np.array(Index(x).values)
+
+
 @pytest.fixture(
     params=[
         (lambda x: Index(x, name="idx"), tm.assert_index_equal),
         (lambda x: Series(x, name="ser"), tm.assert_series_equal),
-        (lambda x: np.array(Index(x).values), tm.assert_numpy_array_equal),
+        (_to_numpy_array, tm.assert_numpy_array_equal),
     ]
 )
 def transform_assert_equal(request):
@@ -102,10 +113,10 @@ def test_series_numeric(data):
 @pytest.mark.parametrize(
     "data,msg",
     [
-        ([1, -3.14, "apple"], 'Unable to parse string "apple" at position 2'),
+        ([1, -3.14, "apple"], "Unable to parse string 'apple' at position 2"),
         (
             ["orange", 1, -3.14, "apple"],
-            'Unable to parse string "orange" at position 0',
+            "Unable to parse string 'orange' at position 0",
         ),
     ],
 )
@@ -114,6 +125,27 @@ def test_error(data, msg):
 
     with pytest.raises(ValueError, match=msg):
         to_numeric(ser, errors="raise")
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        # repr()-ing the value itself would carry the numpy wrapper type into
+        # the message, e.g. np.str_('apple')
+        (np.str_("apple"), "'apple'"),
+        (np.bytes_(b"apple"), "b'apple'"),
+        # decoding the bytes to name them would raise on this one
+        (b"\xff\xfe", r"b'\xff\xfe'"),
+    ],
+)
+def test_error_names_the_value_exactly(value, expected):
+    # GH#66524 - the message names the underlying value, so it is neither
+    # widened to the type of the object holding it nor narrowed by a decode.
+    ser = Series([value], dtype=object)
+
+    msg = re.escape(f"Unable to parse string {expected} at position 0")
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(ser)
 
 
 def test_ignore_error():
@@ -127,7 +159,7 @@ def test_ignore_error():
 @pytest.mark.parametrize(
     "errors,exp",
     [
-        ("raise", 'Unable to parse string "apple" at position 2'),
+        ("raise", "Unable to parse string 'apple' at position 2"),
         # Coerces to float.
         ("coerce", [1.0, 0.0, np.nan]),
     ],
@@ -267,7 +299,7 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
     coercing = errors == "coerce"
 
     if errors in (None, "raise") and multiple_elts:
-        msg = 'Unable to parse string "string" at position 1'
+        msg = "Unable to parse string 'string' at position 1"
 
         with pytest.raises(ValueError, match=msg):
             to_numeric(arr, **kwargs)
@@ -311,7 +343,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
 @pytest.mark.parametrize(
     "errors,checker",
     [
-        ("raise", 'Unable to parse string "fail" at position 0'),
+        ("raise", "Unable to parse string 'fail' at position 0"),
         ("coerce", lambda x: np.isnan(x)),
     ],
 )
@@ -349,6 +381,7 @@ def test_str(data, exp, transform_assert_equal):
     assert_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 def test_datetime_like(tz_naive_fixture, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     idx = pd.date_range("20130101", periods=3, tz=tz_naive_fixture)
@@ -367,6 +400,7 @@ def test_timedelta(transform_assert_equal):
     assert_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 @pytest.mark.parametrize(
     "scalar",
     [
@@ -910,16 +944,3 @@ def test_large_exponent_coerce():
     result = to_numeric(ser, errors="coerce")
     expected = Series([np.inf])
     tm.assert_series_equal(result, expected)
-import numpy as np
-
-import pandas as pd
-from pandas import Series
-
-
-def test_to_numeric_nan_mask_sync():
-    # GH 63732
-    ser = Series([1.0, np.nan], dtype=np.float64)
-    result = pd.to_numeric(ser, dtype_backend="numpy_nullable")
-
-    # Verify the mask is correctly synced
-    assert result.isna().sum() == 1

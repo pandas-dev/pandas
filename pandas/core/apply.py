@@ -31,7 +31,11 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -73,11 +77,44 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
+    from pandas.core.arrays import (
+        ArrowExtensionArray,
+        BaseMaskedArray,
+        ExtensionArray,
+    )
     from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
 ResType: TypeAlias = dict[int, Any]
+
+# DataFrame methods that reduce column-wise to a Series indexed by the
+# columns, making them eligible for the fast path in
+# FrameApply._agg_list_like_frame_reductions.
+_frame_reduction_names = frozenset(
+    {
+        "all",
+        "any",
+        "count",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurtosis",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "nunique",
+        "prod",
+        "product",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    }
+)
 
 
 @set_module("pandas.api.executors")
@@ -1055,8 +1092,7 @@ class FrameApply(NDFrameApply):
         Operates per dtype group to preserve per-column dtypes.
 
         Returns None if the fast path cannot be used (e.g. non-string
-        functions, functions that aren't valid DataFrame methods, or
-        functions that don't return a reduction result).
+        functions or functions that aren't known column-wise reductions).
         """
         func = cast("list[AggFuncTypeBase]", self.func)
 
@@ -1071,7 +1107,11 @@ class FrameApply(NDFrameApply):
             return None
 
         for func_name in func_names:
-            if not hasattr(obj, func_name):
+            if func_name not in _frame_reduction_names:
+                # GH#65031 anything that isn't a known column-wise reduction
+                # (e.g. value_counts, duplicated) must use the per-column
+                # fallback; a Series-returning method could otherwise slip
+                # through the shape checks below and give wrong results.
                 return None
 
         if self.kwargs.get("numeric_only"):
@@ -1095,7 +1135,13 @@ class FrameApply(NDFrameApply):
                 except TypeError:
                     return None
                 if not isinstance(row, ABCSeries):
-                    # Not a reduction (e.g. returns DataFrame), fall back
+                    # Not a reduction result for these args (e.g. quantile
+                    # with a list q returns a DataFrame); fall back
+                    return None
+                if not row.index.equals(sub.columns):
+                    # Backstop: a genuine column-wise reduction is indexed
+                    # by the columns; anything else would silently misalign
+                    # in the concat below.
                     return None
                 # to_frame().T avoids the slow DataFrame(list-of-Series) path
                 group_pieces.append(row.to_frame(func_name).T)
@@ -1425,11 +1471,27 @@ class FrameColumnApply(FrameApply):
         is_view = mgr.blocks[0].refs.has_reference()
 
         if isinstance(ser.dtype, ExtensionDtype):
-            # values will be incorrect for this block
-            # TODO(EA2D): special case would be unnecessary with 2D EAs
+            # GH#61747 - Pre-extract column arrays and reuse a template
+            # Series to avoid the per-row block traversal and
+            # Series/manager construction overhead in fast_xs.
             obj = self.obj
-            for i in range(len(obj)):
-                yield obj._ixs(i, axis=0)
+            col_arrays = [obj._get_column_array(i) for i in range(len(obj.columns))]
+            dtype = ser.dtype
+            cls = dtype.construct_array_type()
+            mgr = ser._mgr
+
+            build_row = self._make_ea_row_builder(col_arrays, dtype, cls)
+
+            blk = mgr.blocks[0]
+            for row_idx in range(len(obj)):
+                ser._mgr = mgr
+                mgr.set_values(build_row(row_idx))
+                # EABackedBlock.array_values is @cache_readonly;
+                # clear it so Series.array sees the new values.
+                blk._cache.pop("array_values", None)
+                object.__setattr__(ser, "_name", obj.index[row_idx])
+                blk.refs = BlockValuesRefs(blk)
+                yield ser
 
         else:
             values = self.values
@@ -1449,6 +1511,51 @@ class FrameColumnApply(FrameApply):
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
+
+    @staticmethod
+    def _make_ea_row_builder(
+        col_arrays: list, dtype: ExtensionDtype, cls: type[ExtensionArray]
+    ) -> Callable[[int], ExtensionArray]:
+        """Build a callable that constructs an EA row for a given row index.
+
+        Special-cases BaseMaskedArray and ArrowExtensionArray to avoid the
+        overhead of _from_sequence per row. The fast paths require all columns
+        to share ``dtype``; mixed-dtype frames fall through to the generic
+        ``_from_sequence`` path (GH#65097).
+        """
+        homogeneous = all(col_arr.dtype == dtype for col_arr in col_arrays)
+
+        if homogeneous and isinstance(dtype, BaseMaskedDtype):
+            col_data = [col_arr._data for col_arr in col_arrays]
+            col_masks = [col_arr._mask for col_arr in col_arrays]
+            np_dtype = dtype.numpy_dtype
+            masked_cls = cast("type[BaseMaskedArray]", cls)
+
+            def build_row(row_idx: int) -> ExtensionArray:
+                data = np.array([cd[row_idx] for cd in col_data], dtype=np_dtype)
+                mask = np.array([cm[row_idx] for cm in col_masks], dtype=np.bool_)
+                return masked_cls._simple_new(data, mask)
+
+        elif homogeneous and isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
+            pa_arrays = [col_arr._pa_array for col_arr in col_arrays]
+            pa_type = dtype.pyarrow_dtype
+            arrow_cls = cast("type[ArrowExtensionArray]", cls)
+
+            def build_row(row_idx: int) -> ExtensionArray:
+                pa_scalars = [pa_col[row_idx] for pa_col in pa_arrays]
+                return arrow_cls(pa.array(pa_scalars, type=pa_type))
+
+        else:
+
+            def build_row(row_idx: int) -> ExtensionArray:
+                row_data = np.array(
+                    [col_arr[row_idx] for col_arr in col_arrays], dtype=object
+                )
+                return cls._from_sequence(row_data, dtype=dtype)
+
+        return build_row
 
     @staticmethod
     @functools.cache

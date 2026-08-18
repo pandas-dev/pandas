@@ -188,6 +188,16 @@ class TestDataFrameClip:
         expected = DataFrame({"a": [1.5, 2.0, 3.0]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("bound", [1e-8, 1e-15])
+    def test_clip_int_data_with_tiny_float_bound(self, bound):
+        # GH#25066 clipping int data with a tiny float bound (1e-8 lands exactly
+        # on the old downcast atol) must keep the float values, not round them
+        # back to int
+        df = DataFrame({"a": [0, 1, 0, 1]})
+        result = df.clip(bound, 1)
+        expected = DataFrame({"a": [bound, 1.0, bound, 1.0]})
+        tm.assert_frame_equal(result, expected)
+
     def test_clip_with_list_bound(self):
         # GH#54817
         df = DataFrame([1, 5])

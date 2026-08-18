@@ -227,7 +227,7 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
 
     Parameters
     ----------
-    obj: ndarray or ExtensionArray
+    values : ndarray or ExtensionArray
         The input array whose elements are to be checked.
 
     Returns
@@ -484,13 +484,15 @@ def array_equivalent(
 
 
 def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
-    if left.dtype.kind == "c":
-        if not (left.flags.c_contiguous and right.flags.c_contiguous):
-            return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
-        # View complex as float pairs (complex128 -> float64, complex64 -> float32)
-        float_dtype = np.finfo(left.dtype).dtype
-        left = left.view(float_dtype)
-        right = right.view(float_dtype)
+    # lib.array_equivalent_float only accepts native float32/float64. Complex is
+    # compared with numpy: viewing it to float pairs would test the real and
+    # imaginary parts independently, breaking whole-element NA semantics -- a
+    # complex value is NA if either part is NaN (GH#66160). float16, longdouble,
+    # and byte-swapped floats also fall back to numpy (GH#65192).
+    if left.dtype.kind == "c" or not (
+        left.dtype.isnative and left.dtype.itemsize in (4, 8)
+    ):
+        return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
     if left.ndim > 1:
         if left.flags.f_contiguous and right.flags.f_contiguous:
             # .T is a C-contiguous view of an F-contiguous array

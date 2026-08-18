@@ -5,13 +5,17 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from typing import Literal
+from typing import (
+    Any,
+    Literal,
+)
 
 import numpy as np
 
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
     ReadCsvBuffer,
     UsecolsArgType,
     npt,
@@ -25,11 +29,20 @@ def sanitize_objects(
     na_values: set[Hashable],
 ) -> int: ...
 
+class _PendingStringColumn:
+    @property
+    def dtype(self) -> DtypeObj: ...
+    def __len__(self) -> int: ...
+    def materialize(self) -> Any: ...  # -> pyarrow.Array
+
 class TextReader:
     unnamed_cols: set[str]
     table_width: int  # int64_t
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
+    defer_pa_wrap: bool
+    trim_after_read: bool
+    warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(
         self,
         source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],
@@ -71,7 +84,11 @@ class TextReader:
     ) -> None: ...
     def set_noconvert(self, i: int) -> None: ...
     def remove_noconvert(self, i: int) -> None: ...
+    def set_datetime_convert(
+        self, i: int, require_consistent_format: bool = ...
+    ) -> None: ...
     def close(self) -> None: ...
+    def load_buffer(self, data: bytes | memoryview, strip_bom: bool = ...) -> None: ...
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
     def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...
 

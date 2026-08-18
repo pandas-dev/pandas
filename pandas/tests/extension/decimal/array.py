@@ -257,7 +257,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
-        if skipna and self.isna().any():
+        if name == "count":
+            result = self.count()
+        elif skipna and self.isna().any():
             # If we don't have any NAs, we can ignore skipna
             other = self[~self.isna()]
             result = other._reduce(name, **kwargs)

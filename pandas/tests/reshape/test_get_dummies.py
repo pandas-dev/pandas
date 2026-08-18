@@ -739,3 +739,49 @@ class TestGetDummies:
         )
         result = get_dummies(df)
         tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_get_dummies_arrow_object_fallback_dtype(self):
+        # GH#66091: Arrow types whose numpy fallback is object (binary,
+        # decimal, time32/time64, ...) are encoded by default, matching the
+        # pre-decoupling select_dtypes(include="object") behavior.
+        df = DataFrame(
+            {"name": Series([b"a", b"b", b"a"], dtype=ArrowDtype(pa.binary())), "x": 1}
+        )
+        result = get_dummies(df)
+        expected = DataFrame(
+            {
+                "x": 1,
+                "name_b'a'": Series([True, False, True], dtype="bool[pyarrow]"),
+                "name_b'b'": Series([False, True, False], dtype="bool[pyarrow]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_get_dummies_arrow_object_fallback_encoded(self):
+        # GH#66091: further Arrow subtypes with an object numpy fallback are
+        # also encoded rather than silently passed through.
+        pa_types = [
+            pa.large_binary(),
+            pa.binary(3),
+            pa.decimal128(5, 2),
+            pa.time32("s"),
+            pa.time64("us"),
+        ]
+        for pa_type in pa_types:
+            values = pa.array([None, None, None], type=pa_type)
+            df = DataFrame({"name": Series(values, dtype=ArrowDtype(pa_type)), "x": 1})
+            result = get_dummies(df, dummy_na=True)
+            # the object-fallback column is encoded, not passed through
+            assert "name" not in result.columns
+            dummy_cols = [col for col in result.columns if str(col).startswith("name_")]
+            assert dummy_cols
+            assert all(result[col].dtype == "bool[pyarrow]" for col in dummy_cols)
+
+    def test_get_dummies_preserves_attrs_no_encodable_columns(self):
+        # GH#66091: attrs must be preserved when there are no columns to encode
+        df = DataFrame({"C": [1, 2, 3], "D": [4.0, 5.0, 6.0]})
+        df.attrs = {"hello": "world"}
+        result = get_dummies(df)
+        assert result.attrs == {"hello": "world"}

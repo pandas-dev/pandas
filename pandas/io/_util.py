@@ -87,7 +87,7 @@ def arrow_table_to_pandas(
 
     to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
 
-    types_mapper: type[pd.ArrowDtype] | None | Callable
+    types_mapper: type[pd.ArrowDtype] | Callable | None
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
         if null_to_int64:
@@ -260,7 +260,7 @@ def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
         return tz
 
     if timezones.is_utc(tz):
-        return dt.timezone.utc
+        return dt.UTC
 
     if tz.zone is not None:  # type: ignore[attr-defined]
         try:

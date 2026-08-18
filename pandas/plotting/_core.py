@@ -811,8 +811,14 @@ class PlotAccessor(PandasObject):
         - 'pie' : pie plot
         - 'scatter' : scatter plot (DataFrame only)
         - 'hexbin' : hexbin plot (DataFrame only)
+    by : str or sequence of str, optional
+        Column label(s) in the DataFrame to group by. Only used if
+        ``kind="hist"`` or ``kind="box"``; ignored for other kinds.
+        See :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box`.
     ax : matplotlib axes object, default None
-        An axes of the current figure.
+        The axes to plot on. If None, ``Series.plot`` draws on the
+        current axes (``matplotlib.pyplot.gca()``) when a figure already
+        exists, while ``DataFrame.plot`` always creates a new figure.
     subplots : bool or sequence of iterables, default False
         Whether to group columns into subplots:
 
@@ -1144,8 +1150,14 @@ class PlotAccessor(PandasObject):
             - 'pie' : pie plot
             - 'scatter' : scatter plot (DataFrame only)
             - 'hexbin' : hexbin plot (DataFrame only)
+        by : str or sequence of str, optional
+            Column label(s) in the DataFrame to group by. Only used if
+            ``kind="hist"`` or ``kind="box"``; ignored for other kinds.
+            See :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box`.
         ax : matplotlib axes object, default None
-            An axes of the current figure.
+            The axes to plot on. If None, ``Series.plot`` draws on the
+            current axes (``matplotlib.pyplot.gca()``) when a figure already
+            exists, while ``DataFrame.plot`` always creates a new figure.
         subplots : bool or sequence of iterables, default False
             Whether to group columns into subplots:
 
@@ -1451,7 +1463,12 @@ class PlotAccessor(PandasObject):
 
         **kwargs
             Additional keyword arguments are documented in
-            :meth:`DataFrame.plot`.
+            :meth:`DataFrame.plot`. In addition, passing ``x_compat=True``
+            suppresses pandas' automatic tick resolution adjustment for
+            regular frequency time-series data in favor of the default
+            matplotlib tick locators and formatters. See
+            :ref:`Suppressing tick resolution adjustment
+            <plotting.x_compat>` for more.
 
         Returns
         -------
@@ -1575,6 +1592,14 @@ class PlotAccessor(PandasObject):
         DataFrame.plot.barh : Horizontal bar plot.
         DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
+
+        Notes
+        -----
+        A bar plot draws one tick label per bar, i.e. one per row of the data.
+        This differs from a line plot, where the axis uses an automatic locator
+        that shows only a subset of evenly spaced ticks. With many bars the
+        labels may therefore overlap; set the tick positions and labels manually
+        (e.g. via ``ax.set_xticks``) if a sparser axis is desired.
 
         Examples
         --------
@@ -2318,6 +2343,10 @@ class PlotAccessor(PandasObject):
             Alternatively, gridsize can be a tuple with two elements
             specifying the number of hexagons in the x-direction and the
             y-direction.
+            The hexagons tile only the extent of the data, so for a fixed
+            gridsize their apparent size varies with the range of the data
+            and the axis limits. To control the area covered by the
+            hexagons, pass matplotlib's ``extent`` keyword via ``**kwargs``.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -2419,9 +2448,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)
     else:
-        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
-        # expected "EntryPoints"  [arg-type]
-        entry = eps.get(key, ())  # type: ignore[arg-type]
+        entry = eps.get(key, ())  # type: ignore[attr-defined]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

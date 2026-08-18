@@ -127,7 +127,7 @@ class TablePlotter:
                 data = data.to_frame(name="")
             else:
                 data = data.to_frame()
-        data = data.fillna("NaN")
+        data = data.astype(object).fillna("NaN")
         return data
 
     def _insert_index(self, data: pd.DataFrame) -> pd.DataFrame:

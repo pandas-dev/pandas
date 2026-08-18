@@ -181,10 +181,19 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise a ValueError if there are ambiguous times.
+
+        .. deprecated:: 3.1.0
+            Use :meth:`DatetimeIndex.tz_localize` instead.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
+
+        .. deprecated:: 3.1.0
+            Use :func:`to_datetime` instead.
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
+
+        .. deprecated:: 3.1.0
+            Use :func:`to_datetime` instead.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
         Note that the only NumPy dtypes allowed are 'datetime64[ns]',
         'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
@@ -496,9 +505,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        arr = self._data.normalize()
+        data = self._data
+        # Inferring frequency from naive normalization is significantly
+        # cheaper than tz-aware.
+        naive = data._normalize_naive()
+        freq = to_offset(naive._inferred_freq_str)
+        arr = naive.tz_localize(data.tz) if data.tz is not None else naive
         result = type(self)._simple_new(arr, name=self.name)
-        result._freq = to_offset(arr.inferred_freq)
+        result._freq = freq
         return result
 
     def tz_convert(self, tz) -> Self:
@@ -717,7 +731,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
@@ -745,9 +759,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        freq : str or Period, optional
-            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
-            or a Period object. Will be inferred by default.
+        freq : str, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`.
+            Will be inferred by default.
 
         Returns
         -------
@@ -801,7 +815,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 freq = PeriodDtype(dt_freq)._freqstr
 
             if freq is None:
-                freq = self.inferred_freq
+                freq = self._inferred_freq_str
 
             if freq is not None:
                 res = get_period_alias(freq)
@@ -877,15 +891,46 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
         tz=lib.no_default,
-        ambiguous: TimeAmbiguous = "raise",
-        dayfirst: bool = False,
-        yearfirst: bool = False,
+        ambiguous: TimeAmbiguous | lib.NoDefault = lib.no_default,
+        dayfirst: bool | lib.NoDefault = lib.no_default,
+        yearfirst: bool | lib.NoDefault = lib.no_default,
         dtype: Dtype | None = None,
         copy: bool | None = None,
         name: Hashable | None = None,
     ) -> Self:
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
+
+        if dayfirst is lib.no_default:
+            dayfirst = False
+        else:
+            warnings.warn(
+                f"The 'dayfirst' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
+                "Use pd.to_datetime instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if yearfirst is lib.no_default:
+            yearfirst = False
+        else:
+            warnings.warn(
+                f"The 'yearfirst' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
+                "Use pd.to_datetime instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if ambiguous is lib.no_default:
+            ambiguous = "raise"
+        else:
+            warnings.warn(
+                f"The 'ambiguous' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
+                f"Use {cls.__name__}.tz_localize instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -923,7 +968,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
-        subarr._pin_freq(freq, inferred_freq, {"ambiguous": ambiguous})
+        subarr._pin_freq(freq, inferred_freq)
         return subarr
 
     # --------------------------------------------------------------------

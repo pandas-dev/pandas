@@ -6,7 +6,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.pyarrow import pa_version_under14p0
 
 from pandas import (
     DataFrame,
@@ -22,6 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
+from pandas.util.version import Version
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -107,6 +107,9 @@ def test_to_csv(cleared_fs, df1):
     tm.assert_frame_equal(df2, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 def test_to_excel(cleared_fs, df1):
     pytest.importorskip("openpyxl")
     ext = "xlsx"
@@ -165,6 +168,9 @@ def test_read_table_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 def test_excel_options(fsspectest):
     pytest.importorskip("openpyxl")
     extension = "xlsx"
@@ -179,16 +185,21 @@ def test_excel_options(fsspectest):
     assert fsspectest.test[0] == "read"
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and HAS_PYARROW and not pa_version_under14p0,
-    reason="TODO(infer_string) fastparquet",
-)
 @pytest.mark.filterwarnings(
     "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
 )
-def test_to_parquet_new_file(cleared_fs, df1):
+def test_to_parquet_new_file(cleared_fs, df1, request):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    pytest.importorskip("fastparquet")
+    fp = pytest.importorskip("fastparquet")
+
+    request.applymarker(
+        pytest.mark.xfail(
+            using_string_dtype()
+            and HAS_PYARROW
+            and Version(fp.__version__) < Version("2026.5.0"),
+            reason="TODO(infer_string) fastparquet",
+        )
+    )
 
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
