@@ -2025,40 +2025,40 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 other_nanos = other.nanosecond
                 other = other.to_pydatetime(warn=False)
 
-        if len(self.kwds) > 0:
-            tzinfo = getattr(other, "tzinfo", None)
-            if tzinfo is not None and self._use_relativedelta:
-                # perform calculation in UTC
-                other = other.replace(tzinfo=None)
+        # GH#61870 Do not shortcut the empty-kwds case: a bare DateOffset(n)
+        #  carries its n-days default in self._offset, and adding that outside
+        #  the tz round-trip below left pytz results on the stale UTC offset.
+        tzinfo = getattr(other, "tzinfo", None)
+        if tzinfo is not None and self._use_relativedelta:
+            # perform calculation in UTC
+            other = other.replace(tzinfo=None)
 
-            other = other + (self._offset * self._n)
+        other = other + (self._offset * self._n)
 
-            if hasattr(self, "nanoseconds"):
-                other = self._n * Timedelta(nanoseconds=self.nanoseconds) + other
-            if other_nanos != 0:
-                other = Timedelta(nanoseconds=other_nanos) + other
+        if hasattr(self, "nanoseconds"):
+            other = self._n * Timedelta(nanoseconds=self.nanoseconds) + other
+        if other_nanos != 0:
+            other = Timedelta(nanoseconds=other_nanos) + other
 
-            if tzinfo is not None and self._use_relativedelta:
-                # bring tz back from UTC calculation
-                other = localize_pydatetime(other, tzinfo)
+        if tzinfo is not None and self._use_relativedelta:
+            # bring tz back from UTC calculation
+            other = localize_pydatetime(other, tzinfo)
 
-            result = Timestamp(other)
-            # GH#64806 The computation above uses Python timedelta /
-            # relativedelta, which floor sub-second components to microseconds
-            # and lose the offset's declared resolution (e.g. milliseconds).
-            # Coerce to that resolution when lossless so the scalar result
-            # matches the vectorized DatetimeIndex/Series path; apply_wraps
-            # then narrows back to ``other``'s unit where that is also lossless.
-            try:
-                offset_unit = self._pd_timedelta.unit
-            except NotImplementedError:
-                return result
-            result2 = result.as_unit(offset_unit)
-            if result == result2:
-                result = result2
+        result = Timestamp(other)
+        # GH#64806 The computation above uses Python timedelta /
+        # relativedelta, which floor sub-second components to microseconds
+        # and lose the offset's declared resolution (e.g. milliseconds).
+        # Coerce to that resolution when lossless so the scalar result
+        # matches the vectorized DatetimeIndex/Series path; apply_wraps
+        # then narrows back to ``other``'s unit where that is also lossless.
+        try:
+            offset_unit = self._pd_timedelta.unit
+        except NotImplementedError:
             return result
-        else:
-            return other + timedelta(self._n)
+        result2 = result.as_unit(offset_unit)
+        if result == result2:
+            result = result2
+        return result
 
     @cache_readonly
     def _pd_timedelta(self) -> Timedelta:

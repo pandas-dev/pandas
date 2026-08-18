@@ -1352,13 +1352,17 @@ def test_multiply_dateoffset_typeerror(left, right):
         left * right
 
 
-def test_dateoffset_days_vs_n_near_dst_transition():
-    # GH#61862
-    ts = Timestamp("2022-10-30", tz="Europe/Brussels")
+@pytest.mark.parametrize("n", [1, 2, -1])
+def test_dateoffset_days_vs_n_near_dst_transition(warsaw, n):
+    # GH#61862, GH#61870
+    ts = Timestamp("2022-10-30", tz=warsaw)
 
-    offset_days = ts + offsets.DateOffset(days=1)
-    offset_n = ts + offsets.DateOffset(1)
+    offset_days = ts + offsets.DateOffset(days=n)
+    offset_n = ts + offsets.DateOffset(n)
     assert offset_days == offset_n
+    # the scalar result also agrees with the vectorized one
+    expected = DatetimeIndex([ts]) + offsets.DateOffset(n)
+    assert offset_n == expected[0]
 
 
 @pytest.mark.parametrize("n", [1, 2, -1])
