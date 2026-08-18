@@ -2461,19 +2461,27 @@ def test_str_expand_no_width(data, pa_type, method):
     tm.assert_frame_equal(result, expected, check_column_type=True)
 
 
-# (method, args, kwargs, result pa type); None means "the input's own type"
+# (method, args, kwargs, result pa type as a function of the input's own type)
 _ELEMENTWISE_STR_FALLBACKS = [
-    ("casefold", (), {}, None),
-    ("normalize", ("NFC",), {}, None),
-    ("translate", ({97: "b"},), {}, None),
-    ("wrap", (3,), {}, None),
-    ("encode", ("utf-8",), {}, pa.binary()),
-    ("partition", ("b",), {"expand": False}, pa.list_(pa.string())),
-    ("rpartition", ("b",), {"expand": False}, pa.list_(pa.string())),
-    ("findall", ("b",), {}, pa.list_(pa.string())),
-    ("index", ("b",), {}, pa.int64()),
-    ("rindex", ("b",), {}, pa.int64()),
-    ("rfind", ("b",), {}, pa.int64()),
+    ("casefold", (), {}, lambda pa_type: pa_type),
+    ("normalize", ("NFC",), {}, lambda pa_type: pa_type),
+    ("translate", ({97: "b"},), {}, lambda pa_type: pa_type),
+    ("wrap", (3,), {}, lambda pa_type: pa_type),
+    ("join", ("-",), {}, lambda pa_type: pa_type),
+    (
+        "encode",
+        ("utf-8",),
+        {},
+        lambda pa_type: (
+            pa.large_binary() if pa.types.is_large_string(pa_type) else pa.binary()
+        ),
+    ),
+    ("partition", ("b",), {"expand": False}, lambda pa_type: pa.list_(pa_type)),
+    ("rpartition", ("b",), {"expand": False}, lambda pa_type: pa.list_(pa_type)),
+    ("findall", ("b",), {}, lambda pa_type: pa.list_(pa_type)),
+    ("index", ("b",), {}, lambda pa_type: pa.int64()),
+    ("rindex", ("b",), {}, lambda pa_type: pa.int64()),
+    ("rfind", ("b",), {}, lambda pa_type: pa.int64()),
 ]
 
 _elementwise_str_fallback_params = pytest.mark.parametrize(
@@ -2500,7 +2508,7 @@ def test_str_elementwise_fallback_degenerate_chunks(
         [pa.array(chunk, type=pa.string()) for chunk in chunks], type=pa.string()
     )
     result = getattr(pd.Series(ArrowExtensionArray(arr)).str, method)(*args, **kwargs)
-    assert result.dtype == ArrowDtype(result_pa_type or pa.string())
+    assert result.dtype == ArrowDtype(result_pa_type(pa.string()))
 
     data = [val for chunk in chunks for val in chunk]
     unchunked = pd.Series(data, dtype=ArrowDtype(pa.string()))
@@ -2512,10 +2520,13 @@ def test_str_elementwise_fallback_degenerate_chunks(
 def test_str_elementwise_fallback_keeps_large_string(
     method, args, kwargs, result_pa_type
 ):
-    # GH#66221 a large_string input must not silently come back as string
+    # GH#66221 a large_string input must not silently come back as string; the
+    #  string-valued results keep large_string, encode gives the matching
+    #  large_binary, and the list-valued results nest large_string just like
+    #  the native pc.split_pattern kernels do
     ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.large_string()))
     result = getattr(ser.str, method)(*args, **kwargs)
-    assert result.dtype == ArrowDtype(result_pa_type or pa.large_string())
+    assert result.dtype == ArrowDtype(result_pa_type(pa.large_string()))
 
 
 @pytest.mark.parametrize("method", ["rsplit", "split"])
