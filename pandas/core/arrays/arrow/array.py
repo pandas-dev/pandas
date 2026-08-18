@@ -514,6 +514,12 @@ class ArrowExtensionArray(
                 scalars = strings.cast(pa_type)
             else:
                 mask = isna(strings)
+                if (
+                    is_nan_na()
+                    and isinstance(scalars, np.ndarray)
+                    and np.issubdtype(scalars.dtype, np.floating)
+                ):
+                    mask = np.asarray(mask, dtype=np.bool_) | np.isnan(scalars)
                 if mask is not None:
                     scalars = pa.array(scalars, mask=mask, type=pa_type)
 

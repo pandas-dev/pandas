@@ -3562,6 +3562,20 @@ def test_from_sequence_of_strings_boolean():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
+def test_from_sequence_of_strings_empty_string_float(using_nan_is_na):
+    strings = ["1.5", "", "2.0"]
+    dtype = ArrowDtype(pa.float64())
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    if using_nan_is_na:
+        expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
+        tm.assert_extension_array_equal(result, expected)
+        filled = pd.Series(result, dtype=dtype).fillna(0)
+        tm.assert_series_equal(filled, pd.Series([1.5, 0.0, 2.0], dtype=dtype))
+    else:
+        assert not result.isna().any()
+        assert np.isnan(result.to_numpy(dtype="float64")[1])
+
+
 def test_concat_empty_arrow_backed_series(dtype):
     # GH#51734
     ser = pd.Series([], dtype=dtype)
