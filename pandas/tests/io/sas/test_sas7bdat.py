@@ -13,6 +13,7 @@ from pandas._config import using_string_dtype
 from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
+    OutOfBoundsDatetime,
     Pandas4Warning,
 )
 
@@ -487,6 +488,21 @@ def test_null_date(datapath):
         },
     )
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("value", [1e15, -1e15, 2.0**63, -1e19])
+def test_out_of_bounds_date(datapath, value):
+    # GH#56127 a date column holding a day count that does not fit in
+    # datetime64[s] must raise instead of silently wrapping or becoming NaT.
+    # 65816 is where the first row's "datecol" sits. No SAS session writes a date
+    # this large -- SAS's own maximum is 31DEC9999 -- so the value has to be
+    # patched in, as in the neighbouring corrupt-file tests.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    assert struct.unpack_from("<d", data, 65816) == (2936547.0,)
+    struct.pack_into("<d", data, 65816, value)
+    with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding="utf-8")
 
 
 def test_meta2_page(datapath):

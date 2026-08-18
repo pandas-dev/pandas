@@ -206,8 +206,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         corrected = sas_datetimes._values + _sas_to_gregorian_correction(
             sas_datetimes._values, unit="d"
         )
-        vals = np.array(corrected, dtype="M8[D]") + td
-        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
+        secs = cast_from_unit_vectorized(corrected, unit="D", out_unit="s")
+        dt64s = secs.view("M8[s]") + td
+        return pd.Series(dt64s, index=sas_datetimes.index, copy=False)
 
 
 class _Column:
