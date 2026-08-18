@@ -2468,8 +2468,9 @@ class _iLocIndexer(_LocationIndexer):
         """
         take_split_path = not self.obj._mgr.is_single_block
 
-        if isinstance(value, ABCDataFrame):
-            take_split_path = True
+        if not take_split_path and isinstance(value, ABCDataFrame):
+            # Avoid cast of values
+            take_split_path = not value._mgr.is_single_block
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
@@ -2915,6 +2916,26 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
 
+        is_original_df = isinstance(value, ABCDataFrame)
+
+        if is_original_df and name != "iloc":
+            if (
+                isinstance(indexer, tuple)
+                and self.ndim == len(indexer) == 2
+                and is_integer(indexer[info_axis])
+            ):
+                col = item_labels[indexer[info_axis]]
+                if col in value.columns:
+                    val = value[col]
+                    if isinstance(val, ABCDataFrame):
+                        raise ValueError("Setting with non-unique columns is not allowed.")
+                    val = self._align_series(indexer, val)
+                    value = getattr(val, "_values", val)
+                else:
+                    value = np.nan
+            else:
+                value = self._align_frame(indexer, value)._values
+
         if isinstance(indexer, tuple):
             # if we are setting on the info axis ONLY
             # set using those methods to avoid block-splitting
@@ -2936,7 +2957,7 @@ class _iLocIndexer(_LocationIndexer):
                 and len(indexer) == 2
                 and self.obj.shape[1] > 1
                 and not com.is_null_slice(indexer[1])
-                and not isinstance(value, ABCDataFrame)
+                and not is_original_df
                 and not can_hold_element(
                     self.obj._mgr.blocks[0].values,
                     extract_array(value, extract_numpy=True),
