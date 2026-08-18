@@ -196,7 +196,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
        Series of datetime64 dtype or datetime.datetime.
     """
     td = (_sas_origin - _unix_origin).as_unit("s")
-    # A count this far out of range does not overflow when it is cast, it
+    # SAS's own date range tops out near 6e6 days, so a count this size is not
+    # a date the file could legitimately hold -- it is corrupt bytes, or a
+    # numeric column carrying a date format. Casting it does not overflow, it
     # saturates: a negative one lands on the NaT sentinel and is read as
     # missing, and a positive one does raise below, but naming the date the
     # saturated cast landed on rather than anything the file holds.
@@ -204,7 +206,10 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     if too_large.any():
         value = sas_datetimes._values[too_large][0]
         what = "date" if unit == "d" else "datetime"
-        raise OutOfBoundsDatetime(f"Out of bounds SAS {what} value: {value}")
+        raise OutOfBoundsDatetime(
+            f"Out of bounds SAS {what} value: {value}; no SAS {what} can be this "
+            f"large, so the file is corrupt or the column is not a {what}"
+        )
     if unit == "s":
         corrected = sas_datetimes._values + _sas_to_gregorian_correction(
             sas_datetimes._values, unit="s"

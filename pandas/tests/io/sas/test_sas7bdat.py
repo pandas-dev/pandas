@@ -468,11 +468,13 @@ def test_max_sas_date_iterator(datapath):
 @pytest.mark.parametrize("field_offset, what", [(65816, "date"), (65824, "datetime")])
 @pytest.mark.parametrize("value", [-(2.0**63), -1e300, 2.0**63, 1e300])
 def test_date_too_large_to_cast_raises(datapath, field_offset, what, value):
-    # GH#56127 a day or second count too large to fit int64 saturates when it is
+    # GH#47339 a day or second count too large to fit int64 saturates when it is
     #  cast: a negative one landed on the NaT sentinel and was read as missing,
     #  while a positive one raised, but naming a date the file does not hold --
-    #  the same one whatever the file held. 65816 and 65824 are the file offsets
-    #  of the first row's date and datetime cells.
+    #  the same one whatever the file held. No real SAS date is anywhere near
+    #  this large, so such a cell means a corrupt file (or a non-date column
+    #  carrying a date format). 65816 and 65824 are the file offsets of the
+    #  first row's date and datetime cells.
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
     struct.pack_into("<d", data, field_offset, value)
