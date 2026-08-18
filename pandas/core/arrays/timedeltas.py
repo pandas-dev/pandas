@@ -479,6 +479,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     ) -> Self:
         # GH#43178: detect float products that would silently saturate to
         #  int64.max on the int64 cast below
+        # asarray: an ndarray subclass would send the reduction below to its
+        #  own max(), which need not accept initial=, and would leave the
+        #  result holding a subclass this EA cannot box; the integer path
+        #  reads through to the raw values the same way
+        other = np.asarray(other)
         i8 = self.asi8
         self_mask = i8 == iNaT
         if self_mask.any():

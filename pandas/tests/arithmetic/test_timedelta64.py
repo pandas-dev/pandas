@@ -1689,6 +1689,20 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(tdi * 2, expected)
         tm.assert_equal(tdi * 2.0, expected)
 
+    @pytest.mark.parametrize("dtype", ["i8", "f8"])
+    def test_td64arr_mul_ndarray_subclass(self, index_or_series, dtype):
+        # GH#43178: the float overflow guard reduces with
+        #  np.max(..., initial=0.0), which dispatches to an ndarray subclass'
+        #  own max() and raised there; both paths read the raw values
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(2, "ns")])
+        tdi = tm.box_expected(tdi, index_or_series)
+        other = np.ma.MaskedArray(np.array([2, 3], dtype=dtype), mask=[False, True])
+
+        expected = TimedeltaIndex([Timedelta(2, "ns"), Timedelta(6, "ns")])
+        expected = tm.box_expected(expected, index_or_series)
+
+        tm.assert_equal(tdi * other, expected)
+
     def test_td64arr_div_float_overflow(self, box_with_array):
         # GH#43178: float division whose quotient exceeds int64 bounds must
         #  raise instead of silently saturating

@@ -437,3 +437,33 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
+
+
+def test_addsub_m8ndarray_subclass():
+    # GH#66552 the overflow guard views the operand as i8 and rebuilds a plain
+    #  ndarray, which drops an ndarray subclass' own semantics; a MaskedArray
+    #  used to come back unmasked, exposing the payload under the mask
+    ts = Timestamp("2000-01-01").as_unit("s")
+    other = np.ma.MaskedArray(np.array([86400, 1], dtype="m8[s]"), mask=[True, False])
+
+    for result, expected in [
+        (ts + other, ts.asm8 + other),
+        (ts - other, ts.asm8 - other),
+    ]:
+        assert isinstance(result, np.ma.MaskedArray)
+        mask = np.ma.getmaskarray(expected)
+        tm.assert_numpy_array_equal(np.ma.getmaskarray(result), mask)
+        tm.assert_numpy_array_equal(result.data[~mask], expected.data[~mask])
+
+
+def test_addsub_m8ndarray_unit_multiplier():
+    # GH#66552 a dtype such as m8[10s] carries a multiplier that our
+    #  resolutions cannot express; it used to be silently read as m8[s]
+    ts = Timestamp("2000-01-01").as_unit("s")
+    other = np.array([1, 2], dtype="m8[10s]")
+
+    expected = np.array(["2000-01-01 00:00:10", "2000-01-01 00:00:20"], dtype="M8[s]")
+    tm.assert_numpy_array_equal(ts + other, expected)
+
+    expected = np.array(["1999-12-31 23:59:50", "1999-12-31 23:59:40"], dtype="M8[s]")
+    tm.assert_numpy_array_equal(ts - other, expected)
