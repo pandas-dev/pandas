@@ -534,11 +534,6 @@ cdef Py_ssize_t _delta_idx_for_local(
     compares greater than it by the size of the UTC offset.  Bracket the search
     by a day either side -- no zone offset reaches that -- and take the index
     whose own offset places local_val inside that index's own interval.
-
-    local_val may itself be nonexistent, since only the shift out of the
-    original hour is validated and a multi-hour gap can swallow the shifted
-    value too.  Nothing satisfies the test then, so fall back to the side of the
-    gap the caller is shifting toward.
     """
     cdef:
         Py_ssize_t idx, lo, hi, ntrans = info.ntrans
@@ -546,18 +541,15 @@ cdef Py_ssize_t _delta_idx_for_local(
         const int64_t[::1] deltas = info.deltas
         int64_t utc_val, before, bracket
 
+    # start (lo) and end (hi) index into tdata for the +/- 1 day bracket
     if checked_sub(local_val, ppd, &bracket):
         lo = 0
     else:
         lo = bisect_right_i8(tdata, bracket, ntrans) - 1
         if lo < 0:
-            # tdata[0] is the NPY_NAT+1 "beginning of time" sentinel, so only
-            #  local_val == NPY_NAT + ppd bisects to its left.  No public call
-            #  reaches that today -- a wall time within a day of the sentinel
-            #  predates every transition, so it is never in a DST gap, and the
-            #  timedelta that would shift one there is itself out of range for
-            #  Timedelta.  Keep the clamp anyway: deltas[-1] is what this whole
-            #  block keeps getting wrong.
+            # only a local_val within a day of the NPY_NAT+1 sentinel at
+            #  tdata[0] bisects to its left; unreachable in practice, but
+            #  clamp so we do not end up using deltas[-1]
             lo = 0
 
     if checked_add(local_val, ppd, &bracket):
@@ -565,6 +557,8 @@ cdef Py_ssize_t _delta_idx_for_local(
     else:
         hi = bisect_right_i8(tdata, bracket, ntrans) - 1
 
+    # for each candidate idx, check whether the UTC value implied by
+    #  deltas[idx] actually lands inside [tdata[idx], tdata[idx + 1])
     for idx in range(lo, hi + 1):
         if checked_sub(local_val, deltas[idx], &utc_val):
             continue
@@ -572,20 +566,26 @@ cdef Py_ssize_t _delta_idx_for_local(
             # this offset does not take effect until after local_val
             continue
         if idx + 1 < ntrans and utc_val >= tdata[idx + 1]:
-            # the next offset has already taken over by local_val
+            # the next offset has already taken over by local_val; idx ==
+            #  ntrans - 1 has no next offset, its interval is open-ended
             continue
         return idx
 
+    # Nothing matched, so local_val is itself nonexistent: only the shift out
+    #  of the original hour is validated, and a multi-hour gap can swallow the
+    #  shifted value too.  Find the transition whose gap contains local_val and
+    #  return the side of it the caller is shifting toward.
     for idx in range(lo if lo > 0 else 1, hi + 1):
-        # local_val is in the gap opened by transition idx if the offsets on
-        #  either side straddle it
         if deltas[idx] <= deltas[idx - 1]:
+            # transition idx opens a gap only if it moves the clock forward
             continue
         if checked_sub(local_val, deltas[idx - 1], &before):
             continue
         if checked_sub(local_val, deltas[idx], &utc_val):
             continue
         if before >= tdata[idx] and utc_val < tdata[idx]:
+            # local_val is at/after the transition read with the old offset,
+            #  but before it read with the new one
             return idx if forward else idx - 1
 
     return lo
