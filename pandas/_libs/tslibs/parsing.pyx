@@ -744,16 +744,10 @@ cdef datetime dateutil_parse(
             "not supported"
         )
     if not ignoretz:
-        if res.tzname and res.tzname in time.tzname:
-            # GH#50791
-            if res.tzname != "UTC":
-                raise ValueError(
-                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is no longer supported. Pass the 'tz' "
-                    "keyword or call tz_localize after construction instead",
-                )
-            ret = ret.replace(tzinfo=timezone.utc)
-        elif res.tzoffset == 0:
+        if res.tzoffset == 0:
+            # GH#58002 dateutil resolves "UTC", "GMT", "Z" and "z" to a zero
+            #  offset regardless of the system timezone, so these are not
+            #  system-dependent even when they match time.tzname.
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
@@ -770,6 +764,13 @@ cdef datetime dateutil_parse(
                     f'Parsed string "{timestr}" gives an invalid tzoffset, '
                     "which must be between -timedelta(hours=24) and timedelta(hours=24)"
                 )
+        elif res.tzname and res.tzname in time.tzname:
+            # GH#50791
+            raise ValueError(
+                f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                "is no longer supported. Pass the 'tz' "
+                "keyword or call tz_localize after construction instead",
+            )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
             # GH#18702, # GH 50235 enforced in 3.0
