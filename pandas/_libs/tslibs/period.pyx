@@ -57,7 +57,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     astype_overflowsafe,
+    check_dts_bounds,
     dts_to_iso_string,
+    get_implementation_bounds,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -776,9 +778,18 @@ cdef int get_anchor_month(int freq, int freq_group) noexcept nogil:
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
 # incorrect dates GH#19643
 @cython.cdivision(False)
-cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) noexcept nogil:
+cdef int64_t get_period_ordinal_unchecked(
+    npy_datetimestruct *dts, int freq
+) noexcept nogil:
     """
-    Generate an ordinal in period space
+    Generate an ordinal in period space, assuming the caller has checked that
+    the ordinal fits in int64.
+
+    Being noexcept, this discards the OverflowError the C conversion raises
+    for a value that does not fit and returns ordinal 0 -- the epoch -- in its
+    place, so only call it after get_period_bounds says the value is in range
+    (which is what get_period_ordinal does). It exists for the loops, which
+    take that decision once for the whole array instead of per element.
 
     Parameters
     ----------
@@ -814,6 +825,84 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) noexcept nogi
 
     unit = freq_group_code_to_npy_unit(freq)
     return npy_datetimestruct_to_datetime(unit, dts)
+
+
+# Years for which the ordinal cannot overflow, indexed by NPY_DATETIMEUNIT,
+#  so that get_period_ordinal costs one comparison for all but the
+#  handful of years at the edge of a unit's range.
+cdef int[16] SAFE_MIN_YEAR
+cdef int[16] SAFE_MAX_YEAR
+
+
+cdef void _fill_safe_years() noexcept:
+    cdef:
+        npy_datetimestruct lower, upper
+        Py_ssize_t i
+        NPY_DATETIMEUNIT unit
+
+    for i in range(16):
+        SAFE_MIN_YEAR[i] = INT32_MIN
+        SAFE_MAX_YEAR[i] = INT32_MAX
+
+    for unit in [
+        NPY_DATETIMEUNIT.NPY_FR_m,
+        NPY_DATETIMEUNIT.NPY_FR_s,
+        NPY_DATETIMEUNIT.NPY_FR_ms,
+        NPY_DATETIMEUNIT.NPY_FR_us,
+        NPY_DATETIMEUNIT.NPY_FR_ns,
+    ]:
+        get_implementation_bounds(unit, &lower, &upper)
+        # +/- 1 because only part of a boundary year is representable, so
+        #  those years still need the exact check
+        SAFE_MIN_YEAR[<int>unit] = lower.year + 1
+        SAFE_MAX_YEAR[<int>unit] = upper.year - 1
+
+
+_fill_safe_years()
+
+
+cdef bint get_period_bounds(
+    int freq, NPY_DATETIMEUNIT* unit, int* min_year, int* max_year
+) noexcept nogil:
+    """
+    Whether ordinals at frequency `freq` can overflow int64 and, if so, the
+    npy unit they must be in bounds for and the years that are in bounds
+    whatever the rest of the date is.
+
+    Everything here depends only on `freq`, so loops call this once and then
+    only compare years, taking the exact check for the boundary years.
+    """
+    cdef:
+        int freq_group = get_freq_group(freq)
+
+    if not (freq_group == FR_MIN or freq_group == FR_SEC or freq_group == FR_MS
+            or freq_group == FR_US or freq_group == FR_NS):
+        # Hourly and coarser ordinals stay well inside int64 for any year
+        #  that fits the int32 npy_datetimestruct.year field.
+        return False
+
+    # For the rest the ordinal *is* the datetime64 value in the matching
+    #  unit, so the datetime64 bounds are exactly the periods that fit.
+    unit[0] = freq_group_code_to_npy_unit(freq)
+    min_year[0] = SAFE_MIN_YEAR[<int>unit[0]]
+    max_year[0] = SAFE_MAX_YEAR[<int>unit[0]]
+    return True
+
+
+cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) except? -1:
+    """
+    Generate an ordinal in period space, raising OutOfBoundsDatetime for a
+    value whose ordinal does not fit in int64.
+    """
+    cdef:
+        NPY_DATETIMEUNIT unit = NPY_FR_D
+        int min_year = 0, max_year = 0
+
+    if get_period_bounds(freq, &unit, &min_year, &max_year):
+        if not min_year <= dts.year <= max_year:
+            check_dts_bounds(dts, unit)
+
+    return get_period_ordinal_unchecked(dts, freq)
 
 
 cdef void get_date_info(int64_t ordinal,
@@ -1128,7 +1217,7 @@ cdef void _period_asfreq(
 
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
-                             int s, int us, int ps, int freq):
+                             int s, int us, int ps, int freq) except? -1:
     """
     Find the ordinal representation of the given datetime components at the
     frequency `freq`.
@@ -1150,6 +1239,10 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
     """
     cdef:
         npy_datetimestruct dts
+
+    # memset because the bounds check reads every field, including the
+    #  attoseconds this signature has no argument for
+    memset(&dts, 0, sizeof(npy_datetimestruct))
     dts.year = y
     dts.month = m
     dts.day = d
@@ -1648,9 +1741,19 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
         Py_ssize_t i, n = len(values)
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT unit = NPY_FR_D
+        int freq, min_year = 0, max_year = 0
+        bint check_bounds
 
     if dtype is None:
         raise ValueError("freq not specified and cannot be inferred")
+
+    freq = dtype._dtype_code
+    check_bounds = get_period_bounds(freq, &unit, &min_year, &max_year)
+    memset(&dts, 0, sizeof(npy_datetimestruct))
+    dts.month = 1
+    dts.day = 1
 
     for i in range(n):
         val = values[i]
@@ -1664,7 +1767,10 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
                 #  npy_datetimestruct.year field; out-of-range would silently
                 #  wrap, so raise to match the scalar Period(int) path.
                 raise OutOfBoundsDatetime(f"Out of bounds year: {val}")
-            result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
+            dts.year = val
+            if check_bounds and not min_year <= val <= max_year:
+                check_dts_bounds(&dts, unit)
+            result[i] = get_period_ordinal_unchecked(&dts, freq)
 
     return result.base
 
