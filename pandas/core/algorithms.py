@@ -1466,15 +1466,18 @@ def searchsorted(
         iinfo = np.iinfo(arr.dtype.type)
 
         if is_integer(value):
-            value_arr = np.array([value], dtype=arr.dtype)
-        elif hasattr(value, "to_numpy"):
+            # get big values without dtype
+            value_arr = np.array([value])
+        elif isinstance(value, ABCExtensionArray):
             # If value is a pandas Array with <NA>, cast it int64, (massive value)
             # so we place it at the end of array
             value_arr = value.to_numpy(dtype=object)
+        elif hasattr(value, "-values") and isinstance(value._values, ABCExtensionArray):
+            # only sereis and index not all
+            value_arr = value._values.to_numpy(dtype=object)
         else:
-            value_arr = np.array(
-                value, dtype=object if hasattr(value, "__iter__") else None
-            )
+            # use C for all others like lists and tuples
+            value_arr = np.asarray(value)
 
         # get mask for NA in case max also in array
         na_mask = isna(value_arr) if not is_integer(value) else np.array([False])
