@@ -210,6 +210,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :attr:`Index.values` and :attr:`Index.array` now return read-only arrays for all dtypes, so an :class:`Index` can no longer be silently corrupted by mutating the returned array in place (previously this left the Index displaying the new value while lookups still used the old one) (:issue:`38547`)
+- :class:`Timestamp`, :func:`to_datetime`, and :func:`read_csv` with ``parse_dates`` now return the standard library ``datetime.timezone.utc`` rather than ``dateutil.tz.tzutc()`` when a non-ISO-8601 string carries a zero UTC offset (e.g. ``"Jan 15 2004 03:00 GMT"``), so such results now repr as ``tz='UTC'`` and match what the ISO-8601 and ``format``-based paths already returned (:issue:`66827`)
 - :func:`infer_freq` on quarter-start data now reports the equivalent anchor from the first calendar quarter, e.g. ``QS-JAN`` instead of ``QS-OCT`` (:issue:`36939`)
 - :func:`testing.assert_frame_equal` with ``check_freq=True`` now also checks the ``freq`` of :class:`DatetimeIndex` and :class:`TimedeltaIndex` *columns*; previously only the ``freq`` of the index was checked (:issue:`51920`)
 - :func:`testing.assert_series_equal` with ``check_index=False`` no longer checks the ``freq`` attribute of a :class:`DatetimeIndex` or :class:`TimedeltaIndex`, as ``freq`` is an attribute of the index (:issue:`51920`)
