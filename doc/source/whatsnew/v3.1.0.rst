@@ -703,6 +703,7 @@ I/O
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with an explicit string-like ``dtype`` (``object``, ``"str"``, ``"string"`` or ``"category"``) (:issue:`66525`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug in :func:`read_excel` with the ``openpyxl`` engine where reading a sheet set its ``max_row`` and ``max_column`` to ``None`` on the workbook exposed through ``ExcelFile.book`` (:issue:`63010`)
+- Fixed bug in :func:`read_json` with ``orient="table"`` returning missing values when table schema column names were non-string scalars (:issue:`46392`)
 - Fixed bug in :func:`read_sas` where ``encoding="infer"`` raised ``LookupError: unknown encoding: infer`` instead of falling back to latin-1, for SAS7BDAT files recording an encoding pandas does not recognize and for XPORT files, which record no encoding at all (:issue:`66470`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
 - Fixed regression in :func:`read_csv` where ``sep=None`` raised ``TypeError: object of type 'NoneType' has no len()`` instead of sniffing the separator with the ``python`` engine; passing ``sep=None`` together with ``engine="c"`` or ``engine="pyarrow"``, which cannot sniff the separator, again raises an informative ``ValueError`` instead of raising ``TypeError`` or silently parsing each line as a single column (:issue:`66639`)
