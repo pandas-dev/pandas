@@ -6186,12 +6186,14 @@ class DataFrame(NDFrame, OpsMixin):
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
             Filling is based on the position of each new label relative to the
-            existing labels, and applies to both the index and the columns.
-            For example, with ``method='ffill'`` and a monotonically
-            increasing index, a new label is filled from the nearest existing
-            label that sorts before it, so a new column whose label falls
-            between two existing columns takes its values from the preceding
-            column.
+            existing labels. For example, with ``method='ffill'`` and a
+            monotonically increasing index, a new label is filled from the
+            nearest existing label that sorts before it.
+            It is applied to whichever single axis is being reindexed, so
+            reindexing the columns alone fills a new column from the preceding
+            one. When both ``index`` and ``columns`` are reindexed at once it
+            applies to the index only, and labels missing from the columns are
+            filled with ``fill_value``.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next

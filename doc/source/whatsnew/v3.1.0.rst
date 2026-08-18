@@ -624,6 +624,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` setitem-with-expansion writing the truncated string ``"n"`` (or raising ``TypeError``) into rows outside the indexer when adding a new column from a list of strings or booleans (:issue:`42099`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` returning wrong results instead of raising ``KeyError`` when passing string keys for numeric index levels (:issue:`60104`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` where incorrect values were produced when ``other`` was a :class:`Series` with :class:`ExtensionArray` values (:issue:`64635`)
+- Bug in :meth:`DataFrame.reindex` and :meth:`DataFrame.reindex_like` applying ``method`` (and its ``limit`` and ``tolerance``) to the columns as well as the index when both axes were reindexed, so a column absent from the original frame was filled from an unrelated neighbouring column, or ``method="nearest"`` raised ``TypeError`` for non-numeric columns; ``method`` now applies to the index only in that case and missing columns take ``fill_value`` (:issue:`31002`)
 - Bug in :meth:`DataFrame.rename` and :meth:`Series.rename` not preserving nullable extension dtype (e.g. ``Int64``, ``Float64``) when relabeling index or column labels (:issue:`65315`)
 - Bug in :meth:`DataFrame.where` and :meth:`DataFrame.mask` raising ``TypeError`` when ``cond`` is a :class:`Series` and ``axis=1`` (:issue:`58190`)
 - Bug in :meth:`DataFrame.xs` where ``drop_level=False`` was ignored for fully specified :class:`MultiIndex` keys when ``level`` was not explicitly provided (:issue:`6507`)
