@@ -15,6 +15,10 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+from libc.stdint cimport (
+    INT64_MAX,
+    INT64_MIN,
+)
 
 import warnings
 
@@ -7781,6 +7785,46 @@ cdef int month_add_months(npy_datetimestruct dts, int64_t months) noexcept nogil
     return 12 if new_month == 0 else <int>new_month
 
 
+cdef ndarray _shift_quarters_out_of_range(
+    ndarray dtindex,
+    ndarray out,
+    int64_t quarters,
+    int q1start_month,
+    _DayOpt day_opt_enum,
+    int modby,
+    NPY_DATETIMEUNIT reso,
+):
+    """
+    Handle a `quarters` so large that `modby * quarters` does not fit in int64.
+
+    No element can shift to a representable date, so raise the way the scalar
+    path does, naming the same year (GH#66549). An all-NaT input has nothing to
+    shift and still comes back all-NaT.
+    """
+    cdef:
+        npy_datetimestruct dts
+        int months_since
+        int64_t val, n
+
+    i8values = dtindex.ravel()
+    i8values = i8values[i8values != NPY_NAT]
+    if i8values.size == 0:
+        out.fill(NPY_NAT)
+        return out
+
+    val = i8values[0]
+    pandas_datetime_to_datetimestruct(val, reso, &dts)
+    months_since = (dts.month - q1start_month) % modby
+    n = _roll_qtrday(&dts, quarters, months_since, day_opt_enum)
+
+    # Python ints, since the shift is precisely what does not fit in int64
+    months = int(modby) * int(n) - months_since
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {npy_unit_to_attrname[reso]} timestamp: year "
+        f"{int(dts.year) + (months + dts.month - 1) // 12}"
+    )
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef ndarray shift_quarters(
@@ -7815,9 +7859,21 @@ cdef ndarray shift_quarters(
         int64_t val, res_val
         int months_since
         int64_t n
+        # `modby * n - months_since` is formed below, and year_add_months goes
+        #  on to form `dts.month + months`; months_since < modby, dts.month
+        #  <= 12, and _roll_qtrday never moves |n| outward.
+        int64_t quarters_limit = (INT64_MAX - modby - 12) // modby - 1
         npy_datetimestruct dts
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
+
+    if not -quarters_limit <= quarters <= quarters_limit:
+        # GH#66549 `modby * quarters` would wrap, silently shifting by the
+        #  wrapped number of months, e.g. 12 * 2**62 == 0. Split out so the
+        #  loop below stays free of a per-element overflow check.
+        return _shift_quarters_out_of_range(
+            dtindex, out, quarters, q1start_month, day_opt_enum, modby, reso
+        )
 
     try:
         with nogil:
@@ -8074,7 +8130,13 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     if month == 0:
         month = 12
         dy -= 1
-    year = dts.year + dy
+
+    # Python ints, since `dts.year + dy` is precisely the sum that overflows
+    #  for a `months` this large (GH#66549)
+    new_year = int(dts.year) + int(dy)
+    if not INT64_MIN <= new_year <= INT64_MAX:
+        raise OutOfBoundsDatetime(f"Out of bounds timestamp: year {new_year}")
+    year = new_year
 
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)
