@@ -217,6 +217,9 @@ cdef object tz_cache_key(tzinfo tz):
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
     elif is_zoneinfo(tz):
+        if tz.key is None:
+            # i.e. ZoneInfo.from_file; there is no key to cache under
+            return None
         return "zoneinfo/" + tz.key
     else:
         return None
@@ -246,6 +249,11 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
+        if tz.key is None:
+            # i.e. ZoneInfo.from_file; we cannot reconstruct the pure-python
+            #  ZoneInfo, so report not-fixed and let callers take the
+            #  tzinfo-API path.
+            return 0
         tz_py = _ZoneInfo(tz.key)
         if tz_py._fixed_offset:
             return 1

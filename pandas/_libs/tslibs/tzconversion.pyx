@@ -96,6 +96,17 @@ cdef class Localizer:
         elif is_tzlocal(tz):
             self.use_tzlocal = True
 
+        elif is_zoneinfo(tz) and tz.key is None:
+            # GH#64379 ZoneInfo.from_file zones have no key, so the pure-python
+            #  ZoneInfo backing the cached-transitions fast path cannot be
+            #  reconstructed.  Send every value down the tzinfo-API path that
+            #  keyed ZoneInfos already use for dates past their last cached
+            #  transition, by putting that last transition below every value.
+            self.use_dst = True
+            self.use_zoneinfo = True
+            self.has_tz_rule = True
+            self.last_trans = NPY_NAT
+
         else:
             trans, deltas, typ, has_tz_rule = get_dst_info(tz)
             if creso != NPY_DATETIMEUNIT.NPY_FR_ns:

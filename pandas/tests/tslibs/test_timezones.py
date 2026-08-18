@@ -4,6 +4,8 @@ from datetime import (
     timedelta,
     timezone,
 )
+import importlib.resources
+from pathlib import Path
 import subprocess
 import sys
 import textwrap
@@ -466,3 +468,110 @@ def test_normalize_pytz_timezone():
     ]:
         result = _normalize_pytz_timezone(tz)
         assert result == expected
+
+
+def _zoneinfo_from_file(key):
+    """
+    Build a keyless ZoneInfo (``ZoneInfo.key is None``) for the given IANA key.
+    """
+    for base in zoneinfo.TZPATH:
+        path = Path(base).joinpath(*key.split("/"))
+        if path.exists():
+            with open(path, "rb") as fobj:
+                return zoneinfo.ZoneInfo.from_file(fobj, key=None)
+
+    pytest.importorskip("tzdata")
+    package = ".".join(["tzdata", "zoneinfo", *key.split("/")[:-1]])
+    resource = importlib.resources.files(package).joinpath(key.split("/")[-1])
+    with resource.open("rb") as fobj:
+        return zoneinfo.ZoneInfo.from_file(fobj, key=None)
+
+
+@pytest.mark.parametrize("key", ["Europe/Amsterdam", "US/Eastern", "UTC"])
+def test_zoneinfo_from_file_without_key(key):
+    # GH#64379 ZoneInfo.from_file objects have key=None, which the cached
+    #  transition fast path cannot look up; they used to raise TypeError.
+    keyed = zoneinfo.ZoneInfo(key)
+    keyless = _zoneinfo_from_file(key)
+    assert keyless.key is None
+
+    naive = date_range("2025-01-01", "2025-12-31", freq="7h")
+    kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
+    tm.assert_numpy_array_equal(
+        naive.tz_localize(keyless, **kwargs).tz_convert("UTC").asi8,
+        naive.tz_localize(keyed, **kwargs).tz_convert("UTC").asi8,
+    )
+
+    utc = date_range("2025-01-01", "2025-12-31", freq="7h", tz="UTC")
+    assert [ts.utcoffset() for ts in utc.tz_convert(keyless)] == [
+        ts.utcoffset() for ts in utc.tz_convert(keyed)
+    ]
+
+    ts = Timestamp("2025-06-15 12:00")
+    assert ts.tz_localize(keyless).utcoffset() == ts.tz_localize(keyed).utcoffset()
+
+    result = date_range("2025-06-15", periods=3, freq="h", tz=keyless)
+    assert result.tz is keyless
+    expected = date_range("2025-06-15", periods=3, freq="h", tz=keyed)
+    tm.assert_numpy_array_equal(
+        result.tz_convert("UTC").asi8, expected.tz_convert("UTC").asi8
+    )
+
+
+@pytest.mark.parametrize(
+    "start, ambiguous, nonexistent",
+    [
+        ("2025-11-02", True, "raise"),
+        ("2025-11-02", False, "raise"),
+        ("2025-11-02", "NaT", "raise"),
+        ("2025-03-09", "raise", "shift_forward"),
+        ("2025-03-09", "raise", "shift_backward"),
+        ("2025-03-09", "raise", "NaT"),
+        ("2025-03-09", "raise", Timedelta("1h")),
+    ],
+)
+def test_zoneinfo_from_file_without_key_dst_transition(start, ambiguous, nonexistent):
+    # GH#64379 the keyless fallback must handle ambiguous/nonexistent wall
+    #  times the same way the keyed fast path does.
+    keyed = zoneinfo.ZoneInfo("US/Eastern")
+    keyless = _zoneinfo_from_file("US/Eastern")
+
+    naive = date_range(start, periods=48, freq="h")
+    expected = naive.tz_localize(keyed, ambiguous=ambiguous, nonexistent=nonexistent)
+    result = naive.tz_localize(keyless, ambiguous=ambiguous, nonexistent=nonexistent)
+    tm.assert_numpy_array_equal(
+        result.tz_convert("UTC").asi8, expected.tz_convert("UTC").asi8
+    )
+
+
+def test_zoneinfo_from_file_without_key_ambiguous_infer():
+    # GH#64379 ambiguous="infer" needs the repeated-hour detection, which runs
+    #  off the same code path as the keyed fast path.
+    keyed = zoneinfo.ZoneInfo("US/Eastern")
+    keyless = _zoneinfo_from_file("US/Eastern")
+
+    times = to_datetime(
+        [
+            "2025-11-02 00:00",
+            "2025-11-02 01:00",
+            "2025-11-02 01:00",
+            "2025-11-02 02:00",
+            "2025-11-02 03:00",
+        ]
+    )
+    expected = times.tz_localize(keyed, ambiguous="infer")
+    result = times.tz_localize(keyless, ambiguous="infer")
+    tm.assert_numpy_array_equal(
+        result.tz_convert("UTC").asi8, expected.tz_convert("UTC").asi8
+    )
+
+
+def test_tz_cache_key_zoneinfo_without_key():
+    # GH#64379 a keyless ZoneInfo has nothing to cache under
+    keyless = _zoneinfo_from_file("Europe/Amsterdam")
+    assert timezones._p_tz_cache_key(keyless) is None
+    assert (
+        timezones._p_tz_cache_key(zoneinfo.ZoneInfo("Europe/Amsterdam"))
+        == "zoneinfo/Europe/Amsterdam"
+    )
+    assert not timezones.is_fixed_offset(keyless)
