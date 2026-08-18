@@ -55,10 +55,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import NDFrameT
 
-    from pandas import (
-        PeriodIndex,
-        Series,
-    )
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -400,9 +397,7 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
-def format_dateaxis(
-    subplot, freq: BaseOffset, index: DatetimeIndex | PeriodIndex
-) -> None:
+def format_dateaxis(subplot, freq: BaseOffset, index: Index) -> None:
     """
     Pretty-formats the date axis (x-axis).
 
