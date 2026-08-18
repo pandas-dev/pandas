@@ -330,6 +330,36 @@ class TestDataFrameColor:
         assert ax.collections[0].cmap.name == "cividis"
         assert ax.collections[1].cmap.name == "magma"
 
+    @pytest.mark.parametrize("value", [0, -5, 1e16])
+    def test_scatter_colorbar_no_side_effect_on_colors(self, value):
+        # GH#64980: colorbar=True used to recolor the points when every c
+        #  value was the same
+        df = DataFrame({"x": [1, 2, 3], "c": [value] * 3})
+        cmap = mpl.colors.ListedColormap(["blue", "red"])
+
+        colors = []
+        for colorbar in [False, True]:
+            _, ax = plt.subplots()
+            df.plot(
+                "x", "x", kind="scatter", c="c", colormap=cmap, colorbar=colorbar, ax=ax
+            )
+            ax.get_figure().canvas.draw()
+            colors.append(ax.collections[-1].get_facecolor())
+
+        tm.assert_numpy_array_equal(colors[0], colors[1])
+        # every point maps to the bottom of the colormap, blue
+        expected = np.array([[0.0, 0.0, 1.0, 1.0]] * 3)
+        tm.assert_numpy_array_equal(colors[0], expected)
+
+    def test_scatter_all_nan_c_no_warning(self):
+        # GH#64980: an all-NaN c should not leak numpy's "All-NaN slice
+        #  encountered" RuntimeWarning
+        df = DataFrame({"x": [1, 2, 3], "c": [np.nan, np.nan, np.nan]})
+        _, ax = plt.subplots()
+        with tm.assert_produces_warning(None):
+            df.plot("x", "x", kind="scatter", c=df["c"], ax=ax)
+        ax.get_figure().canvas.draw()
+
     def test_line_colors(self):
         custom_colors = "rgcby"
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
