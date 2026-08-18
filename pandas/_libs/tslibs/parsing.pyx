@@ -744,16 +744,17 @@ cdef datetime dateutil_parse(
             "not supported"
         )
     if not ignoretz:
-        if res.tzname and res.tzname in time.tzname:
-            # GH#50791
-            if res.tzname != "UTC":
-                raise ValueError(
-                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is no longer supported. Pass the 'tz' "
-                    "keyword or call tz_localize after construction instead",
-                )
-            ret = ret.replace(tzinfo=timezone.utc)
-        elif res.tzoffset == 0:
+        if res.tzoffset == 0:
+            # GH#66827 - unambiguous zero offset (UTC, GMT, Z, z)
+            ret = ret.replace(tzinfo=_dateutil_tzutc())
+        elif res.tzname and res.tzname in time.tzname:
+            # GH#50791 - system-dependent timezone abbreviation
+            raise ValueError(
+                f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                "is no longer supported. Pass the 'tz' "
+                "keyword or call tz_localize after construction instead",
+            )
+        elif res.tzoffset:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
