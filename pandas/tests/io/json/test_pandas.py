@@ -2629,6 +2629,15 @@ def test_large_number_string_column():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("scalar_type", [np.uint64, np.ulonglong])
+@pytest.mark.parametrize("value", [2**63, 2**64 - 1])
+def test_to_json_object_dtype_unsigned_scalar(scalar_type, value):
+    # GH#66142 unsigned numpy scalars above int64 max wrapped to negative
+    obj = scalar_type(value)
+    assert Series([obj], dtype=object).to_json() == f'{{"0":{value}}}'
+    assert DataFrame({"a": [obj]}, dtype=object).to_json() == f'{{"a":{{"0":{value}}}}}'
+
+
 def test_to_json_unsupported_object_gh36211():
     # GH#36211
     df = DataFrame({"a": [Path("m1")]})

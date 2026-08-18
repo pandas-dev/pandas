@@ -107,6 +107,38 @@ class ArrowStringArrayMixin:
             return False
         return has_unsupported_code(tokens)
 
+    @staticmethod
+    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
+        # check if `pat` is a compiled regex pattern with flags that are not
+        # supported by pyarrow
+        return (
+            isinstance(pat, re.Pattern)
+            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
+        )
+
+    @staticmethod
+    def _unwrap_re_pattern(
+        pat: str | re.Pattern, case: bool, flags: int
+    ) -> tuple[str, bool, int]:
+        """
+        Reduce `pat` to the (pattern, case, flags) triple the pyarrow kernels take.
+
+        IGNORECASE is the only flag they support and they spell it as `case`, so
+        it is folded into `case`; whatever `flags` remain afterwards cannot be
+        honored by a kernel.
+        """
+        if isinstance(pat, re.Pattern):
+            # a compiled str pattern always carries re.UNICODE, which pyarrow
+            #  assumes for strings anyway
+            flags |= pat.flags & ~re.UNICODE
+            pattern = pat.pattern
+        else:
+            pattern = pat
+        if flags & re.IGNORECASE:
+            case = False
+            flags &= ~re.IGNORECASE
+        return pattern, case, flags
+
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
@@ -403,6 +435,11 @@ class ArrowStringArrayMixin:
         na: Scalar | lib.NoDefault = lib.no_default,
         regex: bool = True,
     ):
+        if regex:
+            # GH#66348 a compiled `pat` reaches us from ArrowExtensionArray, which
+            #  unlike ArrowStringArray does not unwrap it before dispatching here.
+            pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
         if flags:
             raise NotImplementedError(f"contains not implemented with {flags=}")
 
@@ -420,18 +457,8 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if isinstance(pat, re.Pattern):
-            # GH#63108 the accessor pre-compiles `pat` whenever the user passes
-            #  `flags`, so unwrap it here; pyarrow only supports IGNORECASE,
-            #  which it spells as `case`. Confined to this branch so that
-            #  _str_fullmatch, which reaches us with a plain str, is unaffected.
-            flags |= pat.flags & ~re.UNICODE
-            if flags & re.IGNORECASE:
-                case = False
-                flags &= ~re.IGNORECASE
-            pattern = pat.pattern
-        else:
-            pattern = pat
+        # GH#63108 the accessor pre-compiles `pat` whenever the user passes `flags`
+        pattern, case, flags = self._unwrap_re_pattern(pat, case, flags)
 
         if pattern.startswith("^"):
             pattern = pattern[1:]
@@ -442,11 +469,13 @@ class ArrowStringArrayMixin:
 
     def _str_fullmatch(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
+        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
         if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
             pat = f"^({pat})$"
         elif not pat.endswith("$") or pat.endswith("\\$"):
