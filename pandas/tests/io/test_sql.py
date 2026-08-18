@@ -21,7 +21,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
@@ -1022,14 +1021,11 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     )
 
     if "adbc" in conn:
+        exp_warning = None
+        msg = ""
+
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-            msg = "is_sparse is deprecated"
-        else:
-            exp_warning = None
-            msg = ""
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -1949,10 +1945,7 @@ def test_api_timedelta(conn, request):
         )
 
     if "adbc" in conn_name:
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-        else:
-            exp_warning = None
+        exp_warning = None
     else:
         exp_warning = UserWarning
 
@@ -2374,17 +2367,6 @@ def test_api_table_name_quoted(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
-    if "adbc" in conn:
-        pa = pytest.importorskip("pyarrow")
-        if not (
-            Version(pa.__version__) >= Version("16.0")
-            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="pyarrow->pandas throws ValueError", strict=True
-                )
-            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
