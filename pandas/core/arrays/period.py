@@ -302,6 +302,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             scalars = scalars.to_numpy(dtype=object, na_value=NaT)
 
         arrdata = np.asarray(scalars)
+        if (
+            arrdata.dtype.kind == "u"
+            and arrdata.size
+            and arrdata.max() > np.iinfo(np.int64).max
+        ):
+            # GH#64231 the int64 cast below would wrap these silently; read
+            #  them through the object path, which rejects them the way the
+            #  Period(int) scalar constructor does.
+            arrdata = arrdata.astype(object)
+
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
             if not lib.all_nans(arrdata):
                 raise TypeError(
