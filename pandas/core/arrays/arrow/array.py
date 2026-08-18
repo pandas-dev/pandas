@@ -1866,9 +1866,7 @@ class ArrowExtensionArray(
         data = self._pa_array
         if data.length() == 0:
             indices = np.array([], dtype=np.intp)
-            uniques = self._from_pyarrow_array(
-                pa.chunked_array([], type=data.type.value_type)
-            )
+            uniques = self._from_pyarrow_array(pa.chunked_array([], type=data.type))
             return indices, uniques
 
         if not pa.types.is_dictionary(data.type):
