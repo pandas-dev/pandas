@@ -36,10 +36,7 @@ cnp.import_array()
 from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
-from dateutil.tz import (
-    tzoffset,
-    tzutc as _dateutil_tzutc,
-)
+from dateutil.tz import tzoffset
 
 from pandas._config import get_option
 
@@ -748,7 +745,7 @@ cdef datetime dateutil_parse(
             # GH#58002 dateutil resolves "UTC", "GMT", "Z" and "z" to a zero
             #  offset regardless of the system timezone, so these are not
             #  system-dependent even when they match time.tzname.
-            ret = ret.replace(tzinfo=_dateutil_tzutc())
+            ret = ret.replace(tzinfo=timezone.utc)
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 

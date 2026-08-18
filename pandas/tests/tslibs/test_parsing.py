@@ -2,7 +2,10 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 
-from datetime import datetime
+from datetime import (
+    UTC,
+    datetime,
+)
 import re
 
 from dateutil.parser import parse as du_parse
@@ -76,11 +79,17 @@ def test_parsing_utc_tzname_not_tzlocal(tzname, system_tz):
     expected = Timestamp("2004-01-15 03:00", tz="UTC")
 
     with tm.set_timezone(system_tz):
-        assert Timestamp(dtstr) == expected
+        result = Timestamp(dtstr)
+        assert result == expected
+        # stdlib utc, not dateutil's tzutc(), matching the ISO-8601 and
+        #  strptime paths
+        assert result.tzinfo is UTC
+
         assert parsing.py_parse_datetime_string(dtstr) == expected
 
         parsed, _ = parse_datetime_string_with_reso(dtstr)
         assert parsed == expected
+        assert parsed.tzinfo is UTC
 
 
 def test_parse_datetime_string_with_reso():
