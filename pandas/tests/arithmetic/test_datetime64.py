@@ -1701,15 +1701,15 @@ class TestDatetime64OverflowHandling:
 
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
-            obj + Timedelta(-1, unit)
+            obj + Timedelta(-1, input_unit=unit)
 
         with pytest.raises(OverflowError, match=msg):
-            obj - Timedelta(1, unit)
+            obj - Timedelta(1, input_unit=unit)
 
         # the tz-aware path shares the same int64 arithmetic
         obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
         with pytest.raises(OverflowError, match=msg):
-            obj + Timedelta(-1, unit)
+            obj + Timedelta(-1, input_unit=unit)
 
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024

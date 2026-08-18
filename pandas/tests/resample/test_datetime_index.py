@@ -1112,7 +1112,7 @@ def test_resample_anchored_intraday(unit):
     result = df.resample("ME").mean()
     expected = df.resample("ME").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index += Timedelta(1, input_unit="us") - Timedelta(1, input_unit="D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
@@ -1121,7 +1121,7 @@ def test_resample_anchored_intraday(unit):
     exp = df.shift(1, freq="D").resample("ME").mean().to_period()
     exp = exp.to_timestamp(how="end")
 
-    exp.index = exp.index + Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    exp.index = exp.index + Timedelta(1, input_unit="us") - Timedelta(1, input_unit="D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
     assert exp.index.freq == "ME"
     tm.assert_frame_equal(result, exp)
@@ -1134,7 +1134,7 @@ def test_resample_anchored_intraday2(unit):
     result = df.resample("QE").mean()
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index += Timedelta(1, input_unit="us") - Timedelta(1, input_unit="D")
     expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
@@ -1143,7 +1143,7 @@ def test_resample_anchored_intraday2(unit):
     expected = df.shift(1, freq="D").resample("QE").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index += Timedelta(1, input_unit="us") - Timedelta(1, input_unit="D")
     expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
@@ -1511,7 +1511,7 @@ def test_resample_across_dst():
     # 2016-10-30 02:23:00+02:00, 2016-10-30 02:23:00+01:00
     df1 = DataFrame([1477786980, 1477790580], columns=["ts"])
     dti1 = DatetimeIndex(
-        pd.to_datetime(df1.ts, unit="s")
+        pd.to_datetime(df1.ts, input_unit="s")
         .dt.tz_localize("UTC")
         .dt.tz_convert("Europe/Madrid")
     )
@@ -1520,7 +1520,7 @@ def test_resample_across_dst():
     # 2016-10-30 02:00:00+02:00, 2016-10-30 02:00:00+01:00
     df2 = DataFrame([1477785600, 1477789200], columns=["ts"])
     dti2 = DatetimeIndex(
-        pd.to_datetime(df2.ts, unit="s")
+        pd.to_datetime(df2.ts, input_unit="s")
         .dt.tz_localize("UTC")
         .dt.tz_convert("Europe/Madrid"),
         freq="h",

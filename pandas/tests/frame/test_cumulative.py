@@ -122,7 +122,7 @@ class TestDataFrameCumulativeOps:
 def test_td64_cumsum_overflow():
     # GH#66551: the check applies per column
     df = DataFrame(
-        {"a": [Timedelta(1, "D")] * 2, "b": [Timedelta.max] * 2},
+        {"a": [Timedelta(1, input_unit="D")] * 2, "b": [Timedelta.max] * 2},
         dtype="m8[ns]",
     )
     with pytest.raises(OutOfBoundsTimedelta, match="overflow in timedelta operation"):

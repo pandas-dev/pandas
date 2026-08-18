@@ -1686,7 +1686,7 @@ class Parser:
                         # within the nanoseconds bounds
                         # -> do as_unit cast to ensure OutOfBounds error
                         converted = to_datetime(
-                            new_data, errors="raise", unit=date_unit
+                            new_data, errors="raise", input_unit=date_unit
                         )
                         _ = converted.dt.as_unit("ns")
                         in_ns_bounds = True

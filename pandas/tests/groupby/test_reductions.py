@@ -1564,7 +1564,7 @@ def test_groupby_sum_timedelta_overflow():
 def test_groupby_sum_timedelta_overflow_sentinel():
     # GH#66551: a total landing exactly on iNaT is not a missing value
     mx, mn = pd.Timedelta.max, pd.Timedelta.min
-    ser = Series([mn, pd.Timedelta(-1, "ns")])
+    ser = Series([mn, pd.Timedelta(-1, input_unit="ns")])
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
         ser.groupby([0, 0]).sum()
 

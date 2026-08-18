@@ -2209,7 +2209,9 @@ class TestDataFrameReductions:
         df = DataFrame(
             {
                 "a": Series([0, 0]),
-                "t": Series([to_timedelta(0, "s"), to_timedelta(1, "ms")]),
+                "t": Series(
+                    [to_timedelta(0, input_unit="s"), to_timedelta(1, input_unit="ms")]
+                ),
             }
         )
 
@@ -2577,7 +2579,7 @@ def test_sum_timedelta64_overflow_only_in_exempt_slice(axis):
     #  NaT under skipna=False is exempt even though its entries overflow
     df = DataFrame(
         {
-            "a": [pd.Timedelta(1, "ns"), pd.Timedelta(2, "ns")],
+            "a": [pd.Timedelta(1, input_unit="ns"), pd.Timedelta(2, input_unit="ns")],
             "b": [pd.Timedelta.max, pd.NaT],
         }
     )
@@ -2586,7 +2588,9 @@ def test_sum_timedelta64_overflow_only_in_exempt_slice(axis):
 
     result = df.sum(axis=axis, skipna=False)
     expected = Series(
-        [pd.Timedelta(3, "ns"), pd.NaT], index=df.axes[1 - axis], dtype="m8[ns]"
+        [pd.Timedelta(3, input_unit="ns"), pd.NaT],
+        index=df.axes[1 - axis],
+        dtype="m8[ns]",
     )
     tm.assert_series_equal(result, expected)
 

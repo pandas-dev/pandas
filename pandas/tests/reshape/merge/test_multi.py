@@ -1189,7 +1189,7 @@ def test_merge_multi_datetimetz_int_keys():
 
 def test_merge_multi_timedelta_int_keys():
     # GH#66124 timedelta64 plus integer key columns
-    tdi = pd.to_timedelta([1, 2, 1], unit="s")
+    tdi = pd.to_timedelta([1, 2, 1], input_unit="s")
     left = DataFrame(
         {"k1": tdi, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
     )

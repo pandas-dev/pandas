@@ -336,7 +336,7 @@ def test_td64_cumsum_overflow():
         ser.cumsum()
 
     # the wrap does not have to be in the final entry
-    ser = pd.Series([pd.Timedelta(2**62, "ns")] * 3)
+    ser = pd.Series([pd.Timedelta(2**62, input_unit="ns")] * 3)
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         ser.cumsum()
 
@@ -344,7 +344,7 @@ def test_td64_cumsum_overflow():
 def test_td64_cumsum_on_nat_sentinel():
     # GH#66551: a running total of exactly int64.min is representable but
     #  indistinguishable from NaT once stored
-    ser = pd.Series([pd.Timedelta(-(2**62), "ns")] * 2)
+    ser = pd.Series([pd.Timedelta(-(2**62), input_unit="ns")] * 2)
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
         ser.cumsum()
 

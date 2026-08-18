@@ -823,7 +823,7 @@ class TestSeriesInterpolateData:
         # GH#66338
         pa = pytest.importorskip("pyarrow")
 
-        tdi = pd.to_timedelta([1, 3, 4], unit="D").as_unit("us")
+        tdi = pd.to_timedelta([1, 3, 4], input_unit="D").as_unit("us")
         arrow_index = Index(pd.array(tdi, dtype=pd.ArrowDtype(pa.duration("us"))))
 
         values = [1.0, np.nan, 3.0]

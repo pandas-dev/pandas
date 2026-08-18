@@ -31,7 +31,7 @@ class TestSeriesClip:
         sers = [
             Series([np.nan, 1.0, 2.0, 3.0]),
             Series([None, "a", "b", "c"]),
-            Series(pd.to_datetime([np.nan, 1, 2, 3], unit="D")),
+            Series(pd.to_datetime([np.nan, 1, 2, 3], input_unit="D")),
         ]
 
         for s in sers:

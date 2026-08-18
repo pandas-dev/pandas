@@ -363,7 +363,7 @@ def test_groupby_quantile_allNA_column(dtype):
 
 def test_groupby_timedelta_quantile():
     # GH: 29485
-    tdi = pd.to_timedelta(np.arange(4), unit="s").as_unit("us")
+    tdi = pd.to_timedelta(np.arange(4), input_unit="s").as_unit("us")
     df = DataFrame({"value": tdi, "group": [1, 1, 2, 2]})
     result = df.groupby("group").quantile(0.99)
     expected = DataFrame(

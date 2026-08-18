@@ -178,7 +178,9 @@ class TestDataFrameIsIn:
     def test_isin_empty_datetimelike(self):
         # GH#15473
         df1_ts = DataFrame({"date": pd.to_datetime(["2014-01-01", "2014-01-02"])})
-        df1_td = DataFrame({"date": [pd.Timedelta(1, "s"), pd.Timedelta(2, "s")]})
+        df1_td = DataFrame(
+            {"date": [pd.Timedelta(1, input_unit="s"), pd.Timedelta(2, input_unit="s")]}
+        )
         df2 = DataFrame({"date": []})
         df3 = DataFrame()
 

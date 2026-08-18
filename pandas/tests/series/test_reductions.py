@@ -138,7 +138,9 @@ def test_td64_sum_all_nat_skipna_false():
 def test_td64_sum_exact():
     # GH#66551: the sum used to accumulate in float64, whose 53-bit mantissa
     #  silently rounded results above 2**53
-    ser = Series([pd.Timedelta(2**53 + 1, "ns"), pd.Timedelta(0, "ns")])
+    ser = Series(
+        [pd.Timedelta(2**53 + 1, input_unit="ns"), pd.Timedelta(0, input_unit="ns")]
+    )
     assert ser.sum()._value == 2**53 + 1
 
     # a single representable value has to survive the round trip
@@ -146,14 +148,19 @@ def test_td64_sum_exact():
     assert ser.sum() == pd.Timedelta.min
 
     # operands that individually round but cancel exactly
-    ser = Series([pd.Timedelta(2**62 + 1, "ns"), pd.Timedelta(-(2**62), "ns")])
-    assert ser.sum() == pd.Timedelta(1, "ns")
+    ser = Series(
+        [
+            pd.Timedelta(2**62 + 1, input_unit="ns"),
+            pd.Timedelta(-(2**62), input_unit="ns"),
+        ]
+    )
+    assert ser.sum() == pd.Timedelta(1, input_unit="ns")
 
 
 def test_td64_sum_on_nat_sentinel():
     # GH#66551: a total of exactly int64.min is representable but
     #  indistinguishable from NaT once stored
-    ser = Series([pd.Timedelta.min, pd.Timedelta(-1, "ns")])
+    ser = Series([pd.Timedelta.min, pd.Timedelta(-1, input_unit="ns")])
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
         ser.sum()
 
