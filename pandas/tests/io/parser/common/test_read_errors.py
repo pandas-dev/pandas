@@ -8,7 +8,6 @@ import csv
 from io import StringIO
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from pandas.errors import (
@@ -242,18 +241,17 @@ def test_read_csv_wrong_num_columns(all_parsers):
         parser.read_csv(StringIO(data))
 
 
-def test_null_byte_char(request, all_parsers):
+def test_null_byte_char(all_parsers):
     # see gh-2741
     data = "\x00,foo"
     names = ["a", "b"]
     parser = all_parsers
 
     if parser.engine in ["c", "python"]:
-        if parser.engine == "python":
-            request.applymarker(
-                pytest.mark.xfail(reason="This is read as an empty character not null")
-            )
-        expected = DataFrame([[np.nan, "foo"]], columns=names)
+        # GH#19886 a lone NUL is a one-character value, not the empty string,
+        # so it is not an na_value. The C engine used to compare the
+        # NUL-terminated word and report NaN here.
+        expected = DataFrame([["\x00", "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
@@ -274,11 +272,8 @@ def test_open_file(all_parsers, temp_file):
 
     msg = "Could not determine delimiter"
     err = csv.Error
-    if parser.engine == "c":
-        msg = "object of type 'NoneType' has no len"
-        err = TypeError
-    elif parser.engine == "pyarrow":
-        msg = "'utf-8' codec can't decode byte 0xe4"
+    if parser.engine in ("c", "pyarrow"):
+        msg = f"the '{parser.engine}' engine does not support sep=None"
         err = ValueError
 
     file = Path(temp_file)

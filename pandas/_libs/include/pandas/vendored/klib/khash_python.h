@@ -386,9 +386,9 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 // the first NUL byte, so distinct values that share a NUL-terminated prefix
 // collapse into a single entry. Python strings, CSV fields and Arrow string
 // buffers can all contain embedded NULs, which made that silently return wrong
-// results (GH#34551, GH#66525). Keying on an explicit (pointer, length) pair
-// fixes it, and additionally lets a key point at a slice of a larger buffer
-// without copying or NUL-terminating it.
+// results (GH#34551, GH#66525, GH#19886). Keying on an explicit (pointer,
+// length) pair fixes it, and additionally lets a key point at a slice of a
+// larger buffer without copying or NUL-terminating it.
 //
 // The pointed-to bytes are borrowed, exactly as for kh_cstr_t: the caller must
 // keep them alive for as long as the entry is in the table.
@@ -437,19 +437,10 @@ static inline int kh_strview_hash_equal(kh_strview_t a, kh_strview_t b) {
 KHASH_MAP_INIT_STRVIEW(str, size_t)
 KHASH_MAP_INIT_STRVIEW(strbox, kh_pyobject_t)
 
-// NUL-terminated keys for kh_str_starts_t only. The na/true/false-values
-// tables still hash and compare up to the first NUL -- the pre-existing
-// behavior. Giving them a length-aware key is what fixes GH#19886, and is
-// deliberately left to a follow-up because it changes user-visible NA
-// semantics (and hence dtype inference). Do not "fix" it here by deriving the
-// length with strlen: kh_get_str_starts_item runs per token per column on the
-// read_csv hot path, and that strlen alone measured 4-21% on every csvbench
-// core case.
-KHASH_MAP_INIT_STR(strz, size_t)
-
 typedef struct {
-  kh_strz_t *table;
+  kh_str_t *table;
   int starts[256];
+  int has_empty;
 } kh_str_starts_t;
 
 typedef kh_str_starts_t *p_kh_str_starts_t;
@@ -457,36 +448,48 @@ typedef kh_str_starts_t *p_kh_str_starts_t;
 static inline p_kh_str_starts_t kh_init_str_starts(void) {
   kh_str_starts_t *result =
       (kh_str_starts_t *)KHASH_CALLOC(1, sizeof(kh_str_starts_t));
-  result->table = kh_init_strz();
+  result->table = kh_init_str();
   return result;
 }
 
+// The length is a parameter rather than a strlen here: kh_get_str_starts_item
+// runs per token per column on the read_csv hot path, and deriving it with
+// strlen measured 4-21% on every csvbench core case. Every caller already
+// knows the exact length -- read_csv from _token_len, the na_values entries
+// from PyBytes_AsStringAndSize.
 static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
-                                              const char *key, int *ret) {
-  khuint_t result = kh_put_strz(table->table, key, ret);
+                                              const char *key, size_t len,
+                                              int *ret) {
+  khuint_t result = kh_put_str(table->table, kh_strview(key, len), ret);
   if (*ret != 0) {
-    table->starts[(unsigned char)key[0]] = 1;
+    // The empty key gets its own flag rather than a slot in starts[]. Sharing
+    // starts['\0'] with it would make every token that merely *begins* with an
+    // embedded NUL look like a candidate.
+    if (len == 0)
+      table->has_empty = 1;
+    else
+      table->starts[(unsigned char)key[0]] = 1;
   }
   return result;
 }
 
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
-                                              const char *key) {
-  unsigned char ch = *key;
-  if (table->starts[ch]) {
-    if (ch == '\0' || kh_get_strz(table->table, key) != table->table->n_buckets)
-      return 1;
-  }
+                                              const char *key, size_t len) {
+  if (len == 0)
+    return (khuint_t)table->has_empty;
+  if (table->starts[(unsigned char)key[0]] &&
+      kh_get_str(table->table, kh_strview(key, len)) != table->table->n_buckets)
+    return 1;
   return 0;
 }
 
 static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
-  kh_destroy_strz(table->table);
+  kh_destroy_str(table->table);
   KHASH_FREE(table);
 }
 
 static inline void kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
-  kh_resize_strz(table->table, val);
+  kh_resize_str(table->table, val);
 }
 
 // utility function: given the number of elements
