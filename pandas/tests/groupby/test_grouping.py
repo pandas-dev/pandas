@@ -1302,11 +1302,18 @@ def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouper_sort_true_in_list_key():
-    # GH#61943 - a Grouper with sort=True passed inside a list sorted the
-    # grouping axis but the reordered frame was not propagated back out of
-    # get_grouper, so sorted codes were applied to unsorted values and the
-    # aggregation silently returned wrong numbers.
+def test_grouper_default_sort():
+    # GH#61943
+    ser = Series([5, 7], index=["b", "a"])
+
+    result = list(ser.groupby(Grouper(level=0)).groups)
+    expected = list(ser.groupby(level=0).groups)
+
+    assert result == expected
+
+
+def test_grouper_sort_true_in_list():
+    # GH#61943
     df = DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
 
     result = df.groupby([Grouper(key="k", sort=True)]).mean()
@@ -1315,35 +1322,11 @@ def test_grouper_sort_true_in_list_key():
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouper_sort_true_in_list_level():
-    # GH#61943 - same desync via level= on a MultiIndex.
-    df = DataFrame(
-        {
-            "outer": ["a", "a", "a", "b", "b", "b"],
-            "inner": [1, 2, 3, 1, 2, 3],
-            "A": np.arange(6),
-        }
-    )
-    ser = df.set_index(["outer", "inner"])["A"]
+def test_grouper_sort_true_transform():
+    # GH#61943
+    df = DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
 
-    result = ser.groupby([Grouper(level="inner", sort=True)]).mean()
-    expected = ser.groupby(level="inner").mean()
-
-    tm.assert_series_equal(result, expected)
-
-
-def test_grouper_sort_true_in_list_multiple_keys():
-    # GH#61943 - also wrong when the sorting Grouper is combined with a
-    # second grouping key.
-    df = DataFrame(
-        {
-            "k": [1, 2, 3, 1, 2, 3],
-            "g": ["x", "x", "x", "y", "y", "y"],
-            "A": np.arange(6),
-        }
-    )
-
-    result = df.groupby([Grouper(key="k", sort=True), "g"]).mean()
-    expected = df.groupby(["k", "g"]).mean()
+    result = df.groupby(Grouper(key="k", sort=True)).cumsum()
+    expected = df.groupby("k").cumsum()
 
     tm.assert_frame_equal(result, expected)

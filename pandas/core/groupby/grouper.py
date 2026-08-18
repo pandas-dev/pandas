@@ -101,7 +101,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default False
+    sort : bool, default True
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -279,7 +279,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        sort: bool = False,
+        sort: bool = True,
         dropna: bool = True,
     ) -> None:
         self.key = key
