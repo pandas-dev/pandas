@@ -609,8 +609,7 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
 
-            # Always pass row-to-row deltas (all ones when times is omitted)
-            # so the times and no-times paths share one decay formula.
+            # ``_deltas`` is all ones when ``times`` is omitted.
             window_func = partial(
                 window_aggregations.ewm,
                 com=self._com,
