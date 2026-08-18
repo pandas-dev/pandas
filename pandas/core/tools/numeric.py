@@ -38,6 +38,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -248,8 +249,6 @@ def to_numeric(
         if dtype_backend is not lib.no_default and not isinstance(
             values_dtype, ArrowDtype
         ):
-            from pandas.core.dtypes.missing import isna
-
             new_mask = np.asarray(isna(values), dtype=np.bool_)
     elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
