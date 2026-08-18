@@ -770,6 +770,7 @@ Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.bar` and :meth:`DataFrame.plot.barh` raising ``AttributeError`` for a regularly-spaced :class:`DatetimeIndex` whose ``freq`` attribute is unset (:issue:`66771`)
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``TypeError`` when business-day data was drawn onto axes that already held a daily-or-finer or weekly series (:issue:`66222`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``secondary_y`` hiding the primary y-axis when the data already on the axes was drawn as a collection rather than as lines, e.g. by :meth:`DataFrame.plot.scatter` (:issue:`66789`)
 - Bug in :meth:`Series.plot`, :meth:`DataFrame.plot`, :meth:`DataFrame.plot.scatter`, :meth:`Series.hist`, :meth:`DataFrame.hist`, :func:`plotting.lag_plot` and :func:`plotting.parallel_coordinates` with timezone-aware data labelling the axis in UTC instead of in the data's own timezone (:issue:`64613`)
 -

@@ -1644,8 +1644,13 @@ class LinePlot(MPLPlot):
         if is_ts:
             # TODO: GH28021, should find a way to change view limit on xaxis
             for ax in ts_axes:
+                # Use the index of the data actually drawn on this axes: a
+                # series may have been re-expressed at the axes frequency
+                # (GH#66222), so the frame-level index can disagree with
+                # ax.freq.
                 # TODO #54485
-                format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+                index = ax._plot_data[-1][0].index  # type: ignore[attr-defined]
+                format_dateaxis(ax, ax.freq, index)  # type: ignore[attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
