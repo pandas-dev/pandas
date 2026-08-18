@@ -24,6 +24,7 @@ import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -72,6 +73,7 @@ from pandas.plotting._matplotlib.timeseries import (
     get_period_offset,
     maybe_convert_index,
     prepare_ts_data,
+    set_period_converter,
     use_dynamic_x,
 )
 from pandas.plotting._matplotlib.tools import (
@@ -1925,6 +1927,10 @@ class BarPlot(MPLPlot):
                     self._ts_freq,
                 )
             )
+            if self._use_dynamic_dateaxis and not self._rot_set:
+                # date tick labels placed by the dynamic locator read like
+                # those of a line plot, so match the line-plot default
+                self.rot = 0
         else:
             self.tick_pos = np.arange(len(data))
 
@@ -1935,6 +1941,54 @@ class BarPlot(MPLPlot):
         # the same way and is False unless it resolves to a period alias
         assert freq is not None
         return freq
+
+    @cache_readonly
+    def _use_dynamic_dateaxis(self) -> bool:
+        # GH#1918: use the same dynamic date tick labeling as line plots.
+        # Restricted to vertical bars because format_dateaxis decorates the
+        # x-axis, which for barh is the value axis.
+        if self.orientation != "vertical" or not isinstance(
+            self.data.index, (ABCDatetimeIndex, ABCPeriodIndex)
+        ):
+            return False
+        if not self._is_ts_plot():
+            return False
+        # Only reached after tick_pos has been set to the period ordinals.
+        # Matplotlib holds axis coordinates as float64, which represents
+        # integers exactly only up to 2**53; nanosecond ordinals are ~1.6e18,
+        # so the half-unit bar padding rounds away, the axis limits collapse to
+        # a single value, and the dynamic locator is then handed a view spanning
+        # ~1e17 periods to walk.  Keep the fixed ticks for those.
+        if not bool(np.abs(self.tick_pos).max(initial=0) <= 2**53):
+            return False
+        # The dynamic locator anchors its tick grid on int(vmin), i.e. on the
+        # period *before* the view when the limits are fractional -- and the
+        # half-unit padding either side of the bars makes them fractional.  The
+        # grid steps one period at a time from there, so it covers every bar
+        # only when the bars themselves are one ordinal apart; the leading tick
+        # is then the sole one outside the view, where it is never drawn.  Bars
+        # spaced further apart (a multiplied freq such as '2D' or '3B') would
+        # get a grid that steps between them, labeling timestamps that have no
+        # bar, so those keep the fixed ticks.  Checking the spacing rather than
+        # freq.n also covers 'nB', whose period alias drops the multiplier.
+        freq = self._ts_freq
+        spacing = np.diff(self.tick_pos)
+        if spacing.size and not (spacing == freq.n).all():
+            return False
+        if freq.n != 1:
+            # Only the daily-and-finer finder steps its grid by the frequency's
+            # multiplier.  The monthly, quarterly and annual finders walk every
+            # period and mark each one a minor tick, so a multiplied frequency
+            # there would label ticks that fall between the bars.
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
+            code = freq._period_dtype_code  # type: ignore[attr-defined]
+            if FreqGroup.from_period_dtype_code(code) in (
+                FreqGroup.FR_MTH,
+                FreqGroup.FR_QTR,
+                FreqGroup.FR_ANN,
+            ):
+                return False
+        return True
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
@@ -2094,16 +2148,75 @@ class BarPlot(MPLPlot):
                 )
             self._append_legend_handles_labels(rect, label)
 
-    def _post_plot_logic(self, ax: Axes, data) -> None:
-        if self.use_index:
-            str_index = [pprint_thing(key) for key in data.index]
-        else:
-            str_index = [pprint_thing(key) for key in range(data.shape[0])]
+        if self._use_dynamic_dateaxis:
+            for ax in self.axes:
+                self._setup_date_axis(ax)
 
+    def _setup_date_axis(self, ax: Axes) -> None:
+        """
+        Put the freq and the period converter on the x-axis.
+
+        Done here rather than in _post_plot_logic because _adorn_subplots()
+        runs in between and maps any user-supplied xticks through whatever
+        converter the axis carries: registering ours afterwards would both
+        misplace those ticks and replace matplotlib's date converter, which
+        warns.
+        """
+        # The freq is deliberately not set on the *axes* (nor is decorate_axes()
+        # called): that registers it as a resamplable time-series axes -- ax.freq
+        # plus an entry in ax._plot_data -- a protocol only line plots implement.
+        # A bar plot that joined it would be resampled by maybe_resample() when a
+        # line at another freq is added later, and since bar artists cannot be
+        # replayed by _replot_ax(), its ax.clear() would erase them.
+        xaxis = ax.get_xaxis()
+        if getattr(xaxis, "freq", None) is None:
+            # an axes decorated by an earlier plot already carries one; leaving
+            # it alone keeps date-valued calls resolving at the scale of the
+            # data already drawn there
+            # TODO #54485
+            xaxis.freq = self._ts_freq  # type: ignore[attr-defined]
+        set_period_converter(ax)
+
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
+        # GH#1918: use the same dynamic date tick labeling as line plots
+        if self._use_dynamic_dateaxis:
+            freq = self._ts_freq
+
+            # Convert DatetimeIndex to PeriodIndex (int64 business-day ordinals
+            # for BDay freq, avoiding deprecated Period[B]) to match the
+            # x-coordinates used in _make_plot.
+            data, _ = maybe_convert_index(ax, data)
+            # the limits below sit half a period outside the bars, so tell
+            # the locator which ordinal its grid has to land on
+            format_dateaxis(ax, freq, data.index, anchor=int(self.tick_pos[0]))
+
+            ax.set_xlim((s_edge, e_edge))
+            if self.xticks is not None:
+                ax.set_xticks(np.array(self.xticks))
+            # otherwise leave tick placement to the dynamic locator installed
+            # by format_dateaxis, exactly as line plots do; pinning a tick at
+            # every bar would suppress the intermediate minor-tick labels
+
+            # _post_plot_logic_common() applied rot and fontsize before the
+            # dynamic locators existed, so the minor ticks -- which carry most
+            # of the date labels -- had not been created yet to receive them
+            type(self)._apply_axis_properties(
+                ax.xaxis, rot=self.rot, fontsize=self.fontsize
+            )
+
+            index_name = self._get_index_name()
+            if index_name is not None and self.use_index:
+                ax.set_xlabel(index_name)
+        else:
+            if self.use_index:
+                str_index = [pprint_thing(key) for key in data.index]
+            else:
+                str_index = [pprint_thing(key) for key in range(data.shape[0])]
+
+            self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(
         self,
