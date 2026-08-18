@@ -1026,7 +1026,6 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -2368,17 +2367,6 @@ def test_api_table_name_quoted(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
-    if "adbc" in conn:
-        pa = pytest.importorskip("pyarrow")
-        if not (
-            Version(pa.__version__) >= Version("16.0")
-            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="pyarrow->pandas throws ValueError", strict=True
-                )
-            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
