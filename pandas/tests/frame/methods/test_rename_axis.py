@@ -126,4 +126,3 @@ class TestDataFrameRenameAxis:
 
         result_reset = df.reset_index().rename_axis(df.index.name)
         assert result_reset.index.name == (1, 2, 3)
-
