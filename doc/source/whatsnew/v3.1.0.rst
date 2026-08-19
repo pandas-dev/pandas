@@ -693,7 +693,7 @@ I/O
 - Fixed bug in :func:`read_csv` with the ``c`` engine where running out of memory while the parser was reporting an error crashed the interpreter instead of raising ``ParserError`` (:issue:`66660`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with ``dtype="S"`` (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with an explicit string-like ``dtype`` (``object``, ``"str"``, ``"string"`` or ``"category"``) (:issue:`66525`)
-- Fixed bug in :func:`read_excel` where a non-contiguous list ``header`` (e.g. ``header=[0, 2]``) together with ``index_col`` misidentified the row directly below the header as the index-name row by counting ``len(header)`` rows instead of using the last header row's position (``max(header) + 1``), corrupting the resulting index name(s) (:issue:`66373`)
+- Fixed bug in :func:`read_excel` with a non-contiguous list ``header`` (e.g. ``header=[0, 2]``) together with ``index_col`` (:issue:`66802`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug in :func:`read_excel` with the ``openpyxl`` engine where reading a sheet set its ``max_row`` and ``max_column`` to ``None`` on the workbook exposed through ``ExcelFile.book`` (:issue:`63010`)
 - Fixed bug in :func:`read_sas` where ``encoding="infer"`` raised ``LookupError: unknown encoding: infer`` instead of falling back to latin-1, for SAS7BDAT files recording an encoding pandas does not recognize and for XPORT files, which record no encoding at all (:issue:`66470`)

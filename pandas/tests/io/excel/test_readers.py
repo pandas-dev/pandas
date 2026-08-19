@@ -1246,33 +1246,23 @@ class TestReaders:
         expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no("openpyxl")
-    def test_read_excel_noncontiguous_header_index_names(self, tmp_path):
-        # GH 66373
-        # A non-contiguous list ``header`` (e.g. [0, 2]) together with a
-        # MultiIndex ``index_col`` must look for the index-name row at
-        # max(header) + 1 (the row right after the last header row), not
-        # at len(header) (which lands on the header itself here). Getting
-        # this wrong corrupts has_index_names detection, which shifts the
-        # forward-fill offset for the MultiIndex index by one row and
-        # leaks the index-name text into the actual index values.
-        openpyxl = pytest.importorskip("openpyxl")
-        path = tmp_path / "noncontiguous_header.xlsx"
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        rows = [
-            ["", "", "foo", "foo"],  # header row 0
-            ["SKIP", "SKIP", "SKIP", "SKIP"],  # not in header=[0, 2]; dropped
-            ["", "", "a", "b"],  # header row 2
-            ["ilvl1", "ilvl2", "", ""],  # index-name row
-            ["", "p", 1, 2],  # blank index level to catch corruption
-            ["y", "q", 3, 4],
-        ]
-        for row in rows:
-            ws.append(row)
-        wb.save(path)
+    def test_read_excel_noncontiguous_header_index_names(self, read_ext, tmp_excel):
+        # GH 66802
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        raw = DataFrame(
+            [
+                ["", "", "foo", "foo"],  # header row 0
+                ["SKIP", "SKIP", "SKIP", "SKIP"],  # not in header=[0, 2]; dropped
+                ["", "", "a", "b"],  # header row 2
+                ["ilvl1", "ilvl2", "", ""],  # index-name row
+                ["", "p", 1, 2],
+                ["y", "q", 3, 4],
+            ]
+        )
+        raw.to_excel(tmp_excel, header=False, index=False)
 
-        result = pd.read_excel(path, header=[0, 2], index_col=[0, 1], engine="openpyxl")
+        result = pd.read_excel(tmp_excel, header=[0, 2], index_col=[0, 1])
         expected = DataFrame(
             [[1, 2], [3, 4]],
             columns=MultiIndex.from_tuples([("foo", "a"), ("foo", "b")]),
