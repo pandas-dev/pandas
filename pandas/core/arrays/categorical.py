@@ -30,6 +30,7 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
     find_common_type,
@@ -3123,8 +3124,15 @@ def _get_codes_for_values(
 
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
+    values = extract_array(values)
+    null_mask = np.asarray(isna(values))
+    if null_mask.any():
+        values = values[~null_mask]
+
+    if len(values):
+        values = astype_array(values, categories.dtype, copy=False)
     codes = categories.get_indexer_for(values)
-    wrong = (codes == -1) & ~isna(values)
+    wrong = codes == -1
     if wrong.any():
         warnings.warn(
             "Constructing a Categorical with a dtype and values containing "
@@ -3133,6 +3141,10 @@ def _get_codes_for_values(
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
+    if null_mask.any():
+        full_codes = -np.ones(null_mask.shape, dtype=codes.dtype)
+        full_codes[~null_mask] = codes
+        codes = full_codes
     return coerce_indexer_dtype(codes, categories)
 
 

@@ -608,6 +608,30 @@ class TestAstypeCategorical:
         tm.assert_series_equal(result, expected)
         tm.assert_index_equal(result.cat.categories, Index(["a", "b", "c"]))
 
+    @pytest.mark.parametrize(
+        "values, categories",
+        [
+            ([1, 2], Index(["1", "2"], dtype="string")),
+            (np.array(["1", "2"], dtype=object), Index([1, 2])),
+        ],
+    )
+    def test_astype_categoricaldtype_casts_values(self, values, categories):
+        # GH#66688
+        dtype = CategoricalDtype(categories)
+
+        with tm.assert_produces_warning(None):
+            result = Series(values).astype(dtype)
+
+        expected = Series(Categorical(categories, dtype=dtype))
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_categoricaldtype_cast_raises(self):
+        # GH#66688
+        dtype = CategoricalDtype(Index([1, 2]))
+
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            Series(np.array(["1", "a"], dtype=object)).astype(dtype)
+
     @pytest.mark.parametrize("name", [None, "foo"])
     @pytest.mark.parametrize("dtype_ordered", [True, False])
     @pytest.mark.parametrize("series_ordered", [True, False])
