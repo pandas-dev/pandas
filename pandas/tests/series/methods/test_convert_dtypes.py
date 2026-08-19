@@ -337,6 +337,37 @@ class TestSeriesConvertDtypes:
         expected = ser.copy()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [2**64],
+            [-(2**63) - 1],
+            [10**400],
+            [2**63, -1],
+            [2**64, pd.NA],
+        ],
+    )
+    def test_convert_dtypes_int_out_of_range(self, data):
+        # GH#66517 no int64/uint64 dtype holds these, so we retain object
+        ser = pd.Series(data, dtype=object)
+        result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize("value, dtype", [(2**63, "UInt64"), (2**62, "Int64")])
+    def test_convert_dtypes_uint64_with_na(self, value, dtype):
+        # GH#66517
+        ser = pd.Series([value, pd.NA], dtype=object)
+        result = ser.convert_dtypes()
+        expected = pd.Series([value, pd.NA], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_convert_dtypes_int_out_of_range_pyarrow(self):
+        # GH#66517 pyarrow has no integer type for these either
+        pytest.importorskip("pyarrow")
+        ser = pd.Series([2**64], dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
     def test_convert_dtypes_complex(self):
         # GH 60129
         ser = pd.Series([1.5 + 3.0j, 1.5 - 3.0j])
