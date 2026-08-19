@@ -206,11 +206,6 @@ static inline const char *coliter_next_with_idx(coliter_t *self,
   return coliter_word(self, idx);
 }
 
-static inline const char *coliter_next(coliter_t *self) {
-  int64_t idx;
-  return coliter_next_with_idx(self, &idx);
-}
-
 parser_t *parser_new(void);
 
 int parser_init(parser_t *self);

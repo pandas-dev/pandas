@@ -430,7 +430,11 @@ def array_to_timedelta64(
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
-                if dt64_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+                # GH#63018 skip the NaT sentinel: it is the same int64 in every
+                #  reso, so converting it would spuriously overflow. A unitless
+                #  item is already in ns, and get_supported_reso pins creso to
+                #  ns for it, so it needs no conversion either.
+                if ival != NPY_NAT and dt64_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
                     try:
                         ival = convert_reso(
                             ival,
@@ -440,9 +444,6 @@ def array_to_timedelta64(
                         )
                     except (OverflowError, OutOfBoundsDatetime) as err:
                         raise OutOfBoundsTimedelta(item) from err
-                else:
-                    # e.g. NaT
-                    pass
 
             elif isinstance(item, _Timedelta):
                 item_reso = item._creso
@@ -471,19 +472,22 @@ def array_to_timedelta64(
                     ival = parse_iso_format_string(item)
                 else:
                     ival = parse_timedelta_string(item)
-                if (
-                    (infer_reso or creso == NPY_DATETIMEUNIT.NPY_FR_us)
-                    and not needs_nano_unit(ival, item)
-                ):
-                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
-                    ival = ival // 1000
-                else:
-                    item_reso = NPY_FR_ns
-
                 if ival != NPY_NAT:
-                    state.update_creso(item_reso)
                     if infer_reso:
+                        # only the inferring pass reads item_reso/state, and
+                        #  needs_nano_unit runs a regex, so skip it otherwise
+                        if needs_nano_unit(ival, item):
+                            item_reso = NPY_FR_ns
+                        else:
+                            item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+                        state.update_creso(item_reso)
                         creso = state.creso
+
+                    if creso != NPY_FR_ns:
+                        # GH#63196 the string parsers give nanoseconds; express
+                        #  that in the array's current reso, which may already
+                        #  be finer than this element needs (ns is a no-op)
+                        ival = convert_reso(ival, NPY_FR_ns, creso, round_ok=True)
 
             elif is_tick_object(item):
                 item_reso = get_supported_reso(item._creso)
@@ -996,6 +1000,63 @@ cdef _addsub_timedelta64_array(
     return i8result.view(f"m8[{npy_unit_to_abbrev(reso)}]")
 
 
+cdef _addsub_datetime64_array(
+    _Timedelta td, ndarray other, bint subtract, bint reverse
+):
+    """
+    Add a Timedelta to a datetime64 ndarray, or subtract it from one.
+
+    Matching numpy, the operands are cast to the finer of the two units. Unlike
+    numpy, both that cast and the addition itself raise instead of wrapping,
+    and a sum landing on the NaT sentinel is rejected rather than passed off as
+    missing, matching what the scalar Timestamp path already does (GH#66552).
+    """
+    cdef:
+        NPY_DATETIMEUNIT other_reso = get_unit_from_dtype(other.dtype)
+        NPY_DATETIMEUNIT reso = td._creso
+        ndarray i8other, i8result
+        int64_t value
+
+    if subtract and not reverse:
+        # td - dt64array, which numpy itself refuses; let it raise
+        return td.to_timedelta64() - other
+
+    if other_reso == NPY_FR_GENERIC:
+        # numpy reads a generic datetime64 in the other operand's unit
+        other_reso = reso
+    elif other_reso > NPY_FR_ns:
+        # sub-nanosecond units, which we have no reso for; leave both to numpy
+        m8 = td.to_timedelta64()
+        return (other - m8) if subtract else (m8 + other)
+
+    if reso < other_reso:
+        td = td._as_creso(other_reso, round_ok=True)
+        reso = other_reso
+    elif reso > other_reso:
+        other = astype_overflowsafe(
+            other, np.dtype(f"M8[{npy_unit_to_abbrev(reso)}]")
+        )
+
+    if not other.dtype.isnative:
+        # the view below would misread a byte-swapped buffer
+        other = other.astype(other.dtype.newbyteorder("="))
+
+    i8other = other.view("i8")
+    value = td._value
+    if subtract:
+        # other - td; td is never NaT, so negating its value is safe
+        value = -value
+
+    try:
+        i8result = add_overflowsafe(i8other, np.array(value, dtype="i8"))
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(
+            f"Out of bounds {npy_unit_to_attrname[reso]} timestamp"
+        ) from err
+
+    return i8result.view(f"M8[{npy_unit_to_abbrev(reso)}]")
+
+
 cdef _mul_numeric_array(_Timedelta td, ndarray other):
     """
     Multiply a Timedelta by an integer- or float-dtype ndarray.
@@ -1103,8 +1164,7 @@ def _binary_op_method_timedeltalike(op, name):
             elif other.dtype.kind == "m":
                 return _addsub_timedelta64_array(self, other, subtract, reverse)
             elif other.dtype.kind == "M":
-                # GH#66552 the datetime64 result path still wraps on overflow
-                return op(self.to_timedelta64(), other)
+                return _addsub_datetime64_array(self, other, subtract, reverse)
             elif other.dtype.kind == "O":
                 return np.array([op(self, x) for x in other])
             else:

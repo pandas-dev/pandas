@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.1
     hooks:
     -   id: ruff-check
         args: [--exit-non-zero-on-fix]
@@ -41,7 +41,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
@@ -67,7 +67,7 @@ repos:
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 9.0.0a3
+    rev: 9.0.0b1
     hooks:
     -   id: isort
 -   repo: https://github.com/pre-commit/pygrep-hooks
@@ -87,14 +87,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.5
+    rev: v22.1.8
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: ['-i', '--style', '{IndentPPDirectives: AfterHash}']
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.11.1
+    rev: v1.11.2
     hooks:
     - id: meson-fmt
       args: ['--inplace']
@@ -136,11 +136,11 @@ repos:
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
-        entry: python
+        entry: python -m mypy.stubtest
         language: system
         pass_filenames: false
         types: [pyi]
-        args: [scripts/run_stubtest.py]
+        args: [pandas._libs, --ignore-missing-stub, --ignore-disjoint-base, --concise, --mypy-config-file, pyproject.toml, --allowlist, scripts/stubtest_allowlist.txt]
         stages: [manual]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'

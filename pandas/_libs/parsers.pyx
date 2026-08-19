@@ -68,6 +68,7 @@ from libc.stdint cimport (
 from libc.stdlib cimport (
     free,
     malloc,
+    realloc,
 )
 from libc.string cimport (
     memcpy,
@@ -294,7 +295,6 @@ cdef extern from "pandas/parser/tokenizer.h":
         int seen_uint
         int seen_null
 
-    const char *coliter_next(coliter_t *) nogil
     const char *coliter_next_with_idx(coliter_t *, c_int64_t *) nogil
 
     double precise_xstrtod_with_end(const char *p, char **q, char decimal,
@@ -394,6 +394,17 @@ cdef class TextReader:
         # reader turns this off on its workers, whose buffers are reused
         # across chunks and freed at close.
         public bint trim_after_read
+        # When not None, ParserWarnings are appended here as
+        # (message, category) instead of being raised.  The parallel reader
+        # gives every worker the same sink so a warning is raised once rather
+        # than once per chunk (GH#66259).
+        public object warning_sink
+        # Set once a column has been emitted with its NA tokens left as
+        # literal strings despite na_filter being on (the uint64-conflict
+        # branch of _convert_tokens, GH#14983).  Whether that branch is taken
+        # depends on which rows the parser saw, so the parallel reader checks
+        # this and falls back to a serial read (GH#66259).
+        public bint na_left_literal
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -574,6 +585,8 @@ cdef class TextReader:
         self.defer_pa_wrap = False
         self._pa_target = None
         self.trim_after_read = True
+        self.warning_sink = None
+        self.na_left_literal = False
 
         if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
@@ -1038,16 +1051,20 @@ cdef class TextReader:
 
         self._check_tokenize_status(status)
 
+    cdef _warn_parser(self, object msg):
+        if self.warning_sink is not None:
+            self.warning_sink.append((msg, ParserWarning))
+        else:
+            warnings.warn(msg, ParserWarning, stacklevel=find_stack_level())
+
     cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
-            warnings.warn(
+            self._warn_parser(
                 PyUnicode_DecodeUTF8(
                     self.parser.warn_msg,
                     strlen(self.parser.warn_msg),
                     self.encoding_errors
-                ),
-                ParserWarning,
-                stacklevel=find_stack_level()
+                )
             )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
@@ -1159,10 +1176,9 @@ cdef class TextReader:
 
             if conv:
                 if col_dtype is not None:
-                    warnings.warn((f"Both a converter and dtype were specified "
-                                   f"for column {name} - only the converter will "
-                                   f"be used."), ParserWarning,
-                                  stacklevel=find_stack_level())
+                    self._warn_parser(f"Both a converter and dtype were specified "
+                                      f"for column {name} - only the converter will "
+                                      f"be used.")
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1282,6 +1298,8 @@ cdef class TextReader:
                         col_res, na_count = self._string_convert(
                             i, start, end, 0, na_hashset,
                             allow_pyarrow=col_dtype is None)
+                        if na_filter:
+                            self.na_left_literal = True
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
@@ -1290,6 +1308,8 @@ cdef class TextReader:
                         col_res, na_count = self._string_convert(
                             i, start, end, 0, na_hashset,
                             allow_pyarrow=col_dtype is None)
+                        if na_filter:
+                            self.na_left_literal = True
 
                 if col_res is not None:
                     break
@@ -2668,6 +2688,74 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
     return out, na_count
 
 
+cdef enum:
+    # Bytes of slack `_string_pyarrow_utf8` reserves past the end of its data
+    # buffer so `_copy_token` can round short copies up to a fixed width.
+    # Must match the widest fixed-width copy `_copy_token` performs.
+    WILDCOPY_SLACK = 32
+
+
+cdef inline void _copy_token(char *dst, const char *src, int64_t seg,
+                             const char *wild_limit) noexcept nogil:
+    """
+    Copy one token's ``seg`` bytes, rounding short copies up to a fixed width.
+
+    A column's tokens are strided in the parser stream (words are packed
+    row-major across columns), so the data buffer has to be filled one token at
+    a time.  At CSV token widths the libc ``memcpy`` *call* costs more than the
+    bytes it moves, so copy a compile-time-constant 16 bytes instead -- which
+    the compiler turns into a single vector move -- and let the overshoot land
+    in slack.  The destination has ``WILDCOPY_SLACK`` spare bytes;
+    ``wild_limit`` is an exclusive bound on source addresses from which a
+    32-byte read stays inside the parser's stream allocation (``stream_cap``
+    is exactly the size of that allocation).  The caller clamps it to
+    ``parser.stream`` when ``stream_cap < WILDCOPY_SLACK`` (reachable:
+    ``parser_trim_buffers`` shrinks ``stream_cap`` to
+    ``_next_pow2(stream_len) + 1``): forming ``stream + stream_cap -
+    WILDCOPY_SLACK`` would then point before the allocation, and the clamped
+    bound fails the strict compare for every token, as it must -- no 32-byte
+    read fits anywhere in such an allocation.  The guard stays one pointer
+    compare because it is paid per token; an offset-based variant cost a
+    measurable 2.7% on short-token files.
+
+    Keep both fixed-width copies inside one guarded block.  Splitting them into
+    separate ``return``ing branches lets the compiler tail-merge all three
+    ``memcpy`` sites into a single variable-length call, which silently undoes
+    the whole optimization.
+    """
+    if seg <= 32 and src < wild_limit:
+        memcpy(dst, src, 16)
+        if seg > 16:
+            memcpy(dst + 16, src + 16, 16)
+        return
+    memcpy(dst, src, <size_t>seg)
+
+
+cdef inline Py_ssize_t _clamp_data_cap(int64_t want, parser_t *parser,
+                                       bint large) noexcept nogil:
+    """
+    Narrow a proposed data-buffer capacity to what the column can ever fill.
+
+    Takes ``want`` as ``int64_t`` because both callers can overflow
+    ``Py_ssize_t`` on a 32-bit build -- the initial estimate extrapolates a
+    16-token probe over every row, and the grow path doubles -- and a wrapped
+    negative would slip past both clamps into ``malloc``.
+
+    Every token is NUL-packed in the parser stream, so ``stream_len`` bounds
+    this column's total bytes, and it is a live allocation's length so the
+    result always fits ``Py_ssize_t``.  For the int32-offset target the caller
+    breaks with ``overflow`` before ``total_bytes`` reaches ``INT32_MAX``, so
+    reserving past that only allocates bytes the column will never fill -- and
+    a failure there raises ``MemoryError``, which the ``except OverflowError``
+    fallback to the object path in ``_string_convert`` does not catch.
+    """
+    if want > <int64_t>parser.stream_len:
+        want = <int64_t>parser.stream_len
+    if not large and want > <int64_t>INT32_MAX:
+        want = <int64_t>INT32_MAX
+    return <Py_ssize_t>want
+
+
 # -> tuple[ExtensionArray | _PendingStringColumn, int]
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2699,10 +2787,14 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         int na_count = 0
         Py_ssize_t i, lines
         Py_ssize_t total_bytes = 0
-        int64_t wlen, seg
+        Py_ssize_t data_cap = 0
+        int64_t data_est = 0
+        Py_ssize_t probe, probe_seen, probe_bytes = 0
+        int64_t wlen
         c_int64_t token_idx = 0
-        coliter_t it
+        coliter_t it, probe_it
         const char *word = NULL
+        char *grown = NULL
         int32_t *offsets32_ptr = NULL
         int64_t *offsets64_ptr = NULL
         uint8_t *validity_ptr = NULL
@@ -2716,17 +2808,26 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         uint64_t HIGH_BITS = 0x8080808080808080
         const uint64_t *data_words = NULL
         Py_ssize_t nwords, block_start, block_end, jw
+        const char *wild_limit = (
+            parser.stream + parser.stream_cap - WILDCOPY_SLACK
+            if parser.stream_cap >= WILDCOPY_SLACK
+            else parser.stream
+        )
         _PendingStringColumn pending
 
     lines = line_end - line_start
 
-    # Single GIL-free region covering every allocation and both passes:
-    # pass 1 computes offsets / validity / na_count / total_bytes, the data
-    # buffer is malloc'd once the size is known, and pass 2 copies each
-    # token's bytes into its slot (segment lengths come from the pass-1
-    # offsets, so na / empty rows are skipped without re-checking the na
-    # hashset).  No numpy or pyarrow objects are created here, so parallel
-    # workers spend almost no time holding the GIL.
+    # Single GIL-free region covering every allocation and the one pass that
+    # fills the offsets, validity and data buffers together.  No numpy or
+    # pyarrow objects are created here, so parallel workers spend almost no
+    # time holding the GIL.
+    #
+    # Sizing the data buffer exactly would need a prior sizing pass, but that
+    # pass is the expensive half of the work: a column's tokens are strided
+    # through `word_ends`, whose 8 bytes per token outweigh the token bytes
+    # themselves at CSV widths, so a second sweep roughly doubles the memory
+    # traffic of the read.  Estimate the size instead from the column's own
+    # leading tokens, and grow geometrically in the rare case that falls short.
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         if large:
@@ -2756,6 +2857,28 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
             if not malloc_failed:
                 memset(validity_ptr, 0xFF, (lines + 7) // 8)
 
+        if not malloc_failed:
+            # Size the data buffer from this column's own leading tokens; a
+            # chunk-wide mean would misjudge a column much wider than its
+            # neighbours, and that column would then grow repeatedly,
+            # re-copying everything it had already written.
+            probe = 16 if lines > 16 else lines
+            probe_seen = 0
+            coliter_setup(&probe_it, parser, col, line_start)
+            while probe_seen < probe:
+                coliter_next_with_idx(&probe_it, &token_idx)
+                probe_bytes += _token_len(parser, token_idx)
+                probe_seen += 1
+            # Unclamped this extrapolates the probe over every row, which a
+            # column whose leading rows are much wider than the rest turns into
+            # a reservation bounded by nothing in the file.
+            if probe:
+                data_est = <int64_t>lines * (probe_bytes // probe + 1)
+            data_est += (data_est >> 2) + 64
+            data_cap = _clamp_data_cap(data_est, parser, large)
+            data_ptr = <char *>malloc(data_cap + WILDCOPY_SLACK)
+            malloc_failed = data_ptr == NULL
+
         for i in range(lines if not malloc_failed else 0):
             word = coliter_next_with_idx(&it, &token_idx)
 
@@ -2777,6 +2900,27 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 overflow = True
                 break
 
+            if total_bytes + wlen > data_cap:
+                # Same bounds as the initial reservation.  Neither clamp can
+                # undersize the buffer: total_bytes + wlen never exceeds
+                # stream_len, and for the int32 target the overflow break above
+                # has already fired if it exceeds INT32_MAX.
+                data_cap = _clamp_data_cap(
+                    <int64_t>data_cap * 2 + wlen, parser, large
+                )
+                grown = <char *>realloc(data_ptr, data_cap + WILDCOPY_SLACK)
+                if grown == NULL:
+                    malloc_failed = True
+                    break
+                data_ptr = grown
+
+            if wlen:
+                # A row short of this column yields the "" literal rather than
+                # a pointer into the stream, so it must not reach the
+                # overshooting copy.  Its length is 0, as is a genuinely empty
+                # field's, so one test covers both.
+                _copy_token(data_ptr + total_bytes, word, wlen, wild_limit)
+
             total_bytes += wlen
             if large:
                 offsets64_ptr[i + 1] = <int64_t>total_bytes
@@ -2784,46 +2928,41 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 offsets32_ptr[i + 1] = <int32_t>total_bytes
 
         if not overflow and not malloc_failed:
-            # Allocate the data buffer exactly once, now the size is known.
-            data_ptr = <char *>malloc(total_bytes if total_bytes else 1)
-            if data_ptr == NULL:
-                malloc_failed = True
-            else:
-                coliter_setup(&it, parser, col, line_start)
-                for i in range(lines):
-                    word = coliter_next(&it)
-                    if large:
-                        seg = offsets64_ptr[i + 1] - offsets64_ptr[i]
-                        if seg:
-                            memcpy(data_ptr + offsets64_ptr[i], word,
-                                   <size_t>seg)
-                    else:
-                        seg = offsets32_ptr[i + 1] - offsets32_ptr[i]
-                        if seg:
-                            memcpy(data_ptr + offsets32_ptr[i], word,
-                                   <size_t>seg)
+            if total_bytes < data_cap >> 1:
+                # Less than half the reservation was used, so the leading rows
+                # this column was sized from are far wider than the rest of it.
+                # Give the tail back: untouched pages cost no RSS, but in this
+                # case the reservation is bounded only by the chunk's whole
+                # stream length, and it outlives the read.  A normal column
+                # keeps its buffer -- one malloc per (column, chunk), no more
+                # heap traffic in a worker than the exact-size allocation this
+                # replaced.  Failure just means we keep the larger block.
+                grown = <char *>realloc(data_ptr,
+                                        total_bytes + WILDCOPY_SLACK)
+                if grown != NULL:
+                    data_ptr = grown
 
-                # ASCII probe: a clear high bit across the data buffer means
-                # the column is pure ASCII, which is valid UTF-8 by
-                # construction, so the validate(full=True) below can be
-                # skipped.  Scan in 32KiB blocks so multibyte data bails out
-                # after the first block.
-                nwords = total_bytes >> 3
-                data_words = <const uint64_t *>data_ptr
-                block_start = 0
-                while block_start < nwords and not saw_non_ascii:
-                    block_end = block_start + 4096
-                    if block_end > nwords:
-                        block_end = nwords
-                    for jw in range(block_start, block_end):
-                        ascii_acc |= data_words[jw]
-                    if ascii_acc & HIGH_BITS:
-                        saw_non_ascii = True
-                    block_start = block_end
-                if not saw_non_ascii:
-                    for jw in range(nwords << 3, total_bytes):
-                        ascii_acc |= <uint8_t>data_ptr[jw]
-                    saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
+            # ASCII probe: a clear high bit across the data buffer means
+            # the column is pure ASCII, which is valid UTF-8 by
+            # construction, so the validate(full=True) below can be
+            # skipped.  Scan in 32KiB blocks so multibyte data bails out
+            # after the first block.
+            nwords = total_bytes >> 3
+            data_words = <const uint64_t *>data_ptr
+            block_start = 0
+            while block_start < nwords and not saw_non_ascii:
+                block_end = block_start + 4096
+                if block_end > nwords:
+                    block_end = nwords
+                for jw in range(block_start, block_end):
+                    ascii_acc |= data_words[jw]
+                if ascii_acc & HIGH_BITS:
+                    saw_non_ascii = True
+                block_start = block_end
+            if not saw_non_ascii:
+                for jw in range(nwords << 3, total_bytes):
+                    ascii_acc |= <uint8_t>data_ptr[jw]
+                saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
 
     if overflow or malloc_failed:
         free(offsets64_ptr)

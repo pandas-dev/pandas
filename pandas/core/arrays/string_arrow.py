@@ -80,6 +80,12 @@ def _is_string_view(typ):
     return not pa_version_under16p0 and pa.types.is_string_view(typ)
 
 
+# Matches a `\Z` that is an end-of-string assertion rather than an escaped
+# backslash followed by a literal "Z"; the captured group keeps any preceding
+# pairs of escaped backslashes intact.
+_unescaped_end_anchor = re.compile(r"(?<!\\)((?:\\\\)*)\\Z")
+
+
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
 # ObjectStringArrayMixin because we want to have the object-dtype based methods as
 # fallback for the ones that pyarrow doesn't yet support
@@ -421,40 +427,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_zfill = ArrowStringArrayMixin._str_zfill
     _str_normalize = ArrowStringArrayMixin._str_normalize
 
-    @staticmethod
-    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
-        # check if `pat` is a compiled regex pattern with flags that are not
-        # supported by pyarrow
-        return (
-            isinstance(pat, re.Pattern)
-            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
-        )
-
-    @staticmethod
+    @classmethod
     def _preprocess_re_pattern(
-        pat: str | re.Pattern, case: bool, flags: int
+        cls, pat: str | re.Pattern, case: bool, flags: int
     ) -> tuple[str, bool, int]:
-        if isinstance(pat, re.Pattern):
-            pattern = pat.pattern
-            # TODO flags passed separately by user are ignored
-            flags = pat.flags
-            # flags is not supported by pyarrow, but `case` is -> extract and remove
-            if flags & re.IGNORECASE:
-                case = False
-                flags = flags & ~re.IGNORECASE
-            # when creating a pattern with re.compile and a string, it automatically
-            # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
-            flags = flags & ~re.UNICODE
-        else:
-            pattern = pat
+        pattern, case, flags = cls._unwrap_re_pattern(pat, case, flags)
 
-        if (
-            pattern.endswith("\\Z")
-            # Second condition counts the number of `\` that patterns ends with
-            # prior to Z -> needs to be odd to end with an unescaped \Z
-            and (len(pattern) - len(pattern[:-1].rstrip("\\")) + 1) % 2 == 1
-        ):
-            pattern = pattern[:-2] + "\\z"
+        # RE2 spells the end-of-string anchor `\z`; Python's `\Z` is the same
+        # assertion and may appear anywhere in the pattern, not just at the end.
+        pattern = _unescaped_end_anchor.sub(r"\1\\z", pattern)
 
         return pattern, case, flags
 
@@ -470,10 +451,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             flags
             or self._is_re_pattern_with_flags(pat)
             or (regex and self._has_unsupported_regex(pat))
+            # a compiled pattern is not a valid literal; defer to the object path
+            or (not regex and isinstance(pat, re.Pattern))
         ):
             return super()._str_contains(pat, case, flags, na, regex)
 
-        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
+        # with regex=False `pat` is matched literally, so must not be rewritten
+        if regex:
+            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_match(
@@ -545,12 +530,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_count(self, pat: str, flags: int = 0):
-        if flags or self._has_unsupported_regex(pat):
+    def _str_count(self, pat: str | re.Pattern, flags: int = 0):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_unsupported_regex(pat)
+        ):
             return super()._str_count(pat, flags)
 
-        pat, _, _ = self._preprocess_re_pattern(pat, True, 0)
-        result = pc.count_substring_regex(self._pa_array, pat)
+        pat, case, _ = self._preprocess_re_pattern(pat, True, 0)
+        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
         return self._convert_int_result(result)
 
     def _str_partition(self, sep: str, expand: bool):

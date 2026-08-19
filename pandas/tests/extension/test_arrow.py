@@ -624,25 +624,6 @@ class TestArrowArray(base.ExtensionTests):
         with pytest.raises(TypeError, match=msg):
             type(dtype).construct_from_string("another_type")
 
-    def test_get_common_dtype(self, dtype, request):
-        pa_dtype = dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_time(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
-            or pa.types.is_binary(pa_dtype)
-            or pa.types.is_decimal(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=(
-                        f"{pa_dtype} does not have associated numpy "
-                        f"dtype findable by find_common_type"
-                    )
-                )
-            )
-        super().test_get_common_dtype(dtype)
-
     def test_is_not_string_type(self, dtype):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_string(pa_dtype):
@@ -1047,17 +1028,8 @@ class TestArrowArray(base.ExtensionTests):
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
 
-    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype):
-            mark = pytest.mark.xfail(
-                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
-            )
-            request.applymarker(mark)
-        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
-
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_values_for_json(self, data, request):
         # GH 65127
@@ -1081,7 +1053,7 @@ class TestArrowArray(base.ExtensionTests):
             super().test_values_for_json(data)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_json_roundtrip(self, data, request):
         # GH 65127
@@ -1806,10 +1778,12 @@ def test_str_count(pat):
     tm.assert_series_equal(result, expected)
 
 
-def test_str_count_flags_unsupported():
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match="count not"):
-        ser.str.count("abc", flags=1)
+def test_str_count_flags():
+    # GH#66348
+    ser = pd.Series(["abc", "éxy", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.count(r"\w", flags=re.ASCII)
+    expected = pd.Series([3, 2, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1847,10 +1821,32 @@ def test_str_contains(pat, case, na, regex, exp):
     tm.assert_series_equal(result, expected)
 
 
-def test_str_contains_flags_unsupported():
+@pytest.mark.parametrize("method", ["contains", "match", "fullmatch"])
+def test_str_contains_match_flags(method):
+    # GH#66348 re.ASCII and re.UNICODE are mutually exclusive, so the flag has
+    #  to reach `re` rather than being silently dropped
+    ser = pd.Series(["abc", "éxy", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)(r"^\w+$", flags=re.ASCII)
+    expected = pd.Series([True, False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["contains", "match", "fullmatch"])
+def test_str_contains_match_compiled_pattern(method):
+    # GH#66348
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match="contains not"):
-        ser.str.contains("a", flags=1)
+    result = getattr(ser.str, method)(re.compile("ABC", re.IGNORECASE))
+    expected = pd.Series([True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_match_multiline_flag():
+    # GH#66348 the anchors added for match/fullmatch must not become line
+    #  anchors under re.MULTILINE
+    ser = pd.Series(["a\nb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.fullmatch("b", flags=re.MULTILINE)
+    expected = pd.Series([False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_contains_re2_unicode_escape():
@@ -1892,15 +1888,22 @@ def test_str_starts_ends_with_all_nulls_empty_tuple(side):
 
 
 @pytest.mark.parametrize(
-    "arg_name, arg",
-    [["pat", re.compile("b")], ["repl", str], ["case", False], ["flags", 1]],
+    "kwargs, exp",
+    [
+        [{"pat": re.compile("b")}, ["axc", None]],
+        [{"repl": lambda match: match.group().upper()}, ["aBc", None]],
+        [{"pat": "B", "case": False}, ["axc", None]],
+        [{"pat": "B", "flags": re.IGNORECASE}, ["axc", None]],
+        [{"pat": "(?P<mid>b)", "repl": r"[\g<mid>]"}, ["a[b]c", None]],
+    ],
 )
-def test_str_replace_unsupported(arg_name, arg):
+def test_str_replace_re_fallback(kwargs, exp):
+    # GH#66348 these are not expressible with pyarrow's kernel, so they are
+    #  evaluated with `re` instead of raising
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    kwargs = {"pat": "b", "repl": "x", "regex": True}
-    kwargs[arg_name] = arg
-    with pytest.raises(NotImplementedError, match="replace is not supported"):
-        ser.str.replace(**kwargs)
+    result = ser.str.replace(**{"pat": "b", "repl": "x", "regex": True, **kwargs})
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -2573,6 +2576,17 @@ def test_str_extract_expand():
     result = ser.str.extract(r"[ab](?P<digit>\d)", expand=False)
     expected = pd.Series(ArrowExtensionArray(pa.array(["1", "2", None])), name="digit")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("expand", [True, False])
+def test_str_extract_flags(expand):
+    # GH#66348
+    ser = pd.Series(["a1", "A2", "b3"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.extract(r"a(?P<digit>\d)", flags=re.IGNORECASE, expand=expand)
+    expected = pd.Series(ArrowExtensionArray(pa.array(["1", "2", None])), name="digit")
+    if expand:
+        expected = expected.to_frame()
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
@@ -3607,6 +3621,88 @@ def test_setitem_na_chunked_string_if_else():
 
 
 @pytest.mark.parametrize(
+    "pa_type", [pa.binary(), pa.large_binary(), pa.string(), pa.large_string()]
+)
+@pytest.mark.parametrize("extra_chunk", [True, False])
+def test_setitem_na_sliced_chunk_if_else(pa_type, extra_chunk):
+    # GH#64320
+    values = ["a", "bb", "ccc", "dddd", "eeeee"]
+    if pa.types.is_binary(pa_type) or pa.types.is_large_binary(pa_type):
+        values = [val.encode() for val in values]
+    chunk = pa.array(values, type=pa_type)
+    # the first chunk carries a non-zero offset, which pc.if_else mishandles
+    chunks = [chunk.slice(3), chunk] if extra_chunk else [chunk.slice(3)]
+    arr = ArrowExtensionArray(pa.chunked_array(chunks))
+    expected_values = [None, values[4]] + (values if extra_chunk else [])
+    expected = ArrowExtensionArray(pa.array(expected_values, type=pa_type))
+
+    arr[[0]] = None
+
+    arr._pa_array.validate(full=True)
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
+@pytest.mark.parametrize("chunked", [True, False])
+def test_from_sequence_of_strings_duration_sliced(chunked, pa_type):
+    # GH#64320: the non-ns duration path routes strings through pc.if_else,
+    # which truncated them when they were read through a non-zero offset
+    values = ["11", "22", "33", "444444444", None]
+    # seconds, not the nanoseconds to_timedelta would infer from a bare integer
+    seconds = [11, 22, 33, 444444444, None]
+    strings = pa.array(values, type=pa_type)
+    if chunked:
+        strings = pa.chunked_array([strings.slice(3), strings])
+        expected_seconds = seconds[3:] + seconds
+    else:
+        strings = strings.slice(3)
+        expected_seconds = seconds[3:]
+
+    dtype = ArrowDtype(pa.duration("s"))
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array(expected_seconds, type=pa.duration("s")))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", [pa.null(), pa.dictionary(pa.int32(), pa.string()), pa.int64()]
+)
+def test_from_sequence_of_strings_duration_non_varbinary(pa_type):
+    # GH#64320: only the four affected layouts may route through
+    # replace_with_mask. Diverting the rest is at best pointless and at worst
+    # wrong: it aborts on the null type, and its numpy fallback drops nulls for
+    # dictionary. int64 is unharmed, and is here to pin that it stays that way.
+    if pa.types.is_null(pa_type):
+        values, expected_seconds = [None, None, None], [None, None, None]
+    elif pa.types.is_integer(pa_type):
+        values, expected_seconds = [1, 2, None], [1, 2, None]
+    else:
+        values, expected_seconds = ["1", "2", None], [1, 2, None]
+    strings = pa.chunked_array([pa.array(values, type=pa_type)])
+
+    result = ArrowExtensionArray._from_sequence_of_strings(
+        strings, dtype=ArrowDtype(pa.duration("s"))
+    )
+
+    expected = ArrowExtensionArray(pa.array(expected_seconds, type=pa.duration("s")))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_astype_duration_from_sliced_arrow_strings():
+    # GH#64320
+    ser = pd.Series(["11", "22", "33", "444444444"], dtype="string[pyarrow]")[2:]
+
+    result = ser.astype("duration[s][pyarrow]")
+
+    expected = pd.Series(
+        [pd.Timedelta(seconds=33), pd.Timedelta(seconds=444444444)],
+        dtype="duration[s][pyarrow]",
+        index=[2, 3],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data, arrow_dtype",
     [
         ([b"a", b"b"], pa.large_binary()),
@@ -3627,6 +3723,36 @@ def test_concat_null_array():
     result = pd.concat([df, df2], ignore_index=True)
     expected = pd.DataFrame({"a": [None, None, 0, 1]}, dtype="int64[pyarrow]")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.date32(),
+        pa.date64(),
+        pa.time64("us"),
+        pa.decimal128(7, 3),
+        pa.binary(),
+        pa.large_string(),
+        pa.timestamp("us", "US/Pacific"),
+        pa.list_(pa.int64()),
+    ],
+)
+def test_concat_null_array_preserves_dtype(pa_type):
+    # GH#62343 the null dtype should not affect the resulting dtype
+    dtype = ArrowDtype(pa_type)
+    ser = pd.Series([None], dtype=dtype)
+    null_ser = pd.Series([None], dtype=ArrowDtype(pa.null()))
+
+    result = pd.concat([ser, null_ser], ignore_index=True)
+    expected = pd.Series([None, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_get_common_dtype_all_null():
+    # GH#62343
+    dtype = ArrowDtype(pa.null())
+    assert dtype._get_common_dtype([dtype, dtype]) == dtype
 
 
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)

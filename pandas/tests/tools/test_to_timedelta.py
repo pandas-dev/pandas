@@ -583,6 +583,49 @@ def test_to_timedelta_narrow_float_with_unit(dtype):
     tm.assert_index_equal(result, TimedeltaIndex([expected]).as_unit("ns"))
 
 
+@pytest.mark.parametrize(
+    "first", [pd.Timedelta(1, "ns"), np.timedelta64(1, "ns"), timedelta(microseconds=1)]
+)
+# both string sub-branches rescale, so the ISO parser is affected identically
+@pytest.mark.parametrize("one_day", ["1 days", "P1D"])
+def test_to_timedelta_string_after_finer_element(first, one_day):
+    # GH#63196 a string with no sub-microsecond content was unconditionally
+    #  rescaled ns->us during the inferring pass, so when an earlier element had
+    #  already pushed the array to a finer reso the string landed 1000x too small
+    result = to_timedelta([first, one_day])
+    expected = TimedeltaIndex([first, pd.Timedelta(1, "D")]).as_unit(
+        pd.Timedelta(first).unit
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_timedelta_string_after_finer_element_astype():
+    # GH#63196 same defect via the object -> m8 astype path
+    ser = Series([pd.Timedelta(1, "ns"), "1 days"], dtype=object)
+    result = ser.astype("m8[ns]")
+    expected = Series([pd.Timedelta(1, "ns"), pd.Timedelta(1, "D")], dtype="m8[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "nat_unit, expected_unit",
+    [("s", "s"), ("ms", "ms"), ("us", "us"), ("ns", "ns"), ("D", "s")],
+)
+def test_to_timedelta_td64_nat_with_unit(nat_unit, expected_unit):
+    # GH#63018 the NaT sentinel was run through convert_reso, which overflowed
+    nat = np.timedelta64("NaT", nat_unit)
+
+    result = to_timedelta([nat])
+    assert result[0] is pd.NaT
+    # a unit-ful NaT still contributes its unit to the inferred resolution,
+    #  matching array_to_datetime; only the bogus conversion is skipped
+    assert result.dtype == f"m8[{expected_unit}]"
+
+    result = to_timedelta([nat, pd.Timedelta(1, "ns")])
+    expected = TimedeltaIndex([pd.NaT, pd.Timedelta(1, "ns")])
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("unit", ["ns", "ms"])
 def test_from_timedelta_arrow_dtype(unit):
     # GH 54298

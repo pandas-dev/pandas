@@ -170,8 +170,20 @@ class ParserBase:
             "on_bad_lines", self.BadLineHandleMethod.BLHM_ERROR
         )
 
+        # See TextReader.warning_sink: when not None, ParserWarnings are
+        # collected here instead of being raised, so the parallel reader can
+        # raise one copy of a warning its several reads each hit (GH#66259).
+        self._warning_sink: list[tuple[str, type[Warning]]] | None = None
+
     def close(self) -> None:
         pass
+
+    @final
+    def _warn_parser(self, msg: str) -> None:
+        if self._warning_sink is not None:
+            self._warning_sink.append((msg, ParserWarning))
+        else:
+            warnings.warn(msg, ParserWarning, stacklevel=find_stack_level())
 
     @final
     def _should_parse_dates(self, i: int) -> bool:
@@ -629,11 +641,9 @@ class ParserBase:
             empty_str_or_na = empty_str | isna(data[-1])  # type: ignore[operator]
             if len(columns) == len(data) - 1 and np.all(empty_str_or_na):
                 return
-            warnings.warn(
+            self._warn_parser(
                 "Length of header or names does not match length of data. This leads "
-                "to a loss of data with index_col=False.",
-                ParserWarning,
-                stacklevel=find_stack_level(),
+                "to a loss of data with index_col=False."
             )
 
     @final
