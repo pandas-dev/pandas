@@ -822,8 +822,7 @@ class TestDataFrameShift:
         # GH#52373
         ser = Series(["a", "b", "c"]).astype(bytes)
 
-        msg = "shifting with a fill value that cannot"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with tm.assert_produces_warning(None):
             result = ser.shift(1)
 
         expected = Series([np.nan, b"a", b"b"], dtype=object)
