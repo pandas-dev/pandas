@@ -635,6 +635,21 @@ whereas if ``ignore_na=True`` it would be calculated as
    that recursion directly to the values on either side of a missing entry does
    not reproduce the result.
 
+   When ``adjust=False`` and ``times`` is also provided, each *row-to-row*
+   interval is one step of length :math:`\delta`. A new observation is
+   weighted by that step only, :math:`1 - (1-\alpha)^{\delta}` (a
+   zero-length interval therefore contributes no new weight). Decay
+   accumulated across intermediate null rows (``ignore_na=False``) stays
+   in the running weight and is renormalized. ``ignore_na=True`` skips the
+   step that *lands on* a null row; it does not become "drop the nulls and
+   reuse the calendar gap between the remaining observations". That last
+   reading would make equally spaced ``times`` disagree with omitting
+   ``times`` (the next observation would be two unit steps away instead of
+   one). Equally spaced ``times`` are therefore equivalent to omitting
+   ``times``, including on data that contains nulls. When ``adjust=True``,
+   the new observation still has weight 1 and only the running mass is
+   scaled by :math:`(1-\alpha)^{\delta}`.
+
 .. ipython:: python
 
    ser = pd.Series([3, np.nan, 5])

@@ -56,6 +56,32 @@ class TestEWM:
 
             online_ewm.reset()
 
+    def test_online_length_one(self):
+        # squeeze() dropped the length-1 time axis (GH#66523)
+        ser = Series([1.0], name="a")
+        result = ser.ewm(com=1).online().mean()
+        tm.assert_series_equal(result, ser.ewm(com=1).mean())
+
+    def test_online_vs_cython_com1_nan(self, adjust, ignore_na):
+        # GH#31178 / GH#66523 same row-step weights as the cython engine
+        ser = Series([1.0, np.nan, 5.0], name="a")
+        expected = ser.ewm(com=1, adjust=adjust, ignore_na=ignore_na).mean()
+        result = ser.ewm(com=1, adjust=adjust, ignore_na=ignore_na).online().mean()
+        tm.assert_series_equal(result, expected)
+
+    def test_online_update_com1_nan(self, adjust, ignore_na):
+        ser = Series([1.0, np.nan, 5.0, 3.0], name="a")
+        expected = ser.ewm(com=1, adjust=adjust, ignore_na=ignore_na).mean()
+        online = ser.head(2).ewm(com=1, adjust=adjust, ignore_na=ignore_na).online()
+        tm.assert_series_equal(online.mean(), expected.head(2))
+        tm.assert_series_equal(online.mean(update=ser.tail(2)), expected.tail(2))
+
+    def test_online_vs_cython_frame_com1_nan(self, adjust, ignore_na):
+        df = DataFrame({"a": [1.0, np.nan, 5.0], "b": [2.0, 4.0, np.nan]})
+        expected = df.ewm(com=1, adjust=adjust, ignore_na=ignore_na).mean()
+        result = df.ewm(com=1, adjust=adjust, ignore_na=ignore_na).online().mean()
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.xfail(raises=NotImplementedError)
     @pytest.mark.parametrize(
         "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]

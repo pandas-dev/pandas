@@ -92,13 +92,25 @@ def test_ewma_halflife_without_times(halflife_with_times):
     ],
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
-def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
+def test_ewma_with_times_equal_spacing(
+    halflife_with_times, times, min_periods, adjust, ignore_na
+):
+    # GH#66523 equally spaced times must match no-times for every
+    # adjust/ignore_na combination, including on NaN data.
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data})
-    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    result = df.ewm(
+        halflife=halflife,
+        min_periods=min_periods,
+        times=times,
+        adjust=adjust,
+        ignore_na=ignore_na,
+    ).mean()
+    expected = df.ewm(
+        halflife=1.0, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -435,6 +447,237 @@ def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
         # check that ignore_na defaults to False
         result = s.ewm(com=2.0, adjust=adjust).mean()
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"com": 1}, {"span": 3}, {"alpha": 0.5}, {"halflife": 1}]
+)
+def test_ewma_nan_handling_adjust_false_com1(kwargs):
+    # GH#31178 / GH#66523: com=1 (and equivalent spellings) must use the
+    # documented ignore_na=False recursion, not a convex combination over
+    # the accumulated gap. alpha = 0.5, so
+    # y[2] = ((1-alpha)**2 * 1 + alpha * 5) / ((1-alpha)**2 + alpha) = 11/3
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(adjust=False, ignore_na=False, **kwargs).mean()
+    expected = Series([1.0, 1.0, 11 / 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_ewma_nan_handling_adjust_false_com1_continuous():
+    # GH#31178 the com=1 result must be continuous in alpha
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(com=1, adjust=False, ignore_na=False).mean()
+    for com in (1 - 1e-9, 1 + 1e-9):
+        neighbor = ser.ewm(com=com, adjust=False, ignore_na=False).mean()
+        tm.assert_series_equal(result, neighbor, atol=1e-8, rtol=0)
+
+
+def test_ewma_times_equal_spacing_nan_adjust_false():
+    # GH#66523 equally spaced times with a NaN gap use the documented
+    # ignore_na=False recursion (11/3), not the convex-over-gap value 4.0.
+    ser = Series([1.0, np.nan, 5.0])
+    times = date_range("2000", freq="D", periods=3)
+    result = ser.ewm(halflife="1D", times=times, adjust=False, ignore_na=False).mean()
+    expected = ser.ewm(com=1, adjust=False, ignore_na=False).mean()
+    tm.assert_series_equal(result, expected)
+    tm.assert_almost_equal(result.iloc[2], 11 / 3)
+
+
+def test_ewma_times_variable_spacing_with_nan():
+    # GH#66523 elapsed time of the *current* step is convex; decay
+    # accumulated across an ignore_na=False NaN row stays in old_wt and is
+    # renormalized. times are 0, 1, 3 days with values [1, NaN, 5]:
+    #   old_wt = 0.5 * 0.5**2 = 0.125
+    #   new_wt = 1 - 0.5**2 = 0.75
+    #   y = (0.125 * 1 + 0.75 * 5) / (0.125 + 0.75) = 31/7
+    # The convex-over-accumulated-gap form would give 4.5; treating the
+    # whole 0-to-3 day span as one normalized delta=3 step would give 4.2.
+    times = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"])
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(halflife="1D", times=times, adjust=False, ignore_na=False).mean()
+    expected = Series([1.0, 1.0, 31 / 7])
+    tm.assert_series_equal(result, expected)
+
+
+def test_ewma_ignore_na_true_is_skipped_row_step_not_dropna():
+    # GH#66523 ignore_na=True skips the row-to-row step that lands on a
+    # NaN. It is not "drop NaNs and keep the calendar gap".
+    # Equally spaced [1, nan, 5] must stay 3.0 (one unit step after the
+    # skip) to match no-times; dropna-and-keep-times would use a 2-day
+    # gap and give 4.0, breaking that invariant.
+    ser = Series([1.0, np.nan, 5.0])
+    daily = date_range("2000", freq="D", periods=3)
+    result = ser.ewm(halflife="1D", times=daily, adjust=False, ignore_na=True).mean()
+    expected = ser.ewm(com=1, adjust=False, ignore_na=True).mean()
+    tm.assert_series_equal(result, expected)
+    tm.assert_almost_equal(result.iloc[2], 3.0)
+
+    irregular = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"])
+    keep = ser.ewm(halflife="1D", times=irregular, adjust=False, ignore_na=True).mean()
+    # skip the NaN row, then apply only the last hop (2 days): 0.25*1 + 0.75*5
+    tm.assert_series_equal(keep, Series([1.0, 1.0, 4.0]))
+    dropped = (
+        Series([1.0, 5.0])
+        .ewm(
+            halflife="1D",
+            times=DatetimeIndex(["2000-01-01", "2000-01-04"]),
+            adjust=False,
+        )
+        .mean()
+    )
+    # dropna-and-keep-times would use the full 3-day gap -> 4.5
+    tm.assert_almost_equal(dropped.iloc[-1], 4.5)
+    assert keep.iloc[-1] != dropped.iloc[-1]
+
+
+def test_ewma_times_zero_length_interval_has_no_new_weight():
+    # GH#66523 a zero-length step is 1 - (1-alpha)**0 = 0 new weight, so a
+    # later row at the same timestamp does not move the mean. That is the
+    # same rule with or without a preceding NaN row.
+    times = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-02"])
+    no_nan = (
+        Series([1.0, 2.0, 9.0])
+        .ewm(halflife="1D", times=times, adjust=False, ignore_na=False)
+        .mean()
+    )
+    tm.assert_series_equal(no_nan, Series([1.0, 1.5, 1.5]))
+
+    after_nan = (
+        Series([1.0, np.nan, 9.0])
+        .ewm(halflife="1D", times=times, adjust=False, ignore_na=False)
+        .mean()
+    )
+    tm.assert_series_equal(after_nan, Series([1.0, 1.0, 1.0]))
+
+
+def test_ewma_times_equal_spacing_other_step():
+    # A uniform 2-day grid with halflife="2D" is one half-life per row,
+    # same as no-times with numeric halflife=1.
+    times = date_range("2000", freq="2D", periods=6)
+    vals = [1.0, np.nan, 5.0, 6.0, np.nan, 9.0]
+    ser = Series(vals)
+    for adjust in (True, False):
+        for ignore_na in (True, False):
+            result = ser.ewm(
+                halflife="2D", times=times, adjust=adjust, ignore_na=ignore_na
+            ).mean()
+            expected = ser.ewm(halflife=1.0, adjust=adjust, ignore_na=ignore_na).mean()
+            tm.assert_series_equal(result, expected)
+
+
+def test_ewma_times_long_nan_then_short_hop():
+    # After a long ignore_na=False NaN gap, leftover old_wt is tiny, so
+    # renormalizing a one-day new_wt still moves almost all the way to
+    # the new observation. Convex-over-the-whole-gap would be even closer
+    # to 5; the point is the leftover mass, not the last hop alone (which
+    # would give 3.0).
+    times = DatetimeIndex(["2000-01-01", "2000-01-11", "2000-01-12"])
+    ser = Series([1.0, np.nan, 5.0])
+    result = ser.ewm(halflife="1D", times=times, adjust=False, ignore_na=False).mean()
+    old_wt = (0.5**10) * (0.5**1)
+    new_wt = 1.0 - 0.5**1
+    expected = Series([1.0, 1.0, (old_wt * 1.0 + new_wt * 5.0) / (old_wt + new_wt)])
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[2] > 4.99
+
+
+def test_ewma_groupby_times_uses_per_group_calendar():
+    # Interleaved groups have a 2-day calendar gap. The times path must
+    # use that gap (so it differs from no-times unit steps) and must
+    # match ewm on each group alone.
+    df = DataFrame(
+        {"A": ["a", "b", "a", "b", "a", "b"], "B": [1.0, 1.0, np.nan, np.nan, 5.0, 5.0]}
+    )
+    times = date_range("2000", freq="D", periods=6)
+    result = (
+        df.groupby("A")
+        .ewm(halflife="1D", times=times, adjust=False, ignore_na=False)
+        .mean()
+    )
+    notimes = df.groupby("A").ewm(com=1, adjust=False, ignore_na=False).mean()
+    # 2-day NaN then 2-day observation: (0.5**2 * 0.5**2 * 1 + (1-0.5**2)*5)
+    # / (0.5**4 + (1-0.5**2)) = 4.6923..., not the unit-step 11/3.
+    tm.assert_almost_equal(result.loc[("a", 4), "B"], 4.6923076923076925)
+    assert not np.isclose(result.loc[("a", 4), "B"], notimes.loc[("a", 4), "B"])
+    for key in ("a", "b"):
+        mask = df["A"] == key
+        direct = (
+            Series(df.loc[mask, "B"].to_numpy())
+            .ewm(halflife="1D", times=times[mask], adjust=False, ignore_na=False)
+            .mean()
+        )
+        tm.assert_almost_equal(result.loc[key, "B"].to_numpy(), direct.to_numpy())
+
+
+def _reference_ewm_mean(values, deltas, com, adjust, ignore_na):
+    """Running-mass mean from the documented row-to-row split (GH#66523).
+
+    Each walked row decays the mass by ``(1-alpha)**delta``. A new
+    observation is mixed with weight ``1`` (adjust=True) or
+    ``1 - (1-alpha)**delta`` (adjust=False, this row-to-row step only).
+    ``ignore_na=True`` skips the step that lands on a NaN.
+    """
+    values = np.asarray(values, dtype=np.float64)
+    n = len(values)
+    if deltas is None:
+        deltas = np.ones(max(n - 1, 0), dtype=np.float64)
+    fade = 1.0 - 1.0 / (1.0 + com)
+    out = np.full(n, np.nan)
+    y = np.nan
+    mass = 1.0
+    for i in range(n):
+        x = values[i]
+        observed = x == x
+        if y != y:
+            if observed:
+                y = x
+                mass = 1.0
+        elif observed or not ignore_na:
+            step = deltas[i - 1] if i else 0.0
+            decay = fade**step
+            mass *= decay
+            if observed:
+                new_wt = 1.0 if adjust else (1.0 - decay)
+                if y != x:
+                    y = (mass * y + new_wt * x) / (mass + new_wt)
+                mass = mass + new_wt if adjust else 1.0
+        out[i] = y
+    return out
+
+
+@pytest.mark.parametrize("adjust", [True, False])
+@pytest.mark.parametrize("ignore_na", [True, False])
+@pytest.mark.parametrize("com", [0.0, 1.0, 2.5])
+def test_ewm_mean_matches_row_step_reference(adjust, ignore_na, com):
+    # Independent of aggregations.pyx: equal-spacing / no-times path.
+    rng = np.random.default_rng(66523)
+    values = rng.normal(size=12)
+    values[rng.random(12) < 0.3] = np.nan
+    result = Series(values).ewm(com=com, adjust=adjust, ignore_na=ignore_na).mean()
+    expected = Series(_reference_ewm_mean(values, None, com, adjust, ignore_na))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("adjust", [True, False])
+@pytest.mark.parametrize("ignore_na", [True, False])
+def test_ewm_times_matches_row_step_reference(adjust, ignore_na):
+    # Irregular gaps, a zero-length interval, and NaNs.
+    rng = np.random.default_rng(665230)
+    values = rng.normal(size=8)
+    values[[1, 4]] = np.nan
+    deltas = np.array([0.5, 1.0, 0.0, 2.0, 1.0, 3.0, 0.25])
+    offsets = np.concatenate([[0.0], np.cumsum(deltas)])
+    times = DatetimeIndex(
+        np.datetime64("2000-01-01")
+        + (offsets * 86_400 * 1_000_000_000).astype("timedelta64[ns]")
+    )
+    result = (
+        Series(values)
+        .ewm(halflife="1D", times=times, adjust=adjust, ignore_na=ignore_na)
+        .mean()
+    )
+    expected = Series(_reference_ewm_mean(values, deltas, 1.0, adjust, ignore_na))
+    tm.assert_series_equal(result, expected)
 
 
 def test_ewm_alpha():
