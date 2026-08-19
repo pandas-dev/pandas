@@ -73,16 +73,28 @@ class TestAwaitingContributor:
 
 class TestShouldLabelAwaitingReview:
     def test_open_no_review(self) -> None:
-        assert core.should_label_awaiting_review(True, False, None, dt(1)) is True
+        assert (
+            core.should_label_awaiting_review(True, False, None, dt(1), False) is True
+        )
 
     def test_open_awaiting_contributor(self) -> None:
-        assert core.should_label_awaiting_review(True, False, dt(1), dt(3)) is False
+        assert (
+            core.should_label_awaiting_review(True, False, dt(1), dt(3), False) is False
+        )
 
     def test_draft_never_labeled(self) -> None:
-        assert core.should_label_awaiting_review(True, True, None, dt(1)) is False
+        assert (
+            core.should_label_awaiting_review(True, True, None, dt(1), False) is False
+        )
 
     def test_closed_never_labeled(self) -> None:
-        assert core.should_label_awaiting_review(False, False, None, dt(1)) is False
+        assert (
+            core.should_label_awaiting_review(False, False, None, dt(1), False) is False
+        )
+
+    def test_fully_approved_not_labeled(self) -> None:
+        # Awaiting merge, not review.
+        assert core.should_label_awaiting_review(True, False, None, None, True) is False
 
 
 class TestOutstandingChangesRequested:
@@ -148,6 +160,62 @@ class TestOutstandingChangesRequested:
             review("CHANGES_REQUESTED", 2),
         ]
         assert core.outstanding_changes_requested_at(reviews) == dt(2)
+
+
+class TestAllReviewersApproved:
+    def test_single_approval(self) -> None:
+        assert core.all_reviewers_approved([review("APPROVED", 1)], False) is True
+
+    def test_no_reviews(self) -> None:
+        assert core.all_reviewers_approved([], False) is False
+
+    def test_pending_request_blocks(self) -> None:
+        # One approval while another reviewer's request is still pending
+        # leaves the PR awaiting review, not merge.
+        assert core.all_reviewers_approved([review("APPROVED", 1)], True) is False
+
+    def test_outstanding_changes_request_blocks(self) -> None:
+        reviews: list[core.Review] = [
+            review("CHANGES_REQUESTED", 3, author="alpha"),
+            review("APPROVED", 1, author="beta"),
+        ]
+        assert core.all_reviewers_approved(reviews, False) is False
+
+    def test_own_approval_supersedes_changes_request(self) -> None:
+        reviews: list[core.Review] = [
+            review("CHANGES_REQUESTED", 3),
+            review("APPROVED", 1),
+        ]
+        assert core.all_reviewers_approved(reviews, False) is True
+
+    def test_later_changes_request_supersedes_approval(self) -> None:
+        reviews: list[core.Review] = [
+            review("APPROVED", 3),
+            review("CHANGES_REQUESTED", 1),
+        ]
+        assert core.all_reviewers_approved(reviews, False) is False
+
+    def test_outsider_approval_does_not_count(self) -> None:
+        reviews: list[core.Review] = [
+            review("APPROVED", 1, association="NONE", author="alice")
+        ]
+        assert core.all_reviewers_approved(reviews, False) is False
+
+    def test_dismissed_verdict_is_withdrawn(self) -> None:
+        # A dismissed stance neither satisfies nor blocks full approval.
+        assert core.all_reviewers_approved([review("DISMISSED", 1)], False) is False
+        reviews: list[core.Review] = [
+            review("DISMISSED", 3, author="alpha"),
+            review("APPROVED", 1, author="beta"),
+        ]
+        assert core.all_reviewers_approved(reviews, False) is True
+
+    def test_comment_review_leaves_approval_standing(self) -> None:
+        reviews: list[core.Review] = [
+            review("APPROVED", 3),
+            review("COMMENTED", 1),
+        ]
+        assert core.all_reviewers_approved(reviews, False) is True
 
 
 class TestLatestSelectors:
@@ -432,6 +500,7 @@ def pr(
     author_association: str | None = "NONE",
     reviews: list[core.Review] | None = None,
     review_requests: list[core.ReviewRequest] | None = None,
+    has_pending_review_requests: bool = False,
     last_commit_at: datetime | None = None,
     comments: list[core.Comment] | None = None,
     comments_truncated: bool = False,
@@ -446,6 +515,7 @@ def pr(
         "author_association": author_association,
         "reviews": reviews if reviews is not None else [],
         "review_requests": review_requests if review_requests is not None else [],
+        "has_pending_review_requests": has_pending_review_requests,
         "last_commit_at": last_commit_at,
         "comments": comments if comments is not None else [],
         "comments_truncated": comments_truncated,
@@ -555,6 +625,58 @@ class TestReconcileAll:
         label_awaiting_review.reconcile_all(client)
         assert client.added == []
         assert client.removed == []
+
+    def test_approved_pr_loses_label(self) -> None:
+        # Fully approved -> awaiting merge; a manual label removal must not
+        # be reverted by the nightly reconcile (GH#65029).
+        client = FakeClient([pr(9, reviews=[review("APPROVED", 1)], labels=[AWAITING])])
+        label_awaiting_review.reconcile_all(client)
+        assert client.removed == [(9, AWAITING)]
+        assert client.added == []
+
+    def test_approved_pr_not_relabeled(self) -> None:
+        client = FakeClient([pr(10, reviews=[review("APPROVED", 1)])])
+        label_awaiting_review.reconcile_all(client)
+        assert client.added == []
+        assert client.removed == []
+
+    def test_approval_with_pending_request_stays_labeled(self) -> None:
+        # Another reviewer's review is still requested, so the PR is not
+        # fully approved and remains awaiting review.
+        client = FakeClient(
+            [
+                pr(
+                    11,
+                    reviews=[review("APPROVED", 1)],
+                    has_pending_review_requests=True,
+                    labels=[AWAITING],
+                )
+            ]
+        )
+        label_awaiting_review.reconcile_all(client)
+        assert client.added == []
+        assert client.removed == []
+
+    def test_approval_beside_changes_request_stays_awaiting_contributor(
+        self,
+    ) -> None:
+        # One reviewer approved, another still has changes requested: the
+        # ball stays with the contributor, so no Awaiting Review label.
+        client = FakeClient(
+            [
+                pr(
+                    12,
+                    reviews=[
+                        review("CHANGES_REQUESTED", 3, author="alpha"),
+                        review("APPROVED", 1, author="beta"),
+                    ],
+                    labels=[AWAITING],
+                )
+            ]
+        )
+        label_awaiting_review.reconcile_all(client)
+        assert client.removed == [(12, AWAITING)]
+        assert client.added == []
 
 
 STALE = core.STALE_LABEL
