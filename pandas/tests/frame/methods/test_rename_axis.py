@@ -121,3 +121,13 @@ class TestDataFrameRenameAxis:
         expected_columns = columns.rename(None) if rename_columns else columns
         expected = DataFrame(data, expected_index, expected_columns)
         tm.assert_frame_equal(result, expected)
+
+    def test_rename_axis_tuple_name_1d_index(self):
+        # GH#66656
+        df = DataFrame([1], index=Index([1], name=(1, 2, 3)))
+        result = df.rename_axis((1, 2, 3))
+        assert result.index.name == (1, 2, 3)
+
+        result_reset = df.reset_index().rename_axis(df.index.name)
+        assert result_reset.index.name == (1, 2, 3)
+
