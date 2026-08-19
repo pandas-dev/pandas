@@ -1521,7 +1521,7 @@ cdef class Day(SingleConstructorOffset):
     datetime-like objects. Addition and subtraction shift the value by
     exactly ``n`` calendar days, with time-of-day preserved.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -1546,6 +1546,14 @@ cdef class Day(SingleConstructorOffset):
 
     >>> ts + Day(-4)
     Timestamp('2022-12-05 15:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _adjust_dst = True
     _attributes = tuple(["n", "normalize"])
