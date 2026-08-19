@@ -755,8 +755,6 @@ cdef datetime dateutil_parse(
                 "keyword or call tz_localize after construction instead",
             )
         elif res.tzoffset:
-            ret = ret.replace(tzinfo=_dateutil_tzutc())
-        elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 
             # dateutil can return a datetime with a tzoffset outside of (-24h, 24h)
