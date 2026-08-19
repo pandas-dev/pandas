@@ -4,7 +4,10 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -217,6 +220,36 @@ def test_int_deprecation_warns_once_all_dtypes(values):
 
     expected = PeriodArray._from_sequence(
         [pd.Period("2000", "D"), pd.Period("2001", "D")], dtype="period[D]"
+    )
+    tm.assert_period_array_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:Passing integer data:pandas.errors.Pandas4Warning")
+@pytest.mark.parametrize("val", [2**63, 2**64 - 5])
+def test_from_sequence_uint64_out_of_bounds(val):
+    # GH#64231 uint64 values above int64 max used to wrap in the cast to
+    #  int64, silently giving a negative (BC) year or NaT
+    arr = np.array([val], dtype=np.uint64)
+    msg = f'Parsing "{val}" to datetime overflows'
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        PeriodArray._from_sequence(arr, dtype="period[D]")
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "int64", "int64[pyarrow]", object])
+def test_from_sequence_integers_container_independent(dtype):
+    # GH#64227 the integer container must not change how the integers are
+    #  read; the numpy-int64 path used to read 200701 as year 200701 while
+    #  every other path read it as 2007-01
+    if "pyarrow" in str(dtype):
+        pytest.importorskip("pyarrow")
+    values = pd.array([200701, 200702], dtype=dtype)
+
+    depr_msg = "Passing integer data"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = PeriodArray._from_sequence(values, dtype="period[M]")
+
+    expected = PeriodArray._from_sequence(
+        [pd.Period("2007-01", "M"), pd.Period("2007-02", "M")], dtype="period[M]"
     )
     tm.assert_period_array_equal(result, expected)
 

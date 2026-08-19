@@ -185,6 +185,17 @@ class TestSetitemDT64Values:
 
 
 class TestSetitemScalarIndexer:
+    def test_setitem_bytes_dtype_with_na(self):
+        # GH#52373
+        ser = Series([b"a", b"b", b"c"], dtype="S1")
+
+        msg = "Invalid value 'nan' for dtype"
+        with pytest.raises(TypeError, match=msg):
+            ser[1] = np.nan
+
+        expected = Series([b"a", b"b", b"c"], dtype="S1")
+        tm.assert_series_equal(ser, expected)
+
     def test_setitem_negative_out_of_bounds(self):
         # As of 3.0, int keys are treated as labels, so this becomes
         #  setitem-with-expansion

@@ -8859,9 +8859,10 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to modify the DataFrame rather than creating a new one.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. `mergesort` and `stable` are the only stable algorithms. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
+            information. The sort order is deterministic for a given input.
+            'mergesort' and 'stable' are the only stable algorithms, which preserve
+            the relative order of equal keys. This option is ignored when sorting on a
+            MultiIndex or when a `level` is specified.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
             Not implemented for MultiIndex.
@@ -18169,7 +18170,6 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.min : Return the minimum over
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
-        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
@@ -18277,7 +18277,6 @@ class DataFrame(NDFrame, OpsMixin):
             but ignores ``NaN`` values.
         DataFrame.max : Return the maximum over
             DataFrame axis.
-        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
@@ -18388,7 +18387,6 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
-        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
         Examples
@@ -18491,14 +18489,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        core.window.expanding.Expanding.prod : Similar functionality
-            but ignores ``NaN`` values.
         DataFrame.prod : Return the product over
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
-        DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
         Examples
         --------
