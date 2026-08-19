@@ -4492,13 +4492,11 @@ class MultiIndex(Index):
                 new_order = np.arange(n - 1, -1, -1)[indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
-                # But when there is a list-like indexer on a deeper level,
-                # we need to use the level codes to preserve hierarchy order
-                # (group by higher levels first, then query order within groups)
                 if any(
-                    is_list_like(k2) and len(k2) > 1  # type: ignore[arg-type]
+                    is_list_like(k2) and len(k2) > 1
                     for k2 in seq[i + 1 :]
                 ):
+                    # Preserve hierarchy when a deeper level is list-like.
                     new_order = self.codes[i][indexer]
                 else:
                     new_order = np.ones((n,), dtype=np.intp)[indexer]
