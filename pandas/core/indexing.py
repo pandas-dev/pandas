@@ -2928,7 +2928,9 @@ class _iLocIndexer(_LocationIndexer):
                 if col in value.columns:
                     val = value[col]
                     if isinstance(val, ABCDataFrame):
-                        raise ValueError("Setting with non-unique columns is not allowed.")
+                        raise ValueError(
+                            "Setting with non-unique columns is not allowed."
+                        )
                     val = self._align_series(indexer, val)
                     value = getattr(val, "_values", val)
                 else:
