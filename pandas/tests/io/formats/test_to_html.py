@@ -1171,11 +1171,19 @@ def test_to_html_render_links_escape():
     value = 'http://example.com/search?q=a"b&lang=en'
     df = DataFrame({"url": [value]})
 
+    # Case 1: escape=True
     result = df.to_html(render_links=True, escape=True)
     expected_href = "http://example.com/search?q=a&quot;b&amp;lang=en"
     expected_text = 'http://example.com/search?q=a"b&amp;lang=en'
-
     expected_td = (
         f'<td><a href="{expected_href}" target="_blank">{expected_text}</a></td>'
     )
     assert expected_td in result
+
+    # Case 2: escape=False (GH 66080)
+    result_false = df.to_html(render_links=True, escape=False)
+    expected_text_false = 'http://example.com/search?q=a"b&lang=en'
+    expected_td_false = (
+        f'<td><a href="{expected_href}" target="_blank">{expected_text_false}</a></td>'
+    )
+    assert expected_td_false in result_false
