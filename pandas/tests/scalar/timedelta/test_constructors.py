@@ -228,7 +228,7 @@ class TestTimedeltaConstructorUnitKeyword:
 
     @pytest.mark.parametrize("val", [np.inf, -np.inf])
     def test_float_inf_raises(self, val):
-        # GH#63275 non-finite floats used to raise a bare OverflowError from
+        # GH#66247 non-finite floats used to raise a bare OverflowError from
         #  int(item); they should raise OutOfBoundsTimedelta (a ValueError)
         #  so that errors="coerce" can catch them.
         msg = "without overflow"
@@ -241,7 +241,7 @@ class TestTimedeltaConstructorUnitKeyword:
         assert to_timedelta(val, errors="coerce") is NaT
 
     def test_round_float_overflow_unit(self):
-        # GH#63275 a round float whose value overflows int64 at the requested
+        # GH#66247 a round float whose value overflows int64 at the requested
         #  unit should raise OutOfBoundsTimedelta, not a bare OverflowError
         #  (the round float is routed through the integer path).
         msg = "without overflow"
@@ -258,6 +258,27 @@ def test_construct_from_kwargs_overflow():
     # Truly out of bounds even at second resolution
     with pytest.raises(OutOfBoundsTimedelta):
         Timedelta(days=10**15)
+
+
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        "weeks",
+        "days",
+        "hours",
+        "minutes",
+        "seconds",
+        "milliseconds",
+        "microseconds",
+        "nanoseconds",
+    ],
+)
+@pytest.mark.parametrize("val", [np.inf, -np.inf])
+def test_construct_from_kwargs_inf(kwarg, val):
+    # GH#66823 int() of a non-finite float raised a bare OverflowError, unlike
+    #  the positional path, which gives OutOfBoundsTimedelta
+    with pytest.raises(OutOfBoundsTimedelta, match="Cannot construct Timedelta"):
+        Timedelta(**{kwarg: val})
 
 
 def test_construct_from_kwargs_non_nano():

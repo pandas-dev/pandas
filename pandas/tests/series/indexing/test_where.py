@@ -13,6 +13,23 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize(
+    "method,cond",
+    [
+        ("where", [True, False, True]),
+        ("mask", [False, True, False]),
+    ],
+)
+def test_where_mask_bytes_dtype_with_na(method, cond):
+    # GH#52373
+    ser = Series([b"a", b"b", b"c"], dtype="S1")
+
+    result = getattr(ser, method)(cond)
+
+    expected = Series([b"a", np.nan, b"c"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_unsafe_int(any_signed_int_numpy_dtype):
     s = Series(np.arange(10), dtype=any_signed_int_numpy_dtype)
     mask = s < 5
