@@ -271,10 +271,12 @@ def test_tick_division(cls):
 def test_td_div_numeric_scalar_finer_resolution():
     # GH#57264
     td = Timedelta(1, unit="s").as_unit("s")
-    result = td / 10
+    result_div = td / 10
+    result_mul = td * 0.1
     expected = Timedelta(100, unit="ms")
 
-    assert result == expected
+    assert result_div == expected
+    assert result_mul == expected
 
 
 def test_tick_division_fractional_result():
