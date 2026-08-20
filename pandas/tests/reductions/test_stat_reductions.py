@@ -206,6 +206,18 @@ class TestSeriesStatReductions:
         result = s.std(ddof=1)
         assert pd.isna(result)
 
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_object_with_missing(self, method, missing_value, skipna):
+        base = Series([1.0, np.nan, 3.0, 4.0, 5.0], dtype=np.float64)
+        ser = base.astype(object)
+        ser[pd.isna(base)] = missing_value
+
+        result = getattr(ser, method)(skipna=skipna)
+        expected = getattr(base, method)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
     def test_sem(self):
         string_series = Series(range(20), dtype=np.float64, name="series")
         datetime_series = Series(

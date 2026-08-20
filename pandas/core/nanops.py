@@ -1770,16 +1770,17 @@ def _ensure_numeric_array(
     try_complex_conversion: bool,
     preferred_order: Literal["C", "F", "K"],
 ) -> np.ndarray:
-    # This is a copy of `_ensure_numeric` specific to arrays.
-    # It doesn't print the full array on error.
-    # The main purpose of this function is
-    # to avoid the conversion performed by numpy on numeric strings.
     if x.dtype.kind in "biu":
         return x.astype(np.float64, order=preferred_order)
 
     if x.dtype == object:
         if lib.contains_strings(x):
             raise TypeError("Could not convert array to numeric")
+
+        mask = isna(x)
+        if mask.any():
+            x = x.copy()
+            x[mask] = np.nan
 
         if try_complex_conversion:
             try:
@@ -1788,7 +1789,7 @@ def _ensure_numeric_array(
                 raise TypeError("Could not convert array to numeric") from err
 
             if not np.any(np.imag(x)):
-                return x.real
+                return x.real.copy(order=preferred_order)
             return x
 
         try:
