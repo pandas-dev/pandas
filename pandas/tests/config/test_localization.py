@@ -1,6 +1,7 @@
 import codecs
 import locale
 import os
+import platform
 
 import pytest
 
@@ -155,3 +156,10 @@ def test_encoding_detected():
         codecs.lookup(pd.options.display.encoding).name
         == codecs.lookup(system_encoding).name
     )
+
+
+def test_TEMP_report_windows_locales():
+    # TEMPORARY probe, to be dropped before merge: the skips make it impossible
+    #  to tell from a green Windows CI whether get_locales found anything.
+    if platform.system() == "Windows":
+        raise AssertionError(f"found {len(_all_locales)} locales: {_all_locales[:25]}")
