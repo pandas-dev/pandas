@@ -16,8 +16,9 @@ import pandas as pd
 
 _all_locales = get_locales()
 
-# Don't run any of these tests if we have no locales.
-pytestmark = pytest.mark.skipif(not _all_locales, reason="Need locales")
+# Only the tests that need a locale from _all_locales are skipped when there
+#  are none available; the rest run everywhere, Windows included. GH#46597
+_skip_if_no_locale = pytest.mark.skipif(not _all_locales, reason="Need locales")
 
 _skip_if_only_one_locale = pytest.mark.skipif(
     len(_all_locales) <= 1, reason="Need multiple locales for meaningful test"
@@ -99,6 +100,7 @@ def test_can_set_locale_invalid_get(monkeypatch):
         assert not can_set_locale("")
 
 
+@_skip_if_no_locale
 def test_get_locales_at_least_one():
     # see GH#9744
     assert len(_all_locales) > 0
