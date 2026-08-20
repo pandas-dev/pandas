@@ -5565,6 +5565,20 @@ class DataFrame(NDFrame, OpsMixin):
             klasses: list[type[ExtensionDtype]] = []
             resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
+                if dtype is None:
+                    # GH#28943: a bare include=None means "not specified", but a
+                    # None inside the list-like reaches np.dtype(None) and
+                    # silently selects float64 columns.
+                    warnings.warn(
+                        "Passing None in the include/exclude list to "
+                        "select_dtypes is deprecated and will raise in a "
+                        "future version. None currently selects float64 "
+                        "columns; pass 'float64' explicitly if that is "
+                        "intended.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+
                 if isinstance(dtype, (np.dtype, ExtensionDtype)):
                     # GH#40234: a dtype instance matches only columns with
                     # exactly that dtype, whereas a class or string matches
