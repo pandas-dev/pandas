@@ -536,8 +536,9 @@ def determine_clipboard():
         "cygwin" in platform.system().lower()
     ):  # Cygwin has a variety of values returned by platform.system(),
         # such as 'CYGWIN_NT-6.1'
-        # FIXME(pyperclip#55): pyperclip currently does not support Cygwin,
-        # see https://github.com/asweigart/pyperclip/issues/55
+        # Cygwin uses /dev/clipboard; upstream pyperclip#55 was closed in 2017
+        # as "mostly works" -- known imperfections are warned about per-call
+        # in copy_dev_clipboard.
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
                 "Pyperclip's support for Cygwin is not perfect, "

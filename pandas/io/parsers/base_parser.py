@@ -85,9 +85,9 @@ if TYPE_CHECKING:
 
 class ParserBase:
     class BadLineHandleMethod(Enum):
-        ERROR = 0
-        WARN = 1
-        SKIP = 2
+        BLHM_ERROR = 0
+        BLHM_WARN = 1
+        BLHM_SKIP = 2
 
     _implicit_index: bool
     _first_chunk: bool
@@ -166,10 +166,24 @@ class ParserBase:
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
-        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
+        self.on_bad_lines = kwds.get(
+            "on_bad_lines", self.BadLineHandleMethod.BLHM_ERROR
+        )
+
+        # See TextReader.warning_sink: when not None, ParserWarnings are
+        # collected here instead of being raised, so the parallel reader can
+        # raise one copy of a warning its several reads each hit (GH#66259).
+        self._warning_sink: list[tuple[str, type[Warning]]] | None = None
 
     def close(self) -> None:
         pass
+
+    @final
+    def _warn_parser(self, msg: str) -> None:
+        if self._warning_sink is not None:
+            self._warning_sink.append((msg, ParserWarning))
+        else:
+            warnings.warn(msg, ParserWarning, stacklevel=find_stack_level())
 
     @final
     def _should_parse_dates(self, i: int) -> bool:
@@ -377,7 +391,7 @@ class ParserBase:
             )
             if cast_type is not None:
                 # Don't perform RangeIndex inference
-                idx = Index(arr, name=name, dtype=cast_type)
+                idx = Index(arr, name=name, dtype=cast_type, copy=False)
             else:
                 idx = ensure_index_from_sequences([arr], [name])
             arrays.append(idx)
@@ -627,11 +641,9 @@ class ParserBase:
             empty_str_or_na = empty_str | isna(data[-1])  # type: ignore[operator]
             if len(columns) == len(data) - 1 and np.all(empty_str_or_na):
                 return
-            warnings.warn(
+            self._warn_parser(
                 "Length of header or names does not match length of data. This leads "
-                "to a loss of data with index_col=False.",
-                ParserWarning,
-                stacklevel=find_stack_level(),
+                "to a loss of data with index_col=False."
             )
 
     @final
@@ -721,7 +733,7 @@ class ParserBase:
             # if dtype == None, default will be object.
             dtype_dict = defaultdict(lambda: dtype)
         else:
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             dtype_dict = defaultdict(
                 lambda: None,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
@@ -828,7 +840,7 @@ parser_defaults = {
     "compression": None,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
-    "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
+    "on_bad_lines": ParserBase.BadLineHandleMethod.BLHM_ERROR,
     "dtype_backend": lib.no_default,
 }
 

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 import operator
 import os
 from sys import byteorder
+import threading
 from typing import (
     TYPE_CHECKING,
-    ContextManager,
+    Any,
 )
 
 import numpy as np
@@ -68,7 +70,6 @@ from pandas._testing.compat import (
 )
 from pandas._testing.contexts import (
     decompress_file,
-    ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
     with_csv_dialect,
@@ -82,12 +83,19 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import (
+        Callable,
+        Iterable,
+        Sequence,
+    )
+    from contextlib import AbstractContextManager
 
     from pandas._typing import (
         Dtype,
         NpDtype,
     )
+
+    from pandas.core.arrays import ExtensionArray
 
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
@@ -270,7 +278,7 @@ comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "
 # Comparators
 
 
-def box_expected(expected, box_cls, transpose: bool = True):
+def box_expected(expected: Any, box_cls: Any, transpose: bool = True) -> Any:
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -290,7 +298,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index(expected, copy=False)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -311,7 +319,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
     return expected
 
 
-def to_array(obj):
+def to_array(obj: Any) -> ExtensionArray | np.ndarray:
     """
     Similar to pd.array, but does not cast numpy dtypes to nullable dtypes.
     """
@@ -328,7 +336,7 @@ class SubclassedSeries(Series):
     _metadata = ["testattr", "name"]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable:  # type: ignore[override]
         # For testing, those properties return a generic callable, and not
         # the actual class. In this case that is equivalent, but it is to
         # ensure we don't rely on the property returning a class
@@ -337,7 +345,7 @@ class SubclassedSeries(Series):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
-    def _constructor_expanddim(self):
+    def _constructor_expanddim(self) -> Callable:
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
 
@@ -345,12 +353,12 @@ class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):  # type: ignore[override]
+    def _constructor_sliced(self) -> Callable:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -374,7 +382,9 @@ def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
     return sep.join(rows_list) + sep
 
 
-def external_error_raised(expected_exception: type[Exception]) -> ContextManager:
+def external_error_raised(
+    expected_exception: type[Exception],
+) -> AbstractContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -393,7 +403,10 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-def get_cython_table_params(ndframe, func_names_and_expected):
+def get_cython_table_params(
+    ndframe: DataFrame | Series,
+    func_names_and_expected: Iterable[Sequence[Any]],
+) -> list[tuple[DataFrame | Series, str, Any]]:
     """
     Combine frame, functions from com._cython_table
     keys and expected result.
@@ -402,7 +415,7 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     ----------
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The first item is a name of an NDFrame method ('sum', 'prod') etc.
         The second item is the expected return value.
 
     Returns
@@ -445,27 +458,27 @@ def get_op_from_name(op_name: str) -> Callable:
 # Indexing test helpers
 
 
-def getitem(x):
+def getitem(x: Any) -> Any:
     return x
 
 
-def setitem(x):
+def setitem(x: Any) -> Any:
     return x
 
 
-def loc(x):
+def loc(x: Any) -> Any:
     return x.loc
 
 
-def iloc(x):
+def iloc(x: Any) -> Any:
     return x.iloc
 
 
-def at(x):
+def at(x: Any) -> Any:
     return x.at
 
 
-def iat(x):
+def iat(x: Any) -> Any:
     return x.iat
 
 
@@ -483,7 +496,7 @@ def get_finest_unit(left: str, right: str) -> str:
     return right
 
 
-def shares_memory(left, right) -> bool:
+def shares_memory(left: Any, right: Any) -> bool:
     """
     Pandas-compat for np.shares_memory.
     """
@@ -518,7 +531,7 @@ def shares_memory(left, right) -> bool:
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1.address == right_buf1.address
         else:
-            # if we have one one ArrowExtensionArray and one other array, assume
+            # if we have one ArrowExtensionArray and one other array, assume
             # they can only share memory if they share the same numpy buffer
             return np.shares_memory(left, right)
 
@@ -534,6 +547,41 @@ def shares_memory(left, right) -> bool:
         return shares_memory(arr, right)
 
     raise NotImplementedError(type(left), type(right))
+
+
+def run_multithreaded(
+    closure: Callable,
+    max_workers: int,
+    arguments: Iterable | None = None,
+    pass_barrier: bool = False,
+) -> None:
+    with ThreadPoolExecutor(max_workers=max_workers) as tpe:
+        if arguments is None:
+            arguments = []
+        else:
+            arguments = list(arguments)
+
+        if pass_barrier:
+            barrier = threading.Barrier(max_workers)
+            arguments.append(barrier)
+
+        try:
+            futures = []
+            for _ in range(max_workers):
+                futures.append(tpe.submit(closure, *arguments))  # noqa: PERF401
+        except RuntimeError as e:
+            import pytest
+
+            pytest.skip(
+                f"Spawning {max_workers} threads failed with "
+                f"error {e!r} (likely due to resource limits on the "
+                "system running the tests)"
+            )
+        finally:
+            if len(futures) < max_workers and pass_barrier:
+                barrier.abort()
+        for f in futures:
+            f.result()
 
 
 __all__ = [
@@ -587,7 +635,6 @@ __all__ = [
     "can_set_locale",
     "convert_rows_list_to_csv_str",
     "decompress_file",
-    "ensure_clean",
     "external_error_raised",
     "get_cython_table_params",
     "get_dtype",
@@ -604,6 +651,7 @@ __all__ = [
     "raises_chained_assignment_error",
     "round_trip_pathlib",
     "round_trip_pickle",
+    "run_multithreaded",
     "set_locale",
     "set_timezone",
     "setitem",

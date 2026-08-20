@@ -26,6 +26,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
@@ -300,7 +301,7 @@ class TestGrouping:
     def test_grouper_returning_tuples(self, func):
         # GH 22257 , both with dict and with callable
         df = DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-        mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2))
+        mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2, strict=True))
 
         if func:
             gb = df.groupby(by=lambda idx: mapping[idx], sort=False)
@@ -312,6 +313,22 @@ class TestGrouping:
         result = gb.get_group(name)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_grouper_func_returning_tz_naive(self):
+        # GH#57192 grouping by a function that strips the tz should give
+        #  tz-naive group keys, not keys re-localized to the original tz
+        index = date_range("2024-02-01", "2024-02-03", freq="8h", tz="UTC")
+        df = DataFrame({"A": 1}, index=index)
+
+        gb = df.groupby(by=lambda ts: ts.normalize().tz_convert(None))
+        keys = list(gb.groups.keys())
+        assert all(key.tz is None for key in keys)
+        expected = [
+            Timestamp("2024-02-01"),
+            Timestamp("2024-02-02"),
+            Timestamp("2024-02-03"),
+        ]
+        assert keys == expected
 
     def test_grouper_column_and_index(self):
         # GH 14327
@@ -465,7 +482,7 @@ class TestGrouping:
         obj = frame_or_series([1, 2, 3, 4], index=index)
         groups = Series([1, 0, 1, 0], index=index, name=("a", "a"))
         result = obj.groupby(groups).last()
-        expected = frame_or_series([4, 3])
+        expected = frame_or_series([4, 3], index=Index([0, 1]))
         expected.index.name = ("a", "a")
         tm.assert_equal(result, expected)
 
@@ -544,7 +561,7 @@ class TestGrouping:
 
         df = DataFrame([[1, "A"]], columns=midx)
 
-        msg = "`groups` by one element list returns scalar is deprecated"
+        msg = "In a future version, the keys"
         grouped = df.groupby("to filter").groups
         assert grouped["A"] == [0]
 
@@ -573,7 +590,7 @@ class TestGrouping:
             columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
         )
 
-        msg = "`groups` by one element list returns scalar is deprecated"
+        msg = "In a future version, the keys"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = df.groupby([("b", 1)]).groups
         result = df.groupby(("b", 1)).groups
@@ -625,7 +642,7 @@ class TestGrouping:
         result_max = df.groupby([("a", 1)])["b"].max()
         tm.assert_frame_equal(expected_max, result_max)
 
-        msg = "`groups` by one element list returns scalar is deprecated"
+        msg = "In a future version, the keys"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
             result_groups = df.groupby([("a", 1)])["b"].groups
@@ -673,6 +690,21 @@ class TestGrouping:
         msg = "level name foo is not the name of the index"
         with pytest.raises(ValueError, match=msg):
             df.groupby(level="foo")
+
+    def test_groupby_duplicate_index_level_names(self):
+        # GH#49434
+        df = DataFrame(
+            {"a": [1, 1, 2], "b": [3, 4, 5]},
+            index=MultiIndex.from_tuples([(1, 1), (1, 2), (1, 3)], names=["f", "f"]),
+        )
+        msg = "Grouping by index level 'f' which matches multiple index levels"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.groupby("f").sum()
+        expected = DataFrame(
+            {"a": [4], "b": [12]},
+            index=Index([1], name="f"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
@@ -735,7 +767,7 @@ class TestGrouping:
         df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
         grouper = Grouper(key="date", freq="YS")
-        msg = "`groups` by one element list returns scalar is deprecated"
+        msg = "In a future version, the keys"
 
         # Grouper in a list grouping
         gb = df.groupby([grouper])
@@ -1036,7 +1068,7 @@ class TestGetGroup:
 class TestIteration:
     def test_groups(self, df):
         grouped = df.groupby(["A"])
-        msg = "`groups` by one element list returns scalar is deprecated"
+        msg = "In a future version, the keys"
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             groups = grouped.groups
@@ -1214,3 +1246,57 @@ def test_groupby_any_with_timedelta():
     expected.index = expected.index.astype(np.int64)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize(
+    "idx",
+    [
+        date_range("2020-01-01", periods=5, freq="D"),
+        date_range("2020-01-05", periods=5, freq="-1D"),
+        timedelta_range("1 day", periods=5, freq="D"),
+        timedelta_range("5 days", periods=5, freq="-1D"),
+    ],
+)
+def test_groupby_index_with_freq_retains_freq(idx, sort):
+    # GH#66046 - grouping by a DatetimeIndex/TimedeltaIndex with a freq
+    # retains the freq on the result index
+    df = DataFrame({"a": range(5)})
+
+    result = df.groupby(idx, sort=sort).sum()
+
+    expected_index = idx.sort_values() if sort else idx
+    assert result.index.freq == expected_index.freq
+    tm.assert_index_equal(result.index, expected_index)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("ascending", [True, False])
+@pytest.mark.parametrize(
+    "klass, values",
+    [
+        (
+            pd.DatetimeIndex,
+            ["2020-01-01", "2020-01-01", "2020-01-03", "2020-01-07"],
+        ),
+        (pd.TimedeltaIndex, ["1 day", "1 day", "3 days", "7 days"]),
+    ],
+)
+def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
+    # GH#66046 - monotonic DatetimeIndex/TimedeltaIndex without a freq
+    # with duplicates
+    idx = klass(values)
+    if not ascending:
+        idx = idx[::-1]
+    assert idx.freq is None
+    df = DataFrame({"a": [1, 2, 4, 8]})
+
+    result = df.groupby(idx, sort=sort).sum()
+
+    if ascending:
+        expected = DataFrame({"a": [3, 4, 8]}, index=klass(values[1:]))
+    elif sort:
+        expected = DataFrame({"a": [12, 2, 1]}, index=klass(values[1:]))
+    else:
+        expected = DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
+    tm.assert_frame_equal(result, expected)

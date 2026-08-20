@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -15,6 +17,8 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
+depr_msg = "float_precision"
 
 
 @skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
@@ -34,7 +38,9 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
     data = df.to_csv(index=False)
     parser, precision = all_parsers_all_precisions
 
-    df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
+    warn = Pandas4Warning if precision is not None else None
+    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
+        df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
     tm.assert_frame_equal(df_roundtrip, df)
 
 
@@ -65,7 +71,9 @@ def test_large_exponent(all_parsers_all_precisions, value, expected_value):
     parser, precision = all_parsers_all_precisions
 
     data = f"data\n{value}"
-    result = parser.read_csv(StringIO(data), float_precision=precision)
+    warn = Pandas4Warning if precision is not None else None
+    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), float_precision=precision)
     expected = DataFrame({"data": [expected_value]})
     tm.assert_frame_equal(result, expected)
 
@@ -91,9 +99,73 @@ def test_small_int_followed_by_float(
     data = f"""data
     42
     {value}"""
-    result = parser.read_csv(StringIO(data), float_precision=precision)
+    warn = Pandas4Warning if precision is not None else None
+    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), float_precision=precision)
     expected = DataFrame({"data": [42.0, expected_value]})
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "90071992547409930.0",
+        "90071992547409931.0",
+        "90071992547409935.0",
+        "90071992547409938.0",
+    ],
+)
+def test_precise_xstrtod_large_mantissa(c_parser_only, value):
+    # GH#64357
+    # When a 17-digit mantissa's 16-digit prefix crosses 2^53
+    # (= 9007199254740992), the old per-digit FP accumulation
+    #   number = number * 10. + digit
+    # introduced a rounding error at step 16 that shifted the final result
+    # by one ULP.  Specifically, the 16-digit prefix 9007199254740993
+    # (= 2^53 + 1) was not representable as a double and rounded down to
+    # 9007199254740992, causing subsequent arithmetic to produce a value
+    # ~10 units below the true mantissa.  With ULP = 16 near 9e16, this
+    # 10-unit error was enough to round to the wrong double.
+    #
+    # The fix accumulates mantissa digits in uint64_t and converts to
+    # double once, so there is at most one rounding instead of up to
+    # max_digits=17.
+    parser = c_parser_only
+    data = f"val\n{value}"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), float_precision="high")["val"][0]
+    assert result == float(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # up to 19 significant digits, parsed straight from the digits
+        "1.7976931348623157e308",  # largest finite double
+        "2.2250738585072014e-308",  # smallest normal double
+        "9007199254740993.0",  # 2**53 + 1, not representable; rounds to 2**53
+        "12345.678901234567",
+        # more than 19 significant digits, so the mantissa has to be truncated
+        # before it can be rounded
+        "2.22507385850720113605740979670913197593481954635164565e-308",
+        "1.00000000000000000000000000000000000000000000000000001",
+        "123456789012345678901234567890.5",
+        # subnormals, where picking the last bit requires comparing against the
+        # full decimal expansion rather than a truncated mantissa
+        "4.9406564584124654e-324",  # smallest positive subnormal
+        "2.4703282292062327e-324",  # just under the halfway point -> 0.0
+        "2.4703282292062328e-324",  # just over it -> smallest subnormal
+    ],
+)
+def test_float_correctly_rounded(all_parsers, value):
+    # GH#66457
+    parser = all_parsers
+    result = parser.read_csv(StringIO(f"data\n{value}"))
+
+    expected = DataFrame({"data": [float(value)]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -105,6 +177,8 @@ def test_invalid_float_number(all_parsers_all_precisions, value):
     parser, precision = all_parsers_all_precisions
     data = f"h1,h2,h3\ndata1,{value},data3"
 
-    result = parser.read_csv(StringIO(data), float_precision=precision)
+    warn = Pandas4Warning if precision is not None else None
+    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), float_precision=precision)
     expected = DataFrame({"h1": ["data1"], "h2": [value], "h3": "data3"})
     tm.assert_frame_equal(result, expected)

@@ -170,26 +170,22 @@ def parser(request):
 # FILE OUTPUT
 
 
-def test_file_output_str_read(xml_books, parser, from_file_expected, tmp_path):
+def test_file_output_str_read(xml_books, parser, from_file_expected, temp_file):
     df_file = read_xml(xml_books, parser=parser)
 
-    path = tmp_path / "test.xml"
-    df_file.to_xml(path, parser=parser)
-    with open(path, "rb") as f:
-        output = f.read().decode("utf-8").strip()
+    df_file.to_xml(temp_file, parser=parser)
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
     assert output == from_file_expected
 
 
-def test_file_output_bytes_read(xml_books, parser, from_file_expected, tmp_path):
+def test_file_output_bytes_read(xml_books, parser, from_file_expected, temp_file):
     df_file = read_xml(xml_books, parser=parser)
 
-    path = tmp_path / "test.xml"
-    df_file.to_xml(path, parser=parser)
-    with open(path, "rb") as f:
-        output = f.read().decode("utf-8").strip()
+    df_file.to_xml(temp_file, parser=parser)
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
@@ -218,7 +214,7 @@ def test_wrong_file_path(parser, geom_df):
 # INDEX
 
 
-def test_index_false(xml_books, parser, tmp_path):
+def test_index_false(xml_books, parser, temp_file):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -247,17 +243,15 @@ def test_index_false(xml_books, parser, tmp_path):
 
     df_file = read_xml(xml_books, parser=parser)
 
-    path = tmp_path / "test.xml"
-    df_file.to_xml(path, index=False, parser=parser)
-    with open(path, "rb") as f:
-        output = f.read().decode("utf-8").strip()
+    df_file.to_xml(temp_file, index=False, parser=parser)
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
     assert output == expected
 
 
-def test_index_false_rename_row_root(xml_books, parser, tmp_path):
+def test_index_false_rename_row_root(xml_books, parser, temp_file):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <books>
@@ -286,14 +280,14 @@ def test_index_false_rename_row_root(xml_books, parser, tmp_path):
 
     df_file = read_xml(xml_books, parser=parser)
 
-    path = tmp_path / "test.xml"
-    df_file.to_xml(path, index=False, root_name="books", row_name="book", parser=parser)
-    with open(path, "rb") as f:
-        output = f.read().decode("utf-8").strip()
+    df_file.to_xml(
+        temp_file, index=False, root_name="books", row_name="book", parser=parser
+    )
+    output = temp_file.read_text(encoding="utf-8").strip()
 
-        output = equalize_decl(output)
+    output = equalize_decl(output)
 
-        assert output == expected
+    assert output == expected
 
 
 @pytest.mark.parametrize("typ", [int, str])
@@ -862,21 +856,19 @@ def test_encoding_option_str(xml_baby_names, parser):
     assert output == encoding_expected
 
 
-def test_correct_encoding_file(xml_baby_names, tmp_path):
+def test_correct_encoding_file(xml_baby_names, temp_file):
     pytest.importorskip("lxml")
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
-    path = tmp_path / "test.xml"
-    df_file.to_xml(path, index=False, encoding="ISO-8859-1", parser="lxml")
+    df_file.to_xml(temp_file, index=False, encoding="ISO-8859-1", parser="lxml")
 
 
 @pytest.mark.parametrize("encoding", ["UTF-8", "UTF-16", "ISO-8859-1"])
-def test_wrong_encoding_option_lxml(xml_baby_names, parser, encoding, tmp_path):
+def test_wrong_encoding_option_lxml(xml_baby_names, parser, encoding, temp_file):
     pytest.importorskip("lxml")
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
-    path = tmp_path / "test.xml"
-    df_file.to_xml(path, index=False, encoding=encoding, parser=parser)
+    df_file.to_xml(temp_file, index=False, encoding=encoding, parser=parser)
 
 
 def test_misspelled_encoding(parser, geom_df):
@@ -1123,7 +1115,7 @@ def test_incorrect_xsl_eval(geom_df):
         geom_df.to_xml(stylesheet=StringIO(xsl))
 
 
-def test_incorrect_xsl_apply(geom_df, tmp_path):
+def test_incorrect_xsl_apply(geom_df, temp_file):
     lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
@@ -1139,8 +1131,7 @@ def test_incorrect_xsl_apply(geom_df, tmp_path):
 </xsl:stylesheet>"""
 
     with pytest.raises(lxml_etree.XSLTApplyError, match="Cannot resolve URI"):
-        path = tmp_path / "test.xml"
-        geom_df.to_xml(path, stylesheet=StringIO(xsl))
+        geom_df.to_xml(temp_file, stylesheet=StringIO(xsl))
 
 
 def test_stylesheet_with_etree(geom_df):

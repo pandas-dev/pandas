@@ -10,13 +10,12 @@ from __future__ import annotations
 
 from collections import abc
 from collections.abc import Callable
+import dataclasses
 from functools import partial
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    NamedTuple,
     TypeAlias,
     TypeVar,
     cast,
@@ -25,18 +24,12 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
 from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -71,7 +64,6 @@ from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
-    _transform_template,
 )
 from pandas.core.indexes.api import (
     Index,
@@ -91,6 +83,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs import Interval
     from pandas._typing import (
         ArrayLike,
         BlockManager,
@@ -102,7 +95,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Categorical
-    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -113,11 +105,16 @@ ScalarResult = TypeVar("ScalarResult")
 
 
 @set_module("pandas")
-class NamedAgg(NamedTuple):
+@dataclasses.dataclass
+class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
 
-    Subclass of typing.NamedTuple.
+    A dataclass used with :meth:`DataFrame.groupby().agg()
+    <pandas.core.groupby.DataFrameGroupBy.aggregate>` to specify an
+    aggregation on a particular column and assign a custom name to the
+    resulting column. Additional positional and keyword arguments can be
+    forwarded to the aggregation function.
 
     Parameters
     ----------
@@ -126,6 +123,8 @@ class NamedAgg(NamedTuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+    *args, **kwargs : Any
+        Optional positional and keyword arguments passed to ``aggfunc``.
 
     See Also
     --------
@@ -137,14 +136,57 @@ class NamedAgg(NamedTuple):
     >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
     >>> agg_1 = pd.NamedAgg(column=1, aggfunc=lambda x: np.mean(x))
     >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
-         result_a  result_1
+        result_a  result_1
     key
     1          -1      10.5
     2           1      12.0
+
+    >>> def n_between(ser, low, high, **kwargs):
+    ...     return ser.between(low, high, **kwargs).sum()
+
+    >>> agg_between = pd.NamedAgg("a", n_between, 0, 1)
+    >>> df.groupby("key").agg(count_between=agg_between)
+        count_between
+    key
+    1               1
+    2               1
+
+    >>> agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
+    >>> df.groupby("key").agg(count_between_kw=agg_between_kw)
+        count_between_kw
+    key
+    1                   1
+    2                   1
     """
 
     column: Hashable
     aggfunc: AggScalar
+    args: tuple[Any, ...] = ()
+    kwargs: dict[str, Any] = dataclasses.field(default_factory=dict)
+
+    def __init__(
+        self,
+        column: Hashable,
+        aggfunc: Callable[..., Any] | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        self.column = column
+        self.aggfunc = aggfunc
+        self.args = args
+        self.kwargs = kwargs
+
+    def __getitem__(self, key: int) -> Any:
+        """Provide backward-compatible tuple-style access."""
+        if key == 0:
+            return self.column
+        elif key == 1:
+            return self.aggfunc
+        elif key == 2:
+            return self.args
+        elif key == 3:
+            return self.kwargs
+        raise IndexError("index out of range")
 
 
 @set_module("pandas.api.typing")
@@ -167,56 +209,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 f"{type(self).__name__}.{name} and non-numeric dtypes."
             )
         return single
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4])
-
-    >>> s
-    0    1
-    1    2
-    2    3
-    3    4
-    dtype: int64
-
-    >>> s.groupby([1, 1, 2, 2]).min()
-    1    1
-    2    3
-    dtype: int64
-
-    >>> s.groupby([1, 1, 2, 2]).agg('min')
-    1    1
-    2    3
-    dtype: int64
-
-    >>> s.groupby([1, 1, 2, 2]).agg(['min', 'max'])
-       min  max
-    1    1    2
-    2    3    4
-
-    The output column names can be controlled by passing
-    the desired column names and aggregations as keyword arguments.
-
-    >>> s.groupby([1, 1, 2, 2]).agg(
-    ...     minimum='min',
-    ...     maximum='max',
-    ... )
-       minimum  maximum
-    1        1        2
-    2        3        4
-
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the aggregating function.
-
-    >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
-    1    1.0
-    2    3.0
-    dtype: float64
-    """
-    )
 
     def apply(self, func, *args, **kwargs) -> Series:
         """
@@ -263,15 +255,18 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
+
+        Each group passed to ``func`` has a ``name`` attribute set to the group
+        key (the value of the grouping for that group). This is useful for
+        identifying the current group, as in the examples below.
 
         Examples
         --------
@@ -288,9 +283,7 @@ class SeriesGroupBy(GroupBy[Series]):
         its argument and returns a Series.  `apply` combines the result for
         each group together into a new Series.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``.
+        The resulting dtype will reflect the return value of the passed ``func``.
 
         >>> g1.apply(lambda x: x * 2 if x.name == "a" else x / 2)
         a    0.0
@@ -328,7 +321,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         return super().apply(func, *args, **kwargs)
 
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> Series | DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -338,7 +333,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Parameters
         ----------
-        func : function, str, list, dict or None
+        func : function, str, list or None
             Function to use for aggregating the data. If a function, must either
             work when passed a Series or when passed to Series.apply.
 
@@ -362,10 +357,6 @@ class SeriesGroupBy(GroupBy[Series]):
               Each group's index will be passed to the user defined function
               and optionally available for use.
 
-            .. deprecated:: 2.1.0
-
-                Passing a dictionary is deprecated and will raise in a future version
-                of pandas. Pass a list of aggregations instead.
         *args
             Positional arguments to pass to func.
         engine : str, default None
@@ -376,10 +367,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         **kwargs
@@ -403,6 +394,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -411,10 +405,8 @@ class SeriesGroupBy(GroupBy[Series]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Examples
         --------
@@ -453,10 +445,8 @@ class SeriesGroupBy(GroupBy[Series]):
         1        1        2
         2        3        4
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the aggregating
-            function.
+        The resulting dtype will reflect the return value of the aggregating
+        function.
 
         >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
         1    1.0
@@ -618,9 +608,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
-            if not self.as_index and not_indexed_same:
-                result = self._insert_inaxis_grouper(result)
-                result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
         else:
             # GH #6265 #24880
@@ -632,52 +619,149 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
 
-    __examples_series_doc = dedent(
+    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
-    >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
-    ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
-    ...                 name="Max Speed")
-    >>> grouped = ser.groupby([1, 1, 2, 2])
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-        Falcon    0.707107
-        Falcon   -0.707107
-        Parrot    0.707107
-        Parrot   -0.707107
+        Call function producing a same-indexed Series on each group.
+
+        Returns a Series having the same indexes as the original object
+        filled with the transformed values.
+
+        Parameters
+        ----------
+        func : function, str
+            Function to apply to each group.
+            See the Notes section below for requirements.
+
+            Accepted inputs are:
+
+            - String
+            - Python function
+            - Numba JIT function with ``engine='numba'`` specified.
+
+            Only passing a single function is supported with this engine.
+            If the ``'numba'`` engine is chosen, the function must be
+            a user defined function with ``values`` and ``index`` as the
+            first and second arguments respectively in the function signature.
+            Each group's index will be passed to the user defined function
+            and optionally available for use.
+
+            If a string is chosen, then it needs to be the name
+            of the groupby method you want to use.
+        *args
+            Positional arguments to pass to func.
+        engine : str, default None
+            * ``'cython'`` : Runs the function through C-extensions from cython.
+            * ``'numba'`` : Runs the function through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'``
+              or the global setting ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}`` and will be
+              applied to the function
+
+        **kwargs
+            Keyword arguments to be passed into func.
+
+        Returns
+        -------
+        Series
+            Series with the same indexes as the original object filled
+            with transformed values.
+
+        See Also
+        --------
+        Series.groupby.apply : Apply function ``func`` group-wise and combine
+            the results together.
+        Series.groupby.aggregate : Aggregate using one or more operations.
+        Series.transform : Call ``func`` on self producing a Series with the
+            same axis shape as self.
+
+        Notes
+        -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
+        Each group is endowed the attribute 'name' in case you need to know
+        which group you are working on.
+
+        ``func`` is passed each group as a whole :class:`Series`. The current
+        implementation imposes two requirements on ``func``:
+
+        * ``func`` must return a value that either has the same shape as the input
+          group or can be broadcast to the shape of the input group.
+          For example, if ``func`` returns a scalar it will be broadcast to have
+          the same shape as the input group.
+        * ``func`` must not mutate groups. Mutation is not supported and may
+          produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
+
+        When using ``engine='numba'``, there will be no "fall back" behavior internally.
+        The group data and group index will be passed as numpy arrays to the JITed
+        user defined function, and no alternative execution attempts will be tried.
+
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
+
+        .. versionchanged:: 2.0.0
+
+            When using ``.transform`` on a grouped DataFrame and
+            the transformation function returns a DataFrame,
+            pandas now aligns the result's index with the input's index.
+            You can call ``.to_numpy()`` on the result of
+            the transformation function to avoid alignment.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series(
+        ...     [390.0, 350.0, 30.0, 20.0],
+        ...     index=["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...     name="Max Speed",
+        ... )
+        >>> grouped = ser.groupby([1, 1, 2, 2])
+        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+            Falcon    0.707107
+            Falcon   -0.707107
+            Parrot    0.707107
+            Parrot   -0.707107
+            Name: Max Speed, dtype: float64
+
+        Broadcast result of the transformation
+
+        >>> grouped.transform(lambda x: x.max() - x.min())
+        Falcon    40.0
+        Falcon    40.0
+        Parrot    10.0
+        Parrot    10.0
         Name: Max Speed, dtype: float64
 
-    Broadcast result of the transformation
+        >>> grouped.transform("mean")
+        Falcon    370.0
+        Falcon    370.0
+        Parrot     25.0
+        Parrot     25.0
+        Name: Max Speed, dtype: float64
 
-    >>> grouped.transform(lambda x: x.max() - x.min())
-    Falcon    40.0
-    Falcon    40.0
-    Parrot    10.0
-    Parrot    10.0
-    Name: Max Speed, dtype: float64
+        The resulting dtype will reflect the return value of the passed ``func``,
+        for example:
 
-    >>> grouped.transform("mean")
-    Falcon    370.0
-    Falcon    370.0
-    Parrot     25.0
-    Parrot     25.0
-    Name: Max Speed, dtype: float64
+        >>> grouped.transform(lambda x: x.astype(int).max())
+        Falcon    390
+        Falcon    390
+        Parrot     30
+        Parrot     30
+        Name: Max Speed, dtype: int64
+        """
 
-    .. versionchanged:: 1.3.0
+        if isinstance(func, list):
+            raise NotImplementedError(
+                "Passing a list to SeriesGroupBy.transform is not yet supported "
+                "and is intended to be implemented in a future release. "
+                "See https://github.com/pandas-dev/pandas/issues/58318."
+            )
 
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    Falcon    390
-    Falcon    390
-    Parrot     30
-    Parrot     30
-    Name: Max Speed, dtype: int64
-    """
-    )
-
-    @Substitution(klass="Series", example=__examples_series_doc)
-    @Appender(_transform_template)
-    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
@@ -757,7 +841,7 @@ class SeriesGroupBy(GroupBy[Series]):
         See Also
         --------
         Series.filter: Filter elements of ungrouped Series.
-        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
+        DataFrameGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -806,6 +890,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def nunique(self, dropna: bool = True) -> Series | DataFrame:
         """
         Return number of unique elements in the group.
+
+        This method counts the number of distinct values within each group,
+        optionally excluding NaN values.
 
         Parameters
         ----------
@@ -872,8 +959,57 @@ class SeriesGroupBy(GroupBy[Series]):
             result.index = default_index(len(result))
         return result
 
-    @doc(Series.describe)
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
+        """
+        Generate descriptive statistics for each group.
+
+        Within each group, summarize the central tendency, dispersion,
+        and shape of the Series's distribution, excluding ``NaN`` values.
+        The per-group statistics depend on the Series's dtype; see Notes.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : None
+            Has no effect on a Series groupby. Deprecated and will be
+            removed in a future version.
+        exclude : None
+            Has no effect on a Series groupby. Deprecated and will be
+            removed in a future version.
+
+        Returns
+        -------
+        DataFrame
+            One row per group; columns are the per-group statistics.
+
+        See Also
+        --------
+        Series.describe : Generate descriptive statistics of a Series.
+        DataFrameGroupBy.describe : Generate descriptive statistics for
+            each group of a DataFrame.
+
+        Notes
+        -----
+        For numeric Series, the per-group columns are ``count``, ``mean``,
+        ``std``, ``min``, ``max``, and the requested percentiles. By
+        default the lower percentile is ``25`` and the upper is ``75``;
+        the ``50`` percentile is the same as the median.
+
+        For object Series (e.g. strings), the per-group columns are
+        ``count``, ``unique``, ``top``, and ``freq``. The ``top`` is the
+        most common value within the group and ``freq`` is its count.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s.groupby([1, 1, 2, 2]).describe()
+           count  mean       std  min   25%  50%   75%  max
+        1    2.0   1.5  0.707107  1.0  1.25  1.5  1.75  2.0
+        2    2.0   3.5  0.707107  3.0  3.25  3.5  3.75  4.0
+        """
         return super().describe(
             percentiles=percentiles, include=include, exclude=exclude
         )
@@ -889,7 +1025,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
-        .. versionadded:: 1.4.0
+        The resulting object will be in descending order by default so that
+        the first element in each group is the most frequently-occurring
+        value. NA values are excluded from the result by default.
 
         Parameters
         ----------
@@ -980,7 +1118,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ids = self._grouper.ids
         val = self.obj._values
 
-        index_names = self._grouper.names + [self.obj.name]
+        index_names = [*self._grouper.names, self.obj.name]
 
         if isinstance(val.dtype, CategoricalDtype) or (
             bins is not None and not np.iterable(bins)
@@ -1021,7 +1159,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast(Interval, lab)
+            lab_interval = cast("Interval", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -1058,7 +1196,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 )[0]
             ]
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = self._grouper.levels + [lev]
+        levels = [*self._grouper.levels, lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -1155,6 +1293,10 @@ class SeriesGroupBy(GroupBy[Series]):
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
 
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to SeriesGroupBy.take is deprecated
+                and will be removed in a future version of pandas.
+
         Returns
         -------
         Series
@@ -1197,7 +1339,7 @@ class SeriesGroupBy(GroupBy[Series]):
            3    parrot
         2  2      lion
            1    monkey
-        Name: name, dtype: object
+        Name: name, dtype: str
 
         We may take elements using negative integers for positive indices,
         starting from the end of the object, just like with Python lists.
@@ -1207,8 +1349,15 @@ class SeriesGroupBy(GroupBy[Series]):
            4    falcon
         2  0    rabbit
            1    monkey
-        Name: name, dtype: object
+        Name: name, dtype: str
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to SeriesGroupBy.take is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
 
@@ -1233,6 +1382,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to SeriesGroupBy.skew is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -1276,6 +1429,13 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to SeriesGroupBy.skew is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._cython_agg_general(
             "skew", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
@@ -1289,6 +1449,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis measures the tailedness of a distribution. This method
+        computes Fisher's definition of kurtosis (normal distribution has
+        a kurtosis of zero) for each group, using the unbiased estimator.
 
         Parameters
         ----------
@@ -1360,15 +1524,92 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     @property
-    @doc(Series.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of groups from a Series.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        Series.plot : Make plots of Series.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "b", "b", "c"])
+        >>> g = ser.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
+        """
         result = GroupByPlot(self)
         return result
 
-    @doc(Series.nlargest.__doc__)
     def nlargest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
+        """
+        Return the largest `n` elements.
+
+        Within each group, returns the `n` largest values sorted in
+        descending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many descending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` largest values in the Series, sorted in decreasing order.
+
+        See Also
+        --------
+        Series.nsmallest: Get the `n` smallest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values(ascending=False).head(n)`` for small `n`
+        relative to the size of the ``Series`` object.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6])
+
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
+        >>> s.groupby([1, 1, 1, 2, 2, 2]).nlargest(n=2)
+        1  2    3
+           1    2
+        2  5    6
+           4    5
+        dtype: int64
+        """
         f = partial(Series.nlargest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -1376,10 +1617,67 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._python_apply_general(f, data, not_indexed_same=True)
         return result
 
-    @doc(Series.nsmallest.__doc__)
     def nsmallest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
+        """
+        Return the smallest `n` elements.
+
+        Within each group, returns the `n` smallest values sorted in
+        ascending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many ascending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` smallest values in the Series, sorted in increasing order.
+
+        See Also
+        --------
+        Series.nlargest: Get the `n` largest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values().head(n)`` for small `n` relative to
+        the size of the ``Series`` object.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6])
+
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
+        >>> s.groupby([1, 1, 1, 2, 2, 2]).nsmallest(n=2)
+        1  0    1
+           1    2
+        2  3    4
+           4    5
+        dtype: int64
+        """
         f = partial(Series.nsmallest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -1444,7 +1742,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1505,26 +1803,87 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 
-    @doc(Series.corr.__doc__)
     def corr(
         self,
         other: Series,
         method: CorrelationMethod = "pearson",
         min_periods: int | None = None,
     ) -> Series:
+        """
+        Compute correlation between each group and another Series.
+
+        This method computes the pairwise correlation between each group's
+        values and the corresponding values in ``other``, using the specified
+        correlation method.
+
+        Parameters
+        ----------
+        other : Series
+            Series to compute correlation with.
+        method : {'pearson', 'kendall', 'spearman'}, default 'pearson'
+            Method of correlation to use.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns to
+            have a valid result.
+
+        Returns
+        -------
+        Series
+            Correlation value for each group.
+
+        See Also
+        --------
+        Series.corr : Equivalent method on ``Series``.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
+        >>> g = s.groupby([0, 0, 1, 1])
+        >>> g.corr()  # doctest: +SKIP
+        """
         result = self._op_via_apply(
             "corr", other=other, method=method, min_periods=min_periods
         )
         return result
 
-    @doc(Series.cov.__doc__)
     def cov(
         self, other: Series, min_periods: int | None = None, ddof: int | None = 1
     ) -> Series:
+        """
+        Compute covariance between each group and another Series.
+
+        This method computes the sample covariance between each group's
+        values and the corresponding values in ``other``.
+
+        Parameters
+        ----------
+        other : Series
+            Series to compute covariance with.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns to
+            have a valid result.
+        ddof : int, optional
+            Delta degrees of freedom for variance calculation.
+
+        Returns
+        -------
+        Series
+            Covariance value for each group.
+
+        See Also
+        --------
+        Series.cov : Equivalent method on ``Series``.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
+        >>> g = s.groupby([0, 0, 1, 1])
+        >>> g.cov()  # doctest: +SKIP
+        """
         result = self._op_via_apply(
             "cov", other=other, min_periods=min_periods, ddof=ddof
         )
@@ -1534,6 +1893,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def is_monotonic_increasing(self) -> Series:
         """
         Return whether each group's values are monotonically increasing.
+
+        A group is considered monotonically increasing if each successive
+        element is greater than or equal to the previous one.
 
         Returns
         -------
@@ -1559,6 +1921,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return whether each group's values are monotonically decreasing.
 
+        A group is considered monotonically decreasing if each successive
+        element is less than or equal to the previous one.
+
         Returns
         -------
         Series
@@ -1578,7 +1943,6 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
-    @doc(Series.hist.__doc__)
     def hist(
         self,
         by=None,
@@ -1594,6 +1958,55 @@ class SeriesGroupBy(GroupBy[Series]):
         legend: bool = False,
         **kwargs,
     ):
+        """
+        Draw histogram for each group's values using :meth:`Series.hist` API.
+
+        A separate histogram subplot is generated for each group, making it
+        easy to visually compare the distribution of values across groups.
+
+        Parameters
+        ----------
+        by : object, optional
+            Grouping key.
+        ax : matplotlib.axes.Axes, optional
+            Axis to draw the histogram on.
+        grid : bool, default True
+            Show axis grid lines.
+        xlabelsize : int, default None
+            X axis label size.
+        xrot : float, default None
+            Rotation for x ticks.
+        ylabelsize : int, default None
+            Y axis label size.
+        yrot : float, default None
+            Rotation for y ticks.
+        figsize : tuple, optional
+            Figure size in inches.
+        bins : int or sequence, default 10
+            Number of histogram bins or bin edges.
+        backend : str or callable or None, optional
+            Plotting backend to use (e.g. 'matplotlib'). If None, use the default
+            plotting backend.
+        legend : bool, default False
+            Whether to draw the legend.
+        **kwargs
+            Additional keyword arguments passed to :meth:`Series.hist`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes or ndarray of Axes
+            The returned matplotlib axes or array of axes depending on input.
+
+        See Also
+        --------
+        Series.hist : Equivalent histogram plotting method on Series.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"val": [1, 2, 2, 3, 3, 3]}, index=[0, 0, 1, 1, 2, 2])
+        >>> g = df["val"].groupby([0, 0, 1, 1, 2, 2])
+        >>> g.hist()  # doctest: +SKIP
+        """
         result = self._op_via_apply(
             "hist",
             by=by,
@@ -1612,8 +2025,17 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @property
-    @doc(Series.dtype.__doc__)
     def dtype(self) -> Series:
+        """
+        Return the dtype object of the underlying data for each group.
+
+        Mirrors :meth:`Series.dtype` applied group-wise.
+
+        Returns
+        -------
+        Series
+            Dtype of each group's values.
+        """
         return self.apply(lambda ser: ser.dtype)
 
     def unique(self) -> Series:
@@ -1666,97 +2088,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> data = {"A": [1, 1, 2, 2],
-    ...         "B": [1, 2, 3, 4],
-    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860]}
-    >>> df = pd.DataFrame(data)
-    >>> df
-       A  B         C
-    0  1  1  0.362838
-    1  1  2  0.227877
-    2  2  3  1.267767
-    3  2  4 -0.562860
-
-    The aggregation is for each column.
-
-    >>> df.groupby('A').agg('min')
-       B         C
-    A
-    1  1  0.227877
-    2  3 -0.562860
-
-    Multiple aggregations
-
-    >>> df.groupby('A').agg(['min', 'max'])
-        B             C
-      min max       min       max
-    A
-    1   1   2  0.227877  0.362838
-    2   3   4 -0.562860  1.267767
-
-    Select a column for aggregation
-
-    >>> df.groupby('A').B.agg(['min', 'max'])
-       min  max
-    A
-    1    1    2
-    2    3    4
-
-    User-defined function for aggregation
-
-    >>> df.groupby('A').agg(lambda x: sum(x) + 2)
-        B	       C
-    A
-    1	5	2.590715
-    2	9	2.704907
-
-    Different aggregations per column
-
-    >>> df.groupby('A').agg({'B': ['min', 'max'], 'C': 'sum'})
-        B             C
-      min max       sum
-    A
-    1   1   2  0.590715
-    2   3   4  0.704907
-
-    To control the output names with different aggregations per column,
-    pandas supports "named aggregation"
-
-    >>> df.groupby("A").agg(
-    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum")
-    ... )
-       b_min     c_sum
-    A
-    1      1  0.590715
-    2      3  0.704907
-
-    - The keywords are the *output* column names
-    - The values are tuples whose first element is the column to select
-      and the second element is the aggregation to apply to that column.
-      Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields
-      ``['column', 'aggfunc']`` to make it clearer what the arguments are.
-      As usual, the aggregation can be a callable or a string alias.
-
-    See :ref:`groupby.aggregate.named` for more.
-
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the aggregating function.
-
-    >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
-          B
-    A
-    1   1.0
-    2   3.0
-    """
-    )
-
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -1802,10 +2136,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         **kwargs
@@ -1829,6 +2163,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -1837,10 +2174,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Examples
         --------
@@ -1920,10 +2255,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See :ref:`groupby.aggregate.named` for more.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the aggregating
-            function.
+        The resulting dtype will reflect the return value of the aggregating
+        function.
 
         >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
               B
@@ -1947,13 +2280,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if not self.as_index and is_list_like(func):
                 return result.reset_index()
             else:
-                return result
+                return cast("DataFrame", result)
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             result = result.iloc[:, order]
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
@@ -1972,85 +2305,34 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
                 )
-            # grouper specific aggregations
-            if self._grouper.nkeys > 1:
-                # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
-                return self._python_agg_general(func, *args, **kwargs)
-            elif args or kwargs:
-                # test_pass_args_kwargs gets here (with and without as_index)
-                # can't return early
-                result = self._aggregate_frame(func, *args, **kwargs)
-
-            else:
-                # try to treat as if we are passing a list
-                gba = GroupByApply(self, [func], args=(), kwargs={})
-                try:
-                    result = gba.agg()
-
-                except ValueError as err:
-                    if "No objects to concatenate" not in str(err):
-                        raise
-                    # _aggregate_frame can fail with e.g. func=Series.mode,
-                    # where it expects 1D values but would be getting 2D values
-                    # In other tests, using aggregate_frame instead of GroupByApply
-                    #  would give correct values but incorrect dtypes
-                    #  object vs float64 in test_cython_agg_empty_buckets
-                    #  float64 vs int64 in test_category_order_apply
-                    result = self._aggregate_frame(func)
-
-                else:
-                    # GH#32040, GH#35246
-                    # e.g. test_groupby_as_index_select_column_sum_empty_df
-                    result = cast(DataFrame, result)
-                    result.columns = self._obj_with_exclusions.columns.copy()
+            result = self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
-        return result
+        return cast("DataFrame", result)
 
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
         obj = self._obj_with_exclusions
 
-        if not len(obj.columns):
-            # e.g. test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
-
-        output: dict[int, ArrayLike] = {}
-        for idx, (name, ser) in enumerate(obj.items()):
-            result = self._grouper.agg_series(ser, f)
-            output[idx] = result
-
-        res = self.obj._constructor(output)
-        res.columns = obj.columns.copy(deep=False)
+        if self.ngroups == 0 or len(obj.columns) == 0:
+            res_index = self._grouper.result_index
+            res = self.obj._constructor(index=res_index, columns=obj.columns).astype(
+                obj.dtypes
+            )
+        else:
+            output: dict[int, ArrayLike] = {
+                idx: self._grouper.agg_series(ser, f)
+                for idx, (name, ser) in enumerate(obj.items())
+            }
+            res = self.obj._constructor(output)
+            res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
-
-    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
-        if self._grouper.nkeys != 1:
-            raise AssertionError("Number of keys must be 1")
-
-        obj = self._obj_with_exclusions
-
-        result: dict[Hashable, NDFrame | np.ndarray] = {}
-        for name, grp_df in self._grouper.get_iterator(obj):
-            fres = func(grp_df, *args, **kwargs)
-            result[name] = fres
-
-        result_index = self._grouper.result_index
-        out = self.obj._constructor(result, index=obj.columns, columns=result_index)
-        out = out.T
-
-        return out
 
     def _wrap_applied_output(
         self,
@@ -2063,7 +2345,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
-            elif not self.group_keys:
+            elif not self.group_keys or not self.as_index:
                 res_index = None
             else:
                 res_index = self._grouper.result_index
@@ -2244,65 +2526,339 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
-    __examples_dataframe_doc = dedent(
+    def transform(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         """
-    >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-    ...                           'foo', 'bar'],
-    ...                    'B' : ['one', 'one', 'two', 'three',
-    ...                           'two', 'two'],
-    ...                    'C' : [1, 5, 5, 2, 5, 5],
-    ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
-    >>> grouped = df.groupby('A')[['C', 'D']]
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-            C         D
-    0 -1.154701 -0.577350
-    1  0.577350  0.000000
-    2  0.577350  1.154701
-    3 -1.154701 -1.000000
-    4  0.577350 -0.577350
-    5  0.577350  1.000000
+        Call function producing a same-indexed DataFrame on each group.
 
-    Broadcast result of the transformation
+        Returns a DataFrame having the same indexes as the original object
+        filled with the transformed values.
 
-    >>> grouped.transform(lambda x: x.max() - x.min())
-        C    D
-    0  4.0  6.0
-    1  3.0  8.0
-    2  4.0  6.0
-    3  3.0  8.0
-    4  4.0  6.0
-    5  3.0  8.0
+        When ``func`` is a user-defined function, by default it operates on each
+        column of each group separately (each column is passed as a
+        :class:`Series`); see the Notes section below.
 
-    >>> grouped.transform("mean")
-        C    D
-    0  3.666667  4.0
-    1  4.000000  5.0
-    2  3.666667  4.0
-    3  4.000000  5.0
-    4  3.666667  4.0
-    5  4.000000  5.0
+        Parameters
+        ----------
+        func : function, str, list, or dict
+            Function to apply to each group.
+            See the Notes section below for requirements.
 
-    .. versionchanged:: 1.3.0
+            Accepted inputs are:
 
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
+            - String
+            - Python function
+            - Numba JIT function with ``engine='numba'`` specified.
+            - List of strings/functions: applied to every non-key column,
+              returning a MultiIndex-column DataFrame ``(column, func)``.
+            - Dict ``{column: func}`` or ``{name: NamedFunc(column, func)}``:
+              applied per-column as specified.
 
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    C  D
-    0  5  8
-    1  5  9
-    2  5  8
-    3  5  9
-    4  5  8
-    5  5  9
-    """
-    )
+            .. versionchanged:: 3.1.0
+                    Added support for list-like, dict, and :class:`NamedFunc` arguments.
 
-    @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
-    @Appender(_transform_template)
-    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-        return self._transform(
-            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            Only passing a single function is supported with the numba engine.
+            If the ``'numba'`` engine is chosen, the function must be
+            a user defined function with ``values`` and ``index`` as the
+            first and second arguments respectively in the function signature.
+            Each group's index will be passed to the user defined function
+            and optionally available for use.
+
+            If a string is chosen, then it needs to be the name
+            of the groupby method you want to use.
+
+        *args
+            Positional arguments to pass to func.
+        engine : str, default None
+            * ``'cython'`` : Runs the function through C-extensions from cython.
+            * ``'numba'`` : Runs the function through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'``
+              or the global setting ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}`` and will be
+              applied to the function
+
+        **kwargs
+            Keyword arguments to be passed into func.
+            When ``func=None``, ``**kwargs`` should be pairs of
+            ``output_name=NamedFunc(column, func)``.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame with the same indexes as the original object filled
+            with transformed values.
+
+        See Also
+        --------
+        DataFrame.groupby.apply : Apply function ``func`` group-wise and combine
+            the results together.
+        DataFrame.groupby.aggregate : Aggregate using one or more operations.
+        DataFrame.transform : Call ``func`` on self producing a DataFrame with the
+            same axis shape as self.
+
+        Notes
+        -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
+        Each group is endowed the attribute 'name' in case you need to know
+        which group you are working on.
+
+        The current implementation imposes three requirements on ``func``:
+
+        * ``func`` must return a value that either has the same shape as the input
+          subframe or can be broadcast to the shape of the input subframe.
+          For example, if ``func`` returns a scalar it will be broadcast to have
+          the same shape as the input subframe.
+        * ``func`` is applied to each column of the group separately (each column
+          is passed as a :class:`Series`). If ``func`` also supports application to
+          the entire group :class:`DataFrame` and returns the same result, a faster
+          path operating on the whole group is used starting from the second group.
+        * ``func`` must not mutate groups. Mutation is not supported and may
+          produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
+
+        When using ``engine='numba'``, there will be no "fall back" behavior internally.
+        The group data and group index will be passed as numpy arrays to the JITed
+        user defined function, and no alternative execution attempts will be tried.
+
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
+
+        .. versionchanged:: 2.0.0
+
+            When using ``.transform`` on a grouped DataFrame
+            and the transformation function returns a DataFrame,
+            pandas now aligns the result's index with the input's index.
+            You can call ``.to_numpy()`` on the result of the
+            transformation function to avoid alignment.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": ["foo", "bar", "foo", "bar", "foo", "bar"],
+        ...         "B": ["one", "one", "two", "three", "two", "two"],
+        ...         "C": [1, 5, 5, 2, 5, 5],
+        ...         "D": [2.0, 5.0, 8.0, 1.0, 2.0, 9.0],
+        ...     }
+        ... )
+        >>> grouped = df.groupby("A")[["C", "D"]]
+        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+                  C         D
+        0 -1.154701 -0.577350
+        1  0.577350  0.000000
+        2  0.577350  1.154701
+        3 -1.154701 -1.000000
+        4  0.577350 -0.577350
+        5  0.577350  1.000000
+
+        Broadcast result of the transformation
+
+        >>> grouped.transform(lambda x: x.max() - x.min())
+             C    D
+        0  4.0  6.0
+        1  3.0  8.0
+        2  4.0  6.0
+        3  3.0  8.0
+        4  4.0  6.0
+        5  3.0  8.0
+
+        >>> grouped.transform("mean")
+                  C    D
+        0  3.666667  4.0
+        1  4.000000  5.0
+        2  3.666667  4.0
+        3  4.000000  5.0
+        4  3.666667  4.0
+        5  4.000000  5.0
+
+        The resulting dtype will reflect the return value of the passed ``func``,
+        for example:
+
+        >>> grouped.transform(lambda x: x.astype(int).max())
+           C  D
+        0  5  8
+        1  5  9
+        2  5  8
+        3  5  9
+        4  5  8
+        5  5  9
+
+        List-like arguments
+
+        >>> df2 = pd.DataFrame({"col": list("aab"), "val": range(3), "other": range(3)})
+        >>> df2.groupby("col").transform(["sum", "min"])
+           val       other
+           sum min   sum min
+        0    1   0     1   0
+        1    1   0     1   0
+        2    2   2     2   2
+
+        Dictionary arguments
+
+        >>> df2.groupby("col").transform({"val": "sum", "other": "min"})
+           val  other
+        0    1      0
+        1    1      0
+        2    2      2
+
+        Named aggregation
+
+        >>> df2.groupby("col").transform(
+        ...     val_sum=pd.NamedAgg(column="val", aggfunc="sum"),
+        ...     other_min=pd.NamedAgg(column="other", aggfunc="min"),
+        ... )
+           val_sum  other_min
+        0        1          0
+        1        1          0
+        2        2          2
+        """
+        # GH#58318 - extended to accept list, dict, and NamedAgg kwargs.
+
+        if func is None:
+            # Named-aggregation style:
+            #   .transform(val_sum=NamedAgg(column="val", aggfunc="sum"), ...)
+            return self._transform_multiple_funcs(
+                kwargs, *args, engine=engine, engine_kwargs=engine_kwargs
+            )
+        elif is_dict_like(func):
+            # e.g. .transform({"val": "sum"}) or {"name": NamedAgg(...)}
+            # Dict-of-lists is not yet supported.
+            for val in func.values():
+                if is_list_like(val):
+                    raise NotImplementedError(
+                        "Passing a dict of lists to DataFrameGroupBy.transform is "
+                        "not yet supported and is intended to be implemented in a "
+                        "future release. "
+                        "See https://github.com/pandas-dev/pandas/issues/58318"
+                    )
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        elif is_list_like(func):
+            # e.g. .transform(["sum", "min"])
+            func = maybe_mangle_lambdas(func)
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        else:
+            return self._transform(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+
+    def _transform_multiple_funcs(
+        self,
+        func: list | dict,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> DataFrame:
+        """
+        Handle list-like and dict dispatch for DataFrameGroupBy.transform.
+
+        Parameters
+        ----------
+        func : list or dict
+            - list of str/callable: applied to every non-key column, producing
+              a MultiIndex-column DataFrame (column, func_name).
+            - dict mapping output_name -> str/callable or NamedAgg.
+        """
+        from pandas.core.reshape.concat import concat
+
+        if is_dict_like(func):
+            # Also includes NamedAgg / NamedFunc
+            func = cast("dict", func)
+            results: list[Series] = []
+            for name, agg in func.items():
+                if isinstance(agg, NamedAgg):
+                    column_name = agg.column
+                    agg_func = agg.aggfunc
+                elif isinstance(agg, tuple) and len(agg) == 2:
+                    # plain tuple (column, func) — same semantics as NamedAgg
+                    column_name = agg[0]
+                    agg_func = agg[1]
+                else:
+                    # plain {"col": "sum"} — column IS the key
+                    column_name = name
+                    agg_func = agg
+                result = self._transform_single_column(
+                    column_name,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                result.name = name
+                results.append(result)
+            return concat(results, axis=1)
+
+        # list path
+        # Apply every func to every non-key column.
+        assert is_list_like(func)
+        results_list: list[Series] = []
+        col_order: list[tuple] = []
+        for column in self._obj_with_exclusions.columns:
+            for agg_func in func:
+                col_result = self._transform_single_column(
+                    column,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                col_result.name = (column, agg_func)
+                results_list.append(col_result)
+                col_order.append((column, agg_func))
+
+        # Use ignore_index=True then assign MultiIndex — avoids redundant work.
+        output = concat(results_list, ignore_index=True, axis=1)
+        arrays = [list(x) for x in zip(*col_order, strict=False)]
+        output.columns = MultiIndex.from_arrays(arrays)
+        return output
+
+    def _transform_single_column(
+        self,
+        column_name: Hashable,
+        agg_func: Callable | str,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> Series:
+        """
+        Apply a single transform function to one column via SeriesGroupBy.
+
+        Parameters
+        ----------
+        column_name : Hashable
+            Column label to select from the grouped DataFrame.
+        agg_func : callable or str
+            Transform function to apply to the selected column.
+        *args
+            Positional arguments to pass to ``agg_func``.
+        engine : str, default None
+            Passed through to ``SeriesGroupBy.transform``.
+        engine_kwargs : dict, default None
+            Passed through to ``SeriesGroupBy.transform``.
+        **kwargs
+            Keyword arguments to pass to ``agg_func``.
+
+        Returns
+        -------
+        Series
+            Transformed Series with the same index as the original DataFrame.
+        """
+        data = self._gotitem(column_name, ndim=1)
+        return data.transform(
+            agg_func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
 
     def _define_paths(self, func, *args, **kwargs):
@@ -2381,7 +2937,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         DataFrame.filter: Filter elements of ungrouped DataFrame.
-        SeriesGroupBy.filter : Filter elements from groups base on criterion.
+        SeriesGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -2541,6 +3097,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return DataFrame with counts of unique elements in each position.
 
+        This method counts the number of distinct values for each column
+        within each group, optionally excluding NaN values.
+
         Parameters
         ----------
         dropna : bool, default True
@@ -2599,14 +3158,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of maximum in each group.
 
+        For each group and each column, identifies the row label where the
+        maximum value first occurs. NA values are excluded by default.
+
         Parameters
         ----------
         skipna : bool, default True
             Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2649,19 +3209,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... )
 
         >>> df
-                        consumption  co2_emissions
-        Pork                  10.51         37.20
-        Wheat Products       103.11         19.66
-        Beef                  55.48       1712.00
+                        consumption  co2_emissions food_type
+        Pork                  10.51         37.20       meat
+        Wheat Products       103.11         19.66      plant
+        Beef                  55.48       1712.00       meat
 
         By default, it returns the index for the maximum value in each column
         according to the group.
 
         >>> df.groupby("food_type").idxmax()
-                        consumption   co2_emissions
+                      consumption   co2_emissions
         food_type
-        animal                 Beef            Beef
-        plant        Wheat Products  Wheat Products
+        meat                 Beef            Beef
+        plant      Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmax", numeric_only=numeric_only, skipna=skipna)
 
@@ -2673,14 +3233,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of minimum in each group.
 
+        For each group and each column, identifies the row label where the
+        minimum value first occurs. NA values are excluded by default.
+
         Parameters
         ----------
         skipna : bool, default True
             Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2723,23 +3284,100 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... )
 
         >>> df
-                        consumption  co2_emissions
-        Pork                  10.51         37.20
-        Wheat Products       103.11         19.66
-        Beef                  55.48       1712.00
+                        consumption  co2_emissions food_type
+        Pork                  10.51         37.20       meat
+        Wheat Products       103.11         19.66      plant
+        Beef                  55.48       1712.00       meat
 
         By default, it returns the index for the minimum value in each column
         according to the group.
 
         >>> df.groupby("food_type").idxmin()
-                        consumption   co2_emissions
+                      consumption   co2_emissions
         food_type
-        animal                 Pork            Pork
-        plant        Wheat Products  Wheat Products
+        meat                 Pork            Pork
+        plant      Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmin", numeric_only=numeric_only, skipna=skipna)
 
     boxplot = boxplot_frame_groupby
+
+    def describe(
+        self,
+        percentiles=None,
+        include=None,
+        exclude=None,
+    ) -> DataFrame:
+        """
+        Generate descriptive statistics for each group.
+
+        Within each group, summarize the central tendency, dispersion,
+        and shape of each analyzed column's distribution, excluding
+        ``NaN`` values. By default only numeric columns are analyzed;
+        pass ``include`` to also analyze non-numeric columns (or
+        ``exclude`` to omit columns by dtype).
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            Which column dtypes to include. Options:
+
+            - ``'all'`` : Include all columns, including non-numeric ones.
+            - list-like of dtypes : Limit the result to columns of the
+              given dtypes, in the style of
+              :meth:`DataFrame.select_dtypes` (e.g. ``include=[np.number]``
+              or ``include=["category"]``).
+            - ``None`` (default) : Include only numeric columns, falling
+              back to object and categorical columns if there are no
+              numeric columns.
+        exclude : list-like of dtypes or None (default), optional
+            Column dtypes to omit from the result, in the style of
+            :meth:`DataFrame.select_dtypes`. ``None`` (default) excludes
+            nothing.
+
+        Returns
+        -------
+        DataFrame
+            One row per group. The columns form a MultiIndex whose
+            outer level is the analyzed column and whose inner level is
+            the statistic name.
+
+        See Also
+        --------
+        DataFrame.describe : Generate descriptive statistics of a DataFrame.
+        SeriesGroupBy.describe : Generate descriptive statistics for each
+            group of a Series.
+        DataFrame.select_dtypes : Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
+        Notes
+        -----
+        For numeric columns, the per-group statistics are ``count``,
+        ``mean``, ``std``, ``min``, ``max``, and the requested
+        percentiles. By default the lower percentile is ``25`` and the
+        upper is ``75``; the ``50`` percentile is the same as the median.
+
+        For object columns, the per-group statistics are ``count``,
+        ``unique``, ``top``, and ``freq``. The ``top`` is the most common
+        value within the group and ``freq`` is its count.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"group": ["a", "a", "b", "b"], "value": [1, 2, 3, 4]})
+        >>> df.groupby("group").describe()
+              value
+              count mean       std  min   25%  50%   75%  max
+        group
+        a       2.0  1.5  0.707107  1.0  1.25  1.5  1.75  2.0
+        b       2.0  3.5  0.707107  3.0  3.25  3.5  3.75  4.0
+        """
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
 
     def value_counts(
         self,
@@ -2752,7 +3390,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
-        .. versionadded:: 1.4.0
+        The resulting object will be in descending order so that the
+        first element in each group is the most frequently-occurring row.
 
         Parameters
         ----------
@@ -2761,8 +3400,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. When False, non-grouping columns will appear
-            in the order they occur in within groups.
+            Stable sort by frequencies when True. When False, non-grouping
+            columns will appear in the order they occur in within groups.
 
             .. versionchanged:: 3.0.0
 
@@ -2887,10 +3526,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
 
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to DataFrameGroupBy.take is deprecated
+                and will be removed in a future version of pandas.
+
         Returns
         -------
         DataFrame
-            An DataFrame containing the elements taken from each group.
+            A DataFrame containing the elements taken from each group.
 
         See Also
         --------
@@ -2954,6 +3597,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 0  rabbit  mammal       15.0
           1  monkey  mammal        NaN
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to DataFrameGroupBy.take is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
 
@@ -2978,6 +3628,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to DataFrameGroupBy.skew is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -3021,6 +3675,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to DataFrameGroupBy.skew is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         def alt(obj):
             # This should not be reached since the cython path should raise
@@ -3039,6 +3700,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0),
+        normalized by N-1. Values are computed for each numeric column
+        within each group.
 
         Parameters
         ----------
@@ -3137,30 +3802,219 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     @property
-    @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of groups from a DataFrame.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=["a", "a", "b", "b"]
+        ... )
+        >>> g = df.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
+        """
         result = GroupByPlot(self)
         return result
 
-    @doc(DataFrame.corr.__doc__)
     def corr(
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise correlation of columns, excluding NA/null values.
+
+        Computes a correlation matrix for each group, measuring the linear
+        or rank-based relationship between columns.
+
+        Parameters
+        ----------
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        DataFrame
+            Correlation matrix.
+
+        See Also
+        --------
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
+
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently computed using
+        pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "age": [2, 3, 4, 6, 6, 1, 2, 1],
+        ...         "weight": [2.1, 3.2, 4.1, 6.5, 3.3, 2.1, 4.1, 1.9],
+        ...         "pet": ["dog", "cat", "dog", "cat", "dog", "cat", "dog", "cat"],
+        ...     }
+        ... )
+        >>> df
+           age  weight  pet
+        0    2     2.1  dog
+        1    3     3.2  cat
+        2    4     4.1  dog
+        3    6     6.5  cat
+        4    6     3.3  dog
+        5    1     2.1  cat
+        6    2     4.1  dog
+        7    1     1.9  cat
+        >>> df.groupby("pet").corr()
+                         age    weight
+        pet
+        cat age     1.000000  0.989321
+            weight  0.989321  1.000000
+        dog age     1.000000  0.184177
+            weight  0.184177  1.000000
+        """
         result = self._op_via_apply(
             "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
         )
         return result
 
-    @doc(DataFrame.cov.__doc__)
     def cov(
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise covariance of columns, excluding NA/null values.
+
+        Compute the pairwise covariance among the series of a DataFrame.
+        The returned data frame is the `covariance matrix
+        <https://en.wikipedia.org/wiki/Covariance_matrix>`__ of the columns
+        of the DataFrame.
+
+        Both NA and null values are automatically excluded from the
+        calculation. (See the note below about bias from missing values.)
+        A threshold can be set for the minimum number of
+        observations for each value created. Comparisons with observations
+        below this threshold will be returned as ``NaN``.
+
+        This method is generally used for the analysis of time series data to
+        understand the relationship between different measures
+        across time.
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
+
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+            This argument is applicable only when no ``nan`` is in the dataframe.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        DataFrame
+            The covariance matrix of the series of the DataFrame.
+
+        See Also
+        --------
+        Series.cov : Compute covariance with another Series.
+        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
+            covariance.
+        core.window.expanding.Expanding.cov : Expanding sample covariance.
+        core.window.rolling.Rolling.cov : Rolling sample covariance.
+
+        Notes
+        -----
+        Returns the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-ddof.
+
+        For DataFrames that have Series that are missing data (assuming that
+        data is `missing at random
+        <https://en.wikipedia.org/wiki/Missing_data#Missing_at_random>`__)
+        the returned covariance matrix will be an unbiased estimate
+        of the variance and covariance between the member Series.
+
+        However, for many applications this estimate may not be acceptable
+        because the estimate covariance matrix is not guaranteed to be positive
+        semi-definite. This could lead to estimate correlations having
+        absolute values which are greater than one, and/or a non-invertible
+        covariance matrix. See `Estimation of covariance matrices
+        <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
+        matrices>`__ for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "age": [2, 3, 4, 6, 6, 1, 2, 1],
+        ...         "weight": [2.1, 3.2, 4.1, 6.5, 3.3, 2.1, 4.1, 1.9],
+        ...         "pet": ["dog", "cat", "dog", "cat", "dog", "cat", "dog", "cat"],
+        ...     }
+        ... )
+        >>> df
+           age  weight  pet
+        0    2     2.1  dog
+        1    3     3.2  cat
+        2    4     4.1  dog
+        3    6     6.5  cat
+        4    6     3.3  dog
+        5    1     2.1  cat
+        6    2     4.1  dog
+        7    1     1.9  cat
+        >>> df.groupby("pet").cov()
+                         age    weight
+        pet
+        cat age     5.583333  4.975000
+            weight  4.975000  4.529167
+        dog age     3.666667  0.333333
+            weight  0.333333  0.893333
+        """
         result = self._op_via_apply(
             "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
         )
@@ -3186,13 +4040,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs,
     ):
         """
-        Make a histogram of the DataFrame's columns.
+        Draw histogram of the DataFrame's columns for each group.
 
-        A `histogram`_ is a representation of the distribution of data.
-        This function calls :meth:`matplotlib.pyplot.hist`, on each series in
-        the DataFrame, resulting in one histogram per column.
-
-        .. _histogram: https://en.wikipedia.org/wiki/Histogram
+        A separate histogram subplot is generated for each group, making it
+        easier to visually compare the distribution of each numeric column
+        across groups. Internally this calls :meth:`DataFrame.hist` on every
+        group's frame, so the same matplotlib options are accepted.
 
         Parameters
         ----------
@@ -3255,23 +4108,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See Also
         --------
+        DataFrame.hist : Equivalent histogram plotting method on DataFrame.
         matplotlib.pyplot.hist : Plot a histogram using matplotlib.
 
         Examples
         --------
-        This example draws a histogram based on the length and width of
-        some animals, displayed in three bins
+        For each animal category, draw a histogram of the numeric columns.
+        The grouping column is used to split the data; one set of histogram
+        subplots is produced per group.
 
         .. plot::
             :context: close-figs
 
-            >>> data = {
-            ...     "length": [1.5, 0.5, 1.2, 0.9, 3],
-            ...     "width": [0.7, 0.2, 0.15, 0.2, 1.1],
-            ... }
-            >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
-            >>> df = pd.DataFrame(data, index=index)
-            >>> hist = df.groupby("length").hist(bins=3)
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "animal": ["cat", "cat", "dog", "dog", "dog"],
+            ...         "length": [1.0, 1.2, 1.5, 1.7, 2.0],
+            ...         "weight": [4.5, 5.0, 10.0, 12.5, 15.0],
+            ...     }
+            ... )
+            >>> hist = df.groupby("animal").hist(bins=3)
         """
         result = self._op_via_apply(
             "hist",
@@ -3328,8 +4184,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.

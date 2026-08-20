@@ -13,6 +13,23 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize(
+    "method,cond",
+    [
+        ("where", [True, False, True]),
+        ("mask", [False, True, False]),
+    ],
+)
+def test_where_mask_bytes_dtype_with_na(method, cond):
+    # GH#52373
+    ser = Series([b"a", b"b", b"c"], dtype="S1")
+
+    result = getattr(ser, method)(cond)
+
+    expected = Series([b"a", np.nan, b"c"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_unsafe_int(any_signed_int_numpy_dtype):
     s = Series(np.arange(10), dtype=any_signed_int_numpy_dtype)
     mask = s < 5
@@ -233,9 +250,8 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
-    msg = (
-        lambda x: f"cannot set using a {x} indexer with a "
-        "different length than the value"
+    msg = lambda x: (
+        f"cannot set using a {x} indexer with a different length than the value"
     )
     # slice
     s = Series(list("abc"), dtype=object)
@@ -326,12 +342,14 @@ def test_where_inplace():
 
     rs = s.copy()
 
-    rs.where(cond, inplace=True)
+    result = rs.where(cond, inplace=True)
+    assert result is rs
     tm.assert_series_equal(rs.dropna(), s[cond])
     tm.assert_series_equal(rs, s.where(cond))
 
     rs = s.copy()
-    rs.where(cond, -s, inplace=True)
+    result = rs.where(cond, -s, inplace=True)
+    assert result is rs
     tm.assert_series_equal(rs, s.where(cond, -s))
 
 
@@ -415,6 +433,19 @@ def test_where_categorical(frame_or_series):
     df = frame_or_series(["A", "A", "B", "B", "C"], dtype="category")
     res = df.where(df != "C")
     tm.assert_equal(exp, res)
+
+
+def test_where_tuple_scalar_object_dtype():
+    # GH#37681 - np.where unpacks tuples; ensure tuple is treated as scalar
+    ser = Series([(0, 1), (1, 2), np.nan], dtype=object)
+    mask = np.array([True, True, False])
+
+    result = ser.where(mask, (9, 9))
+    expected = Series([(0, 1), (1, 2), (9, 9)], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.mask(~mask, (9, 9))
+    tm.assert_series_equal(result, expected)
 
 
 def test_where_datetimelike_categorical(tz_naive_fixture):

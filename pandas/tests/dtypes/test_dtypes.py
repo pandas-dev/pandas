@@ -8,7 +8,11 @@ import pytest
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import Pandas4Warning
 
-from pandas.core.dtypes.base import _registry as registry
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    _registry as registry,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -62,7 +66,7 @@ class Base:
         assert not dtype == np.str_
         assert not np.str_ == dtype
 
-    def test_pickle(self, dtype):
+    def test_pickle(self, dtype, temp_file):
         # make sure our cache is NOT pickled
 
         # clear the cache
@@ -70,7 +74,7 @@ class Base:
         assert not len(dtype._cache_dtypes)
 
         # force back to the cache
-        result = tm.round_trip_pickle(dtype)
+        result = tm.round_trip_pickle(dtype, temp_file)
         if not isinstance(dtype, PeriodDtype):
             # Because PeriodDtype has a cython class as a base class,
             #  it has different pickle semantics, and its cache is re-populated
@@ -156,7 +160,7 @@ class TestCategoricalDtype(Base):
             CategoricalDtype._from_values_or_dtype(values, categories, ordered, dtype)
 
     def test_from_values_or_dtype_invalid_dtype(self):
-        msg = "Cannot not construct CategoricalDtype from <class 'object'>"
+        msg = "Cannot construct CategoricalDtype from <class 'object'>"
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(None, None, None, object)
 
@@ -294,7 +298,6 @@ class TestDatetimeTZDtype(Base):
         a = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         b = DatetimeTZDtype.construct_from_string("datetime64[ns, CET]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_compat(self, dtype):
@@ -466,7 +469,6 @@ class TestPeriodDtype(Base):
         a = PeriodDtype("period[D]")
         b = PeriodDtype("period[3D]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_identity(self):
@@ -721,7 +723,6 @@ class TestIntervalDtype(Base):
         a = IntervalDtype("interval[int64, right]")
         b = IntervalDtype("interval[int64, right]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_is_dtype(self, dtype):
@@ -851,7 +852,7 @@ class TestIntervalDtype(Base):
             assert not is_interval_dtype(np.int64)
             assert not is_interval_dtype(np.float64)
 
-    def test_caching(self):
+    def test_caching(self, temp_file):
         # GH 54184: Caching not shown to improve performance
         IntervalDtype.reset_cache()
         dtype = IntervalDtype("int64", "right")
@@ -861,20 +862,20 @@ class TestIntervalDtype(Base):
         assert len(IntervalDtype._cache_dtypes) == 0
 
         IntervalDtype.reset_cache()
-        tm.round_trip_pickle(dtype)
+        tm.round_trip_pickle(dtype, temp_file)
         assert len(IntervalDtype._cache_dtypes) == 0
 
     def test_not_string(self):
         # GH30568: though IntervalDtype has object kind, it cannot be string
         assert not is_string_dtype(IntervalDtype())
 
-    def test_unpickling_without_closed(self):
+    def test_unpickling_without_closed(self, temp_file):
         # GH#38394
         dtype = IntervalDtype("interval")
 
         assert dtype._closed is None
 
-        tm.round_trip_pickle(dtype)
+        tm.round_trip_pickle(dtype, temp_file)
 
     def test_dont_keep_ref_after_del(self):
         # GH 54184
@@ -1064,7 +1065,6 @@ class TestCategoricalDtypeParametrized:
     def test_str_vs_repr(self, ordered, using_infer_string):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
-        # Py2 will have unicode prefixes
         dtype = "str" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
@@ -1132,6 +1132,29 @@ def test_registry(dtype):
 )
 def test_registry_find(dtype, expected):
     assert registry.find(dtype) == expected
+
+
+def test_construct_from_string_no_name_gh46093():
+    # GH#46093
+    class FooType(ExtensionDtype):
+        pass
+
+    msg = (
+        "Cannot construct a 'FooType' from a string because it does not define "
+        "a string 'name' attribute"
+    )
+    with pytest.raises(TypeError, match=msg):
+        FooType.construct_from_string("foo")
+
+
+def test_register_extension_dtype_no_name_gh46093():
+    # GH#46093 registration fails fast rather than erroring later on use
+    msg = "Cannot register 'NamelessType' because it does not define a string"
+    with pytest.raises(TypeError, match=msg):
+
+        @register_extension_dtype
+        class NamelessType(ExtensionDtype):
+            pass
 
 
 @pytest.mark.parametrize(

@@ -60,8 +60,8 @@ fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
 gcp = ['gcsfs>=2021.07.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
-parquet = ['pyarrow>=7.0.0']
-feather = ['pyarrow>=7.0.0']
+parquet = ['pyarrow>=16.0.0']
+feather = ['pyarrow>=16.0.0']
 hdf5 = ['tables>=3.6.1']
 spss = ['pyreadstat>=1.1.2']
 postgresql = ['SQLAlchemy>=1.4.16', 'psycopg2>=2.9.9']
@@ -88,7 +88,7 @@ all = ['beautifulsoup4>=5.9.3',
        'odfpy>=1.4.1',
        'openpyxl>=3.0.7',
        'psycopg2>=2.9.9',
-       'pyarrow>=7.0.0',
+       'pyarrow>=16.0.0',
        'pymysql>=1.1.0',
        'PyQt5>=5.15.1',
        'pyreadstat>=1.1.2',
@@ -227,7 +227,7 @@ exclude = [
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "7.0"
-addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
@@ -262,8 +262,7 @@ markers = [
 
 [tool.mypy]
 # Import discovery
-mypy_path = "typings"
-files = ["pandas", "typings"]
+files = ["pandas"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
@@ -352,7 +351,7 @@ skip = "pandas/__init__.py"
 [tool.pyright]
 pythonVersion = "3.8"
 typeCheckingMode = "basic"
-include = ["pandas", "typings"]
+include = ["pandas"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
 reportDuplicateImport = true

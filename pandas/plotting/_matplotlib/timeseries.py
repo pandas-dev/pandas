@@ -7,7 +7,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-import warnings
+
+import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -19,17 +20,27 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
 )
 
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCPeriodIndex,
     ABCTimedeltaIndex,
 )
 
+from pandas import (
+    DatetimeIndex,
+    Index,
+)
+
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.converter import (
+    PeriodConverter,
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
+    bday_count_array,
+    bday_offset_array,
+    bday_to_datetime,
 )
 from pandas.tseries.frequencies import (
     get_period_alias,
@@ -45,8 +56,6 @@ if TYPE_CHECKING:
     from pandas._typing import NDFrameT
 
     from pandas import (
-        DatetimeIndex,
-        Index,
         PeriodIndex,
         Series,
     )
@@ -55,7 +64,32 @@ if TYPE_CHECKING:
 # Plotting functions and monkey patches
 
 
-def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
+def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
+    """
+    Re-express a time-series plotting index at frequency ``freq``.
+
+    ``index`` is either a PeriodIndex or a plain int64 index of business-day
+    ordinals -- the representation used for BDay data to avoid the deprecated
+    Period[B].  Returns int64 business-day ordinals when ``freq`` is
+    business-daily, otherwise a PeriodIndex at ``freq``.
+    """
+    if _get_period_alias(freq) == "B":
+        if is_integer_dtype(index):
+            # already business-day ordinals
+            return index
+        # PeriodIndex -> timestamps -> business-day ordinals
+        dti = index.to_timestamp()  # type: ignore[attr-defined]
+        return Index(bday_count_array(dti.values), dtype=np.int64)
+    if is_integer_dtype(index):
+        # business-day ordinals -> timestamps -> PeriodIndex at freq
+        dt64 = bday_offset_array(np.asarray(index, dtype=np.int64))
+        return DatetimeIndex(dt64).to_period(freq)
+    return index.asfreq(freq, how="S")  # type: ignore[attr-defined]
+
+
+def maybe_resample(
+    series: Series, ax: Axes, kwargs: dict[str, Any], index_freq: str | None = None
+):
     # resample against axes freq if necessary
 
     if "how" in kwargs:
@@ -64,22 +98,21 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             "multiple objects on shared axes, resample manually first."
         )
 
-    freq, ax_freq = _get_freq(ax, series)
+    freq, ax_freq = _get_freq(ax, series, index_freq)
 
     if freq is None:  # pragma: no cover
         raise ValueError("Cannot use dynamic axis without frequency info")
 
-    # Convert DatetimeIndex to PeriodIndex
+    # Convert DatetimeIndex to PeriodIndex so the x-axis uses Period ordinals.
+    # For BDay freq this ensures consecutive business days get consecutive
+    # ordinals with no weekend gaps (GH#1482).
     if isinstance(series.index, ABCDatetimeIndex):
         series = series.to_period(freq=freq)
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy(deep=False)
-            # error: "Index" has no attribute "asfreq"
-            series.index = series.index.asfreq(  # type: ignore[attr-defined]
-                ax_freq, how="s"
-            )
+            series.index = _asfreq_plotting(series.index, ax_freq)
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = "last"
@@ -143,8 +176,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     if data is not None:
         for series, plotf, kwds in data:
             series = series.copy(deep=False)
-            idx = series.index.asfreq(freq, how="S")
-            series.index = idx
+            series.index = _asfreq_plotting(series.index, freq)
             # TODO #54485
             ax._plot_data.append((series, plotf, kwds))  # type: ignore[attr-defined]
 
@@ -154,7 +186,8 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
 
                 plotf = PLOT_CLASSES[plotf]._plot
 
-            lines.append(plotf(ax, series.index._mpl_repr(), series.values, **kwds)[0])
+            values = np.asarray(series._values)
+            lines.append(plotf(ax, series.index._mpl_repr(), values, **kwds)[0])
             labels.append(pprint_thing(series.name))
 
     return lines, labels
@@ -199,19 +232,41 @@ def _get_ax_freq(ax: Axes):
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     if isinstance(freq, BaseOffset):
-        freqstr = freq.name
+        n = freq.n
+        freqstr = freq.rule_code
     else:
-        freqstr = to_offset(freq, is_period=True).rule_code
+        offset = to_offset(freq, is_period=True)
+        n = offset.n
+        freqstr = offset.rule_code
 
-    return get_period_alias(freqstr)
+    alias = get_period_alias(freqstr)
+    if alias is None:
+        return None
+    # Don't apply multiplier for business days — Period[B] is deprecated
+    # and the special-case BDay handling doesn't support multiplied freq.
+    if alias == "B":
+        return alias
+    # Use abs(n) because the sign only indicates traversal direction
+    # (e.g. descending DatetimeIndex infers freq "-1D"), not period span.
+    # GH#64819
+    n = abs(n)
+    if n != 1:
+        return f"{n}{alias}"
+    return alias
 
 
-def _get_freq(ax: Axes, series: Series):
-    # get frequency from data
-    freq = getattr(series.index, "freq", None)
+def _get_freq(ax: Axes, series: Series, index_freq: str | None = None):
+    # index_freq is non-None when the caller already knows the frequency from
+    # maybe_convert_index; for BDay data that produces an int64 ordinal index
+    # (to avoid the deprecated Period[B]) which carries no freq of its own, so
+    # the frequency cannot be re-derived here.
+    freq: Any = index_freq
     if freq is None:
-        freq = getattr(series.index, "inferred_freq", None)
-        freq = to_offset(freq, is_period=True)
+        # get frequency from data
+        freq = getattr(series.index, "freq", None)
+        if freq is None:
+            freq = getattr(series.index, "_inferred_freq_str", None)
+            freq = to_offset(freq, is_period=True)
 
     ax_freq = _get_ax_freq(ax)
 
@@ -242,12 +297,17 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     if freq_str is None:
         return False
 
-    # FIXME: hack this for 0.10.1, creating more technical debt...sigh
+    # GH#2571: for DatetimeIndex, fall back to non-dynamic plotting if the
+    # timestamps don't align with the inferred period frequency. We only
+    # inspect the first element because the index has a (possibly inferred)
+    # freq, so the rest are evenly spaced relative to it.
     if isinstance(index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
+            # Daily-or-coarser: any midnight timestamp is valid (e.g. month-end
+            # dates plotted monthly). Avoids tz_localize() on DST gaps.
             return index[:1].is_normalized
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
@@ -255,17 +315,47 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     return True
 
 
+def get_period_offset(ax: Axes, index: Index) -> BaseOffset | None:
+    """
+    Resolve the period frequency to plot `index` with on `ax`, or None.
+
+    The freq is resolved the same way :func:`use_dynamic_x` resolves it, since
+    that is what decides whether the dynamic date axis is used at all: the
+    index ``freq`` attribute may be unset even when the index is regular (the
+    freq is then inferred), and an already-decorated axes carries the freq of
+    whatever was plotted on it first.  The result is normalized to a period
+    offset, because an axes stores its freq as a period alias string.
+    """
+    freq = _get_index_freq(index)
+    if freq is None:
+        freq = _get_ax_freq(ax)
+    if freq is None:
+        return None
+
+    freq_str = _get_period_alias(freq)
+    if freq_str is None:
+        return None
+    freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
+    return to_offset(freq_str, is_period=True)
+
+
 def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
-        freq = getattr(index, "inferred_freq", None)
+        freq = getattr(index, "_inferred_freq_str", None)
         freq = to_offset(freq)
     return freq
 
 
-def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
-    # tsplot converts automatically, but don't want to convert index
-    # over and over for DataFrames
+def maybe_convert_index(ax: Axes, data: NDFrameT) -> tuple[NDFrameT, str | None]:
+    # Convert DatetimeIndex to ordinal-integer index for plotting, so the
+    # x-axis uses consecutive integers rather than matplotlib date2num floats.
+    # This ensures evenly-spaced points: for BDay freq, Fri→Mon is a 1-unit
+    # step rather than a 3-unit gap.  See GH#1482.
+    # Also return the freq alias used for the conversion, or None if the index
+    # is not datetime-like: the int64 ordinal index produced for "B" carries
+    # no freq of its own, so callers cannot re-derive it from the result.
+    freq_str: str | None = None
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
         freq = _get_index_freq(data.index)
 
@@ -277,27 +367,36 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
 
         freq_str = _get_period_alias(freq)
 
-        with warnings.catch_warnings():
-            # suppress Period[B] deprecation warning
-            # TODO: need to find an alternative to this before the deprecation
-            #  is enforced!
-            warnings.filterwarnings(
-                "ignore",
-                r"PeriodDtype\[B\] is deprecated",
-                category=FutureWarning,
-            )
-
-            if isinstance(data.index, ABCDatetimeIndex):
+        if isinstance(data.index, ABCDatetimeIndex):
+            if freq_str == "B":
+                # Avoid creating deprecated Period[B]; use numpy business-day
+                # arithmetic to map each timestamp to its business-day ordinal.
+                data = data.copy(deep=False)
+                data.index = Index(
+                    bday_count_array(data.index.tz_localize(None).values),
+                    dtype=np.int64,
+                )
+            else:
                 data = data.tz_localize(None).to_period(freq=freq_str)
-            elif isinstance(data.index, ABCPeriodIndex):
+        elif isinstance(data.index, ABCPeriodIndex):
+            if freq_str == "B":
+                # Extract the existing Period[B] ordinals as plain int64 to
+                # avoid creating new (deprecated) Period[B] objects.
+                data = data.copy(deep=False)
+                data.index = Index(data.index.asi8, dtype=np.int64)
+            else:
                 data.index = data.index.asfreq(freq=freq_str, how="start")
-    return data
+    return data, freq_str
 
 
 # Patch methods for subplot.
 
 
-def _format_coord(freq: BaseOffset, t, y) -> str:
+def _format_coord(freq, t, y) -> str:
+    if _get_period_alias(freq) == "B":
+        # Avoid creating deprecated Period[B]; convert ordinal to datetime
+        # using numpy business-day arithmetic.
+        return f"t = {bday_to_datetime(int(t)).strftime('%Y-%m-%d')}  y = {y:8f}"
     time_period = Period(ordinal=int(t), freq=freq)
     return f"t = {time_period}  y = {y:8f}"
 
@@ -318,7 +417,10 @@ def format_dateaxis(
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
     # interface. DatetimeIndex uses matplotlib.date directly
-    if isinstance(index, ABCPeriodIndex):
+    if isinstance(index, ABCPeriodIndex) or _get_period_alias(freq) == "B":
+        # For BDay freq the index is a plain int64 of business-day ordinals
+        # (not a PeriodIndex) to avoid the deprecated Period[B].  The tick
+        # locator and formatter both operate on those ordinals directly.
         majlocator = TimeSeries_DateLocator(
             freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
         )
@@ -340,8 +442,22 @@ def format_dateaxis(
         # x and y coord info
         subplot.format_coord = functools.partial(_format_coord, freq)
 
+        # The x-axis holds plain int64 ordinals (Period ordinals for PeriodIndex
+        # plots; business-day ordinals for BDay), so matplotlib's units
+        # machinery never registers a converter.  Set PeriodConverter
+        # explicitly so that post-plot ax.set_xlim(string, ...) /
+        # ax.set_xlim(datetime, ...) calls can map values to ordinals via
+        # _get_datevalue().
+        if hasattr(subplot.xaxis, "set_converter"):
+            # matplotlib >= 3.10: only set if not already a PeriodConverter
+            existing = subplot.xaxis.get_converter()
+            if not isinstance(existing, PeriodConverter):
+                subplot.xaxis.set_converter(PeriodConverter())
+        else:
+            subplot.xaxis.converter = PeriodConverter()
+
     elif isinstance(index, ABCTimedeltaIndex):
-        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter())
+        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))
     else:
         raise TypeError("index type not supported")
 
@@ -349,9 +465,9 @@ def format_dateaxis(
 
 
 def prepare_ts_data(
-    series: Series, ax: Axes, kwargs: dict[str, Any]
+    series: Series, ax: Axes, kwargs: dict[str, Any], index_freq: str | None = None
 ) -> tuple[BaseOffset | str, Series]:
-    freq, data = maybe_resample(series, ax, kwargs)
+    freq, data = maybe_resample(series, ax, kwargs, index_freq)
 
     # Set ax with freq info
     decorate_axes(ax, freq)

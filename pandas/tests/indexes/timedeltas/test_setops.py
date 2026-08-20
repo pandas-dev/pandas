@@ -42,6 +42,23 @@ class TestTimedeltaIndex:
         result = left.union(right, sort=False)
         expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
         tm.assert_index_equal(result, expected)
+        # GH#65191 the sort=False result is non-monotonic, so it must not
+        #  retain a freq; otherwise e.g. shift silently returns an empty index.
+        assert result.freq is None
+
+    def test_union_sort_false_other_extends_past_self(self):
+        # GH#66322 with sort=False and self starting after other, the result
+        #  is non-monotonic, so the fast path does not apply; previously the
+        #  tail past self[-1] was silently dropped.
+        tdi = timedelta_range("1day", periods=6)
+        left = tdi[2:4]
+
+        result = left.union(tdi, sort=False)
+        expected = TimedeltaIndex(
+            ["3 Days", "4 Days", "1 Days", "2 Days", "5 Days", "6 Days"]
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
 
     def test_union_coverage(self):
         # GH#59051
@@ -114,7 +131,7 @@ class TestTimedeltaIndex:
 
     def test_intersection_equal(self, sort):
         # GH 24471 Test intersection outcome given the sort keyword
-        # for equal indices intersection should return the original index
+        # GH#63169 intersection returns a copy to prevent shared mutable state
         first = timedelta_range("1 day", periods=4, freq="h")
         second = timedelta_range("1 day", periods=4, freq="h")
         intersect = first.intersection(second, sort=sort)
@@ -124,7 +141,8 @@ class TestTimedeltaIndex:
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
-        assert inter is first
+        assert inter is not first
+        tm.assert_index_equal(inter, first)
 
     @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
     def test_intersection_zero_length(self, period_1, period_2, sort):
@@ -160,7 +178,7 @@ class TestTimedeltaIndex:
             # if no overlap exists return empty index
             (
                 timedelta_range("1 day", periods=10, freq="h", name="idx")[5:],
-                TimedeltaIndex([], freq="h", name="idx"),
+                TimedeltaIndex([], freq="h", name="idx", dtype="m8[us]"),
             ),
         ],
     )
@@ -202,10 +220,12 @@ class TestTimedeltaIndex:
         result = base.intersection(rng, sort=sort)
         if sort is None:
             expected = expected.sort_values()
+            # if reversed order, frequency is still the same
+            if all(base == rng[::-1]):
+                expected = expected._with_freq("infer")
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        # if reversed order, frequency is still the same
         if all(base == rng[::-1]) and sort is None:
             assert isinstance(result.freq, Hour)
         else:

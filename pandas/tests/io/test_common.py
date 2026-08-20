@@ -8,7 +8,6 @@ from functools import partial
 from io import (
     BytesIO,
     StringIO,
-    UnsupportedOperation,
 )
 import mmap
 import os
@@ -138,7 +137,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    def test_get_handle_pyarrow_compat(self):
+    def test_get_handle_pyarrow_compat(sel, using_infer_string):
         pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
@@ -154,6 +153,8 @@ Look,a snake,🐍"""
             df = pa_csv.read_csv(handles.handle).to_pandas()
             if pa_version_under19p0:
                 expected = expected.astype("object")
+            elif not using_infer_string:
+                expected = expected.astype(pd.StringDtype(na_value=np.nan))
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -290,10 +291,15 @@ Look,a snake,🐍"""
                 ("io", "data", "fixed_width", "fixed_width_format.txt"),
             ),
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
-            (
+            # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+            # suppress until we migrate the implementation (GH#66177)
+            pytest.param(
                 pd.read_feather,
                 "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
+                marks=pytest.mark.filterwarnings(
+                    "ignore:Feather V1 files are deprecated:DeprecationWarning"
+                ),
             ),
             (
                 pd.read_hdf,
@@ -309,6 +315,12 @@ Look,a snake,🐍"""
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
@@ -472,9 +484,11 @@ class TestMMapWrapper:
             df.to_csv(temp_file, compression=compression_, encoding=encoding)
 
         # reading should fail (otherwise we wouldn't need the warning)
-        msg = (
-            r"UTF-\d+ stream does not start with BOM|"
-            r"'utf-\d+' codec can't decode byte"
+        msg = "|".join(
+            [
+                r"UTF-\d+ stream does not start with BOM",
+                r"'utf-\d+' codec can't decode byte",
+            ]
         )
         with pytest.raises(UnicodeError, match=msg):
             pd.read_csv(temp_file, compression=compression_, encoding=encoding)
@@ -607,7 +621,7 @@ def test_encoding_errors_badtype(encoding_errors):
         reader(content)
 
 
-def test_bad_encdoing_errors(temp_file):
+def test_bad_encoding_errors(temp_file):
     # GH 39777
     with pytest.raises(LookupError, match="unknown error handler name"):
         icom.get_handle(temp_file, "w", errors="bad")
@@ -622,7 +636,10 @@ def test_errno_attribute():
 
 
 def test_fail_mmap():
-    with pytest.raises(UnsupportedOperation, match="fileno"):
+    # GH#45630 raise a clear ValueError instead of the cryptic
+    # UnsupportedOperation("fileno") from BytesIO
+    msg = "memory_map=True is only supported when reading from a file path"
+    with pytest.raises(ValueError, match=msg):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
 
@@ -641,9 +658,9 @@ def test_close_on_error():
 
 @td.skip_if_no("fsspec")
 @pytest.mark.parametrize("compression", [None, "infer"])
-def test_read_csv_chained_url_no_error(compression):
+def test_read_csv_chained_url_no_error(datapath, compression):
     # GH 60100
-    tar_file_path = "pandas/tests/io/data/tar/test-csv.tar"
+    tar_file_path = datapath("io", "data", "tar", "test-csv.tar")
     chained_file_url = f"tar://test.csv::file://{tar_file_path}"
 
     result = pd.read_csv(chained_file_url, compression=compression, sep=";")

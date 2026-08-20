@@ -103,7 +103,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     if item_shape is None:
         item_shape = (N,)
 
-    shape = (num_items,) + item_shape
+    shape = (num_items, *item_shape)
 
     mat = get_numeric_mat(shape)
 
@@ -261,9 +261,9 @@ class TestBlock:
             ["bool", [5]],
         ],
     )
-    def test_pickle(self, typ, data):
+    def test_pickle(self, typ, data, temp_file):
         blk = create_block(typ, data)
-        assert_block_equal(tm.round_trip_pickle(blk), blk)
+        assert_block_equal(tm.round_trip_pickle(blk, temp_file), blk)
 
     def test_mgr_locs(self, fblock):
         assert isinstance(fblock.mgr_locs, BlockPlacement)
@@ -277,12 +277,12 @@ class TestBlock:
         assert len(fblock) == len(fblock.values)
 
     def test_copy(self, fblock):
-        cop = fblock.copy()
+        cop = fblock.copy(deep=True)
         assert cop is not fblock
         assert_block_equal(fblock, cop)
 
     def test_delete(self, fblock):
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
@@ -295,7 +295,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert len(nb) == 2
@@ -310,7 +310,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb[1].values[0] == 2).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         nb = newb.delete(2)
         assert len(nb) == 1
         tm.assert_numpy_array_equal(
@@ -318,7 +318,7 @@ class TestBlock:
         )
         assert (nb[0].values[1] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -360,7 +360,7 @@ class TestBlock:
             new_block(values[[1]], placement=BlockPlacement([1]), ndim=2),
             new_block(values[[2]], placement=BlockPlacement([6]), ndim=2),
         ]
-        for res, exp in zip(result, expected):
+        for res, exp in zip(result, expected, strict=True):
             assert_block_equal(res, exp)
 
 
@@ -391,8 +391,8 @@ class TestBlockManager:
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 
-    def test_pickle(self, mgr):
-        mgr2 = tm.round_trip_pickle(mgr)
+    def test_pickle(self, mgr, temp_file):
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
@@ -407,24 +407,24 @@ class TestBlockManager:
         assert not mgr2._known_consolidated
 
     @pytest.mark.parametrize("mgr_string", ["a,a,a:f8", "a: f8; a: i8"])
-    def test_non_unique_pickle(self, mgr_string):
+    def test_non_unique_pickle(self, mgr_string, temp_file):
         mgr = create_mgr(mgr_string)
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
-    def test_categorical_block_pickle(self):
+    def test_categorical_block_pickle(self, temp_file):
         mgr = create_mgr("a: category")
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         smgr = create_single_mgr("category")
-        smgr2 = tm.round_trip_pickle(smgr)
+        smgr2 = tm.round_trip_pickle(smgr, temp_file)
         tm.assert_series_equal(
             Series()._constructor_from_mgr(smgr, axes=smgr.axes),
             Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
@@ -485,11 +485,11 @@ class TestBlockManager:
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
-        for blk, cp_blk in zip(mgr.blocks, cp.blocks):
+        for blk, cp_blk in zip(mgr.blocks, cp.blocks, strict=True):
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
-                assert cp_blk.values.base is blk.values.base
+                assert cp_blk.values.base.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._ndarray.base is blk.values._ndarray.base
@@ -498,7 +498,7 @@ class TestBlockManager:
         #  fail is mgr is not consolidated
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
-        for blk, cp_blk in zip(mgr.blocks, cp.blocks):
+        for blk, cp_blk in zip(mgr.blocks, cp.blocks, strict=True):
             bvals = blk.values
             cpvals = cp_blk.values
 
@@ -868,6 +868,90 @@ class TestBlockManager:
             bm.blknos, np.array([0, 2, 2, 1], dtype="int64" if IS64 else "int32")
         )
         assert len(bm.blocks) == 3
+
+
+class TestGetDtypesCache:
+    # GH#65382 get_dtypes caches the per-column dtypes array on the manager;
+    # block-mutating operations must invalidate the cache.
+
+    @staticmethod
+    def _prime_cache(df):
+        df.dtypes
+        assert df._mgr._dtypes_cache is not None
+
+    def test_get_dtypes_returns_copy(self):
+        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        mgr = df._mgr
+        result = mgr.get_dtypes()
+        assert mgr._dtypes_cache is not None
+        assert result is not mgr._dtypes_cache
+
+        # mutating the returned array must not corrupt the cache
+        result[0] = np.dtype("float64")
+        assert mgr.get_dtypes()[0] == np.dtype("int64")
+
+    def test_iset_multi_column_block_invalidates(self):
+        # iset replacing one column of a multi-column block with a new dtype
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        self._prime_cache(df)
+
+        df["a"] = np.array([1.5, 2.5])
+        assert df._mgr._dtypes_cache is None
+        expected = Series([np.dtype("float64"), np.dtype("int64")], index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_iset_single_block_invalidates(self):
+        # _iset_single fastpath: the column is its own single-column block
+        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        self._prime_cache(df)
+
+        df["a"] = np.array([1 + 2j, 3 + 4j])
+        assert df._mgr._dtypes_cache is None
+        expected = Series(
+            [np.dtype("complex128"), np.dtype("float64")], index=["a", "b"]
+        )
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_insert_invalidates(self):
+        df = DataFrame({"a": [1, 2]})
+        self._prime_cache(df)
+
+        df.insert(1, "b", np.array([1.5, 2.5]))
+        assert df._mgr._dtypes_cache is None
+        expected = Series([np.dtype("int64"), np.dtype("float64")], index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_delitem_dtypes_correct(self):
+        # idelete returns a new manager, which starts with an empty cache
+        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        self._prime_cache(df)
+
+        del df["a"]
+        assert df._mgr._dtypes_cache is None
+        expected = Series([np.dtype("float64")], index=["b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_inplace_setitem_same_dtype_keeps_cache_valid(self):
+        # same-dtype in-place value writes do not change per-column dtypes,
+        # so the cache may legitimately survive; dtypes must stay correct
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        self._prime_cache(df)
+
+        df.iloc[0, 0] = 10
+        expected = Series([np.dtype("int64")] * 2, index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_iset_split_block_with_reference_dtypes_correct(self):
+        # with a live reference, in-place setitem goes through
+        # _iset_split_block (Copy-on-Write); dtypes are unchanged
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        view = df[:]
+        self._prime_cache(df)
+
+        df.iloc[0, 0] = 10
+        expected = Series([np.dtype("int64")] * 2, index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+        tm.assert_frame_equal(view, DataFrame({"a": [1, 2], "b": [3, 4]}))
 
 
 def _as_array(mgr):
@@ -1348,7 +1432,7 @@ class TestCanHoldElement:
             ser[: len(elem)] = elem
 
         if inplace:
-            assert ser.array is arr  # i.e. setting was done inplace
+            assert ser._values is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
 

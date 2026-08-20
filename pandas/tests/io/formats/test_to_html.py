@@ -147,12 +147,11 @@ def test_to_html_unicode(df_data, expected, datapath):
     assert result == expected
 
 
-def test_to_html_encoding(float_frame, tmp_path):
+def test_to_html_encoding(float_frame, temp_file):
     # GH 28663
-    path = tmp_path / "test.html"
-    float_frame.to_html(path, encoding="gbk")
-    with open(str(path), encoding="gbk") as f:
-        assert float_frame.to_html() == f.read()
+    float_frame.to_html(temp_file, encoding="gbk")
+    expected = temp_file.read_text(encoding="gbk")
+    assert float_frame.to_html() == expected
 
 
 def test_to_html_decimal(datapath):

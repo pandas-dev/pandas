@@ -1,7 +1,8 @@
+from collections import deque
 from datetime import (
+    UTC,
     date,
     timedelta,
-    timezone,
 )
 from decimal import Decimal
 from enum import (
@@ -14,7 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -30,7 +31,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
-from pandas.util.version import Version
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -252,7 +252,12 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|'mod' not supported"
+        msg = "|".join(
+            [
+                "not all arguments converted during string formatting",
+                "'mod' not supported",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             s2 % s1
@@ -303,11 +308,11 @@ class TestSeriesArithmetic:
     def test_sub_datetimelike_align(self):
         # GH#7500
         # datetimelike ops need to align
-        dt = Series(date_range("2012-1-1", periods=3, freq="D"))
+        dt = Series(date_range("2012-1-1", periods=3, freq="D", unit="ns"))
         dt.iloc[2] = np.nan
         dt2 = dt[::-1]
 
-        expected = Series([timedelta(0), timedelta(0), pd.NaT])
+        expected = Series([timedelta(0), timedelta(0), pd.NaT], dtype="m8[ns]")
         # name is reset
         result = dt2 - dt
         tm.assert_series_equal(result, expected)
@@ -355,10 +360,10 @@ class TestSeriesArithmetic:
 
         # GH#8363
         # datetime ops with a non-unique index
-        ser = Series(date_range("20130101 09:00:00", periods=5), index=index)
-        other = Series(date_range("20130101", periods=5), index=index)
+        ser = Series(date_range("20130101 09:00:00", periods=5, unit="ns"), index=index)
+        other = Series(date_range("20130101", periods=5, unit="ns"), index=index)
         result = ser - other
-        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4], dtype="m8[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_masked_and_non_masked_propagate_na(self):
@@ -380,36 +385,47 @@ class TestSeriesArithmetic:
         result = ser2 / ser1
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
-    def test_add_list_to_masked_array(self, val, dtype):
-        # GH#22962
+    @pytest.mark.parametrize("val", [3, 3.5])
+    def test_add_list_to_masked_array(self, val):
+        # GH#22962, behavior changed by GH#62552
         ser = Series([1, None, 3], dtype="Int64")
-        result = ser + [1, None, val]
-        expected = Series([2, None, 3 + val], dtype=dtype)
+        result = ser + [1, None, val]  # noqa: RUF005
+        expected = Series([2, pd.NA, 3 + val], dtype="Float64")
         tm.assert_series_equal(result, expected)
 
-        result = [1, None, val] + ser
+        result = [1, None, val] + ser  # noqa: RUF005
         tm.assert_series_equal(result, expected)
 
-    def test_add_list_to_masked_array_boolean(self, request):
+    def test_add_list_to_masked_array_boolean(self):
         # GH#22962
-        ne = import_optional_dependency("numexpr", errors="ignore")
-        warning = (
-            UserWarning
-            if request.node.callspec.id == "numexpr"
-            and ne
-            and Version(ne.__version__) < Version("2.13.1")
-            else None
-        )
         ser = Series([True, None, False], dtype="boolean")
-        msg = "operator is not supported by numexpr for the bool dtype"
-        with tm.assert_produces_warning(warning, match=msg):
-            result = ser + [True, None, True]
-        expected = Series([True, None, True], dtype="boolean")
+        result = ser + [True, None, True]  # noqa: RUF005
+        expected = Series([2, pd.NA, 1], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning, match=msg):
-            result = [True, None, True] + ser
+        result = [True, None, True] + ser  # noqa: RUF005
+        tm.assert_series_equal(result, expected)
+
+    def test_subtraction_index_name_type_mismatch_regression(self):
+        # GH#57524
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype="Int64",
+        )
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(
+                ["a", "b", "c"],
+                name="index b",
+                dtype="string",
+            ),
+            dtype="Int64",
+        )
+
+        result = s1 - s2
+        expected = Series([2, 0, -2], index=s1.index, dtype="Int64")
+
         tm.assert_series_equal(result, expected)
 
 
@@ -848,7 +864,7 @@ class TestTimeSeriesArithmetic:
         # sort since input indexes are not equal
         expected = expected.sort_index()
 
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):
@@ -885,8 +901,11 @@ class TestTimeSeriesArithmetic:
         ts2 = ts_slice.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts + ts2
-        result2 = ts2 + ts
+        # GH#62158 alignment joins date-object Index with DatetimeIndex
+        msg = "Alignment of a DataFrame/Series with a DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts + ts2
+            result2 = ts2 + ts
         expected = ts + ts[5:]
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
@@ -916,14 +935,27 @@ class TestNamePreservation:
             if is_logical:
                 # Series doesn't have these as flex methods
                 return
-            result = getattr(left, name)(right)
+
+            warn = None
+            tuple_msg = "with a tuple is deprecated"
+            if box is tuple:
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=tuple_msg):
+                result = getattr(left, name)(right)
         else:
             if is_logical and box in [list, tuple]:
                 with pytest.raises(TypeError, match=msg):
                     # GH#52264 logical ops with dtype-less sequences deprecated
                     op(left, right)
                 return
-            result = op(left, right)
+
+            warn = None
+            depr_msg = "In a future version these will be treated as scalar-like"
+            if box is tuple:
+                # GH#62423 dunder ops with a tuple are deprecated
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
@@ -1073,3 +1105,123 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2016-01-01", periods=3),
+        date_range("2016-01-01", tz="US/Pacific", periods=3),
+        pd.timedelta_range("1 Day", periods=3),
+    ],
+)
+def test_comparison_mismatched_datetime_units(index):
+    # GH#63459
+
+    ser = Series(1, index=index)
+    ser2 = Series(1, index=index.as_unit("ns"))
+
+    result = ser == ser2
+    expected = Series([True, True, True], index=ser.index)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 < ser
+    expected2 = Series([False, False, False], index=ser2.index)
+    tm.assert_series_equal(result2, expected2)
+
+
+def test_multiindex_single_entry_arith_preserves_all_levels():
+    # GH#25891 - MultiIndex level dropped when multiplying two Series with a
+    # single entry. When both Series have exactly one entry and overlapping
+    # MultiIndex levels, all non-common index levels must be preserved in the
+    # result.
+    index1 = pd.MultiIndex.from_product([[], []], names=["T", "N"])
+    s1 = Series(index=index1, dtype=float)
+    s1["T.1A", "N.0"] = 0.5
+
+    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    s2 = Series(index=index2, dtype=float)
+    s2["N.0", "M.0"] = 0.5
+
+    expected_index = pd.MultiIndex.from_tuples(
+        [("T.1A", "N.0", "M.0")], names=["T", "N", "M"]
+    )
+    expected = Series([0.25], index=expected_index)
+
+    # multiplication
+    result = s1 * s2
+    tm.assert_series_equal(result, expected)
+
+    # addition
+    result_add = s1 + s2
+    tm.assert_series_equal(result_add, Series([1.0], index=expected_index))
+
+    # subtraction
+    result_sub = s1 - s2
+    tm.assert_series_equal(result_sub, Series([0.0], index=expected_index))
+
+    # division
+    result_div = s1 / s2
+    tm.assert_series_equal(result_div, Series([1.0], index=expected_index))
+
+
+# ----------------------------------------------------------------------
+# GH#62423 deprecate non-standard listlikes in arithmetic/comparison ops
+
+depr_msg = "In a future version these will be treated as scalar-like"
+
+# factories for non-standard listlikes holding [4, 5, 6]
+non_standard_listlikes = [
+    pytest.param(lambda: (4, 5, 6), id="tuple"),
+    pytest.param(lambda: range(4, 7), id="range"),
+    pytest.param(lambda: deque([4, 5, 6]), id="deque"),
+]
+
+
+@pytest.mark.parametrize("box", non_standard_listlikes)
+@pytest.mark.parametrize("klass", [Series, Index])
+def test_arith_cmp_non_standard_listlike_deprecated(klass, box):
+    # GH#62423 numpy-dtype Series/Index dunder ops with a non-standard listlike
+    #  (tuple/range/deque) are deprecated in favor of scalar-like treatment
+    obj = klass([1, 2, 3])
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        obj + box()
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        obj == box()
+
+
+def test_arith_ea_backed_range_deprecated():
+    # GH#62423 range is converted to an ndarray before it reaches the EA, so
+    #  the Series-level arith path is responsible for the warning
+    ser = Series([1, 2, 3], dtype="Int64")
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        ser + range(4, 7)
+
+
+@pytest.mark.parametrize("box", non_standard_listlikes)
+def test_cmp_object_dtype_non_standard_listlike_not_deprecated(box):
+    # GH#62423 object dtype already treats a non-standard listlike as scalar-like
+    #  on comparison, so it must not warn
+    for obj in [Series([1, 2, 3], dtype=object), Index([1, 2, 3], dtype=object)]:
+        with tm.assert_produces_warning(None):
+            obj == box()
+
+
+def test_cmp_multiindex_tuple_not_deprecated():
+    # GH#62423 MultiIndex already treats a tuple as a single (scalar) entry
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
+    with tm.assert_produces_warning(None):
+        mi == ("a", 1)
+
+
+def test_cmp_categorical_positional_listlike_deprecated():
+    # GH#62423 a non-standard non-hashable listlike (deque) reaches the
+    #  positional comparison branch and is deprecated; a hashable tuple/range is
+    #  already treated as scalar-like and must not warn
+    cat = Categorical([1, 2, 3])
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        cat == deque([1, 2, 3])
+    for other in [(1, 2, 3), range(3)]:
+        with tm.assert_produces_warning(None):
+            cat == other

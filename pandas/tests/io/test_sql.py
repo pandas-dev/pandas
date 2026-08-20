@@ -21,8 +21,8 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -94,25 +94,22 @@ def sql_strings():
 
 
 def iris_table_metadata():
-    import sqlalchemy
     from sqlalchemy import (
         Column,
         Double,
-        Float,
         MetaData,
         String,
         Table,
     )
 
-    dtype = Double if Version(sqlalchemy.__version__) >= Version("2.0.0") else Float
     metadata = MetaData()
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", dtype),
-        Column("SepalWidth", dtype),
-        Column("PetalLength", dtype),
-        Column("PetalWidth", dtype),
+        Column("SepalLength", Double),
+        Column("SepalWidth", Double),
+        Column("PetalLength", Double),
+        Column("PetalWidth", Double),
         Column("Name", String(200)),
     )
     return iris
@@ -191,7 +188,7 @@ def create_and_load_iris(conn, iris_file: Path):
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
-        params = [dict(zip(header, row)) for row in reader]
+        params = [dict(zip(header, row, strict=True)) for row in reader]
         stmt = insert(iris).values(params)
         with conn.begin() as con:
             iris.drop(con, checkfirst=True)
@@ -966,15 +963,19 @@ adbc_connectable_types = [
 ]
 
 
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
+all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
 
-all_connectable_iris = (
-    sqlalchemy_connectable_iris + ["sqlite_buildin_iris"] + adbc_connectable_iris
-)
+all_connectable_iris = [
+    *sqlalchemy_connectable_iris,
+    "sqlite_buildin_iris",
+    *adbc_connectable_iris,
+]
 
-all_connectable_types = (
-    sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
-)
+all_connectable_types = [
+    *sqlalchemy_connectable_types,
+    "sqlite_buildin_types",
+    *adbc_connectable_types,
+]
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -987,11 +988,15 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
     if conn == "postgresql_adbc_conn" and not using_string_dtype():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
+        adbc_pg = pytest.importorskip("adbc_driver_postgresql")
+        if Version(adbc_pg.__version__) < Version("1.11"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "postgres ADBC driver < 1.11 cannot insert index with null type"
+                    ),
+                )
             )
-        )
 
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
@@ -1016,14 +1021,11 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     )
 
     if "adbc" in conn:
+        exp_warning = None
+        msg = ""
+
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-            msg = "is_sparse is deprecated"
-        else:
-            exp_warning = None
-            msg = ""
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -1206,7 +1208,7 @@ def test_to_sql_callable(conn, test_frame1, request):
 
     def sample(pd_table, conn, keys, data_iter):
         check.append(1)
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         conn.execute(pd_table.table.insert(), data)
 
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
@@ -1334,7 +1336,7 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = (
             insert(table.table)
             .values(data)
@@ -1416,7 +1418,7 @@ def test_insertion_method_on_conflict_update(conn, request):
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = insert(table.table).values(data)
         stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         result = conn.execute(stmt)
@@ -1517,6 +1519,20 @@ SELECT * FROM groups;
     sqlite_buildin.execute(create_view)
     result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
     expected = DataFrame({"group_id": [1], "name": "name"})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_sql_bare_table_name_dbapi_message_gh54233(sqlite_buildin):
+    # GH#54233 a bare table name on a DBAPI connection cannot be reflected
+    DataFrame({"a": [1], "b": [2]}).to_sql("demo", sqlite_buildin, index=False)
+
+    msg = "Reading a table by name is only supported when using a SQLAlchemy"
+    with pytest.raises(sql.DatabaseError, match=msg):
+        pd.read_sql("demo", sqlite_buildin)
+
+    # a genuine SQL query still works
+    result = pd.read_sql("SELECT * FROM demo", sqlite_buildin)
+    expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -1794,16 +1810,54 @@ def test_api_date_parsing(conn, request):
         Timestamp(2013, 1, 1, 0, 0, 0),
     ]
 
-    df = sql.read_sql_query(
-        "SELECT * FROM types",
-        conn,
-        parse_dates={"IntDateOnlyCol": "%Y%m%d"},
-    )
+    # GH#55663 passing a format for an integer column is deprecated
+    msg = "Passing a format for integer or float columns to read_sql"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        df = sql.read_sql_query(
+            "SELECT * FROM types",
+            conn,
+            parse_dates={"IntDateOnlyCol": "%Y%m%d"},
+        )
     assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
     assert df.IntDateOnlyCol.tolist() == [
         Timestamp("2010-10-10"),
         Timestamp("2010-12-12"),
     ]
+
+
+@pytest.mark.parametrize("conn", all_connectable_types)
+def test_api_date_parsing_int_col_dict_format(conn, request):
+    # GH#55663 dict-form format on an integer column is deprecated in favor of
+    #  the user casting the column to string explicitly after reading
+    conn = request.getfixturevalue(conn)
+    msg = "Passing a format for integer or float columns to read_sql"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        df = sql.read_sql_query(
+            "SELECT * FROM types",
+            conn,
+            parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
+        )
+    assert df["IntDateOnlyCol"].tolist() == [
+        Timestamp("2010-10-10"),
+        Timestamp("2010-12-12"),
+    ]
+
+
+@pytest.mark.parametrize("conn", all_connectable_types)
+def test_api_date_parsing_int_col_no_format_pyarrow_backend(conn, request):
+    # GH#55663 with no format given, numeric columns that don't have a
+    #  numpy dtype should retain epoch interpretation
+    pytest.importorskip("pyarrow")
+    conn = request.getfixturevalue(conn)
+    raw = sql.read_sql_query("SELECT * FROM types", conn, dtype_backend="pyarrow")
+    df = sql.read_sql_query(
+        "SELECT * FROM types",
+        conn,
+        parse_dates=["IntDateCol"],
+        dtype_backend="pyarrow",
+    )
+    expected = to_datetime(raw["IntDateCol"], errors="coerce")
+    tm.assert_series_equal(df["IntDateCol"], expected)
 
 
 @pytest.mark.parametrize("conn", all_connectable_types)
@@ -1831,7 +1885,7 @@ def test_api_custom_dateparsing_error(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
-    expected = types_data_frame.astype({"DateCol": "datetime64[s]"})
+    expected = types_data_frame.astype({"DateCol": "datetime64[us]"})
 
     result = read_sql(
         text,
@@ -1854,12 +1908,6 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    if conn_name == "postgresql_adbc_types" and pa_version_under14p1:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[ns]")
-    elif "postgres" in conn_name or "mysql" in conn_name:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
-    else:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1897,10 +1945,7 @@ def test_api_timedelta(conn, request):
         )
 
     if "adbc" in conn_name:
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-        else:
-            exp_warning = None
+        exp_warning = None
     else:
         exp_warning = UserWarning
 
@@ -1980,9 +2025,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
         request.applymarker(
-            pytest.mark.xfail(
-                reason="MySQL can fail using TEXT without length as key", strict=False
-            )
+            pytest.mark.xfail(reason="MySQL can fail using TEXT without length as key")
         )
     elif "adbc" in conn_name:
         request.node.add_marker(
@@ -2224,7 +2267,8 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match="^$"):
+        msg = "read_sql_table not supported for a DBAPI connection"
+        with pytest.raises(NotImplementedError, match=msg):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -2241,15 +2285,6 @@ def test_api_chunksize_read(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
-    if conn == "postgresql_adbc_conn":
-        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
-        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="categorical dtype not implemented for ADBC postgres driver",
-                    strict=True,
-                )
-            )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
@@ -2306,19 +2341,32 @@ def test_api_escaped_table_name(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
+def test_api_table_name_quoted(conn, request):
+    # GH#65065 ADBCDatabase did not escape SQL identifiers in
+    # delete_rows, read_table, and to_sql (DROP TABLE path)
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        pytest.skip("sqlite_buildin connection does not implement read_sql_table")
+
+    conn = request.getfixturevalue(conn)
+
+    tricky_name = "my table"
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    # to_sql: adbc_ingest handles quoting internally — should pass
+    df.to_sql(tricky_name, conn, index=False, if_exists="replace")
+    # read_table: was interpolating name raw into f-string
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+    # delete_rows: was interpolating name raw into DELETE FROM f-string
+    df.to_sql(tricky_name, conn, index=False, if_exists="delete_rows")
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
-    if "adbc" in conn:
-        pa = pytest.importorskip("pyarrow")
-        if not (
-            Version(pa.__version__) >= Version("16.0")
-            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="pyarrow->pandas throws ValueError", strict=True
-                )
-            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2595,7 +2643,7 @@ def test_sql_open_close(temp_file, test_frame3):
 @td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
-    msg = "Using URI string without sqlalchemy installed"
+    msg = "Using a URI string requires 'sqlalchemy'"
     with pytest.raises(ImportError, match=msg):
         sql.read_sql("SELECT * FROM iris", conn)
 
@@ -3857,16 +3905,10 @@ def test_read_sql_string_inference(sqlite_engine):
     # GH#54430
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
+    expected = df.copy()
+
     df.to_sql(table, con=conn, index=False, if_exists="replace")
-
-    with pd.option_context("future.infer_string", True):
-        result = read_sql_table(table, conn)
-
-    dtype = pd.StringDtype(na_value=np.nan)
-    expected = DataFrame(
-        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
-    )
-
+    result = read_sql_table(table, conn)
     tm.assert_frame_equal(result, expected)
 
 
@@ -4072,7 +4114,7 @@ def test_sqlite_test_dtype(sqlite_buildin):
     assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
 
     assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
-    msg = r"B \(<class 'bool'>\) not a string"
+    msg = r"Invalid type '<class 'bool'>' for dtype of column 'B': expected a string"
     with pytest.raises(ValueError, match=msg):
         df.to_sql(name="error", con=conn, dtype={"B": bool})
 

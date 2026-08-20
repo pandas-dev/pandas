@@ -49,7 +49,7 @@ class TestIntervalIndex:
 
         ivs = [
             Interval(left, right, closed)
-            for left, right in zip(range(10), range(1, 11))
+            for left, right in zip(range(10), range(1, 11), strict=True)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -71,7 +71,7 @@ class TestIntervalIndex:
 
         ivs = [
             Interval(left, right, closed) if notna(left) else np.nan
-            for left, right in zip(expected_left, expected_right)
+            for left, right in zip(expected_left, expected_right, strict=True)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -81,11 +81,8 @@ class TestIntervalIndex:
         [
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
-            date_range("2017-01-01", "2017-01-04"),
-            pytest.param(
-                date_range("2017-01-01", "2017-01-04", unit="s"),
-                marks=pytest.mark.xfail(reason="mismatched result unit"),
-            ),
+            date_range("2017-01-01", "2017-01-04", unit="ns"),
+            date_range("2017-01-01", "2017-01-04", unit="s"),
             pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5h", "6D"]),
         ],
     )
@@ -377,13 +374,16 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize(
         "breaks",
-        [date_range("2018-01-01", periods=5), timedelta_range("0 days", periods=5)],
+        [
+            date_range("2018-01-01", periods=5),
+            timedelta_range("0 days", periods=5, unit="us"),
+        ],
     )
     def test_maybe_convert_i8_nat(self, breaks):
         # GH 20636
         index = IntervalIndex.from_breaks(breaks)
 
-        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("ns")
+        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("us")
         expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
@@ -431,13 +431,15 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize(
         "breaks1, breaks2",
-        permutations(
-            [
-                date_range("20180101", periods=4),
-                date_range("20180101", periods=4, tz="US/Eastern"),
-                timedelta_range("0 days", periods=4),
-            ],
-            2,
+        list(
+            permutations(
+                [
+                    date_range("20180101", periods=4),
+                    date_range("20180101", periods=4, tz="US/Eastern"),
+                    timedelta_range("0 days", periods=4),
+                ],
+                2,
+            )
         ),
         ids=lambda x: str(x.dtype),
     )
@@ -646,7 +648,7 @@ class TestIntervalIndex:
         # test mid
         start = Timestamp("2000-01-01T12:00", tz=tz)
         expected = date_range(start=start, periods=9)
-        tm.assert_index_equal(index.mid, expected)
+        tm.assert_index_equal(index.mid, expected, check_freq=False)
 
         # __contains__ doesn't check individual points
         assert Timestamp("2000-01-01", tz=tz) not in index
@@ -752,7 +754,7 @@ class TestIntervalIndex:
         assert index.is_overlapping is False
 
         # non-overlapping with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         assert index.is_overlapping is False
 
@@ -762,7 +764,7 @@ class TestIntervalIndex:
         assert index.is_overlapping is True
 
         # overlapping with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         assert index.is_overlapping is True
 
@@ -774,7 +776,7 @@ class TestIntervalIndex:
         assert result is expected
 
         # common endpoints with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index.is_overlapping
         assert result is expected
@@ -789,14 +791,16 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "tuples",
         [
-            zip(range(10), range(1, 11)),
+            zip(range(10), range(1, 11), strict=True),
             zip(
                 date_range("20170101", periods=10),
                 date_range("20170101", periods=10),
+                strict=True,
             ),
             zip(
                 timedelta_range("0 days", periods=10),
                 timedelta_range("1 day", periods=10),
+                strict=True,
             ),
         ],
     )
@@ -811,21 +815,27 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "tuples",
         [
-            list(zip(range(10), range(1, 11))) + [np.nan],
-            list(
-                zip(
-                    date_range("20170101", periods=10),
-                    date_range("20170101", periods=10),
-                )
-            )
-            + [np.nan],
-            list(
-                zip(
-                    timedelta_range("0 days", periods=10),
-                    timedelta_range("1 day", periods=10),
-                )
-            )
-            + [np.nan],
+            [*list(zip(range(10), range(1, 11), strict=True)), np.nan],
+            [
+                *list(
+                    zip(
+                        date_range("20170101", periods=10),
+                        date_range("20170101", periods=10),
+                        strict=True,
+                    )
+                ),
+                np.nan,
+            ],
+            [
+                *list(
+                    zip(
+                        timedelta_range("0 days", periods=10),
+                        timedelta_range("1 day", periods=10),
+                        strict=True,
+                    )
+                ),
+                np.nan,
+            ],
         ],
     )
     @pytest.mark.parametrize("na_tuple", [True, False])
@@ -887,6 +897,24 @@ def test_from_arrays_mismatched_signedness_raises():
     left = np.array([0, 1, 2], dtype="int64")
     right = np.array([1, 2, 3], dtype="uint64")
     with pytest.raises(TypeError, match="matching signedness"):
+        IntervalIndex.from_arrays(left, right)
+
+
+@pytest.mark.parametrize(
+    "left, right",
+    [
+        # right overflows int64 -> right.dtype becomes object
+        pytest.param([0], [2**64], id="right-overflows"),
+        # left overflows int64 -> left.dtype becomes object (mirror case,
+        # already raised before this fix; kept here so both sides are
+        # covered by the same parametrization)
+        pytest.param([-(2**64)], [0], id="left-overflows"),
+    ],
+)
+def test_interval_index_endpoint_dtype_mismatch_raises(left, right):
+    # GH 66518
+    msg = "category, object, and string subtypes are not supported for IntervalIndex"
+    with pytest.raises(TypeError, match=msg):
         IntervalIndex.from_arrays(left, right)
 
 

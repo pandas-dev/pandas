@@ -38,11 +38,11 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 @pytest.mark.network
 @pytest.mark.single_cpu
-def test_url(all_parsers, csv_dir_path, httpserver):
+def test_url(all_parsers, datapath, httpserver):
     parser = all_parsers
     kwargs = {"sep": "\t"}
 
-    local_path = os.path.join(csv_dir_path, "salaries.csv")
+    local_path = datapath("io", "parser", "data", "salaries.csv")
     with open(local_path, encoding="utf-8") as f:
         httpserver.serve_content(content=f.read())
 
@@ -53,11 +53,11 @@ def test_url(all_parsers, csv_dir_path, httpserver):
 
 
 @pytest.mark.slow
-def test_local_file(all_parsers, csv_dir_path):
+def test_local_file(all_parsers, datapath):
     parser = all_parsers
     kwargs = {"sep": "\t"}
 
-    local_path = os.path.join(csv_dir_path, "salaries.csv")
+    local_path = datapath("io", "parser", "data", "salaries.csv")
     local_result = parser.read_csv(local_path, **kwargs)
     url = "file://localhost/" + local_path
 
@@ -69,15 +69,16 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.index are different
-def test_path_path_lib(all_parsers):
+def test_path_path_lib(all_parsers, temp_file):
     parser = all_parsers
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
-    result = tm.round_trip_pathlib(df.to_csv, lambda p: parser.read_csv(p, index_col=0))
+    result = tm.round_trip_pathlib(
+        df.to_csv, lambda p: parser.read_csv(p, index_col=0), temp_file
+    )
     tm.assert_frame_equal(df, result)
 
 
@@ -97,25 +98,25 @@ def test_nonexistent_path(all_parsers):
 
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 @td.skip_if_windows  # os.chmod does not work in windows
-def test_no_permission(all_parsers):
+def test_no_permission(all_parsers, temp_file):
     # GH 23784
     parser = all_parsers
 
     msg = r"\[Errno 13\]"
-    with tm.ensure_clean() as path:
-        os.chmod(path, 0)  # make file unreadable
+    path = temp_file
+    os.chmod(path, 0)  # make file unreadable
 
-        # verify that this process cannot open the file (not running as sudo)
-        try:
-            with open(path, encoding="utf-8"):
-                pass
-            pytest.skip("Running as sudo.")
-        except PermissionError:
+    # verify that this process cannot open the file (not running as sudo)
+    try:
+        with open(path, encoding="utf-8"):
             pass
+        pytest.skip("Running as sudo.")
+    except PermissionError:
+        pass
 
-        with pytest.raises(PermissionError, match=msg) as e:
-            parser.read_csv(path)
-        assert path == e.value.filename
+    with pytest.raises(PermissionError, match=msg) as e:
+        parser.read_csv(path)
+    assert str(path.resolve()) == e.value.filename
 
 
 @pytest.mark.parametrize(
@@ -248,7 +249,7 @@ def test_temporary_file(all_parsers, temp_file):
         new_file.seek(0)
 
         if parser.engine == "pyarrow":
-            msg = "the 'pyarrow' engine does not support regex separators"
+            msg = "the 'pyarrow' engine does not support separators > 1 char"
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(new_file, sep=r"\s+", header=None)
             return
@@ -269,19 +270,19 @@ def test_internal_eof_byte(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_internal_eof_byte_to_file(all_parsers):
+def test_internal_eof_byte_to_file(all_parsers, temp_file):
     # see gh-16559
     parser = all_parsers
     data = b'c1,c2\r\n"test \x1a    test", test\r\n'
     expected = DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
     path = f"__{uuid.uuid4()}__.csv"
 
-    with tm.ensure_clean(path) as path:
-        with open(path, "wb") as f:
-            f.write(data)
+    path2 = temp_file.parent / path
+    with open(path2, "wb") as f:
+        f.write(data)
 
-        result = parser.read_csv(path)
-        tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(path2)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_file_handle_string_io(all_parsers):
@@ -372,7 +373,7 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     assert not handle.closed
 
 
-def test_memory_map_compression(all_parsers, compression):
+def test_memory_map_compression(all_parsers, compression, temp_file):
     """
     Support memory map for compressed files.
 
@@ -381,16 +382,16 @@ def test_memory_map_compression(all_parsers, compression):
     parser = all_parsers
     expected = DataFrame({"a": [1], "b": [2]})
 
-    with tm.ensure_clean() as path:
-        expected.to_csv(path, index=False, compression=compression)
+    path = temp_file
+    expected.to_csv(path, index=False, compression=compression)
 
-        if parser.engine == "pyarrow":
-            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(path, memory_map=True, compression=compression)
-            return
+    if parser.engine == "pyarrow":
+        msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(path, memory_map=True, compression=compression)
+        return
 
-        result = parser.read_csv(path, memory_map=True, compression=compression)
+    result = parser.read_csv(path, memory_map=True, compression=compression)
 
     tm.assert_frame_equal(
         result,
@@ -442,16 +443,16 @@ def test_context_manageri_user_provided(all_parsers, datapath):
 
 
 @skip_pyarrow  # ParserError: Empty CSV file
-def test_file_descriptor_leak(all_parsers):
+def test_file_descriptor_leak(all_parsers, temp_file):
     # GH 31488
     parser = all_parsers
-    with tm.ensure_clean() as path:
-        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
-            parser.read_csv(path)
+    path = temp_file
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        parser.read_csv(path)
 
 
-def test_memory_map(all_parsers, csv_dir_path):
-    mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
+def test_memory_map(all_parsers, datapath):
+    mmap_file = datapath("io", "parser", "data", "test_mmap.csv")
     parser = all_parsers
 
     expected = DataFrame(

@@ -85,6 +85,18 @@ class TestIndexing:
         assert isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    @pytest.mark.skipif(
+        not IS64,
+        reason="2**31 is too big for Py_ssize_t on 32-bit. "
+        "It doesn't matter though since you cannot create an array that long on 32-bit",
+    )
+    def test_maybe_indices_to_slice_large_length(self):
+        # GH#24248 a max_len exceeding the 32-bit int range must not overflow
+        #  (e.g. Index.take on an index with more than 2**31 rows)
+        indices = np.array([1, 2, 5, 6], dtype=np.intp)
+        result = lib.maybe_indices_to_slice(indices, 2**31)
+        tm.assert_numpy_array_equal(result, indices)
+
     @pytest.mark.parametrize("end", [1, 2, 5, 20, 99])
     @pytest.mark.parametrize("step", [1, 2, 4])
     def test_maybe_indices_to_slice_left_edge_not_slice_end_steps(self, end, step):
@@ -276,14 +288,36 @@ class TestIndexing:
         assert not lib.is_range_indexer(left, 2)
 
 
+@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+def test_has_sentinel(dtype):
+    arr = np.array([0, 1, 2, 3], dtype=dtype)
+    assert not lib.has_sentinel(arr, -1)
+    # sentinel need not be -1
+    assert lib.has_sentinel(arr, 2)
+    assert not lib.has_sentinel(arr, 4)
+
+
+@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+@pytest.mark.parametrize("n", [0, 1, 7, 8, 9, 15, 16, 17])
+def test_has_sentinel_every_position(dtype, n):
+    # the scan unrolls 8 lanes at a time, so check the body/tail boundary
+    # by placing the sentinel at every position for lengths around 8 and 16
+    base = np.arange(1, n + 1, dtype=dtype)  # all positive, no -1
+    assert not lib.has_sentinel(base, -1)
+    for pos in range(n):
+        arr = base.copy()
+        arr[pos] = -1
+        assert lib.has_sentinel(arr, -1)
+
+
 def test_cache_readonly_preserve_docstrings():
     # GH18197
     assert Index.hasnans.__doc__ is not None
 
 
-def test_no_default_pickle():
+def test_no_default_pickle(temp_file):
     # GH#40397
-    obj = tm.round_trip_pickle(lib.no_default)
+    obj = tm.round_trip_pickle(lib.no_default, temp_file)
     assert obj is lib.no_default
 
 
@@ -307,3 +341,52 @@ def test_ensure_string_array_list_of_lists():
     # Each item in result should still be a list, not a stringified version
     expected = np.array(["['t', 'e', 's', 't']", "['w', 'o', 'r', 'd']"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_item_from_zerodim_for_subclasses():
+    # GH#62981 Ensure item_from_zerodim preserves subclasses of ndarray
+    # Define a custom ndarray subclass
+    class TestArray(np.ndarray):
+        def __new__(cls, input_array):
+            return np.asarray(input_array).view(cls)
+
+        def __array_finalize__(self, obj) -> None:
+            self._is_test_array = True
+
+    # Define test data
+    val_0_dim = 1
+    val_1_dim = [1, 2, 3]
+
+    # 0-dim and 1-dim numpy arrays
+    arr_0_dim = np.array(val_0_dim)
+    arr_1_dim = np.array(val_1_dim)
+
+    # 0-dim and 1-dim TestArray arrays
+    test_arr_0_dim = TestArray(val_0_dim)
+    test_arr_1_dim = TestArray(val_1_dim)
+
+    # Check that behavior did not change for regular numpy arrays
+    # Test with regular numpy 0-dim array
+    result = lib.item_from_zerodim(arr_0_dim)
+    expected = val_0_dim
+    assert result == expected
+    assert np.isscalar(result)
+
+    # Test with regular numpy 1-dim array
+    result = lib.item_from_zerodim(arr_1_dim)
+    expected = arr_1_dim
+    tm.assert_numpy_array_equal(result, expected)
+    assert isinstance(result, np.ndarray)
+
+    # Check that behaviour for subclasses now is as expected
+    # Test with TestArray 0-dim array
+    result = lib.item_from_zerodim(test_arr_0_dim)
+    expected = test_arr_0_dim
+    assert result == expected
+    assert isinstance(result, TestArray)
+
+    # Test with TestArray 1-dim array
+    result = lib.item_from_zerodim(test_arr_1_dim)
+    expected = test_arr_1_dim
+    assert np.all(result == expected)
+    assert isinstance(result, TestArray)

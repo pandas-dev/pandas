@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import PY315
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
@@ -19,7 +20,6 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    DatetimeTZDtype,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -261,23 +261,20 @@ class TestBase:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
-        result = index_type(index.values, copy=True, **init_kwargs)
-        if isinstance(index.dtype, DatetimeTZDtype):
-            result = result.tz_localize("UTC").tz_convert(index.tz)
+        result = index_type(index._values, copy=True, **init_kwargs)
         if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
             index = index._with_freq(None)
 
         tm.assert_index_equal(index, result)
 
         if isinstance(index, PeriodIndex):
-            # .values an object array of Period, thus copied
-            result = index_type.from_ordinals(ordinals=index.asi8, **init_kwargs)
+            result = index_type(index._values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
             pass
         elif type(index) is Index and not isinstance(index.dtype, np.dtype):
-            result = index_type(index.values, copy=False, **init_kwargs)
+            result = index_type(index._values, copy=False, **init_kwargs)
             tm.assert_index_equal(result, index)
 
             if isinstance(index._values, BaseMaskedArray):
@@ -304,8 +301,21 @@ class TestBase:
             else:
                 raise NotImplementedError(index.dtype)
         else:
-            result = index_type(index.values, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
+            result = index_type(index._values, copy=False, **init_kwargs)
+            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                # ._values returns DatetimeArray/TimedeltaArray; check
+                # underlying ndarray is shared
+                tm.assert_numpy_array_equal(
+                    index._values._ndarray,
+                    result._values._ndarray,
+                    check_same="same",
+                )
+            elif isinstance(index.dtype, np.dtype):
+                tm.assert_numpy_array_equal(
+                    index._values, result._values, check_same="same"
+                )
+            else:
+                assert result._values is index._values
 
     def test_memory_usage(self, index):
         index._engine.clear_mapping()
@@ -355,15 +365,17 @@ class TestBase:
             assert res_without_engine > 0
             assert res_with_engine > 0
 
-    def test_argsort(self, index):
+    def test_argsort(self, index_sortable):
+        index = index_sortable
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
         result = index.argsort()
         expected = np.array(index).argsort()
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_numpy_array_equal(result, expected)
 
-    def test_numpy_argsort(self, index):
+    def test_numpy_argsort(self, index_sortable):
+        index = index_sortable
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
@@ -392,12 +404,12 @@ class TestBase:
         rep = 2
         idx = simple_index.copy()
         new_index_cls = idx._constructor
-        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx._values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
         idx = simple_index
         rep = np.arange(len(idx))
-        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx._values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
     def test_numpy_repeat(self, simple_index):
@@ -428,7 +440,7 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(idx[1:])
-        expected = Index([idx._na_value] + idx[1:].tolist(), dtype=idx.dtype)
+        expected = Index([idx._na_value, *idx[1:].tolist()], dtype=idx.dtype)
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -452,11 +464,13 @@ class TestBase:
         if len(index) == 0:
             # 0 vs 0.5 in error message varies with numpy version
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
+        elif PY315:
+            msg = "slice indices must be integers or have an __index__ method"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
         if using_infer_string:
-            if index.dtype == "string" or index.dtype == "category":
+            if str(index.dtype) in {"str", "string", "category"}:
                 msg = "loc must be an integer between"
             elif index.dtype == "object" and len(index) == 0:
                 msg = "loc must be an integer between"
@@ -535,7 +549,8 @@ class TestBase:
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
 
-        msg = "Lengths must match|could not be broadcast"
+        # the Index length check raises before NumPy can attempt to broadcast
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             index_a == index_b
         expected1 = np.array([True] * n)
@@ -664,12 +679,12 @@ class TestBase:
 
         result = idx.map(lambda x: x)
         # RangeIndex are equivalent to the similar Index with int64 dtype
-        tm.assert_index_equal(result, idx, exact="equiv")
+        tm.assert_index_equal(result, idx, exact="equiv", check_freq=False)
 
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -716,7 +731,7 @@ class TestBase:
         dtype = CategoricalDtype(ordered=ordered)
         result = idx.astype(dtype, copy=copy)
         expected = CategoricalIndex(idx, name=name, ordered=ordered)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
@@ -725,13 +740,13 @@ class TestBase:
             result = idx.astype(dtype, copy=copy)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = CategoricalIndex(idx, name=name, dtype=dtype)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
             result = idx.astype("category", copy=copy)
             expected = CategoricalIndex(idx, name=name)
-            tm.assert_index_equal(result, expected, exact=True)
+            tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
     def test_is_unique(self, simple_index):
         # initialize a unique index
@@ -768,7 +783,7 @@ class TestBase:
         if isinstance(simple_index, IntervalIndex):
             pytest.skip("Tested elsewhere")
         idx = simple_index
-        msg = "Multi-dimensional indexing|too many|only"
+        msg = "|".join(["Multi-dimensional indexing", "too many", "only"])
         with pytest.raises((ValueError, IndexError), match=msg):
             idx[:, None]
 
@@ -821,9 +836,12 @@ class TestBase:
                 datetime(2011, 11, 1),
             ],
             tz="UTC",
-        ).values
+        )._values
 
-        ex_keys = [Timestamp("2011-11-01"), Timestamp("2011-12-01")]
+        ex_keys = [
+            Timestamp("2011-11-01", tz="UTC"),
+            Timestamp("2011-12-01", tz="UTC"),
+        ]
         expected = {ex_keys[0]: idx[[0, 4]], ex_keys[1]: idx[[1, 3]]}
         tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
@@ -835,11 +853,15 @@ class TestBase:
         result = index.append(index)
         assert result.dtype == index.dtype
 
-        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
-        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
+        tm.assert_index_equal(
+            result[:N], index, exact=False, check_exact=True, check_freq=False
+        )
+        tm.assert_index_equal(
+            result[N:], index, exact=False, check_exact=True, check_freq=False
+        )
 
         alt = index.take(list(range(N)) * 2)
-        tm.assert_index_equal(result, alt, check_exact=True)
+        tm.assert_index_equal(result, alt, check_exact=True, check_freq=False)
 
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
@@ -847,7 +869,7 @@ class TestBase:
         if idx.dtype.kind in ["i", "u"]:
             res = ~idx
             expected = Index(~idx.values, name=idx.name)
-            tm.assert_index_equal(res, expected)
+            tm.assert_index_equal(res, expected, exact="equiv")
 
             # check that we are matching Series behavior
             res2 = ~Series(idx)
@@ -856,7 +878,9 @@ class TestBase:
             if idx.dtype.kind == "f":
                 msg = "ufunc 'invert' not supported for the input types"
             else:
-                msg = "bad operand|__invert__ is not supported for string dtype"
+                msg = "|".join(
+                    ["bad operand", "__invert__ is not supported for string dtype"]
+                )
             with pytest.raises(TypeError, match=msg):
                 ~idx
 
@@ -910,10 +934,7 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = (
-            "Cannot change data-type for array of references.|"
-            "Cannot change data-type for object array.|"
-        )
+        msg = "Cannot change data-type"
         with pytest.raises(TypeError, match=msg):
             # GH#55709
             idx.view(index_cls)
@@ -925,7 +946,7 @@ class TestNumericBase:
 
         result = index.insert(0, index[0])
 
-        expected = Index([index[0]] + list(index), dtype=index.dtype)
+        expected = Index([index[0], *list(index)], dtype=index.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
@@ -934,9 +955,9 @@ class TestNumericBase:
         na_val = nulls_fixture
 
         if na_val is pd.NaT:
-            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+            expected = Index([index[0], pd.NaT, *list(index[1:])], dtype=object)
         else:
-            expected = Index([index[0], np.nan] + list(index[1:]))
+            expected = Index([index[0], np.nan, *list(index[1:])])
             # GH#43921 we preserve float dtype
             if index.dtype.kind == "f":
                 expected = Index(expected, dtype=index.dtype)

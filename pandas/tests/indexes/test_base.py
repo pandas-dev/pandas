@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -39,6 +42,7 @@ from pandas.core.indexes.api import (
     _get_combined_index,
     ensure_index,
     ensure_index_from_sequences,
+    union_indexes,
 )
 from pandas.testing import assert_series_equal
 
@@ -133,7 +137,7 @@ class TestIndex:
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
         result = Index(Series(index))
-        tm.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index, check_freq=False)
 
         if has_tz:
             assert result.tz == index.tz
@@ -170,7 +174,9 @@ class TestIndex:
         # infer freq of same
         if not using_infer_string:
             # Doesn't work with arrow strings
-            freq = pd.infer_freq(df["date"])
+            msg = "A future version of pandas will return a BaseOffset"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                freq = pd.infer_freq(df["date"])
             assert freq == "MS"
 
     def test_constructor_int_dtype_nan(self):
@@ -178,6 +184,37 @@ class TestIndex:
         data = [np.nan]
         expected = Index(data, dtype=np.float64)
         result = Index(data, dtype="float")
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_scalar(self):
+        idx = Index([1, 2, 3])
+
+        result = idx.replace(2, 9)
+
+        expected = Index([1, 9, 3])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_dict(self):
+        idx = Index(["a", "b", "c"])
+
+        result = idx.replace({"b": "x"})
+
+        expected = Index(["a", "x", "c"])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_preserves_name(self):
+        idx = Index([1, 2, 3], name="test")
+
+        result = idx.replace(2, 9)
+
+        assert result.name == "test"
+
+    def test_index_replace_regex(self):
+        idx = Index(["foo", "bar", "baz"])
+        result = idx.replace("^ba", "x", regex=True)
+        expected = Index(["foo", "xr", "xz"])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -220,7 +257,7 @@ class TestIndex:
         # .asi8 produces integers, so these are considered epoch timestamps
         # ^the above will be true in a later version. Right now we `.view`
         # the i8 values as NS_DTYPE, effectively treating them as wall times.
-        index = date_range("2011-01-01", periods=5)
+        index = date_range("2011-01-01", periods=5, unit="ns")
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
@@ -231,13 +268,13 @@ class TestIndex:
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
                 klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             if err:
@@ -245,20 +282,20 @@ class TestIndex:
                     DatetimeIndex(arg).astype(dtype)
             else:
                 result = DatetimeIndex(arg).astype(dtype)
-                tm.assert_index_equal(result, index)
+                tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(arg, dtype=dtype)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
                 klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
             if err:
@@ -266,15 +303,15 @@ class TestIndex:
                     DatetimeIndex(list(arg)).astype(dtype)
             else:
                 result = DatetimeIndex(list(arg)).astype(dtype)
-                tm.assert_index_equal(result, index)
+                tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(list(arg), dtype=dtype)
-            tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index, check_freq=False)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5, unit="ns")
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
@@ -353,11 +390,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = (
-                r"Cannot change data-type for array of references\.|"
-                r"Cannot change data-type for object array\.|"
-                r"Cannot change data-type for array of strings\.|"
-            )
+            msg = "Cannot change data-type"
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -534,7 +567,7 @@ class TestIndex:
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
         first_level = ["foo", "bar", "baz"]
-        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3]))
+        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3], strict=True))
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
@@ -562,7 +595,7 @@ class TestIndex:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -576,7 +609,7 @@ class TestIndex:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -728,7 +761,7 @@ class TestIndex:
     def test_drop_by_str_label_errors_ignore(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
-        mixed = drop.tolist() + ["foo"]
+        mixed = [*drop.tolist(), "foo"]
         dropped = index.drop(mixed, errors="ignore")
 
         expected = index[list(range(5)) + list(range(10, n))]
@@ -865,7 +898,7 @@ class TestIndex:
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
-            #  and 2) that with an NaN we do not have .isin(nulls_fixture)
+            #  and 2) that with a NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
                 f"not {type(nulls_fixture).__name__!r}"
@@ -895,7 +928,7 @@ class TestIndex:
     )
     def test_isin_level_kwarg(self, level, index):
         index = Index(index)
-        values = index.tolist()[-2:] + ["nonexisting"]
+        values = [*index.tolist()[-2:], "nonexisting"]
 
         expected = np.array([False, False, True, True])
         tm.assert_numpy_array_equal(expected, index.isin(values, level=level))
@@ -911,7 +944,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(["foo", "bar", *index.names[2:]])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
@@ -1108,20 +1141,23 @@ class TestIndex:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = index.take(np.array([1, 0, -1]), fill_value=True)
+        result = index.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = Index(["B", "A", np.nan], name="xxx")
         tm.assert_index_equal(result, expected)
 
+        # fill_value is respected (not discarded in favor of _na_value)
+        result = index.take(np.array([1, 0, -1]), fill_value="X")
+        expected = Index(["B", "A", "X"], name="xxx")
+        tm.assert_index_equal(result, expected)
+
         # allow_fill=False
-        result = index.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = index.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index(["B", "A", "C"], name="xxx")
         tm.assert_index_equal(result, expected)
 
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
 
         with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -2]), fill_value=True)
@@ -1358,23 +1394,55 @@ class TestIndex:
 
         tm.assert_index_equal(result, expected)
 
+    def test_assert_index_equal_exact_equiv_default_deprecated(self):
+        # GH#57436
+        result = Index([0, 1, 2, 3], dtype=np.int64)
+        expected = RangeIndex(0, 4)
+        msg = "The default value of 'equiv' for the `exact` parameter is deprecated "
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "indexes, expected, expected_all_equal",
+        [
+            (
+                [Index(["a", "b"]), Index(["a", "b"])],
+                Index(["a", "b"]),
+                True,
+            ),
+            (
+                [Index(["a", "b"]), Index(["b", "c"])],
+                Index(["a", "b", "c"]),
+                False,
+            ),
+        ],
+    )
+    def test_union_indexes_returns_all_equal(
+        self, indexes, expected, expected_all_equal
+    ):
+        # GH#65393
+        result, all_equal = union_indexes(indexes, sort=False)
+
+        tm.assert_index_equal(result, expected)
+        assert all_equal is expected_all_equal
+
 
 class TestMixedIntIndex:
-    # Mostly the tests from common.py for which the results differ
-    # in py2 and py3 because ints and strings are uncomparable in py3
-    # (GH 13514)
+    # (GH 13514) tests for mixed int/str indexes where ints and strings
+    # are not comparable
     @pytest.fixture
     def simple_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])
 
     def test_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             index.argsort()
 
     def test_numpy_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             np.argsort(index)
 
     def test_copy_name(self, simple_index):
@@ -1586,7 +1654,7 @@ class TestIndexUtils:
         tm.assert_index_equal(result, expected)
 
     def test_get_combined_index(self):
-        result = _get_combined_index([])
+        result, _ = _get_combined_index([])
         expected = RangeIndex(0)
         tm.assert_index_equal(result, expected)
 
@@ -1642,7 +1710,7 @@ def test_index_subclass_constructor_wrong_kwargs(klass):
 
 
 def test_deprecated_fastpath():
-    msg = "[Uu]nexpected keyword argument"
+    msg = "unexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
         Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
@@ -1694,7 +1762,13 @@ def test_validate_1d_input(dtype):
         *[[lambda x: Index(x, dtype=dtyp), {}] for dtyp in tm.ALL_REAL_NUMPY_DTYPES],
         [DatetimeIndex, {}],
         [TimedeltaIndex, {}],
-        [PeriodIndex, {"freq": "Y"}],
+        pytest.param(
+            PeriodIndex,
+            {"freq": "Y"},
+            marks=pytest.mark.filterwarnings(
+                "ignore:Passing integer data:pandas.errors.Pandas4Warning"
+            ),
+        ),
     ],
 )
 def test_construct_from_memoryview(klass, extra_kwargs):
@@ -1749,3 +1823,100 @@ def test_index_comparison_different_string_dtype(string_dtype_no_object):
     result = s_str > s_obj
     expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
+
+
+def test_get_level_values_boolean_names():
+    # GH#62169
+    idx_true = Index(["a", "b"], name=True)
+    result = idx_true.get_level_values(True)
+    tm.assert_index_equal(idx_true, result)
+
+    idx_false = Index(["a", "b"], name=False)
+    result = idx_false.get_level_values(False)
+    tm.assert_index_equal(idx_false, result)
+
+    msg = r"Requested level \(False\) does not match index name \(True\)"
+    with pytest.raises(KeyError, match=msg):
+        idx_true.get_level_values(False)
+
+    result = idx_true.get_level_values(0)
+    tm.assert_index_equal(idx_true, result)
+
+
+def test_get_level_values_na_type_matching():
+    # GH#62169
+    idx_nan = Index(["a", "b"], name=np.nan)
+    result = idx_nan.get_level_values(np.nan)
+    tm.assert_index_equal(idx_nan, result)
+
+    idx_na = Index(["a", "b"], name=pd.NA)
+    result = idx_na.get_level_values(pd.NA)
+    tm.assert_index_equal(idx_na, result)
+
+    idx_nat = Index(["a", "b"], name=pd.NaT)
+    result = idx_nat.get_level_values(pd.NaT)
+    tm.assert_index_equal(idx_nat, result)
+
+    msg = r"Requested level \(.+\) does not match index name \(.+\)"
+    with pytest.raises(KeyError, match=msg):
+        idx_nan.get_level_values(pd.NA)
+
+    with pytest.raises(KeyError, match=msg):
+        idx_na.get_level_values(np.nan)
+
+    with pytest.raises(KeyError, match=msg):
+        idx_nat.get_level_values(np.nan)
+
+
+def test_get_level_values_integer_names():
+    # GH#62169
+    idx_5 = Index(["a", "b"], name=5)
+    result = idx_5.get_level_values(5)
+    tm.assert_index_equal(idx_5, result)
+
+    result = idx_5.get_level_values(0)
+    tm.assert_index_equal(idx_5, result)
+
+    result = idx_5.get_level_values(-1)
+    tm.assert_index_equal(idx_5, result)
+
+    idx_0 = Index(["a", "b"], name=0)
+    result = idx_0.get_level_values(0)
+    tm.assert_index_equal(idx_0, result)
+
+    idx_neg1 = Index(["a", "b"], name=-1)
+    result = idx_neg1.get_level_values(-1)
+    tm.assert_index_equal(idx_neg1, result)
+
+    msg = r"Too many levels: Index has only 1 level"
+    with pytest.raises(IndexError, match=msg):
+        idx_5.get_level_values(1)
+
+
+@pytest.mark.parametrize("wrap", [str, np.str_])
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_slice_locs_quarterly_string_bounds_no_deprecation_warning(dtype, wrap):
+    # GH#50907 slice_locs parses str bounds internally to compare UTC offsets;
+    # on a non-datetime Index nothing is being parsed as a datetime, so a
+    # quarterly-looking label must not trigger the deprecation
+    idx = Index(["2000Q1", "2000Q2", "2000Q3"], dtype=dtype)
+    ser = Series(np.arange(len(idx)), index=idx)
+
+    with tm.assert_produces_warning(None):
+        result = ser.loc[wrap("2000Q1") : wrap("2000Q2")]
+    tm.assert_series_equal(result, ser.iloc[:2])
+
+    with tm.assert_produces_warning(None):
+        assert idx.slice_locs(wrap("2000Q1"), wrap("2000Q2")) == (0, 2)
+
+
+@pytest.mark.parametrize("wrap", [str, np.str_])
+def test_slice_locs_quarterly_string_bound_utc_offset_check(wrap):
+    # GH#50907 recognizing the quarterly bound without warning must not lose the
+    # GH#16785 offset comparison; a quarterly string is always naive. GH#45580
+    # the bound may be an np.str_, which the opted-out parser rejects.
+    idx = Index(["a", "b", "c"])
+
+    with tm.assert_produces_warning(None):
+        with pytest.raises(ValueError, match="Both dates must"):
+            idx.slice_locs(wrap("2000Q1"), "2000-06-01 00:00:00+06:00")

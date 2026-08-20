@@ -10,12 +10,17 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    Interval,
+    IntervalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
@@ -124,7 +129,9 @@ class TestConcatenate:
         )
 
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
-        tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
+        tm.assert_index_equal(
+            result.columns.levels[1], RangeIndex(start=0, stop=4, step=1), exact=True
+        )
 
         assert result.columns.names == ["group_key", None]
 
@@ -169,9 +176,9 @@ class TestConcatenate:
         )
         expected = concat([df, df2, df, df2])
         exp_index = MultiIndex(
-            levels=levels + [[0]],
+            levels=[*levels, [0]],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1], [0, 0, 0, 0]],
-            names=names + [None],
+            names=[*names, None],
         )
         expected.index = exp_index
 
@@ -434,7 +441,9 @@ class TestConcatenate:
         # to join with union
         # these two are of different length!
         left = concat([ts1, ts2], join="outer", axis=1)
-        right = concat([ts2, ts1], join="outer", axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            right = concat([ts2, ts1], join="outer", axis=1)
 
         assert len(left) == len(right)
 
@@ -702,7 +711,7 @@ def test_concat_repeated_keys(keys, integrity):
     # GH: 20816
     series_list = [Series({"a": 1}), Series({"b": 2}), Series({"c": 3})]
     result = concat(series_list, keys=keys, verify_integrity=integrity)
-    tuples = list(zip(keys, ["a", "b", "c"]))
+    tuples = list(zip(keys, ["a", "b", "c"], strict=True))
     expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
 
@@ -1000,4 +1009,80 @@ def test_concat_with_moot_ignore_index_and_keys():
 def test_concat_of_series_and_frame(inputs, ignore_index, axis, expected):
     # GH #60723 and #56257
     result = concat(inputs, ignore_index=ignore_index, axis=axis)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_keys_overlapping_intervalindex_level():
+    # GH#64825 an overlapping IntervalIndex passed as levels is not
+    #  unique-as-index, but its values are distinct, so concat should resolve it
+    value_index = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], name="foo")
+    level_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="bar")
+    values = [
+        Series([1.0, 3.0], name=Interval(0.0, 10.0), index=value_index),
+        Series([5.0, 7.0], name=Interval(0.0, 20.0), index=value_index),
+    ]
+    result = concat(values, keys=level_index, levels=[level_index], names=["bar"])
+    expected = Series(
+        [1.0, 3.0, 5.0, 7.0],
+        index=MultiIndex.from_product([level_index, value_index]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_mismatched_nlevels_with_keys_gh25413():
+    # GH#25413
+    df1 = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
+    df2 = DataFrame(
+        np.arange(12).reshape(4, 3),
+        columns=["A", "B", "C"],
+        index=MultiIndex.from_product([["a", "b"], [1, 2]]),
+    )
+    msg = "Cannot concat indices that do not have the same number of levels"
+    with pytest.raises(ValueError, match=msg):
+        concat([df1, df2], keys=[1, 2])
+
+
+def test_concat_keys_overlapping_intervalindex_value_index():
+    # GH#64825 the per-Series index is itself an overlapping IntervalIndex
+    value_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="foo")
+    level_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="bar")
+    values = [
+        Series([1.0, 3.0], name=Interval(0.0, 10.0), index=value_index),
+        Series([5.0, 7.0], name=Interval(0.0, 20.0), index=value_index),
+    ]
+    result = concat(values, keys=level_index, levels=[level_index], names=["bar"])
+    expected = Series(
+        [1.0, 3.0, 5.0, 7.0],
+        index=MultiIndex.from_product([level_index, value_index]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_keys_duplicate_index_equal_lengths():
+    # GH#20565 concat with keys where each frame shares an identical duplicate
+    #  index must dedupe the shared level rather than repeat it per position
+    df1 = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"], index=["Z1"] * 3)
+    df2 = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"], index=["Z1"] * 3)
+    result = concat([df1, df2], keys=["Key1", "Key2"], names=["KEY", "ID"])
+    expected_index = MultiIndex(
+        levels=[["Key1", "Key2"], ["Z1"]],
+        codes=[[0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 0, 0]],
+        names=["KEY", "ID"],
+    )
+    tm.assert_index_equal(result.index, expected_index)
+
+
+def test_concat_tuple_index_series_axis1_not_multiindex():
+    # GH#24783 concatenating Series whose index labels are tuples must keep a
+    #  flat Index of those tuples, not explode them into a MultiIndex
+    s1 = Series([1.0, 2.0], index=[("a", "b"), ("x", "y", "z")], name="s1")
+    s2 = Series([3.0, 4.0], index=[("a", "b"), ("j", "k", "l")], name="s2")
+    result = concat([s1, s2], axis=1, sort=False)
+    assert result.index.nlevels == 1
+    index_arr = np.empty(3, dtype=object)
+    index_arr[:] = [("a", "b"), ("x", "y", "z"), ("j", "k", "l")]
+    expected = DataFrame(
+        {"s1": [1.0, 2.0, np.nan], "s2": [3.0, np.nan, 4.0]},
+        index=Index(index_arr),
+    )
     tm.assert_frame_equal(result, expected)

@@ -153,6 +153,7 @@ class TestDataFrame:
 
 # formerly in Generic but only test DataFrame
 class TestDataFrame2:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})

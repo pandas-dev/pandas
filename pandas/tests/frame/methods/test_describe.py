@@ -138,6 +138,20 @@ class TestDataFrameDescribe:
         assert np.isnan(result.iloc[2, 0])
         assert np.isnan(result.iloc[3, 0])
 
+    def test_describe_categorical_object_tie_is_deterministic(self):
+        # GH#32528 when every value is unique, "top" must be deterministic
+        # (first occurrence) rather than depend on hashtable iteration order
+        df = DataFrame(
+            {
+                "categorical": Categorical(["d", "e", "f"]),
+                "numeric": [1, 2, 3],
+                "object": ["a", "b", "c"],
+            }
+        )
+        result = df.describe(include="all")
+        assert result.loc["top", "categorical"] == "d"
+        assert result.loc["top", "object"] == "a"
+
     def test_describe_categorical_columns(self):
         # GH#11558
         columns = pd.CategoricalIndex(["int1", "int2", "obj"], ordered=True, name="XXX")
@@ -237,15 +251,15 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
         exp_repr = (
-            "                              t1                         t2\n"
-            "count                          5                          5\n"
-            "mean             3 days 00:00:00            0 days 03:00:00\n"
-            "std    1 days 13:56:50.394919273  0 days 01:34:52.099788303\n"
-            "min              1 days 00:00:00            0 days 01:00:00\n"
-            "25%              2 days 00:00:00            0 days 02:00:00\n"
-            "50%              3 days 00:00:00            0 days 03:00:00\n"
-            "75%              4 days 00:00:00            0 days 04:00:00\n"
-            "max              5 days 00:00:00            0 days 05:00:00"
+            "                           t1                      t2\n"
+            "count                       5                       5\n"
+            "mean          3 days 00:00:00         0 days 03:00:00\n"
+            "std    1 days 13:56:50.394919  0 days 01:34:52.099788\n"
+            "min           1 days 00:00:00         0 days 01:00:00\n"
+            "25%           2 days 00:00:00         0 days 02:00:00\n"
+            "50%           3 days 00:00:00         0 days 03:00:00\n"
+            "75%           4 days 00:00:00         0 days 04:00:00\n"
+            "max           5 days 00:00:00         0 days 05:00:00"
         )
         assert repr(result) == exp_repr
 

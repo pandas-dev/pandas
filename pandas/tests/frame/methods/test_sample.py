@@ -116,7 +116,7 @@ class TestSample:
     def test_sample_negative_weights(self, obj):
         # Check won't accept negative weights
         bad_weights = [-0.1] * 10
-        msg = "weight vector many not include negative values"
+        msg = "weights vector may not include negative values"
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=bad_weights)
 
@@ -125,7 +125,7 @@ class TestSample:
 
         weights_with_inf = [0.1] * 10
         weights_with_inf[0] = np.inf
-        msg = "weight vector may not include `inf` values"
+        msg = "weights vector may not include `inf` values"
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=weights_with_inf)
 

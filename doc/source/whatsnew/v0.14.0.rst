@@ -313,7 +313,7 @@ Text parsing API changes
   options in :func:`read_csv`/:func:`read_table` (:issue:`6607`)
 - Raise ``ValueError`` when fallback to python parser causes options to be
   ignored (:issue:`6607`)
-- Produce :class:`~pandas.io.parsers.ParserWarning` on fallback to python
+- Produce :class:`pandas.errors.ParserWarning` on fallback to python
   parser when no options are ignored (:issue:`6607`)
 - Translate ``sep='\s+'`` to ``delim_whitespace=True`` in
   :func:`read_csv`/:func:`read_table` if no other C-unsupported options
@@ -439,7 +439,7 @@ wrapper around the other two and will delegate to specific function depending on
 the provided input (database table name or sql query).
 
 In practice, you have to provide a SQLAlchemy ``engine`` to the sql functions.
-To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
+To connect with SQLAlchemy you use the ``create_engine`` function to create an engine
 object from database URI. You only need to create the engine once per database you are
 connecting to. For an in-memory sqlite database:
 
@@ -626,11 +626,11 @@ Plotting
 
   Because of the default ``align`` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coordinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using ``set_xlim``, ``set_ylim``, etc. In this cases, please modify your script to meet with new coordinates.
 
-- The :func:`parallel_coordinates` function now takes argument ``color``
+- The ``parallel_coordinates`` function now takes argument ``color``
   instead of ``colors``. A ``FutureWarning`` is raised to alert that
   the old ``colors`` argument will not be supported in a future release. (:issue:`6956`)
 
-- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take
+- The ``parallel_coordinates`` and ``andrews_curves`` functions now take
   positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
   raised if the old ``data`` argument is used by name. (:issue:`6956`)
 
@@ -647,7 +647,7 @@ Prior version deprecations/changes
 
 There are prior version deprecations that are taking effect as of 0.14.0.
 
-- Remove :class:`DateRange` in favor of :class:`DatetimeIndex` (:issue:`6816`)
+- Remove ``DateRange`` in favor of :class:`DatetimeIndex` (:issue:`6816`)
 - Remove ``column`` keyword from ``DataFrame.sort`` (:issue:`4370`)
 - Remove ``precision`` keyword from :func:`set_eng_float_format` (:issue:`395`)
 - Remove ``force_unicode`` keyword from :meth:`DataFrame.to_string`,
@@ -655,14 +655,14 @@ There are prior version deprecations that are taking effect as of 0.14.0.
   encode in unicode by default (:issue:`2224`, :issue:`2225`)
 - Remove ``nanRep`` keyword from :meth:`DataFrame.to_csv` and
   :meth:`DataFrame.to_string` (:issue:`275`)
-- Remove ``unique`` keyword from :meth:`HDFStore.select_column` (:issue:`3256`)
-- Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`391`)
-- Remove ``name`` keyword from :func:`get_data_yahoo` and
-  :func:`get_data_google` ( `commit b921d1a <https://github.com/pandas-dev/pandas/commit/b921d1a2>`__ )
+- Remove ``unique`` keyword from ``HDFStore.select_column`` (:issue:`3256`)
+- Remove ``inferTimeRule`` keyword from ``Timestamp.offset`` (:issue:`391`)
+- Remove ``name`` keyword from ``get_data_yahoo`` and
+  ``get_data_google`` ( `commit b921d1a <https://github.com/pandas-dev/pandas/commit/b921d1a2>`__ )
 - Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
   ( `commit 3136390 <https://github.com/pandas-dev/pandas/commit/3136390>`__ )
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
-  as :func:`rolling_sum` (:issue:`1042`)
+  as ``rolling_sum`` (:issue:`1042`)
 - Removed neg ``-`` boolean operations on numpy arrays in favor of inv ``~``, as this is going to
   be deprecated in numpy 1.9 (:issue:`6960`)
 
@@ -715,21 +715,21 @@ Deprecations
 
 - Numpy 1.9 compat w.r.t. deprecation warnings (:issue:`6960`)
 
-- :meth:`Panel.shift` now has a function signature that matches :meth:`DataFrame.shift`.
+- ``Panel.shift`` now has a function signature that matches :meth:`DataFrame.shift`.
   The old positional argument ``lags`` has been changed to a keyword argument
   ``periods`` with a default value of 1. A ``FutureWarning`` is raised if the
   old argument ``lags`` is used by name. (:issue:`6910`)
 - The ``order`` keyword argument of :func:`factorize` will be removed. (:issue:`6926`).
 
-- Remove the ``copy`` keyword from :meth:`DataFrame.xs`, :meth:`Panel.major_xs`, :meth:`Panel.minor_xs`. A view will be
+- Remove the ``copy`` keyword from :meth:`DataFrame.xs`, ``Panel.major_xs``, ``Panel.minor_xs``. A view will be
   returned if possible, otherwise a copy will be made. Previously the user could think that ``copy=False`` would
   ALWAYS return a view. (:issue:`6894`)
 
-- The :func:`parallel_coordinates` function now takes argument ``color``
+- The ``parallel_coordinates`` function now takes argument ``color``
   instead of ``colors``. A ``FutureWarning`` is raised to alert that
   the old ``colors`` argument will not be supported in a future release. (:issue:`6956`)
 
-- The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take
+- The ``parallel_coordinates`` and ``andrews_curves`` functions now take
   positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
   raised if the old ``data`` argument is used by name. (:issue:`6956`)
 
@@ -742,7 +742,7 @@ Deprecations
   Use the ``percentiles`` keyword instead, which takes a list of percentiles to display. The
   default output is unchanged.
 
-- The default return type of :func:`boxplot` will change from a dict to a matplotlib Axes
+- The default return type of :func:`pandas.plotting.boxplot` will change from a dict to a matplotlib Axes
   in a future release. You can use the future behavior now by passing ``return_type='axes'``
   to boxplot.
 
@@ -831,8 +831,8 @@ Enhancements
 - ``Float64Index`` is now backed by a ``float64`` dtype ndarray instead of an
   ``object`` dtype array (:issue:`6471`).
 - Implemented ``Panel.pct_change`` (:issue:`6904`)
-- Added ``how`` option to rolling-moment functions to dictate how to handle resampling; :func:`rolling_max` defaults to max,
-  :func:`rolling_min` defaults to min, and all others default to mean (:issue:`6297`)
+- Added ``how`` option to rolling-moment functions to dictate how to handle resampling; ``rolling_max`` defaults to max,
+  ``rolling_min`` defaults to min, and all others default to mean (:issue:`6297`)
 - ``CustomBusinessMonthBegin`` and ``CustomBusinessMonthEnd`` are now available (:issue:`6866`)
 - :meth:`Series.quantile` and :meth:`DataFrame.quantile` now accept an array of
   quantiles.

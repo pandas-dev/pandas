@@ -52,6 +52,21 @@ class TestSeriesPlots:
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(ts.hist, by=ts.index.month, **kwargs)
 
+    @pytest.mark.parametrize("by", [None, np.array(list("aabbaabbaa"))])
+    def test_hist_tz_aware(self, by):
+        # GH#64613 .hist() read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and binned in UTC rather than in the
+        #  data's own timezone
+        ser = Series(date_range("2020-01-01", periods=10, tz="US/Pacific"))
+
+        with tm.assert_produces_warning(None):
+            result = ser.hist(by=by)
+
+        axes = np.ravel(result)
+        expected = ser.groupby(by).min() if by is not None else Series([ser.min()])
+        for ax, first in zip(axes, expected, strict=True):
+            assert ax.patches[0].get_x() == mpl.dates.date2num(first)
+
     def test_hist_legacy_ax(self, ts):
         fig, ax = mpl.pyplot.subplots(1, 1)
         _check_plot_works(ts.hist, ax=ax, default_axes=True)
@@ -201,17 +216,11 @@ class TestSeriesPlots:
         ax = ts.plot.hist(bins=5, ax=ax)
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        # ticks are values, thus ticklabels are blank
-        _check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     def test_hist_kde_plot_works(self, ts):
         pytest.importorskip("scipy")
@@ -221,16 +230,11 @@ class TestSeriesPlots:
         pytest.importorskip("scipy")
         _check_plot_works(ts.plot.density)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde_logy(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        _check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     def test_hist_kde_color_bins(self, ts):
         pytest.importorskip("scipy")
@@ -251,6 +255,18 @@ class TestSeriesPlots:
 
 
 class TestDataFramePlots:
+    def test_hist_df_tz_aware(self):
+        # GH#64613 .hist() read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and binned in UTC rather than in the
+        #  data's own timezone
+        df = DataFrame({"a": date_range("2020-01-01", periods=10, tz="US/Pacific")})
+
+        with tm.assert_produces_warning(None):
+            axes = df.hist()
+
+        ax = np.ravel(axes)[0]
+        assert ax.patches[0].get_x() == mpl.dates.date2num(df["a"].min())
+
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -278,7 +294,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy_layout2(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
-        _check_plot_works(df.hist)
+        _check_plot_works(df.hist, default_axes=True)
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout3(self):
@@ -532,7 +548,7 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         if by is None and column is None:
             axes = axes[0]
-        for expected_label, ax in zip(expected_labels, axes):
+        for expected_label, ax in zip(expected_labels, axes, strict=True):
             _check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize("by", [None, "c"])
@@ -644,7 +660,7 @@ class TestDataFramePlots:
             x for x in ax1.get_children() if isinstance(x, mpl.patches.Rectangle)
         ]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
-        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
+        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights, strict=True))
 
         idxerror_weights = np.array([[0.3, 0.25], [0.45, 0.45]])
 

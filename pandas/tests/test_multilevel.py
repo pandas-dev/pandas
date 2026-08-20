@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     ArrowDtype,
@@ -275,7 +277,8 @@ class TestMultiLevel:
             columns=["pivot_0", "pivot_1", "col_1", "col_2"],
         ).set_index(["pivot_0", "pivot_1"])
 
-        df.at[("A", "F"), "col_2"] = 0.0
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            df.at[("A", "F"), "col_2"] = 0.0
 
         expected = DataFrame(
             [

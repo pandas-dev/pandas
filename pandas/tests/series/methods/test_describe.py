@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_extension_array_dtype,
@@ -198,4 +200,22 @@ class TestSeriesDescribe:
             dtype="Float64",
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"include": [np.number]},
+            {"exclude": [object]},
+            {"include": "all"},
+            {"include": [np.number], "exclude": [object]},
+        ],
+    )
+    def test_describe_include_exclude_deprecated(self, kwargs):
+        # GH#54193 - include/exclude have no effect on Series; deprecate them.
+        ser = Series([1, 2, 3], name="int_data")
+        msg = "'include' and 'exclude' arguments are deprecated for Series.describe"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.describe(**kwargs)
+        expected = ser.describe()
         tm.assert_series_equal(result, expected)

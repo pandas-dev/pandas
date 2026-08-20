@@ -124,7 +124,7 @@ class TestGetitem:
         assert zarr[2] == 1
         assert zarr[7] == 5
 
-        errmsg = "must be an integer between -10 and 10"
+        errmsg = "index is out of bounds: must be an integer between -10 and 9"
 
         with pytest.raises(IndexError, match=errmsg):
             arr[11]
@@ -177,6 +177,24 @@ class TestTake:
         expected = pd.array([0, np.nan], dtype=sparse.dtype)
         tm.assert_sp_array_equal(expected, result)
 
+    def test_take_fill_bool_upcasts_to_object(self):
+        # GH#32119 numpy bool can't hold NA, so taking a fill position from a
+        #  boolean SparseArray upcasts to object (matching dense reindex)
+        #  rather than raising.
+        sparse = SparseArray([False, False, True], fill_value=False)
+        result = sparse.take([0, 2, -1], allow_fill=True)
+        expected = SparseArray([False, True, np.nan], fill_value=False)
+        assert result.dtype == SparseDtype(object, False)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_bool_all_fill_upcasts_to_object(self):
+        # GH#32119 same as above for an all-fill (sp_index.npoints == 0) array
+        sparse = SparseArray([False, False], fill_value=False)
+        result = sparse.take([0, -1], allow_fill=True)
+        expected = SparseArray([False, np.nan], fill_value=False)
+        assert result.dtype == SparseDtype(object, False)
+        tm.assert_sp_array_equal(result, expected)
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)
@@ -206,7 +224,7 @@ class TestTake:
         tm.assert_sp_array_equal(result, expected)
 
         # TODO: actionable?
-        # XXX: test change: fill_value=True -> allow_fill=True
+        # Note: test change: fill_value=True -> allow_fill=True
         result = sparse.take(np.array([1, 0, -1]), allow_fill=True)
         expected = SparseArray([np.nan, np.nan, np.nan])
         tm.assert_sp_array_equal(result, expected)
@@ -241,7 +259,7 @@ class TestTake:
         # fill_value
         result = sparse.take(np.array([1, 0, -1]), allow_fill=True)
         # TODO: actionable?
-        # XXX: behavior change.
+        # Note: behavior change.
         # the old way of filling self.fill_value doesn't follow EA rules.
         # It's supposed to be self.dtype.na_value (nan in this case)
         expected = SparseArray([0, np.nan, np.nan], fill_value=0)

@@ -6,13 +6,16 @@ from typing import (
     Any,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._config import using_string_dtype
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
@@ -47,6 +50,9 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
        From pandas 3.0 onwards, `from_dataframe` uses the PyCapsule Interface,
        only falling back to the interchange protocol if that fails.
 
+       From pandas 4.0 onwards, that fallback will no longer be available and only
+       the PyCapsule Interface will be used.
+
     .. warning::
 
         Due to severe implementation issues, we recommend only considering using the
@@ -57,8 +63,11 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     Parameters
     ----------
-    df : DataFrameXchg
-        Object supporting the interchange protocol, i.e. `__dataframe__` method.
+    df : ArrowStreamExportable or DataFrameXchg
+        Object supporting the Arrow PyCapsule Interface, i.e. an
+        `__arrow_c_stream__` method (``ArrowStreamExportable``), or an object
+        supporting the interchange protocol, i.e. a `__dataframe__` method
+        (``DataFrameXchg``).
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
@@ -99,7 +108,14 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
             pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         except ImportError:
             # fallback to _from_dataframe
-            pass
+            warnings.warn(
+                "Conversion using Arrow PyCapsule Interface failed due to "
+                "missing PyArrow>=14 dependency, falling back to (deprecated) "
+                "interchange protocol. We recommend that you install "
+                "PyArrow>=14.0.0.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
         else:
             try:
                 return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
@@ -108,6 +124,15 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
+
+    warnings.warn(
+        "The Dataframe Interchange Protocol is deprecated.\n"
+        "For dataframe-agnostic code, you may want to look into:\n"
+        "- Arrow PyCapsule Interface: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html\n"
+        "- Narwhals: https://github.com/narwhals-dev/narwhals\n",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
 
     return _from_dataframe(
         df.__dataframe__(allow_copy=allow_copy), allow_copy=allow_copy
@@ -344,7 +369,7 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
                 null_pos = ~null_pos
 
     # Assemble the strings from the code units
-    str_list: list[None | float | str] = [None] * col.size()
+    str_list: list[float | str | None] = [None] * col.size()
     for i in range(col.size()):
         # Check for missing values
         if null_pos is not None and null_pos[i]:

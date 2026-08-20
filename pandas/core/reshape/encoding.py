@@ -159,12 +159,40 @@ def get_dummies(
     """
     from pandas.core.reshape.concat import concat
 
-    dtypes_to_encode = ["object", "string", "category"]
+    def _is_encodable(arr) -> bool:
+        # The columns get_dummies encodes by default: object, string (any
+        # storage), categorical, the Arrow-backed string/dictionary
+        # equivalents (GH#56273), and other Arrow types whose numpy fallback
+        # is object (binary, decimal, time32/time64, ...).
+        dtype = arr.dtype
+        if isinstance(dtype, (StringDtype, CategoricalDtype)):
+            return True
+        if isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
+            pa_type = dtype.pyarrow_dtype
+            if (
+                pa.types.is_string(pa_type)
+                or pa.types.is_large_string(pa_type)
+                or pa.types.is_dictionary(pa_type)
+                or pa.types.is_string_view(pa_type)
+            ):
+                return True
+            # Arrow types whose numpy fallback is object (e.g. binary,
+            # decimal, time32/time64) were encoded before GH#66091 decoupled
+            # this from select_dtypes(include="object"); keep encoding them.
+            return dtype.numpy_dtype == np.dtype(object)
+        # is_object_dtype last: it raises for ArrowDtypes whose `.type` is
+        # not implemented (handled above)
+        return is_object_dtype(dtype)
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
         if columns is None:
-            data_to_encode = data.select_dtypes(include=dtypes_to_encode)
+            mgr = data._mgr._get_data_subset(_is_encodable).copy(deep=False)
+            data_to_encode = data._constructor_from_mgr(
+                mgr, axes=mgr.axes
+            ).__finalize__(data)
         elif not is_list_like(columns):
             raise TypeError("Input must be a list-like for parameter `columns`")
         else:
@@ -185,7 +213,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = itertools.cycle([prefix])
+            prefix = itertools.repeat(prefix, len(data_to_encode.columns))
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -194,7 +222,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = itertools.cycle([prefix_sep])
+            prefix_sep = itertools.repeat(prefix_sep, len(data_to_encode.columns))
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
@@ -209,9 +237,18 @@ def get_dummies(
         else:
             # Encoding only object and category dtype columns. Get remaining
             # columns to prepend to result.
-            with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
+            rest_mgr = data._mgr._get_data_subset(
+                lambda arr: not _is_encodable(arr)
+            ).copy(deep=False)
+            with_dummies = [
+                data._constructor_from_mgr(rest_mgr, axes=rest_mgr.axes).__finalize__(
+                    data
+                )
+            ]
 
-        for col, pre, sep in zip(data_to_encode.items(), prefix, prefix_sep):
+        for col, pre, sep in zip(
+            data_to_encode.items(), prefix, prefix_sep, strict=True
+        ):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],
@@ -325,7 +362,7 @@ def _get_dummies_1d(
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
 
-        for ndx, code in zip(n_idx, codes):
+        for ndx, code in zip(n_idx, codes, strict=True):
             sp_indices[code].append(ndx)
 
         if drop_first:
@@ -333,7 +370,7 @@ def _get_dummies_1d(
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
+        for col, ixs in zip(dummy_cols, sp_indices, strict=True):
             sarr = SparseArray(
                 np.ones(len(ixs), dtype=dtype),
                 sparse_index=IntIndex(N, ixs),
@@ -369,15 +406,13 @@ def _get_dummies_1d(
 @set_module("pandas")
 def from_dummies(
     data: DataFrame,
-    sep: None | str = None,
-    default_category: None | Hashable | dict[str, Hashable] = None,
+    sep: str | None = None,
+    default_category: Hashable | dict[str, Hashable] | None = None,
 ) -> DataFrame:
     """
     Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.
 
     Inverts the operation performed by :func:`~pandas.get_dummies`.
-
-    .. versionadded:: 1.5.0
 
     Parameters
     ----------
@@ -538,7 +573,11 @@ def from_dummies(
                 raise ValueError(len_msg)
         elif isinstance(default_category, Hashable):
             default_category = dict(
-                zip(variables_slice, [default_category] * len(variables_slice))
+                zip(
+                    variables_slice,
+                    [default_category] * len(variables_slice),
+                    strict=True,
+                )
             )
         else:
             raise TypeError(

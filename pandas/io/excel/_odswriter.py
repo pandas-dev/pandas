@@ -6,8 +6,6 @@ import json
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
-    cast,
     overload,
 )
 
@@ -99,10 +97,15 @@ class ODSWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         """
         Write the frame cells using odf
         """
+
+        if autofilter_range:
+            raise ValueError("Autofilter is not supported with odf!")
+
         from odf.table import (
             Table,
             TableCell,
@@ -120,14 +123,13 @@ class ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(tuple[int, int], freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):
             wks.addElement(TableRow())
 
-        rows: DefaultDict = defaultdict(TableRow)
-        col_count: DefaultDict = defaultdict(int)
+        rows: defaultdict = defaultdict(TableRow)
+        col_count: defaultdict = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             # only add empty cells if the row is still empty

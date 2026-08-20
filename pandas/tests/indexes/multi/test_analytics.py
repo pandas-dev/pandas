@@ -118,7 +118,7 @@ def test_append_mixed_dtypes():
             pi.append(pi),
         ]
     )
-    tm.assert_index_equal(res, exp)
+    tm.assert_index_equal(res, exp, check_freq=False)
 
     other = MultiIndex.from_arrays(
         [
@@ -142,7 +142,7 @@ def test_append_mixed_dtypes():
             pi.append(Index(["x", "y", "z"])),
         ]
     )
-    tm.assert_index_equal(res, exp)
+    tm.assert_index_equal(res, exp, check_freq=False)
 
 
 def test_iter(idx):
@@ -261,3 +261,36 @@ def test_numpy_type_funcs(idx, func):
     )
     with pytest.raises(TypeError, match=msg):
         func(idx)
+
+
+def test_categorical_multiindex_preserved_after_arithmetic():
+    # GH#42785 - CategoricalIndex levels should be preserved after
+    # division when the divisor has fewer levels (alignment/broadcasting).
+    # The bug specifically lost CategoricalIndex on leftmost levels.
+    v0 = pd.CategoricalIndex([10, 20, 30], name="V0")
+    v1 = pd.CategoricalIndex(["B", "A"], name="V1")
+    v2 = pd.CategoricalIndex(["X", "Y"], name="V2")
+    mi = MultiIndex.from_product([v0, v1, v2])
+
+    ser = pd.Series(range(12), index=mi)
+    norm = ser.groupby(level=["V1", "V2"]).sum()
+    result = ser.div(norm)
+
+    for level_idx in range(result.index.nlevels):
+        assert isinstance(result.index.levels[level_idx], pd.CategoricalIndex)
+
+
+def test_map_multiindex_mixed_length_tuple_dict_keys():
+    # GH#40115 mapping a MultiIndex with a dict whose keys are *mixed-length*
+    # tuples must not raise InvalidIndexError: the mapper key index has to stay
+    # a flat object Index rather than being tupleized into a MultiIndex
+    mi = MultiIndex.from_tuples([("a", "a1"), ("c", "c1"), ("f", "f1")])
+    mapping = {("a",): "xA", ("c", "c1"): "C1", ("f",): "xF"}
+    result = mi.map(mapping)
+    expected = Index([np.nan, "C1", np.nan])
+    tm.assert_index_equal(result, expected)
+
+    # a dict that matches none of the (2-tuple) entries yields all-NaN, not a
+    # raise -- the minimal repro reduced by the maintainer
+    result_none = mi.map({("a",): "xA", ("z", "z1"): "zz"})
+    tm.assert_index_equal(result_none, Index([np.nan, np.nan, np.nan]))

@@ -47,7 +47,7 @@ class TestLogicalOps(BaseOpsUtil):
         tm.assert_extension_array_equal(a, result)
 
     @pytest.mark.parametrize(
-        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4)]
+        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4, "ns")]
     )
     def test_eq_mismatched_type(self, other):
         # GH-44499
@@ -249,7 +249,7 @@ class TestLogicalOps(BaseOpsUtil):
 
 @pytest.mark.parametrize("operation", [kleene_or, kleene_xor, kleene_and])
 def test_error_both_scalar(operation):
-    msg = r"Either `left` or `right` need to be a np\.ndarray."
+    msg = r"Either `left` or `right` need to be an np\.ndarray."
     with pytest.raises(TypeError, match=msg):
         # masks need to be non-None, otherwise it ends up in an infinite recursion
         operation(True, True, np.zeros(1), np.zeros(1))

@@ -14,7 +14,7 @@ import pandas._testing as tm
 class TestInvalidConcat:
     @pytest.mark.parametrize("obj", [1, {}, [1, 2], (1, 2)])
     def test_concat_invalid(self, obj):
-        # trying to concat a ndframe with a non-ndframe
+        # trying to concat an ndframe with a non-ndframe
         df1 = DataFrame(range(2))
         msg = (
             f"cannot concatenate object of type '{type(obj)}'; "

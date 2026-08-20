@@ -132,6 +132,24 @@ class TestDataFrameColor:
         ax = df.loc[:, [0]].plot.bar(color="DodgerBlue")
         _check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
 
+    def test_bar_colors_single_col_list(self):
+        # GH#18006 color maps per column, so a single-column frame uses only
+        # the first color of the list; use a Series or y= (see
+        # test_bar_colors_single_col_y_list) for one color per bar
+        df = DataFrame({"Test": [1, 3, 5, 7]})
+        colors = [(0.9, 0.9, 0.4), (0.8, 0.4, 0.6), (0.2, 0.7, 0.9), (0.4, 0.4, 0.5)]
+        ax = df.plot.bar(color=colors)
+        _check_colors(ax.patches, facecolors=[colors[0]] * 4)
+
+    def test_bar_colors_single_col_y_list(self):
+        # GH#18006 selecting a single column with y= colors each bar
+        # individually, unlike the per-column behavior in
+        # test_bar_colors_single_col_list
+        df = DataFrame({"Test": [1, 3, 5, 7]})
+        colors = [(0.9, 0.9, 0.4), (0.8, 0.4, 0.6), (0.2, 0.7, 0.9), (0.4, 0.4, 0.5)]
+        ax = df.plot.bar(y="Test", color=colors)
+        _check_colors(ax.patches, facecolors=colors)
+
     def test_bar_colors_green(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot(kind="bar", color="green")
@@ -324,7 +342,7 @@ class TestDataFrameColor:
         ax2 = df.plot(color=custom_colors)
         lines2 = ax2.get_lines()
 
-        for l1, l2 in zip(ax.get_lines(), lines2):
+        for l1, l2 in zip(ax.get_lines(), lines2, strict=True):
             assert l1.get_color() == l2.get_color()
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
@@ -365,7 +383,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         axes = df.plot(subplots=True)
-        for ax, c in zip(axes, list(default_colors)):
+        for ax, c in zip(axes, list(default_colors), strict=False):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("color", ["k", "green"])
@@ -380,7 +398,7 @@ class TestDataFrameColor:
         # GH 9894
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         axes = df.plot(color=color, subplots=True)
-        for ax, c in zip(axes, list(color)):
+        for ax, c in zip(axes, list(color), strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_line_colors_and_styles_subplots_colormap_hex(self):
@@ -389,7 +407,7 @@ class TestDataFrameColor:
         # GH 10299
         custom_colors = ["#FF0000", "#0000FF", "#FFFF00", "#000000", "#FFFFFF"]
         axes = df.plot(color=custom_colors, subplots=True)
-        for ax, c in zip(axes, list(custom_colors)):
+        for ax, c in zip(axes, list(custom_colors), strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("cmap", ["jet", cm.jet])
@@ -398,7 +416,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         axes = df.plot(colormap=cmap, subplots=True)
-        for ax, c in zip(axes, rgba_colors):
+        for ax, c in zip(axes, rgba_colors, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_line_colors_and_styles_subplots_single_col(self):
@@ -423,7 +441,7 @@ class TestDataFrameColor:
         # list of styles
         styles = list("rgcby")
         axes = df.plot(style=styles, subplots=True)
-        for ax, c in zip(axes, styles):
+        for ax, c in zip(axes, styles, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_area_colors(self):
@@ -535,7 +553,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         axes = df.plot(kind="kde", subplots=True)
-        for ax, c in zip(axes, list(default_colors)):
+        for ax, c in zip(axes, list(default_colors), strict=False):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("colormap", ["k", "red"])
@@ -551,7 +569,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         custom_colors = "rgcby"
         axes = df.plot(kind="kde", color=custom_colors, subplots=True)
-        for ax, c in zip(axes, list(custom_colors)):
+        for ax, c in zip(axes, list(custom_colors), strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
@@ -560,7 +578,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         axes = df.plot(kind="kde", colormap=colormap, subplots=True)
-        for ax, c in zip(axes, rgba_colors):
+        for ax, c in zip(axes, rgba_colors, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_kde_colors_and_styles_subplots_single_col(self):
@@ -586,7 +604,7 @@ class TestDataFrameColor:
         # list of styles
         styles = list("rgcby")
         axes = df.plot(kind="kde", style=styles, subplots=True)
-        for ax, c in zip(axes, styles):
+        for ax, c in zip(axes, styles, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_boxplot_colors(self):
@@ -715,14 +733,14 @@ class TestDataFrameColor:
         result = df_concat.plot()
         legend = result.get_legend()
         handles = legend.legend_handles
-        for legend, line in zip(handles, result.lines):
+        for legend, line in zip(handles, result.lines, strict=True):
             assert legend.get_color() == line.get_color()
 
     def test_invalid_colormap(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 2)), columns=["A", "B"]
         )
-        msg = "(is not a valid value)|(is not a known colormap)"
+        msg = "|".join(["is not a valid value", "is not a known colormap"])
         with pytest.raises((ValueError, KeyError), match=msg):
             df.plot(colormap="invalid_colormap")
 

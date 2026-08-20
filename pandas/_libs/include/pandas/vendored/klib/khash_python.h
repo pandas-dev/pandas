@@ -122,11 +122,23 @@ static inline khuint32_t kh_float32_hash_func(float val) {
 
 KHASH_MAP_INIT_FLOAT64(float64, size_t)
 
+#define KHASH_SET_INIT_FLOAT64(name)                                           \
+  KHASH_INIT(name, khfloat64_t, char, 0, kh_float64_hash_func,                 \
+             kh_floats_hash_equal)
+
+KHASH_SET_INIT_FLOAT64(set_float64)
+
 #define KHASH_MAP_INIT_FLOAT32(name, khval_t)                                  \
   KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func,              \
              kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT32(float32, size_t)
+
+#define KHASH_SET_INIT_FLOAT32(name)                                           \
+  KHASH_INIT(name, khfloat32_t, char, 0, kh_float32_hash_func,                 \
+             kh_floats_hash_equal)
+
+KHASH_SET_INIT_FLOAT32(set_float32)
 
 static inline khint32_t kh_complex128_hash_func(khcomplex128_t val) {
   return kh_float64_hash_func(val.real) ^ kh_float64_hash_func(val.imag);
@@ -144,14 +156,30 @@ static inline khint32_t kh_complex64_hash_func(khcomplex64_t val) {
 
 KHASH_MAP_INIT_COMPLEX64(complex64, size_t)
 
+#define KHASH_SET_INIT_COMPLEX64(name)                                         \
+  KHASH_INIT(name, khcomplex64_t, char, 0, kh_complex64_hash_func,             \
+             kh_complex_hash_equal)
+
+KHASH_SET_INIT_COMPLEX64(set_complex64)
+
 #define KHASH_MAP_INIT_COMPLEX128(name, khval_t)                               \
   KHASH_INIT(name, khcomplex128_t, khval_t, 1, kh_complex128_hash_func,        \
              kh_complex_hash_equal)
 
 KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 
+#define KHASH_SET_INIT_COMPLEX128(name)                                        \
+  KHASH_INIT(name, khcomplex128_t, char, 0, kh_complex128_hash_func,           \
+             kh_complex_hash_equal)
+
+KHASH_SET_INIT_COMPLEX128(set_complex128)
+
 #define kh_exist_complex64(h, k) (kh_exist(h, k))
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
+#define kh_exist_set_float64(h, k) (kh_exist(h, k))
+#define kh_exist_set_float32(h, k) (kh_exist(h, k))
+#define kh_exist_set_complex64(h, k) (kh_exist(h, k))
+#define kh_exist_set_complex128(h, k) (kh_exist(h, k))
 
 // NaN-floats should be in the same equivalency class, see GH 22119
 static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
@@ -254,17 +282,17 @@ static inline khuint32_t kh_python_hash_func(PyObject *key);
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
 #if SIZEOF_PY_UHASH_T > 4
-#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
-#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
-#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
-#define _PandasHASH_XXROTATE(x)                                                \
-  ((x << 31) | (x >> 33)) /* Rotate left 31 bits */
+#  define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
+#  define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
+#  define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
+#  define _PandasHASH_XXROTATE(x)                                              \
+    ((x << 31) | (x >> 33)) /* Rotate left 31 bits */
 #else
-#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
-#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
-#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
-#define _PandasHASH_XXROTATE(x)                                                \
-  ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
+#  define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
+#  define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
+#  define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
+#  define _PandasHASH_XXROTATE(x)                                              \
+    ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
 #endif
 
 static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
@@ -352,11 +380,67 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pymap(h, k) (kh_exist(h, k))
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 
-KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
+// Length-aware string key.
+//
+// A bare `const char *` key (klib's kh_cstr_t) hashes and compares only up to
+// the first NUL byte, so distinct values that share a NUL-terminated prefix
+// collapse into a single entry. Python strings, CSV fields and Arrow string
+// buffers can all contain embedded NULs, which made that silently return wrong
+// results (GH#34551, GH#66525, GH#19886). Keying on an explicit (pointer,
+// length) pair fixes it, and additionally lets a key point at a slice of a
+// larger buffer without copying or NUL-terminating it.
+//
+// The pointed-to bytes are borrowed, exactly as for kh_cstr_t: the caller must
+// keep them alive for as long as the entry is in the table.
+typedef struct {
+  const char *ptr;
+  size_t len;
+} kh_strview_t;
+
+static inline kh_strview_t kh_strview(const char *ptr, size_t len) {
+  kh_strview_t result;
+  result.ptr = ptr;
+  result.len = len;
+  return result;
+}
+
+// X31 over exactly `len` bytes. Bit-identical to __ac_X31_hash_string for
+// NUL-free input, so bucket distribution -- and hence performance -- is
+// unchanged for the data that used to work.
+static inline khuint_t kh_strview_hash_func(kh_strview_t key) {
+  khuint_t h = 0;
+  if (key.len) {
+    h = (khuint_t)key.ptr[0];
+    for (size_t i = 1; i < key.len; ++i)
+      h = (h << 5) - h + (khuint_t)key.ptr[i];
+  }
+  return h;
+}
+
+// The length check alone settles most probes, and the byte loop is deliberate:
+// memcmp with a runtime length does not inline, and one libc call per token
+// costs ~9% on a bool column, where a hashset lookup hits on nearly every
+// token and there is little other per-token work to absorb it.
+static inline int kh_strview_hash_equal(kh_strview_t a, kh_strview_t b) {
+  if (a.len != b.len)
+    return 0;
+  for (size_t i = 0; i < a.len; ++i)
+    if (a.ptr[i] != b.ptr[i])
+      return 0;
+  return 1;
+}
+
+#define KHASH_MAP_INIT_STRVIEW(name, khval_t)                                  \
+  KHASH_INIT(name, kh_strview_t, khval_t, 1, kh_strview_hash_func,             \
+             kh_strview_hash_equal)
+
+KHASH_MAP_INIT_STRVIEW(str, size_t)
+KHASH_MAP_INIT_STRVIEW(strbox, kh_pyobject_t)
 
 typedef struct {
   kh_str_t *table;
   int starts[256];
+  int has_empty;
 } kh_str_starts_t;
 
 typedef kh_str_starts_t *p_kh_str_starts_t;
@@ -368,22 +452,34 @@ static inline p_kh_str_starts_t kh_init_str_starts(void) {
   return result;
 }
 
-static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
+// The length is a parameter rather than a strlen here: kh_get_str_starts_item
+// runs per token per column on the read_csv hot path, and deriving it with
+// strlen measured 4-21% on every csvbench core case. Every caller already
+// knows the exact length -- read_csv from _token_len, the na_values entries
+// from PyBytes_AsStringAndSize.
+static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
+                                              const char *key, size_t len,
                                               int *ret) {
-  khuint_t result = kh_put_str(table->table, key, ret);
+  khuint_t result = kh_put_str(table->table, kh_strview(key, len), ret);
   if (*ret != 0) {
-    table->starts[(unsigned char)key[0]] = 1;
+    // The empty key gets its own flag rather than a slot in starts[]. Sharing
+    // starts['\0'] with it would make every token that merely *begins* with an
+    // embedded NUL look like a candidate.
+    if (len == 0)
+      table->has_empty = 1;
+    else
+      table->starts[(unsigned char)key[0]] = 1;
   }
   return result;
 }
 
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
-                                              const char *key) {
-  unsigned char ch = *key;
-  if (table->starts[ch]) {
-    if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets)
-      return 1;
-  }
+                                              const char *key, size_t len) {
+  if (len == 0)
+    return (khuint_t)table->has_empty;
+  if (table->starts[(unsigned char)key[0]] &&
+      kh_get_str(table->table, kh_strview(key, len)) != table->table->n_buckets)
+    return 1;
   return 0;
 }
 

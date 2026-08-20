@@ -2,11 +2,12 @@
 
 import calendar
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 import locale
+import re
 import time
 import unicodedata
 import zoneinfo
@@ -30,6 +31,10 @@ from pandas._libs.tslibs.timezones import (
     tz_compare,
 )
 from pandas.compat import IS64
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas import (
@@ -48,7 +53,6 @@ class TestTimestampProperties:
         freq = to_offset("B")
 
         ts = Timestamp("2017-10-01")
-        assert ts.dayofweek == 6
         assert ts.day_of_week == 6
         assert ts.is_month_start  # not a weekday
         assert not freq.is_month_start(ts)
@@ -57,7 +61,6 @@ class TestTimestampProperties:
         assert freq.is_quarter_start(ts + Timedelta(days=1))
 
         ts = Timestamp("2017-09-30")
-        assert ts.dayofweek == 5
         assert ts.day_of_week == 5
         assert ts.is_month_end
         assert not freq.is_month_end(ts)
@@ -65,6 +68,22 @@ class TestTimestampProperties:
         assert ts.is_quarter_end
         assert not freq.is_quarter_end(ts)
         assert freq.is_quarter_end(ts - Timedelta(days=1))
+
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        ts = Timestamp("2020-03-14")
+        msg = f"Timestamp.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            old_val = getattr(ts, old_attr)
+        assert old_val == getattr(ts, new_attr)
 
     @pytest.mark.parametrize(
         "attr, expected",
@@ -77,13 +96,11 @@ class TestTimestampProperties:
             ["second", 0],
             ["microsecond", 0],
             ["nanosecond", 0],
-            ["dayofweek", 2],
             ["day_of_week", 2],
             ["quarter", 4],
-            ["dayofyear", 365],
             ["day_of_year", 365],
             ["week", 1],
-            ["daysinmonth", 31],
+            ["days_in_month", 31],
         ],
     )
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
@@ -119,10 +136,9 @@ class TestTimestampProperties:
 
     # GH 12806
     @pytest.mark.parametrize("tz", [None, "EST"])
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_names(self, tz, time_locale):
         # GH 17354
@@ -271,9 +287,9 @@ class TestTimestamp:
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert Timestamp.utcnow().tz is timezone.utc
-        assert Timestamp.now("UTC").tz is timezone.utc
-        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+            assert Timestamp.utcnow().tz is UTC
+        assert Timestamp.now("UTC").tz is UTC
+        assert Timestamp("2016-01-01", tz="UTC").tz is UTC
 
     def test_tz(self):
         tstr = "2014-02-01 09:00"
@@ -295,7 +311,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is UTC
 
     def test_asm8(self):
         ns = [Timestamp.min._value, Timestamp.max._value, 1000]
@@ -312,11 +328,11 @@ class TestTimestamp:
             assert int((Timestamp(x)._value - Timestamp(y)._value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone.utc))
+        compare(Timestamp.now("UTC"), datetime.now(UTC))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            compare(Timestamp.utcnow(), datetime.now(timezone.utc))
+            compare(Timestamp.utcnow(), datetime.now(UTC))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
@@ -330,15 +346,15 @@ class TestTimestamp:
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, "UTC"),
-            datetime.fromtimestamp(current_time, timezone.utc),
+            datetime.fromtimestamp(current_time, UTC),
         )
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, tz="UTC"),
-            datetime.fromtimestamp(current_time, timezone.utc),
+            datetime.fromtimestamp(current_time, UTC),
         )
 
-        date_component = datetime.now(timezone.utc)
+        date_component = datetime.now(UTC)
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             Timestamp.combine(date_component, time_component),
@@ -367,11 +383,11 @@ class TestTimestamp:
         # further test accessors
         base = Timestamp("20140101 00:00:00").as_unit("ns")
 
-        result = Timestamp(base._value + Timedelta("5ms")._value)
+        result = Timestamp(base._value + Timedelta("5ms").value)
         assert result == Timestamp(f"{base}.005000")
         assert result.microsecond == 5000
 
-        result = Timestamp(base._value + Timedelta("5us")._value)
+        result = Timestamp(base._value + Timedelta("5us").value)
         assert result == Timestamp(f"{base}.000005")
         assert result.microsecond == 5
 
@@ -380,11 +396,11 @@ class TestTimestamp:
         assert result.nanosecond == 5
         assert result.microsecond == 0
 
-        result = Timestamp(base._value + Timedelta("6ms 5us")._value)
+        result = Timestamp(base._value + Timedelta("6ms 5us").value)
         assert result == Timestamp(f"{base}.006005")
         assert result.microsecond == 5 + 6 * 1000
 
-        result = Timestamp(base._value + Timedelta("200ms 5us")._value)
+        result = Timestamp(base._value + Timedelta("200ms 5us").value)
         assert result == Timestamp(f"{base}.200005")
         assert result.microsecond == 5 + 200 * 1000
 
@@ -505,6 +521,16 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
+    def test_to_period_unsupported_freq(self):
+        # GH#38914 unsupported freqs should raise a helpful error, not AttributeError
+        ts = Timestamp("2018-12-01")
+        msg = "for Period, please use 'M' instead of 'MS'"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period("MS")
+        msg = "<MonthBegin> is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period(offsets.MonthBegin())
+
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
         ts = Timestamp(datetime.now())
@@ -586,7 +612,7 @@ class TestNonNano:
         assert ts.month_name() == alt.month_name()
 
     def test_tz_convert(self, ts):
-        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, timezone.utc)
+        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, UTC)
 
         tz = zoneinfo.ZoneInfo("US/Pacific")
         result = ts.tz_convert(tz)
@@ -641,11 +667,13 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24).as_unit("ns")
+        other = Timestamp(dt64 - np.timedelta64(3600 * 24, "s")).as_unit("ns")
         assert other < ts
-        assert other.asm8 > ts.asm8  # <- numpy gets this wrong
+        if not is_numpy_dev and not np_version_gt2_5:
+            assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
-        assert ts.asm8 < other.asm8  # <- numpy gets this wrong
+        if not is_numpy_dev and not np_version_gt2_5:
+            assert ts.asm8 < other.asm8  # <- numpy gets this wrong
         assert not other == ts
         assert ts != other
 
@@ -657,11 +685,11 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts, tz_aware_fixture):
+    def test_pickle(self, ts, tz_aware_fixture, temp_file):
         tz = tz_aware_fixture
         tz = maybe_get_tz(tz)
         ts = Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
-        rt = tm.round_trip_pickle(ts)
+        rt = tm.round_trip_pickle(ts, temp_file)
         assert rt._creso == ts._creso
         assert rt == ts
 
@@ -931,3 +959,32 @@ def test_negative_dates():
     func = "^toordinal"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.toordinal()
+
+
+@pytest.mark.parametrize(
+    "date_string,expected_year",
+    [
+        ("-111-01-01", -111),
+        ("-12-01-01", -12),
+        ("-9-1-1", -9),
+        ("-0111-01-01", -111),
+        ("-1234-01-01", -1234),
+    ],
+)
+def test_negative_year_iso8601(date_string, expected_year):
+    # GH#55954 a leading "-" used to be silently dropped by dateutil for
+    # years with fewer than 4 digits (e.g. "-111-01-01" parsed as year 111);
+    # the iso8601 path now accepts 1-4 digit BC years like NumPy does.
+    ts = Timestamp(date_string)
+    assert ts.year == expected_year
+    assert ts.month == 1
+    assert ts.day == 1
+
+
+@pytest.mark.parametrize("date_string", ["-12:30", "--12-01-01", "- 12", "-"])
+def test_negative_prefix_non_iso_raises(date_string):
+    # GH#55954 strings starting with "-" that aren't valid iso8601 dates
+    # used to be silently mishandled by dateutil (which strips the "-").
+    msg = f"Unknown datetime string format, unable to parse: {date_string}"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        Timestamp(date_string)

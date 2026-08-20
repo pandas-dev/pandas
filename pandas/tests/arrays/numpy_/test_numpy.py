@@ -6,6 +6,8 @@ the interface tests.
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
@@ -155,15 +157,43 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_readonly():
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
+    arr._readonly = True
+    result = arr.to_numpy()
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="f8")
+    assert result.flags.writeable
+
+
+def test_sort_readonly():
+    arr = NumpyExtensionArray(np.array([3, 1, 2]))
+    arr._readonly = True
+    with pytest.raises(ValueError, match="Cannot modify read-only array"):
+        arr.sort()
+    tm.assert_extension_array_equal(arr, NumpyExtensionArray(np.array([3, 1, 2])))
+
+
+@pytest.mark.parametrize("dtype", [None, "int64"])
+def test_asarray_readonly(dtype):
+    arr = NumpyExtensionArray(np.array([1, 2, 3], dtype="int64"))
+    arr._readonly = True
+    result = np.asarray(arr, dtype=dtype)
+    assert not result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=True)
+    assert result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=False)
+    assert not result.flags.writeable
+
+
 # ----------------------------------------------------------------------------
 # Setitem
-
-
-def test_setitem_series():
-    ser = pd.Series([1, 2, 3])
-    ser.array[0] = 10
-    expected = pd.Series([10, 2, 3])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_setitem(any_numpy_array):
@@ -274,14 +304,13 @@ def test_setitem_object_typecode(dtype):
 
 def test_setitem_no_coercion():
     # https://github.com/pandas-dev/pandas/issues/28150
+    # GH#51044
     arr = NumpyExtensionArray(np.array([1, 2, 3]))
-    with pytest.raises(ValueError, match="int"):
+    with pytest.raises(TypeError, match="int"):
         arr[0] = "a"
 
-    # With a value that we do coerce, check that we coerce the value
-    #  and not the underlying array.
-    arr[0] = 2.5
-    assert isinstance(arr[0], (int, np.integer)), type(arr[0])
+    with pytest.raises(TypeError, match="int"):
+        arr[0] = 2.5
 
 
 def test_setitem_preserves_views():
@@ -296,7 +325,7 @@ def test_setitem_preserves_views():
     assert view2[0] == 9
     assert view3[0] == 9
 
-    arr[-1] = 2.5
+    arr[-1] = 5
     view1[-1] = 5
     assert arr[-1] == 5
 
@@ -323,6 +352,52 @@ def test_factorize_unsigned():
     tm.assert_numpy_array_equal(res_codes, exp_codes)
 
     tm.assert_extension_array_equal(res_unique, NumpyExtensionArray(exp_unique))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.bool_,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+    ],
+)
+def test_take_assigns_floating_point_dtype(dtype):
+    # GH#62448.
+    if dtype == np.bool_:
+        array = NumpyExtensionArray(np.array([False, True, False], dtype=dtype))
+        expected = np.dtype(object)
+    else:
+        array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
+        expected = np.float64
+
+    result = array.take([-1], allow_fill=True)
+    assert result.dtype.numpy_dtype == expected
+
+    # For integer dtypes, we cast round-float fill_value to int, so do not
+    #  get a warning here. This casting is not ideal, but is the lesser evil
+    #  preventing other breakage when doing this deprecation.
+    msg = (
+        "reindexing with a fill_value that cannot be held by the "
+        "original dtype is deprecated"
+    )
+    warn = Pandas4Warning if dtype == np.bool_ else None
+    expected = object if dtype == np.bool_ else array.dtype.numpy_dtype
+    with tm.assert_produces_warning(warn, match=msg):
+        result = array.take([-1], allow_fill=True, fill_value=5.0)
+    assert result.dtype.numpy_dtype == expected
+
+
+def test_take_preserves_boolean_arrays():
+    array = NumpyExtensionArray(np.array([False, True, False], dtype=np.bool_))
+    result = array.take([-1], allow_fill=False)
+    assert result.dtype.numpy_dtype == np.bool_
 
 
 # ----------------------------------------------------------------------------

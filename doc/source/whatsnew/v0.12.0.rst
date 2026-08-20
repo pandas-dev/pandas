@@ -413,7 +413,7 @@ Experimental features
       dt = datetime(2013, 4, 30)
       print(dt + 2 * bday_egypt)
       dts = pd.date_range(dt, periods=5, freq=bday_egypt)
-      print(pd.Series(dts.weekday, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())))
+      print(pd.Series(dts.day_of_week, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())))
 
 Bug fixes
 ~~~~~~~~~

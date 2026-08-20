@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 from dateutil.relativedelta import MO
@@ -129,10 +129,8 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
 
     # Verify that timezone info is preserved.
     assert list(
-        holiday.dates(
-            Timestamp(start_date, tz=timezone.utc), Timestamp(end_date, tz=timezone.utc)
-        )
-    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
+        holiday.dates(Timestamp(start_date, tz=UTC), Timestamp(end_date, tz=UTC))
+    ) == [dt.replace(tzinfo=UTC) for dt in expected]
 
 
 @pytest.mark.parametrize(
@@ -195,11 +193,9 @@ def test_holidays_within_dates(holiday, start, expected):
     assert list(holiday.dates(start, start)) == expected
 
     # Verify that timezone info is preserved.
-    assert list(
-        holiday.dates(
-            Timestamp(start, tz=timezone.utc), Timestamp(start, tz=timezone.utc)
-        )
-    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
+    assert list(holiday.dates(Timestamp(start, tz=UTC), Timestamp(start, tz=UTC))) == [
+        dt.replace(tzinfo=UTC) for dt in expected
+    ]
 
 
 @pytest.mark.parametrize(
@@ -328,7 +324,7 @@ def test_half_open_interval_with_observance():
     start = Timestamp("2022-08-01")
     end = Timestamp("2022-08-31")
     year_offset = DateOffset(years=5)
-    expected_results = DatetimeIndex([], dtype="datetime64[ns]", freq=None)
+    expected_results = DatetimeIndex([], dtype="datetime64[us]", freq=None)
     test_cal = TestHolidayCalendar()
 
     date_interval_low = test_cal.holidays(start - year_offset, end - year_offset)
@@ -350,7 +346,6 @@ def test_holidays_with_timezone_specified_but_no_occurrences():
         start_date, end_date, return_name=True
     )
     expected_results = Series("New Year's Day", index=[start_date])
-    expected_results.index = expected_results.index.as_unit("ns")
 
     tm.assert_equal(test_case, expected_results)
 
@@ -378,7 +373,7 @@ def test_holiday_with_exclusion():
             Timestamp("2024-05-27"),
             Timestamp("2025-05-26"),
         ],
-        dtype="datetime64[ns]",
+        dtype="datetime64[us]",
     )
     tm.assert_index_equal(result, expected)
 
@@ -440,7 +435,7 @@ def test_holiday_with_multiple_exclusions():
             Timestamp("2064-01-01"),
             Timestamp("2065-01-01"),
         ],
-        dtype="datetime64[ns]",
+        dtype="datetime64[us]",
     )
     tm.assert_index_equal(result, expected)
 

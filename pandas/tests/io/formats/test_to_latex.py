@@ -1346,18 +1346,18 @@ class TestToLatexMultiindex:
         )
         col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
         observed = df.to_latex(multirow=False)
-        expected = r"""\begin{tabular}{llrrrr}
+        expected = r"""\begin{{tabular}}{{llrrrr}}
 \toprule
- & %s & \multicolumn{2}{r}{1} & \multicolumn{2}{r}{2} \\
- & %s & 3 & 4 & 3 & 4 \\
-%s\midrule
+ & {} & \multicolumn{{2}}{{r}}{{1}} & \multicolumn{{2}}{{r}}{{2}} \\
+ & {} & 3 & 4 & 3 & 4 \\
+{}\midrule
 1 & 3 & -1 & -1 & -1 & -1 \\
  & 4 & -1 & -1 & -1 & -1 \\
 2 & 3 & -1 & -1 & -1 & -1 \\
  & 4 & -1 & -1 & -1 & -1 \\
 \bottomrule
-\end{tabular}
-""" % tuple(list(col_names) + [idx_names_row])
+\end{{tabular}}
+""".format(*col_names, idx_names_row)
         assert observed == expected
 
     @pytest.mark.parametrize("one_row", [True, False])

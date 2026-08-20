@@ -126,9 +126,6 @@ def to_dict(
           [{column -> value}, ... , {column -> value}]
         - 'index' : dict like {index -> {column -> value}}
 
-        .. versionadded:: 1.4.0
-            'tight' as an allowed value for the ``orient`` argument
-
     into : class, default dict
         The collections.abc.MutableMapping subclass used for all Mappings
         in the return value.  Can be the actual class or an empty
@@ -155,8 +152,7 @@ def to_dict(
             stacklevel=find_stack_level(),
         )
     # GH16122
-    # error: Call to untyped function "standardize_mapping" in typed context
-    into_c = com.standardize_mapping(into)  # type: ignore[no-untyped-call]
+    into_c = com.standardize_mapping(into)
 
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
@@ -263,7 +259,10 @@ def to_dict(
         columns = df.columns.tolist()
         if are_all_object_dtype_cols:
             return into_c(
-                (t[0], dict(zip(df.columns, map(maybe_box_native, t[1:]), strict=True)))
+                (
+                    t[0],
+                    into_c(zip(df.columns, map(maybe_box_native, t[1:]), strict=True)),
+                )
                 for t in df.itertuples(name=None)
             )
         elif box_native_indices:
@@ -271,20 +270,23 @@ def to_dict(
             return into_c(
                 (
                     t[0],
-                    {
-                        column: maybe_box_native(v)
-                        if i in object_dtype_indices_as_set
-                        else v
+                    into_c(
+                        (
+                            column,
+                            maybe_box_native(v)
+                            if i in object_dtype_indices_as_set
+                            else v,
+                        )
                         for i, (column, v) in enumerate(
                             zip(columns, t[1:], strict=True)
                         )
-                    },
+                    ),
                 )
                 for t in df.itertuples(name=None)
             )
         else:
             return into_c(
-                (t[0], dict(zip(columns, t[1:], strict=True)))
+                (t[0], into_c(zip(columns, t[1:], strict=True)))
                 for t in df.itertuples(name=None)
             )
 

@@ -115,7 +115,7 @@ class TestIceberg:
         result = read_iceberg(
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
-            selected_fields=["a"],
+            columns=["a"],
             case_sensitive=False,
         )
         tm.assert_frame_equal(result, expected)
@@ -124,7 +124,7 @@ class TestIceberg:
             read_iceberg(
                 "ns.my_table",
                 catalog_properties={"uri": catalog.uri},
-                selected_fields=["a"],
+                columns=["a"],
                 case_sensitive=True,
             )
 
@@ -142,6 +142,9 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Delete operation did not match any records:UserWarning"
+    )
     def test_write(self, catalog):
         df = pd.DataFrame(
             {
@@ -160,6 +163,9 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Delete operation did not match any records:UserWarning"
+    )
     @pytest.mark.parametrize("catalog", ["default", "pandas_tests"], indirect=True)
     def test_write_by_catalog_name(self, catalog):
         df = pd.DataFrame(

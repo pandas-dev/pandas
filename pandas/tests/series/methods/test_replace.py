@@ -1,8 +1,10 @@
+from datetime import datetime
 import re
 
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -58,8 +60,8 @@ class TestSeriesReplace:
         ser[6:10] = 0
 
         # replace list with a single value
-        return_value = ser.replace([np.nan], -1, inplace=True)
-        assert return_value is None
+        result = ser.replace([np.nan], -1, inplace=True)
+        assert result is ser
 
         exp = ser.fillna(-1)
         tm.assert_series_equal(ser, exp)
@@ -99,8 +101,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
-        assert return_value is None
+        result = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        assert result is ser
 
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
@@ -194,8 +196,8 @@ class TestSeriesReplace:
         def check_replace(to_rep, val, expected):
             sc = ser.copy()
             result = ser.replace(to_rep, val)
-            return_value = sc.replace(to_rep, val, inplace=True)
-            assert return_value is None
+            result = sc.replace(to_rep, val, inplace=True)
+            assert result is sc
             tm.assert_series_equal(expected, result)
             tm.assert_series_equal(expected, sc)
 
@@ -228,7 +230,7 @@ class TestSeriesReplace:
         # test an object with dates + floats + integers + strings
         dr = pd.Series(pd.date_range("1/1/2001", "1/10/2001", freq="D"))
         result = dr.astype(object).replace([dr[0], dr[1], dr[2]], [1.0, 2, "a"])
-        expected = pd.Series([1.0, 2, "a"] + dr[3:].tolist(), dtype=object)
+        expected = pd.Series([1.0, 2, "a", *dr[3:].tolist()], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_replace_bool_with_string_no_op(self):
@@ -261,7 +263,8 @@ class TestSeriesReplace:
         expected = pd.Series([pd.NA, pd.NA], dtype=any_int_ea_dtype)
         tm.assert_series_equal(result, expected)
         result = pd.Series([0, 1], dtype=any_int_ea_dtype).replace(0, pd.NA)
-        result.replace(1, pd.NA, inplace=True)
+        result2 = result.replace(1, pd.NA, inplace=True)
+        assert result2 is result
         tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
@@ -296,8 +299,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
-        assert return_value is None
+        result = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        assert result is ser
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
@@ -381,10 +384,11 @@ class TestSeriesReplace:
         # GH 53358
         data = ["a", "b", "c"]
         data_exp = ["b", "b", "c"]
-        result = pd.Series(data, dtype="category")
-        result.replace(to_replace="a", value="b", inplace=True)
+        ser = pd.Series(data, dtype="category")
+        result = ser.replace(to_replace="a", value="b", inplace=True)
+        assert result is ser
         expected = pd.Series(pd.Categorical(data_exp, categories=data))
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(ser, expected)
 
     def test_replace_categorical_single(self):
         # GH 26988
@@ -457,6 +461,16 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    def test_replace_ellipsis(self):
+        # GH#50373 Ellipsis should be accepted as a scalar to_replace
+        series = pd.Series([..., 2, 3])
+        result = series.replace(..., 1)
+        expected = pd.Series([1, 2, 3], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        # Ellipsis is equivalent to the spelled-out singleton
+        tm.assert_series_equal(series.replace(Ellipsis, 1), expected)
+
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):
         obj = pd.Series(["a", "b", "c "])
@@ -474,7 +488,7 @@ class TestSeriesReplace:
             obj = obj.to_frame()
 
         res = obj.replace(4, 5, inplace=True)
-        assert res is None
+        assert res is obj
 
         res = obj.replace(4, 5, inplace=False)
         tm.assert_equal(res, obj)
@@ -645,6 +659,27 @@ class TestSeriesReplace:
         result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_no_replacement_keeps_nan(self, regex):
+        # GH#48034 a non-matching replace on an object Series of Timestamp + NaN
+        #  should be a no-op and must not coerce np.nan to NaT
+        ser = pd.Series([pd.Timestamp(1000223), np.nan], dtype=object)
+        result = ser.replace("abcdef", pd.NaT, regex=regex)
+        tm.assert_series_equal(result, ser)
+        assert result.dtype == object
+        assert result[1] is np.nan
+
+    def test_replace_keeps_nan_no_downcast(self):
+        # GH#48034 replacing a value should not downcast object dtype and
+        #  thereby convert np.nan to NaT
+        ser = pd.Series([pd.Timedelta("PT1H"), np.nan, 1], dtype=object)
+        result = ser.replace(1, pd.Timedelta("PT1H"), regex=False)
+        expected = pd.Series(
+            [pd.Timedelta("PT1H"), np.nan, pd.Timedelta("PT1H")], dtype=object
+        )
+        tm.assert_series_equal(result, expected)
+        assert result[1] is np.nan
+
     def test_replace_different_int_types(self, any_int_numpy_dtype):
         # GH#45311
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
@@ -687,7 +722,8 @@ class TestSeriesReplace:
         result = ser.replace(to_replace=1, value=2)
         tm.assert_series_equal(result, expected)
 
-        ser.replace(to_replace=1, value=2, inplace=True)
+        result = ser.replace(to_replace=1, value=2, inplace=True)
+        assert result is ser
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("val", [0, 0.5])
@@ -698,7 +734,8 @@ class TestSeriesReplace:
         result = ser.replace(to_replace=1, value=pd.NA)
         tm.assert_series_equal(result, expected)
 
-        ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        result = ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        assert result is ser
         tm.assert_series_equal(ser, expected)
 
     def test_replace_ea_float_with_bool(self):
@@ -720,6 +757,13 @@ class TestSeriesReplace:
         expected = pd.Series([pd.NA, pd.NA])
         tm.assert_series_equal(result, expected)
 
+    def test_replace_mixed_types_with_none(self):
+        # GH#29813
+        df = pd.Series([np.nan, 1, "foo"])
+        result = df.replace({np.nan: None})
+        expected = pd.Series([None, 1, "foo"])
+        tm.assert_series_equal(result, expected)
+
 
 @td.skip_if_no("pyarrow")
 def test_replace_from_index():
@@ -728,3 +772,10 @@ def test_replace_from_index():
     expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
     result = pd.Series(idx).replace({"z": "b", "a": "d"})
     tm.assert_series_equal(result, expected)
+
+
+def test_replace_datetime_out_of_bounds_for_ns():
+    # GH#61671
+    ser = pd.Series([np.nan], dtype="datetime64[ns]")
+    with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+        ser.replace(np.nan, datetime(3000, 1, 1))

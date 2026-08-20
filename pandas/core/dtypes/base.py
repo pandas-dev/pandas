@@ -4,6 +4,7 @@ Extend pandas with custom array types.
 
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
     ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
+@set_module("pandas.api.extensions")
 class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
@@ -50,6 +52,20 @@ class ExtensionDtype:
     pandas ecosystem. By implementing this interface and pairing it with a custom
     `ExtensionArray`, users can create rich data types that integrate cleanly
     with pandas operations, such as grouping, joining, or aggregation.
+
+    Attributes
+    ----------
+    kind
+    na_value
+    name
+    names
+    type
+
+    Methods
+    -------
+    construct_array_type
+    construct_from_string
+    is_dtype
 
     See Also
     --------
@@ -111,8 +127,6 @@ class ExtensionDtype:
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
-
-    __module__ = "pandas.api.extensions"
 
     _metadata: tuple[str, ...] = ()
 
@@ -290,9 +304,15 @@ class ExtensionDtype:
             raise TypeError(
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
+        if not isinstance(cls.name, str):
+            # GH#46093 registered ExtensionDtype without a string `name`
+            raise TypeError(
+                f"Cannot construct a '{cls.__name__}' from a string because it "
+                "does not define a string 'name' attribute. ExtensionDtype "
+                "subclasses must set a class-level `name`."
+            )
         # error: Non-overlapping equality check (left operand type: "str", right
         #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
-        assert isinstance(cls.name, str), (cls, type(cls.name))
         if string != cls.name:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
@@ -458,8 +478,8 @@ class StorageExtensionDtype(ExtensionDtype):
     name: str
     _metadata = ("storage",)
 
-    def __init__(self, storage: str | None = None) -> None:
-        self.storage = storage
+    def __init__(self, storage: str) -> None:
+        self._storage = storage
 
     def __repr__(self) -> str:
         return f"{self.name}[{self.storage}]"
@@ -479,6 +499,10 @@ class StorageExtensionDtype(ExtensionDtype):
     @property
     def na_value(self) -> libmissing.NAType:
         return libmissing.NA
+
+    @property
+    def storage(self) -> str:
+        return self._storage
 
 
 @set_module("pandas.api.extensions")
@@ -509,6 +533,14 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
     """
+    # GH#46093 identity check against the base property, so dtypes defining
+    #  ``name`` as an instance-level property (e.g. DatetimeTZDtype) pass.
+    if inspect.getattr_static(cls, "name", None) is ExtensionDtype.__dict__["name"]:
+        raise TypeError(
+            f"Cannot register '{cls.__name__}' because it does not define a "
+            "string 'name' attribute. ExtensionDtype subclasses must set a "
+            "class-level `name`."
+        )
     _registry.register(cls)
     return cls
 

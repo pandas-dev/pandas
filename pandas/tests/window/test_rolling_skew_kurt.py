@@ -170,11 +170,11 @@ def test_center_reindex_frame(frame, roll_func):
 
 
 def test_rolling_skew_edge_cases(step):
-    expected = Series([np.nan] * 4 + [0.0])[::step]
+    expected = Series([np.nan] * 5)[::step]
     # yields all NaN (0 variance)
     d = Series([1] * 5)
     x = d.rolling(window=5, step=step).skew()
-    # index 4 should be 0 as it contains 5 same obs
+    # index 4 should be NaN as it contains 5 same obs
     tm.assert_series_equal(expected, x)
 
     expected = Series([np.nan] * 5)[::step]
@@ -191,7 +191,7 @@ def test_rolling_skew_edge_cases(step):
 
 
 def test_rolling_kurt_edge_cases(step):
-    expected = Series([np.nan] * 4 + [-3.0])[::step]
+    expected = Series([np.nan] * 5)[::step]
 
     # yields all NaN (0 variance)
     d = Series([1] * 5)
@@ -213,15 +213,24 @@ def test_rolling_kurt_edge_cases(step):
 
 def test_rolling_skew_eq_value_fperr(step):
     # #18804 all rolling skew for all equal values should return Nan
-    # #46717 update: all equal values should return 0 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).skew()
-    assert (a[a.index >= 9] == 0).all()
-    assert a[a.index < 9].isna().all()
+    expected = Series([np.nan] * 15)[::step]
+    tm.assert_series_equal(a, expected)
 
 
 def test_rolling_kurt_eq_value_fperr(step):
     # #18804 all rolling kurt for all equal values should return Nan
-    # #46717 update: all equal values should return -3 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).kurt()
-    assert (a[a.index >= 9] == -3).all()
-    assert a[a.index < 9].isna().all()
+    expected = Series([np.nan] * 15)[::step]
+    tm.assert_series_equal(a, expected)
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+@pytest.mark.parametrize("scale_factor", [1e-20, 1e20])
+def test_skew_kurt_is_scale_invariant(roll_func, scale_factor):
+    # GH-62946
+    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj_scaled = obj * scale_factor
+    result = getattr(obj.rolling(20), roll_func)()
+    result_scaled = getattr(obj_scaled.rolling(20), roll_func)()
+    tm.assert_series_equal(result, result_scaled)

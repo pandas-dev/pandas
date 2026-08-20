@@ -128,7 +128,7 @@ class TestDST:
             assert t.date() == timedelta(days=7 * offset.kwds["weeks"]) + tstart.date()
             # expect the same day of week, hour of day, minute, second, ...
             assert (
-                t.dayofweek == tstart.dayofweek
+                t.day_of_week == tstart.day_of_week
                 and t.hour == tstart.hour
                 and t.minute == tstart.minute
                 and t.second == tstart.second
@@ -145,7 +145,7 @@ class TestDST:
         elif offset_name in self.valid_date_offsets_singular:
             # expect the singular offset value to match between tstart and t
             datepart_offset = getattr(
-                t, offset_name if offset_name != "weekday" else "dayofweek"
+                t, offset_name if offset_name != "weekday" else "day_of_week"
             )
             assert datepart_offset == offset.kwds[offset_name]
         else:

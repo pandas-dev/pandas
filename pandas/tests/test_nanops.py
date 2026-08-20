@@ -182,6 +182,29 @@ def arr_nan_float1_1d(arr_nan_float1):
     return arr_nan_float1[:, 0]
 
 
+@pytest.fixture(
+    params=[
+        "nanany",
+        "nanall",
+        "nansum",
+        "nanmean",
+        "nanmedian",
+        "nanstd",
+        "nanvar",
+        "nansem",
+        "nanargmax",
+        "nanargmin",
+        "nanmax",
+        "nanmin",
+        "nanskew",
+        "nankurt",
+        "nanprod",
+    ]
+)
+def nanops_univariate_methods(request):
+    return request.param
+
+
 class TestnanopsDataFrame:
     def setup_method(self):
         nanops._USE_BOTTLENECK = False
@@ -304,7 +327,7 @@ class TestnanopsDataFrame:
         empty_targfunc=None,
         **kwargs,
     ):
-        for axis in list(range(targarval.ndim)) + [None]:
+        for axis in [*list(range(targarval.ndim)), None]:
             targartempval = targarval if skipna else testarval
             if skipna and empty_targfunc and isna(targartempval).all():
                 targ = empty_targfunc(targartempval, axis=axis, **kwargs)
@@ -557,12 +580,6 @@ class TestnanopsDataFrame:
         if not isinstance(values.dtype.type, np.floating):
             values = values.astype("f8")
         result = func(values, axis=axis, bias=False)
-        # fix for handling cases where all elements in an axis are the same
-        if isinstance(result, np.ndarray):
-            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
-            return result
-        elif np.max(values) == np.min(values):
-            return 0.0
         return result
 
     def test_nanskew(self, skipna):
@@ -709,6 +726,90 @@ class TestnanopsDataFrame:
         targ0 = np.corrcoef(self.arr_float_1d, self.arr_float1_1d)[0, 1]
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
+
+    @pytest.mark.parametrize("dtype", [np.float64, np.float32, np.int64])
+    def test_nancorr_pearson_matches_corrcoef_1d_numeric(self, dtype):
+        a = np.array([1, 2, 4, 8, 16], dtype=dtype)
+        b = np.array([2, 3, 5, 9, 17], dtype=dtype)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a, b)[0, 1]
+
+        assert type(result) is type(expected)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (
+                np.array([1 + 1j, 2 + 2j, 4 + 4j]),
+                np.array([2 + 2j, 3 + 3j, 5 + 5j]),
+            ),
+            (
+                np.array([[1.0, 2.0], [4.0, 8.0]]),
+                np.array([[2.0, 3.0], [5.0, 9.0]]),
+            ),
+        ],
+    )
+    def test_nancorr_pearson_fallback_matches_corrcoef(self, a, b):
+        corr_func = nanops.get_corr_func("pearson")
+
+        result = corr_func(a, b)
+        expected = np.corrcoef(a, b)[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
+        a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
+        b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
+        valid = ~isna(a) & ~isna(b)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a[valid], b[valid])[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b, expected",
+        [
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e100, 2e100, 3e100]),
+                1.0,
+            ),
+            (
+                np.array([1e-160, 2e-160, 3e-160]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([3e-160, 2e-160, 1e-160]),
+                -1.0,
+            ),
+        ],
+    )
+    def test_nancorr_pearson_extreme_magnitudes(self, a, b, expected):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (np.array([1.0]), np.array([2.0])),
+            (np.array([1.0, 1.0, 1.0]), np.array([2.0, 3.0, 4.0])),
+        ],
+    )
+    def test_nancorr_pearson_not_well_defined(self, a, b):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        assert isna(result)
 
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
@@ -993,6 +1094,20 @@ class TestNanvarFixedValues:
         assert np.isnan(std[3])
 
     @pytest.mark.parametrize("ddof", range(3))
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    def test_complex_nanvar(self, ddof, axis, method):
+        arr = self.prng.standard_normal((5, 4)) + self.prng.standard_normal((5, 4)) * 1j
+        nanops_method = getattr(nanops, f"nan{method}")
+        if method in {"var", "std"}:
+            comparator_method = getattr(np, method)
+        elif method == "sem":
+            comparator_method = pytest.importorskip("scipy.stats").sem
+        result = nanops_method(arr, axis=axis, ddof=ddof)
+        expected = comparator_method(arr, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("ddof", range(3))
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
@@ -1018,10 +1133,10 @@ class TestNanskewFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         skew = nanops.nanskew(data)
-        assert skew == 0.0
+        assert np.isnan(skew)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1086,10 +1201,10 @@ class TestNankurtFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        tm.assert_equal(kurt, 0.0)
+        tm.assert_equal(kurt, np.nan)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1209,33 +1324,63 @@ def test_numpy_ops(numpy_op, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "operation",
-    [
-        nanops.nanany,
-        nanops.nanall,
-        nanops.nansum,
-        nanops.nanmean,
-        nanops.nanmedian,
-        nanops.nanstd,
-        nanops.nanvar,
-        nanops.nansem,
-        nanops.nanargmax,
-        nanops.nanargmin,
-        nanops.nanmax,
-        nanops.nanmin,
-        nanops.nanskew,
-        nanops.nankurt,
-        nanops.nanprod,
-    ],
-)
-def test_nanops_independent_of_mask_param(operation):
+def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     # GH22764
+    operation = getattr(nanops, nanops_univariate_methods)
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
-    median_result = operation(ser._values, mask=mask)
+    median_result = operation(ser._values, mask=mask._values)
     assert median_expected == median_result
+
+
+@pytest.mark.parametrize(
+    "nanops_operation",
+    [
+        "nansum",
+        "nanmean",
+        "nanstd",
+        "nanvar",
+        "nansem",
+        "nanmax",
+        "nanmin",
+        "nanskew",
+        "nankurt",
+        "nanprod",
+    ],
+)
+@pytest.mark.parametrize("axis", [None, 0, 1])
+def test_nanops_reductions_dont_skip_nan_with_mask(
+    nanops_operation, skipna, axis, request
+):
+    if not skipna and axis in {0, 1} and nanops_operation == "nansem":
+        mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
+        request.applymarker(mark)
+    if axis is None:
+        expected = np.nan
+    else:
+        expected = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
+    values = np.array(
+        [
+            [np.nan, 1.0, 2.0, 3.0, 4.0],
+            [0.0, np.nan, 2.0, 3.0, 4.0],
+            [0.0, 1.0, np.nan, 3.0, 4.0],
+            [0.0, 1.0, 2.0, np.nan, 4.0],
+            [0.0, 1.0, 2.0, 3.0, np.nan],
+        ]
+    )
+    mask = np.array(
+        [
+            [False, True, False, False, False],
+            [False, False, True, False, False],
+            [False, False, False, True, False],
+            [False, False, False, False, True],
+            [True, False, False, False, False],
+        ]
+    )
+    operation = getattr(nanops, nanops_operation)
+    result = operation(values, mask=mask, skipna=skipna, axis=axis)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
@@ -1273,18 +1418,31 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
     assert not nanops._bn_ok_dtype(np.dtype(any_real_numpy_dtype).type, func)
 
 
+def test_nanmean_float16_overflow(disable_bottleneck):
+    # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
+    ser = Series([60000.0, 60000.0], dtype=np.float16)
+    result = ser.mean()
+    assert result == 60000.0
+
+    result = ser.sum()
+    assert result == 120000.0
+
+
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
-def test_nanmean_overflow(disable_bottleneck, val):
+def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # GH 10155
     # In the previous implementation mean can overflow for int dtypes, it
     # is now consistent with numpy
 
     ser = Series(val, index=range(500), dtype=np.int64)
     result = ser.mean()
-    np_result = ser.values.mean()
     assert result == val
-    assert result == np_result
-    assert result.dtype == np.float64
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        np_result = ser.values.mean()
+        assert result == np_result
+        assert result.dtype == np.float64
 
 
 @pytest.mark.parametrize(
@@ -1299,13 +1457,119 @@ def test_nanmean_overflow(disable_bottleneck, val):
     ],
 )
 @pytest.mark.parametrize("method", ["mean", "std", "var", "skew", "kurt", "min", "max"])
-def test_returned_dtype(disable_bottleneck, dtype, method):
+def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars):
     if dtype is None:
         pytest.skip("np.float128 not available")
 
     ser = Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
-    if is_integer_dtype(dtype) and method not in ["min", "max"]:
+    if using_python_scalars:
+        if is_integer_dtype(dtype) and method in ["min", "max"]:
+            assert isinstance(result, int)
+        else:
+            assert type(result) == float
+    elif is_integer_dtype(dtype) and method not in ["min", "max"]:
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype
+
+
+@pytest.mark.parametrize("na_pos", [0, 3])
+def test_nanargminmax_uint64_with_mask(na_pos):
+    # GH#64478 the +/-inf fill for masked uint64 values must stay uint64;
+    # an int64 fill promotes uint64/int64 to float64 and loses precision above
+    # 2**53, and i8max cannot bracket uint64 values above 2**63.
+    values = np.array([2**63 + 1, 2**63 + 2, 2**63 + 3, 0], dtype=np.uint64)
+    mask = np.zeros(4, dtype=bool)
+    mask[na_pos] = True
+    valid = np.flatnonzero(~mask)
+
+    argmax = nanops.nanargmax(values, mask=mask)
+    argmin = nanops.nanargmin(values, mask=mask)
+    assert argmax == valid[values[valid].argmax()]
+    assert argmin == valid[values[valid].argmin()]
+
+    assert nanops.nanmax(values, mask=mask) == values[valid].max()
+    assert nanops.nanmin(values, mask=mask) == values[valid].min()
+
+
+def test_idxminmax_uint64_with_na():
+    # GH#64478 idxmax/idxmin on a nullable UInt64 column with values above 2**53
+    values = pd.array([2**63 + 1, 2**63 + 2, 2**63 + 3, pd.NA], dtype="UInt64")
+    df = pd.DataFrame({"a": values})
+    assert df.idxmax().tolist() == [2]
+    assert df.idxmin().tolist() == [0]
+
+
+@pytest.mark.parametrize("tie_value", [0, 2**64 - 1])
+def test_nanargminmax_uint64_na_tie(tie_value):
+    # GH#64478 the NA fill values equal the dtype extremes; when every
+    # unmasked value ties with the fill, the NA position must not win
+    values = np.full(3, tie_value, dtype=np.uint64)
+    mask = np.array([True, False, False])
+    assert nanops.nanargmax(values, mask=mask) == 1
+    assert nanops.nanargmin(values, mask=mask) == 1
+
+
+def test_nanargminmax_int64_na_tie():
+    # GH#64478 same tie at the signed extremes
+    mask = np.array([True, False, False])
+    int64_info = np.iinfo(np.int64)
+    values = np.full(3, int64_info.min, dtype=np.int64)
+    assert nanops.nanargmax(values, mask=mask) == 1
+    values = np.full(3, int64_info.max, dtype=np.int64)
+    assert nanops.nanargmin(values, mask=mask) == 1
+
+
+def test_nanargminmax_float_inf_tie():
+    # GH#64478 NaN filled with -inf/+inf ties real infinities
+    assert nanops.nanargmax(np.array([np.nan, -np.inf, -np.inf])) == 1
+    assert nanops.nanargmin(np.array([np.nan, np.inf, np.inf])) == 1
+
+
+def test_idxminmax_uint64_all_zero_with_na():
+    # GH#64478 all-zero UInt64 column with a leading NA: idxmax must not
+    # return the NA row
+    df = pd.DataFrame({"a": pd.array([pd.NA, 0, 0], dtype="UInt64")})
+    assert df.idxmax().tolist() == [1]
+    assert df.idxmin().tolist() == [1]
+
+
+def test_idxminmax_float_inf_tie():
+    # GH#64478 2-D path: NaN filled with -inf/+inf ties real infinities
+    df = pd.DataFrame({"a": [np.nan, -np.inf, -np.inf], "b": [1.0, 3.0, 2.0]})
+    assert df.idxmax().tolist() == [1, 1]
+    assert df.idxmin().tolist() == [1, 0]
+    assert df["a"].idxmax() == 1
+    assert df["a"].idxmin() == 1
+
+
+def _copy_array_with_layout(arr, layout):
+    if layout == "strided":
+        base = np.zeros((arr.shape[0], arr.shape[1] * 2), dtype=arr.dtype)
+        base[:, ::2] = arr
+        return base[:, ::2]
+
+    return arr.copy(order=layout)
+
+
+@pytest.mark.parametrize("axis", [0, 1, None])
+@pytest.mark.parametrize("arr_layout", ["C", "F", "strided"])
+@pytest.mark.parametrize("mask_layout", ["C", "F", "strided"])
+def test_mask_memory_layout_mismatch(
+    disable_bottleneck, nanops_univariate_methods, axis, arr_layout, mask_layout
+):
+    func = getattr(nanops, nanops_univariate_methods)
+
+    rng = np.random.default_rng(2)
+    base_arr = rng.random((6, 5))
+    base_arr[0, 1] = np.nan
+    base_mask = np.isnan(base_arr)
+
+    arr = _copy_array_with_layout(base_arr, arr_layout)
+    mask = _copy_array_with_layout(base_mask, mask_layout)
+
+    expected = func(base_arr, axis=axis, mask=base_mask)
+    result = func(arr, axis=axis, mask=mask)
+
+    tm.assert_almost_equal(result, expected)

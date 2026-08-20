@@ -6,14 +6,13 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat.pyarrow import pa_version_under19p0
 
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+import pandas.core.arrays.string_ as string_module
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
 )
@@ -141,7 +140,7 @@ def test_setitem_with_array_with_missing(dtype):
 
 
 def test_astype_roundtrip(dtype):
-    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser = pd.Series(pd.date_range("2000", periods=12, unit="ns"))
     ser[0] = None
 
     casted = ser.astype(dtype)
@@ -278,6 +277,24 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_reduce_empty(skipna, dtype, min_count):
+    arr = pd.Series([], dtype=dtype)
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if min_count == 0:
+        assert result == ""
+    else:
+        assert pd.isna(result)
+
+    # all-missing
+    arr = pd.Series([None, None], dtype=dtype)
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == ""
+    else:
+        assert pd.isna(result)
+
+
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
@@ -351,18 +368,16 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
-    if dtype.na_value is np.nan and not using_infer_string:
-        assert result["a"].dtype == "object"
-    else:
-        assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
-        if using_infer_string:
-            expected.columns = expected.columns.astype(
-                pd.StringDtype(string_storage, na_value=np.nan)
-            )
-        tm.assert_frame_equal(result, expected)
-        # ensure the missing value is represented by NA and not np.nan or None
-        assert result.loc[2, "a"] is result["a"].dtype.na_value
+
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+    if using_infer_string:
+        expected.columns = expected.columns.astype(
+            pd.StringDtype(string_storage, na_value=np.nan)
+        )
+    tm.assert_frame_equal(result, expected)
+    # ensure the missing value is represented by NA and not np.nan or None
+    assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
@@ -373,10 +388,17 @@ def test_arrow_from_string(using_infer_string):
 
     result = table.to_pandas()
 
-    if using_infer_string and not pa_version_under19p0:
-        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="str")
-    else:
+    if not using_infer_string:
+        if pa_version_under19p0:
+            expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="object")
+        else:
+            expected = pd.DataFrame(
+                {"a": ["a", "b", None]}, dtype=pd.StringDtype(na_value=np.nan)
+            )
+    elif pa_version_under19p0:
         expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="object")
+    else:
+        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -397,16 +419,13 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
 
-    if dtype.na_value is np.nan and not using_string_dtype():
-        assert result["a"].dtype == "object"
-    else:
-        assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
-        if using_infer_string:
-            expected.columns = expected.columns.astype(
-                pd.StringDtype(string_storage, na_value=np.nan)
-            )
-        tm.assert_frame_equal(result, expected)
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+    if using_infer_string:
+        expected.columns = expected.columns.astype(
+            pd.StringDtype(string_storage, na_value=np.nan)
+        )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_value_counts_na(dtype):
@@ -463,6 +482,19 @@ def test_memory_usage(dtype):
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
 
 
+def test_memory_usage_pypy_compat(dtype, monkeypatch):
+    # GH#46176 deep introspection uses sys.getsizeof, which always raises
+    # TypeError on PyPy; deep=True should fall back to the shallow result
+    if dtype.storage == "pyarrow":
+        pytest.skip(f"not applicable for {dtype.storage}")
+
+    series = pd.Series(["a", "b", "c"], dtype=dtype)
+
+    monkeypatch.setattr(string_module, "PYPY", True)
+    result = series.memory_usage(index=False, deep=True)
+    assert result == series.memory_usage(index=False)
+
+
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])
 def test_astype_from_float_dtype(float_dtype, dtype):
     # https://github.com/pandas-dev/pandas/issues/36451
@@ -470,6 +502,17 @@ def test_astype_from_float_dtype(float_dtype, dtype):
     result = ser.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_astype_from_masked_float_with_nan(dtype, using_nan_is_na):
+    # GH#61617, GH#65227 - FloatingArray.astype(str) with unmasked NaN
+    arr = pd.array([np.nan, pd.NA, 3.0], dtype="Float64")
+    result = arr.astype(dtype)
+    if using_nan_is_na:
+        expected = pd.array([pd.NA, pd.NA, "3.0"], dtype=dtype)
+    else:
+        expected = pd.array(["nan", pd.NA, "3.0"], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_to_numpy_returns_pdna_default(dtype):
@@ -485,6 +528,16 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     result = arr.to_numpy(na_value=na_value)
     expected = np.array(["a", na_value, "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_readonly(dtype):
+    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    arr._readonly = True
+    result = arr.to_numpy()
+    if dtype.storage == "python":
+        assert not result.flags.writeable
+    else:
+        assert result.flags.writeable
 
 
 def test_isin(dtype, fixed_now_ts):
@@ -600,3 +653,23 @@ def test_numpy_array_ufunc(dtype, box):
             expected = pd.Series(["aa", "bbbb", "cccccc"])
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.array])
+def test_numpy_random_permute(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/63935
+    arr = box(["a", "bb", "ccc"], dtype=dtype)
+
+    rng = np.random.default_rng(2)
+    result = rng.permutation(arr)
+    assert isinstance(result, np.ndarray)
+    assert sorted(result.tolist()) == ["a", "bb", "ccc"]
+
+
+def test_sort_unique_result(dtype):
+    # https://github.com/pandas-dev/pandas/issues/64977
+    arr = pd.array(["Bob", "Alice", "Bob"], dtype=dtype)
+    unique_names = arr.unique()
+    unique_names.sort()
+    expected = pd.array(["Alice", "Bob"], dtype=dtype)
+    tm.assert_extension_array_equal(unique_names, expected)

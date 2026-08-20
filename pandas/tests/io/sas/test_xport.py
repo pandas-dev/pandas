@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io.sas.sas_xport import XportReader
 from pandas.io.sas.sasreader import read_sas
 
 # CSV versions of test xpt files were obtained using the R foreign library
@@ -131,6 +134,29 @@ class TestXport:
 
         data = read_sas(file03, encoding="utf-8")
         tm.assert_frame_equal(data, data_csv)
+
+    def test_encoding_default_deprecated(self, datapath):
+        # GH#66470
+        file03 = datapath("io", "sas", "data", "DRXFCD_G.xpt")
+        msg = "The default value of 'encoding' in read_sas is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = read_sas(file03)
+        assert result["DRXFCSD"].iloc[0] == b"MILK, HUMAN"
+
+        for encoding in [None, "infer", "utf-8"]:
+            with tm.assert_produces_warning(None):
+                read_sas(file03, encoding=encoding)
+
+    def test_encoding_infer(self, datapath):
+        # GH#66470 XPORT files record no encoding, so "infer" means the
+        #  XportReader default and must not raise
+        file03 = datapath("io", "sas", "data", "DRXFCD_G.xpt")
+        result = read_sas(file03, encoding="infer")
+        expected = read_sas(file03, encoding=XportReader._default_encoding)
+        tm.assert_frame_equal(result, expected)
+
+        with XportReader(file03) as reader:
+            tm.assert_frame_equal(reader.read(), expected)
 
     def test_truncated_float_support(self, datapath):
         # Test with paxraw_d_short.xpt, a shortened version of:

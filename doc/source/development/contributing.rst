@@ -11,7 +11,44 @@ Contributing to pandas
 
 
 All contributions, bug reports, bug fixes, documentation improvements,
-enhancements, and ideas are welcome.
+enhancements, and ideas are welcome. We ask that contributors follow
+all contribution guidelines when participating with pandas.
+
+.. _contributing.ai:
+
+Automated contributions policy
+==============================
+
+Contributors may use automated tools such as AI coding assistants while contributing
+to pandas as long as it's used **responsibly**. Any use of these tools in a contribution must abide by all of the
+following guidelines:
+
+* You must disclose that you used an automated tool in the contribution, and be specific about which one.
+* You must fully review and modify the result of the automated tool.
+* You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
+* You must not use AI to speak for you when interacting with the community.
+
+A useful disclosure names the tool, the model and version it ran, and any reasoning-effort or thinking setting, so
+that reviewers know how much scrutiny to apply: ``claude opus 4.8 (xhigh)`` tells us something, ``claude`` does not.
+Not every tool exposes an effort setting, so give what applies. If you used more than one tool or model, say which
+parts of the contribution each was responsible for.
+
+Using these tools to help write the code, tests, and documentation in a contribution is fine. Discussion is
+different: in issues, pull requests, and review comments, do not use AI to speak for you. Copying and pasting
+AI-written replies does not count as engaging with a reviewer, and human-to-human communication is essential for
+the project to thrive.
+
+Translation and grammar editing are an explicit exception to the rule above. If English is not your first language,
+you are welcome to use these tools to help you say what you mean. What we ask is that the thoughts are yours, not
+that the English is unaided. Disclosure still applies, so say that you used a tool.
+
+If you need to quote the output of an AI tool as evidence, for example a traceback or a suggested diff, mark it
+clearly by quoting it with ``>`` or wrapping it in a triple-backtick code fence, so readers can tell which parts
+are your own words.
+
+This policy applies to any contribution made to pandas, including submitted issues or pull requests. Maintainers
+reserve the right to discern whether automated tooling was used and reject contributions that do not follow all of
+the above guidelines. Maintainers may also ban users from contributing to pandas who violate these guidelines 2 or more times.
 
 .. _contributing.bug_reports:
 
@@ -19,7 +56,7 @@ Bug reports and enhancement requests
 ====================================
 
 Bug reports and enhancement requests are an important part of making pandas more stable and
-are curated though Github issues. When reporting an issue or request, please select the `appropriate
+are curated through Github issues. When reporting an issue or request, please select the `appropriate
 category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_
 to ensure others and the core development team can fully understand the scope of the issue.
 
@@ -30,20 +67,26 @@ Finding an issue to contribute to
 
 If you are brand new to pandas or open-source development, we recommend searching
 the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
-to find issues that interest you. Unassigned issues labeled `Docs
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs+no%3Aassignee>`_
-and `good first issue
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
-are typically good for newer contributors.
+to find issues that interest you and are available to work on. Issues available to work on are:
 
-Once you've found an interesting issue, leave a comment with your intention
-to start working on it. If somebody else has
-already commented on issue but they have shown a lack of activity in the issue
-or a pull request in the past 2-3 weeks, you may take it over.
+* Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
+  from a maintainer before proceeding.
+* Issues that are not already assigned to another contributor.
 
-If for whatever reason you are not able to continue working with the issue, please
-leave a comment on an issue, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working in them anymore.
+Once you've found an interesting, available issue, claim it by commenting ``/take``
+on the issue and it will be assigned to you. See
+:ref:`contributing.issue_assignment` for the full set of rules around claiming
+and releasing issues, and how pull requests progress once opened.
+
+For advice on choosing an issue that is a good fit for you, see Marco Gorelli's
+`Don't start with good first issues
+<https://labs.quansight.org/blog/dont-start-with-good-first-issues>`_.
+
+Contributions are also welcome at `pandas-stubs
+<https://github.com/pandas-dev/pandas-stubs/issues>`_, the officially supported
+type stubs for pandas. It is maintained as a separate project, so the issue
+assignment and pull request rules described in this guide do not apply there —
+check its contributing guidelines before starting.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -52,6 +95,86 @@ All pandas contributors are welcome to these spaces, where they can connect with
 maintainers who have been with us for a long time felt just like you when they started out, and
 are happy to welcome you and support you as you get to know how we work, and where things are.
 Take a look at the next sections to learn more.
+
+.. _contributing.issue_assignment:
+
+Issue assignment and the pull request lifecycle
+===============================================
+
+To keep contributing fair and avoid duplicated effort, pandas automates how
+issues are claimed and how pull requests progress. This section explains the
+rules and what the automation does.
+
+Claiming an issue
+-----------------
+
+Before opening a pull request, claim the issue by commenting ``/take`` on it.
+The bot will assign the issue to you.
+
+An issue is available to claim if it is:
+
+* **not** labeled ``Needs Triage`` or ``Needs Discussion`` — these still need a
+  maintainer's review before work begins, and ``/take`` will be declined; and
+* **not** already assigned to someone else.
+
+If you change your mind, comment ``/untake`` to release the issue so others can
+pick it up.
+
+Opening a pull request
+----------------------
+
+Link your pull request to the issue it resolves using a closing keyword in the
+description, for example ``closes #1234``.
+
+Your pull request must be linked to an issue that is **assigned to you**. If you
+open one linked to an issue you haven't claimed, the bot adds the
+``Needs Issue Assignment`` label, closes the pull request, and comments with
+what to do next: comment ``/take`` on the issue to claim it, then reopen your
+pull request (you can reopen it yourself — nothing is lost).
+
+Review and staleness
+--------------------
+
+The purpose of this process is only to identify and clean up abandoned pull
+requests — it is never meant to pressure you while you wait: a pull request
+goes stale only through its author's own inactivity, never through time spent
+waiting on review.
+
+While your pull request is waiting on review it is labeled ``Awaiting Review``
+and will **not** be marked stale — you keep your assignment for as long as review
+takes.
+
+Once a maintainer requests changes, a **14-day** timer starts. Only *your*
+activity resets it: pushing a commit, replying to a
+review comment, or commenting on the pull request **or its linked issue** (a
+comment from someone else does not).
+If there is no activity from you for 14 days, the pull request is marked
+``Stale``; your next push or comment clears the label and resets the timer. If it
+stays stale for another **7 days**, it is automatically closed — you can reopen
+it yourself at any time to continue, and nothing is lost. When a stale pull
+request is closed, its linked issue is automatically unassigned and becomes
+available again.
+
+When you've addressed the feedback and want another look, **re-request a review**
+(the ↻ button next to the reviewer). That moves the pull request back to
+``Awaiting Review`` and stops the staleness timer; pushing commits alone does not
+return it to the review queue. The timer also stops when the maintainer who
+requested changes approves your pull request.
+
+.. note::
+
+   Label changes and unassignment run on a once-a-day job, so they may take up
+   to a day to appear. Your activity counts from when you make it.
+
+These rules cover external contributions — pull requests from pandas maintainers
+are exempt from the staleness lifecycle.
+
+Inactive assignments
+--------------------
+
+If you claim an issue but do not open a linked pull request or stay active on it
+for **7 days**, the issue is automatically unassigned and made available again.
+You're welcome to ``/take`` it again whenever you're ready.
 
 .. _contributing.github:
 
@@ -110,7 +233,7 @@ You will want to clone your fork to your machine
     git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
     git remote add upstream https://github.com/pandas-dev/pandas.git
-    git fetch upstream
+    git fetch upstream --tags
 
 This creates the directory ``pandas-yourname`` and connects your repository to
 the upstream (main project) *pandas* repository.
@@ -218,12 +341,12 @@ happen, a pull request needs to be submitted on GitHub.
 Making a pull request
 ---------------------
 
-One you have finished your code changes, your code change will need to follow the
+Once you have finished your code changes, your code change will need to follow the
 :ref:`pandas contribution guidelines <contributing_codebase>` to be successfully accepted.
 
 If everything looks good, you are ready to make a pull request. A pull request is how
 code from your local repository becomes available to the GitHub community to review
-and merged into project to appear the in the next release. To submit a pull request:
+and merged into the project to appear in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button
@@ -241,11 +364,20 @@ and merged into project to appear the in the next release. To submit a pull requ
    * TYP: Type annotations
    * CLN: Code cleanup
 
-#. Write a description of your changes in the ``Preview Discussion`` tab
+#. Complete the checklist template in the body of the pull request and write an additional description below the checklist if necessary.
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
 the code.
+
+.. note::
+    A pull request should be associated with an open Github issue except if the change is trivial such as fixing a typo.
+    Pull requests that do not abide by all the applicable contribution guidelines may be closed by a maintainer. Contributors
+    who have shown continued, quality pull requests may be exempt from following all guidelines strictly.
+
+.. warning::
+    pandas will not accept low quality pull requests that do not meaningfully contribute to the project. Maintainers reserve
+    their right to close these pull requests and ban users who repeatedly submit low quality pull requests.
 
 .. _contributing.update-pr:
 
@@ -284,7 +416,7 @@ Once the conflicts are resolved, run:
     `stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
     This will effectively store your changes and they can be reapplied after updating.
 
-After the feature branch has been update locally, you can now update your pull
+After the feature branch has been updated locally, you can now update your pull
 request by pushing to the branch on GitHub:
 
 .. code-block:: shell

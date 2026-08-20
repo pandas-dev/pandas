@@ -1,5 +1,6 @@
 import re
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -54,7 +55,7 @@ class TestDatetimeIndex:
 
     def test_indexing_fast_xs(self):
         # indexing - fast_xs
-        df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC")})
+        df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC", unit="ns")})
         result = df.iloc[5]
         expected = Series(
             [Timestamp("2014-01-06 00:00:00+0000", tz="UTC")],
@@ -189,3 +190,18 @@ class TestDatetimeIndex:
             ),
         )
         tm.assert_equal(result, expected)
+
+
+def test_loc_setitem_integer_on_datetimeindex_no_error():
+    # GH#22040 - loc with integer key on DatetimeIndex should not
+    # raise TypeError (it enlarges the DataFrame with the new key)
+    index = date_range("2018-01-01", periods=2)
+    df = DataFrame({"col1": [1.0, 2.0], "col2": [3.0, 4.0]}, index=index)
+    # This previously raised TypeError: cannot insert DatetimeIndex
+    # with incompatible label
+    df.loc[0, "col1"] = 0
+    expected = DataFrame(
+        {"col1": [1.0, 2.0, 0.0], "col2": [3.0, 4.0, np.nan]},
+        index=Index([Timestamp("2018-01-01"), Timestamp("2018-01-02"), 0]),
+    )
+    tm.assert_frame_equal(df, expected)

@@ -71,6 +71,7 @@ class IntegerDtype(NumericDtype):
             ) from err
 
 
+@set_module("pandas.arrays")
 class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
@@ -141,8 +142,6 @@ class IntegerArray(NumericArray):
     [1, <NA>, 3]
     Length: 3, dtype: UInt16
     """
-
-    __module__ = "pandas.arrays"
 
     _dtype_cls = IntegerDtype
 

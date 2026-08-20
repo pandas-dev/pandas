@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -166,7 +166,7 @@ def test_astype_different_datetime_resos():
 
 def test_astype_different_timezones():
     df = DataFrame(
-        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
+        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns")}
     )
     result = df.astype("datetime64[ns, Europe/Berlin]")
     assert not result._mgr._has_no_reference(0)
@@ -175,7 +175,7 @@ def test_astype_different_timezones():
 
 def test_astype_different_timezones_different_reso():
     df = DataFrame(
-        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
+        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns")}
     )
     result = df.astype("datetime64[ms, Europe/Berlin]")
     assert result._mgr._has_no_reference(0)
@@ -201,12 +201,13 @@ def test_astype_arrow_timestamp():
 def test_convert_dtypes_infer_objects():
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
-    result = ser.convert_dtypes(
-        convert_integer=False,
-        convert_boolean=False,
-        convert_floating=False,
-        convert_string=False,
-    )
+    with tm.assert_produces_warning(Pandas4Warning):
+        result = ser.convert_dtypes(
+            convert_integer=False,
+            convert_boolean=False,
+            convert_floating=False,
+            convert_string=False,
+        )
 
     assert tm.shares_memory(get_array(ser), get_array(result))
     result.iloc[0] = "x"
@@ -218,10 +219,12 @@ def test_convert_dtypes(using_infer_string):
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    if HAS_PYARROW:
-        assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    else:
+    if using_infer_string:
+        # String column is already Arrow-backed, so memory is shared
         assert tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        # String column converts from object to Arrow, no memory sharing
+        assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     assert tm.shares_memory(get_array(df2, "d"), get_array(df, "d"))
     assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     assert tm.shares_memory(get_array(df2, "c"), get_array(df, "c"))

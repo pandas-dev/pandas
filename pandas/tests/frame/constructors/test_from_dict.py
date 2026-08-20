@@ -3,6 +3,8 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -29,7 +31,7 @@ class TestFromDict:
 
         result = DataFrame(data)
         expected = DataFrame.from_dict(
-            dict(zip(range(len(data)), data)), orient="index"
+            dict(zip(range(len(data)), data, strict=True)), orient="index"
         )
         tm.assert_frame_equal(result, expected.reindex(result.index))
 
@@ -37,8 +39,22 @@ class TestFromDict:
         data = [OrderedDict([["a", 1.5], ["b", 3], ["c", 4], ["d", 6]])]
 
         result = DataFrame(data)
-        expected = DataFrame.from_dict(dict(zip([0], data)), orient="index").reindex(
-            result.index
+        expected = DataFrame.from_dict(
+            dict(zip([0], data, strict=True)), orient="index"
+        ).reindex(result.index)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("blank", [Series(), {}])
+    def test_from_nested_dict_with_empty_entry(self, blank):
+        # GH#62775 an empty Series/dict should give an all-NA row, not be dropped
+        data = {"good": Series({"a": 1, "b": 2}), "blank": blank}
+
+        result = DataFrame.from_dict(data, orient="index")
+        expected = DataFrame(
+            {
+                "a": {"good": 1.0, "blank": np.nan},
+                "b": {"good": 2.0, "blank": np.nan},
+            }
         )
         tm.assert_frame_equal(result, expected)
 
@@ -47,7 +63,7 @@ class TestFromDict:
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]]),
         ]
-        sdict = OrderedDict(zip(["x", "y"], data))
+        sdict = OrderedDict(zip(["x", "y"], data, strict=True))
         idx = Index(["a", "b", "c"])
 
         # all named
@@ -66,7 +82,7 @@ class TestFromDict:
         ]
         result = DataFrame(data2)
 
-        sdict = OrderedDict(zip(["x", "Unnamed 0"], data))
+        sdict = OrderedDict(zip(["x", "Unnamed 0"], data, strict=True))
         expected = DataFrame.from_dict(sdict, orient="index")
         tm.assert_frame_equal(result, expected)
 
@@ -82,7 +98,7 @@ class TestFromDict:
         data = [Series(d) for d in data]
 
         result = DataFrame(data)
-        sdict = OrderedDict(zip(range(len(data)), data))
+        sdict = OrderedDict(zip(range(len(data)), data, strict=True))
         expected = DataFrame.from_dict(sdict, orient="index")
         tm.assert_frame_equal(result, expected.reindex(result.index))
 
@@ -97,7 +113,7 @@ class TestFromDict:
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]]),
         ]
-        sdict = OrderedDict(zip(range(len(data)), data))
+        sdict = OrderedDict(zip(range(len(data)), data, strict=True))
 
         idx = Index(["a", "b", "c"])
         data2 = [Series([1.5, 3, 4], idx, dtype="O"), Series([1.5, 3, 6], idx)]
@@ -171,7 +187,9 @@ class TestFromDict:
     )
     def test_constructor_from_dict_tuples(self, data_dict, orient, expected):
         # GH#16769
-        df = DataFrame.from_dict(data_dict, orient)
+        warn = Pandas4Warning if isinstance(data_dict, list) else None
+        with tm.assert_produces_warning(warn, match="from_dict is deprecated"):
+            df = DataFrame.from_dict(data_dict, orient)
         result = df.columns
         tm.assert_index_equal(result, expected)
 
@@ -189,9 +207,14 @@ class TestFromDict:
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
     def test_from_dict_scalars_requires_index(self):
-        msg = "If using all scalar values, you must pass an index"
+        # GH#25515 the message must be actionable: from_dict has no index
+        #  parameter, so it points to orient="index" / the DataFrame constructor
+        msg = "If using all scalar values, pass orient='index'"
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(OrderedDict([("b", 8), ("a", 5), ("a", 6)]))
+            DataFrame.from_dict({"a": 0.7})
+
+        with pytest.raises(ValueError, match=msg):
+            DataFrame.from_dict({"b": 8, "a": 6})
 
     def test_from_dict_orient_invalid(self):
         msg = (
@@ -200,6 +223,18 @@ class TestFromDict:
         )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
+
+    def test_from_dict_list_of_dicts_deprecated(self):
+        # GH#58862
+        data = [
+            {"key1": "value1", "key2": 42},
+            {"key1": "value2", "key2": 123},
+        ]
+        msg = "Passing a list to DataFrame.from_dict is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame.from_dict(data)
+        expected = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_from_dict_order_with_single_column(self):
         data = {

@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 class TestDataFrameToRecords:
     def test_to_records_timeseries(self):
-        index = date_range("1/1/2000", periods=10)
+        index = date_range("1/1/2000", periods=10, unit="ns")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)),
             index=index,
@@ -29,6 +29,15 @@ class TestDataFrameToRecords:
         assert result["index"].dtype == "M8[ns]"
 
         result = df.to_records(index=False)
+
+    def test_to_records_empty_multiindex(self):
+        # GH#21064 to_records on an empty frame with a MultiIndex must not raise
+        df = DataFrame({"A": [10, -10], "B": [400, 400], "C": ["bla", "bla"]})
+        grouped = DataFrame(df.groupby(["B", "C"])["A"].sum())
+        empty = grouped[grouped["A"] > 1e18]  # no rows match -> empty MI frame
+        result = empty.to_records()
+        assert len(result) == 0
+        assert result.dtype.names == ("B", "C", "A")
 
     def test_to_records_dt64(self):
         df = DataFrame(
@@ -121,9 +130,9 @@ class TestDataFrameToRecords:
         # GH 47263: consistent data types for Index and MultiIndex
         df = DataFrame(
             {
-                1: date_range("2022-01-01", periods=2),
-                2: date_range("2022-01-01", periods=2),
-                3: date_range("2022-01-01", periods=2),
+                1: date_range("2022-01-01", periods=2, unit="ns"),
+                2: date_range("2022-01-01", periods=2, unit="ns"),
+                3: date_range("2022-01-01", periods=2, unit="ns"),
             }
         )
 

@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -274,7 +275,7 @@ class KdePlot(HistPlot):
     ):
         from scipy.stats import gaussian_kde
 
-        y = remove_na_arraylike(y)
+        y = remove_na_arraylike(y)  # pyright: ignore[reportAssignmentType]
         gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
         # gaussian_kde.evaluate(None) raises TypeError, so pyright requires this check
@@ -384,7 +385,7 @@ def _grouped_hist(
             kwargs["label"] = column
 
     def plot_group(group, ax) -> None:
-        ax.hist(group.dropna().values, bins=bins, **kwargs)
+        ax.hist(np.asarray(group.dropna()._values), bins=bins, **kwargs)
         if legend:
             ax.legend()
 
@@ -446,7 +447,7 @@ def hist_series(
             ax = fig.gca()
         elif ax.get_figure() != fig:
             raise AssertionError("passed axis not bound to passed figure")
-        values = self.dropna().values
+        values = np.asarray(self.dropna()._values)
         if legend:
             kwds["label"] = self.name
         ax.hist(values, bins=bins, **kwds)
@@ -537,7 +538,7 @@ def hist_frame(
         data = data[column]
     # GH32590
     data = data.select_dtypes(
-        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+        include=(np.number, "datetime64", DatetimeTZDtype), exclude="timedelta"
     )
     naxes = len(data.columns)
 
@@ -560,7 +561,7 @@ def hist_frame(
     for ax, col in zip(flatten_axes(axes), data.columns, strict=False):
         if legend and can_set_label:
             kwds["label"] = col
-        ax.hist(data[col].dropna().values, bins=bins, **kwds)
+        ax.hist(np.asarray(data[col].dropna()._values), bins=bins, **kwds)
         ax.set_title(col)
         ax.grid(grid)
         if legend:

@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    UTC,
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -26,6 +29,7 @@ from pandas import (
     PeriodIndex,
     Series,
     Timestamp,
+    concat,
     cut,
     date_range,
     notna,
@@ -171,7 +175,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s", unit="ns")
         df = DataFrame(index=np.arange(len(rng)))
 
         df["A"] = rng
@@ -259,7 +263,7 @@ class TestDataFrameSetItem:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -663,7 +667,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list_of_tuples(self, float_frame):
-        tuples = list(zip(float_frame["A"], float_frame["B"]))
+        tuples = list(zip(float_frame["A"], float_frame["B"], strict=True))
         float_frame["tuples"] = tuples
 
         result = float_frame["tuples"]
@@ -737,6 +741,38 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("cols", [3, 1])
+    def test_setitem_2d_existing_column_raises(self, cols):
+        # GH#46544 setting an existing column with a multi-column 2D array used
+        #  to silently keep only the first column; it should raise like the
+        #  new-column and .loc cases do. cols=1 exercises the single-column
+        #  Block fastpath, cols=3 the consolidated-block path.
+        df = DataFrame(np.zeros((4, cols)))
+        msg = r"Expected a 1D array, got an array with shape \(4, 2\)"
+        with pytest.raises(ValueError, match=msg):
+            df[0] = np.arange(8).reshape(4, 2)
+
+    def test_setitem_2d_single_column_ok(self):
+        # GH#46544 an (N, 1) array is still a single column and is allowed
+        df = DataFrame(np.zeros((4, 2)))
+        df[0] = np.arange(4).reshape(4, 1)
+        expected = DataFrame({0: np.arange(4), 1: np.zeros(4)})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_2d_duplicate_columns_ok(self):
+        # GH#46544 when the key maps to multiple columns, a matching 2D value
+        #  fills them and must keep working
+        df = DataFrame(np.zeros((4, 3)), columns=[0, 0, 1])
+        df[0] = np.arange(8).reshape(4, 2)
+        expected = concat(
+            [
+                DataFrame(np.arange(8).reshape(4, 2), columns=[0, 0]),
+                DataFrame(np.zeros((4, 1)), columns=[1]),
+            ],
+            axis=1,
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("vals", [{}, {"d": "a"}])
     def test_setitem_aligning_dict_with_index(self, vals):
         # GH#47216
@@ -774,10 +810,8 @@ class TestDataFrameSetItem:
 
     def test_setitem_string_option_object_index(self):
         # GH#55638
-        pytest.importorskip("pyarrow")
         df = DataFrame({"a": [1, 2]})
-        with pd.option_context("future.infer_string", True):
-            df["b"] = Index(["a", "b"], dtype=object)
+        df["b"] = Index(["a", "b"], dtype=object)
         expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
         tm.assert_frame_equal(df, expected)
 
@@ -1000,7 +1034,18 @@ class TestDataFrameSetItemWithExpansion:
             index=Index([0]),
             columns=(["a", "b", "c"]),
         )
+        expected["a"] = expected["a"].astype("m8[s]")
+        expected["b"] = expected["b"].astype("m8[s]")
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_tuple_key_in_empty_frame(self):
+        # GH#54385
+        df = DataFrame()
+        df[(0, 0)] = [1, 2, 3]
+
+        cols = Index([(0, 0)], tupleize_cols=False)
+        expected = DataFrame({(0, 0): [1, 2, 3]}, columns=cols)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:
@@ -1147,6 +1192,25 @@ class TestDataFrameSetItemBooleanMask:
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
 
+    def test_setitem_mask_assign_NaT_with_datetime(self):
+        # GH 46294
+        # after boolean masking assignment, NaT should align column-wise
+        df = DataFrame(
+            [pd.to_datetime(["2000", "2001"]), pd.to_datetime(["2000", "2002"])],
+            index=pd.to_datetime(["2000", "2000"]),
+        )
+        mask = df > df.index.to_numpy().reshape(-1, 1)
+        df[mask] = NaT
+        expected = DataFrame(
+            [
+                pd.to_datetime(["2000", NaT]),
+                pd.to_datetime(["2000", NaT]),
+            ],
+            index=pd.to_datetime(["2000", "2000"]),
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("dtype", ["float", "int64"])
     @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
@@ -1279,13 +1343,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         [
             "a",
             ["a"],
-            pytest.param(
-                [True, False],
-                marks=pytest.mark.xfail(
-                    reason="Boolean indexer incorrectly setting inplace",
-                    strict=False,  # passing on some builds, no obvious pattern
-                ),
-            ),
+            [True, False],
         ],
     )
     @pytest.mark.parametrize(
@@ -1468,3 +1526,27 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_tz_aware_column_expansion():
+    # GH#55423
+    # Enlarging a DataFrame with a tz-aware datetime via loc
+    # should preserve datetime64[us, tz] dtype, not fall back to object
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = datetime.fromtimestamp(1695887042, UTC)
+    df.loc[df.id >= 2, "time"] = _time
+    assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")
+
+
+def test_setitem_boolean_mask_length_mismatch_message_gh45593():
+    # GH#45593
+    df = DataFrame({"a": [1], "b": [1]})
+    # split the columns into separate blocks so the value mismatch surfaces
+    df[["a", "b"]] = [[2, 2]]
+    select_df = DataFrame({"a": [True], "b": [False]})
+    msg = (
+        r"Cannot set with a boolean DataFrame mask: the number of values \(2\) "
+        r"does not match the number of True entries in the mask \(1\)\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        df[select_df] = [3, 3]

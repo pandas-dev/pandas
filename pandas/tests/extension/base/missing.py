@@ -6,6 +6,14 @@ import pandas._testing as tm
 
 
 class BaseMissingTests:
+    def _honors_copy_keyword(self, data) -> bool:
+        """Whether the EA honors the copy keyword in methods like fillna.
+
+        EAs that always return new data regardless of copy=False should
+        override this to return False.
+        """
+        return True
+
     def test_isna(self, data_missing):
         expected = np.array([True, False])
 
@@ -70,6 +78,12 @@ class BaseMissingTests:
         expected = data_missing.fillna(valid)
         tm.assert_extension_array_equal(result, expected)
 
+    def test_fillna_raises_with_dict(self, data_missing):
+        # GH#19705 - dict value should raise a clear error at the EA level
+        msg = "ExtensionArray.fillna does not support filling with a dict"
+        with pytest.raises(TypeError, match=msg):
+            data_missing.fillna({0: data_missing[1]})
+
     def test_fillna_with_none(self, data_missing):
         # GH#57723
         result = data_missing.fillna(None)
@@ -121,6 +135,21 @@ class BaseMissingTests:
         result = data._pad_or_backfill(method="backfill")
         assert result is not data
         tm.assert_extension_array_equal(result, data)
+
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        if self._honors_copy_keyword(data_missing):
+            # with copy=False, this raises for EAs that respect the copy keyword
+            with pytest.raises(ValueError, match="Cannot modify read-only array"):
+                data.fillna(data_missing[1], copy=False)
+            tm.assert_extension_array_equal(data, data_missing)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]

@@ -57,10 +57,11 @@ def tpl_table(env):
     return env.get_template("html_table.tpl")
 
 
-def test_html_template_extends_options():
+def test_html_template_extends_options(datapath):
     # make sure if templates are edited tests are updated as are setup fixtures
     # to understand the dependency
-    with open("pandas/io/formats/templates/html.tpl", encoding="utf-8") as file:
+    path = datapath("..", "io", "formats", "templates", "html.tpl")
+    with open(path, encoding="utf-8") as file:
         result = file.read()
     assert "{% include html_style_tpl %}" in result
     assert "{% include html_table_tpl %}" in result
@@ -502,6 +503,9 @@ def test_replaced_css_class_names():
         uuid_len=0,
     ).set_table_styles(css_class_names=css)
     styler_mi.index.names = ["n1", "n2"]
+    # GH#42934: index and columns no longer alias when the same Index is passed
+    # to the DataFrame constructor, so set the column names explicitly.
+    styler_mi.columns.names = ["n1", "n2"]
     styler_mi.hide(styler_mi.index[1:], axis=0)
     styler_mi.hide(styler_mi.columns[1:], axis=1)
     styler_mi.map_index(lambda v: "color: red;", axis=0)

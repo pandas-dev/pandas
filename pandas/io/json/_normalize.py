@@ -10,7 +10,6 @@ import copy
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     overload,
 )
 
@@ -18,6 +17,8 @@ import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
 from pandas.util._decorators import set_module
+
+from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import (
@@ -267,6 +268,37 @@ def _simple_json_normalize(
     return normalized_json_object
 
 
+def _validate_meta(meta: str | list[str | list[str]] | None) -> None:
+    """
+    Validate that meta parameter contains only strings or lists of strings.
+    Parameters
+    ----------
+    meta : str or list of str or list of list of str or None
+        The meta parameter to validate.
+    Raises
+    ------
+    TypeError
+        If meta contains elements that are not strings or lists of strings.
+    """
+    if meta is None:
+        return
+    if isinstance(meta, str):
+        return
+    for item in meta:
+        if isinstance(item, list):
+            for subitem in item:
+                if not isinstance(subitem, str):
+                    raise TypeError(
+                        "All elements in nested meta paths must be strings. "
+                        f"Found {type(subitem).__name__}: {subitem!r}"
+                    )
+        elif not isinstance(item, str):
+            raise TypeError(
+                "All elements in 'meta' must be strings or lists of strings. "
+                f"Found {type(item).__name__}: {item!r}"
+            )
+
+
 @set_module("pandas")
 def json_normalize(
     data: dict | list[dict] | Series,
@@ -295,11 +327,9 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
-        meta is ['foo', 'bar'].
+        If not None, prefix meta fields with this string.
     record_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
-        path to records is ['foo', 'bar'].
+        If not None, prefix record fields with this string.
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
 
@@ -436,7 +466,27 @@ def json_normalize(
     1          2
 
     Returns normalized data with columns prefixed with the given string.
+
+    >>> data = [
+    ...     {
+    ...         "state": "Florida",
+    ...         "shortname": "FL",
+    ...         "info": {"governor": "Rick Scott"},
+    ...         "counties": [{"name": "Dade", "population": 12345}],
+    ...     },
+    ... ]
+    >>> pd.json_normalize(
+    ...     data,
+    ...     "counties",
+    ...     ["state", "shortname", ["info", "governor"]],
+    ...     meta_prefix="meta.",
+    ... )
+       name  population meta.state meta.shortname meta.info.governor
+    0  Dade       12345    Florida             FL         Rick Scott
+
+    Meta fields are prefixed with the given string.
     """
+    _validate_meta(meta)
 
     def _pull_field(
         js: dict[str, Any], spec: list | str, extract_record: bool = False
@@ -501,6 +551,17 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
+        for i, item in enumerate(data):
+            if isinstance(item, dict):
+                continue
+            if is_scalar(item) and pd.isna(item):
+                data[i] = {}
+            else:
+                msg = (
+                    "All items in data must be of type dict or NA-like, "
+                    f"found {type(item).__name__}"
+                )
+                raise TypeError(msg)
     else:
         raise NotImplementedError
 
@@ -544,7 +605,7 @@ def json_normalize(
     records: list = []
     lengths = []
 
-    meta_vals: DefaultDict = defaultdict(list)
+    meta_vals = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:

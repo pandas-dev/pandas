@@ -5,10 +5,10 @@ import zoneinfo
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -341,45 +341,45 @@ def test_resample_basic_from_daily(unit):
         result = s.resample("w-sun").last()
 
     assert len(result) == 3
-    assert (result.index.dayofweek == [6, 6, 6]).all()
+    assert (result.index.day_of_week == [6, 6, 6]).all()
     assert result.iloc[0] == s["1/2/2005"]
     assert result.iloc[1] == s["1/9/2005"]
     assert result.iloc[2] == s.iloc[-1]
 
     result = s.resample("W-MON").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [0, 0]).all()
+    assert (result.index.day_of_week == [0, 0]).all()
     assert result.iloc[0] == s["1/3/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-TUE").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [1, 1]).all()
+    assert (result.index.day_of_week == [1, 1]).all()
     assert result.iloc[0] == s["1/4/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-WED").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [2, 2]).all()
+    assert (result.index.day_of_week == [2, 2]).all()
     assert result.iloc[0] == s["1/5/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-THU").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [3, 3]).all()
+    assert (result.index.day_of_week == [3, 3]).all()
     assert result.iloc[0] == s["1/6/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-FRI").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [4, 4]).all()
+    assert (result.index.day_of_week == [4, 4]).all()
     assert result.iloc[0] == s["1/7/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     # to biz day
     result = s.resample("B").last()
     assert len(result) == 7
-    assert (result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all()
+    assert (result.index.day_of_week == [4, 0, 1, 2, 3, 4, 0]).all()
 
     assert result.iloc[0] == s["1/2/2005"]
     assert result.iloc[1] == s["1/3/2005"]
@@ -526,7 +526,7 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
 
 
 def test_resample_ohlc(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 2), freq="Min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -638,7 +638,7 @@ def test_resample_reresample(unit):
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
     assert len(result) == 25
-    assert isinstance(result.index.freq, offsets.DateOffset)
+    assert isinstance(result.index.freq, offsets.BaseOffset)
     assert result.index.freq == offsets.Hour(8)
 
 
@@ -913,7 +913,7 @@ def test_resample_origin_with_day_freq_on_dst(unit):
         return Series(
             values,
             index=DatetimeIndex(
-                [Timestamp(t, tz=tz) for t in timestamps], freq=freq, ambiguous=True
+                [Timestamp(t, tz=tz) for t in timestamps], freq=freq
             ).as_unit(unit),
         )
 
@@ -1112,7 +1112,7 @@ def test_resample_anchored_intraday(unit):
     result = df.resample("ME").mean()
     expected = df.resample("ME").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
@@ -1121,7 +1121,7 @@ def test_resample_anchored_intraday(unit):
     exp = df.shift(1, freq="D").resample("ME").mean().to_period()
     exp = exp.to_timestamp(how="end")
 
-    exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
+    exp.index = exp.index + Timedelta(1, unit="us") - Timedelta(1, unit="D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
     assert exp.index.freq == "ME"
     tm.assert_frame_equal(result, exp)
@@ -1134,9 +1134,8 @@ def test_resample_anchored_intraday2(unit):
     result = df.resample("QE").mean()
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
-    expected.index._data.freq = "QE"
-    expected.index._freq = lib.no_default
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -1144,9 +1143,8 @@ def test_resample_anchored_intraday2(unit):
     expected = df.shift(1, freq="D").resample("QE").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
-    expected.index._data.freq = "QE"
-    expected.index._freq = lib.no_default
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -1335,10 +1333,8 @@ dates1: list[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: list[DatetimeNaTType] = (
-    dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
-)
-dates3 = [pd.NaT] + dates1 + [pd.NaT]
+dates2: list[DatetimeNaTType] = [*dates1[:2], pd.NaT, *dates1[2:4], pd.NaT, *dates1[4:]]
+dates3 = [pd.NaT, *dates1, pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
@@ -1842,7 +1838,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    dti = date_range("1991-09-05", "1991-09-12", freq=freq1).as_unit(unit)
+    dti = date_range("1991-09-05", "1991-09-06", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
     result1 = ser.resample(str(n1_) + freq1).mean()
@@ -2058,7 +2054,7 @@ def test_resample_BM_BQ_raises(freq):
 def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
     msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
 
-    s = Series(range(5), index=date_range("20130101", freq="h", periods=5))
+    s = Series(range(5), index=date_range("20130101", freq="h", periods=5, unit="ns"))
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = s.resample(freq_depr).mean()
 
@@ -2137,6 +2133,21 @@ def test_resample_b_55282(unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("n", [2, 3, 7, 14])
+def test_resample_multiday_closed_right_43198(n, unit):
+    # GH#43198 multi-day downsampling with closed="right" used to raise
+    # "Values falls before first bin" when no value landed on a bin edge.
+    # GH#44996: the bins now match the equivalent Hour freq.
+    dti = DatetimeIndex(["2013-04-01 22:00:00"]).as_unit(unit)
+    ser = Series([0.0], index=dti)
+
+    result = ser.resample(f"{n}D", closed="right").max()
+
+    exp_dti = DatetimeIndex([Timestamp("2013-04-01")], freq=f"{n}D").as_unit(unit)
+    expected = Series([0.0], index=exp_dti)
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "tz",
@@ -2145,7 +2156,7 @@ def test_resample_b_55282(unit):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=is_platform_windows(),
+                condition=is_platform_windows() and pa_version_under22p0,
                 reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
             ),
         ),
@@ -2171,6 +2182,31 @@ def test_arrow_timestamp_resample_keep_index_name():
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
+def test_arrow_timestamp_resample_on_keep_index_name():
+    # GH#59823 resampling on a pyarrow-backed column should keep its name
+    df = DataFrame(
+        {
+            "date": date_range("2020-01-01", periods=5),
+            "metric": np.arange(5, dtype=np.int64),
+        }
+    ).astype({"date": "timestamp[ns][pyarrow]"})
+    result = df.resample("1D", on="date").sum()
+    assert result.index.name == "date"
+    assert result.index.dtype == "timestamp[ns][pyarrow]"
+
+
+def test_resample_unit_second_large_years():
+    # GH#57427
+    index = DatetimeIndex(
+        date_range(start=Timestamp("1950-01-01"), periods=10, freq="1000YS", unit="s")
+    )
+    ser = Series(1, index=index)
+    result = ser.resample("2000YS").sum()
+    expected = Series(2, index=index[::2])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("freq", ["1A", "2A-MAR"])
 def test_resample_A_raises(freq):
     msg = f"Invalid frequency: {freq[1:]}"
@@ -2178,3 +2214,163 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_sum_with_inat_value():
+    # GH#16674 - int64 min value (same as iNaT sentinel) should not
+    # cause incorrect dtype casting during resample aggregation
+    max_int = np.iinfo(np.int64).max
+    min_int = np.iinfo(np.int64).min
+    df = DataFrame(
+        [max_int, min_int],
+        index=[datetime(2013, 1, 1), datetime(2013, 1, 1)],
+    )
+    result = df.resample("MS").apply(np.sum)
+    expected = DataFrame([-1], index=date_range("2013-01-01", periods=1, freq="MS"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed,label",
+    [("right", "right"), ("left", "left"), ("right", "left"), ("left", "right")],
+)
+def test_resample_7D_vs_168h(closed, label):
+    # GH#44996 - resample('7D') should match resample('168h')
+    df = DataFrame(
+        {"val": [1] * 8},
+        index=date_range(
+            start="2021-04-21 01:00:00", end="2021-04-28 01:00", freq="1D"
+        ),
+    )
+    result_7d = df.resample(
+        rule="7D", origin="2021-04-29 00:00:00", closed=closed, label=label
+    ).sum()
+    result_168h = df.resample(
+        rule="168h", origin="2021-04-29 00:00:00", closed=closed, label=label
+    ).sum()
+    tm.assert_frame_equal(result_7d, result_168h, check_freq=False)
+
+
+def test_resample_day_origin_offset():
+    # GH#44996 - origin and offset should take effect with tz-naive Day freq
+    index = date_range("2021-01-01", periods=14, freq="1D")
+    ser = Series(range(14), index=index)
+    origin = Timestamp("2021-01-04")
+    result = ser.resample("7D", origin=origin).sum()
+    expected = ser.resample("168h", origin=origin).sum()
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+    # a tz-mismatched origin now raises, like the equivalent Hour freq
+    msg = "The origin must have the same timezone as the index."
+    with pytest.raises(ValueError, match=msg):
+        ser.resample("7D", origin=Timestamp("2021-01-04", tz="UTC")).sum()
+
+
+def test_resample_day_origin_tz_aware_index_warns():
+    # GH#44996: origin only takes effect with Day freq on a tz-naive
+    # DatetimeIndex; tz-aware indexes keep the prior behavior and warn
+    index = date_range("2021-01-01", periods=10, freq="D", tz="US/Eastern")
+    df = DataFrame({"a": range(10)}, index=index)
+    origin = Timestamp("2021-01-04", tz="US/Eastern")
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = df.resample("7D").sum()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.resample("7D", origin=origin).sum()
+    tm.assert_frame_equal(result, expected)
+
+    # the same applies when the TimeGrouper is built without an obj
+    # (pd.Grouper) or checks a column instead of the index (on=...)
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.groupby(Grouper(freq="7D", origin=origin)).sum()
+    tm.assert_frame_equal(result, expected)
+
+    df_on = df.reset_index(names="ts")
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df_on.resample("7D", on="ts", origin=origin).sum()
+    tm.assert_frame_equal(result, expected.rename_axis("ts"))
+
+
+def test_resample_day_origin_on_tz_naive_column():
+    # GH#44996: origin takes effect (without warning) when resampling on a
+    # tz-naive datetime column, even if the index is tz-aware
+    df = DataFrame(
+        {"ts": date_range("2021-01-01", periods=10, freq="D"), "a": range(10)},
+        index=date_range("2021-01-01", periods=10, freq="D", tz="US/Eastern"),
+    )
+    origin = Timestamp("2021-01-04")
+    with tm.assert_produces_warning(None):
+        result = df.resample("7D", on="ts", origin=origin).sum()
+    expected = df.resample("168h", on="ts", origin=origin).sum()
+    tm.assert_frame_equal(result, expected, check_freq=False)
+
+
+def test_resample_day_origin_period_index_warns():
+    # GH#44996: origin still does not take effect with Day freq on a
+    # PeriodIndex (the Period grid ignores it), so the warning is kept
+    pi = period_range("2021-01-01", periods=14, freq="D")
+    ser = Series(range(14), index=pi)
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = ser.resample("7D").sum()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ser.resample("7D", origin=Timestamp("2021-01-04")).sum()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_D_closed_right_no_extra_bin():
+    # GH#62200: resample("D", closed="right") should not produce an extra
+    # trailing empty bin when last value falls exactly on a Day boundary.
+    index = date_range("2000-05-13", "2000-05-15", freq="h")
+    ser = Series(range(len(index)), index=index)
+
+    result_d = ser.resample("D", closed="right").count()
+    result_24h = ser.resample("24h", closed="right").count()
+
+    expected = Series(
+        [1, 24, 24],
+        index=date_range("2000-05-12", periods=3, freq="D"),
+    )
+    tm.assert_series_equal(result_d, expected)
+    tm.assert_series_equal(result_24h, expected, check_freq=False)
+
+
+def test_resample_D_closed_right_label_right_no_extra_bin():
+    # GH#62200: original reproducer with label="right" and closed="right"
+    index = date_range("1-1-2000", "2-15-2000", freq="h").union(
+        date_range("4-15-2000", "5-15-2000", freq="h")
+    )
+    ser = Series(range(len(index)), index=index)
+    result_d = ser.resample("D", label="right", closed="right").count()
+    result_24h = ser.resample("24h", label="right", closed="right").count()
+
+    assert len(result_d) == len(result_24h)
+    tm.assert_series_equal(result_d, result_24h, check_freq=False)
+
+
+def test_resample_D_closed_right_not_on_boundary():
+    # GH#62200: when last value is NOT on a Day boundary, the trailing
+    # bin should still be present.
+    index = date_range("2000-05-13", "2000-05-15 12:00", freq="h")
+    ser = Series(range(len(index)), index=index)
+
+    result = ser.resample("D", closed="right").count()
+    expected = Series(
+        [1, 24, 24, 12],
+        index=date_range("2000-05-12", periods=4, freq="D"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_multiday_grouper_closed_right_intraday():
+    # GH#43896 intraday values with a multi-day Grouper and closed="right"
+    #  used to raise "Values falls before first bin".
+    # GH#44996: the bins now match the equivalent Hour freq.
+    index = date_range("2019-12-31 00:10:00", "2020-01-04 00:10:00", freq="12h")
+    df = DataFrame({"a": np.arange(len(index), dtype=float)}, index=index)
+    result = df.groupby(Grouper(freq="2D", closed="right")).sum()
+    expected = DataFrame(
+        {"a": [6.0, 22.0, 8.0]},
+        index=DatetimeIndex(["2019-12-31", "2020-01-02", "2020-01-04"], freq="2D"),
+    )
+    tm.assert_frame_equal(result, expected)

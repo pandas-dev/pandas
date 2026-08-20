@@ -1,3 +1,5 @@
+import struct
+
 import numpy as np
 import pytest
 
@@ -291,3 +293,17 @@ class TestEmptyConcat:
         expected = df_new.copy()
         result = concat([df_empty, df_new])
         tm.assert_frame_equal(result, expected)
+
+
+def test_concat_preserves_nan_payload():
+    # GH#51675 concat must not replace user-supplied NaN bit patterns
+    payload_nan = struct.unpack(">d", bytes.fromhex("fffffffffffffffe"))[0]
+    values = np.array([payload_nan, np.nan], dtype=np.float64)
+
+    df = DataFrame(values)
+    empty = DataFrame([], columns=[0], dtype=np.float64)
+
+    for frames in ([df, empty], [empty, df], [df, df.iloc[:0]]):
+        result = concat(frames)[0].to_numpy()
+        result_bytes = result[: len(values)].tobytes()
+        assert result_bytes == values.tobytes()

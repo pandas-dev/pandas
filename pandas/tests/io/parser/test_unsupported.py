@@ -13,8 +13,12 @@ from pathlib import Path
 
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import (
+    Pandas4Warning,
+    ParserError,
+)
 
+from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -103,8 +107,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             )
 
             kwargs = {default: object()}
+            warn = Pandas4Warning if default == "float_precision" else None
             with pytest.raises(ValueError, match=msg):
-                read_csv(StringIO(data), engine=python_engine, **kwargs)
+                with tm.assert_produces_warning(
+                    warn, match="float_precision", check_stacklevel=False
+                ):
+                    read_csv(StringIO(data), engine=python_engine, **kwargs)
 
     def test_python_engine_file_no_iter(self, python_engine):
         # see gh-16530
@@ -122,7 +130,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 return self.data
 
         data = "a\n1"
-        msg = "'NoNextBuffer' object is not iterable|argument 1 must be an iterator"
+        msg = "|".join(
+            ["'NoNextBuffer' object is not iterable", "argument 1 must be an iterator"]
+        )
 
         with pytest.raises(TypeError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
@@ -147,8 +157,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
 
+            warn = Pandas4Warning if default == "float_precision" else None
             with pytest.raises(ValueError, match=msg):
-                read_csv(StringIO(data), engine="pyarrow", **kwargs)
+                with tm.assert_produces_warning(
+                    warn, match="float_precision", check_stacklevel=False
+                ):
+                    read_csv(StringIO(data), engine="pyarrow", **kwargs)
 
     def test_on_bad_lines_callable_python_or_pyarrow(self, all_parsers):
         # GH 5686
@@ -195,6 +209,31 @@ def test_invalid_file_inputs(request, all_parsers):
 
     with pytest.raises(ValueError, match="Invalid"):
         parser.read_csv([])
+
+
+def test_sep_none_falls_back_to_python_engine():
+    # GH#66639 sniffing the separator is python-engine only, so the default
+    # engine falls back to it rather than handing sep=None to the C parser
+    data = "a;b\n1;2\n"
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    with tm.assert_produces_warning(parsers.ParserWarning, match="sep=None"):
+        result = read_csv(StringIO(data), sep=None)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result = read_csv(StringIO(data), sep=None, engine="python")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("engine", ["c", "pyarrow"])
+def test_sep_none_explicit_engine_raises(engine):
+    # GH#66639 an explicitly requested engine that cannot sniff the separator
+    # reports that rather than falling back
+    msg = f"the '{engine}' engine does not support sep=None"
+
+    with pytest.raises(ValueError, match=msg):
+        read_csv(StringIO("a;b\n1;2\n"), sep=None, engine=engine)
 
 
 def test_invalid_dtype_backend(all_parsers):

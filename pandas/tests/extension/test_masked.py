@@ -21,7 +21,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -48,7 +47,7 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
-is_windows_or_32bit = (is_platform_windows() and not np_version_gt2) or not IS64
+is_windows_or_32bit = not IS64
 
 pytestmark = [
     pytest.mark.filterwarnings(
@@ -61,11 +60,11 @@ pytestmark = [
 
 
 def make_data():
-    return [1, 2, 3, 4] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100]
+    return [1, 2, 3, 4, pd.NA, 10, 11, pd.NA, 99, 100]
 
 
 def make_float_data():
-    return [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0]
+    return [0.1, 0.2, 0.3, 0.4, pd.NA, 1.0, 1.1, pd.NA, 9.9, 10.0]
 
 
 def make_bool_data():
@@ -173,25 +172,16 @@ class TestMaskedArrays(base.ExtensionTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action, using_nan_is_na):
+        # GH#63903
         result = data_missing.map(lambda x: x, na_action=na_action)
-        if data_missing.dtype == Float32Dtype() and using_nan_is_na:
-            # map roundtrips through objects, which converts to float64
-            expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-        else:
-            expected = data_missing.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, data_missing)
 
     def test_map_na_action_ignore(self, data_missing_for_sorting, using_nan_is_na):
+        # GH#63903
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
-        if data_missing_for_sorting.dtype.kind == "b":
-            expected = np.array([False, pd.NA, False], dtype=object)
-        elif not using_nan_is_na:
-            # TODO: would we prefer to get NaN in this case to get a non-object?
-            expected = np.array([zero, pd.NA, zero], dtype=object)
-        else:
-            expected = np.array([zero, np.nan, zero])
-        tm.assert_numpy_array_equal(result, expected)
+        expected = pd.array([zero, pd.NA, zero], dtype=data_missing_for_sorting.dtype)
+        tm.assert_extension_array_equal(result, expected)
 
     def _get_expected_exception(self, op_name, obj, other):
         try:
@@ -279,15 +269,13 @@ class TestMaskedArrays(base.ExtensionTests):
             # TODO: Why does Window Numpy 2.0 dtype depend on skipna?
             cmp_dtype = (
                 "Int32"
-                if (is_platform_windows() and (not np_version_gt2 or not skipna))
-                or not IS64
+                if (is_platform_windows() and not skipna) or not IS64
                 else "Int64"
             )
         elif is_unsigned_integer_dtype(arr.dtype):
             cmp_dtype = (
                 "UInt32"
-                if (is_platform_windows() and (not np_version_gt2 or not skipna))
-                or not IS64
+                if (is_platform_windows() and not skipna) or not IS64
                 else "UInt64"
             )
         elif arr.dtype.kind == "b":
@@ -296,8 +284,7 @@ class TestMaskedArrays(base.ExtensionTests):
             elif op_name in ["sum", "prod"]:
                 cmp_dtype = (
                     "Int32"
-                    if (is_platform_windows() and (not np_version_gt2 or not skipna))
-                    or not IS64
+                    if (is_platform_windows() and not skipna) or not IS64
                     else "Int64"
                 )
             else:

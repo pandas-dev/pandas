@@ -96,14 +96,6 @@ class PyArrowParser(BaseParser):
 
 
 @pytest.fixture
-def csv_dir_path(datapath):
-    """
-    The directory path to the data files needed for parser tests.
-    """
-    return datapath("io", "parser", "data")
-
-
-@pytest.fixture
 def csv1(datapath):
     """
     The path to the data file "test1.csv" needed for parser tests.
@@ -184,7 +176,7 @@ def _get_all_parser_float_precision_combinations():
     """
     params = []
     ids = []
-    for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+    for parser, parser_id in zip(_all_parsers, _all_parser_ids, strict=True):
         if hasattr(parser, "values"):
             # Wrapped in pytest.param, get the actual parser back
             parser = parser.values[0]

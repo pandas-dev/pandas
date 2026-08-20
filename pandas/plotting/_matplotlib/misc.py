@@ -271,7 +271,7 @@ def andrews_curves(
         ax = plt.gca()
         ax.set_xlim(-np.pi, np.pi)
     for i in range(n):
-        row = df.iloc[i].values
+        row = np.asarray(df.iloc[i]._values)
         f = function(row)
         y = f(t)
         kls = class_col.iat[i]
@@ -296,9 +296,8 @@ def bootstrap_plot(
 ) -> Figure:
     import matplotlib.pyplot as plt
 
-    # TODO: is the failure mentioned below still relevant?
-    # random.sample(ndarray, int) fails on python 3.3, sigh
-    data = list(series.values)
+    # random.sample doesn't accept ndarrays
+    data = list(np.asarray(series._values))
     samplings = [random.sample(data, size) for _ in range(samples)]
 
     means = np.array([np.mean(sampling) for sampling in samplings])
@@ -402,7 +401,7 @@ def parallel_coordinates(
     colors = dict(zip(classes, color_values, strict=True))
 
     for i in range(n):
-        y = df.iloc[i].values
+        y = np.asarray(df.iloc[i]._values)
         kls = class_col.iat[i]
         label = pprint_thing(kls)
         if label not in used_legends:
@@ -429,7 +428,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 
     kwds.setdefault("c", plt.rcParams["patch.facecolor"])
 
-    data = series.values
+    data = np.asarray(series._values)
     y1 = data[:-lag]
     y2 = data[lag:]
     if ax is None:

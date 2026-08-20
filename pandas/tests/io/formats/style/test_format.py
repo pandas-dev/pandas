@@ -1,3 +1,5 @@
+from types import MappingProxyType
+
 import numpy as np
 import pytest
 
@@ -83,10 +85,26 @@ def test_format_dict(styler):
     assert ctx["body"][0][2]["display_value"] == "-60.90%"
 
 
+def test_format_mapping(styler: Styler) -> None:
+    """Accept read-only mappings for column formatters."""
+    formatter = MappingProxyType({"A": "{:0.1f}", "B": "{0:.2%}"})
+    ctx = styler.format(formatter)._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "0.0"
+    assert ctx["body"][0][2]["display_value"] == "-60.90%"
+
+
 def test_format_index_dict(styler):
     ctx = styler.format_index({0: lambda v: v.upper()})._translate(True, True)
     for i, val in enumerate(["X", "Y"]):
         assert ctx["body"][i][0]["display_value"] == val
+
+
+def test_format_index_mapping(styler: Styler) -> None:
+    """Accept read-only mappings for index formatters."""
+    formatter = MappingProxyType({0: lambda value: value.upper()})
+    ctx = styler.format_index(formatter)._translate(True, True)
+    for row_idx, value in enumerate(["X", "Y"]):
+        assert ctx["body"][row_idx][0]["display_value"] == value
 
 
 def test_format_string(styler):
@@ -635,6 +653,19 @@ def test_format_index_names_dict(styler_multi):
     ctx = (
         styler_multi.format_index_names({"0_0": "{:<<5}"})
         .format_index_names({"1_1": "{:>>4}"}, axis=1)
+        ._translate(True, True)
+    )
+    assert ctx["head"][2][0]["display_value"] == "0_0<<"
+    assert ctx["head"][1][1]["display_value"] == ">1_1"
+
+
+def test_format_index_names_mapping(styler_multi: Styler) -> None:
+    """Accept read-only mappings for index-name formatters."""
+    index_formatter = MappingProxyType({"0_0": "{:<<5}"})
+    column_formatter = MappingProxyType({"1_1": "{:>>4}"})
+    ctx = (
+        styler_multi.format_index_names(index_formatter)
+        .format_index_names(column_formatter, axis=1)
         ._translate(True, True)
     )
     assert ctx["head"][2][0]["display_value"] == "0_0<<"

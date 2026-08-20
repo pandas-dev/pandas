@@ -228,7 +228,8 @@ class TestSeriesStatReductions:
         result = s.sem(ddof=1)
         assert pd.isna(result)
 
-    def test_skew(self):
+    def test_skew(self, using_python_scalars):
+        # GH 62864 - returns NaN on degenerate distribution
         sp_stats = pytest.importorskip("scipy.stats")
 
         string_series = Series(range(20), dtype=np.float64, name="series")
@@ -242,13 +243,12 @@ class TestSeriesStatReductions:
         for i in range(1, min_N + 1):
             s = Series(np.ones(i))
             df = DataFrame(np.ones((i, i)))
-            if i < min_N:
-                assert np.isnan(s.skew())
-                assert np.isnan(df.skew()).all()
+            assert np.isnan(s.skew())
+            assert np.isnan(df.skew()).all()
+            if using_python_scalars:
+                assert type(s.skew()) == float
             else:
-                assert 0 == s.skew()
                 assert isinstance(s.skew(), np.float64)  # GH53482
-                assert (df.skew() == 0).all()
 
     def test_kurt(self):
         sp_stats = pytest.importorskip("scipy.stats")
@@ -258,17 +258,50 @@ class TestSeriesStatReductions:
         alt = lambda x: sp_stats.kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
 
-    def test_kurt_corner(self):
+    def test_kurt_corner(self, using_python_scalars):
+        # GH 62864 - returns NaN on degenerate distribution
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values
         min_N = 4
         for i in range(1, min_N + 1):
             s = Series(np.ones(i))
             df = DataFrame(np.ones((i, i)))
-            if i < min_N:
-                assert np.isnan(s.kurt())
-                assert np.isnan(df.kurt()).all()
+            assert np.isnan(s.kurt())
+            assert np.isnan(df.kurt()).all()
+            if using_python_scalars:
+                assert type(s.kurt()) == float
             else:
-                assert 0 == s.kurt()
                 assert isinstance(s.kurt(), np.float64)  # GH53482
-                assert (df.kurt() == 0).all()
+
+
+@pytest.mark.parametrize(
+    "opname",
+    [
+        "skew",
+        "kurt",
+    ],
+)
+@pytest.mark.parametrize(
+    "loc, scale",
+    [
+        (42.0, 0.0),  # GH 62864
+        (0.0, 1e-18),  # GH 62946
+        (0.0, 1.0),
+        (0.0, 1e18),
+    ],
+)
+def test_reduction_consistency(opname, loc, scale):
+    rng = np.random.default_rng(2)
+    values = rng.normal(loc=loc, scale=scale, size=(20,))
+    grps = [0] * 20
+    s = Series(values)
+    result_series = getattr(s, opname)()
+
+    result_gb = getattr(s.groupby(grps), opname)().iloc[0]
+    tm.assert_almost_equal(result_series, result_gb)
+
+    result_window = getattr(s.rolling(20), opname)().iloc[-1]
+    tm.assert_almost_equal(result_series, result_window)
+
+    result_frame = getattr(DataFrame(s), opname)().iloc[0]
+    tm.assert_almost_equal(result_series, result_frame)

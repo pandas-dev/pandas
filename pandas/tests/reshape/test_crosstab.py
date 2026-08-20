@@ -512,7 +512,7 @@ class TestCrosstab:
         with pytest.raises(ValueError, match=error):
             crosstab(df.a, df.b, normalize="all", margins=42)
 
-    def test_crosstab_with_categorial_columns(self):
+    def test_crosstab_with_categorical_columns(self):
         # GH 8860
         df = DataFrame(
             {

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -21,7 +22,7 @@ from pandas.core.indexes.datetimes import date_range
 def test_frame():
     return DataFrame(
         {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
-        index=date_range("1/1/2000", freq="s", periods=40),
+        index=date_range("1/1/2000", freq="s", periods=40, unit="ns"),
     )
 
 
@@ -178,7 +179,7 @@ def test_groupby_with_origin():
 def test_nearest():
     # GH 17496
     # Resample nearest
-    index = date_range("1/1/2000", periods=3, freq="min")
+    index = date_range("1/1/2000", periods=3, freq="min", unit="ns")
     result = Series(range(3), index=index).resample("20s").nearest()
 
     expected = Series(
@@ -257,7 +258,9 @@ def test_apply(test_frame):
     def f_0(x):
         return x.resample("2s").sum()
 
-    result = r.apply(f_0)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = r.apply(f_0)
     tm.assert_frame_equal(result, expected)
 
     def f_1(x):
@@ -437,7 +440,12 @@ def test_resample_groupby_agg_listlike():
     result = resampled.agg(["sum", "size"])
     expected = DataFrame(
         [[69, 1]],
-        index=pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"]),
+        index=pd.MultiIndex.from_arrays(
+            [
+                Index(["beta"], name="class"),
+                pd.DatetimeIndex([ts], freq="ME", name="date"),
+            ]
+        ),
         columns=["sum", "size"],
     )
     tm.assert_frame_equal(result, expected)
@@ -452,7 +460,7 @@ def test_empty(keys):
     expected = (
         DataFrame(columns=["a", "b"])
         .set_index(keys, drop=False)
-        .set_index(TimedeltaIndex([]), append=True)[expected_columns]
+        .set_index(TimedeltaIndex([], freq="s"), append=True)[expected_columns]
     )
     if len(keys) == 1:
         expected.index.name = keys[0]
@@ -464,7 +472,7 @@ def test_empty(keys):
 def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     # https://github.com/pandas-dev/pandas/issues/39329
 
-    dates = date_range("2020-01-01", periods=15, freq="D")
+    dates = date_range("2020-01-01", periods=15, freq="D", unit="ns")
     df1 = DataFrame({"key": "A", "date": dates, "col1": range(15), "col_object": "val"})
     df2 = DataFrame({"key": "B", "date": dates, "col1": range(15)})
     df = pd.concat([df1, df2], ignore_index=True)
@@ -502,7 +510,7 @@ def test_groupby_resample_empty_sum_string(
     result = gbrs.sum(min_count=min_count)
 
     index = pd.MultiIndex(
-        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns")]],
+        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns").as_unit("ns")]],
         codes=[[0, 1, 2], [0, 0, 0]],
         names=["A", None],
     )
@@ -523,7 +531,11 @@ def test_groupby_resample_with_list_of_keys():
     result = df.groupby("group").resample("2D", on="date")[["val"]].mean()
 
     mi_exp = pd.MultiIndex.from_arrays(
-        [[0, 0, 1, 1], df["date"]._values[::2]], names=["group", "date"]
+        [
+            [0, 0, 1, 1],
+            pd.DatetimeIndex(df["date"]._values[::2], freq="2D"),
+        ],
+        names=["group", "date"],
     )
     expected = DataFrame(
         data={
@@ -545,6 +557,12 @@ def test_resample_no_index(keys):
     expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
     expected["date"] = pd.to_datetime(expected["date"])
     expected = expected.set_index("date", append=True, drop=True)[expected_columns]
+    # set freq on the DatetimeIndex level to match resample output
+    date_level = len(keys)  # "date" is appended after the key levels
+    expected.index = expected.index.set_levels(
+        pd.DatetimeIndex([], dtype="datetime64[s]", freq="s"),
+        level=date_level,
+    )
     if len(keys) == 1:
         expected.index.name = keys[0]
 
@@ -586,7 +604,7 @@ def test_groupby_resample_size_all_index_same():
     # GH 46826
     df = DataFrame(
         {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
-        index=date_range("31/12/2000 18:00", freq="h", periods=12),
+        index=date_range("31/12/2000 18:00", freq="h", periods=12, unit="ns"),
     )
     result = df.groupby("A").resample("D").size()
 
@@ -669,3 +687,16 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     rs = gb.resample("2D")
     with pytest.raises(KeyError, match="Columns not found"):
         rs[["val_not_in_dataframe"]]
+
+
+def test_groupby_resample_agg_dict_as_index_false():
+    # GH#52397 dict-style agg used to raise on as_index=False; should now
+    # match the shape of calling the reduction directly on the resampler
+    df = DataFrame(
+        {"a": np.repeat([0, 1, 2, 3, 4], 10), "b": range(50, 100)},
+        index=date_range("2023-01-01", freq="1min", periods=50),
+    )
+    gb = df.groupby("a", as_index=False).resample("2min")
+    result = gb.agg({"b": "min"})
+    expected = gb.min()
+    tm.assert_frame_equal(result, expected)

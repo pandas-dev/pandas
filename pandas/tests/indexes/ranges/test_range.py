@@ -9,6 +9,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
+import pandas.core.indexes.range as range_module
 from pandas.core.indexes.range import min_fitting_element
 
 
@@ -71,6 +72,18 @@ class TestRangeIndex:
 
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)
+
+    def test_repr_wraps_at_display_width(self):
+        # GH#11552
+        idx = RangeIndex(100, name="my_long_index_name")
+
+        with pd.option_context("display.width", 40):
+            result = repr(idx)
+        expected = (
+            "RangeIndex(start=0, stop=100, step=1,\n"
+            "           name='my_long_index_name')"
+        )
+        assert result == expected
 
     def test_insert(self):
         idx = RangeIndex(5, name="Foo")
@@ -359,6 +372,19 @@ class TestRangeIndex:
         i2 = RangeIndex(0, 10)
         assert idx.nbytes == i2.nbytes
 
+    def test_nbytes_pypy_compat(self, monkeypatch):
+        # GH#46176 sys.getsizeof always raises TypeError on PyPy unless
+        # a default is provided; nbytes must keep working there.
+        def pypy_getsizeof(obj, default=None):
+            if default is None:
+                raise TypeError("PyPy")
+            return default
+
+        monkeypatch.setattr(range_module, "getsizeof", pypy_getsizeof)
+        idx = RangeIndex(0, 1000)
+        assert isinstance(idx.nbytes, int)
+        assert idx.memory_usage() == idx.nbytes
+
     @pytest.mark.parametrize(
         "start,stop,step",
         [
@@ -375,10 +401,7 @@ class TestRangeIndex:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = (
-            "Cannot change data-type for array of references.|"
-            "Cannot change data-type for object array.|"
-        )
+        msg = "Cannot change data-type"
         with pytest.raises(TypeError, match=msg):
             index.view(Index)
 
@@ -708,6 +731,24 @@ def test_take_return_rangeindex():
     result = ri.take([3, 4])
     expected = RangeIndex(3, 5, name="foo")
     tm.assert_index_equal(result, expected, exact=True)
+
+
+def test__getitem__boolean_numpyextensionarray():
+    ri = RangeIndex(1)
+    result = ri[pd.arrays.NumpyExtensionArray(np.array([True]))]
+    tm.assert_index_equal(ri, result)
+
+
+@pytest.mark.parametrize(
+    "container",
+    [np.array, pd.Series, lambda x: pd.arrays.NumpyExtensionArray(np.array(x))],
+    ids=["numpy-array", "series", "numpy-extension-array"],
+)
+def test__getitem__boolean_arraylike(container):
+    ri = RangeIndex(5)
+    result = ri[container([True, True, False, False, True])]
+    expected = Index([0, 1, 4], dtype="int64")
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize(

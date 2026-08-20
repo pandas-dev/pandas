@@ -66,8 +66,7 @@ class StringFormatter:
         return bool(self.fmt.max_cols is None or self.fmt.max_cols > 0)
 
     def _insert_dot_separators(self, strcols: list[list[str]]) -> list[list[str]]:
-        str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)
-        index_length = len(str_index)
+        index_length = len(strcols[0])
 
         if self.fmt.is_truncated_horizontally:
             strcols = self._insert_dot_separator_horizontal(strcols, index_length)
@@ -152,27 +151,31 @@ class StringFormatter:
         return "\n\n".join(str_lst)
 
     def _fit_strcols_to_terminal_width(self, strcols: list[list[str]]) -> str:
-        from pandas import Series
+        col_lens = [max(self.adj.len(x) for x in col) if col else 0 for col in strcols]
+        n_cols = len(col_lens)
+        # total width = sum of column widths + adjoin spacing (1 per gap)
+        total_width = sum(col_lens) + n_cols - 1
 
-        lines = self.adj.adjoin(1, *strcols).split("\n")
-        max_len = Series(lines).str.len().max()
-        # plus truncate dot col
         width, _ = get_terminal_size()
-        dif = max_len - width
+        dif = total_width - width
         # '+ 1' to avoid too wide repr (GH PR #17023)
         adj_dif = dif + 1
-        col_lens = Series([Series(ele).str.len().max() for ele in strcols])
-        n_cols = len(col_lens)
-        counter = 0
+
+        if adj_dif <= 0:
+            # All columns fit; no truncation needed and max_cols_fitted
+            # stays at the value set by _calc_max_cols_fitted (0), so
+            # is_truncated_horizontally remains False.
+            return self.adj.adjoin(1, *strcols)
+
+        # Account for the " ..." separator column that will be inserted
+        # after horizontal truncation (GH#32461)
+        adj_dif += 4 + 1  # 4 chars for " ..." + 1 adjoin spacing
+
         while adj_dif > 0 and n_cols > 1:
-            counter += 1
             mid = round(n_cols / 2)
-            mid_ix = col_lens.index[mid]
-            col_len = col_lens[mid_ix]
             # adjoin adds one
-            adj_dif -= col_len + 1
-            col_lens = col_lens.drop(mid_ix)
-            n_cols = len(col_lens)
+            adj_dif -= col_lens.pop(mid) + 1
+            n_cols -= 1
 
         # subtract index column
         max_cols_fitted = n_cols - self.fmt.index
@@ -180,11 +183,28 @@ class StringFormatter:
         max_cols_fitted = max(max_cols_fitted, 2)
         self.fmt.max_cols_fitted = max_cols_fitted
 
-        # Call again _truncate to cut frame appropriately
-        # and then generate string representation
-        self.fmt.truncate()
-        strcols = self._get_strcols()
-        return self.adj.adjoin(1, *strcols)
+        # Reuse already-formatted columns instead of re-truncating and
+        # re-formatting the entire DataFrame.
+        num_data_cols = len(strcols) - self.fmt.index
+        if max_cols_fitted >= num_data_cols:
+            # All data columns fit (can happen due to the max(..., 2) above)
+            return self.adj.adjoin(1, *strcols)
+
+        col_num = max_cols_fitted // 2
+        has_index = self.fmt.index
+        if has_index:
+            # strcols[0] is the index
+            kept = strcols[: col_num + 1] + strcols[-col_num:]
+            insert_pos = col_num + 1
+        else:
+            kept = strcols[:col_num] + strcols[-col_num:]
+            insert_pos = col_num
+
+        # Insert horizontal "..." separator column
+        row_count = len(kept[0]) if kept else 0
+        kept.insert(insert_pos, [" ..."] * row_count)
+
+        return self.adj.adjoin(1, *kept)
 
 
 def _binify(cols: list[int], line_width: int) -> list[int]:

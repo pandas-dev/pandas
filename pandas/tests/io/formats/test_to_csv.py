@@ -1,9 +1,13 @@
+import csv
+from datetime import (
+    UTC,
+    datetime,
+)
 import io
 import os
 import sys
 from zipfile import ZipFile
 
-from _csv import Error
 import numpy as np
 import pytest
 
@@ -14,6 +18,8 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
+from pandas.core.indexes.base import get_values_for_csv
 
 
 class TestToCSV:
@@ -50,6 +56,14 @@ class TestToCSV:
         # the default to_csv encoding is uft-8.
         df.to_csv(temp_file)
         tm.assert_frame_equal(pd.read_csv(temp_file, index_col=0), df)
+
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+    def test_to_csv_utf16_encoding(self, encoding, temp_file):
+        # GH#10755
+        df = DataFrame({"col": ["abc", "déf", "日本語"]})
+        df.to_csv(temp_file, encoding=encoding)
+        result = pd.read_csv(temp_file, index_col=0, encoding=encoding)
+        tm.assert_frame_equal(result, df)
 
     def test_to_csv_quotechar(self, temp_file):
         df = DataFrame({"col": [1, 2]})
@@ -88,7 +102,7 @@ $1$,$2$
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected
 
-        with pytest.raises(Error, match="escapechar"):
+        with pytest.raises(csv.Error, match="escapechar"):
             df.to_csv(temp_file, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self, temp_file):
@@ -287,6 +301,50 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    def test_to_csv_period_columns(self):
+        # GH#55426 - exercise the column path for PeriodArray
+        df = DataFrame(
+            {
+                "a": pd.period_range("2020-01-01", periods=2, freq="D"),
+                "b": pd.period_range("2020-03-01", periods=2, freq="D"),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            "2020-01-01,2020-03-01",
+            "2020-01-02,2020-03-02",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
+    def test_to_csv_period_columns_date_format(self):
+        # GH#51621 - date_format is honored for a PeriodArray column, not just
+        # a PeriodIndex
+        df = DataFrame({"a": pd.period_range("2000-01-01", periods=2, freq="h")})
+        expected_rows = [
+            ",a",
+            "0,2000-01-01___00:00:00",
+            "1,2000-01-01___01:00:00",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d___%H:%M:%S") == expected
+
+    def test_to_csv_interval_columns(self):
+        # GH#55426 - exercise the column path for IntervalArray
+        df = DataFrame(
+            {
+                "a": pd.arrays.IntervalArray.from_breaks([0, 1, 2]),
+                "b": pd.arrays.IntervalArray.from_breaks([3, 4, 5]),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            '"(0, 1]","(3, 4]"',
+            '"(1, 2]","(4, 5]"',
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
     def test_to_csv_date_format_in_categorical(self):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
@@ -321,6 +379,44 @@ $1$,$2$
             ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
         )
         assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish(self, using_nan_is_na):
+        # GH#61617, GH#65227 - to_csv should not crash when FloatingArray
+        # contains unmasked NaN (with distinguish_nan_and_na=True)
+        df = DataFrame({"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"})
+        result = df.to_csv(index=False)
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", ",c", ",c", "3.0,c"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", "nan,c", ",c", "3.0,c"])
+        assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish_series(self, using_nan_is_na):
+        # GH#65227 - Series.to_csv with FloatingArray containing both NaN and NA
+        ser = pd.Series((1, pd.NA, 0), index=["a", "b", "c"], dtype="Float64", name="x")
+        ser = ser / ser
+        result = ser.to_csv()
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,nan"])
+        assert result == expected
+
+    def test_to_csv_2d_float_ea(self):
+        # GH#64634 - get_values_for_csv on a 2D float ExtensionArray should not fail.
+        data = np.array([1.0, np.nan, 3.0, 4.0])
+        mask = np.array([False, True, False, False])
+        arr2d = FloatingArray(data, mask).reshape(2, 2)
+
+        result = get_values_for_csv(
+            arr2d,
+            date_format=None,
+            na_rep="NA",
+            float_format=None,
+            decimal=".",
+        )
+        expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_to_csv_multi_index(self):
         # see gh-6618
@@ -405,6 +501,13 @@ $1$,$2$
         df.to_csv(temp_file, encoding="utf-8")
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected_utf8
+
+    def test_to_csv_roundtrip_with_newline_in_field(self, temp_file):
+        # GH#22497 - embedded newlines in field values should survive roundtrip
+        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
 
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
@@ -861,4 +964,77 @@ def test_new_style_with_template():
     df = DataFrame({"A": [1234.56789]})
     result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
     expected = ',A\n0,"Value: 1,234.57"\n'
+    assert result == expected
+
+
+def test_to_csv_null_byte_no_escapechar():
+    # GH#47871 a null byte does not require escapechar to be set
+    # (was a CPython _csv regression on 3.10, fixed in 3.11)
+    df = DataFrame({"A": ["\x00"]})
+    result = df.to_csv(index=False, lineterminator="\n")
+    assert result == "A\n\x00\n"
+
+
+def test_to_csv_escapechar_roundtrip_trailing_backslash():
+    # GH#33735 a value ending in the escapechar must remain readable: to_csv
+    # has to escape the escapechar itself so read_csv can parse it back
+    df = DataFrame({0: ['"key":"value"'], 1: ["mno,"], 2: ["abc\\"], 3: ["ijk"]})
+    csv = df.to_csv(header=False, index=False, escapechar="\\")
+    result = pd.read_csv(io.StringIO(csv), header=None, escapechar="\\")
+    assert result.iloc[0].tolist() == df.iloc[0].tolist()
+
+
+def test_to_csv_categorical_tz_timestamp_with_na_rep():
+    # GH#55945 to_csv with na_rep on a categorical tz-aware timestamp column
+    # must not raise
+    ser = pd.Series(pd.to_datetime(["2023-11-10 12:00:00+00:00"] * 3)).astype(
+        "category"
+    )
+    df = DataFrame({"ct": ser})
+    result = df.to_csv(na_rep=r"\N")
+    assert "2023-11-10 12:00:00+00:00" in result
+
+    # with an actual NaT the na_rep placeholder must be emitted (the crash
+    # fired even with no missing values, so also exercise the substitution path)
+    ser_na = pd.Series(pd.to_datetime(["2023-11-10 12:00:00+00:00", None])).astype(
+        "category"
+    )
+    result_na = DataFrame({"ct": ser_na}).to_csv(na_rep=r"\N")
+    assert r"\N" in result_na
+
+
+def test_to_csv_datetime_tz_consistent_format():
+    # GH#62111
+    df = DataFrame(
+        {
+            "timestamp": [
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=UTC),
+                datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=UTC),
+            ]
+        }
+    )
+    result = df.to_csv(index=False)
+    expected_rows = [
+        "timestamp",
+        "2025-08-14 12:34:56.000000+00:00",
+        "2025-08-14 12:34:56.000001+00:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
+
+    df = DataFrame(
+        {
+            "timestamp": [
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=UTC),
+                datetime(2025, 8, 14, 12, 34, 57, 0, tzinfo=UTC),
+            ]
+        }
+    )
+    result = df.to_csv(index=False)
+    expected_rows = [
+        "timestamp",
+        "2025-08-14 12:34:56+00:00",
+        "2025-08-14 12:34:57+00:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
     assert result == expected

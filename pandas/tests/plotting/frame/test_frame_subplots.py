@@ -5,8 +5,6 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -22,6 +20,7 @@ from pandas.tests.plotting.common import (
     _check_visible,
     _flatten_visible,
 )
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -150,7 +149,7 @@ class TestDataFramePlotsSubplots:
 
         ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
-        expected = testdata[col].values
+        expected = testdata[col]._values
         assert (result == expected).all()
 
     def test_subplots_timeseries_y_text_error(self):
@@ -421,35 +420,46 @@ class TestDataFramePlotsSubplots:
         assert len(ax.lines) == 0
         assert len(ax.right_ax.lines) == 5
 
-    @pytest.mark.xfail(
-        is_platform_linux(),
-        reason="Weird rounding problems",
-        strict=False,
-    )
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
-        expected = np.array([0.1, 1.0, 10.0, 100])
+        # matplotlib 3.11 no longer pads log-axis ticks a decade past the
+        #  view limits, so the outermost tick is dropped (GH#65918)
+        expected = (
+            np.array([0.1, 1.0, 10.0, 100])
+            if Version(mpl.__version__) < Version("3.11.0rc1")
+            else np.array([0.1, 1.0, 10.0])
+        )
 
         # no subplots
         df = DataFrame({"A": [3] * 5, "B": list(range(1, 6))}, index=range(5))
         ax = df.plot.bar(grid=True, log=True)
-        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
+        result = ax.yaxis.get_ticklocs()
+        # GH#64317 on some linux builds these are flaky with a tiny difference.
+        #  Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        tm.assert_almost_equal(result, expected, atol=1e-15)
 
-    @pytest.mark.xfail(
-        is_platform_linux(),
-        reason="Weird rounding problems",
-        strict=False,
-    )
     def test_bar_log_subplots(self):
-        expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
+        # matplotlib 3.11 no longer pads log-axis ticks a decade past the
+        #  view limits, so the outermost tick is dropped (GH#65918)
+        expected = (
+            np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
+            if Version(mpl.__version__) < Version("3.11.0rc1")
+            else np.array([0.1, 1.0, 10.0, 100.0, 1000.0])
+        )
 
         ax = DataFrame([Series([200, 300]), Series([300, 500])]).plot.bar(
             log=True, subplots=True
         )
 
-        tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
-        tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
+        # GH#64317 on some linux builds these are flaky with a tiny difference.
+        #  Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        result1 = ax[0].yaxis.get_ticklocs()
+        tm.assert_almost_equal(result1, expected, atol=1e-15)
+        result2 = ax[1].yaxis.get_ticklocs()
+        tm.assert_almost_equal(result2, expected, atol=1e-15)
 
     def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df

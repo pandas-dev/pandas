@@ -19,7 +19,9 @@ arrays += [pd.array([True, False, True, None], dtype="boolean")]
 scalars += [False]
 
 
-@pytest.fixture(params=zip(arrays, scalars), ids=[a.dtype.name for a in arrays])
+@pytest.fixture(
+    params=zip(arrays, scalars, strict=True), ids=[a.dtype.name for a in arrays]
+)
 def data(request):
     """Fixture returning parametrized (array, scalar) tuple.
 

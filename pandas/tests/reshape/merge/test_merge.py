@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -725,7 +726,7 @@ class TestMerge:
     def test_join_append_timedeltas2(self):
         # timedelta64 issues with join/merge
         # GH 5695
-        td = np.timedelta64(300000000)
+        td = np.timedelta64(300000000, "ns")
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 
@@ -814,7 +815,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|str'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='(object|str)'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -847,22 +848,34 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": [1, 2],
-                "value": pd.date_range("20151010", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151010", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         right = DataFrame(
             {
                 "key": [2, 3],
-                "value": pd.date_range("20151011", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151011", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
-                + [pd.NaT],
-                "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                "value_x": [
+                    *list(
+                        pd.date_range("20151010", periods=2, tz="US/Eastern", unit="ns")
+                    ),
+                    pd.NaT,
+                ],
+                "value_y": [
+                    pd.NaT,
+                    *list(
+                        pd.date_range("20151011", periods=2, tz="US/Eastern", unit="ns")
+                    ),
+                ],
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -974,8 +987,8 @@ class TestMerge:
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(exp_x) + [pd.NaT],
-                "value_y": [pd.NaT] + list(exp_y),
+                "value_x": [*list(exp_x), pd.NaT],
+                "value_y": [pd.NaT, *list(exp_y)],
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -1082,10 +1095,14 @@ class TestMerge:
         for i in ["_right_indicator", "_left_indicator", "_merge"]:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
-            msg = (
-                "Cannot use `indicator=True` option when data contains a "
-                f"column named {i}|"
-                "Cannot use name of an existing column for indicator column"
+            msg = "|".join(
+                [
+                    (
+                        "Cannot use `indicator=True` option when data contains a "
+                        f"column named {i}"
+                    ),
+                    "Cannot use name of an existing column for indicator column",
+                ]
             )
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
@@ -2206,6 +2223,37 @@ class TestMergeCategorical:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_category_index_levels_stay_category(self):
+        # GH#37480
+        df1 = DataFrame(
+            {
+                "x": list(range(1, 10)),
+                "y": list(range(1, 10)),
+                "z": list(range(1, 10)),
+                "d": list(range(1, 10)),
+            }
+        )
+
+        df2 = df1.astype({"x": "category", "y": "category", "z": "category"})
+
+        df3 = df2.iloc[:4, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
+        df4 = df2.iloc[7:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
+        result = merge(df3, df4, left_index=True, right_index=True, how="outer")
+
+        cats = list(range(1, 10))
+        z = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        x = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        y = Categorical([np.nan] * 4 + list(range(8, 10)), categories=cats)
+        idx = MultiIndex.from_arrays([z, x, y], names=["z", "x", "y"])
+        expected = DataFrame(
+            {
+                "d_x": list(map(float, range(1, 5))) + [np.nan] * 2,
+                "d_y": [np.nan] * 4 + list(map(float, range(8, 10))),
+            },
+            index=idx,
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestMergeOnIndexes:
     @pytest.mark.parametrize(
@@ -2552,9 +2600,12 @@ def test_merge_multiindex_columns():
     index = MultiIndex.from_product((letters, numbers), names=["outer", "inner"])
 
     frame_x = DataFrame(columns=index)
-    frame_x["id"] = ""
     frame_y = DataFrame(columns=index)
-    frame_y["id"] = ""
+    msg = "Setting a new column"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_x["id"] = ""
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_y["id"] = ""
 
     l_suf = "_x"
     r_suf = "_y"
@@ -2593,7 +2644,7 @@ def test_categorical_non_unique_monotonic(n_categories):
     # GH 28189
     # With n_categories as 5, we test the int8 case is hit in libjoin,
     # with n_categories as 128 we test the int16 case.
-    left_index = CategoricalIndex([0] + list(range(n_categories)))
+    left_index = CategoricalIndex([0, *list(range(n_categories))])
     df1 = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
     df2 = DataFrame(
         [[6]],
@@ -2890,20 +2941,30 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
 
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, join_type):
+@pytest.mark.parametrize(
+    "left_unit, right_unit, expected_unit",
+    [
+        ("ns", "s", "ns"),  # left higher resolution
+        ("us", "ns", "ns"),  # GH#55212 - left lower resolution
+    ],
+)
+def test_merge_datetime_different_resolution(
+    tz, join_type, left_unit, right_unit, expected_unit
+):
     # https://github.com/pandas-dev/pandas/issues/53200
+    # GH#55212
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
         pd.Timestamp(2023, 5, 13, tz=tz),
         pd.Timestamp(2023, 5, 14, tz=tz),
     ]
     df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
-    df1["t"] = df1["t"].dt.as_unit("ns")
+    df1["t"] = df1["t"].dt.as_unit(left_unit)
     df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
-    df2["t"] = df2["t"].dt.as_unit("s")
+    df2["t"] = df2["t"].dt.as_unit(right_unit)
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
-    expected["t"] = expected["t"].dt.as_unit("ns")
+    expected["t"] = expected["t"].dt.as_unit(expected_unit)
     if join_type == "inner":
         expected = expected.iloc[[1]].reset_index(drop=True)
     elif join_type == "left":
@@ -2913,6 +2974,62 @@ def test_merge_datetime_different_resolution(tz, join_type):
 
     result = df1.merge(df2, on="t", how=join_type)
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_tz_preserves_dtype(join_type):
+    # GH#55212 - merging on keys that differ only by tz must keep the join
+    #  key tz-aware (left's tz) rather than collapsing to object dtype.
+    i0 = pd.Timestamp("2023-05-12 12:00", tz="UTC")
+    i1 = pd.Timestamp("2023-05-12 13:00", tz="UTC")
+    i2 = pd.Timestamp("2023-05-12 14:00", tz="UTC")
+
+    left = DataFrame({"t": [i0, i1], "a": [1.0, 2.0]})
+    left["t"] = left["t"].dt.tz_convert("US/Eastern")
+    right = DataFrame({"t": [i0, i2], "b": [3.0, 4.0]})
+    right["t"] = right["t"].dt.tz_convert("US/Pacific")
+
+    result = left.merge(right, on="t", how=join_type)
+
+    keys = {"inner": [i0], "left": [i0, i1], "outer": [i0, i1, i2], "right": [i0, i2]}
+    avals = {
+        "inner": [1.0],
+        "left": [1.0, 2.0],
+        "outer": [1.0, 2.0, None],
+        "right": [1.0, None],
+    }
+    bvals = {
+        "inner": [3.0],
+        "left": [3.0, None],
+        "outer": [3.0, None, 4.0],
+        "right": [3.0, 4.0],
+    }
+    expected = DataFrame(
+        {
+            "t": DatetimeIndex(keys[join_type]).tz_convert("US/Eastern").as_unit("us"),
+            "a": avals[join_type],
+            "b": bvals[join_type],
+        }
+    )
+    # tz-aware result key; with the workaround removed this dtype becomes object
+    assert result["t"].dtype == left["t"].dtype
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_resolution_right_on(join_type):
+    # GH#55212 - when the join key lives only in the right frame
+    # (via left_index=True + right_on), it must still upcast to the highest
+    # datetime64 resolution.
+    vals = [
+        pd.Timestamp("2023-05-12"),
+        pd.Timestamp("2023-05-13"),
+        pd.Timestamp("2023-05-14"),
+    ]
+    left = DataFrame({"a": [1.0, 2.0]}, index=DatetimeIndex(vals[:2]).as_unit("ns"))
+    right = DataFrame({"rk": vals[1:], "b": [3.0, 4.0]})
+    right["rk"] = right["rk"].dt.as_unit("us")
+
+    result = left.merge(right, left_index=True, right_on="rk", how=join_type)
+    assert result["rk"].dtype == np.dtype("datetime64[ns]")
 
 
 def test_merge_multiindex_single_level():
@@ -2926,6 +3043,41 @@ def test_merge_multiindex_single_level():
 
     result = df.merge(df2, left_on=["col"], right_index=True, how="left")
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multiindex_reset_index_mixed():
+    # GH#62150
+    df = DataFrame(
+        {("column_1", ""): [1, 1], ("column_2", ""): [2, 2]},
+        index=MultiIndex.from_arrays(
+            [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+        ),
+    )
+
+    df2 = DataFrame(
+        data=[1, 1],
+        index=Index([1, 1], name="index"),
+        columns=MultiIndex.from_product([["new_data"], [""]]),
+    )
+
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        result = df.reset_index().merge(df2.reset_index(), on="index")
+
+    expected = DataFrame(
+        {
+            ("index", ""): [1, 1, 1, 1],
+            ("metadata", ""): ["metadata_1", "metadata_1", "metadata_2", "metadata_2"],
+            ("column_1", ""): [1, 1, 1, 1],
+            ("column_2", ""): [2, 2, 2, 2],
+            ("new_data", ""): [1, 1, 1, 1],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(expected.columns)
+
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df.reset_index().merge(df2.reset_index(), on=[("index", "")])
+    tm.assert_frame_equal(result2, expected)
 
 
 @pytest.mark.parametrize("on_index", [True, False])
@@ -3140,4 +3292,136 @@ def test_merge_pyarrow_datetime_duplicates():
         }
     )
     expected = expected.convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_on_and_right_index():
+    df1 = DataFrame({"col": [1, 2, 3]})
+    df2 = DataFrame({"col": [2, 3, 4]})
+
+    with pytest.raises(pd.errors.MergeError):
+        df1.merge(df2, left_on="col", right_on="col", right_index=True)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_left_sort_false_range_like_right(dtype, start, step):
+    left_k = np.array(
+        [start + step * 3, start, start + step * 1, start + step * 10],
+        dtype=dtype,
+    )
+    left = (
+        DataFrame({"k": left_k, "v": [10, 11, 12, 13]})
+        .iloc[[2, 0, 3, 1]]
+        .reset_index(drop=True)
+    )
+    right_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    right = DataFrame(
+        {"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)},
+    )
+
+    result = left.merge(right, on="k", how="left", sort=False)
+
+    expected = left.copy()
+    expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_right_sort_false_range_like_left(dtype, start, step):
+    left_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    left = DataFrame(
+        {"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)},
+    )
+
+    right_k = np.array(
+        [start + step * 2, start, start + step * 10, start + step * 1],
+        dtype=dtype,
+    )
+    right = (
+        DataFrame({"k": right_k, "w": [1, 2, 3, 4]})
+        .iloc[[1, 3, 0, 2]]
+        .reset_index(drop=True)
+    )
+
+    result = left.merge(right, on="k", how="right", sort=False)
+
+    expected = right.copy()
+    expected["v"] = left.set_index("k")["v"].reindex(expected["k"]).to_numpy()
+    expected = expected[["k", "v", "w"]]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+@pytest.mark.parametrize(
+    "range_k, other_k",
+    [
+        # uint64 keys above INT64_MAX were silently dropped (all-NaN)
+        (
+            np.array([2**63, 2**63 + 1, 2**63 + 2], dtype=np.uint64),
+            np.array([2**63 + 2, 2**63, 2**63 + 5], dtype=np.uint64),
+        ),
+        # a probe value near INT64_MIN overflowed and matched spuriously
+        (
+            np.array([10, 11, 12], dtype=np.int64),
+            np.array([11, np.iinfo(np.int64).min, 10], dtype=np.int64),
+        ),
+        # a two-element key whose implied step overflows int64
+        (
+            np.array([np.iinfo(np.int64).min, np.iinfo(np.int64).max], dtype=np.int64),
+            np.array(
+                [np.iinfo(np.int64).max, 0, np.iinfo(np.int64).min], dtype=np.int64
+            ),
+        ),
+    ],
+)
+def test_merge_sort_false_range_like_extreme_int_keys(how, range_k, other_k):
+    # GH#64148 the range-like fast path promoted one side's key to a RangeIndex
+    # and looked the other side up in it; for extreme integer keys this
+    # overflowed/wrapped and silently dropped matches or returned out-of-bounds
+    # (garbage) ones. The promoted side is the one opposite ``how``.
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    # reference lookup via reindex, which does not use the range-like fast path
+    if how == "left":
+        expected = left.copy()
+        expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+    else:
+        expected = right.copy()
+        expected.insert(1, "v", left.set_index("k")["v"].reindex(right["k"]).to_numpy())
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
+    # GH#64148 range-like keys spanning more than INT64_MAX: the promoted
+    # RangeIndex's offset computation overflowed int64 and fabricated matches.
+    # Expected values are hardcoded because a reindex-based reference would go
+    # through the same RangeIndex lookup.
+    range_k = np.array([-(2**62) - 1, -1, 2**62 - 1], dtype=np.int64)
+    other_k = np.array([2**62 - 1, 5, -1], dtype=np.int64)
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    if how == "left":
+        expected = DataFrame({"k": other_k, "v": [0, 1, 2], "w": [2.0, np.nan, 1.0]})
+    else:
+        expected = DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)

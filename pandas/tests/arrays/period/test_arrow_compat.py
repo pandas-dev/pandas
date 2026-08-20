@@ -6,7 +6,6 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import (
     PeriodArray,
-    period_array,
 )
 
 pytestmark = pytest.mark.filterwarnings(
@@ -41,7 +40,7 @@ def test_arrow_extension_type():
 def test_arrow_array(data, freq):
     from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
-    periods = period_array(data, freq=freq)
+    periods = pd.PeriodIndex(data, freq=freq).array
     result = pa.array(periods)
     assert isinstance(result.type, ArrowPeriodType)
     assert result.type.freq == freq

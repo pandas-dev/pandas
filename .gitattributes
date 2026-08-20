@@ -13,7 +13,6 @@
 *.dta binary
 *.xls binary
 *.xlsx binary
-pandas/_version.py export-subst
 
 
 *.bz2 export-ignore
@@ -62,19 +61,19 @@ pandas/_version.py export-subst
 
 # Ignoring stuff from the top level
 .github export-ignore
+.pre-commit-config.yaml export-ignore
+AGENTS.md export-ignore
 asv_bench export-ignore
 ci export-ignore
 doc export-ignore
-gitpod export-ignore
 MANIFEST.in export-ignore
+pixi.lock export-ignore
+pixi.toml export-ignore
 scripts/** export-ignore
-typings export-ignore
 web export-ignore
 CITATION.cff export-ignore
 codecov.yml export-ignore
-Dockerfile export-ignore
 environment.yml export-ignore
-setup.py export-ignore
 
 
 # GH 39321

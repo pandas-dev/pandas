@@ -3,6 +3,7 @@ An exhaustive list of pandas methods exercising NDFrame.__finalize__.
 """
 
 from copy import deepcopy
+from datetime import time
 import operator
 import re
 
@@ -280,12 +281,12 @@ _all_methods = [
     (
         pd.Series,
         (1, pd.date_range("2000", periods=4)),
-        operator.methodcaller("at_time", "12:00"),
+        operator.methodcaller("at_time", time(12)),
     ),
     (
         pd.DataFrame,
         ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-        operator.methodcaller("at_time", "12:00"),
+        operator.methodcaller("at_time", time(12)),
     ),
     (
         pd.Series,
@@ -557,9 +558,7 @@ def test_datetime_method(method):
         "second",
         "microsecond",
         "nanosecond",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
         "day_of_year",
         "quarter",
         "is_month_start",
@@ -569,7 +568,6 @@ def test_datetime_method(method):
         "is_year_start",
         "is_year_end",
         "is_leap_year",
-        "daysinmonth",
         "days_in_month",
     ],
 )
@@ -641,6 +639,16 @@ def test_groupby_finalize(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0], group_keys=False))
     assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+def test_groupby_finalize_duplicate_labels(obj):
+    # GH#46505 ensure allows_duplicate_labels propagates through groupby splitter
+    obj = obj.set_flags(allows_duplicate_labels=False)
+    result = obj.groupby([0, 0]).sum()
+    assert result.flags.allows_duplicate_labels is False
 
 
 @pytest.mark.parametrize(

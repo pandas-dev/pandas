@@ -4,10 +4,20 @@ project(
     'c',
     'cpp',
     'cython',
-    version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
+    version: run_command(
+        find_program('python3', 'python'),
+        'generate_version.py',
+        '--print',
+        check: true,
+    ).stdout().strip(),
     license: 'BSD-3',
-    meson_version: '>=1.2.1',
-    default_options: ['buildtype=release', 'c_std=c11', 'warning_level=2'],
+    meson_version: '>=1.2.3',
+    default_options: [
+        'buildtype=release',
+        'c_std=c17',
+        'cpp_std=c++20',
+        'warning_level=2',
+    ],
 )
 
 fs = import('fs')
@@ -31,6 +41,21 @@ add_project_arguments(
     language: 'cpp',
 )
 
+cc = meson.get_compiler('c')
+cxx = meson.get_compiler('cpp')
+if cc.get_id() == 'msvc'
+    # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
+    # Ignore some MSVC specific warnings:
+    # C4244: possible loss of data in conversion. Reproductible with `-Wconversion`.
+    # C4267: conversion from `size_t` to smaller type.
+    # C4551: occurs due to Cython generating code with (void)func.
+    #        https://github.com/cython/cython/issues/3579
+    # C4146: unary minus operator applied to unsigned type. Occurs in xsimd.
+    add_project_arguments(
+        ['/wd4244', '/wd4267', '/wd4551', '/wd4146'],
+        language: ['c', 'cpp'],
+    )
+endif
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')
@@ -53,12 +78,11 @@ if cy.version().version_compare('>=3.1.0')
 
     # Use shared utility code to reduce wheel sizes
     # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
-    cy = find_program(cy.cmd_array()[0])
     cython_shared_src = custom_target(
         install: false,
         output: '_cyutility.c',
         command: [
-            cy,
+            cy.cmd_array(),
             '-3',
             '-Xfreethreading_compatible=true',
             '--fast-fail',

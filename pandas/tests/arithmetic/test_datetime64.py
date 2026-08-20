@@ -2,10 +2,10 @@
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
 from datetime import (
+    UTC,
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from itertools import (
     product,
@@ -15,8 +15,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas import (
@@ -110,15 +112,14 @@ class TestDatetime64ArrayLikeComparisons:
     ):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tz)._data
+        dta = date_range("2000-01-01", freq="ns", periods=10, tz=tz)._data
         obj = tm.box_expected(dta, box_with_array)
         assert_invalid_comparison(obj, other, box_with_array)
 
     def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="h", periods=5, tz=tz)._data
-
+        dta = date_range("2000-01-01", freq="h", periods=5, tz=tz)._data
         other = np.array([0, 1, 2, dta[3], Timedelta(days=1)])
         result = dta == other
         expected = np.array([False, False, False, True, False])
@@ -127,7 +128,13 @@ class TestDatetime64ArrayLikeComparisons:
         result = dta != other
         tm.assert_numpy_array_equal(result, ~expected)
 
-        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        msg = "|".join(
+            [
+                "Invalid comparison between",
+                "Cannot compare type",
+                "not supported between",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             dta < other
         with pytest.raises(TypeError, match=msg):
@@ -503,8 +510,8 @@ class TestDatetimeIndexComparisons:
             [
                 np.datetime64("2014-02-01 00:00"),
                 np.datetime64("2014-03-01 00:00"),
-                np.datetime64("nat"),
-                np.datetime64("nat"),
+                np.datetime64("nat", "ns"),
+                np.datetime64("nat", "ns"),
                 np.datetime64("2014-06-01 00:00"),
                 np.datetime64("2014-07-01 00:00"),
             ]
@@ -512,7 +519,7 @@ class TestDatetimeIndexComparisons:
 
         cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, idx2 in cases:
                 result = idx1 < idx2
@@ -559,7 +566,7 @@ class TestDatetimeIndexComparisons:
                 expected = np.array([True, True, True, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
                 result = idx1 < val
@@ -589,11 +596,13 @@ class TestDatetimeIndexComparisons:
         op = comparison_op
         box = box_with_array
 
-        dr = date_range("2016-01-01", periods=6)
+        dr = date_range("2016-01-01", periods=6, unit="ns")
         dz = dr.tz_localize("US/Pacific")
 
         dr = tm.box_expected(dr, box)
         dz = tm.box_expected(dz, box)
+
+        assert_invalid_comparison(dr, dz, box)
 
         if box is pd.DataFrame:
             tolist = lambda x: x.astype(object).values.tolist()[0]
@@ -606,14 +615,9 @@ class TestDatetimeIndexComparisons:
                 "and (Timestamp|DatetimeArray|list|ndarray)"
             )
             with pytest.raises(TypeError, match=msg):
-                op(dr, dz)
-
-            with pytest.raises(TypeError, match=msg):
                 op(dr, tolist(dz))
             with pytest.raises(TypeError, match=msg):
                 op(dr, np.array(tolist(dz), dtype=object))
-            with pytest.raises(TypeError, match=msg):
-                op(dz, dr)
 
             with pytest.raises(TypeError, match=msg):
                 op(dz, tolist(dr))
@@ -637,7 +641,7 @@ class TestDatetimeIndexComparisons:
         # GH#18162
         op = comparison_op
 
-        dr = date_range("2016-01-01", periods=6)
+        dr = date_range("2016-01-01", periods=6, unit="ns")
         dz = dr.tz_localize("US/Pacific")
 
         dr = tm.box_expected(dr, box_with_array)
@@ -667,38 +671,14 @@ class TestDatetimeIndexComparisons:
         "other",
         [datetime(2016, 1, 1), Timestamp("2016-01-01"), np.datetime64("2016-01-01")],
     )
-    # Bug in NumPy? https://github.com/numpy/numpy/issues/13841
-    # Raising in __eq__ will fallback to NumPy, which warns, fails,
-    # then re-raises the original exception. So we just need to ignore.
-    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_scalar_comparison_tzawareness(
-        self, comparison_op, other, tz_aware_fixture, box_with_array
+        self, other, tz_aware_fixture, box_with_array
     ):
-        op = comparison_op
         tz = tz_aware_fixture
-        dti = date_range("2016-01-01", periods=2, tz=tz)
+        dti = date_range("2016-01-01", periods=2, tz=tz, unit="ns")
 
         dtarr = tm.box_expected(dti, box_with_array)
-        xbox = get_upcast_box(dtarr, other, True)
-        if op in [operator.eq, operator.ne]:
-            exbool = op is operator.ne
-            expected = np.array([exbool, exbool], dtype=bool)
-            expected = tm.box_expected(expected, xbox)
-
-            result = op(dtarr, other)
-            tm.assert_equal(result, expected)
-
-            result = op(other, dtarr)
-            tm.assert_equal(result, expected)
-        else:
-            msg = (
-                r"Invalid comparison between dtype=datetime64\[ns, .*\] "
-                f"and {type(other).__name__}"
-            )
-            with pytest.raises(TypeError, match=msg):
-                op(dtarr, other)
-            with pytest.raises(TypeError, match=msg):
-                op(other, dtarr)
+        assert_invalid_comparison(dtarr, other, box_with_array)
 
     def test_nat_comparison_tzawareness(self, comparison_op):
         # GH#19276
@@ -757,7 +737,6 @@ class TestDatetimeIndexComparisons:
         "other",
         [
             pd.timedelta_range("1D", periods=10),
-            pd.timedelta_range("1D", periods=10).to_series(),
             pd.timedelta_range("1D", periods=10).asi8.view("m8[ns]"),
         ],
         ids=lambda x: type(x).__name__,
@@ -768,29 +747,7 @@ class TestDatetimeIndexComparisons:
         # when comparing against TimedeltaIndex
         dti = date_range("2000-01-01", periods=10, tz="Asia/Tokyo")
 
-        result = dti == other
-        expected = np.array([False] * 10)
-        if isinstance(other, Series):
-            tm.assert_series_equal(result, Series(expected, index=other.index))
-        else:
-            tm.assert_numpy_array_equal(result, expected)
-
-        result = dti != other
-        expected = np.array([True] * 10)
-        if isinstance(other, Series):
-            tm.assert_series_equal(result, Series(expected, index=other.index))
-        else:
-            tm.assert_numpy_array_equal(result, expected)
-
-        msg = "Invalid comparison between"
-        with pytest.raises(TypeError, match=msg):
-            dti < other
-        with pytest.raises(TypeError, match=msg):
-            dti <= other
-        with pytest.raises(TypeError, match=msg):
-            dti > other
-        with pytest.raises(TypeError, match=msg):
-            dti >= other
+        assert_invalid_comparison(dti, other, pd.Index)
 
     def test_dti_cmp_object_dtype(self):
         # GH#22074
@@ -833,9 +790,9 @@ class TestDatetime64Arithmetic:
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
         tz = tz_naive_fixture
 
-        rng = date_range("2000-01-01", "2000-02-01", tz=tz)
-        expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz)
-        if tz is not None:
+        rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
+        expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz, unit="ns")
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -855,9 +812,9 @@ class TestDatetime64Arithmetic:
     ):
         tz = tz_naive_fixture
 
-        rng = date_range("2000-01-01", "2000-02-01", tz=tz)
-        expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz)
-        if tz is not None:
+        rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
+        expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz, unit="ns")
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -928,8 +885,8 @@ class TestDatetime64Arithmetic:
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
 
-        dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS")
-        other = np.timedelta64("NaT")
+        dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS", unit="ns")
+        other = np.timedelta64("NaT", "ns")
         expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
         obj = tm.box_expected(dti, box_with_array)
@@ -970,6 +927,7 @@ class TestDatetime64Arithmetic:
             [
                 "cannot subtract DatetimeArray from ndarray",
                 "cannot subtract a datelike from a TimedeltaArray",
+                "cannot subtract DatetimeArray from Timedelta",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1005,13 +963,15 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, -expected)
 
     def test_dt64arr_sub_timestamp_tzaware(self, box_with_array):
-        ser = date_range("2014-03-17", periods=2, freq="D", tz="US/Eastern")
+        ser = date_range("2014-03-17", periods=2, freq="D", tz="US/Eastern", unit="ns")
         ser = ser._with_freq(None)
         ts = ser[0]
 
         ser = tm.box_expected(ser, box_with_array)
 
-        delta_series = Series([np.timedelta64(0, "D"), np.timedelta64(1, "D")])
+        delta_series = Series(
+            [np.timedelta64(0, "D"), np.timedelta64(1, "D")], dtype="m8[ns]"
+        )
         expected = tm.box_expected(delta_series, box_with_array)
 
         tm.assert_equal(ser - ts, expected)
@@ -1068,7 +1028,7 @@ class TestDatetime64Arithmetic:
     ):
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        dt64vals = dti.values
+        dt64vals = dti.to_numpy(dtype="datetime64[ns]")
 
         dtarr = tm.box_expected(dti, box_with_array)
         msg = "Cannot subtract tz-naive and tz-aware datetime"
@@ -1092,7 +1052,7 @@ class TestDatetime64Arithmetic:
             dti2 = dti.tz_localize(None)
         dtarr = tm.box_expected(dti, box_with_array)
 
-        assert_cannot_add(dtarr, dti.values)
+        assert_cannot_add(dtarr, dti._data._ndarray)
         assert_cannot_add(dtarr, dti)
         assert_cannot_add(dtarr, dtarr)
         assert_cannot_add(dtarr, dti[0])
@@ -1310,16 +1270,19 @@ class TestDatetime64DateOffsetArithmetic:
         # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
         tz = tz_aware_fixture
         if tz == "US/Pacific":
-            dates = date_range("2012-11-01", periods=3, tz=tz)
+            dates = date_range("2012-11-01", periods=3, tz=tz, unit="ns")
             offset = dates + pd.offsets.Hour(5)
             assert dates[0] + pd.offsets.Hour(5) == offset[0]
 
-        dates = date_range("2010-11-01 00:00", periods=3, tz=tz, freq="h")
+        dates = date_range("2010-11-01 00:00", periods=3, tz=tz, freq="h", unit="ns")
         expected = DatetimeIndex(
             ["2010-11-01 05:00", "2010-11-01 06:00", "2010-11-01 07:00"],
             freq="h",
             tz=tz,
         ).as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
+            dates = dates._with_freq(None)
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1602,7 +1565,9 @@ class TestDatetime64DateOffsetArithmetic:
     ):
         # GH 26258
         tz = tz_aware_fixture
-        date = date_range(start="01 Jan 2014", end="01 Jan 2017", freq="YS", tz=tz)
+        date = date_range(
+            start="01 Jan 2014", end="01 Jan 2017", freq="YS", tz=tz, unit="ns"
+        )
         date = tm.box_expected(date, box_with_array, False)
         mth = getattr(date, op)
         result = mth(offset)
@@ -1643,6 +1608,72 @@ class TestDatetime64DateOffsetArithmetic:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_dt64arr_add_dateoffset_near_dst(self, unit):
+        # GH#28610 - vectorized DatetimeIndex + DateOffset should match
+        # scalar Timestamp + DateOffset near DST transitions.
+        # Europe/Berlin switched to DST on 2000-03-26 (02:00 -> 03:00).
+        dti = DatetimeIndex(
+            ["2000-03-26 04:00", "2000-03-26 01:00"],
+            tz="Europe/Berlin",
+        ).as_unit(unit)
+
+        offset = DateOffset(hours=-2)
+        result = dti + offset
+        expected = DatetimeIndex(
+            ["2000-03-26 01:00:00+01:00", "2000-03-25 23:00:00+01:00"],
+            dtype=f"datetime64[{unit}, Europe/Berlin]",
+        )
+        tm.assert_index_equal(result, expected)
+        pointwise = DatetimeIndex([x + offset for x in dti])
+        tm.assert_index_equal(result, pointwise)
+
+        # Also test the reverse direction (adding into DST)
+        dti2 = DatetimeIndex(
+            ["2000-03-26 01:00"],
+            tz="Europe/Berlin",
+        ).as_unit(unit)
+        offset2 = DateOffset(hours=2)
+        result2 = dti2 + offset2
+        expected2 = DatetimeIndex(
+            ["2000-03-26 04:00:00+02:00"],
+            dtype=f"datetime64[{unit}, Europe/Berlin]",
+        )
+        tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([x + offset2 for x in dti2])
+        tm.assert_index_equal(result2, pointwise2)
+
+    def test_dt64arr_add_dateoffset_finer_reso(self):
+        # GH#64806 - a pure-timedelta DateOffset with finer resolution than a
+        # tz-aware DatetimeIndex must promote the result unit like the tz-naive
+        # path instead of raising AssertionError, and must match the scalar
+        # Timestamp + DateOffset result (value and unit).
+        dti = DatetimeIndex(["2020-01-01 00:00:00"], tz="US/Eastern").as_unit("s")
+        offset = DateOffset(milliseconds=5)
+
+        result = dti + offset
+        expected = DatetimeIndex(
+            ["2020-01-01 00:00:00.005000-05:00"],
+            dtype="datetime64[ms, US/Eastern]",
+        )
+        tm.assert_index_equal(result, expected)
+        # the tz-aware fast path matches the tz-naive path's unit promotion
+        naive = dti.tz_localize(None) + offset
+        tm.assert_index_equal(result.tz_localize(None), naive)
+        # and it matches the scalar Timestamp + DateOffset path
+        pointwise = DatetimeIndex([ts + offset for ts in dti])
+        tm.assert_index_equal(result, pointwise)
+
+        # promotion still holds when the addition crosses a DST transition
+        dti2 = DatetimeIndex(["2018-03-11 01:59:59"], tz="US/Eastern").as_unit("s")
+        result2 = dti2 + DateOffset(milliseconds=1500)
+        expected2 = DatetimeIndex(
+            ["2018-03-11 03:00:00.500000-04:00"],
+            dtype="datetime64[ms, US/Eastern]",
+        )
+        tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([ts + DateOffset(milliseconds=1500) for ts in dti2])
+        tm.assert_index_equal(result2, pointwise2)
+
 
 class TestDatetime64OverflowHandling:
     # TODO: box + de-duplicate
@@ -1661,11 +1692,30 @@ class TestDatetime64OverflowHandling:
         result = left - right
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_dt64arr_add_td_lands_on_nat_sentinel(self, unit, box_with_array):
+        # GH#66549 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        dti = DatetimeIndex(np.array([iNaT + 1], dtype=f"M8[{unit}]"))
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, unit)
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - Timedelta(1, unit)
+
+        # the tz-aware path shares the same int64 arithmetic
+        obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
+        with pytest.raises(OverflowError, match=msg):
+            obj + Timedelta(-1, unit)
+
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
         dt = Timestamp("1700-01-31")
         td = Timedelta("20000 Days")
-        dti = date_range("1949-09-30", freq="100YE", periods=4)
+        dti = date_range("1949-09-30", freq="100YE", periods=4, unit="ns")
         ser = Series(dti)
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
@@ -1764,6 +1814,114 @@ class TestDatetime64OverflowHandling:
         t2 = tmax + Timedelta.min - Timedelta("1us")
         with pytest.raises(OverflowError, match=msg):
             tmax - t2
+
+    # DateOffset(days=...) goes through the relativedelta branch of
+    #  RelativeDeltaOffset._apply_array, DateOffset(nanoseconds=...) through
+    #  the timedelta branch and, when tz-aware, through the UTC fast path in
+    #  DatetimeArray._add_offset. All three used to add with a raw numpy add.
+    @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_lands_on_nat_sentinel(
+        self, kwds, tz, box_with_array
+    ):
+        # GH#66552 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        delta = Timedelta(**kwds)
+        dti = DatetimeIndex(np.array([iNaT + delta._value], dtype="M8[ns]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + DateOffset(**{key: -val for key, val in kwds.items()})
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - DateOffset(**kwds)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_reso_promotion_out_of_bounds(
+        self, tz, box_with_array
+    ):
+        # GH#66552 promoting the second-resolution values to the offset's
+        #  nanosecond resolution used to wrap to an unrelated date, where
+        #  adding the equivalent Timedelta already raised
+        dti = DatetimeIndex(np.array(["2500-01-01"], dtype="M8[s]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Out of bounds nanosecond timestamp: 2500-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            obj + DateOffset(nanoseconds=1)
+
+    @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_nat_still_propagates(
+        self, kwds, tz, box_with_array
+    ):
+        # GH#66552 a missing operand is still missing, not an overflow
+        dti = DatetimeIndex([NaT, Timestamp("2000-01-01")]).as_unit("ns")
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        result = obj + DateOffset(**kwds)
+        expected = tm.box_expected(dti + Timedelta(**kwds), box_with_array)
+        tm.assert_equal(result, expected)
+
+    # tz-aware data is the only way to reach Day._apply_array; tz-naive Day
+    #  addition is routed through _add_timedeltalike_scalar. tz is
+    #  parametrized anyway so the two stay in agreement.
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_day_lands_on_nat_sentinel(self, unit, tz, box_with_array):
+        # GH#66552 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        per_day = 86400 if unit == "s" else 86400 * 10**9
+        dti = DatetimeIndex(np.array([iNaT + per_day], dtype=f"M8[{unit}]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + pd.offsets.Day(-1)
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - pd.offsets.Day(1)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_day_out_of_bounds(self, tz, box_with_array):
+        # GH#66552 the tz-aware path wrapped to an unrelated date
+        dti = DatetimeIndex([Timestamp.max])
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj + pd.offsets.Day(1)
+
+    def test_dt64arr_add_day_large_n(self, box_with_array):
+        # GH#66552 n days converted to the array's unit overflows int64 before
+        #  the addition even happens
+        dti = DatetimeIndex(np.array([0], dtype="M8[s]")).tz_localize("UTC")
+        obj = tm.box_expected(dti, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj + pd.offsets.Day(2**60)
+
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    def test_dt64arr_add_day_tzaware_matches_naive(self, unit, box_with_array):
+        # GH#66552 in-bounds results are unchanged and NaT still propagates
+        dti = DatetimeIndex([NaT, Timestamp("2000-01-01")]).as_unit(unit)
+        obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
+
+        result = obj + pd.offsets.Day(3)
+        expected = tm.box_expected(
+            (dti + pd.offsets.Day(3)).tz_localize("UTC"), box_with_array
+        )
+        tm.assert_equal(result, expected)
 
 
 class TestTimestampSeriesArithmetic:
@@ -1867,7 +2025,8 @@ class TestTimestampSeriesArithmetic:
         # did this for us.
         if op_str not in op_fail:
             with pytest.raises(
-                TypeError, match="operate|[cC]annot|unsupported operand"
+                TypeError,
+                match="|".join(["operate", "[cC]annot", "unsupported operand"]),
             ):
                 op(arg2)
         else:
@@ -1899,10 +2058,8 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
-            unit
-        )
-        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=UTC), NaT]).dt.as_unit(unit)
+        dt = datetime(2016, 8, 22, 12, tzinfo=UTC)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)
@@ -1975,7 +2132,6 @@ class TestTimestampSeriesArithmetic:
         td1 = Series(pd.timedelta_range("1 days 1 min", periods=5, freq="h"))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
-        assert td2._values.freq is None
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
@@ -2474,12 +2630,12 @@ def test_non_nano_dt64_addsub_np_nat_scalars_unitless():
     # GH 52295
     # TODO: Can we default to the ser unit?
     ser = Series([1233242342344, 232432434324, 332434242344], dtype="datetime64[ms]")
-    result = ser - np.datetime64("nat")
-    expected = Series([NaT] * 3, dtype="timedelta64[ns]")
+    result = ser - np.datetime64("nat", "ms")
+    expected = Series([NaT] * 3, dtype="timedelta64[ms]")
     tm.assert_series_equal(result, expected)
 
-    result = ser + np.timedelta64("nat")
-    expected = Series([NaT] * 3, dtype="datetime64[ns]")
+    result = ser + np.timedelta64("NaT", "ms")
+    expected = Series([NaT] * 3, dtype="datetime64[ms]")
     tm.assert_series_equal(result, expected)
 
 

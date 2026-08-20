@@ -41,6 +41,6 @@ class TestAsOf:
         assert res == exp
 
         # add a non-midnight time caused a bug
-        dti2 = DatetimeIndex(list(dti) + ["2021-08-11 00:00:01"])
+        dti2 = DatetimeIndex([*list(dti), "2021-08-11 00:00:01"])
         res = dti2.asof(key)
         assert res == exp

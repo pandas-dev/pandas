@@ -33,6 +33,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -42,6 +43,7 @@ from pandas.compat._optional import (
 from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -56,7 +58,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import get_option
 from pandas.core.api import (
     DataFrame,
     Series,
@@ -67,7 +68,10 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.datetimes import (
+    stringify_numeric_column,
+    to_datetime,
+)
 
 from pandas.io._util import arrow_table_to_pandas
 
@@ -109,6 +113,21 @@ def _process_parse_dates_argument(parse_dates):
     return parse_dates
 
 
+def _warn_and_stringify_numeric_column(col):
+    # GH#55663 read_sql historically cast integer/float columns to strings so a
+    # ``format`` could be applied to them. That is deprecated in favor of the
+    # user casting explicitly, which lets us drop this shim in a future version.
+    warnings.warn(
+        "Passing a format for integer or float columns to read_sql via "
+        "parse_dates is deprecated. Cast the column to string and apply "
+        "to_datetime after reading, e.g. "
+        "to_datetime(df[col].astype('string'), format=...).",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return stringify_numeric_column(col)
+
+
 def _handle_date_column(
     col, utc: bool = False, format: str | dict[str, Any] | None = None
 ):
@@ -117,6 +136,8 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
+        if format.get("format") is not None and col.dtype.kind in "iuf":
+            col = _warn_and_stringify_numeric_column(col)
         return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
@@ -133,6 +154,8 @@ def _handle_date_column(
             # GH11216
             return to_datetime(col, utc=True)
         else:
+            if format is not None and col.dtype.kind in "iuf":
+                col = _warn_and_stringify_numeric_column(col)
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
@@ -313,7 +336,10 @@ def read_sql_table(
         List of column names to select from SQL table.
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
-        rows to include in each chunk.
+        rows to include in each chunk. By itself this typically does not
+        reduce peak memory usage, as most drivers buffer the full result set
+        unless a server-side cursor is used; see the :ref:`user guide
+        <io.sql.chunksize>` on streaming results.
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -429,7 +455,11 @@ def read_sql_query(
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
-        decimal.Decimal) to floating point. Useful for SQL result sets.
+        decimal.Decimal) to floating point. Useful for SQL result sets. This
+        can lose precision: an integral ``decimal.Decimal`` larger than ``2**53``
+        has no exact ``float64`` representation, so a long identifier can be
+        silently rounded. Pass ``False`` to leave such values as Python objects
+        in an ``object``-dtype column.
     params : list, tuple or mapping, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
@@ -447,12 +477,13 @@ def read_sql_query(
           such as SQLite.
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the number of
-        rows to include in each chunk.
+        rows to include in each chunk. By itself this typically does not
+        reduce peak memory usage, as most drivers buffer the full result set
+        unless a server-side cursor is used; see the :ref:`user guide
+        <io.sql.chunksize>` on streaming results.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
         {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
-
-        .. versionadded:: 1.3.0
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -572,11 +603,18 @@ def read_sql(
         for engine disposal and connection closure for the ADBC connection and
         SQLAlchemy connectable; str connections are closed automatically. See
         `here <https://docs.sqlalchemy.org/en/20/core/connections.html>`_.
+
+        .. versionadded:: 2.2.0
+            Support for ADBC drivers.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
-        decimal.Decimal) to floating point, useful for SQL result sets.
+        decimal.Decimal) to floating point, useful for SQL result sets. This
+        can lose precision: an integral ``decimal.Decimal`` larger than ``2**53``
+        has no exact ``float64`` representation, so a long identifier can be
+        silently rounded. Pass ``False`` to leave such values as Python objects
+        in an ``object``-dtype column.
     params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
@@ -597,7 +635,10 @@ def read_sql(
         a table).
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
-        number of rows to include in each chunk.
+        number of rows to include in each chunk. By itself this typically
+        does not reduce peak memory usage, as most drivers buffer the full
+        result set unless a server-side cursor is used; see the
+        :ref:`user guide <io.sql.chunksize>` on streaming results.
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -682,9 +723,7 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
-    .. versionadded:: 2.2.0
-
-       pandas now supports reading via ADBC drivers
+    pandas supports reading via ADBC drivers:
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
     >>> with dbapi.connect("postgres:///db_name") as conn:  # doctest:+SKIP
@@ -811,8 +850,6 @@ def to_sql(
         ``io.sql.engine`` is used. The default ``io.sql.engine``
         behavior is 'sqlalchemy'
 
-        .. versionadded:: 1.3.0
-
     **engine_kwargs
         Any additional kwargs are passed to the engine.
 
@@ -821,8 +858,6 @@ def to_sql(
     None or int
         Number of rows affected by to_sql. None is returned if the callable
         passed into ``method`` does not return an integer number of rows.
-
-        .. versionadded:: 1.4.0
 
     Notes
     -----
@@ -906,8 +941,8 @@ def pandasSQL_builder(
 
     if isinstance(con, str) and sqlalchemy is None:
         raise ImportError(
-            f"Using URI string without version '{VERSIONS['sqlalchemy']}' or newer "
-            "of 'sqlalchemy' installed."
+            "Using a URI string requires 'sqlalchemy' version "
+            f"'{VERSIONS['sqlalchemy']}' or newer."
         )
 
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Connectable)):
@@ -1311,6 +1346,7 @@ class SQLTable(PandasObject):
         """
         parse_dates = _process_parse_dates_argument(parse_dates)
 
+        assert self.frame is not None  # caller always sets frame before this
         for sql_col in self.table.columns:
             col_name = sql_col.name
             try:
@@ -1356,7 +1392,7 @@ class SQLTable(PandasObject):
     def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -1481,7 +1517,10 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
-        raise NotImplementedError
+        raise NotImplementedError(
+            "read_sql_table not supported for a DBAPI connection. Use "
+            "read_sql_query, or pass a SQLAlchemy connectable."
+        )
 
     @abstractmethod
     def read_query(
@@ -1589,7 +1628,7 @@ class SQLAlchemyEngine(BaseEngine):
 def get_engine(engine: str) -> BaseEngine:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.sql.engine")
+        engine = config["io"]["sql"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -1849,8 +1888,6 @@ class SQLDatabase(PandasSQL):
             Data type for data or columns. E.g. np.float64 or
             {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         DataFrame
@@ -1915,7 +1952,7 @@ class SQLDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast(dict, dtype)
+                dtype = cast("dict", dtype)
 
             from sqlalchemy.types import TypeEngine
 
@@ -2026,8 +2063,6 @@ class SQLDatabase(PandasSQL):
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
             behavior is 'sqlalchemy'
-
-            .. versionadded:: 1.3.0
 
         **engine_kwargs
             Any additional kwargs are passed to the engine.
@@ -2242,13 +2277,15 @@ class ADBCDatabase(PandasSQL):
             else:
                 index_select = []
             to_select = index_select + columns
-            select_list = ", ".join(f'"{x}"' for x in to_select)
+            select_list = ", ".join(_quote_identifier(x) for x in to_select)
         else:
             select_list = "*"
+        quoted_table_name = _quote_identifier(table_name)
         if schema:
-            stmt = f"SELECT {select_list} FROM {schema}.{table_name}"
+            quoted_schema = _quote_identifier(schema)
+            stmt = f"SELECT {select_list} FROM {quoted_schema}.{quoted_table_name}"
         else:
-            stmt = f"SELECT {select_list} FROM {table_name}"
+            stmt = f"SELECT {select_list} FROM {quoted_table_name}"
 
         with self.execute(stmt) as cur:
             pa_table = cur.fetch_arrow_table()
@@ -2298,8 +2335,6 @@ class ADBCDatabase(PandasSQL):
         dtype : Type name or dict of columns
             Data type for data or columns. E.g. np.float64 or
             {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -2395,10 +2430,12 @@ class ADBCDatabase(PandasSQL):
                 "engine != 'auto' not implemented for ADBC drivers"
             )
 
+        quoted_name = _quote_identifier(name)
         if schema:
-            table_name = f"{schema}.{name}"
+            quoted_schema = _quote_identifier(schema)
+            quoted_table_name = f"{quoted_schema}.{quoted_name}"
         else:
-            table_name = name
+            quoted_table_name = quoted_name
 
         # pandas if_exists="append" will still create the
         # table if it does not exist; ADBC is more explicit with append/create
@@ -2407,9 +2444,9 @@ class ADBCDatabase(PandasSQL):
         mode = "create"
         if self.has_table(name, schema):
             if if_exists == "fail":
-                raise ValueError(f"Table '{table_name}' already exists.")
+                raise ValueError(f"Table '{name}' already exists.")
             elif if_exists == "replace":
-                sql_statement = f"DROP TABLE {table_name}"
+                sql_statement = f"DROP TABLE {quoted_table_name}"
                 self.execute(sql_statement).close()
             elif if_exists == "append":
                 mode = "append"
@@ -2437,7 +2474,7 @@ class ADBCDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
-            db_schema_filter=schema, table_name_filter=name
+            depth="tables", db_schema_filter=schema, table_name_filter=name
         ).read_all()
 
         for catalog_schema in meta["catalog_db_schemas"].to_pylist():
@@ -2454,9 +2491,13 @@ class ADBCDatabase(PandasSQL):
         return False
 
     def delete_rows(self, name: str, schema: str | None = None) -> None:
-        table_name = f"{schema}.{name}" if schema else name
+        quoted_table_name = _quote_identifier(name)
+        if schema:
+            quoted_schema = _quote_identifier(schema)
+            quoted_table_name = f"{quoted_schema}.{quoted_table_name}"
+
         if self.has_table(name, schema):
-            self.execute(f"DELETE FROM {table_name}").close()
+            self.execute(f"DELETE FROM {quoted_table_name}").close()
 
     def _create_sql_schema(
         self,
@@ -2505,6 +2546,41 @@ def _get_valid_sqlite_name(name: object) -> str:
     nul_index = uname.find("\x00")
     if nul_index >= 0:
         raise ValueError("SQLite identifier cannot contain NULs")
+    return '"' + uname.replace('"', '""') + '"'
+
+
+def _quote_identifier(name: object) -> str:
+    """
+    Escape a SQL identifier (table name or schema name) for safe use in
+    ADBC-generated SQL statements.
+
+    Uses ANSI SQL double-quote escaping, which is supported by PostgreSQL,
+    DuckDB, SQLite, and other databases targeted by ADBC drivers.
+
+    Parameters
+    ----------
+    name : object
+        Identifier to escape.
+
+    Returns
+    -------
+    str
+        The identifier wrapped in double quotes with any internal double
+        quotes doubled, e.g. ``my"table`` becomes ``"my""table"``.
+
+    Raises
+    ------
+    ValueError
+        If *name* is empty or contains a NUL character.
+    """
+    uname = _get_unicode_name(name)
+    if not len(uname):
+        raise ValueError("Empty table or column name specified")
+
+    nul_index = uname.find("\x00")
+    if nul_index >= 0:
+        raise ValueError("SQL identifier cannot contain NUL characters")
+
     return '"' + uname.replace('"', '""') + '"'
 
 
@@ -2645,7 +2721,7 @@ class SQLiteTable(SQLTable):
     def _sql_type_name(self, col):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -2721,6 +2797,17 @@ class SQLiteDatabase(PandasSQL):
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
                 raise ex from inner_exc
+
+            if re.fullmatch(r"[A-Za-z_]\w*", sql.strip()):
+                # GH#54233 a bare identifier is almost certainly an attempt to
+                #  read a table by name.
+                ex = DatabaseError(
+                    f"Execution failed on sql '{sql}': {exc}\n\n"
+                    "Reading a table by name is only supported when using a "
+                    "SQLAlchemy connection. With a DBAPI connection, pass a SQL "
+                    f"query instead, e.g. 'SELECT * FROM {sql.strip()}'."
+                )
+                raise ex from exc
 
             ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
             raise ex from exc
@@ -2873,11 +2960,16 @@ class SQLiteDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast(dict, dtype)
+                dtype = cast("dict", dtype)
 
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError(f"{col} ({my_type}) not a string")
+                    raise ValueError(
+                        f"Invalid type '{my_type}' for dtype of column '{col}': "
+                        "expected a string. When using a DB-API connection "
+                        "(e.g. sqlite3), dtype values must be SQL type "
+                        "strings (e.g. 'TEXT', 'FLOAT')."
+                    )
 
         table = SQLiteTable(
             name,

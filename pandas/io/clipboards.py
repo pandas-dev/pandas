@@ -6,6 +6,8 @@ from io import StringIO
 from typing import TYPE_CHECKING
 import warnings
 
+from pandas._config.config import _global_config as config
+
 from pandas._libs import lib
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -13,10 +15,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas import (
-    get_option,
-    option_context,
-)
+from pandas import option_context
 
 if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
@@ -91,15 +90,15 @@ def read_clipboard(
 
     # Try to decode (if needed, as "text" might already be a string here).
     try:
-        text = text.decode(kwargs.get("encoding") or get_option("display.encoding"))
+        text = text.decode(kwargs.get("encoding") or config["display"]["encoding"])
     except AttributeError:
         pass
 
     # Excel copies into clipboard with \t separation
-    # inspect no more then the 10 first lines, if they
+    # inspect no more than the 10 first lines, if they
     # all contain an equal number (>0) of tabs, infer
     # that this came from excel and set 'sep' accordingly
-    lines = text[:10000].split("\n")[:-1][:10]
+    lines = text[:10000].split("\n")[:-1][:10]  # pyright: ignore[reportOptionalSubscript]
 
     # Need to remove leading white space, since read_csv
     # accepts:

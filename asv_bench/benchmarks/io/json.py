@@ -5,6 +5,7 @@ import numpy as np
 from pandas import (
     DataFrame,
     Index,
+    Series,
     concat,
     date_range,
     json_normalize,
@@ -31,7 +32,7 @@ class ReadJSON(BaseIO):
             columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
-        df.to_json(self.fname, orient=orient)
+        df.to_json(self.fname, orient=orient, date_format="iso")
 
     def time_read_json(self, orient, index):
         read_json(self.fname, orient=orient)
@@ -162,10 +163,10 @@ class ToJSON(BaseIO):
         )
 
     def time_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+        getattr(self, frame).to_json(self.fname, orient=orient, date_format="iso")
 
     def peakmem_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+        getattr(self, frame).to_json(self.fname, orient=orient, date_format="iso")
 
 
 class ToJSONWide(ToJSON):
@@ -176,10 +177,10 @@ class ToJSONWide(ToJSON):
         self.df_wide = df_wide
 
     def time_to_json_wide(self, orient, frame):
-        self.df_wide.to_json(self.fname, orient=orient)
+        self.df_wide.to_json(self.fname, orient=orient, date_format="iso")
 
     def peakmem_to_json_wide(self, orient, frame):
-        self.df_wide.to_json(self.fname, orient=orient)
+        self.df_wide.to_json(self.fname, orient=orient, date_format="iso")
 
 
 class ToJSONISO(BaseIO):
@@ -204,6 +205,24 @@ class ToJSONISO(BaseIO):
 
     def time_iso_format(self, orient):
         self.df.to_json(orient=orient, date_format="iso")
+
+
+class ToJSONISODatetimeTZ(BaseIO):
+    fname = "__test__.json"
+    params = [["split", "columns", "index", "values", "records"]]
+    param_names = ["orient"]
+
+    def setup(self, orient):
+        N = 10**5
+        dti = date_range("20000101", periods=N, freq="h", tz="US/Eastern")
+        self.ser_tz_values = Series(dti)
+        self.ser_tz_index = Series(np.random.randn(N), index=dti)
+
+    def time_iso_tz_values(self, orient):
+        self.ser_tz_values.to_json(self.fname, orient=orient, date_format="iso")
+
+    def time_iso_tz_index(self, orient):
+        self.ser_tz_index.to_json(self.fname, orient=orient, date_format="iso")
 
 
 class ToJSONLines(BaseIO):
@@ -270,10 +289,14 @@ class ToJSONLines(BaseIO):
         self.df.to_json(self.fname, orient="records", lines=True)
 
     def time_floats_with_dt_index_lines(self):
-        self.df_date_idx.to_json(self.fname, orient="records", lines=True)
+        self.df_date_idx.to_json(
+            self.fname, orient="records", lines=True, date_format="iso"
+        )
 
     def time_delta_int_tstamp_lines(self):
-        self.df_td_int_ts.to_json(self.fname, orient="records", lines=True)
+        self.df_td_int_ts.to_json(
+            self.fname, orient="records", lines=True, date_format="iso"
+        )
 
     def time_float_int_lines(self):
         self.df_int_floats.to_json(self.fname, orient="records", lines=True)
@@ -306,7 +329,7 @@ class ToJSONMem:
     def peakmem_time(self, frames):
         df = frames["datetime"]
         for _ in range(10_000):
-            df.to_json(orient="table")
+            df.to_json(orient="table", date_format="iso")
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

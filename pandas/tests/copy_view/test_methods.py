@@ -34,6 +34,9 @@ def test_copy():
     assert not df_copy._mgr.blocks[0].refs.has_reference()
     assert not df_copy._mgr.blocks[1].refs.has_reference()
 
+    assert df_copy.index is not df.index
+    assert df_copy.columns is not df.columns
+
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
     assert df.iloc[0, 0] == 1
@@ -226,6 +229,19 @@ def test_groupby_column_index_in_references():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_modify_series():
+    # https://github.com/pandas-dev/pandas/issues/63219
+    # Modifying a Series after using it to groupby should not impact
+    # the groupby operation.
+    ser = Series([1, 2, 1])
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    gb = df.groupby(ser)
+    ser.iloc[0] = 100
+    result = gb.sum()
+    expected = DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_rename_columns():
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
@@ -390,6 +406,8 @@ def test_shift_no_op():
     df_orig = df.copy()
     df2 = df.shift(periods=0)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
@@ -406,6 +424,8 @@ def test_shift_index():
     df2 = df.shift(periods=1, axis=0)
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
 
 def test_shift_rows_freq():
@@ -549,6 +569,9 @@ def test_to_frame():
 
     tm.assert_frame_equal(df, ser_orig.to_frame())
 
+    df = ser.to_frame()
+    assert df.index is not ser.index
+
 
 @pytest.mark.parametrize(
     "method, idx",
@@ -560,7 +583,7 @@ def test_to_frame():
     ],
     ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
-def test_chained_methods(request, method, idx):
+def test_chained_methods(method, idx):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -924,6 +947,8 @@ def test_round(decimals):
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df2.iloc[0, 1] = "d"
     df2.iloc[0, 0] = 4
@@ -1156,6 +1181,7 @@ def test_where_mask_noop(dtype, func):
 
     result = func(ser)
     assert np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
 
     result.iloc[0] = 10
     assert not np.shares_memory(get_array(ser), get_array(result))
@@ -1177,6 +1203,7 @@ def test_where_mask(dtype, func):
     result = func(ser)
 
     assert not np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
     tm.assert_series_equal(ser, ser_orig)
 
 
@@ -1332,6 +1359,10 @@ def test_xs(axis, key, dtype):
         assert np.shares_memory(get_array(df, "a"), get_array(result))
     else:
         assert result._mgr._has_no_reference(0)
+    if axis == 0:
+        assert result.index is not df.columns
+    else:
+        assert result.index is not df.index
 
     result.iloc[0] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -1353,8 +1384,10 @@ def test_xs_multiindex(key, level, axis):
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-    result.iloc[0, 0] = 0
+    assert result.index is not df.index
+    assert result.columns is not df.columns
 
+    result.iloc[0, 0] = 0
     tm.assert_frame_equal(df, df_orig)
 
 
@@ -1450,6 +1483,44 @@ def test_transpose_ea_single_column():
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
+def test_unstack_multiblock():
+    # GH#65107 the zero-copy fast path for a sorted MultiIndex returns a view
+    #  of the source for non-consolidated (multi-block) frames; ensure CoW
+    #  still tracks the reference so mutating the result leaves the source
+    #  unchanged.
+    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": ["p", "q", "r", "s"]}, index=idx)
+    df_orig = df.copy()
+    result = df.unstack()
+
+    assert np.shares_memory(get_array(df, "x"), get_array(result, ("x", 1)))
+    result.iloc[0, 0] = 999.0
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "col",
+    [
+        date_range("2000", periods=4, tz="UTC"),
+        period_range("2000-01-01", periods=4, freq="D"),
+    ],
+)
+def test_unstack_multiblock_ndarray_backed_ea(col):
+    # GH#65748 the GH#65107 zero-copy fast path returned an untracked view for
+    #  NDArrayBacked EA columns (tz-aware datetime, period): np.asarray boxes
+    #  them to object, so the may_share_memory aliasing gate was always False
+    #  and mutating the result silently corrupted the source.
+    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = DataFrame({"f": [1.0, 2.0, 3.0, 4.0], "t": col}, index=idx)
+    df_orig = df.copy()
+    result = df.unstack()
+
+    # columns are [("f", 1), ("f", 2), ("t", 1), ("t", 2)]; iloc col 2 == ("t", 1)
+    assert np.shares_memory(get_array(df, "t"), get_array(result, ("t", 1)))
+    result.iloc[0, 2] = result.iloc[1, 2]
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_transform_frame():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
@@ -1539,3 +1610,45 @@ def test_apply_modify_row():
         df.apply(transform, axis=1)
 
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_reduce():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+
+    result = df.sum()
+    assert result.index is not df.columns
+
+    result = df.groupby([0, 0, 1]).sum()
+    assert result.columns is not df.columns
+
+    result = df.quantile(0.5)
+    assert result.index is not df.columns
+    result = df.quantile([0.25, 0.5, 0.75])
+    assert result.columns is not df.columns
+
+
+def test_diff():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+
+    result = df.diff()
+    assert result.index is not df.index
+    assert result.columns is not df.columns
+
+    ser = Series([1, 2, 3])
+    result = ser.diff()
+    assert result.index is not ser.index
+
+
+def test_column_series_index_setattr_does_not_mutate_parent():
+    # GH#26119 replacing the index of a Series taken from a DataFrame column
+    # must not change the DataFrame -- the symptom was that *re-accessing* the
+    # column (df["a"]) returned the mutated index, even though df.index itself
+    # looked unchanged
+    idx = date_range("2019-03-30", periods=5, freq="h", tz="UTC")
+    df = DataFrame({"a": range(5), "b": range(10, 15)}, index=idx)
+    original = df.index.copy()
+    ser = df["a"]
+    ser.index = ser.index.tz_convert("Europe/Prague")
+    tm.assert_index_equal(df.index, original)
+    tm.assert_index_equal(df["a"].index, original)
+    tm.assert_index_equal(df["b"].index, original)

@@ -106,5 +106,5 @@ def test_ellipsis_index():
     # String comparison because there's no native way to compare slices.
     # Before the fix for GH#42430, last_item_arg would get set to the 2D slice
     # (Ellipsis, slice(None, 1, None))
-    out = df["col1"].array.last_item_arg
+    out = df["col1"]._values.last_item_arg
     assert str(out) == "slice(None, 1, None)"

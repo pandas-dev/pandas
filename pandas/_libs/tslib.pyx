@@ -5,6 +5,7 @@ from datetime import timezone
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
+    datetime,
     import_datetime,
     timedelta,
     tzinfo,
@@ -19,6 +20,7 @@ cimport numpy as cnp
 from numpy cimport (
     int64_t,
     ndarray,
+    uint8_t,
 )
 
 import numpy as np
@@ -26,8 +28,10 @@ import numpy as np
 cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
+    abbrev_to_npy_unit,
     get_supported_reso,
     npy_unit_to_abbrev,
+    periods_per_day,
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -49,15 +53,19 @@ from pandas._libs.tslibs.strptime cimport (
     parse_today_now,
 )
 from pandas._libs.util cimport (
+    INT64_MAX,
+    INT64_MIN,
     is_float_object,
     is_integer_object,
 )
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
+    convert_datetime_to_tsobject,
     convert_str_to_tsobject,
     convert_to_tsobject,
     get_datetime64_nanos,
@@ -82,7 +90,10 @@ from pandas._libs.tslibs.timestamps import Timestamp
 # Note: this is the only non-tslibs intra-pandas dependency here
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
+from pandas._libs.tslibs.tzconversion cimport (
+    Localizer,
+    tz_localize_to_utc_single,
+)
 
 
 def _test_parse_iso8601(ts: str):
@@ -110,6 +121,53 @@ def _test_parse_iso8601(ts: str):
         return Timestamp(obj.value)
 
 
+_STRFTIME_FORMAT_MAP = {
+    # %Y is zero-padded to a minimum of 4 digits to match datetime.strftime
+    #  (and Timestamp.strftime) for years < 1000; see GH#58179.
+    "%Y": "{0:04d}",
+    "%m": "{1:02d}",
+    "%d": "{2:02d}",
+    "%H": "{3:02d}",
+    "%M": "{4:02d}",
+    "%S": "{5:02d}",
+    "%f": "{6:06d}",
+    "%N": "{7:09d}",
+    "%%": "%",
+}
+
+
+def _convert_strftime_format(str fmt):
+    """
+    Convert a strftime format string to a str.format()-style template using
+    positional indices for npy_datetimestruct fields:
+        0=year, 1=month, 2=day, 3=hour, 4=min, 5=sec, 6=us
+
+    Returns None if the format contains unsupported directives, in which case
+    the caller should fall back to the per-element Timestamp.strftime() path.
+    """
+    result: list[str] = []
+    cdef Py_ssize_t i = 0
+    cdef Py_ssize_t n = len(fmt)
+
+    while i < n:
+        if fmt[i] == "%" and i + 1 < n:
+            directive = fmt[i:i + 2]
+            replacement = _STRFTIME_FORMAT_MAP.get(directive)
+            if replacement is None:
+                return None
+            result.append(replacement)
+            i += 2
+        elif fmt[i] in ("{", "}"):
+            # Escape braces for str.format()
+            result.append(fmt[i] * 2)
+            i += 1
+        else:
+            result.append(fmt[i])
+            i += 1
+
+    return "".join(result)
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def format_array_from_datetime(
@@ -120,7 +178,7 @@ def format_array_from_datetime(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
-    return a np object array of the string formatted values
+    return an np object array of the string formatted values
 
     Parameters
     ----------
@@ -143,6 +201,8 @@ def format_array_from_datetime(
         _Timestamp ts
         object res
         npy_datetimestruct dts
+        Py_ssize_t pos
+        str timespec = "auto"
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -151,6 +211,14 @@ def format_array_from_datetime(
         ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
         object[::1] res_flat = result.ravel()     # should NOT be a copy
         cnp.flatiter it = cnp.PyArray_IterNew(values)
+
+    # Try to convert the format string to a str.format() template that uses
+    # npy_datetimestruct fields directly, avoiding per-element Timestamp
+    # creation. For tz-aware data, the UTC value is first converted to
+    # local time via a Localizer (this works because _convert_strftime_format
+    # returns None for formats containing %z/%Z).
+    fmt_template = None
+    localizer = None
 
     if tz is None:
         # if we don't have a format nor tz, then choose
@@ -172,9 +240,32 @@ def format_array_from_datetime(
             basic_format = show_us = True
             show_ns = show_ms = False
 
+        elif format == "%Y-%m-%d %H:%M:%S.%N":
+            # Same format as default, but with hardcoded precision (ns)
+            basic_format = show_ns = True
+            show_us = show_ms = False
+
         elif format == "%Y-%m-%d":
             # Default format for dates
             basic_format_day = True
+
+    else:
+        # GH#62111: detect resolution for consistent formatting
+        if format is None:
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
+            if reso_obj == Resolution.RESO_NS:
+                timespec = "nanoseconds"
+            elif reso_obj == Resolution.RESO_US:
+                timespec = "microseconds"
+            elif reso_obj == Resolution.RESO_MS:
+                timespec = "milliseconds"
+            else:
+                timespec = "seconds"
+
+    if format is not None and not basic_format and not basic_format_day:
+        fmt_template = _convert_strftime_format(format)
+        if fmt_template is not None and tz is not None:
+            localizer = Localizer.__new__(Localizer, tz, reso)
 
     assert not (basic_format_day and basic_format)
 
@@ -203,12 +294,25 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f".{dts.us // 1000:03d}"
 
+        elif fmt_template is not None:
+
+            if localizer is not None:
+                val = (<Localizer>localizer).utc_val_to_local_val(
+                    val, &pos
+                )
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            res = fmt_template.format(
+                dts.year, dts.month, dts.day,
+                dts.hour, dts.min, dts.sec, dts.us,
+                dts.us * 1000 + dts.ps // 1000,
+            )
+
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
-                # Use datetime.str, that returns ts.isoformat(sep=' ')
-                res = str(ts)
+                # GH#62111
+                res = ts.isoformat(sep=" ", timespec=timespec)
             else:
 
                 # invalid format string
@@ -265,6 +369,9 @@ cpdef array_to_datetime(
     bint utc=False,
     NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
     str unit_for_numerics=None,
+    # GH#50907 warn once per call, not once per element; carried into the
+    #  mixed-resolution re-parse below so it doesn't warn a second time
+    bint warned_quarter=False,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -294,6 +401,9 @@ cpdef array_to_datetime(
     creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         If NPY_FR_GENERIC, conduct inference.
     unit_for_numerics : str, default "ns"
+    warned_quarter : bool, default False
+        Whether the quarterly-string deprecation has already been emitted, so
+        that it is warned once per call instead of once per element.
 
     Returns
     -------
@@ -312,7 +422,7 @@ cpdef array_to_datetime(
         _TSObject tsobj
         tzinfo tz, tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
-        NPY_DATETIMEUNIT item_reso
+        NPY_DATETIMEUNIT item_reso, int_reso
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
         str abbrev
@@ -325,11 +435,11 @@ cpdef array_to_datetime(
     else:
         abbrev = npy_unit_to_abbrev(creso)
 
-    if unit_for_numerics is not None:
-        # either creso or unit_for_numerics should be passed, not both
-        assert creso == NPY_FR_ns
-    else:
+    if unit_for_numerics is None:
         unit_for_numerics = abbrev
+        int_reso = NPY_FR_ns
+    else:
+        int_reso = get_supported_reso(abbrev_to_npy_unit(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
@@ -370,11 +480,40 @@ cpdef array_to_datetime(
                 iresult[i] = get_datetime64_nanos(val, creso)
                 state.found_other = True
 
-            elif is_integer_object(val) or is_float_object(val):
+            elif is_integer_object(val):
+                if val == NPY_NAT:
+                    iresult[i] = NPY_NAT
+                else:
+                    item_reso = int_reso
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
+
+                    iresult[i] = cast_from_unit(val, unit_for_numerics, out_reso=creso)
+
+                    state.found_other = True
+
+            elif is_float_object(val):
                 # these must be ns unit by-definition
 
+                # GH#56996 widen first: comparing e.g. a np.float16 against
+                #  NPY_NAT casts the sentinel down to float16 and warns about
+                #  the overflow.
+                val = float(val)
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
+                elif val.is_integer():
+                    # If we have a round float, treat it like an integer
+                    item_reso = int_reso
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
+
+                    iresult[i] = cast_from_unit(
+                        <int64_t>val, unit_for_numerics, out_reso=creso
+                    )
+
+                    state.found_other = True
                 else:
                     item_reso = NPY_FR_ns
                     state.update_creso(item_reso)
@@ -402,7 +541,8 @@ cpdef array_to_datetime(
                     continue
 
                 tsobj = convert_str_to_tsobject(
-                    val, None, dayfirst=dayfirst, yearfirst=yearfirst
+                    val, None, dayfirst=dayfirst, yearfirst=yearfirst,
+                    warned_quarter=&warned_quarter,
                 )
 
                 if tsobj.value == NPY_NAT:
@@ -460,6 +600,8 @@ cpdef array_to_datetime(
                 dayfirst=dayfirst,
                 utc=utc,
                 creso=state.creso,
+                unit_for_numerics=unit_for_numerics,
+                warned_quarter=warned_quarter,
             )
         elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This
@@ -474,8 +616,12 @@ cpdef array_to_datetime(
     return result, tz_out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def array_to_datetime_with_tz(
-    ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso
+    ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso,
+    # GH#50907 see the matching parameter on array_to_datetime
+    bint warned_quarter=False,
 ):
     """
     Vectorized analogue to pd.Timestamp(value, tz=tz)
@@ -491,11 +637,16 @@ def array_to_datetime_with_tz(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         Py_ssize_t i, n = values.size
         object item
-        int64_t ival
+        int64_t ival, margin
         _TSObject tsobj
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
         str abbrev
+        datetime dt
+        bint is_wall
+        Py_ssize_t wall_count = 0
+        ndarray wall_mask = np.zeros(n, dtype=np.uint8)
+        uint8_t[::1] wall_mask_view = wall_mask
 
     if infer_reso:
         # We treat ints/floats as nanoseconds
@@ -507,19 +658,56 @@ def array_to_datetime_with_tz(
         # Analogous to `item = values[i]`
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
+        is_wall = False
         if checknull_with_nat_and_na(item):
             # this catches pd.NA which would raise in the Timestamp constructor
             ival = NPY_NAT
 
         else:
-            tsobj = convert_to_tsobject(
-                item,
-                tz=tz,
-                unit=abbrev,
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                nanos=0,
-            )
+            if (
+                cnp.is_datetime64_object(item)
+                or (isinstance(item, str) and item != "now" and item != "today")
+            ):
+                # Parse without tz; wall values get localized in one
+                #  vectorized call below. Other cases go per-element:
+                #  - "now"/"today" need tz at parse time
+                #  - ints/floats are UTC epochs, never localized
+                #  - datetime/date resolve ambiguous/nonexistent wall
+                #    times via `fold` instead of raising
+                tsobj = convert_to_tsobject(
+                    item,
+                    tz=None,
+                    unit=abbrev,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    nanos=0,
+                    warned_quarter=&warned_quarter,
+                )
+                # aware strings come back with tzinfo set and value in UTC
+                is_wall = tsobj.tzinfo is None
+                if is_wall and tsobj.parsed_by_dateutil:
+                    # dateutil-parsed strings resolve ambiguous/nonexistent
+                    #  wall times via `fold` like datetime objects, so
+                    #  rebuild the datetime and localize it per-element
+                    dt = datetime(
+                        tsobj.dts.year, tsobj.dts.month, tsobj.dts.day,
+                        tsobj.dts.hour, tsobj.dts.min, tsobj.dts.sec,
+                        tsobj.dts.us, None, fold=tsobj.fold,
+                    )
+                    tsobj = convert_datetime_to_tsobject(
+                        dt, tz, nanos=tsobj.dts.ps // 1000, reso=tsobj.creso
+                    )
+                    is_wall = False
+            else:
+                tsobj = convert_to_tsobject(
+                    item,
+                    tz=tz,
+                    unit=abbrev,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    nanos=0,
+                    warned_quarter=&warned_quarter,
+                )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)
                 if infer_reso:
@@ -527,19 +715,50 @@ def array_to_datetime_with_tz(
                 tsobj.ensure_reso(creso, item, round_ok=True)
             ival = tsobj.value
 
+            if is_wall and ival != NPY_NAT:
+                margin = 2 * periods_per_day(creso)
+                if ival > INT64_MAX - margin or ival < INT64_MIN + margin:
+                    # localizing could overflow int64; take the per-element
+                    #  path, which checks for overflows
+                    tsobj = convert_to_tsobject(
+                        item,
+                        tz=tz,
+                        unit=abbrev,
+                        dayfirst=dayfirst,
+                        yearfirst=yearfirst,
+                        nanos=0,
+                        warned_quarter=&warned_quarter,
+                    )
+                    tsobj.ensure_reso(creso, item, round_ok=True)
+                    ival = tsobj.value
+                else:
+                    wall_mask_view[i] = 1
+                    wall_count += 1
+
         # Analogous to: result[i] = ival
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if infer_reso and state.creso_ever_changed:
+        # We encountered mismatched resolutions, need to re-parse with
+        #  the correct one.
+        return array_to_datetime_with_tz(
+            values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso,
+            warned_quarter=warned_quarter,
+        )
+
+    if wall_count > 0:
+        # Localize all wall values in one vectorized call
+        result_flat = result.ravel()
+        mask = wall_mask.view(np.bool_)
+        utc_vals = tz_localize_to_utc(
+            result_flat[mask], tz, ambiguous="raise", nonexistent=None, creso=creso
+        )
+        result_flat[mask] = utc_vals
+
     if infer_reso:
-        if state.creso_ever_changed:
-            # We encountered mismatched resolutions, need to re-parse with
-            #  the correct one.
-            return array_to_datetime_with_tz(
-                values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso
-            )
-        elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        if creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This
             # ensures that insert and concat-like operations with NaT
             # do not upcast units

@@ -314,7 +314,7 @@ Other enhancements
 - :meth:`Series.update` now accepts objects that can be coerced to a :class:`Series`,
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
 - :meth:`.DataFrameGroupBy.transform` and :meth:`.DataFrameGroupBy.aggregate` have gained ``engine`` and ``engine_kwargs`` arguments that support executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
-- :meth:`.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
+- :meth:`.Resampler.interpolate` now supports SciPy interpolation method ``scipy.interpolate.CubicSpline`` as method ``cubicspline`` (:issue:`33670`)
 - :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
 - Added :class:`api.extension.ExtensionArray.equals` to the extension array interface, similar to :meth:`Series.equals` (:issue:`27081`)

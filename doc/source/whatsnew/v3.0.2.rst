@@ -1,0 +1,52 @@
+.. _whatsnew_302:
+
+What's new in 3.0.2 (March 30, 2026)
+------------------------------------
+
+These are the changes in pandas 3.0.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_302.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Added support for :func:`pd.col` expressions in :meth:`Series.case_when` (:issue:`64070`).
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_302.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed a regression in :func:`json_normalize` that caused top-level missing entries to raise a ``TypeError``. Missing entries are once again interpreted as empty records (:issue:`64188`)
+- Fixed a regression in :meth:`DataFrame.convert_dtypes` resulting in corrupted result with sliced :class:`DataFrame` with mixed dtypes as input (:issue:`64702`)
+- Fixed a regression in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` raising ``AssertionError`` when called with ``level=`` on a :class:`RangeIndex` (:issue:`64383`)
+- Fixed a regression in :meth:`DataFrame.sum` on empty DataFrames with a mix of numeric and string dtypes (:issue:`64657`)
+- Fixed a regression in :meth:`HDFStore.select` where the ``where`` clause on a datetime index silently returned empty results when the index had non-nanosecond resolution (:issue:`64310`)
+- Fixed a regression in :meth:`Series.interpolate` where ``limit_direction="both"`` with ``limit`` greater than the Series length raised ``ValueError`` (:issue:`64322`)
+- Fixed a regression in :meth:`Series.str.find` returning byte offsets instead of character offsets for multi-byte UTF-8 characters (:issue:`64123`)
+- Fixed performance regression in assigning into a string column with string data (:issue:`64530`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_302.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed a bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
+- Fixed a bug in :meth:`Series.var` computing the variance of complex numbers incorrectly (:issue:`62421`)
+- Fixed a bug in :meth:`~DataFrame.to_hdf` with string columns raising an error when using compression (:issue:`64180`)
+- Fixed a bug in the :meth:`~Series.sum` method with python-backed string dtype returning incorrect value for an empty Series and ignoring the ``min_count`` argument (:issue:`64683`)
+- Fixed a bug when using :func:`col` with Python functions ``bool()``, ``iter()``, ``copy()``, and ``deepcopy()`` either failed or produced incorrect results; these now all raise a ``TypeError`` (:issue:`64267`)
+- Fixed a bug where :func:`col` and expressions derived from it failed with power (``**``) and matrix multiplication (``@``) operators (:issue:`64267`)
+- Fixed a bug where :meth:`DataFrame.div` ignored the ``axis`` argument when used with ``level`` for MultiIndex columns (:issue:`64428`)
+- Fixed a bug where assigning :class:`NA` to a string column could trigger a PyArrow error and corrupt data (:issue:`64320`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_302.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.0.1..v3.0.2

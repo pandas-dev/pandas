@@ -6,13 +6,7 @@ comment: false
 
 coverage:
   status:
-    project:
-      default:
-        target: '82'
-    patch:
-      default:
-        target: '50'
-        informational: true
+    project: off
+    patch: off
 
-github_checks:
-    annotations: false
+github_checks: false

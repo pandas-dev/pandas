@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Collection,
-    Iterator,
-    Sequence,
-)
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -17,13 +12,20 @@ import matplotlib as mpl
 import matplotlib.colors
 import numpy as np
 
-from pandas._typing import MatplotlibColor as Color
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Collection,
+        Iterator,
+        Sequence,
+    )
+
     from matplotlib.colors import Colormap
+
+    from pandas._typing import MatplotlibColor as Color
 
 
 @overload
@@ -131,8 +133,8 @@ def _derive_colors(
         Matplotlib colormap.
         When provided, the resulting colors will be derived from the colormap.
     color_type : {"default", "random"}, optional
-        Type of colors to derive. Used if provided `color` and `colormap` are None.
-        Ignored if either `color` or `colormap`` are not None.
+        Type of colors to derive. Used if provided ``color`` and ``colormap`` are None.
+        Ignored if either ``color`` or ``colormap`` are not None.
     num_colors : int
         Number of colors to be extracted.
 
@@ -197,10 +199,10 @@ def _get_colors_from_color(
         raise ValueError(f"Invalid color argument: {color}")
 
     if _is_single_color(color):
-        color = cast(Color, color)
+        color = cast("Color", color)
         return [color]
 
-    color = cast(Collection[Color], color)
+    color = cast("Collection[Color]", color)
     return list(_gen_list_of_colors_from_iterable(color))
 
 

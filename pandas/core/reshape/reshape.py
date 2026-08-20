@@ -10,8 +10,9 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
+from pandas._libs import lib
 import pandas._libs.reshape as libreshape
 from pandas.errors import (
     Pandas4Warning,
@@ -55,7 +56,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
-    get_compressed_ids,
     get_group_index,
     get_group_index_sorter,
 )
@@ -124,6 +124,10 @@ class _Unstacker:
         self.constructor = constructor
         self.sort = sort
 
+        # remove_unused_levels ensures every value in the unstacked level
+        # has at least one entry, which guarantees that the mask returned by
+        # get_new_values satisfies mask.any(0).all() i.e. no column in the
+        # unstacked result is entirely empty.
         self.index = index.remove_unused_levels()
 
         self.level = self.index._get_level_number(level)
@@ -154,11 +158,11 @@ class _Unstacker:
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
-        if get_option("performance_warnings"):
+        if config["mode"]["performance_warnings"]:
             # Bug fix GH 20601
             # If the data frame is too big, the number of unique index combination
             # will cause int32 overflow on windows environments.
-            # We want to check and raise an warning before this happens
+            # We want to check and raise a warning before this happens
             num_rows = max(index_level.size for index_level in self.new_index_levels)
             num_columns = self.removed_level.size
 
@@ -176,79 +180,100 @@ class _Unstacker:
         self._make_selectors()
 
     @cache_readonly
-    def _indexer_and_to_sort(
-        self,
-    ) -> tuple[
-        npt.NDArray[np.intp],
-        list[np.ndarray],  # each has _some_ signed integer dtype
-    ]:
-        v = self.level
+    def _comp_index_and_ngroups(self) -> tuple[npt.NDArray[np.intp], int]:
+        """
+        For each entry of self.index, the row of the result it belongs to.
 
-        codes = list(self.index.codes)
-        if not self.sort:
-            # Create new codes considering that labels are already sorted
-            codes = [factorize(code)[0] for code in codes]
-        levs = list(self.index.levels)
-        to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
-        sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
+        With sort=True the rows are numbered lexicographically; with sort=False
+        they are numbered by first appearance. Either way the number is the
+        position the row occupies in the result, which the rest of the class
+        relies on: the values land in row `comp_index` (see _make_selectors) and
+        `compressor` reads the labels back out in that same order.
+        """
+        level_num = self.level
+        levs = self.index.levels
+        codes = self.index.codes
+        remaining_labels = list(codes[:level_num] + codes[level_num + 1 :])
+        remaining_levels = levs[:level_num] + levs[level_num + 1 :]
+        sizes = tuple(len(lev) for lev in remaining_levels)
 
-        comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
-        ngroups = len(obs_ids)
-
-        indexer = get_group_index_sorter(comp_index, ngroups)
-        return indexer, to_sort
+        ids = get_group_index(remaining_labels, sizes, sort=True, xnull=False)
+        comp_index, obs_ids = compress_group_index(ids, sort=self.sort)
+        return ensure_platform_int(comp_index), len(obs_ids)
 
     @cache_readonly
-    def sorted_labels(self) -> list[np.ndarray]:
-        indexer, to_sort = self._indexer_and_to_sort
+    def _unstacked_level_codes(self) -> np.ndarray:
+        """
+        For each entry of self.index, the column of the result it belongs to.
+
+        Note this is not a position within self.removed_level: with sort=False
+        NaN gets a column of its own but is absent from removed_level.
+        """
+        level_codes = self.index.codes[self.level]
         if self.sort:
-            return [line.take(indexer) for line in to_sort]
-        return to_sort
+            # -1 for NaN; self.lift shifts those into position 0.
+            return level_codes
+        # removed_level is in order of first appearance, and so is this, with
+        #  NaN numbered wherever it first appeared (see unique_nan_index).
+        return factorize(level_codes)[0]
+
+    @cache_readonly
+    def _indexer(self) -> npt.NDArray[np.intp]:
+        # libreshape.unstack walks the values in the order they occupy in the
+        #  result, so sort the rows by (result row, result column).
+        comp_index, ngroups = self._comp_index_and_ngroups
+        stride = self.index.levshape[self.level] + self.has_nan
+        keys = [comp_index, self._unstacked_level_codes]
+
+        # xnull=False shifts a -1 code to 0, which is where _make_selectors puts
+        #  it too via self.lift, so the two orderings stay in step.
+        ids = get_group_index(keys, (ngroups, stride), sort=True, xnull=False)
+        comp_ids, obs_ids = compress_group_index(ids, sort=True)
+        return get_group_index_sorter(ensure_platform_int(comp_ids), len(obs_ids))
+
+    @cache_readonly
+    def _indexer_is_identity(self) -> bool:
+        # Note: index.is_monotonic_increasing would be wrong here: it reflects
+        #  tuple values, which can be monotonic while the codes are not (GH#65107).
+        return lib.is_range_indexer(self._indexer, len(self.index))
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
-        indexer, _ = self._indexer_and_to_sort
-        sorted_values = algos.take_nd(values, indexer, axis=0)
+        if self._indexer_is_identity:
+            return values
+        sorted_values = algos.take_nd(values, self._indexer, axis=0, allow_fill=False)
         return sorted_values
 
     def _make_selectors(self) -> None:
-        new_levels = self.new_index_levels
+        comp_index, ngroups = self._comp_index_and_ngroups
 
-        # make the mask
-        remaining_labels = self.sorted_labels[:-1]
-        level_sizes = tuple(len(x) for x in new_levels)
-
-        comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
-        ngroups = len(obs_ids)
-
-        comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.has_nan
         self.full_shape = ngroups, stride
 
-        selector = self.sorted_labels[-1] + stride * comp_index + self.lift
+        # make the mask
+        selector = self._unstacked_level_codes + stride * comp_index + self.lift
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
             raise ValueError("Index contains duplicate entries, cannot reshape")
 
-        self.group_index = comp_index
         self.mask = mask
-        if self.sort:
-            self.compressor = comp_index.searchsorted(np.arange(ngroups))
-        else:
-            self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
+        # For each row of the result, the position of an entry of self.index
+        #  belonging to it. All such entries agree on the remaining levels, so
+        #  which one we keep does not matter.
+        compressor = np.empty(ngroups, dtype=np.intp)
+        compressor[comp_index] = np.arange(len(comp_index))
+        self.compressor = compressor
 
     @cache_readonly
     def mask_all(self) -> bool:
         return bool(self.mask.all())
 
     @cache_readonly
-    def arange_result(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.bool_]]:
+    def arange_result(self) -> npt.NDArray[np.intp]:
         # We cache this for reuse in ExtensionBlock._unstack
         dummy_arr = np.arange(len(self.index), dtype=np.intp)
-        new_values, mask = self.get_new_values(dummy_arr, fill_value=-1)
-        return new_values, mask.any(0)
-        # TODO: in all tests we have mask.any(0).all(); can we rely on that?
+        return self.get_new_values(dummy_arr, fill_value=-1)
 
     def get_result(self, obj, value_columns, fill_value) -> DataFrame:
         values = obj._values
@@ -258,7 +283,7 @@ class _Unstacker:
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError("must pass column labels for multi-column data")
 
-        new_values, _ = self.get_new_values(values, fill_value)
+        new_values = self.get_new_values(values, fill_value)
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
@@ -292,16 +317,16 @@ class _Unstacker:
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
-            # TODO: Under what circumstances can we rely on sorted_values
-            #  matching values?  When that holds, we can slice instead
-            #  of take (in particular for EAs)
+            # sorted_values matches values when _indexer_is_identity,
+            #  i.e. when the codes-based sort indexer is a no-op.
+            #  _make_sorted_values short-circuits that case and returns
+            #  values directly.
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)
                 .reshape(result_shape)
             )
-            new_mask = np.ones(result_shape, dtype=bool)
-            return new_values, new_mask
+            return new_values
 
         dtype = values.dtype
 
@@ -339,7 +364,6 @@ class _Unstacker:
                 new_values.fill(fill_value)
 
         name = dtype.name
-        new_mask = np.zeros(result_shape, dtype=bool)
 
         # we need to convert to a basic dtype
         # and possibly coerce an input to our output dtype
@@ -350,7 +374,7 @@ class _Unstacker:
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 
-        # fill in our values & mask
+        # fill in our values
         libreshape.unstack(
             sorted_values,
             mask.view("u1"),
@@ -358,7 +382,6 @@ class _Unstacker:
             length,
             width,
             new_values,
-            new_mask.view("u1"),
         )
 
         # reconstruct dtype if needed
@@ -369,7 +392,7 @@ class _Unstacker:
             new_values = ensure_wrapped_if_datetimelike(new_values)
             new_values = new_values.view(values.dtype)
 
-        return new_values, new_mask
+        return new_values
 
     def get_new_columns(self, value_columns: Index | None):
         if value_columns is None:
@@ -386,8 +409,8 @@ class _Unstacker:
         new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue]
-            new_names = value_columns.names + (self.removed_name,)
+            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue] # noqa: RUF005
+            new_names = value_columns.names + (self.removed_name,)  # noqa: RUF005
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
@@ -433,18 +456,15 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
-        if self.sort:
-            labels = self.sorted_labels[:-1]
-        else:
-            v = self.level
-            codes = list(self.index.codes)
-            labels = codes[:v] + codes[v + 1 :]
+        level_num = self.level
+        codes = self.index.codes
+        labels = codes[:level_num] + codes[level_num + 1 :]
         result_codes = [lab.take(self.compressor) for lab in labels]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
             level, level_codes = self.new_index_levels[0], result_codes[0]
-            if (level_codes == -1).any():
+            if lib.has_sentinel(level_codes, -1):
                 level = level.insert(len(level), level._na_value)
             return level.take(level_codes).rename(self.new_index_names[0])
 
@@ -465,7 +485,7 @@ def _unstack_multiple(
     # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
-    index = cast(MultiIndex, index)  # caller is responsible for checking
+    index = cast("MultiIndex", index)  # caller is responsible for checking
 
     # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
     # recognised as a whole
@@ -490,12 +510,12 @@ def _unstack_multiple(
 
     if not rlocs:
         # Everything is in clocs, so the dummy df has a regular index
-        dummy_index = Index(obs_ids, name="__placeholder__")
+        dummy_index = Index(obs_ids, name="__placeholder__", copy=False)
     else:
         dummy_index = MultiIndex(
-            levels=rlevels + [obs_ids],
-            codes=rcodes + [comp_ids],
-            names=rnames + ["__placeholder__"],
+            levels=[*rlevels, obs_ids],
+            codes=[*rcodes, comp_ids],
+            names=[*rnames, "__placeholder__"],
             verify_integrity=False,
         )
 
@@ -535,8 +555,8 @@ def _unstack_multiple(
         else:
             unstcols = unstacked.columns
         assert isinstance(unstcols, MultiIndex)  # for mypy
-        new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        new_levels = [unstcols.levels[0], *clevels]
+        new_names = [data.columns.name, *cnames]
 
         new_codes = [unstcols.codes[0]]
         new_codes.extend(rec.take(unstcols.codes[-1]) for rec in recons_codes)
@@ -696,7 +716,9 @@ def stack(
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
     else:
-        levels, (ilab, clab) = zip(*map(stack_factorize, (frame.index, frame.columns)))
+        levels, (ilab, clab) = zip(
+            *map(stack_factorize, (frame.index, frame.columns)), strict=True
+        )
         codes = ilab.repeat(K), np.tile(clab, N).ravel()
         new_index = MultiIndex(
             levels=levels,
@@ -778,13 +800,13 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
     )
 
     # Remove duplicate tuples in the MultiIndex.
-    tuples = zip(*levs)
+    tuples = zip(*levs, strict=True)
     unique_tuples = (key for key, _ in itertools.groupby(tuples))
-    new_levs = zip(*unique_tuples)
+    new_levs = zip(*unique_tuples, strict=True)
 
     # The dtype of each level must be explicitly set to avoid inferring the wrong type.
     # See GH-36991.
@@ -792,7 +814,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
         [
             # Not all indices can accept None values.
             Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
-            for new_lev, lev in zip(new_levs, columns.levels)
+            for new_lev, lev in zip(new_levs, columns.levels[:-1], strict=True)
         ],
         names=columns.names[:-1],
     )
@@ -837,7 +859,7 @@ def _stack_multi_columns(
         this = this.sort_index(level=level_to_sort, axis=1)
         mi_cols = this.columns
 
-    mi_cols = cast(MultiIndex, mi_cols)
+    mi_cols = cast("MultiIndex", mi_cols)
     new_columns = _stack_multi_column_index(mi_cols)
 
     # time to ravel the values
@@ -863,7 +885,7 @@ def _stack_multi_columns(
         # but if unsorted can get a boolean
         # indexer
         if not isinstance(loc, slice):
-            slice_len = len(loc)
+            slice_len = len(loc)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         else:
             slice_len = loc.stop - loc.start
 
@@ -970,6 +992,10 @@ def _reorder_for_extension_array_stack(
 def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if frame.columns.nunique() != len(frame.columns):
         raise ValueError("Columns with duplicate values are not supported in stack")
+    if len(set(level)) != len(level):
+        raise ValueError(
+            f"level should not contain duplicate values, got level numbers {level}"
+        )
     if not len(level):
         return frame
     set_levels = set(level)
@@ -1011,7 +1037,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         assert isinstance(stack_cols, MultiIndex)
         ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
     else:
-        ordered_stack_cols = stack_cols
+        ordered_stack_cols = stack_cols  # type: ignore[assignment]
     ordered_stack_cols_unique = ordered_stack_cols.unique()
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
@@ -1110,7 +1136,7 @@ def stack_reshape(
             # concat column order may be different from dropping the levels
             new_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
         else:
-            new_columns = [0]
+            new_columns = [0]  # type: ignore[assignment]
         result = DataFrame(columns=new_columns, dtype=frame._values.dtype)
 
     if len(level) < frame.columns.nlevels:

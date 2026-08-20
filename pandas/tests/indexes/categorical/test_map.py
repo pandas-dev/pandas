@@ -138,7 +138,7 @@ def test_map_with_dict_or_series():
     # Order of categories in result can be different
     tm.assert_index_equal(result, expected)
 
-    mapper = dict(zip(orig_values[:-1], new_values[:-1]))
+    mapper = dict(zip(orig_values[:-1], new_values[:-1], strict=True))
     result = cur_index.map(mapper)
     # Order of categories in result can be different
     tm.assert_index_equal(result, expected)

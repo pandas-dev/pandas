@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     NamedTuple,
 )
@@ -20,7 +21,6 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
 import pandas.core.common as com
-from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
@@ -54,9 +54,7 @@ def _set_ticklabels(ax: Axes, labels: list[str], is_vertical: bool, **kwargs) ->
     """
     ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
     if len(ticks) != len(labels):
-        i, remainder = divmod(len(ticks), len(labels))
-        if Version(mpl.__version__) < Version("3.10"):
-            assert remainder == 0, remainder
+        i, _ = divmod(len(ticks), len(labels))
         labels *= i
     if is_vertical:
         ax.set_xticklabels(labels, **kwargs)
@@ -335,7 +333,7 @@ def _grouped_plot_by_column(
     if return_type is None:
         result = axes
 
-    byline = by[0] if len(by) == 1 else by
+    byline = by[0] if len(by) == 1 else by  # pyright: ignore[reportOptionalSubscript]
     fig.suptitle(f"Boxplot grouped by {byline}")
     maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
@@ -452,7 +450,8 @@ def boxplot(
             raise ValueError("The 'layout' keyword is not supported when 'by' is None")
 
         if ax is None:
-            rc = {"figure.figsize": figsize} if figsize is not None else {}
+            # Any: rc_context's accepted key type narrowed in matplotlib 3.11
+            rc: Any = {"figure.figsize": figsize} if figsize is not None else {}
             with mpl.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()

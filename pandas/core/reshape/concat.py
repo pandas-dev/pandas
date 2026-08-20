@@ -5,6 +5,7 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
+from itertools import pairwise
 import types
 from typing import (
     TYPE_CHECKING,
@@ -45,7 +46,9 @@ from pandas.core.indexes.api import (
     ensure_index,
     get_objs_combined_axis,
     get_unanimous_names,
+    union_indexes,
 )
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -84,6 +87,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame: ...
 
 
@@ -100,6 +104,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> Series: ...
 
 
@@ -116,6 +121,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame | Series: ...
 
 
@@ -132,6 +138,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame: ...
 
 
@@ -148,6 +155,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame | Series: ...
 
 
@@ -162,8 +170,9 @@ def concat(
     levels=None,
     names: list[HashableT] | None = None,
     verify_integrity: bool = False,
-    sort: bool = False,
+    sort: bool | lib.NoDefault = lib.no_default,
     copy: bool | lib.NoDefault = lib.no_default,
+    union_categories: bool = False,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -208,21 +217,30 @@ def concat(
         not already aligned. In that case, the non-concatenation axis is always
         sorted lexicographically.
     copy : bool, default False
-        If False, do not copy data unnecessarily.
-
-        .. note::
-            The `copy` keyword will change behavior in pandas 3.0.
-            `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that all methods with a
-            `copy` keyword will use a lazy copy mechanism to defer the copy and
-            ignore the `copy` keyword. The `copy` keyword will be removed in a
-            future version of pandas.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+        This keyword is now ignored; changing its value will have no
+        impact on the method.
 
         .. deprecated:: 3.0.0
+
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
+
+    union_categories : bool, default False
+        If True and all values for a given column have categorical dtype,
+        the resulting column will preserve categorical dtype with the
+        union of the categories, rather than casting to the underlying
+        dtype. Categories whose dtypes differ are cast to a common dtype.
+        The result is unordered unless every input is ordered with the
+        same categories (after any casting to a common dtype) in the same
+        order, in which case the result is ordered.
+        Has no effect when concatenating mixed categorical and
+        non-categorical data.
+
+        .. versionadded:: 3.1.0
 
     Returns
     -------
@@ -405,13 +423,38 @@ def concat(
             "Only can inner (intersect) or outer (union) join the other axis"
         )
 
-    if not is_bool(sort):
+    objs, keys, ndims = _clean_keys_and_objs(objs, keys)
+
+    if sort is lib.no_default:
+        if axis == 0:
+            non_concat_axis = [
+                obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])
+                for obj in objs
+            ]
+        else:
+            non_concat_axis = [obj.index for obj in objs]
+
+        if (
+            intersect
+            or any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
+            or all(prev is curr for prev, curr in pairwise(non_concat_axis))
+            or (
+                all(
+                    prev[-1] <= curr[0] and prev.is_monotonic_increasing
+                    for prev, curr in pairwise(non_concat_axis)
+                    if not prev.empty and not curr.empty
+                )
+                and non_concat_axis[-1].is_monotonic_increasing
+            )
+        ):
+            # Sorting or not will not impact the result.
+            sort = False
+    elif not is_bool(sort):
         raise ValueError(
             f"The 'sort' keyword only accepts boolean values; {sort} was passed."
         )
-    sort = bool(sort)
-
-    objs, keys, ndims = _clean_keys_and_objs(objs, keys)
+    else:
+        sort = bool(sort)
 
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
@@ -436,9 +479,10 @@ def concat(
     if len(ndims) > 1:
         objs = _sanitize_mixed_ndim(objs, sample, ignore_index, bm_axis)
 
+    orig_axis = axis
     axis = 1 - bm_axis if is_frame else 0
     names = names or getattr(keys, "names", None)
-    return _get_result(
+    result = _get_result(
         objs,
         is_series,
         bm_axis,
@@ -450,7 +494,31 @@ def concat(
         verify_integrity,
         names,
         axis,
+        union_categories,
     )
+
+    # When result is a Series, there is no other axis to sort.
+    if sort is lib.no_default and not isinstance(result, ABCSeries):
+        if orig_axis == 0:
+            non_concat_axis = [
+                obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])
+                for obj in objs
+            ]
+        else:
+            non_concat_axis = [obj.index for obj in objs]
+        no_sort_result_index, _ = union_indexes(non_concat_axis, sort=False)
+        orig = result.index if orig_axis == 1 else result.columns
+        if not no_sort_result_index.equals(orig):
+            msg = (
+                "Sorting by default when concatenating all DatetimeIndex is "
+                "deprecated.  In the future, pandas will respect the default "
+                "of `sort=False`. Specify `sort=True` or `sort=False` to "
+                "silence this message. If you see this warnings when not "
+                "directly calling concat, report a bug to pandas."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
+    return result
 
 
 def _sanitize_mixed_ndim(
@@ -486,13 +554,12 @@ def _sanitize_mixed_ndim(
                     if name is None:
                         name = 0
                         rename_columns = True
-                else:
-                    # doing a column-wise concatenation so need series
-                    # to have unique names
-                    if name is None:
-                        rename_columns = True
-                        name = current_column
-                        current_column += 1
+                # doing a column-wise concatenation so need series
+                # to have unique names
+                elif name is None:
+                    rename_columns = True
+                    name = current_column
+                    current_column += 1
                 obj = sample._constructor(obj, copy=False)
                 if isinstance(obj, ABCDataFrame) and rename_columns:
                     obj.columns = range(name, name + 1, 1)
@@ -510,12 +577,13 @@ def _get_result(
     bm_axis: AxisInt,
     ignore_index: bool,
     intersect: bool,
-    sort: bool,
+    sort: bool | lib.NoDefault,
     keys: Iterable[Hashable] | None,
     levels,
     verify_integrity: bool,
     names: list[HashableT] | None,
     axis: AxisInt,
+    union_categories: bool = False,
 ):
     cons: Callable[..., DataFrame | Series]
     sample: DataFrame | Series
@@ -531,7 +599,7 @@ def _get_result(
 
             arrs = [ser._values for ser in objs]
 
-            res = concat_compat(arrs, axis=0)
+            res = concat_compat(arrs, axis=0, union_categories=union_categories)
 
             if ignore_index:
                 new_index: Index = default_index(len(res))
@@ -551,7 +619,7 @@ def _get_result(
             result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
             result._name = name
             return result.__finalize__(
-                types.SimpleNamespace(input_objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs, objs=objs), method="concat"
             )
 
         # combine as columns in a frame
@@ -561,7 +629,7 @@ def _get_result(
             # GH28330 Preserves subclassed objects through concat
             cons = sample._constructor_expanddim
 
-            index = get_objs_combined_axis(
+            index, _ = get_objs_combined_axis(
                 objs,
                 axis=objs[0]._get_block_manager_axis(0),
                 intersect=intersect,
@@ -573,7 +641,7 @@ def _get_result(
             df = cons(data, index=index, copy=False)
             df.columns = columns
             return df.__finalize__(
-                types.SimpleNamespace(input_objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs, objs=objs), method="concat"
             )
 
     # combine block managers
@@ -581,7 +649,7 @@ def _get_result(
         sample = cast("DataFrame", objs[0])
 
         mgrs_indexers = []
-        result_axes = new_axes(
+        result_axes, all_equal = new_axes(
             objs,
             bm_axis,
             intersect,
@@ -603,51 +671,65 @@ def _get_result(
 
                 # 1-ax to convert BlockManager axis to DataFrame axis
                 obj_labels = obj.axes[1 - ax]
-                if not new_labels.equals(obj_labels):
+                if not all_equal[ax] and not new_labels.equals(obj_labels):
                     indexers[ax] = obj_labels.get_indexer(new_labels)
 
             mgrs_indexers.append((obj._mgr, indexers))
 
         new_data = concatenate_managers(
-            mgrs_indexers, result_axes, concat_axis=bm_axis, copy=False
+            mgrs_indexers,
+            result_axes,
+            concat_axis=bm_axis,
+            copy=False,
+            union_categories=union_categories,
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
-        return out.__finalize__(types.SimpleNamespace(input_objs=objs), method="concat")
+        return out.__finalize__(
+            types.SimpleNamespace(input_objs=objs, objs=objs), method="concat"
+        )
 
 
 def new_axes(
     objs: list[Series | DataFrame],
     bm_axis: AxisInt,
     intersect: bool,
-    sort: bool,
+    sort: bool | lib.NoDefault,
     keys: Iterable[Hashable] | None,
     names: list[HashableT] | None,
     axis: AxisInt,
     levels,
     verify_integrity: bool,
     ignore_index: bool,
-) -> list[Index]:
+) -> tuple[list[Index], list[bool]]:
     """Return the new [index, column] result for concat."""
-    return [
-        _get_concat_axis_dataframe(
-            objs,
-            axis,
-            ignore_index,
-            keys,
-            names,
-            levels,
-            verify_integrity,
-        )
-        if i == bm_axis
-        else get_objs_combined_axis(
-            objs,
-            axis=objs[0]._get_block_manager_axis(i),
-            intersect=intersect,
-            sort=sort,
-        )
-        for i in range(2)
-    ]
+    result_axes: list[Index] = []
+    all_equal: list[bool] = []
+
+    for i in range(2):
+        if i == bm_axis:
+            result_axis = _get_concat_axis_dataframe(
+                objs,
+                axis,
+                ignore_index,
+                keys,
+                names,
+                levels,
+                verify_integrity,
+            )
+            is_all_equal = False
+        else:
+            result_axis, is_all_equal = get_objs_combined_axis(
+                objs,
+                axis=objs[0]._get_block_manager_axis(i),
+                intersect=intersect,
+                sort=sort,
+            )
+
+        result_axes.append(result_axis)
+        all_equal.append(is_all_equal)
+
+    return result_axes, all_equal
 
 
 def _get_concat_axis_series(
@@ -840,7 +922,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):
-        zipped = list(zip(*keys))
+        zipped = list(zip(*keys, strict=True))
         if names is None:
             names = [None] * len(zipped)
 
@@ -866,13 +948,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         # things are potentially different sizes, so compute the exact codes
         # for each level and pass those to MultiIndex.from_arrays
 
-        for hlevel, level in zip(zipped, levels):
+        for hlevel, level in zip(zipped, levels, strict=True):
             to_concat = []
             if isinstance(hlevel, Index) and hlevel.equals(level):
                 lens = [len(idx) for idx in indexes]
                 codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
             else:
-                for key, index in zip(hlevel, indexes):
+                for key, index in zip(hlevel, indexes, strict=True):
                     # Find matching codes, include matching nan values as equal.
                     mask = (isna(level) & isna(key)) | (level == key)
                     if not mask.any():
@@ -897,9 +979,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = list(names)
         else:
             # make sure that all of the passed indices have the same nlevels
-            if not len({idx.nlevels for idx in indexes}) == 1:
-                raise AssertionError(
-                    "Cannot concat indices that do not have the same number of levels"
+            nlevels_set = {idx.nlevels for idx in indexes}
+            if len(nlevels_set) != 1:
+                # GH#25413
+                raise ValueError(
+                    "Cannot concat indices that do not have the same number "
+                    f"of levels: got levels {sorted(nlevels_set)}. When passing "
+                    "keys=, all objects must have the same index nlevels."
                 )
 
             # also copies
@@ -922,9 +1008,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     # do something a bit more speedy
 
-    for hlevel, level in zip(zipped, levels):
+    for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel_index)
+        # GH#64825 get_indexer_for (not get_indexer) so that an overlapping
+        #  IntervalIndex level, which is not unique-as-index, still resolves.
+        mapped = level.get_indexer_for(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
@@ -938,8 +1026,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
-        new_levels.append(new_index.unique())
-        single_codes = new_index.unique().get_indexer(new_index)
+        unique_index = new_index.unique()
+        new_levels.append(unique_index)
+        # GH#64825 get_indexer_for so an overlapping IntervalIndex resolves
+        single_codes = unique_index.get_indexer_for(new_index)
         new_codes.append(np.tile(single_codes, kpieces))
 
     if len(new_names) < len(new_levels):

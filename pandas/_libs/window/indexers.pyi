@@ -5,7 +5,7 @@ from pandas._typing import npt
 def calculate_variable_window_bounds(
     num_values: int,  # int64_t
     window_size: int,  # int64_t
-    min_periods,
+    min_periods: int | None,  # ignored, exists for compatibility
     center: bool,
     closed: str | None,
     index: np.ndarray,  # const int64_t[:]

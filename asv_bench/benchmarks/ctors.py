@@ -39,11 +39,11 @@ def list_of_lists(arr):
 
 
 def list_of_tuples_with_none(arr):
-    return [(i, -i) for i in arr][:-1] + [None]
+    return [*[(i, -i) for i in arr][:-1], None]
 
 
 def list_of_lists_with_none(arr):
-    return [[i, -i] for i in arr][:-1] + [None]
+    return [*[[i, -i] for i in arr][:-1], None]
 
 
 class SeriesConstructors:
@@ -140,6 +140,9 @@ class DatetimeIndexConstructor:
 
     def time_from_list_of_str(self):
         DatetimeIndex(self.list_of_str)
+
+    def time_from_list_of_str_with_tz(self):
+        DatetimeIndex(self.list_of_str, tz="US/Eastern")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

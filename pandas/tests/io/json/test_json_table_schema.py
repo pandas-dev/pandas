@@ -1,6 +1,10 @@
 """Tests for Table Schema integration."""
 
 from collections import OrderedDict
+from datetime import (
+    timedelta,
+    timezone,
+)
 from io import StringIO
 import json
 
@@ -499,6 +503,23 @@ class TestTableOrient:
         expected.update(extra_exp)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "offset,expected_tz",
+        [
+            (timedelta(hours=1), "UTC+01:00"),
+            (timedelta(hours=-5, minutes=-30), "UTC-05:30"),
+        ],
+    )
+    def test_convert_pandas_type_to_json_field_fixed_offset(self, offset, expected_tz):
+        # GH#39537 fixed-offset stdlib timezones were silently dropped from the
+        # schema instead of being serialized as a round-trippable "UTC+HH:MM"
+        data = pd.Series(
+            pd.to_datetime([1.0], utc=True).tz_convert(timezone(offset)),
+            name="values",
+        )
+        result = convert_pandas_type_to_json_field(data)
+        assert result == {"name": "values", "type": "datetime", "tz": expected_tz}
+
     def test_convert_pandas_type_to_json_period_range(self):
         arr = pd.period_range("2016", freq="Y-DEC", periods=4)
         result = convert_pandas_type_to_json_field(arr)
@@ -689,7 +710,11 @@ class TestTableOrientReader:
             {"ints": [1, 2, 3, 4]},
             {"objects": ["a", "b", "c", "d"]},
             {"objects": ["1", "2", "3", "4"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="D", periods=4)},
+            {
+                "date_ranges": pd.date_range(
+                    "2016-01-01", freq="D", periods=4, unit="ns"
+                )
+            },
             {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
             {
                 "ordered_cats": pd.Series(
@@ -701,8 +726,17 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="D", periods=4, tz="US/Central"
+                    "2016-01-01", freq="D", periods=4, tz="US/Central", unit="ns"
                 )  # added in # GH 35973
+            },
+            {
+                "fixed_offset": pd.date_range(
+                    "2016-01-01",
+                    freq="D",
+                    periods=4,
+                    tz=timezone(timedelta(hours=1)),
+                    unit="ns",
+                )  # GH#39537
             },
         ],
     )
@@ -740,7 +774,11 @@ class TestTableOrientReader:
             {"ints": [1, 2, 3, 4]},
             {"objects": ["a", "b", "c", "d"]},
             {"objects": ["1", "2", "3", "4"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="D", periods=4)},
+            {
+                "date_ranges": pd.date_range(
+                    "2016-01-01", freq="D", periods=4, unit="ns"
+                )
+            },
             {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
             {
                 "ordered_cats": pd.Series(
@@ -752,7 +790,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="D", periods=4, tz="US/Central"
+                    "2016-01-01", freq="D", periods=4, tz="US/Central", unit="ns"
                 )  # added in # GH 35973
             },
         ],
@@ -776,13 +814,16 @@ class TestTableOrientReader:
                 "2020-08-30",
                 freq="D",
                 periods=4,
+                unit="ns",
             )._with_freq(None),
             pd.date_range(
-                "2020-08-30", freq="D", periods=4, tz="US/Central"
+                "2020-08-30", freq="D", periods=4, tz="US/Central", unit="ns"
             )._with_freq(None),
             pd.MultiIndex.from_product(
                 [
-                    pd.date_range("2020-08-30", freq="D", periods=2, tz="US/Central"),
+                    pd.date_range(
+                        "2020-08-30", freq="D", periods=2, tz="US/Central", unit="ns"
+                    ),
                     ["x", "y"],
                 ],
             ),
@@ -792,10 +833,10 @@ class TestTableOrientReader:
         "vals",
         [
             {"floats": [1.1, 2.2, 3.3, 4.4]},
-            {"dates": pd.date_range("2020-08-30", freq="D", periods=4)},
+            {"dates": pd.date_range("2020-08-30", freq="D", periods=4, unit="ns")},
             {
                 "timezones": pd.date_range(
-                    "2020-08-30", freq="D", periods=4, tz="Europe/London"
+                    "2020-08-30", freq="D", periods=4, tz="Europe/London", unit="ns"
                 )
             },
         ],
@@ -812,12 +853,14 @@ class TestTableOrientReader:
             {
                 "A": [1, 2, 3, 4],
                 "B": ["a", "b", "c", "c"],
-                "C": pd.date_range("2016-01-01", freq="D", periods=4),
+                "C": pd.date_range("2016-01-01", freq="D", periods=4, unit="ns"),
                 # 'D': pd.timedelta_range('1h', periods=4, freq='min'),
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                "H": pd.date_range("2016-01-01", freq="D", periods=4, tz="US/Central"),
+                "H": pd.date_range(
+                    "2016-01-01", freq="D", periods=4, tz="US/Central", unit="ns"
+                ),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),

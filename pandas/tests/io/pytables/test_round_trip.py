@@ -4,33 +4,32 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
-import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
     HDFStore,
     Index,
+    MultiIndex,
     Series,
     _testing as tm,
     bdate_range,
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-)
 from pandas.util import _test_decorators as td
 
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_conv_read_write(temp_file):
+def test_conv_read_write(temp_h5_path):
     def roundtrip(key, obj, **kwargs):
-        obj.to_hdf(temp_file, key=key, **kwargs)
-        return read_hdf(temp_file, key)
+        obj.to_hdf(temp_h5_path, key=key, **kwargs)
+        return read_hdf(temp_h5_path, key)
 
     o = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
@@ -49,27 +48,324 @@ def test_conv_read_write(temp_file):
 
     # table
     df = DataFrame({"A": range(5), "B": range(5)})
-    df.to_hdf(temp_file, key="table", append=True)
-    result = read_hdf(temp_file, "table", where=["index>2"])
+    df.to_hdf(temp_h5_path, key="table", append=True)
+    result = read_hdf(temp_h5_path, "table", where=["index>2"])
     tm.assert_frame_equal(df[df.index > 2], result)
 
 
-def test_long_strings(temp_file):
+def test_long_strings(temp_hdfstore):
     # GH6166
     data = ["a" * 50] * 10
     df = DataFrame({"a": data}, index=data)
 
-    with HDFStore(temp_file) as store:
-        store.append("df", df, data_columns=["a"])
+    temp_hdfstore.append("df", df, data_columns=["a"])
 
-        result = store.select("df")
-        tm.assert_frame_equal(df, result)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(df, result)
 
 
-def test_api(tmp_path, setup_path):
+def test_string_nan_in_index_fixed(temp_h5_path):
+    # GH#9604 — literal "nan" string in a string Index was being converted to
+    # NaN on read because the unconverter applied a NaN-sentinel substitution
+    # that the writer never performed for indices.
+    words = ["nan", "kai", "institute", "of", "technology"]
+    ser = Series(range(len(words)), index=words)
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    result = read_hdf(temp_h5_path, "s")
+
+    tm.assert_series_equal(result, ser)
+
+
+def test_string_nan_in_index_table(temp_hdfstore):
+    # GH#9604 — same bug, table format. Also verifies that nan_rep is honored
+    # for the index (it was previously silently ignored on the index read).
+    words = ["nan", "kai", "institute", "of", "technology"]
+    ser = Series(range(len(words)), index=words)
+
+    temp_hdfstore.append("s", ser, nan_rep="_nan_")
+    result = temp_hdfstore.select("s")
+
+    tm.assert_series_equal(result, ser)
+
+
+def test_string_nan_in_dataframe_index(temp_h5_path):
+    # GH#9604 — DataFrame index with literal "nan" strings, both formats.
+    df = DataFrame(
+        {"a": [1, 2, 3, 4]},
+        index=Index(["nan", "kai", "institute", "of"], name="ix"),
+    )
+
+    df.to_hdf(temp_h5_path, key="fixed", mode="w")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "fixed"), df)
+
+    df.to_hdf(temp_h5_path, key="table", mode="a", format="table")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "table"), df)
+
+
+def test_string_column_literal_nan_and_real_nan(temp_hdfstore):
+    # GH#9604 — companion to the index tests: ensure the symmetric nan_rep
+    # substitution still works on a data column, i.e. a custom nan_rep lets
+    # both a literal "nan" string and an actual NaN round-trip correctly.
+    df = DataFrame({"a": ["x", "nan", np.nan, "y"]}, index=["i1", "i2", "i3", "i4"])
+
+    temp_hdfstore.append("df", df, nan_rep="_NA_")
+    result = temp_hdfstore.select("df")
+
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_real_na_roundtrips_fixed(temp_h5_path):
+    # GH#9604 — a genuine missing value in a string Index round-trips in the
+    # fixed format (previously it was read back as the literal string "nan").
+    ser = Series(range(3), index=Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_real_na_roundtrips_table(temp_hdfstore):
+    # GH#9604 — same, table format.
+    ser = Series(range(3), index=Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    temp_hdfstore.append("s", ser)
+    tm.assert_series_equal(temp_hdfstore.select("s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
+    # GH#9604 — a real NA and the literal string "nan" coexist in one string
+    # Index and both round-trip: the NaN sentinel is chosen to avoid colliding
+    # with any real value (here it must dodge "nan").
+    ser = Series(range(4), index=Index(["nan", np.nan, "bbb", "ccc"], dtype=str))
+
+    ser.to_hdf(temp_h5_path, key="fixed", mode="w")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "fixed"), ser)
+
+    ser.to_hdf(temp_h5_path, key="table", mode="a", format="table")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "table"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_all_na_roundtrips(temp_h5_path):
+    # GH#9604 — the missing values in an all-missing string Index survive the
+    # round-trip. The index dtype degrades to object because an all-NaN array
+    # cannot infer a string dtype on read; that is a pre-existing inference
+    # limitation, orthogonal to GH#9604 (before the fix the values themselves
+    # were lost, coming back as the literal string "nan").
+    ser = Series(range(2), index=Index([np.nan, np.nan], dtype=str))
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    result = read_hdf(temp_h5_path, "s")
+    tm.assert_series_equal(result, ser, check_index_type=False)
+    assert result.index.isna().all()
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_real_na_multichunk_append(temp_hdfstore):
+    # GH#9604 — a string Index with genuine missing values written across
+    # several table-format appends keeps a single, stable NaN sentinel, so
+    # every chunk's missing values round-trip (the sentinel used to be
+    # recomputed per chunk and could silently reinterpret earlier rows).
+    ser1 = Series(range(2), index=Index([np.nan, "x"], dtype=str))
+    ser2 = Series(range(2, 4), index=Index(["y", np.nan], dtype=str))
+
+    temp_hdfstore.append("s", ser1)
+    temp_hdfstore.append("s", ser2)
+
+    expected = Series(range(4), index=Index([np.nan, "x", "y", np.nan], dtype=str))
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_literal_nan_then_real_na_append(temp_hdfstore):
+    # GH#9604 — a literal "nan" written first and a genuine missing value
+    # appended later both round-trip: the sentinel minted for the second chunk
+    # dodges the "nan" already stored (min_itemsize reserves room for it).
+    ser1 = Series(range(2), index=Index(["nan", "x"], dtype=str))
+    ser2 = Series(range(2, 4), index=Index([np.nan, "y"], dtype=str))
+
+    temp_hdfstore.append("s", ser1, min_itemsize={"index": 5})
+    temp_hdfstore.append("s", ser2)
+
+    expected = Series(range(4), index=Index(["nan", "x", np.nan, "y"], dtype=str))
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_value_colliding_with_sentinel_raises(temp_hdfstore):
+    # GH#9604 — appending a real value equal to the NaN sentinel already in use
+    # is refused loudly rather than silently corrupting the stored missing
+    # values (the sentinel here is "nan", chosen for the first chunk).
+    temp_hdfstore.append(
+        "s", Series([0, 1], index=Index([np.nan, "aaaaaaa"], dtype=str))
+    )
+
+    ser2 = Series([2, 3], index=Index([np.nan, "nan"], dtype=str))
+    with pytest.raises(ValueError, match="collides with the sentinel"):
+        temp_hdfstore.append("s", ser2)
+
+
+def test_string_index_literal_nan_multichunk_append_no_na(temp_hdfstore):
+    # GH#9604 — a string Index that never has a missing value keeps no sentinel,
+    # so a literal "nan" can be appended freely across chunks.
+    ser1 = Series(range(2), index=Index(["nan", "x"], dtype=str))
+    ser2 = Series(range(2, 4), index=Index(["nan", "z"], dtype=str))
+
+    temp_hdfstore.append("s", ser1)
+    temp_hdfstore.append("s", ser2)
+
+    expected = Series(range(4), index=Index(["nan", "x", "nan", "z"], dtype=str))
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+def test_string_multiindex_level_literal_nan(temp_h5_path):
+    # GH#9604 — a literal "nan" string in a MultiIndex level round-trips in the
+    # table format. Levels are stored as data columns, which previously read a
+    # literal "nan" back as a missing value via the global NaN sentinel.
+    mi = MultiIndex.from_arrays(
+        [Index(["nan", "a", "b"], dtype=str), [1, 2, 3]], names=["s", "i"]
+    )
+    ser = Series(range(3), index=mi)
+
+    ser.to_hdf(temp_h5_path, key="t", format="table")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "t"), ser)
+
+
+def test_string_multiindex_level_query_literal_nan(temp_hdfstore):
+    # GH#9604 — a literal "nan" is stored as itself (not a sentinel), so it
+    # remains queryable through a where clause on the level.
+    mi = MultiIndex.from_arrays(
+        [Index(["nan", "a", "b"], dtype=str), [1, 2, 3]], names=["s", "i"]
+    )
+    temp_hdfstore.append("t", Series(range(3), index=mi))
+
+    result = temp_hdfstore.select("t", where="s == 'nan'")
+    assert len(result) == 1
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_multiindex_level_real_na(temp_h5_path):
+    # GH#9604 — a genuine missing value in a MultiIndex level round-trips.
+    mi = MultiIndex.from_arrays(
+        [Index(["a", np.nan, "b"], dtype=str), [1, 2, 3]], names=["s", "i"]
+    )
+    ser = Series(range(3), index=mi)
+
+    ser.to_hdf(temp_h5_path, key="t", format="table")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "t"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_multiindex_level_literal_and_real_na(temp_h5_path):
+    # GH#9604 — a literal "nan" and a genuine missing value coexist in one
+    # MultiIndex level and both round-trip (the per-level sentinel dodges "nan").
+    mi = MultiIndex.from_arrays(
+        [Index(["nan", np.nan, "b", "c"], dtype=str), [1, 2, 3, 4]], names=["s", "i"]
+    )
+    ser = Series(range(4), index=mi)
+
+    ser.to_hdf(temp_h5_path, key="t", format="table")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "t"), ser)
+
+
+def test_string_multiindex_level_literal_nan_append(temp_hdfstore):
+    # GH#9604 — a literal "nan" in a MultiIndex level survives across appends.
+    s1 = Series(
+        range(2),
+        index=MultiIndex.from_arrays(
+            [Index(["nan", "a"], dtype=str), [1, 2]], names=["s", "i"]
+        ),
+    )
+    s2 = Series(
+        range(2, 4),
+        index=MultiIndex.from_arrays(
+            [Index(["b", "nan"], dtype=str), [3, 4]], names=["s", "i"]
+        ),
+    )
+
+    temp_hdfstore.append("t", s1)
+    temp_hdfstore.append("t", s2)
+
+    result = temp_hdfstore.select("t")
+    assert list(result.index.get_level_values("s")) == ["nan", "a", "b", "nan"]
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_multiindex_level_append_to_file_without_marker(temp_hdfstore):
+    # GH#9604 — the per-level sentinel is honored on read only when the table
+    # carries the marker attribute, which is written when the table is created.
+    # Appending a missing value to a file written before the marker existed must
+    # keep using the global nan_rep, otherwise the sentinel is read back as a
+    # literal string.
+    s1 = Series(
+        range(2),
+        index=MultiIndex.from_arrays(
+            [Index(["nan", "wide_value"], dtype=str), [1, 2]], names=["s", "i"]
+        ),
+    )
+    temp_hdfstore.append("t", s1)
+    del temp_hdfstore.get_storer("t").attrs.mi_level_nan_rep
+
+    s2 = Series(
+        range(2, 4),
+        index=MultiIndex.from_arrays(
+            [Index([np.nan, "y"], dtype=str), [3, 4]], names=["s", "i"]
+        ),
+    )
+    temp_hdfstore.append("t", s2)
+
+    # the stored "nan" reads back as missing, as it did before the sentinel was
+    # introduced, and so does the appended missing value
+    expected = Series(
+        range(4),
+        index=MultiIndex.from_arrays(
+            [
+                Index([np.nan, "wide_value", np.nan, "y"], dtype=str),
+                [1, 2, 3, 4],
+            ],
+            names=["s", "i"],
+        ),
+    )
+    tm.assert_series_equal(temp_hdfstore.select("t"), expected)
+
+
+def test_api(temp_h5_path):
     # GH4584
     # API issue when to_hdf doesn't accept append AND format args
-    path = tmp_path / setup_path
+    path = temp_h5_path
 
     df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True, format="table")
@@ -82,8 +378,8 @@ def test_api(tmp_path, setup_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
-def test_api_append(tmp_path, setup_path):
-    path = tmp_path / setup_path
+def test_api_append(temp_h5_path):
+    path = temp_h5_path
 
     df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True)
@@ -96,50 +392,48 @@ def test_api_append(tmp_path, setup_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
-def test_api_2(tmp_path, temp_file):
-    path = tmp_path / temp_file
-
+def test_api_2(temp_h5_path):
     df = DataFrame(range(20))
-    df.to_hdf(path, key="df", append=False, format="fixed")
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df", append=False, format="fixed")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
-    df.to_hdf(path, key="df", append=False, format="f")
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df", append=False, format="f")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
-    df.to_hdf(path, key="df", append=False)
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df", append=False)
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
-    df.to_hdf(path, key="df")
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
-
-    with HDFStore(temp_file) as store:
-        df = DataFrame(range(20))
-
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=True, format="table")
-        store.append("df", df.iloc[10:], append=True, format="table")
-        tm.assert_frame_equal(store.select("df"), df)
-
-        # append to False
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=False, format="table")
-        store.append("df", df.iloc[10:], append=True, format="table")
-        tm.assert_frame_equal(store.select("df"), df)
-
-        # formats
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=False, format="table")
-        store.append("df", df.iloc[10:], append=True, format="table")
-        tm.assert_frame_equal(store.select("df"), df)
-
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=False, format="table")
-        store.append("df", df.iloc[10:], append=True, format=None)
-        tm.assert_frame_equal(store.select("df"), df)
+    df.to_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
 
-def test_api_invalid(tmp_path, setup_path):
-    path = tmp_path / setup_path
+def test_api_3(temp_hdfstore):
+    df = DataFrame(range(20))
+
+    temp_hdfstore.append("df", df.iloc[:10], append=True, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format="table")
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+
+    # append to False
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df.iloc[:10], append=False, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format="table")
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+
+    # formats
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df.iloc[:10], append=False, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format="table")
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df.iloc[:10], append=False, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format=None)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+
+
+def test_api_invalid(temp_h5_path):
+    path = temp_h5_path
     # Invalid.
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -171,123 +465,121 @@ def test_api_invalid(tmp_path, setup_path):
         read_hdf(path, "df")
 
 
-def test_get(temp_file):
-    with HDFStore(temp_file) as store:
-        store["a"] = Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        )
-        left = store.get("a")
-        right = store["a"]
-        tm.assert_series_equal(left, right)
+def test_get(temp_hdfstore):
+    temp_hdfstore["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
+    left = temp_hdfstore.get("a")
+    right = temp_hdfstore["a"]
+    tm.assert_series_equal(left, right)
 
-        left = store.get("/a")
-        right = store["/a"]
-        tm.assert_series_equal(left, right)
+    left = temp_hdfstore.get("/a")
+    right = temp_hdfstore["/a"]
+    tm.assert_series_equal(left, right)
 
-        with pytest.raises(KeyError, match="'No object named b in the file'"):
-            store.get("b")
+    with pytest.raises(KeyError, match="'No object named b in the file'"):
+        temp_hdfstore.get("b")
 
 
-def test_put_integer(setup_path):
+def test_put_integer(temp_h5_path):
     # non-date, non-string index
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
-    _check_roundtrip(df, tm.assert_frame_equal, setup_path)
+    _check_roundtrip(df, tm.assert_frame_equal, temp_h5_path)
 
 
-def test_table_values_dtypes_roundtrip(temp_file, using_infer_string):
-    with HDFStore(temp_file) as store:
-        df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
-        store.append("df_f8", df1)
-        tm.assert_series_equal(df1.dtypes, store["df_f8"].dtypes)
+def test_table_values_dtypes_roundtrip(temp_hdfstore, using_infer_string):
+    df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
+    temp_hdfstore.append("df_f8", df1)
+    tm.assert_series_equal(df1.dtypes, temp_hdfstore["df_f8"].dtypes)
 
-        df2 = DataFrame({"a": [1, 2, 3]}, dtype="i8")
-        store.append("df_i8", df2)
-        tm.assert_series_equal(df2.dtypes, store["df_i8"].dtypes)
+    df2 = DataFrame({"a": [1, 2, 3]}, dtype="i8")
+    temp_hdfstore.append("df_i8", df2)
+    tm.assert_series_equal(df2.dtypes, temp_hdfstore["df_i8"].dtypes)
 
-        # incompatible dtype
-        msg = re.escape(
-            "Cannot serialize the column [a] "
-            "because its data contents are not [float] "
-            "but [integer] object dtype"
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_i8", df1)
+    # incompatible dtype
+    msg = re.escape(
+        "Cannot serialize the column [a] "
+        "because its data contents are not [float] "
+        "but [integer] object dtype"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df_i8", df1)
 
-        # check creation/storage/retrieval of float32 (a bit hacky to
-        # actually create them thought)
-        df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
-        store.append("df_f4", df1)
-        tm.assert_series_equal(df1.dtypes, store["df_f4"].dtypes)
-        assert df1.dtypes.iloc[0] == "float32"
+    # check creation/storage/retrieval of float32 (a bit hacky to
+    # actually create them thought)
+    df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
+    temp_hdfstore.append("df_f4", df1)
+    tm.assert_series_equal(df1.dtypes, temp_hdfstore["df_f4"].dtypes)
+    assert df1.dtypes.iloc[0] == "float32"
 
-        # check with mixed dtypes
-        df1 = DataFrame(
-            {
-                c: Series(np.random.default_rng(2).integers(5), dtype=c)
-                for c in ["float32", "float64", "int32", "int64", "int16", "int8"]
-            }
-        )
-        df1["string"] = "foo"
-        df1["float322"] = 1.0
-        df1["float322"] = df1["float322"].astype("float32")
-        df1["bool"] = df1["float32"] > 0
-        df1["time_s_1"] = Timestamp("20130101")
-        df1["time_s_2"] = Timestamp("20130101 00:00:00")
-        df1["time_ms"] = Timestamp("20130101 00:00:00.000")
-        df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
+    # check with mixed dtypes
+    df1 = DataFrame(
+        {
+            c: Series(np.random.default_rng(2).integers(5), dtype=c)
+            for c in ["float32", "float64", "int32", "int64", "int16", "int8"]
+        }
+    )
+    df1["string"] = "foo"
+    df1["float322"] = 1.0
+    df1["float322"] = df1["float322"].astype("float32")
+    df1["bool"] = df1["float32"] > 0
+    df1["time_s_1"] = Timestamp("20130101").as_unit("s")
+    df1["time_s_2"] = Timestamp("20130101 00:00:00").as_unit("s")
+    df1["time_ms"] = Timestamp("20130101 00:00:00.000").as_unit("ms")
+    df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
 
-        store.append("df_mixed_dtypes1", df1)
-        result = store.select("df_mixed_dtypes1").dtypes.value_counts()
-        result.index = [str(i) for i in result.index]
-        str_dtype = "str" if using_infer_string else "object"
-        expected = Series(
-            {
-                "float32": 2,
-                "float64": 1,
-                "int32": 1,
-                "bool": 1,
-                "int16": 1,
-                "int8": 1,
-                "int64": 1,
-                str_dtype: 1,
-                "datetime64[s]": 2,
-                "datetime64[ms]": 1,
-                "datetime64[ns]": 1,
-            },
-            name="count",
-        )
-        result = result.sort_index()
-        expected = expected.sort_index()
-        tm.assert_series_equal(result, expected)
+    temp_hdfstore.append("df_mixed_dtypes1", df1)
+    result = temp_hdfstore.select("df_mixed_dtypes1").dtypes.value_counts()
+    result.index = [str(i) for i in result.index]
+    str_dtype = "str" if using_infer_string else "object"
+    expected = Series(
+        {
+            "float32": 2,
+            "float64": 1,
+            "int32": 1,
+            "bool": 1,
+            "int16": 1,
+            "int8": 1,
+            "int64": 1,
+            str_dtype: 1,
+            "datetime64[s]": 2,
+            "datetime64[ms]": 1,
+            "datetime64[ns]": 1,
+        },
+        name="count",
+    )
+    result = result.sort_index()
+    expected = expected.sort_index()
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
-def test_series(setup_path):
+def test_series(temp_h5_path):
     s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
     ts = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
     )
-    _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(ts, tm.assert_series_equal, path=temp_h5_path)
 
     ts2 = Series(ts.index, Index(ts.index))
-    _check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(ts2, tm.assert_series_equal, path=temp_h5_path)
 
     ts3 = Series(ts.values, Index(np.asarray(ts.index)))
     _check_roundtrip(
-        ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
+        ts3, tm.assert_series_equal, path=temp_h5_path, check_index_type=False
     )
 
 
-def test_float_index(setup_path):
+def test_float_index(temp_h5_path):
     # GH #454
     index = np.random.default_rng(2).standard_normal(10)
     s = Series(np.random.default_rng(2).standard_normal(10), index=index)
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
-def test_tuple_index(setup_path, performance_warning):
+def test_tuple_index(temp_h5_path, performance_warning):
     # GH #492
     col = np.arange(10)
     idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
@@ -295,61 +587,61 @@ def test_tuple_index(setup_path, performance_warning):
     DF = DataFrame(data, index=idx, columns=col)
 
     with tm.assert_produces_warning(performance_warning):
-        _check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
+        _check_roundtrip(DF, tm.assert_frame_equal, path=temp_h5_path)
 
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
-def test_index_types(setup_path):
+def test_index_types(temp_h5_path):
     values = np.random.default_rng(2).standard_normal(2)
 
     func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
     ser = Series(values, [0, "y"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.datetime.today(), 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, ["y", 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.date.today(), "a"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [0, "y"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.datetime.today(), 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, ["y", 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.date.today(), "a"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [1.23, "b"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [1, 1.53])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [1, 5])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     dti = DatetimeIndex(["2012-01-01", "2012-01-02"], dtype="M8[ns]")
     ser = Series(values, index=dti)
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser.index = ser.index.as_unit("s")
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
 
-def test_timeseries_preepoch(setup_path, request):
+def test_timeseries_preepoch(temp_h5_path, request):
     dr = bdate_range("1/1/1940", "1/1/1960")
     ts = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
     try:
-        _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
+        _check_roundtrip(ts, tm.assert_series_equal, path=temp_h5_path)
     except OverflowError:
         if is_platform_windows():
             request.applymarker(
@@ -361,7 +653,7 @@ def test_timeseries_preepoch(setup_path, request):
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_frame(compression, temp_file):
+def test_frame(compression, temp_h5_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -373,9 +665,11 @@ def test_frame(compression, temp_file):
     df.iloc[5, 3] = np.nan
 
     _check_roundtrip_table(
-        df, tm.assert_frame_equal, path=temp_file, compression=compression
+        df, tm.assert_frame_equal, path=temp_h5_path, compression=compression
     )
-    _check_roundtrip(df, tm.assert_frame_equal, path=temp_file, compression=compression)
+    _check_roundtrip(
+        df, tm.assert_frame_equal, path=temp_h5_path, compression=compression
+    )
 
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -383,10 +677,10 @@ def test_frame(compression, temp_file):
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     _check_roundtrip(
-        tdf, tm.assert_frame_equal, path=temp_file, compression=compression
+        tdf, tm.assert_frame_equal, path=temp_h5_path, compression=compression
     )
 
-    with HDFStore(temp_file) as store:
+    with HDFStore(temp_h5_path) as store:
         # not consolidated
         df["foo"] = np.random.default_rng(2).standard_normal(len(df))
         store["df"] = df
@@ -397,55 +691,47 @@ def test_frame(compression, temp_file):
     df2 = df[:0]
     # Prevent df2 from having index with inferred_type as string
     df2.index = Index([])
-    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=temp_h5_path)
 
 
-def test_empty_series_frame(setup_path):
+def test_empty_series_frame(temp_h5_path):
     s0 = Series(dtype=object)
     s1 = Series(name="myseries", dtype=object)
     df0 = DataFrame()
     df1 = DataFrame(index=["a", "b", "c"])
     df2 = DataFrame(columns=["d", "e", "f"])
 
-    _check_roundtrip(s0, tm.assert_series_equal, path=setup_path)
-    _check_roundtrip(s1, tm.assert_series_equal, path=setup_path)
-    _check_roundtrip(df0, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(s0, tm.assert_series_equal, path=temp_h5_path)
+    _check_roundtrip(s1, tm.assert_series_equal, path=temp_h5_path)
+    _check_roundtrip(df0, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_h5_path)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.float64, object, "m8[ns]", "M8[ns]"])
-def test_empty_series(dtype, setup_path):
+def test_empty_series(dtype, temp_h5_path):
     s = Series(dtype=dtype)
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
-def test_can_serialize_dates(setup_path):
+def test_can_serialize_dates(temp_h5_path):
     rng = [x.date() for x in bdate_range("1/1/2000", "1/30/2000")]
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
-    _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
 
 
-def test_store_hierarchical(
-    temp_file, using_infer_string, multiindex_dataframe_random_data
-):
+def test_store_hierarchical(temp_h5_path, multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
-    if using_infer_string:
-        # TODO(infer_string) make this work for string dtype
-        msg = "Saving a MultiIndex with an extension dtype is not supported."
-        with pytest.raises(NotImplementedError, match=msg):
-            _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
-        return
-    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
-    _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_file)
-    _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_file)
+    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_h5_path)
 
     # check that the names are stored
-    with HDFStore(temp_file) as store:
+    with HDFStore(temp_h5_path) as store:
         store["frame"] = frame
         recons = store["frame"]
         tm.assert_frame_equal(recons, frame)
@@ -454,7 +740,7 @@ def test_store_hierarchical(
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_store_mixed(compression, temp_file):
+def test_store_mixed(compression, temp_h5_path):
     def _make_one():
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -472,10 +758,10 @@ def test_store_mixed(compression, temp_file):
     df1 = _make_one()
     df2 = _make_one()
 
-    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_file)
-    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_h5_path)
 
-    with HDFStore(temp_file) as store:
+    with HDFStore(temp_h5_path) as store:
         store["obj"] = df1
         tm.assert_frame_equal(store["obj"], df1)
         store["obj"] = df2
@@ -485,19 +771,19 @@ def test_store_mixed(compression, temp_file):
     _check_roundtrip(
         df1["obj1"],
         tm.assert_series_equal,
-        path=temp_file,
+        path=temp_h5_path,
         compression=compression,
     )
     _check_roundtrip(
         df1["bool1"],
         tm.assert_series_equal,
-        path=temp_file,
+        path=temp_h5_path,
         compression=compression,
     )
     _check_roundtrip(
         df1["int1"],
         tm.assert_series_equal,
-        path=temp_file,
+        path=temp_h5_path,
         compression=compression,
     )
 
@@ -505,7 +791,9 @@ def test_store_mixed(compression, temp_file):
 def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
     options = {}
     if compression:
+        # complevel is required for complib to take effect (GH#29310)
         options["complib"] = "blosc"
+        options["complevel"] = 9
 
     with HDFStore(path, "w", **options) as store:
         store["obj"] = obj
@@ -516,72 +804,66 @@ def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
 def _check_roundtrip_table(obj, comparator, path, compression=False):
     options = {}
     if compression:
+        # complevel is required for complib to take effect (GH#29310)
         options["complib"] = "blosc"
+        options["complevel"] = 9
 
     with HDFStore(path, "w", **options) as store:
-        store.put("obj", obj, format="table")
+        store.put("obj", obj, format="table", track_times=False)
         retrieved = store["obj"]
 
         comparator(retrieved, obj)
 
 
-def test_unicode_index(setup_path):
+def test_unicode_index(temp_h5_path):
     unicode_values = ["\u03c3", "\u03c3\u03c3"]
 
     s = Series(
         np.random.default_rng(2).standard_normal(len(unicode_values)),
         unicode_values,
     )
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
-def test_unicode_longer_encoded(temp_file):
+def test_unicode_longer_encoded(temp_hdfstore):
     # GH 11234
     char = "\u0394"
     df = DataFrame({"A": [char]})
-    with HDFStore(temp_file) as store:
-        store.put("df", df, format="table", encoding="utf-8")
-        result = store.get("df")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8", track_times=False)
+    result = temp_hdfstore.get("df")
+    tm.assert_frame_equal(result, df)
 
     df = DataFrame({"A": ["a", char], "B": ["b", "b"]})
-    with HDFStore(temp_file) as store:
-        store.put("df", df, format="table", encoding="utf-8")
-        result = store.get("df")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.remove("df")
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8", track_times=False)
+    result = temp_hdfstore.get("df")
+    tm.assert_frame_equal(result, df)
 
 
-def test_store_datetime_mixed(setup_path):
+def test_store_datetime_mixed(temp_h5_path):
     df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
     ts = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
     )
     df["d"] = ts.index[:3]
-    _check_roundtrip(df, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(df, tm.assert_frame_equal, path=temp_h5_path)
 
 
-def test_round_trip_equals(tmp_path, setup_path):
+def test_round_trip_equals(temp_h5_path):
     # GH 9330
     df = DataFrame({"B": [1, 2], "A": ["x", "y"]})
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table")
-    other = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    other = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, other)
     assert df.equals(other)
     assert other.equals(df)
 
 
-def test_infer_string_columns(tmp_path, setup_path):
-    # GH#
-    pytest.importorskip("pyarrow")
-    path = tmp_path / setup_path
-    with pd.option_context("future.infer_string", True):
-        df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(
-            ["A", "B"]
-        )
-        expected = df.copy()
-        df.to_hdf(path, key="df", format="table")
+def test_infer_string_columns(temp_h5_path):
+    df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(["A", "B"])
+    expected = df.copy()
+    df.to_hdf(temp_h5_path, key="df", format="table")
 
-        result = read_hdf(path, "df")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, expected)

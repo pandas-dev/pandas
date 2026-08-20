@@ -13,9 +13,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The default of observed=False is deprecated:FutureWarning"
-)
 class BaseGroupbyTests:
     """Groupby-specific tests."""
 
@@ -73,6 +70,18 @@ class BaseGroupbyTests:
 
         result = df.groupby("A").first()
         tm.assert_frame_equal(result, expected)
+
+        expected_last = df.iloc[[1, 3, 5, 7]]
+        expected_last = expected_last.set_index("A")
+
+        result = df.groupby("A").agg({"B": "last"})
+        tm.assert_frame_equal(result, expected_last)
+
+        result = df.groupby("A").agg("last")
+        tm.assert_frame_equal(result, expected_last)
+
+        result = df.groupby("A").last()
+        tm.assert_frame_equal(result, expected_last)
 
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})

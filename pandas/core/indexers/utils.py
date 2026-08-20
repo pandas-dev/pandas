@@ -15,7 +15,7 @@ from pandas._libs import lib
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_integer,
     is_integer_dtype,
@@ -126,7 +126,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
     """
     Validate that value and indexer are the same length.
 
-    An special-case is allowed for when the indexer is a boolean array
+    A special-case is allowed for when the indexer is a boolean array
     and the number of true values equals the length of ``value``. In
     this case, no exception is raised.
 
@@ -299,23 +299,12 @@ def length_of_indexer(indexer, target=None) -> int:
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
-        start = indexer.start
-        stop = indexer.stop
-        step = indexer.step
-        if start is None:
-            start = 0
-        elif start < 0:
-            start += target_len
-        if stop is None or stop > target_len:
-            stop = target_len
-        elif stop < 0:
-            stop += target_len
-        if step is None:
-            step = 1
-        elif step < 0:
-            start, stop = stop + 1, start + 1
-            step = -step
-        return (stop - start + step - 1) // step
+        # GH#66100 slice.indices() correctly resolves None bounds for both
+        # positive and negative step, which the previous manual arithmetic
+        # did not (it could return negative lengths for negative-step
+        # slices with start/stop left as None).
+        start, stop, step = indexer.indices(target_len)
+        return len(range(start, stop, step))
     elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
         if isinstance(indexer, list):
             indexer = np.array(indexer)
@@ -325,7 +314,18 @@ def length_of_indexer(indexer, target=None) -> int:
             return indexer.sum()
         return len(indexer)
     elif isinstance(indexer, range):
-        return (indexer.stop - indexer.start) // indexer.step
+        try:
+            return len(indexer)
+        except OverflowError:
+            step = indexer.step
+            if step > 0:
+                low, high = indexer.start, indexer.stop
+            else:
+                low, high = indexer.stop, indexer.start
+                step = -step
+            if low >= high:
+                return 0
+            return (high - low - 1) // step + 1
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
@@ -390,10 +390,9 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
     if columns.is_unique:
         if len(value.columns) != len(key):
             raise ValueError("Columns must be same length as key")
-    else:
-        # Missing keys in columns are represented as -1
-        if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
-            raise ValueError("Columns must be same length as key")
+    # Missing keys in columns are represented as -1
+    elif len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+        raise ValueError("Columns must be same length as key")
 
 
 def unpack_tuple_and_ellipses(item: tuple):
@@ -412,6 +411,27 @@ def unpack_tuple_and_ellipses(item: tuple):
 
     item = item[0]
     return item
+
+
+def getitem_returns_view(arr, key) -> bool:
+    """
+    Check if an ``arr.__getitem__`` call with given ``key`` would return a view
+    or not.
+    """
+    if not isinstance(key, tuple):
+        key = (key,)
+
+    # filter out Ellipsis and np.newaxis
+    key = tuple(k for k in key if k is not Ellipsis and k is not np.newaxis)
+    if not key:
+        return True
+    # single integer gives view if selecting subset of 2D array
+    if arr.ndim == 2 and lib.is_integer(key[0]):
+        return True
+    # slices always give views
+    if all(isinstance(k, slice) for k in key):
+        return True
+    return False
 
 
 # -----------------------------------------------------------
@@ -532,7 +552,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
         return indexer
 
     # convert list-likes to array
-    if not is_array_like(indexer):
+    if not is_array_like_deprecate_non_pandas(indexer):
         indexer = pd_array(indexer)
         if len(indexer) == 0:
             # empty list is converted to float array by pd.array

@@ -215,7 +215,7 @@ class TestCategoricalIndex:
         str(ci)
 
     def test_isin(self):
-        ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
+        ci = CategoricalIndex([*list("aabca"), np.nan], categories=["c", "a", "b"])
         tm.assert_numpy_array_equal(
             ci.isin(["c"]), np.array([False, False, False, True, False, False])
         )
@@ -314,9 +314,9 @@ class TestCategoricalIndex2:
             (lambda idx: idx - idx, "__sub__"),
             (lambda idx: idx + idx, "__add__"),
             (lambda idx: idx - ["a", "b"], "__sub__"),
-            (lambda idx: idx + ["a", "b"], "__add__"),
+            (lambda idx: idx + ["a", "b"], "__add__"),  # noqa: RUF005
             (lambda idx: ["a", "b"] - idx, "__rsub__"),
-            (lambda idx: ["a", "b"] + idx, "__radd__"),
+            (lambda idx: ["a", "b"] + idx, "__radd__"),  # noqa: RUF005
         ],
     )
     def test_disallow_addsub_ops(self, func, op_name):
@@ -326,9 +326,10 @@ class TestCategoricalIndex2:
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [
-                f"cannot perform {op_name} with this index type: CategoricalIndex",
-                "can only concatenate list",
                 rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+                "Object with dtype category cannot perform the numpy op (add|subtract)",
+                "operation 'r?(add|sub)' not supported for dtype 'str' "
+                "with dtype 'category'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -363,7 +364,7 @@ class TestCategoricalIndex2:
         result = ci.remove_categories(["c"])
         tm.assert_index_equal(
             result,
-            CategoricalIndex(list("aabb") + [np.nan] + ["a"], categories=list("ab")),
+            CategoricalIndex([*list("aabb"), np.nan, "a"], categories=list("ab")),
         )
 
         ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))

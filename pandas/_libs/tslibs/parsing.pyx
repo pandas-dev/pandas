@@ -17,6 +17,7 @@ from cpython.datetime cimport (
 
 from datetime import timezone
 
+cimport cython
 from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
@@ -70,8 +71,9 @@ cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
 cdef extern from "pandas/parser/tokenizer.h":
-    double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-                   int skip_trailing, int *error, int *maybe_int)
+    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                           char tsep, int skip_trailing, int *error,
+                           int *maybe_int)
 
 
 # ----------------------------------------------------------------------
@@ -274,6 +276,7 @@ cdef datetime parse_datetime_string(
     bint yearfirst,
     NPY_DATETIMEUNIT* out_bestunit,
     int64_t* nanos,
+    bint* out_is_quarter=NULL,
 ):
     """
     Parse datetime string, only returns datetime.
@@ -312,11 +315,21 @@ cdef datetime parse_datetime_string(
         dt = _parse_dateabbr_string(
             date_string, _DEFAULT_DATETIME, None, out_bestunit, &is_quarter
         )
+        if out_is_quarter != NULL:
+            out_is_quarter[0] = is_quarter
         return dt
     except DateParseError:
         raise
     except ValueError:
         pass
+
+    if date_string.lstrip().startswith("-"):
+        # GH#55954 a leading "-" indicates a BC year and is only handled by
+        # the iso8601 fast path. Falling through to dateutil would silently
+        # strip the sign and produce a positive year.
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {date_string}"
+        )
 
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
@@ -325,7 +338,8 @@ cdef datetime parse_datetime_string(
 
 
 def parse_datetime_string_with_reso(
-    str date_string, str freq=None, dayfirst=None, yearfirst=None
+    str date_string, str freq=None, dayfirst=None, yearfirst=None,
+    bint warn_quarter=True,
 ):
     # NB: This will break with np.str_ (GH#45580) even though
     #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
@@ -344,6 +358,8 @@ def parse_datetime_string_with_reso(
         If None uses default from print_config
     yearfirst : bool, default None
         If None uses default from print_config
+    warn_quarter : bool, default True
+        Whether to warn when parsing a quarterly string.
 
     Returns
     -------
@@ -421,9 +437,20 @@ def parse_datetime_string_with_reso(
     else:
         if is_quarter:
             reso = "quarter"
+            if warn_quarter:
+                # GH#50907
+                warn_quarter_deprecated(date_string, freq)
         else:
             reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
+
+    if date_string.lstrip().startswith("-"):
+        # GH#55954 a leading "-" indicates a BC year and is only handled by
+        # the iso8601 fast path. Falling through to dateutil would silently
+        # strip the sign and produce a positive year.
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {date_string}"
+        )
 
     parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
                             dayfirst=dayfirst, yearfirst=yearfirst,
@@ -464,14 +491,16 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         elif py_string in _not_datelike_strings:
             return False
         else:
-            # xstrtod with such parameters copies behavior of python `float`
-            # cast; for example, " 35.e-1 " is valid string for this cast so,
-            # for correctly xstrtod call necessary to pass these params:
-            # b'.' - a dot is used as separator, b'e' - an exponential form of
-            # a float number can be used, b'\0' - not to use a thousand
-            # separator, 1 - skip extra spaces before and after,
-            converted_date = xstrtod(buf, &endptr,
-                                     b".", b"e", b"\0", 1, &error, NULL)
+            # precise_xstrtod with such parameters copies behavior of
+            # python `float` cast; for example, " 35.e-1 " is valid string
+            # for this cast so, for correctly calling it necessary to pass
+            # these params: b'.' - a dot is used as separator, b'e' - an
+            # exponential form of a float number can be used, b'\0' - not
+            # to use a thousand separator, 1 - skip extra spaces before and
+            # after,
+            converted_date = precise_xstrtod(buf, &endptr,
+                                             b".", b"e", b"\0", 1,
+                                             &error, NULL)
             # if there were no errors and the whole line was parsed, then ...
             if error == 0 and endptr == buf + length:
                 return converted_date >= 1000
@@ -624,6 +653,35 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
     return year, month
 
 
+cdef void warn_quarter_deprecated(str date_string, str freq):
+    """
+    Warn that parsing `date_string` as a quarterly string is deprecated.
+
+    `freq` picks the quarter anchor (see quarter_to_myear), so an anchor other
+    than December has to be spelled out in the suggested replacement, which
+    would otherwise resolve to a different timestamp.
+    """
+    cdef:
+        str rule_month, period_call
+
+    from pandas.errors import Pandas4Warning
+
+    rule_month = get_rule_month(freq) if freq is not None else "DEC"
+    if rule_month == "DEC":
+        period_call = f"pd.Period('{date_string}')"
+    else:
+        period_call = f"pd.Period('{date_string}', freq='Q-{rule_month}')"
+
+    warnings.warn(
+        f"Parsing '{date_string}' as a quarterly string is deprecated "
+        f"and will be removed in a future version. Use "
+        f"{period_call}.to_timestamp(), or a PeriodIndex for indexing, "
+        f"instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
 cdef datetime dateutil_parse(
     str timestr,
     datetime default,
@@ -716,7 +774,7 @@ cdef datetime dateutil_parse(
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
             # GH#18702, # GH 50235 enforced in 3.0
             raise ValueError(
-                f'Parsed string "{timestr}" included an un-recognized timezone '
+                f'Parsed string "{timestr}" included an unrecognized timezone '
                 f'"{res.tzname}".'
             )
 
@@ -728,7 +786,7 @@ cdef object _reso_pattern = re.compile(r"\d:\d{2}:\d{2}\.(?P<frac>\d+)")
 
 cdef _find_subsecond_reso(str timestr, int64_t* nanos):
     # GH#55737
-    # Check for trailing zeros in a H:M:S.f pattern
+    # Check for trailing zeros in an H:M:S.f pattern
     match = _reso_pattern.search(timestr)
     if not match:
         reso = "second"
@@ -760,6 +818,8 @@ cdef _find_subsecond_reso(str timestr, int64_t* nanos):
 # Parsing for type-inference
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def try_parse_dates(object[:] values, parser) -> np.ndarray:
     cdef:
         Py_ssize_t i, n

@@ -511,6 +511,19 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
+    @pytest.mark.parametrize("max_level", [0, None])
+    def test_json_normalize_non_dict_items(self, max_level):
+        # gh-62829, gh-64188
+        data_list = [np.nan, {"id": 12}, {"id": 13}]
+
+        result = json_normalize(data_list, max_level=max_level)
+        expected = DataFrame({"id": [np.nan, 12, 13]})
+        tm.assert_frame_equal(result, expected)
+
+        msg = "All items in data must be of type dict or NA-like, found float"
+        with pytest.raises(TypeError, match=msg):
+            json_normalize([1.0, {"id": 12}], max_level=max_level)
+
     def test_nested_flattening_consistent(self):
         # see gh-21537
         df1 = json_normalize([{"A": {"B": 1}}])
@@ -916,3 +929,14 @@ class TestNestedToRecord:
             index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_json_normalize_meta_string_validation(self):
+        # GH 63019
+        data = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
+
+        # Test non-string meta raises TypeError consistently
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, meta=[12])
+
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, record_path=["nested"], meta=[12])

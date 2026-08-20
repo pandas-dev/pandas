@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -372,7 +374,6 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
@@ -457,13 +458,14 @@ class TestSetitemWithExpansionMultiIndex:
             ["", "wx", "wy", "", "", ""],
         ]
 
-        tuples = sorted(zip(*arrays))
+        tuples = sorted(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         result = df.copy()
         expected = df.copy()
-        result["b"] = [1, 2, 3, 4]
+        with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+            result["b"] = [1, 2, 3, 4]
         expected["b", "", ""] = [1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
@@ -489,6 +491,24 @@ class TestSetitemWithExpansionMultiIndex:
             columns=["A", "B", "C"],
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_enlargement_multiindex_with_none(self):
+        # GH#59153
+        # enlarging a DataFrame with a MultiIndex containing None values
+        index = MultiIndex.from_tuples(
+            [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None)]
+        )
+        df = DataFrame([(0.0, 6.0), (1.0, 5.0), (2.0, 4.0), (3.0, 7.0)], index=index)
+        df.loc[("A", None), :] = [12.0, 13.0]
+        expected_index = MultiIndex.from_tuples(
+            [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None), ("A", None)]
+        )
+        expected = DataFrame(
+            [[0.0, 6.0], [1.0, 5.0], [2.0, 4.0], [3.0, 7.0], [12.0, 13.0]],
+            index=expected_index,
+            columns=[0, 1],
+        )
+        tm.assert_frame_equal(df, expected, check_index_type=False)
 
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
@@ -533,3 +553,136 @@ def test_frame_setitem_partial_multiindex():
     expected = df.copy()
     expected["d"] = 8
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_scalar_setitem_scalar_column_multiindex_columns():
+    # GH#13474 adding a scalar (non-tuple) column to a frame with MultiIndex
+    #  columns should give scalar .loc access and correct in-place augmented
+    #  assignment, rather than returning a 1-element Series / writing NaN
+    df = DataFrame(0, index=range(2), columns=MultiIndex.from_product([[1], [2]]))
+    msg = "Setting a new column on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        # GH#17024 padding the scalar key is deprecated
+        df["oth"] = 1
+
+    # getitem returns a scalar, not a 1-element Series
+    assert df.loc[0, "oth"] == 1
+    # while the column-slice form stays a Series (the dimensionality the issue
+    # was retitled around)
+    assert isinstance(df.loc[:, "oth"], Series)
+
+    df.loc[0, "oth"] += 1
+    assert df.loc[0, "oth"] == 2
+    assert df.loc[1, "oth"] == 1
+    # the augmented assignment must not coerce the column to float / NaN
+    assert df[("oth", "")].tolist() == [2, 1]
+
+
+def test_loc_scalar_key_expansion_warns():
+    # GH#17024 - deprecate .loc expansion with non-tuple key on MultiIndex
+    df = DataFrame(
+        [[1, 2], [3, 4]],
+        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+    )
+    msg = "Setting a new row on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.loc["all"] = [5, 6]
+
+
+def test_loc_scalar_key_expansion_empty_warns():
+    # GH#17024 - deprecate .loc expansion with non-tuple key on empty DataFrame
+    df = DataFrame(
+        columns=[0, 1],
+        index=MultiIndex.from_tuples([], names=["x", "y"]),
+    )
+    msg = "Setting a new row on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.loc["all"] = [5, 6]
+
+
+def test_loc_scalar_key_expansion_zero_columns_warns():
+    # GH#17024 - the GH#17895 zero-columns path pads the MultiIndex too
+    df = DataFrame(index=MultiIndex.from_tuples([], names=["x", "y"]))
+    msg = "Setting a new row on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.loc["all"] = [5, 6]
+    assert df.index.tolist() == [("all", "")]
+
+
+def test_loc_tuple_key_expansion_no_warning():
+    # GH#17024 - full-length tuple key should not warn
+    mi = MultiIndex.from_tuples([("a", "b", "c")], names=["x", "y", "z"])
+    df = DataFrame([[1, 2]], index=mi)
+    with tm.assert_produces_warning(None):
+        df.loc[("d", "e", "f")] = [5, 6]
+    assert isinstance(df.index, MultiIndex)
+
+
+def test_loc_tuple_key_expansion_two_levels_no_warning():
+    # GH#17024 - the recommended replacement for df.loc["x"] = values; with
+    #  a two-level MultiIndex the column slice is needed to avoid the tuple
+    #  being interpreted as (row_key, column_key)
+    df = DataFrame(
+        [[1, 2], [3, 4]],
+        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+    )
+    with tm.assert_produces_warning(None):
+        df.loc[("x", ""), :] = [5, 6]
+    assert isinstance(df.index, MultiIndex)
+    assert df.index[-1] == ("x", "")
+
+
+def test_loc_series_scalar_key_expansion_warns():
+    # GH#17024 - deprecate .loc expansion with non-tuple key on Series MultiIndex
+    ser = Series(
+        [1, 2],
+        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+    )
+    msg = "Setting a new value on a Series with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.loc["all"] = 5
+
+
+def test_loc_series_tuple_key_expansion_no_warning():
+    # GH#17024 - full-length tuple key on Series should not warn
+    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    ser = Series([1], index=mi)
+    with tm.assert_produces_warning(None):
+        ser.loc[("d", "e")] = 5
+
+
+def test_setitem_new_column_multiindex_scalar_key_warns():
+    # GH#17024 - df["scalar"] = values should warn when columns is MultiIndex
+    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = DataFrame([[1]], columns=mi)
+    msg = "Setting a new column on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df["new"] = [2]
+
+
+def test_setitem_new_column_multiindex_full_tuple_no_warning():
+    # GH#17024 - df[("a", "b")] = values should not warn
+    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = DataFrame([[1]], columns=mi)
+    with tm.assert_produces_warning(None):
+        df[("c", "d")] = [2]
+    assert isinstance(df.columns, MultiIndex)
+
+
+def test_insert_multiindex_scalar_key_warns():
+    # GH#17024 - df.insert with a non-tuple key pads MultiIndex columns
+    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = DataFrame([[1]], columns=mi)
+    msg = "Setting a new column on a DataFrame with a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.insert(1, "new", [2])
+    assert df.columns.tolist() == [("a", "b"), ("new", "")]
+
+
+def test_insert_multiindex_full_tuple_no_warning():
+    # GH#17024 - df.insert with a full-length tuple key should not warn
+    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = DataFrame([[1]], columns=mi)
+    with tm.assert_produces_warning(None):
+        df.insert(1, ("c", "d"), [2])
+    assert df.columns.tolist() == [("a", "b"), ("c", "d")]

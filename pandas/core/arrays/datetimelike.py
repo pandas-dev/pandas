@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Self,
     TypeAlias,
-    Union,
     cast,
     final,
     overload,
@@ -22,10 +21,11 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos,
+    groupby as libgroupby,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -35,7 +35,6 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Period,
-    Resolution,
     Tick,
     Timedelta,
     Timestamp,
@@ -46,8 +45,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
-    timezones,
-    to_offset,
 )
 from pandas._libs.tslibs.fields import (
     RoundTo,
@@ -69,7 +66,6 @@ from pandas._typing import (
     PositionalIndexerTuple,
     ScalarIndexer,
     SequenceIndexer,
-    TakeIndexer,
     TimeAmbiguous,
     TimeNonexistent,
     npt,
@@ -78,11 +74,10 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
+    Pandas4Warning,
     PerformanceWarning,
 )
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     cache_readonly,
 )
 from pandas.util._exceptions import find_stack_level
@@ -132,16 +127,12 @@ from pandas.core.arrays._mixins import (
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
-import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
-    check_array_indexer,
-    check_setitem_lengths,
-)
+from pandas.core.indexers import check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import (
     invalid_comparison,
@@ -196,7 +187,7 @@ def _period_dispatch(meth: F) -> F:
         res_i8 = result.view("i8")
         return self._from_backing_data(res_i8)
 
-    return cast(F, new_meth)
+    return cast("F", new_meth)
 
 
 class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
@@ -205,17 +196,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     Assumes that __new__/__init__ defines:
         _ndarray
-
-    and that inheriting subclass implements:
-        freq
     """
 
-    # _infer_matches -> which infer_dtype strings are close enough to our own
-    _infer_matches: tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
-    freq: BaseOffset | None
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -368,7 +353,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if copy is True:
             return np.array(self._ndarray, dtype=dtype)
-        return self._ndarray
+
+        result = self._ndarray
+        if self._readonly:
+            result = result.view()
+            result.flags.writeable = False
+        return result
 
     @overload
     def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT: ...
@@ -387,43 +377,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
+        result = cast("Self | DTScalarOrNaT", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
             # At this point we know the result is an array.
-            result = cast(Self, result)
-        # error: Incompatible types in assignment (expression has type
-        # "BaseOffset | None", variable has type "None")
-        result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
+            result = cast("Self", result)
         return result
-
-    def _get_getitem_freq(self, key) -> BaseOffset | None:
-        """
-        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
-        """
-        is_period = isinstance(self.dtype, PeriodDtype)
-        if is_period:
-            freq = self.freq
-        elif self.ndim != 1:
-            freq = None
-        else:
-            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
-            freq = None
-            if isinstance(key, slice):
-                if self.freq is not None and key.step is not None:
-                    freq = key.step * self.freq
-                else:
-                    freq = self.freq
-            elif key is Ellipsis:
-                # GH#21282 indexing with Ellipsis is similar to a full slice,
-                #  should preserve `freq` attribute
-                freq = self.freq
-            elif com.is_bool_indexer(key):
-                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-                if isinstance(new_key, slice):
-                    return self._get_getitem_freq(new_key)
-        return freq
 
     # error: Argument 1 of "__setitem__" is incompatible with supertype
     # "ExtensionArray"; supertype defines the argument type as "Union[int,
@@ -439,21 +399,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
 
-        no_op = check_setitem_lengths(key, value, self)
+        check_setitem_lengths(key, value, self)
 
         # Calling super() before the no_op short-circuit means that we raise
         #  on invalid 'value' even if this is a no-op, e.g. wrong-dtype empty array.
         super().__setitem__(key, value)
-
-        if no_op:
-            return
-
-        self._maybe_clear_freq()
-
-    def _maybe_clear_freq(self) -> None:
-        # inplace operations like __setitem__ may invalidate the freq of
-        # DatetimeArray and TimedeltaArray
-        pass
 
     def astype(self, dtype, copy: bool = True):
         # Some notes on cases we don't have to handle here in the base class:
@@ -529,10 +479,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         #  are present in this file.
         return super().view(dtype)
 
-    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
-        super()._putmask(mask, value)
-        self._freq = None  # GH#24555
-
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
@@ -547,7 +493,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # error: Argument 1 to "Timestamp" has incompatible type "object";
+            # expected "integer[Any] | float | str | date | datetime |
+            # datetime64[date | int | None]"  [arg-type]
+            other = self._scalar_type(other)  # type: ignore[arg-type]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -679,15 +628,43 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if hasattr(value, "dtype") and value.dtype == object:
             # `array` below won't do inference if value is an Index or Series.
             #  so do so here.  in the Index case, inferred_type may be cached.
-            if lib.infer_dtype(value) in self._infer_matches:
-                try:
-                    value = type(self)._from_sequence(value)
-                except (ValueError, TypeError) as err:
-                    if allow_object:
-                        return value
-                    msg = self._validation_error_message(value, True)
-                    raise TypeError(msg) from err
+            arr = np.asarray(value)
+            flat = arr.ravel() if arr.ndim != 1 else arr
+            converted = lib.maybe_convert_objects(
+                flat, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
+            converted = ensure_wrapped_if_datetimelike(converted)
+            if isinstance(converted, type(self)):
+                if (
+                    self.dtype.kind in "mM"
+                    and not allow_object
+                    and self.unit != converted.unit  # type: ignore[attr-defined]
+                ):
+                    converted = converted.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
+                if arr.ndim != 1:
+                    converted = converted.reshape(arr.shape)
+                return converted
+            elif self.dtype.kind == "M" and lib.infer_dtype(value) == "date":
+                # GH#65056
+                warnings.warn(
+                    "Inferring datetime64 from data containing datetime.date "
+                    "objects is deprecated. In a future version, these will "
+                    "be left as object dtype. Use "
+                    "pd.to_datetime to explicitly convert "
+                    "to datetime64.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                value = type(self)._from_sequence(value)
 
+        if isinstance(value, list):
+            value = construct_1d_object_array_from_listlike(value)
+        if isinstance(value, np.ndarray) and value.dtype == object:
+            # We need to call maybe_convert_objects here instead of in pd_array
+            #  so we can specify dtype_if_all_nat.
+            value = lib.maybe_convert_objects(
+                value, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
         # Do type inference if necessary up front (after unpacking
         # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
@@ -744,6 +721,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             other = other._ndarray
         return other
 
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+        # Fast path: single-pass Cython using iNaT sentinel. GH#42147
+        if lib.is_scalar(value):
+            if not self._hasna:
+                return self.copy() if copy else self[:]
+            try:
+                validated = self._validate_setitem_value(value)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if copy:
+                    new_ndarray = self._ndarray.copy()
+                else:
+                    if self._readonly:
+                        raise ValueError("Cannot modify read-only array")
+                    new_ndarray = self._ndarray
+
+                arr_i8 = new_ndarray.view("i8")
+                fill_i8 = np.array(validated, dtype=new_ndarray.dtype).view("i8")[()]
+                algos.scalar_fillna_inplace(
+                    arr_i8, fill_i8, is_datetimelike=True, limit=limit
+                )
+
+                return type(self)._simple_new(new_ndarray, dtype=self.dtype)
+
+        return super().fillna(value, limit=limit, copy=copy)
+
     # ------------------------------------------------------------------
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
@@ -797,8 +801,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
-            # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
-            values = values.as_unit(self.unit)  # type: ignore[attr-defined]
+            # Cast to the higher resolution to avoid silently truncating
+            #  finer-resolution values, which could lead to false matches.
+            self, values = self._ensure_matching_resos(values)
 
         try:
             # error: Argument 1 to "_check_compatible_with" of "DatetimeLikeArrayMixin"
@@ -863,46 +868,28 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # Frequency Properties/Methods
 
-    @property
-    def freqstr(self) -> str | None:
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _inferred_freq_str(self) -> str | None:
         """
-        Return the frequency object as a string if it's set, otherwise None.
-
-        See Also
-        --------
-        DatetimeIndex.inferred_freq : Returns a string representing a frequency
-            generated by infer_freq.
-
-        Examples
-        --------
-        For DatetimeIndex:
-
-        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00"], freq="D")
-        >>> idx.freqstr
-        'D'
-
-        The frequency can be inferred if there are more than 2 points:
-
-        >>> idx = pd.DatetimeIndex(
-        ...     ["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer"
-        ... )
-        >>> idx.freqstr
-        '2D'
-
-        For PeriodIndex:
-
-        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
-        >>> idx.freqstr
-        'M'
+        Internal version of inferred_freq without deprecation warning.
         """
-        if self.freq is None:
+        if self.ndim != 1:
             return None
-        return self.freq.freqstr
+        try:
+            return frequencies.infer_freq_str(self)
+        except ValueError:
+            return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def inferred_freq(self) -> str | None:
+    def inferred_freq(self) -> str | BaseOffset | None:
         """
         Tries to return a string representing a frequency generated by infer_freq.
+
+        .. deprecated:: 3.1.0
+            A future version of pandas will return a :class:`BaseOffset` instead of
+            a string. Use
+            ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt
+            in to the future behavior.
 
         Returns None if it can't autodetect the frequency.
 
@@ -916,7 +903,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         For DatetimeIndex:
 
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
-        >>> idx.inferred_freq
+        >>> idx.inferred_freq  # doctest: +SKIP
         '2D'
 
         For TimedeltaIndex:
@@ -924,34 +911,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
         >>> tdelta_idx
         TimedeltaIndex(['0 days', '10 days', '20 days'],
-                       dtype='timedelta64[ns]', freq=None)
-        >>> tdelta_idx.inferred_freq
+                       dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        if self.ndim != 1:
-            return None
-        try:
-            return frequencies.infer_freq(self)
-        except ValueError:
-            return None
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution_obj(self) -> Resolution | None:
-        freqstr = self.freqstr
-        if freqstr is None:
-            return None
-        try:
-            return Resolution.get_reso_from_freqstr(freqstr)
-        except KeyError:
-            return None
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def resolution(self) -> str:
-        """
-        Returns day, hour, minute, second, millisecond or microsecond
-        """
-        # error: Item "None" of "Optional[Any]" has no attribute "attrname"
-        return self._resolution_obj.attrname  # type: ignore[union-attr]
+        return frequencies.maybe_convert_inferred_freq(
+            self._inferred_freq_str, "inferred_freq"
+        )
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
@@ -976,6 +942,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # TODO: handle 2D-like listlikes
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
+        if is_list_like(other):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
         try:
             other = self._validate_comparison_value(other)
         except InvalidComparison:
@@ -999,7 +978,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return result
 
         if not isinstance(self.dtype, PeriodDtype):
-            self = cast(TimelikeOps, self)
+            self = cast("TimelikeOps", self)
             if self._creso != other._creso:
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
@@ -1046,7 +1025,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _get_i8_values_and_mask(
         self, other
-    ) -> tuple[int | npt.NDArray[np.int64], None | npt.NDArray[np.bool_]]:
+    ) -> tuple[int | npt.NDArray[np.int64], npt.NDArray[np.bool_] | None]:
         """
         Get the int64 values and b_mask to pass to add_overflowsafe.
         """
@@ -1061,48 +1040,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             mask = other._isnan
             i8values = other.asi8
         return i8values, mask
-
-    @final
-    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
-        """
-        Check if we can preserve self.freq in addition or subtraction.
-        """
-        # Adding or subtracting a Timedelta/Timestamp scalar is freq-preserving
-        #  whenever self.freq is a Tick
-        if isinstance(self.dtype, PeriodDtype):
-            return self.freq
-        elif not lib.is_scalar(other):
-            return None
-        elif isinstance(self.freq, Tick):
-            # In these cases
-            return self.freq
-        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
-            return self.freq
-        elif (
-            self.dtype.kind == "m"
-            and isinstance(other, Timestamp)
-            and (other.tz is None or timezones.is_utc(other.tz))
-        ):
-            # e.g. test_td64arr_add_sub_datetimelike_scalar tdarr + timestamp
-            #  gives a DatetimeArray. As long as the timestamp has no timezone
-            #  or UTC, the result can retain a Day freq.
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(self.freq, Day)
-            and isinstance(other, Timedelta)
-        ):
-            # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
-            # Day is unambiguously 24h
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(other, Timestamp)
-            and isinstance(self.freq, Day)
-        ):
-            return self.freq
-
-        return None
 
     @final
     def _add_datetimelike_scalar(self, other) -> DatetimeArray:
@@ -1135,8 +1072,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
         res_values = result.view(f"M8[{self.unit}]")
-        new_freq = self._get_arithmetic_result_freq(other)
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
+        return DatetimeArray._simple_new(res_values, dtype=dtype)
 
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
@@ -1156,7 +1092,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
         self = cast("DatetimeArray", self)
-        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
+        # subtract a datetime from myself, yielding an ndarray[timedelta64[ns]]
 
         if isna(other):
             # i.e. np.datetime64("NaT")
@@ -1196,9 +1132,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
-        new_freq = self._get_arithmetic_result_freq(other)
-        new_freq = cast("Tick | None", new_freq)
-        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1260,14 +1194,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
-        new_freq = self._get_arithmetic_result_freq(other)
-
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
-        return type(self)._simple_new(
-            res_values,
-            dtype=self.dtype,
-            freq=new_freq,  # type: ignore[call-arg]
-        )
+        return type(self)._simple_new(res_values, dtype=self.dtype)
 
     @final
     def _add_nat(self) -> Self:
@@ -1284,12 +1211,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         result = result.view(self._ndarray.dtype)  # preserve reso
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
-        return type(self)._simple_new(
-            result,
-            dtype=self.dtype,
-            freq=None,  # type: ignore[call-arg]
-        )
+        return type(self)._simple_new(result, dtype=self.dtype)
 
     @final
     def _sub_nat(self) -> np.ndarray:
@@ -1324,8 +1246,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self._check_compatible_with(other)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        new_i8_data = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
-        new_data = np.array([self.freq.base * x for x in new_i8_data])
+        # GH#66552 the difference is a count of periods, not an ordinal, so
+        #  INT64_MIN is a legitimate answer here and not the NaT sentinel.
+        new_i8_data = add_overflowsafe(
+            self.asi8, np.asarray(-other_i8, dtype="i8"), sentinel_ok=True
+        )
+        # multiply by python ints: numpy's scalar multiply spuriously reports
+        #  overflow for a np.int64 count of INT64_MIN on Windows
+        counts = new_i8_data.ravel().tolist()
+        new_data = np.array([self.freq.base * count for count in counts]).reshape(
+            new_i8_data.shape
+        )
 
         if o_mask is None:
             # i.e. Period scalar
@@ -1359,7 +1290,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
-        if get_option("performance_warnings"):
+        if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
                 f"{type(self).__name__} not vectorized.",
@@ -1550,19 +1481,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
@@ -1644,7 +1567,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.mean()
         Timestamp('2001-01-02 00:00:00')
 
@@ -1653,7 +1576,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[s]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -1687,7 +1610,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8modes, _ = algorithms.mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
-        npmodes = cast(np.ndarray, npmodes)
+        npmodes = cast("np.ndarray", npmodes)
         return self._from_backing_data(npmodes)
 
     # ------------------------------------------------------------------
@@ -1723,12 +1646,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 # GH#34479
                 raise TypeError(
                     f"'{how}' with PeriodDtype is no longer supported. "
-                    f"Use (obj != pd.Period(0, freq)).{how}() instead."
+                    f"Use (obj != pd.Period(ordinal=0, freq=freq)).{how}() instead."
                 )
-        else:
-            # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew", "kurt", "var"]:
-                raise TypeError(f"timedelta64 type does not support {how} operations")
+        # timedeltas we can add but not multiply
+        elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
+            raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
         #  operate on the tz-naive equivalents
@@ -1768,16 +1690,67 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = res_values.view(self._ndarray.dtype)
         return self._from_backing_data(res_values)
 
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        nqs = len(qs)
+        mask = self.isna()
+        i8vals = self.asi8
+
+        # Block manager may store DatetimeArray/TimedeltaArray as 2D (1, N)
+        ncols = 1
+        if self.ndim == 2:
+            ncols = self._ndarray.shape[0]
+
+        out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+        for col in range(ncols):
+            if self.ndim == 2:
+                col_mask = mask[col]
+                col_vals = i8vals[col]
+            else:
+                col_mask = mask
+                col_vals = i8vals
+
+            libgroupby.group_quantile(
+                out[col],
+                values=col_vals,
+                mask=col_mask,
+                labels=ids,
+                qs=qs,
+                interpolation=interpolation,
+                starts=starts,
+                ends=ends,
+                result_mask=None,
+                is_datetimelike=True,
+            )
+
+        if self.ndim == 1:
+            out = out.ravel("K")  # type: ignore[assignment]
+        else:
+            out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
+
+        # All-NA groups come back as NaN; casting NaN to i8 is platform
+        # dependent (0 on some architectures), so map them to iNaT explicitly.
+        na_mask = np.isnan(out)
+        out[na_mask] = 0
+        out = out.astype("i8")
+        out[na_mask] = iNaT
+        out = out.view(self._ndarray.dtype)
+        return self._from_backing_data(out)
+
 
 class DatelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
 
-    @Substitution(
-        URL="https://docs.python.org/3/library/datetime.html"
-        "#strftime-and-strptime-behavior"
-    )
     def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
@@ -1785,12 +1758,13 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__.
+        doc <https://docs.python.org/3/library/datetime.html
+        #strftime-and-strptime-behavior>`__.
 
         Formats supported by the C `strftime` API but not by the python string format
-        doc (such as `"%%R"`, `"%%r"`) are not officially supported and should be
-        preferably replaced with their supported equivalents (such as `"%%H:%%M"`,
-        `"%%I:%%M:%%S %%p"`).
+        doc (such as `"%R"`, `"%r"`) are not officially supported and should be
+        preferably replaced with their supported equivalents (such as `"%H:%M"`,
+        `"%I:%M:%S %p"`).
 
         Note that `PeriodIndex` support additional directives, detailed in
         `Period.strftime`.
@@ -1817,7 +1791,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         Examples
         --------
         >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s")
-        >>> rng.strftime("%%B %%d, %%Y, %%r")
+        >>> rng.strftime("%B %d, %Y, %r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
               dtype='str')
@@ -1830,154 +1804,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         return result.astype(object, copy=False)
 
 
-_round_doc = """
-    Perform {op} operation on the data to the specified `freq`.
-
-    Parameters
-    ----------
-    freq : str or Offset
-        The frequency level to {op} the index to. Must be a fixed
-        frequency like 's' (second) not 'ME' (month end). See
-        :ref:`frequency aliases <timeseries.offset_aliases>` for
-        a list of possible `freq` values.
-    ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
-        Only relevant for DatetimeIndex:
-
-        - 'infer' will attempt to infer fall dst-transition hours based on
-          order
-        - bool-ndarray where True signifies a DST time, False designates
-          a non-DST time (note that this flag is only applicable for
-          ambiguous times)
-        - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise a ValueError if there are ambiguous
-          times.
-
-    nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
-        A nonexistent time does not exist in a particular timezone
-        where clocks moved forward due to DST.
-
-        - 'shift_forward' will shift the nonexistent time forward to the
-          closest existing time
-        - 'shift_backward' will shift the nonexistent time backward to the
-          closest existing time
-        - 'NaT' will return NaT where there are nonexistent times
-        - timedelta objects will shift nonexistent times by the timedelta
-        - 'raise' will raise a ValueError if there are
-          nonexistent times.
-
-    Returns
-    -------
-    DatetimeIndex, TimedeltaIndex, or Series
-        Index of the same type for a DatetimeIndex or TimedeltaIndex,
-        or a Series with the same index for a Series.
-
-    Raises
-    ------
-    ValueError if the `freq` cannot be converted.
-
-    See Also
-    --------
-    DatetimeIndex.floor : Perform floor operation on the data to the specified `freq`.
-    DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
-
-    Notes
-    -----
-    If the timestamps have a timezone, {op}ing will take place relative to the
-    local ("wall") time and re-localized to the same timezone. When {op}ing
-    near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
-    control the re-localization behavior.
-
-    Examples
-    --------
-    **DatetimeIndex**
-
-    >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
-    >>> rng
-    DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
-                   '2018-01-01 12:01:00'],
-                  dtype='datetime64[ns]', freq='min')
-    """
-
-_round_example = """>>> rng.round('h')
-    DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-                   '2018-01-01 12:00:00'],
-                  dtype='datetime64[ns]', freq=None)
-
-    **Series**
-
-    >>> pd.Series(rng).dt.round("h")
-    0   2018-01-01 12:00:00
-    1   2018-01-01 12:00:00
-    2   2018-01-01 12:00:00
-    dtype: datetime64[ns]
-
-    When rounding near a daylight savings time transition, use ``ambiguous`` or
-    ``nonexistent`` to control how the timestamp should be re-localized.
-
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
-
-    >>> rng_tz.floor("2h", ambiguous=False)
-    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-
-    >>> rng_tz.floor("2h", ambiguous=True)
-    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-    """
-
-_floor_example = """>>> rng.floor('h')
-    DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
-                   '2018-01-01 12:00:00'],
-                  dtype='datetime64[ns]', freq=None)
-
-    **Series**
-
-    >>> pd.Series(rng).dt.floor("h")
-    0   2018-01-01 11:00:00
-    1   2018-01-01 12:00:00
-    2   2018-01-01 12:00:00
-    dtype: datetime64[ns]
-
-    When rounding near a daylight savings time transition, use ``ambiguous`` or
-    ``nonexistent`` to control how the timestamp should be re-localized.
-
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
-
-    >>> rng_tz.floor("2h", ambiguous=False)
-    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                 dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-
-    >>> rng_tz.floor("2h", ambiguous=True)
-    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-    """
-
-_ceil_example = """>>> rng.ceil('h')
-    DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-                   '2018-01-01 13:00:00'],
-                  dtype='datetime64[ns]', freq=None)
-
-    **Series**
-
-    >>> pd.Series(rng).dt.ceil("h")
-    0   2018-01-01 12:00:00
-    1   2018-01-01 12:00:00
-    2   2018-01-01 13:00:00
-    dtype: datetime64[ns]
-
-    When rounding near a daylight savings time transition, use ``ambiguous`` or
-    ``nonexistent`` to control how the timestamp should be re-localized.
-
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
-
-    >>> rng_tz.ceil("h", ambiguous=False)
-    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-
-    >>> rng_tz.ceil("h", ambiguous=True)
-    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-    """
+_ITER_CHUNKSIZE = 10_000
 
 
 class TimelikeOps(DatetimeLikeArrayMixin):
@@ -1989,85 +1816,27 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _validate_dtype(cls, values, dtype):
         raise AbstractMethodError(cls)
 
-    @property
-    def freq(self):
-        """
-        Return the frequency object if it is set, otherwise None.
+    def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
+        raise AbstractMethodError(self)
 
-        To learn more about the frequency strings, please see
-        :ref:`this link<timeseries.offset_aliases>`.
-
-        See Also
-        --------
-        DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
-        PeriodIndex.freq : Return the frequency object if it is set, otherwise None.
-
-        Examples
-        --------
-        >>> datetimeindex = pd.date_range(
-        ...     "2022-02-22 02:22:22", periods=10, tz="America/Chicago", freq="h"
-        ... )
-        >>> datetimeindex
-        DatetimeIndex(['2022-02-22 02:22:22-06:00', '2022-02-22 03:22:22-06:00',
-                       '2022-02-22 04:22:22-06:00', '2022-02-22 05:22:22-06:00',
-                       '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
-                       '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
-                       '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
-                      dtype='datetime64[ns, America/Chicago]', freq='h')
-        >>> datetimeindex.freq
-        <Hour>
-        """
-        return self._freq
-
-    @freq.setter
-    def freq(self, value) -> None:
-        if value is not None:
-            value = to_offset(value)
-            self._validate_frequency(self, value)
-            if self.dtype.kind == "m" and not isinstance(value, (Tick, Day)):
-                raise TypeError("TimedeltaArray/Index freq must be a Tick")
-
-            if self.ndim > 1:
-                raise ValueError("Cannot set freq with ndim > 1")
-
-        self._freq = value
-
-    @final
-    def _maybe_pin_freq(self, freq, validate_kwds: dict) -> None:
-        """
-        Constructor helper to pin the appropriate `freq` attribute.  Assumes
-        that self._freq is currently set to any freq inferred in
-        _from_sequence_not_strict.
-        """
-        if freq is None:
-            # user explicitly passed None -> override any inferred_freq
-            self._freq = None
-        elif freq == "infer":
-            # if self._freq is *not* None then we already inferred a freq
-            #  and there is nothing left to do
-            if self._freq is None:
-                # Set _freq directly to bypass duplicative _validate_frequency
-                # check.
-                self._freq = to_offset(self.inferred_freq)  # type: ignore[assignment]
-        elif freq is lib.no_default:
-            # user did not specify anything, keep inferred freq if the original
-            #  data had one, otherwise do nothing
-            pass
-        elif self._freq is None:
-            # We cannot inherit a freq from the data, so we need to validate
-            #  the user-passed freq
-            freq = to_offset(freq)
-            type(self)._validate_frequency(self, freq, **validate_kwds)
-            self._freq = freq
+    def __iter__(self) -> Iterator:
+        if self.ndim > 1:
+            for i in range(len(self)):
+                yield self[i]
         else:
-            # Otherwise we just need to check that the user-passed freq
-            #  doesn't conflict with the one we already have.
-            freq = to_offset(freq)
-            _validate_inferred_freq(freq, self._freq)
+            # convert in chunks of 10k for efficiency
+            data = self._ndarray
+            length = len(self)
+            chunksize = _ITER_CHUNKSIZE
+            chunks = (length // chunksize) + 1
+            for i in range(chunks):
+                start_i = i * chunksize
+                end_i = min((i + 1) * chunksize, length)
+                yield from self._iter_convert_chunk(data[start_i:end_i])
 
     @final
     @classmethod
-    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs) -> None:
+    def _validate_frequency(cls, index, freq: BaseOffset) -> None:
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
@@ -2079,9 +1848,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         freq : DateOffset
             The frequency to validate
         """
-        inferred = index.inferred_freq
+        inferred = index._inferred_freq_str
         if index.size == 0 or inferred == freq.freqstr:
             return None
+
+        if getattr(index.dtype, "tz", None) is not None and not isinstance(freq, Tick):
+            # GH#55499 non-tick offsets do wall-time arithmetic, so validate
+            #  against wall times; avoids raising on ambiguous times.
+            index = index.tz_localize(None)
 
         try:
             on_freq = cls._generate_range(
@@ -2090,9 +1864,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 periods=len(index),
                 freq=freq,
                 unit=index.unit,
-                **kwargs,
             )
-            if not np.array_equal(index.asi8, on_freq.asi8):
+            if not lib.array_equivalent_bytes(index.asi8, on_freq.asi8):
                 raise ValueError
         except ValueError as err:
             if "non-fixed" in str(err):
@@ -2204,12 +1977,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             tz = cast("DatetimeArray", self).tz
             new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of
-        # "NDArrayBacked"  [call-arg]
         return type(self)._simple_new(
             new_values,
             dtype=new_dtype,
-            freq=self.freq,  # type: ignore[call-arg]
         )
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
@@ -2248,7 +2018,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             )
 
         values = self.view("i8")
-        values = cast(np.ndarray, values)
+        values = cast("np.ndarray", values)
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             # GH 52761
@@ -2258,31 +2028,326 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
-    @Appender((_round_doc + _round_example).format(op="round"))
-    def round(
+    def round(  # type: ignore[override]
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        """
+        Perform round operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index to the
+        nearest specified frequency using standard rounding rules (round half
+        to even).
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to round the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+              order. Requires that the timestamps are monotonically increasing.
+            - bool-ndarray where True signifies a DST time, False designates
+              a non-DST time (note that this flag is only applicable for
+              ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise a ValueError if there are ambiguous
+              times.
+
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+            default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise a ValueError if there are
+              nonexistent times.
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        DatetimeIndex.floor :
+            Perform floor operation on the data to the specified `freq`.
+        DatetimeIndex.snap :
+            Snap time stamps to nearest occurring frequency.
+
+        Notes
+        -----
+        If the timestamps have a timezone, rounding will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When rounding
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range("1/1/2018 11:59:00", periods=3, freq="min")
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:01:00'],
+                      dtype='datetime64[us]', freq='min')
+
+        >>> rng.round('h')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:00:00'],
+                      dtype='datetime64[us]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.round("h")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[us]
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.floor("2h", ambiguous=False)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+
+        >>> rng_tz.floor("2h", ambiguous=True)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+        """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
-    @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        """
+        Perform floor operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index down to
+        the specified frequency (i.e., towards negative infinity).
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to floor the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+              order. Requires that the timestamps are monotonically increasing.
+            - bool-ndarray where True signifies a DST time, False designates
+              a non-DST time (note that this flag is only applicable for
+              ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise a ValueError if there are ambiguous
+              times.
+
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+            default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise a ValueError if there are
+              nonexistent times.
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        DatetimeIndex.floor :
+            Perform floor operation on the data to the specified `freq`.
+        DatetimeIndex.snap :
+            Snap time stamps to nearest occurring frequency.
+
+        Notes
+        -----
+        If the timestamps have a timezone, flooring will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When flooring
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range("1/1/2018 11:59:00", periods=3, freq="min")
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:01:00'],
+                      dtype='datetime64[us]', freq='min')
+
+        >>> rng.floor('h')
+        DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:00:00'],
+                      dtype='datetime64[us]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.floor("h")
+        0   2018-01-01 11:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[us]
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.floor("2h", ambiguous=False)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                     dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+
+        >>> rng_tz.floor("2h", ambiguous=True)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+        """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        """
+        Perform ceil operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index up to
+        the specified frequency (i.e., towards positive infinity).
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to ceil the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+              order. Requires that the timestamps are monotonically increasing.
+            - bool-ndarray where True signifies a DST time, False designates
+              a non-DST time (note that this flag is only applicable for
+              ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise a ValueError if there are ambiguous
+              times.
+
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+            default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise a ValueError if there are
+              nonexistent times.
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        DatetimeIndex.floor :
+            Perform floor operation on the data to the specified `freq`.
+        DatetimeIndex.snap :
+            Snap time stamps to nearest occurring frequency.
+
+        Notes
+        -----
+        If the timestamps have a timezone, ceiling will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When ceiling
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range("1/1/2018 11:59:00", periods=3, freq="min")
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:01:00'],
+                      dtype='datetime64[us]', freq='min')
+
+        >>> rng.ceil('h')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 13:00:00'],
+                      dtype='datetime64[us]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.ceil("h")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 13:00:00
+        dtype: datetime64[us]
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.ceil("h", ambiguous=False)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+
+        >>> rng_tz.ceil("h", ambiguous=True)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+        """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     # --------------------------------------------------------------
@@ -2298,41 +2363,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------
-    # Frequency Methods
-
-    def _maybe_clear_freq(self) -> None:
-        self._freq = None
-
-    def _with_freq(self, freq) -> Self:
-        """
-        Helper to get a view on the same data, with a new freq.
-
-        Parameters
-        ----------
-        freq : DateOffset, None, or "infer"
-
-        Returns
-        -------
-        Same type as self
-        """
-        # GH#29843
-        if freq is None:
-            # Always valid
-            pass
-        elif len(self) == 0 and isinstance(freq, BaseOffset):
-            # Always valid.  In the TimedeltaArray case, we require a Tick offset
-            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
-                raise TypeError("TimedeltaArray/Index freq must be a Tick")
-        else:
-            # As an internal method, we can ensure this assertion always holds
-            assert freq == "infer"
-            freq = to_offset(self.inferred_freq)
-
-        arr = self.view()
-        arr._freq = freq
-        return arr
-
-    # --------------------------------------------------------------
     # ExtensionArray Interface
 
     def _values_for_json(self) -> np.ndarray:
@@ -2346,52 +2376,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         use_na_sentinel: bool = True,
         sort: bool = False,
     ):
-        if self.freq is not None:
-            # We must be unique, so can short-circuit (and retain freq)
-            if sort and self.freq.n < 0:
-                codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
-                uniques = self[::-1]
-            else:
-                codes = np.arange(len(self), dtype=np.intp)
-                uniques = self.copy()  # TODO: copy or view?
-            return codes, uniques
-
         if sort:
-            # algorithms.factorize only passes sort=True here when freq is
-            #  not None, so this should not be reached.
             raise NotImplementedError(
-                f"The 'sort' keyword in {type(self).__name__}.factorize is "
-                "ignored unless arr.freq is not None. To factorize with sort, "
-                "call pd.factorize(obj, sort=True) instead."
+                f"The 'sort' keyword in {type(self).__name__}.factorize is not "
+                "supported. To factorize with sort, call pd.factorize(obj, sort=True) "
+                "instead."
             )
         return super().factorize(use_na_sentinel=use_na_sentinel)
-
-    @classmethod
-    def _concat_same_type(
-        cls,
-        to_concat: Sequence[Self],
-        axis: AxisInt = 0,
-    ) -> Self:
-        new_obj = super()._concat_same_type(to_concat, axis)
-
-        obj = to_concat[0]
-
-        if axis == 0:
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            to_concat = [x for x in to_concat if len(x)]
-
-            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:], strict=True)
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                    new_freq = obj.freq
-                    new_obj._freq = new_freq
-        return new_obj
-
-    def copy(self, order: str = "C") -> Self:
-        new_obj = super().copy(order=order)
-        new_obj._freq = self.freq
-        return new_obj
 
     def interpolate(
         self,
@@ -2430,27 +2421,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
-
-    def take(
-        self,
-        indices: TakeIndexer,
-        *,
-        allow_fill: bool = False,
-        fill_value: Any = None,
-        axis: AxisInt = 0,
-    ) -> Self:
-        result = super().take(
-            indices=indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
-        )
-
-        indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
-
-        if isinstance(maybe_slice, slice):
-            freq = self._get_getitem_freq(maybe_slice)
-            result._freq = freq  # type: ignore[assignment]
-
-        return result
 
     # --------------------------------------------------------------
     # Unsorted
@@ -2514,7 +2484,7 @@ def ensure_arraylike_for_datetimelike(
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through maybe_convert_dtype,
         #  e.g. the categories are timedelta64s
-        data = data.categories.take(data.codes, fill_value=NaT)._values
+        data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
 
     return data, copy
@@ -2551,35 +2521,6 @@ def validate_periods(periods: int | None) -> int | None:
     # error: Incompatible return value type (got "int | integer[Any] | None",
     # expected "int | None")
     return periods  # type: ignore[return-value]
-
-
-def _validate_inferred_freq(
-    freq: BaseOffset | None, inferred_freq: BaseOffset | None
-) -> BaseOffset | None:
-    """
-    If the user passes a freq and another freq is inferred from passed data,
-    require that they match.
-
-    Parameters
-    ----------
-    freq : DateOffset or None
-    inferred_freq : DateOffset or None
-
-    Returns
-    -------
-    freq : DateOffset or None
-    """
-    if inferred_freq is not None:
-        if freq is not None and freq != inferred_freq:
-            raise ValueError(
-                f"Inferred frequency {inferred_freq} from passed "
-                "values does not conform to passed frequency "
-                f"{freq.freqstr}"
-            )
-        if freq is None:
-            freq = inferred_freq
-
-    return freq
 
 
 def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype | ArrowDtype) -> str:

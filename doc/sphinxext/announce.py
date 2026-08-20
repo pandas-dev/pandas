@@ -74,7 +74,7 @@ def get_authors(revision_range):
     # We need two passes over the log for cur and prev, one to get the
     # "Co-authored by" commits, which come from backports by the bot,
     # and one for regular commits.
-    xpr = re.compile(r"Co-authored-by: (?P<name>[^<]+) ")
+    xpr = re.compile(r"Co-authored-by: (?P<name>[^<\n]+)\s")
     cur = set(
         xpr.findall(
             this_repo.git.log("--grep=Co-authored", "--pretty=%b", revision_range)

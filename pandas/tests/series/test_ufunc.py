@@ -5,6 +5,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -17,7 +19,7 @@ def ufunc(request):
 
 
 @pytest.fixture(
-    params=[pytest.param(True, marks=pytest.mark.fails_arm_wheels), False],
+    params=[True, False],
     ids=["sparse", "dense"],
 )
 def sparse(request):
@@ -230,6 +232,21 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
     assert result.name is None
 
 
+def test_binary_ufunc_out_pandas_object():
+    # GH#43190 passing a Series as the ufunc `out` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of writing the result.
+    a = pd.Series([1, 2])
+    b = pd.Series([3, 4])
+    out = pd.Series([0, 0])
+
+    result = np.fmin(a, b, out=out)
+
+    expected = pd.Series([1, 2])
+    tm.assert_series_equal(result, expected)
+    # the result is also written into `out` in place
+    tm.assert_series_equal(out, expected)
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:
@@ -330,12 +347,12 @@ class TestNumpyReductions:
             with pytest.raises(TypeError, match=msg):
                 np.add.reduce(obj)
 
-    def test_max(self, values_for_np_reduce, box_with_array):
+    def test_max(self, values_for_np_reduce, box_with_array, using_python_scalars):
         box = box_with_array
         values = values_for_np_reduce
 
         same_type = True
-        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+        if box is pd.Index and values.dtype.kind in "if":
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
@@ -349,17 +366,24 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[1]
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266
+                expected = expected.item()
             assert result == expected
             if same_type:
                 # check we have e.g. Timestamp instead of dt64
                 assert type(result) == type(expected)
 
-    def test_min(self, values_for_np_reduce, box_with_array):
+    def test_min(self, values_for_np_reduce, box_with_array, using_python_scalars):
         box = box_with_array
         values = values_for_np_reduce
 
         same_type = True
-        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+        if box is pd.Index and values.dtype.kind in "if":
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
@@ -372,6 +396,13 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[0]
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266
+                expected = expected.item()
             assert result == expected
             if same_type:
                 # check we have e.g. Timestamp instead of dt64
@@ -383,7 +414,11 @@ def test_binary_ufunc_other_types(type_):
     a = pd.Series([1, 2, 3], name="name")
     b = type_([3, 4, 5])
 
-    result = np.add(a, b)
+    # GH#62423 tuple/deque operands are deprecated in favor of scalar-like
+    warn = None if type_ is list else Pandas4Warning
+    depr_msg = "In a future version these will be treated as scalar-like"
+    with tm.assert_produces_warning(warn, match=depr_msg):
+        result = np.add(a, b)
     expected = pd.Series(np.add(a.to_numpy(), b), name="name")
     tm.assert_series_equal(result, expected)
 
@@ -429,10 +464,13 @@ def test_np_matmul():
 
 
 @pytest.mark.parametrize("box", [pd.Index, pd.Series])
-def test_np_matmul_1D(box):
+def test_np_matmul_1D(box, using_python_scalars):
     result = np.matmul(box([1, 2]), box([2, 3]))
     assert result == 8
-    assert isinstance(result, np.int64)
+    if using_python_scalars:
+        assert type(result) == int, type(result)
+    else:
+        assert type(result) == np.int64, type(result)
 
 
 def test_array_ufuncs_for_many_arguments():
@@ -457,11 +495,12 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-@pytest.mark.xfail(reason="see https://github.com/pandas-dev/pandas/pull/51082")
-def test_np_fix():
-    # np.fix is not a ufunc but is composed of several ufunc calls under the hood
-    # with `out` and `where` keywords
+def test_np_trunc():
+    # This used to test np.fix, which is not a ufunc but is composed of
+    # several ufunc calls under the hood with `out` and `where` keywords. But numpy
+    # is deprecating that (or at least discussing deprecating) in favor of np.trunc,
+    # which _is_ a ufunc without the out keyword usage.
     ser = pd.Series([-1.5, -0.5, 0.5, 1.5])
-    result = np.fix(ser)
+    result = np.trunc(ser)
     expected = pd.Series([-1.0, -0.0, 0.0, 1.0])
     tm.assert_series_equal(result, expected)

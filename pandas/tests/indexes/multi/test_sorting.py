@@ -132,7 +132,7 @@ def test_unsortedindex():
         df.loc(axis=0)["q", :]
 
 
-def test_unsortedindex_doc_examples(performance_warning):
+def test_unsortedindex_doc_examples():
     # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
         {
@@ -143,8 +143,8 @@ def test_unsortedindex_doc_examples(performance_warning):
     )
 
     dfm = dfm.set_index(["jim", "joe"])
-    with tm.assert_produces_warning(performance_warning):
-        dfm.loc[(1, "z")]
+    # Full-length key uses the engine directly; no PerformanceWarning
+    dfm.loc[(1, "z")]
 
     msg = r"Key length \(2\) was greater than MultiIndex lexsort depth \(1\)"
     with pytest.raises(UnsortedIndexError, match=msg):
@@ -311,6 +311,22 @@ def test_sort_values_incomparable():
     match = "'<' not supported between instances of 'Timestamp' and 'int'"
     with pytest.raises(TypeError, match=match):
         mi.sort_values()
+
+
+def test_sortlevel_incomparable():
+    # GH#21136
+    mi = MultiIndex.from_arrays(
+        [
+            Series(
+                [Timestamp("2011-04-09"), Timestamp("2010-04-09"), "2009/4/9"],
+                dtype=object,
+            ),
+            [2, 1, 3],
+        ],
+        names=["a", "c"],
+    )
+    with pytest.raises(TypeError, match="not supported between instances of"):
+        mi.sortlevel("a")
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])

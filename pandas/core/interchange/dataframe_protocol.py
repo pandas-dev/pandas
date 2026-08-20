@@ -15,6 +15,8 @@ from typing import (
     TypedDict,
 )
 
+from pandas.util._decorators import set_module
+
 if TYPE_CHECKING:
     from collections.abc import (
         Iterable,
@@ -362,6 +364,7 @@ class Column(ABC):
 #        pass
 
 
+@set_module("pandas.api.interchange")
 class DataFrame(ABC):
     """
     A data frame class, with only the methods required by the interchange
@@ -376,8 +379,6 @@ class DataFrame(ABC):
     ``__dataframe__`` method of a public data frame class in a library adhering
     to the dataframe interchange protocol specification.
     """
-
-    __module__ = "pandas.api.interchange"
 
     version = 0  # version of the protocol
 

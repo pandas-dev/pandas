@@ -20,6 +20,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby import NamedAgg
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -85,6 +86,110 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_with_list_like():
+    # GH#58318
+    df = DataFrame({"col": list("aab"), "val": range(3), "another": range(3)})
+    result = df.groupby("col").transform(["sum", "min"])
+    expected = DataFrame(
+        {
+            ("val", "sum"): [1, 1, 2],
+            ("val", "min"): [0, 0, 2],
+            ("another", "sum"): [1, 1, 2],
+            ("another", "min"): [0, 0, 2],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(
+        [("val", "sum"), ("val", "min"), ("another", "sum"), ("another", "min")]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_list_like_single_column():
+    # GH#58318 - only one non-key column
+    df = DataFrame({"col": list("aab"), "val": range(3)})
+    result = df.groupby("col").transform(["sum", "min"])
+    expected = DataFrame({("val", "sum"): [1, 1, 2], ("val", "min"): [0, 0, 2]})
+    expected.columns = MultiIndex.from_tuples([("val", "sum"), ("val", "min")])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_dict():
+    # GH#58318 - plain {"col": "func"} dict selects specific columns only
+    df = DataFrame({"col": list("aab"), "val": range(3), "another": range(3)})
+    result = df.groupby("col").transform({"val": "sum", "another": "min"})
+    expected = DataFrame({"val": [1, 1, 2], "another": [0, 0, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_dict_subset_columns():
+    # GH#58318 - dict only touches the listed columns (not all non-key cols)
+    df = DataFrame(
+        {"col": list("aab"), "val": range(3), "other": range(3), "extra": range(3)}
+    )
+    result = df.groupby("col").transform({"val": "sum"})
+    expected = DataFrame({"val": [1, 1, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_dict_of_lists_raises():
+    # GH#58318 - dict-of-lists is not yet implemented; should raise clearly
+    df = DataFrame({"col": list("aab"), "val": range(3)})
+    with pytest.raises(NotImplementedError, match="dict of lists"):
+        df.groupby("col").transform({"val": ["sum", "min"]})
+
+
+def test_transform_with_namedagg():
+    # GH#58318 - NamedAgg lets user rename output columns and select source col
+    df = DataFrame({"A": list("aaabbbccc"), "B": range(9), "D": range(9, 18)})
+    result = df.groupby("A").transform(
+        b_min=NamedAgg(column="B", aggfunc="min"),
+        d_sum=NamedAgg(column="D", aggfunc="sum"),
+    )
+    expected = DataFrame(
+        {
+            "b_min": [0, 0, 0, 3, 3, 3, 6, 6, 6],
+            "d_sum": [30, 30, 30, 39, 39, 39, 48, 48, 48],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_namedagg_same_source_column():
+    # GH#58318 - multiple NamedAgg targeting the same source column
+    df = DataFrame({"A": list("aaabbbccc"), "B": range(9, 18)})
+    result = df.groupby("A").transform(
+        b_min=NamedAgg(column="B", aggfunc="min"),
+        b_max=NamedAgg(column="B", aggfunc="max"),
+    )
+    expected = DataFrame(
+        {
+            "b_min": [9, 9, 9, 12, 12, 12, 15, 15, 15],
+            "b_max": [11, 11, 11, 14, 14, 14, 17, 17, 17],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_namedagg_plain_tuple():
+    # GH#58318 - plain tuples are accepted just like NamedAgg (namedtuple)
+    df = DataFrame({"A": list("aaabbb"), "B": range(6)})
+    result = df.groupby("A").transform(
+        b_sum=NamedAgg(column="B", aggfunc="sum"),
+    )
+    # Plain tuple equivalent:
+    result2 = df.groupby("A").transform(
+        b_sum=("B", "sum"),
+    )
+    tm.assert_frame_equal(result, result2)
+
+
+def test_transform_series_groupby_list_raises():
+    # GH#58318 - SeriesGroupBy.transform with list not yet implemented
+    g = DataFrame({"col": list("aaabbb"), "val": range(6)}).groupby("col")["val"]
+    with pytest.raises(NotImplementedError, match="SeriesGroupBy"):
+        g.transform(["sum", "min"])
+
+
 def test_transform_fast():
     df = DataFrame(
         {
@@ -111,7 +216,7 @@ def test_transform_fast2():
         {
             "grouping": [0, 1, 1, 3],
             "f": [1.1, 2.1, 3.1, 4.5],
-            "d": date_range("2014-1-1", "2014-1-4"),
+            "d": date_range("2014-1-1", "2014-1-4", unit="ns"),
             "i": [1, 2, 3, 4],
         },
         columns=["grouping", "f", "i", "d"],
@@ -187,7 +292,7 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
-    ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
+    ts = tso.iloc[[1, 0, *list(range(2, len(base)))]]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean(axis=0))
@@ -252,7 +357,7 @@ def test_transform_datetime_to_numeric():
     # convert dt to float
     df = DataFrame({"a": 1, "b": date_range("2015-01-01", periods=2, freq="D")})
     result = df.groupby("a").b.transform(
-        lambda x: x.dt.dayofweek - x.dt.dayofweek.mean()
+        lambda x: x.dt.day_of_week - x.dt.day_of_week.mean()
     )
 
     expected = Series([-0.5, 0.5], name="b")
@@ -261,7 +366,7 @@ def test_transform_datetime_to_numeric():
     # convert dt to int
     df = DataFrame({"a": 1, "b": date_range("2015-01-01", periods=2, freq="D")})
     result = df.groupby("a").b.transform(
-        lambda x: x.dt.dayofweek - x.dt.dayofweek.min()
+        lambda x: x.dt.day_of_week - x.dt.day_of_week.min()
     )
 
     expected = Series([0, 1], dtype=np.int32, name="b")
@@ -401,7 +506,10 @@ def test_transform_function_aliases(df):
 def test_series_fast_transform_date():
     # GH 13191
     df = DataFrame(
-        {"grouping": [np.nan, 1, 1, 3], "d": date_range("2014-1-1", "2014-1-4")}
+        {
+            "grouping": [np.nan, 1, 1, 3],
+            "d": date_range("2014-1-1", "2014-1-4", unit="ns"),
+        }
     )
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
@@ -734,7 +842,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
     ],
 )
 def test_cython_transform_frame_column(
-    request, op, args, targop, df_fix, gb_target, column
+    request, op, args, targop, df_fix, gb_target, column, using_infer_string
 ):
     df = request.getfixturevalue(df_fix)
     gb = df.groupby(group_keys=False, **gb_target)
@@ -744,15 +852,13 @@ def test_cython_transform_frame_column(
         and op != "shift"
         and not (c == "timedelta" and op == "cumsum")
     ):
-        msg = "|".join(
-            [
-                "does not support .* operations",
-                "does not support operation",
-                ".* is not supported for object dtype",
-                "is not implemented for this dtype",
-                ".* is not supported for str dtype",
-            ]
-        )
+        if c == "timedelta":
+            msg = f"timedelta64 type does not support {op} operations"
+        elif c in ("string", "string_missing") and not using_infer_string:
+            msg = f"{op} is not supported for object dtype"
+        else:
+            # datetime, or the string columns under the str dtype
+            msg = "does not support operation"
         with pytest.raises(TypeError, match=msg):
             gb[c].transform(op)
         with pytest.raises(TypeError, match=msg):
@@ -950,7 +1056,7 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     result = getattr(df.groupby("symbol")["status"], func)()
 
     index = MultiIndex.from_tuples(
-        tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
+        tuples=list(zip(*[date, symbol], strict=True)), names=["date", "symbol"]
     )
     expected = Series(expected_status, index=index, name="status")
 
@@ -1010,7 +1116,7 @@ def test_groupby_transform_timezone_column(func):
 )
 def test_groupby_transform_with_datetimes(func, values):
     # GH 15306
-    dates = date_range("1/1/2011", periods=10, freq="D")
+    dates = date_range("1/1/2011", periods=10, freq="D", unit="ns")
 
     stocks = DataFrame({"price": np.arange(10.0)}, index=dates)
     stocks["week_id"] = dates.isocalendar().week
@@ -1120,7 +1226,11 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
-    assert len(set(DataFrame(result).iloc[-4:, -1])) == 1
+    second_group_values = DataFrame(result).iloc[-4:, -1]
+    expected = Series([second_group_values.iloc[0]] * 4)
+    tm.assert_series_equal(
+        second_group_values, expected, check_index=False, check_names=False
+    )
 
 
 def test_transform_lambda_with_datetimetz():

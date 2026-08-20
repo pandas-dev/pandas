@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import (
+    AbstractContextManager,
+    contextmanager,
+)
 import os
-from pathlib import Path
 import sys
-import tempfile
 from typing import (
     IO,
     TYPE_CHECKING,
     Any,
 )
-import uuid
 
-from pandas.compat import (
-    PYPY,
-    WARNING_CHECK_DISABLED,
-)
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.errors import ChainedAssignmentError
 
 from pandas.io.common import get_handle
@@ -76,7 +73,7 @@ def set_timezone(tz: str) -> Generator[None]:
     """
     import time
 
-    def setTZ(tz) -> None:
+    def setTZ(tz: str | None) -> None:
         if hasattr(time, "tzset"):
             if tz is None:
                 try:
@@ -98,39 +95,7 @@ def set_timezone(tz: str) -> Generator[None]:
 
 
 @contextmanager
-def ensure_clean(filename=None) -> Generator[Any]:
-    """
-    Gets a temporary path and agrees to remove on close.
-
-    This implementation does not use tempfile.mkstemp to avoid having a file handle.
-    If the code using the returned path wants to delete the file itself, windows
-    requires that no program has a file handle to it.
-
-    Parameters
-    ----------
-    filename : str (optional)
-        suffix of the created file.
-    """
-    folder = Path(tempfile.gettempdir())
-
-    if filename is None:
-        filename = ""
-    filename = str(uuid.uuid4()) + filename
-    path = folder / filename
-
-    path.touch()
-
-    handle_or_str = str(path)
-
-    try:
-        yield handle_or_str
-    finally:
-        if path.is_file():
-            path.unlink()
-
-
-@contextmanager
-def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
+def with_csv_dialect(name: str, **kwargs: Any) -> Generator[None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -163,10 +128,13 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
         csv.unregister_dialect(name)
 
 
-def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(
+    extra_warnings: tuple[type[Warning], ...] = (),
+    extra_match: tuple[str | None, ...] = (),
+) -> AbstractContextManager:
     from pandas._testing import assert_produces_warning
 
-    if PYPY or WARNING_CHECK_DISABLED:
+    if CHAINED_WARNING_DISABLED:
         if not extra_warnings:
             from contextlib import nullcontext
 
@@ -179,7 +147,7 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     else:
         warning = ChainedAssignmentError
         match = (
-            "A value is trying to be set on a copy of a DataFrame or Series "
+            "A value is being set on a copy of a DataFrame or Series "
             "through chained assignment"
         )
         if extra_warnings:

@@ -7,6 +7,7 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     HDFStore,
     Index,
@@ -16,62 +17,31 @@ from pandas import (
     concat,
     date_range,
 )
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-)
 from pandas.util import _test_decorators as td
 
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_format_type(tmp_path, setup_path):
+def test_format_type(temp_hdfstore):
     df = DataFrame({"A": [1, 2]})
-    with HDFStore(tmp_path / setup_path) as store:
-        store.put("a", df, format="fixed")
-        store.put("b", df, format="table")
+    temp_hdfstore.put("a", df, format="fixed", track_times=False)
+    temp_hdfstore.put("b", df, format="table", track_times=False)
 
-        assert store.get_storer("a").format_type == "fixed"
-        assert store.get_storer("b").format_type == "table"
+    assert temp_hdfstore.get_storer("a").format_type == "fixed"
+    assert temp_hdfstore.get_storer("b").format_type == "table"
 
 
-def test_format_kwarg_in_constructor(tmp_path, setup_path):
+def test_format_kwarg_in_constructor(temp_h5_path):
     # GH 13291
 
     msg = "format is not a defined argument for HDFStore"
 
     with pytest.raises(ValueError, match=msg):
-        HDFStore(tmp_path / setup_path, format="table")
+        HDFStore(temp_h5_path, format="table")
 
 
-def test_api_default_format(tmp_path, setup_path):
+def test_api_default_format(temp_hdfstore):
     # default_format option
-    with ensure_clean_store(setup_path) as store:
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
-        )
-
-        with pd.option_context("io.hdf.default_format", "fixed"):
-            _maybe_remove(store, "df")
-            store.put("df", df)
-            assert not store.get_storer("df").is_table
-
-            msg = "Can only append to Tables"
-            with pytest.raises(ValueError, match=msg):
-                store.append("df2", df)
-
-        with pd.option_context("io.hdf.default_format", "table"):
-            _maybe_remove(store, "df")
-            store.put("df", df)
-            assert store.get_storer("df").is_table
-
-            _maybe_remove(store, "df2")
-            store.append("df2", df)
-            assert store.get_storer("df").is_table
-
-    path = tmp_path / setup_path
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -79,130 +49,201 @@ def test_api_default_format(tmp_path, setup_path):
     )
 
     with pd.option_context("io.hdf.default_format", "fixed"):
-        df.to_hdf(path, key="df")
-        with HDFStore(path) as store:
-            assert not store.get_storer("df").is_table
+        temp_hdfstore.put("df", df, track_times=False)
+        assert not temp_hdfstore.get_storer("df").is_table
+
+        msg = "Can only append to Tables"
         with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, key="df2", append=True)
+            temp_hdfstore.append("df2", df)
 
     with pd.option_context("io.hdf.default_format", "table"):
-        df.to_hdf(path, key="df3")
-        with HDFStore(path) as store:
+        temp_hdfstore.remove("df")
+        temp_hdfstore.put("df", df, track_times=False)
+        assert temp_hdfstore.get_storer("df").is_table
+
+        temp_hdfstore.append("df2", df)
+        assert temp_hdfstore.get_storer("df").is_table
+
+
+def test_api_default_format_path(temp_h5_path):
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
+
+    with pd.option_context("io.hdf.default_format", "fixed"):
+        df.to_hdf(temp_h5_path, key="df")
+        with HDFStore(temp_h5_path) as store:
+            assert not store.get_storer("df").is_table
+        msg = "Can only append to Tables"
+        with pytest.raises(ValueError, match=msg):
+            df.to_hdf(temp_h5_path, key="df2", append=True)
+
+    with pd.option_context("io.hdf.default_format", "table"):
+        df.to_hdf(temp_h5_path, key="df3")
+        with HDFStore(temp_h5_path) as store:
             assert store.get_storer("df3").is_table
-        df.to_hdf(path, key="df4", append=True)
-        with HDFStore(path) as store:
+        df.to_hdf(temp_h5_path, key="df4", append=True)
+        with HDFStore(temp_h5_path) as store:
             assert store.get_storer("df4").is_table
 
 
-def test_put(setup_path):
-    with ensure_clean_store(setup_path) as store:
-        ts = Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        )
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((20, 4)),
-            columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=20, freq="B"),
-        )
-        store["a"] = ts
-        store["b"] = df[:10]
-        store["foo/bar/bah"] = df[:10]
-        store["foo"] = df[:10]
-        store["/foo"] = df[:10]
-        store.put("c", df[:10], format="table")
+def test_put(temp_hdfstore):
+    store = temp_hdfstore
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((20, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=20, freq="B"),
+    )
+    store["a"] = ts
+    store["b"] = df[:10]
+    store["foo/bar/bah"] = df[:10]
+    store["foo"] = df[:10]
+    store["/foo"] = df[:10]
+    store.put("c", df[:10], format="table", track_times=False)
 
-        # not OK, not a table
-        msg = "Can only append to Tables"
-        with pytest.raises(ValueError, match=msg):
-            store.put("b", df[10:], append=True)
+    # not OK, not a table
+    msg = "Can only append to Tables"
+    with pytest.raises(ValueError, match=msg):
+        store.put("b", df[10:], append=True, track_times=False)
 
-        # node does not currently exist, test _is_table_type returns False
-        # in this case
-        _maybe_remove(store, "f")
-        with pytest.raises(ValueError, match=msg):
-            store.put("f", df[10:], append=True)
+    # node does not currently exist, test _is_table_type returns False
+    # in this case
+    with pytest.raises(ValueError, match=msg):
+        store.put("f", df[10:], append=True, track_times=False)
 
-        # can't put to a table (use append instead)
-        with pytest.raises(ValueError, match=msg):
-            store.put("c", df[10:], append=True)
+    # can't put to a table (use append instead)
+    with pytest.raises(ValueError, match=msg):
+        store.put("c", df[10:], append=True, track_times=False)
 
-        # overwrite table
-        store.put("c", df[:10], format="table", append=False)
-        tm.assert_frame_equal(df[:10], store["c"])
-
-
-def test_put_string_index(setup_path):
-    with ensure_clean_store(setup_path) as store:
-        index = Index([f"I am a very long string index: {i}" for i in range(20)])
-        s = Series(np.arange(20), index=index)
-        df = DataFrame({"A": s, "B": s})
-
-        store["a"] = s
-        tm.assert_series_equal(store["a"], s)
-
-        store["b"] = df
-        tm.assert_frame_equal(store["b"], df)
-
-        # mixed length
-        index = Index(
-            ["abcdefghijklmnopqrstuvwxyz1234567890"]
-            + [f"I am a very long string index: {i}" for i in range(20)]
-        )
-        s = Series(np.arange(21), index=index)
-        df = DataFrame({"A": s, "B": s})
-        store["a"] = s
-        tm.assert_series_equal(store["a"], s)
-
-        store["b"] = df
-        tm.assert_frame_equal(store["b"], df)
+    # overwrite table
+    store.put("c", df[:10], format="table", append=False, track_times=False)
+    tm.assert_frame_equal(df[:10], store["c"])
 
 
-def test_put_compression(setup_path):
-    with ensure_clean_store(setup_path) as store:
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
-        )
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_put_preserves_nested_keys(temp_hdfstore, format):
+    # GH#17267 writing to a key must not delete keys nested beneath it
+    store = temp_hdfstore
+    child = Series(np.arange(20, dtype=np.float64))
+    parent = Series(np.arange(10, dtype=np.float64))
 
-        store.put("c", df, format="table", complib="zlib")
-        tm.assert_frame_equal(store["c"], df)
+    store.put("All/atest", child, format=format, track_times=False)
+    store.put("All", parent, format=format, track_times=False)
 
-        # can't compress if format='fixed'
-        msg = "Compression not supported on Fixed format stores"
-        with pytest.raises(ValueError, match=msg):
-            store.put("b", df, format="fixed", complib="zlib")
+    assert sorted(store.keys()) == ["/All", "/All/atest"]
+    tm.assert_series_equal(store["All"], parent)
+    tm.assert_series_equal(store["All/atest"], child)
+
+    # overwriting the parent again (now a real object with a nested key, and
+    # changing dtype/shape) still leaves the nested key untouched
+    new_parent = DataFrame({"a": range(3), "b": list("xyz")})
+    store.put("All", new_parent, format=format, track_times=False)
+
+    assert sorted(store.keys()) == ["/All", "/All/atest"]
+    tm.assert_frame_equal(store["All"], new_parent)
+    tm.assert_series_equal(store["All/atest"], child)
 
 
-@td.skip_if_windows
-def test_put_compression_blosc(setup_path):
+@pytest.mark.parametrize("nested_key", [True, False])
+def test_put_overwrite_categorical_table(temp_hdfstore, nested_key):
+    # GH#17267 a table-format categorical stores its categories in a "meta"
+    # subgroup; overwriting must replace it, not preserve it as a nested key
+    store = temp_hdfstore
+    child = Series(np.arange(3, dtype=np.float64))
+    if nested_key:
+        store.put("All/atest", child, format="table", track_times=False)
+
+    df1 = DataFrame({"a": Categorical(["x", "y", "x"])})
+    store.put("All", df1, format="table", track_times=False)
+    df2 = DataFrame({"a": Categorical(["p", "q", "p"])})
+    store.put("All", df2, format="table", track_times=False)
+
+    tm.assert_frame_equal(store["All"], df2)
+    if nested_key:
+        tm.assert_series_equal(store["All/atest"], child)
+
+    # overwriting with a non-categorical object removes the stale metadata
+    df3 = DataFrame({"b": range(3)})
+    store.put("All", df3, format="table", track_times=False)
+
+    tm.assert_frame_equal(store["All"], df3)
+    expected = ["/All", "/All/atest"] if nested_key else ["/All"]
+    assert sorted(store.keys()) == expected
+
+
+def test_put_string_index(temp_hdfstore):
+    store = temp_hdfstore
+    index = Index([f"I am a very long string index: {i}" for i in range(20)])
+    s = Series(np.arange(20), index=index)
+    df = DataFrame({"A": s, "B": s})
+
+    store["a"] = s
+    tm.assert_series_equal(store["a"], s)
+
+    store["b"] = df
+    tm.assert_frame_equal(store["b"], df)
+
+    # mixed length
+    index = Index(
+        ["abcdefghijklmnopqrstuvwxyz1234567890"]
+        + [f"I am a very long string index: {i}" for i in range(20)]
+    )
+    s = Series(np.arange(21), index=index)
+    df = DataFrame({"A": s, "B": s})
+    store["a"] = s
+    tm.assert_series_equal(store["a"], s)
+
+    store["b"] = df
+    tm.assert_frame_equal(store["b"], df)
+
+
+def test_put_compression(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
-    with ensure_clean_store(setup_path) as store:
-        # can't compress if format='fixed'
-        msg = "Compression not supported on Fixed format stores"
-        with pytest.raises(ValueError, match=msg):
-            store.put("b", df, format="fixed", complib="blosc")
+    temp_hdfstore.put("c", df, format="table", complib="zlib", track_times=False)
+    tm.assert_frame_equal(temp_hdfstore["c"], df)
 
-        store.put("c", df, format="table", complib="blosc")
-        tm.assert_frame_equal(store["c"], df)
+    # can't compress if format='fixed'
+    msg = "Compression not supported on Fixed format stores"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put("b", df, format="fixed", complib="zlib", track_times=False)
 
 
-def test_put_datetime_ser(setup_path, performance_warning, using_infer_string):
+@td.skip_if_windows
+def test_put_compression_blosc(temp_hdfstore):
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    # can't compress if format='fixed'
+    msg = "Compression not supported on Fixed format stores"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put("b", df, format="fixed", complib="blosc", track_times=False)
+
+    temp_hdfstore.put("c", df, format="table", complib="blosc", track_times=False)
+    tm.assert_frame_equal(temp_hdfstore["c"], df)
+
+
+def test_put_datetime_ser(temp_hdfstore, performance_warning):
     # https://github.com/pandas-dev/pandas/pull/60663
     ser = Series(3 * [Timestamp("20010102").as_unit("ns")])
-    with ensure_clean_store(setup_path) as store:
-        store.put("ser", ser)
-        expected = ser.copy()
-        result = store.get("ser")
-        tm.assert_series_equal(result, expected)
+    temp_hdfstore.put("ser", ser, track_times=False)
+    expected = ser.copy()
+    result = temp_hdfstore.get("ser")
+    tm.assert_series_equal(result, expected)
 
 
-def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
+def test_put_mixed_type(temp_hdfstore, performance_warning, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
@@ -222,43 +263,62 @@ def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
     df.loc[df.index[3:6], ["obj1"]] = np.nan
     df = df._consolidate()
 
-    with ensure_clean_store(setup_path) as store:
-        _maybe_remove(store, "df")
+    warning = None if using_infer_string else performance_warning
+    with tm.assert_produces_warning(warning):
+        temp_hdfstore.put("df", df, track_times=False)
 
-        warning = None if using_infer_string else performance_warning
-        with tm.assert_produces_warning(warning):
-            store.put("df", df)
-
-        expected = store.get("df")
-        tm.assert_frame_equal(expected, df)
+    expected = temp_hdfstore.get("df")
+    tm.assert_frame_equal(expected, df)
 
 
-def test_put_str_frame(setup_path, performance_warning, string_dtype_arguments):
+def test_put_mixed_object_block_warns_only_non_string_columns(temp_hdfstore):
+    # GH#28460 when several object columns are consolidated into one block,
+    #  the PerformanceWarning must name only the columns that are not plain
+    #  strings; a string-only column would not warn on its own.
+    df = DataFrame(
+        {"string": ["a", "b"], "number": [1.0, 2.0], "mix": ["a", 2.0]}
+    ).astype({"string": object, "mix": object})
+
+    with tm.assert_produces_warning(
+        pd.errors.PerformanceWarning, match=r"items->Index\(\['mix'\]"
+    ):
+        temp_hdfstore.put("df", df, track_times=False)
+
+
+def test_put_str_frame(temp_hdfstore, performance_warning, string_dtype_arguments):
     # https://github.com/pandas-dev/pandas/pull/60663
     dtype = pd.StringDtype(*string_dtype_arguments)
     df = DataFrame({"a": pd.array(["x", pd.NA, "y"], dtype=dtype)})
-    with ensure_clean_store(setup_path) as store:
-        _maybe_remove(store, "df")
 
-        store.put("df", df)
-        expected_dtype = "str" if dtype.na_value is np.nan else "string"
-        expected = df.astype(expected_dtype)
-        result = store.get("df")
-        tm.assert_frame_equal(result, expected)
+    temp_hdfstore.put("df", df, track_times=False)
+    expected_dtype = "str" if dtype.na_value is np.nan else "string"
+    expected = df.astype(expected_dtype)
+    result = temp_hdfstore.get("df")
+    tm.assert_frame_equal(result, expected)
 
 
-def test_put_str_series(setup_path, performance_warning, string_dtype_arguments):
+def test_put_str_series(temp_hdfstore, performance_warning, string_dtype_arguments):
     # https://github.com/pandas-dev/pandas/pull/60663
     dtype = pd.StringDtype(*string_dtype_arguments)
     ser = Series(["x", pd.NA, "y"], dtype=dtype)
-    with ensure_clean_store(setup_path) as store:
-        _maybe_remove(store, "df")
 
-        store.put("ser", ser)
-        expected_dtype = "str" if dtype.na_value is np.nan else "string"
-        expected = ser.astype(expected_dtype)
-        result = store.get("ser")
-        tm.assert_series_equal(result, expected)
+    temp_hdfstore.put("ser", ser, track_times=False)
+    expected_dtype = "str" if dtype.na_value is np.nan else "string"
+    expected = ser.astype(expected_dtype)
+    result = temp_hdfstore.get("ser")
+    tm.assert_series_equal(result, expected)
+
+
+def test_put_str_frame_complevel(temp_hdfstore, string_dtype_arguments):
+    # GH#64180 - writing StringDtype columns to HDFStore with fixed format + complevel
+    dtype = pd.StringDtype(*string_dtype_arguments)
+    df = DataFrame({"a": pd.array(["x", pd.NA, "y"], dtype=dtype), "b": [1, 2, 3]})
+    temp_hdfstore.put("df", df, complevel=1, track_times=False)
+    expected_dtype = "str" if dtype.na_value is np.nan else "string"
+    expected = df.copy()
+    expected["a"] = expected["a"].astype(expected_dtype)
+    result = temp_hdfstore.get("df")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("format", ["table", "fixed"])
@@ -272,22 +332,19 @@ def test_put_str_series(setup_path, performance_warning, string_dtype_arguments)
         pd.period_range("2020-01-01", periods=10),
     ],
 )
-def test_store_index_types(setup_path, format, index):
+def test_store_index_types(temp_hdfstore, format, index):
     # GH5386
     # test storing various index types
-
-    with ensure_clean_store(setup_path) as store:
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 2)),
-            columns=list("AB"),
-            index=index,
-        )
-        _maybe_remove(store, "df")
-        store.put("df", df, format=format)
-        tm.assert_frame_equal(df, store["df"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=list("AB"),
+        index=index,
+    )
+    temp_hdfstore.put("df", df, format=format, track_times=False)
+    tm.assert_frame_equal(df, temp_hdfstore["df"])
 
 
-def test_column_multiindex(setup_path, using_infer_string):
+def test_column_multiindex(temp_hdfstore):
     # GH 4710
     # recreate multi-indexes properly
 
@@ -297,115 +354,115 @@ def test_column_multiindex(setup_path, using_infer_string):
     df = DataFrame(np.arange(12).reshape(3, 4), columns=index)
     expected = df.set_axis(df.index.to_numpy())
 
-    with ensure_clean_store(setup_path) as store:
-        if using_infer_string:
-            # TODO(infer_string) make this work for string dtype
-            msg = "Saving a MultiIndex with an extension dtype is not supported."
-            with pytest.raises(NotImplementedError, match=msg):
-                store.put("df", df)
-            return
-        store.put("df", df)
-        tm.assert_frame_equal(
-            store["df"], expected, check_index_type=True, check_column_type=True
+    temp_hdfstore.put("df", df, track_times=False)
+    tm.assert_frame_equal(
+        temp_hdfstore["df"], expected, check_index_type=True, check_column_type=True
+    )
+
+    temp_hdfstore.put("df1", df, format="table", track_times=False)
+    tm.assert_frame_equal(
+        temp_hdfstore["df1"], expected, check_index_type=True, check_column_type=True
+    )
+
+    msg = re.escape("cannot use a multi-index on axis [1] with data_columns ['A']")
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put(
+            "df2", df, format="table", data_columns=["A"], track_times=False
+        )
+    msg = re.escape("cannot use a multi-index on axis [1] with data_columns True")
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put(
+            "df3", df, format="table", data_columns=True, track_times=False
         )
 
-        store.put("df1", df, format="table")
-        tm.assert_frame_equal(
-            store["df1"], expected, check_index_type=True, check_column_type=True
-        )
 
-        msg = re.escape("cannot use a multi-index on axis [1] with data_columns ['A']")
-        with pytest.raises(ValueError, match=msg):
-            store.put("df2", df, format="table", data_columns=["A"])
-        msg = re.escape("cannot use a multi-index on axis [1] with data_columns True")
-        with pytest.raises(ValueError, match=msg):
-            store.put("df3", df, format="table", data_columns=True)
-
+def test_column_multiindex_existing(temp_hdfstore):
     # appending multi-column on existing table (see GH 6167)
-    with ensure_clean_store(setup_path) as store:
-        store.append("df2", df)
-        store.append("df2", df)
 
-        tm.assert_frame_equal(store["df2"], concat((df, df)))
+    index = MultiIndex.from_tuples(
+        [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")], names=["first", "second"]
+    )
+    df = DataFrame(np.arange(12).reshape(3, 4), columns=index)
+    temp_hdfstore.append("df2", df)
+    temp_hdfstore.append("df2", df)
 
-    # non_index_axes name
+    tm.assert_frame_equal(temp_hdfstore["df2"], concat((df, df)))
+
+
+def test_column_multiindex_non_index_axes(temp_hdfstore):
     df = DataFrame(np.arange(12).reshape(3, 4), columns=Index(list("ABCD"), name="foo"))
     expected = df.set_axis(df.index.to_numpy())
 
-    with ensure_clean_store(setup_path) as store:
-        store.put("df1", df, format="table")
-        tm.assert_frame_equal(
-            store["df1"], expected, check_index_type=True, check_column_type=True
-        )
+    temp_hdfstore.put("df1", df, format="table", track_times=False)
+    tm.assert_frame_equal(
+        temp_hdfstore["df1"], expected, check_index_type=True, check_column_type=True
+    )
 
 
-def test_store_multiindex(setup_path):
+def test_store_multiindex(temp_hdfstore):
     # validate multi-index names
     # GH 5527
-    with ensure_clean_store(setup_path) as store:
 
-        def make_index(names=None):
-            dti = date_range("2013-12-01", "2013-12-02")
-            mi = MultiIndex.from_product([dti, range(2), range(3)], names=names)
-            return mi
+    def make_index(names=None):
+        dti = date_range("2013-12-01", "2013-12-02")
+        mi = MultiIndex.from_product([dti, range(2), range(3)], names=names)
+        return mi
 
-        # no names
-        _maybe_remove(store, "df")
-        df = DataFrame(np.zeros((12, 2)), columns=["a", "b"], index=make_index())
-        store.append("df", df)
-        tm.assert_frame_equal(store.select("df"), df)
+    # no names
+    df = DataFrame(np.zeros((12, 2)), columns=["a", "b"], index=make_index())
+    temp_hdfstore.append("df", df)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-        # partial names
-        _maybe_remove(store, "df")
-        df = DataFrame(
-            np.zeros((12, 2)),
-            columns=["a", "b"],
-            index=make_index(["date", None, None]),
-        )
-        store.append("df", df)
-        tm.assert_frame_equal(store.select("df"), df)
+    # partial names
+    temp_hdfstore.remove("df")
+    df = DataFrame(
+        np.zeros((12, 2)),
+        columns=["a", "b"],
+        index=make_index(["date", None, None]),
+    )
+    temp_hdfstore.append("df", df)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-        # series
-        _maybe_remove(store, "ser")
-        ser = Series(np.zeros(12), index=make_index(["date", None, None]))
-        store.append("ser", ser)
-        xp = Series(np.zeros(12), index=make_index(["date", "level_1", "level_2"]))
-        tm.assert_series_equal(store.select("ser"), xp)
+    # series
+    ser = Series(np.zeros(12), index=make_index(["date", None, None]))
+    temp_hdfstore.append("ser", ser)
+    xp = Series(np.zeros(12), index=make_index(["date", "level_1", "level_2"]))
+    tm.assert_series_equal(temp_hdfstore.select("ser"), xp)
 
-        # dup with column
-        _maybe_remove(store, "df")
-        df = DataFrame(
-            np.zeros((12, 2)),
-            columns=["a", "b"],
-            index=make_index(["date", "a", "t"]),
-        )
-        msg = "duplicate names/columns in the multi-index when storing as a table"
-        with pytest.raises(ValueError, match=msg):
-            store.append("df", df)
+    # dup with column
+    temp_hdfstore.remove("df")
+    df = DataFrame(
+        np.zeros((12, 2)),
+        columns=["a", "b"],
+        index=make_index(["date", "a", "t"]),
+    )
+    msg = "duplicate names/columns in the multi-index when storing as a table"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df)
 
-        # dup within level
-        _maybe_remove(store, "df")
-        df = DataFrame(
-            np.zeros((12, 2)),
-            columns=["a", "b"],
-            index=make_index(["date", "date", "date"]),
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df", df)
+    # dup within level
+    temp_hdfstore.remove("df")
+    df = DataFrame(
+        np.zeros((12, 2)),
+        columns=["a", "b"],
+        index=make_index(["date", "date", "date"]),
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df)
 
-        # fully names
-        _maybe_remove(store, "df")
-        df = DataFrame(
-            np.zeros((12, 2)),
-            columns=["a", "b"],
-            index=make_index(["date", "s", "t"]),
-        )
-        store.append("df", df)
-        tm.assert_frame_equal(store.select("df"), df)
+    # fully names
+    temp_hdfstore.remove("df")
+    df = DataFrame(
+        np.zeros((12, 2)),
+        columns=["a", "b"],
+        index=make_index(["date", "s", "t"]),
+    )
+    temp_hdfstore.append("df", df)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
 @pytest.mark.parametrize("format", ["fixed", "table"])
-def test_store_periodindex(tmp_path, setup_path, format):
+def test_store_periodindex(temp_h5_path, format):
     # GH 7796
     # test of PeriodIndex in HDFStore
     df = DataFrame(
@@ -413,7 +470,48 @@ def test_store_periodindex(tmp_path, setup_path, format):
         index=pd.period_range("20220101", freq="M", periods=5),
     )
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", mode="w", format=format)
-    expected = pd.read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df", mode="w", format=format)
+    expected = pd.read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_period_values_series(temp_hdfstore, format):
+    # GH#41978 storing a Series whose values are a PeriodArray
+    series = Series(
+        pd.period_range("2020-01", periods=12, freq="M"),
+        name="p",
+    )
+    temp_hdfstore.put("s", series, format=format, track_times=False)
+    result = temp_hdfstore.select("s")
+    tm.assert_series_equal(result, series)
+
+
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_period_values_with_nat(temp_hdfstore, format):
+    # GH#41978 NaT round-trips for PeriodArray values
+    arr = pd.array(["2020-01", "NaT", "2020-03"], dtype="period[M]")
+    series = Series(arr, name="p")
+    temp_hdfstore.put("s", series, format=format, track_times=False)
+    result = temp_hdfstore.select("s")
+    tm.assert_series_equal(result, series)
+
+
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_period_values_dataframe_mixed_freq(temp_hdfstore, format):
+    # GH#41978 multiple Period columns with different freqs
+    pi = pd.period_range("2020-01", periods=6, freq="M")
+    df = DataFrame({"a": pi, "b": pi.asfreq("D")})
+    temp_hdfstore.put("df", df, format=format, track_times=False)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, df)
+
+
+def test_append_period_values_table(temp_hdfstore):
+    # GH#41978 appending PeriodArray-valued frames to table format
+    series = Series(pd.period_range("2020-01", periods=4, freq="M"), name="p")
+    temp_hdfstore.append("s", series, format="table")
+    temp_hdfstore.append("s", series, format="table")
+    result = temp_hdfstore.select("s")
+    expected = concat([series, series], ignore_index=True)
+    tm.assert_series_equal(result.reset_index(drop=True), expected)

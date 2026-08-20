@@ -133,7 +133,7 @@ def test_moments_consistency_var(all_data, adjust, ignore_na, min_periods, bias)
     var_x = all_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).var(bias=bias)
-    assert not (var_x < 0).any().any()
+    assert not (var_x < 0).any(axis=None)
 
     if bias:
         # check that biased var(x) == mean(x^2) - mean(x)^2
@@ -156,7 +156,7 @@ def test_moments_consistency_var_constant(
     ).var(bias=bias)
 
     # check that variance of constant series is identically 0
-    assert not (var_x > 0).any().any()
+    assert not (var_x > 0).any(axis=None)
     expected = consistent_data * np.nan
     expected[count_x >= max(min_periods, 1)] = 0.0
     if not bias:
@@ -170,12 +170,12 @@ def test_ewm_consistency_std(all_data, adjust, ignore_na, min_periods, bias):
     var_x = all_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).var(bias=bias)
-    assert not (var_x < 0).any().any()
+    assert not (var_x < 0).any(axis=None)
 
     std_x = all_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).std(bias=bias)
-    assert not (std_x < 0).any().any()
+    assert not (std_x < 0).any(axis=None)
 
     # check that var(x) == std(x)^2
     tm.assert_equal(var_x, std_x * std_x)
@@ -183,7 +183,7 @@ def test_ewm_consistency_std(all_data, adjust, ignore_na, min_periods, bias):
     cov_x_x = all_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).cov(all_data, bias=bias)
-    assert not (cov_x_x < 0).any().any()
+    assert not (cov_x_x < 0).any(axis=None)
 
     # check that var(x) == cov(x, x)
     tm.assert_equal(var_x, cov_x_x)

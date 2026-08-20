@@ -260,7 +260,7 @@ If the index had been sorted, the "range selection" would have been possible:
 Changes to Series ``[]`` operator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As as notational convenience, you can pass a sequence of labels or a label
+As a notational convenience, you can pass a sequence of labels or a label
 slice to a Series when getting and setting values via ``[]`` (i.e. the
 ``__getitem__`` and ``__setitem__`` methods). The behavior will be the same as
 passing similar input to ``ix`` **except in the case of integer indexing**:

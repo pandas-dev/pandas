@@ -87,7 +87,9 @@ class TestCombineFirst:
             rs = s0.combine_first(s1)
 
         xp = Series([datetime(2010, 1, 1), "2011"], dtype=f"datetime64[{unit}]")
-
+        if unit in ["s", "ms"]:
+            # TODO: should _cast_pointwise_result attempt to preserve unit?
+            xp = xp.dt.as_unit("us")
         tm.assert_series_equal(rs, xp)
 
     def test_combine_first_dt_tz_values(self, tz_naive_fixture):
@@ -160,3 +162,12 @@ class TestCombineFirst:
         result = s1.combine_first(s2)
         expected = Series([None] * 4, index=["a", "b", "c", "d"])
         tm.assert_series_equal(result, expected)
+
+
+def test_combine_first_timestamp_names_anterior():
+    # GH#65333
+    s1 = Series([0], name=to_datetime("2026"))
+    s3 = Series([1, 3], name=to_datetime("2025"))
+    result = s1.combine_first(s3)
+    expected = Series([0, 3], index=[0, 1], name=to_datetime("2026"))
+    tm.assert_series_equal(result, expected)

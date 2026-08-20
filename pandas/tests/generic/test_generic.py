@@ -307,6 +307,11 @@ class TestGeneric:
         assert obj_copy is not obj
         tm.assert_equal(obj_copy, obj)
 
+    def test_stdlib_copy_shallow_copies(self, frame_or_series):
+        obj = frame_or_series(range(3))
+        obj_copy = copy(obj)
+        assert tm.shares_memory(obj, obj_copy)
+
 
 class TestNDFrame:
     # tests that don't fit elsewhere

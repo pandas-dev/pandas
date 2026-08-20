@@ -208,7 +208,7 @@ class OutOfBoundsTimedelta(ValueError):
 
     Examples
     --------
-    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
+    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000, unit="ns")
     Traceback (most recent call last):
     OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
     to unit='ns' without overflow.
@@ -245,6 +245,40 @@ cdef get_implementation_bounds(
 cdef str dts_to_iso_string(npy_datetimestruct *dts):
     return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
             f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+
+cdef str dts_to_iso_string_ns(npy_datetimestruct *dts):
+    """
+    Render `dts`, including its sub-second digits if it has any.
+
+    For callers where the sub-second digits are what put the value out of
+    bounds, so that truncating to seconds would name a representable value.
+    Trailing zeros are dropped so that a coarser-than-nanosecond `dts` is not
+    given precision it does not have; the digits shown are always exact.
+    """
+    cdef:
+        int64_t nanos = dts.us * 1000 + dts.ps // 1000
+        str digits
+
+    if nanos == 0:
+        return dts_to_iso_string(dts)
+    digits = f"{nanos:09d}".rstrip("0")
+    return f"{dts_to_iso_string(dts)}.{digits}"
+
+
+cdef _raise_nat_sentinel(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit):
+    """
+    Out-of-line raise for check_nat_sentinel (see np_datetime.pxd).
+
+    NPY_NAT is INT64_MIN, so a rendered or tz-shifted value that lands on it is
+    not NaT but is indistinguishable from it downstream: it reads back as NaT as
+    soon as it is stored in a datetime64 array, and wraps if converted to another
+    unit. (GH#66510)
+    """
+    attrname = npy_unit_to_attrname[unit]
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(dts)}"
+    )
 
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
@@ -420,50 +454,70 @@ cpdef ndarray astype_overflowsafe(
         )
         return iresult2.view(dtype)
 
+    if from_unit == NPY_FR_Y or from_unit == NPY_FR_M:
+        # Y/M don't have a fixed conversion factor; fall back to
+        # datetimestruct roundtrip.
+        return _astype_overflowsafe_to_larger_unit_via_dts(
+            values, dtype, from_unit, to_unit, is_coerce,
+        )
+
     if (<object>values).dtype.byteorder == ">":
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
         values = values.astype(values.dtype.newbyteorder("<"))
 
     cdef:
         ndarray i8values = values.view("i8")
+        int64_t mult = get_conversion_factor(from_unit, to_unit)
+        int64_t overflow_limit = INT64_MAX // mult
+        int64_t i8min, i8max
 
-        # equiv: result = np.empty((<object>values).shape, dtype="i8")
+    # Fast path: if min/max are both within the overflow-safe range, there
+    # are no NATs (NAT == INT64_MIN < -overflow_limit) and no overflow risk,
+    # so we can use numpy's vectorized multiply.  Restricted to ndim >= 1
+    # since 0-d .view(dtype) has edge cases; the slow path handles 0-d fine.
+    if i8values.ndim >= 1 and i8values.size > 0:
+        i8min = i8values.min()
+        i8max = i8values.max()
+        if i8min >= -overflow_limit and i8max <= overflow_limit:
+            return (i8values * mult).view(dtype)
+
+    # Slow path: per-element loop with NAT and overflow handling.
+    cdef:
         ndarray iresult = cnp.PyArray_EMPTY(
             values.ndim, values.shape, cnp.NPY_INT64, 0
         )
-
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
-        Py_ssize_t i, N = values.size
+        Py_ssize_t _, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts
         bint is_td = dtype.type_num == cnp.NPY_TIMEDELTA
 
-    for i in range(N):
+    for _ in range(N):
         # Analogous to: item = values[i]
         value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         if value == NPY_DATETIME_NAT:
             new_value = NPY_DATETIME_NAT
-        else:
-            pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-
-            try:
-                check_dts_bounds(&dts, to_unit)
-            except OutOfBoundsDatetime as err:
-                if is_coerce:
-                    new_value = NPY_DATETIME_NAT
-                elif is_td:
-                    from_abbrev = np.datetime_data(values.dtype)[0]
-                    np_val = np.timedelta64(value, from_abbrev)
-                    msg = (
-                        "Cannot convert {np_val} to {dtype} without overflow"
-                        .format(np_val=str(np_val), dtype=str(dtype))
-                    )
-                    raise OutOfBoundsTimedelta(msg) from err
-                else:
-                    raise
+        elif value > overflow_limit or value < -overflow_limit:
+            if is_coerce:
+                new_value = NPY_DATETIME_NAT
+            elif is_td:
+                from_abbrev = np.datetime_data(values.dtype)[0]
+                np_val = np.timedelta64(value, from_abbrev)
+                msg = (
+                    "Cannot convert {np_val} to {dtype} without overflow"
+                    .format(np_val=str(np_val), dtype=str(dtype))
+                )
+                raise OutOfBoundsTimedelta(msg)
             else:
-                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+                pandas_datetime_to_datetimestruct(value, from_unit, &dts)
+                fmt = dts_to_iso_string(&dts)
+                attrname = npy_unit_to_attrname[to_unit]
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds {attrname} timestamp: {fmt}"
+                )
+        else:
+            new_value = value * mult
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -504,10 +558,10 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
         int64_t lval, rval
         bint res_value
 
-        Py_ssize_t i, N = left.size
+        Py_ssize_t _, N = left.size
         npy_datetimestruct ldts, rdts
 
-    for i in range(N):
+    for _ in range(N):
         # Analogous to: lval = lvalues[i]
         lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -546,6 +600,69 @@ cdef int op_to_op_code(op):
         return Py_GT
 
 
+cdef ndarray _astype_overflowsafe_to_larger_unit_via_dts(
+    ndarray values,
+    cnp.dtype dtype,
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit,
+    bint is_coerce,
+):
+    """
+    Fallback for Y/M units where a fixed conversion factor doesn't exist.
+    Uses the datetimestruct roundtrip for correctness.
+    """
+    if (<object>values).dtype.byteorder == ">":
+        values = values.astype(values.dtype.newbyteorder("<"))
+
+    cdef:
+        ndarray i8values = values.view("i8")
+        ndarray iresult = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
+        Py_ssize_t _, N = values.size
+        int64_t value, new_value
+        npy_datetimestruct dts
+        npy_datetimestruct cmp_lower, cmp_upper
+        bint is_td = dtype.type_num == cnp.NPY_TIMEDELTA
+
+    get_implementation_bounds(to_unit, &cmp_lower, &cmp_upper)
+
+    for _ in range(N):
+        value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        if value == NPY_DATETIME_NAT:
+            new_value = NPY_DATETIME_NAT
+        else:
+            pandas_datetime_to_datetimestruct(value, from_unit, &dts)
+
+            if (cmp_npy_datetimestruct(&dts, &cmp_lower) == -1
+                    or cmp_npy_datetimestruct(&dts, &cmp_upper) == 1):
+                if is_coerce:
+                    new_value = NPY_DATETIME_NAT
+                elif is_td:
+                    from_abbrev = np.datetime_data(values.dtype)[0]
+                    np_val = np.timedelta64(value, from_abbrev)
+                    msg = (
+                        "Cannot convert {np_val} to {dtype} without overflow"
+                        .format(np_val=str(np_val), dtype=str(dtype))
+                    )
+                    raise OutOfBoundsTimedelta(msg)
+                else:
+                    fmt = dts_to_iso_string(&dts)
+                    attrname = npy_unit_to_attrname[to_unit]
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds {attrname} timestamp: {fmt}"
+                    )
+            else:
+                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return iresult.view(dtype)
+
+
 cdef ndarray _astype_overflowsafe_to_smaller_unit(
     ndarray i8values,
     NPY_DATETIMEUNIT from_unit,
@@ -561,7 +678,7 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
     # e.g. test_astype_ns_to_ms_near_bounds is a case with round_ok=True where
     #  just using numpy's astype silently fails
     cdef:
-        Py_ssize_t i, N = i8values.size
+        Py_ssize_t _, N = i8values.size
 
         # equiv: iresult = np.empty((<object>i8values).shape, dtype="i8")
         ndarray iresult = cnp.PyArray_EMPTY(
@@ -572,22 +689,25 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
         # Note the arguments to_unit, from unit are swapped vs how they
         #  are passed when going to a higher-frequency reso.
         int64_t mult = get_conversion_factor(to_unit, from_unit)
-        int64_t value, mod
+        int64_t value, mod, new_value
 
-    for i in range(N):
+    for _ in range(N):
         # Analogous to: item = i8values[i]
         value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         if value == NPY_DATETIME_NAT:
             new_value = NPY_DATETIME_NAT
         else:
-            new_value, mod = divmod(value, mult)
-            if not round_ok and mod != 0:
-                from_abbrev = npy_unit_to_abbrev(from_unit)
-                to_abbrev = npy_unit_to_abbrev(to_unit)
-                raise ValueError(
-                    f"Cannot losslessly cast '{value} {from_abbrev}' to {to_abbrev}"
-                )
+            new_value = value // mult
+            if not round_ok:
+                mod = value % mult
+                if mod != 0:
+                    from_abbrev = npy_unit_to_abbrev(from_unit)
+                    to_abbrev = npy_unit_to_abbrev(to_unit)
+                    raise ValueError(
+                        f"Cannot losslessly cast '{value} {from_abbrev}' "
+                        f"to {to_abbrev}"
+                    )
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -720,12 +840,99 @@ cdef int64_t _convert_reso_with_dtstruct(
     return result
 
 
+# The reductions in add_overflowsafe's fast path cost a fixed ~1us that the
+#  per-element loop does not pay, putting the measured crossover at a few
+#  hundred elements.  Round up so that small inputs, the common case for
+#  scalar-broadcast arithmetic, stay on the loop.
+cdef Py_ssize_t _ADD_VECTORIZED_MIN_SIZE = 1000
+
+
 @cython.overflowcheck(True)
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=False
+):
     """
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
     `right` may either be zero-dim or of the same shape as `left`.
+
+    A sum landing exactly on NPY_DATETIME_NAT is rejected, since as a datetime64
+    or timedelta64 value it would be indistinguishable from a missing one. Pass
+    ``sentinel_ok=True`` where the result is a count rather than such a value,
+    so that NPY_DATETIME_NAT is a legitimate answer (GH#66552).
+
+    TODO(numpy>=2.5): numpy raises OverflowError natively for datetime64/
+    timedelta64 add and subtract (numpy GH-31378); remove this once the numpy
+    floor is >= 2.5.
+    """
+    cdef:
+        Py_ssize_t _, N = left.size
+        int64_t lval, rval, res_value
+        int64_t lmin, lmax, rmin, rmax
+
+    # Fast path: bound the result from the operands' min/max, and when every
+    #  sum provably stays inside (NPY_DATETIME_NAT, INT64_MAX] hand the whole
+    #  thing to numpy.  NPY_DATETIME_NAT is INT64_MIN, so a minimum above it
+    #  also rules out NaT operands.
+    if N >= _ADD_VECTORIZED_MIN_SIZE and right.size > 0:
+        lmin = left.min()
+        rmin = right.min()
+        if lmin > NPY_DATETIME_NAT and rmin > NPY_DATETIME_NAT:
+            lmax = left.max()
+            rmax = right.max()
+            # Each bound is phrased to keep the subtraction itself in range.
+            if (
+                (rmin >= 0 or lmin > NPY_DATETIME_NAT - rmin)
+                and (rmax <= 0 or lmax <= INT64_MAX - rmax)
+            ):
+                return left + right
+
+    cdef:
+        ndarray iresult = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    # Note: doing this try/except outside the loop improves performance over
+    #  doing it inside the loop.
+    try:
+        for _ in range(N):
+            # Analogous to: lval = lvalues[i]
+            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            # Analogous to: rval = rvalues[i]
+            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+            if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                res_value = NPY_DATETIME_NAT
+            else:
+                res_value = lval + rval
+                if res_value == NPY_DATETIME_NAT and not sentinel_ok:
+                    # GH#66549 int64 can hold this sum, but the value is the
+                    #  NaT sentinel, so it would be indistinguishable from a
+                    #  missing value downstream. Treat it as an overflow.
+                    raise OverflowError
+
+            # Analogous to: result[i] = res_value
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        raise OverflowError("Overflow in int64 addition") from err
+
+    return iresult
+
+
+@cython.overflowcheck(True)
+cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+    """
+    Overflow-safe multiplication for timedelta64 dtype with int64 multiplier.
+
+    `right` may either be zero-dim or broadcastable to `left`'s shape.
+    NaT values in `left` are propagated.
+
+    TODO(numpy>=2.5): numpy raises OverflowError natively here (numpy GH-31378);
+    remove this once the numpy floor is >= 2.5.
     """
     cdef:
         Py_ssize_t N = left.size
@@ -738,23 +945,27 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.
     try:
-        for i in range(N):
+        for _ in range(N):
             # Analogous to: lval = lvalues[i]
             lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
             # Analogous to: rval = rvalues[i]
             rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
 
-            if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+            if lval == NPY_DATETIME_NAT:
                 res_value = NPY_DATETIME_NAT
             else:
-                res_value = lval + rval
+                res_value = lval * rval
+                if res_value == NPY_DATETIME_NAT:
+                    # a product of exactly int64.min is representable, but
+                    #  would be misinterpreted as NaT
+                    raise OverflowError
 
             # Analogous to: result[i] = res_value
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
 
             cnp.PyArray_MultiIter_NEXT(mi)
     except OverflowError as err:
-        raise OverflowError("Overflow in int64 addition") from err
+        raise OverflowError("Overflow in int64 multiplication") from err
 
     return iresult

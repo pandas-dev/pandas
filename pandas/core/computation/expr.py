@@ -725,6 +725,22 @@ class BaseExprVisitor(ast.NodeVisitor):
         # base case: we have something like a CMP b
         if len(comps) == 1:
             op = self.translate_In(ops[0])
+            # GH#65357: Unroll `in` / `not in` into row-wise comparisons (== / !=)
+            # if the RHS tuple contains variables. This prevents passing Series
+            # objects to isin(), which strictly expects scalar iterables.
+            if isinstance(ops[0], (ast.In, ast.NotIn)) and isinstance(
+                comps[0], (ast.Tuple, ast.List)
+            ):
+                elts = comps[0].elts
+                if any(isinstance(e, ast.Name) for e in elts):
+                    cmp_op = ast.Eq() if isinstance(ops[0], ast.In) else ast.NotEq()
+                    bool_op = ast.Or() if isinstance(ops[0], ast.In) else ast.And()
+                    new_values: list[ast.expr] = [
+                        ast.Compare(left=node.left, ops=[cmp_op], comparators=[elt])
+                        for elt in elts
+                    ]
+                    return self.visit(ast.BoolOp(op=bool_op, values=new_values))
+
             binop = ast.BinOp(op=op, left=node.left, right=comps[0])
             return self.visit(binop)
 

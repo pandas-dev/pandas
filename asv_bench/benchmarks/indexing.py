@@ -36,7 +36,7 @@ class NumericSeriesIndexing:
         indices = {
             "unique_monotonic_inc": Index(range(N), dtype=dtype),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                [*list(range(55)), 54, *list(range(55, N - 1))], dtype=dtype
             ),
         }
         self.data = Series(np.random.rand(N), index=indices[index_structure])
@@ -85,7 +85,7 @@ class NumericSeriesIndexing:
 
 class NumericMaskedIndexing:
     monotonic_list = list(range(10**6))
-    non_monotonic_list = list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
+    non_monotonic_list = [*list(range(50)), 54, 53, 52, 51, *list(range(55, 10**6 - 1))]
 
     params = [
         ("Int64", "UInt64", "Float64"),
@@ -109,6 +109,38 @@ class NumericMaskedIndexing:
 
     def time_get_indexer_dups(self, dtype, monotonic):
         self.data.get_indexer_for(self.indexer)
+
+
+class GetIndexerNonUnique:
+    params = [
+        ("int64", "float64", "object"),
+        ("monotonic", "non_monotonic"),
+    ]
+    param_names = ["dtype", "index_structure"]
+
+    def setup(self, dtype, index_structure):
+        N = 10**6
+        rng = np.random.default_rng(42)
+        values = rng.integers(0, N // 10, size=N)
+        targets = rng.integers(0, N // 10, size=N // 10)
+        if index_structure == "monotonic":
+            values = np.sort(values)
+        if dtype == "object":
+            self.idx = Index(values.astype(str), dtype=object)
+            self.targets = Index(targets.astype(str), dtype=object)
+            self.targets_few = Index(targets[:100].astype(str), dtype=object)
+        else:
+            self.idx = Index(values.astype(dtype))
+            self.targets = Index(targets.astype(dtype))
+            self.targets_few = Index(targets[:100].astype(dtype))
+        # warm the engine's cached properties outside the timer
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique_few_targets(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets_few)
 
 
 class NonNumericSeriesIndexing:
@@ -197,7 +229,7 @@ class DataFrameNumericIndexing:
         indices = {
             "unique_monotonic_inc": Index(range(N), dtype=dtype),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                [*list(range(55)), 54, *list(range(55, N - 1))], dtype=dtype
             ),
         }
         self.idx_dupe = np.array(range(30)) * 99
@@ -319,6 +351,10 @@ class MultiIndexing:
         target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.xs(target)
 
+    def time_xs_partial_key(self, unique_levels):
+        # partial key -> contiguous slice of rows (non-unique levels)
+        self.df.xs(self.tgt_scalar)
+
 
 class IntervalIndexing:
     def setup_cache(self):
@@ -438,6 +474,28 @@ class GetItemSingleColumn:
         self.df_int_col[0]
 
 
+class DataFrameGetitemDuplicateColumns:
+    """
+    Benchmark df[key] when columns have duplicate names but key is unique.
+
+    Previously each access called columns.drop_duplicates(keep=False), which
+    built a new Index (O(n)). Now we use get_loc(key), so this path is O(1)
+    for hash-based indexes.
+    """
+
+    params = [1_000, 10_000, 100_000, 1_000_000]
+    param_names = ["ncols"]
+
+    def setup(self, ncols):
+        # ncols-1 duplicate names + one unique column we access
+        cols = ["a"] * (ncols - 1) + ["key"]
+        self.df = DataFrame(0, index=range(100), columns=cols)
+
+    def time_getitem_single_column_with_duplicate_columns(self, ncols):
+        for _ in range(100):
+            self.df["key"]
+
+
 class IndexSingleRow:
     params = [True, False]
     param_names = ["unique_cols"]
@@ -452,7 +510,7 @@ class IndexSingleRow:
         if not unique_cols:
             # GH#33032 single-row lookups with non-unique columns were
             #  15x slower than with unique columns
-            df.columns = ["A", "A"] + list(df.columns[2:])
+            df.columns = ["A", "A", *list(df.columns[2:])]
 
         self.df = df
 
@@ -528,6 +586,24 @@ class SetitemObjectDtype:
         self.df.loc[0, 1] = 1.0
 
 
+class SeriesSetitem:
+    params = ["str"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 500_000
+        self.s = Series(np.random.rand(N), dtype=dtype)
+        self.arr = self.s.array
+        self.arr_obj = np.asarray(self.s.array, dtype=object)
+
+    def time_setitem_slice_array(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/64530
+        self.s[:] = self.arr
+
+    def time_setitem_slice_array_infer(self, dtype):
+        self.s[:] = self.arr_obj
+
+
 class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]
@@ -557,6 +633,23 @@ class Block:
         start = datetime(2010, 5, 1)
         end = datetime(2010, 9, 1)
         self.df.loc[start:end, :] = True
+
+
+class LocSetitem2dValue:
+    def setup(self):
+        nrows = 10_000_000
+        # Mixed dtypes so the setitem takes the split path.
+        self.df = DataFrame(
+            {
+                "a": np.zeros(nrows),
+                "b": np.zeros(nrows, dtype=int),
+                "c": np.zeros(nrows),
+            }
+        )
+        self.value = np.random.randn(nrows, 2).tolist()
+
+    def time_loc_setitem_2d(self):
+        self.df.loc[:, ["a", "c"]] = self.value
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

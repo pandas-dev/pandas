@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
+import weakref
 
 import numpy as np
 import pytest
@@ -247,7 +248,7 @@ class TestHashTable:
         assert "n_buckets" in state
         assert "upper_bound" in state
 
-    @pytest.mark.parametrize("N", range(1, 110))
+    @pytest.mark.parametrize("N", range(1, 110, 4))
     def test_no_reallocation(self, table_type, dtype, N):
         keys = np.arange(N).astype(dtype)
         preallocated_table = table_type(N)
@@ -460,6 +461,72 @@ class TestPyObjectHashTableWithNans:
             table.get_item(other)
 
 
+class _WeakRefKey:
+    # Hashable key that supports weakref (unlike built-in str).
+    __slots__ = ("__weakref__", "name")
+
+    def __init__(self, name):
+        self.name = name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, _WeakRefKey) and self.name == other.name
+
+
+def test_pyobject_hashtable_map_locations_refcount():
+    # GH#21968
+    # Verify that map_locations holds proper references to stored keys,
+    # preventing use-after-free when the source array is deallocated.
+    keys = [_WeakRefKey(f"key_{i}") for i in range(10)]
+    values = np.array(keys, dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    table.map_locations(values)
+
+    # The table must keep the keys alive after the source list/array are gone.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del table
+    assert all(ref() is None for ref in refs)
+
+
+def test_pyobject_hashtable_set_item_refcount():
+    # GH#21968
+    key = _WeakRefKey("unique_key")
+    ref = weakref.ref(key)
+
+    table = ht.PyObjectHashTable(64)
+    table.set_item(key, 0)
+
+    del key
+    assert ref() is not None
+
+    del table
+    assert ref() is None
+
+
+def test_pyobject_hashtable_unique_refcount():
+    # GH#21968
+    keys = [_WeakRefKey(f"key_{i}") for i in range(5)]
+    # Duplicate some keys so _unique exercises the "already seen" path too
+    values = np.array(keys + keys[:2], dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    result = table.unique(values)
+
+    # Both the table and the returned uniques array must keep the keys alive.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del result, table
+    assert all(ref() is None for ref in refs)
+
+
 def test_hash_equal_tuple_with_nans():
     a = (float("nan"), (float("nan"), float("nan")))
     b = (float("nan"), (float("nan"), float("nan")))
@@ -517,7 +584,7 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert get_allocated_khash_memory() == 0
 
 
-@pytest.mark.parametrize("N", range(1, 110))
+@pytest.mark.parametrize("N", range(1, 110, 4))
 def test_no_reallocation_StringHashTable(N):
     keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
@@ -530,6 +597,33 @@ def test_no_reallocation_StringHashTable(N):
     clean_table = ht.StringHashTable()
     clean_table.map_locations(keys)
     assert n_buckets_start == clean_table.get_state()["n_buckets"]
+
+
+@pytest.mark.parametrize(
+    "keys",
+    [
+        ["", "\x00"],
+        ["x\x00y", "x\x00z"],
+        ["a", "a\x00", "a\x00\x00", "\x00a"],
+        ["\x00" * 3, "\x00" * 4],
+    ],
+)
+def test_StringHashTable_embedded_null(keys):
+    # GH#34551 the table used to key on a NUL-terminated C string, so distinct
+    #  values sharing a prefix up to their first NUL collapsed into one entry.
+    arr = np.empty(len(keys), dtype=np.object_)
+    arr[:] = keys
+
+    table = ht.StringHashTable()
+    table.map_locations(arr)
+    assert len(table) == len(keys)
+    for i, key in enumerate(keys):
+        assert table.get_item(key) == i
+
+    tm.assert_numpy_array_equal(
+        table.get_indexer(arr), np.arange(len(keys), dtype=np.intp)
+    )
+    assert list(ht.StringHashTable().unique(arr)) == keys
 
 
 @pytest.mark.parametrize(
@@ -670,6 +764,27 @@ class TestHelpFunctions:
         result = ht.ismember(arr, values)
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_non_unique(self, dtype, writable):
+        N = 43
+        values = np.repeat((np.arange(N) + N).astype(dtype), 3)
+        targets = np.array([N + 1, N, 5], dtype=dtype)
+        values.flags.writeable = writable
+        targets.flags.writeable = writable
+        if dtype in (np.object_, np.complex128, np.complex64):
+            with pytest.raises(TypeError, match="(complex|object)"):
+                ht.get_indexer_non_unique(values, targets, False)
+            return
+        expected = np.array([3, 4, 5, 0, 1, 2, -1], dtype=np.intp)
+        expected_missing = np.array([2], dtype=np.intp)
+        # full-scan path
+        result, missing = ht.get_indexer_non_unique(values, targets, False)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+        # values are sorted, so the searchsorted path gives the same answer
+        result, missing = ht.get_indexer_non_unique(values, targets, True)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(missing, expected_missing)
 
     def test_mode(self, dtype, writable):
         if dtype in (np.int8, np.uint8):

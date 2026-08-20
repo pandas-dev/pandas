@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -114,7 +113,7 @@ class TestToIterable:
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
-        "dtype, rdtype", dtypes + [("object", int), ("category", int)]
+        "dtype, rdtype", [*dtypes, ("object", int), ("category", int)]
     )
     def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
@@ -140,7 +139,7 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    def test_categorial_datetimelike(self, method):
+    def test_categorical_datetimelike(self, method):
         i = CategoricalIndex([Timestamp("1999-12-31"), Timestamp("2000-12-31")])
 
         result = method(i)[0]
@@ -150,7 +149,7 @@ class TestToIterable:
         vals = [Timestamp("2011-01-01"), Timestamp("2011-01-02")]
         ser = Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"datetime64[{unit}]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timestamp)
             assert res.tz is None
             assert res == exp
@@ -164,7 +163,7 @@ class TestToIterable:
         ser = Series(vals).dt.as_unit(unit)
 
         assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timestamp)
             assert res.tz == exp.tz
             assert res == exp
@@ -175,7 +174,7 @@ class TestToIterable:
         vals = [Timedelta("1 days"), Timedelta("2 days")]
         ser = Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"timedelta64[{unit}]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timedelta)
             assert res == exp
             assert res.unit == unit
@@ -185,7 +184,7 @@ class TestToIterable:
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = Series(vals)
         assert s.dtype == "Period[M]"
-        for res, exp in zip(s, vals):
+        for res, exp in zip(s, vals, strict=True):
             assert isinstance(res, pd.Period)
             assert res.freq == "ME"
             assert res == exp
@@ -203,7 +202,7 @@ class TestToIterable:
             "datetime64[ns, US/Central]",
         ),
         (
-            pd.PeriodIndex([2018, 2019], freq="Y"),
+            pd.PeriodIndex(["2018", "2019"], freq="Y"),
             PeriodArray,
             pd.core.dtypes.dtypes.PeriodDtype("Y-DEC"),
         ),
@@ -283,7 +282,7 @@ def test_array(arr, attr, index_or_series):
         arr = getattr(arr, attr)
         result = getattr(result, attr)
 
-    assert result is arr
+    assert np.shares_memory(result, arr)
 
 
 def test_array_multiindex_raises():
@@ -299,7 +298,7 @@ def test_array_multiindex_raises():
         (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64), True),
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object), False),
         (
-            pd.core.arrays.period_array(["2000", "2001"], freq="D"),
+            pd.PeriodIndex(["2000", "2001"], freq="D").array,
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
             False,
         ),
@@ -375,10 +374,6 @@ def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array, using_nan_
     # When called with `copy=True` NumPy/we should ensure a copy was made
     assert not np.may_share_memory(result_cp1, result_cp2)
 
-    if not np_version_gt2:
-        # copy=False semantics are only supported in NumPy>=2.
-        return
-
     if not zero_copy:
         with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
             # An error is always acceptable for `copy=False`
@@ -445,9 +440,9 @@ def test_to_numpy_dtype(as_series):
     [
         ([1, 2, None], "float64", 0, [1.0, 2.0, 0.0]),
         (
-            [Timestamp("2000"), Timestamp("2000"), pd.NaT],
+            [Timestamp("2000").as_unit("s"), Timestamp("2000").as_unit("s"), pd.NaT],
             None,
-            Timestamp("2000"),
+            Timestamp("2000").as_unit("s"),
             [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
@@ -486,10 +481,14 @@ def test_to_numpy_na_value_numpy_dtype(
             [1, 2, 0, 4],
         ),
         (
-            [Timestamp("2000"), Timestamp("2000"), pd.NaT],
-            [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
+            [Timestamp("2000").as_unit("s"), Timestamp("2000").as_unit("s"), pd.NaT],
+            [
+                (0, Timestamp("2021").as_unit("s")),
+                (0, Timestamp("2022").as_unit("s")),
+                (1, Timestamp("2000").as_unit("s")),
+            ],
             None,
-            Timestamp("2000"),
+            Timestamp("2000").as_unit("s"),
             [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
@@ -579,7 +578,7 @@ class TestAsArray:
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        ser = Series(date_range("2000", periods=2))
+        ser = Series(date_range("2000", periods=2, unit="ns"))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         result = np.asarray(ser)
 

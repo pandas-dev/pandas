@@ -117,13 +117,25 @@ def test_sub_period_overflow():
     dti = pd.date_range("1677-09-22", periods=2, freq="D")
     pi = dti.to_period("ns")
 
-    per = pd.Period._from_ordinal(10**14, pi.freq)
+    per = pd.Period._from_ordinal(10**14, pi.dtype)
 
     with pytest.raises(OverflowError, match="Overflow in int64 addition"):
         pi - per
 
     with pytest.raises(OverflowError, match="Overflow in int64 addition"):
         per - pi
+
+
+def test_period_add_int_lands_on_nat_sentinel():
+    # GH#66549 the shifted ordinal fits in int64 but equals iNaT, so the result
+    #  used to come back as NaT instead of being reported as out of bounds
+    pi = pd.PeriodIndex([pd.Period(ordinal=iNaT + 1, freq="D")])
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        pi - 1
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        pi + pd.offsets.Day(-1)
 
 
 # ----------------------------------------------------------------------------

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from pandas._typing import npt
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def add_mean(
     val: float,
     nobs: int,
@@ -49,7 +49,7 @@ def add_mean(
     return nobs, sum_x, neg_ct, compensation, num_consecutive_same_value, prev_value
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def remove_mean(
     val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
 ) -> tuple[int, float, int, float]:
@@ -64,7 +64,7 @@ def remove_mean(
     return nobs, sum_x, neg_ct, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def sliding_mean(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -162,7 +162,7 @@ def sliding_mean(
     return output, na_pos
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def grouped_mean(
     values: np.ndarray,
     result_dtype: np.dtype,

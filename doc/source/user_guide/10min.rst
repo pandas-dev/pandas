@@ -89,10 +89,9 @@ will be completed:
    df2.align              df2.copy
    df2.all                df2.count
    df2.any                df2.combine
-   df2.append             df2.D
-   df2.apply              df2.describe
-   df2.B                  df2.duplicated
-   df2.diff
+   df2.apply              df2.D
+   df2.B                  df2.describe
+   df2.diff               df2.duplicated
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
@@ -169,7 +168,7 @@ Selection
 
    While standard Python / NumPy expressions for selecting and setting are
    intuitive and come in handy for interactive work, for production code, we
-   recommend the optimized pandas data access methods, :meth:`DataFrame.at`, :meth:`DataFrame.iat`,
+   recommend the optimized pandas data access methods, :attr:`DataFrame.at`, :attr:`DataFrame.iat`,
    :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`.
 
 See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`.
@@ -208,7 +207,7 @@ For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 Selection by label
 ~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Label <indexing.label>` using :meth:`DataFrame.loc` or :meth:`DataFrame.at`.
+See more in :ref:`Selection by Label <indexing.label>` using :meth:`DataFrame.loc` or :attr:`DataFrame.at`.
 
 Selecting a row matching a label:
 
@@ -243,7 +242,7 @@ For getting fast access to a scalar (equivalent to the prior method):
 Selection by position
 ~~~~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Position <indexing.integer>` using :meth:`DataFrame.iloc` or :meth:`DataFrame.iat`.
+See more in :ref:`Selection by Position <indexing.integer>` using :meth:`DataFrame.iloc` or :attr:`DataFrame.iat`.
 
 Select via the position of the passed integers:
 
@@ -251,7 +250,7 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-Integer slices acts similar to NumPy/Python:
+Integer slices act similar to NumPy/Python:
 
 .. ipython:: python
 
@@ -548,6 +547,8 @@ groups:
 
    df.groupby("A")[["C", "D"]].sum()
 
+The unique values of the grouped column now form the index of the result.
+
 Grouping by multiple columns label forms :class:`MultiIndex`.
 
 .. ipython:: python
@@ -640,7 +641,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
    ts_utc = ts.tz_localize("UTC")
    ts_utc
 
-:meth:`Series.tz_convert` converts a timezones aware time series to another time zone:
+:meth:`Series.tz_convert` converts a timezone aware time series to another time zone:
 
 .. ipython:: python
 
@@ -808,7 +809,7 @@ Reading from an excel file using :func:`read_excel`:
 
 .. ipython:: python
 
-   pd.read_excel("foo.xlsx", "Sheet1", index_col=None, na_values=["NA"])
+   pd.read_excel("foo.xlsx", "Sheet1", index_col=None, na_values=["NA"], engine="openpyxl")
 
 .. ipython:: python
    :suppress:

@@ -271,7 +271,7 @@ class TestCategoricalIndexing:
         with pytest.raises(TypeError, match=msg):
             ser.where([True, False, True], "d")
 
-    def test_where_ordered_differs_rasies(self):
+    def test_where_ordered_differs_raises(self):
         ser = Series(
             Categorical(["a", "b", "c"], categories=["d", "c", "b", "a"], ordered=True)
         )
@@ -297,7 +297,7 @@ class TestContains:
         assert 0 not in cat
         assert 1 not in cat
 
-        cat = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
+        cat = Categorical([*list("aabbca"), np.nan], categories=list("cab"))
         assert np.nan in cat
 
     @pytest.mark.parametrize(

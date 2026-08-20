@@ -4,7 +4,6 @@ for all of the parsers defined in parsers.py
 """
 
 from io import StringIO
-import os
 
 import numpy as np
 import pytest
@@ -67,10 +66,9 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     expected = DataFrame(
         {"a": [1, 1, 2], "b": Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
     )
-    if parser.engine == "pyarrow":
+    if parser.engine == "pyarrow" and any(isinstance(key, int) for key in dtype):
         mark = pytest.mark.xfail(
-            strict=False,
-            reason="Flaky test sometimes gives object dtype instead of Categorical",
+            reason="pyarrow doesn't support specifying dtype by column index",
         )
         request.applymarker(mark)
 
@@ -134,9 +132,9 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     tm.assert_frame_equal(actual, expected)
 
 
-def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
+def test_categorical_dtype_utf16(all_parsers, datapath):
     # see gh-10153
-    pth = os.path.join(csv_dir_path, "utf16_ex.txt")
+    pth = datapath("io", "parser", "data", "utf16_ex.txt")
     parser = all_parsers
     encoding = "utf-16"
     sep = "\t"
@@ -170,7 +168,7 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
     with parser.read_csv(
         StringIO(data), dtype={"b": "category"}, chunksize=2
     ) as actuals:
-        for actual, expected in zip(actuals, expecteds):
+        for actual, expected in zip(actuals, expecteds, strict=True):
             tm.assert_frame_equal(actual, expected)
 
 
@@ -199,13 +197,13 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
         return
 
     with parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2) as actuals:
-        for actual, expected in zip(actuals, expecteds):
+        for actual, expected in zip(actuals, expecteds, strict=True):
             tm.assert_frame_equal(actual, expected)
 
 
-def test_categorical_dtype_latin1(all_parsers, csv_dir_path):
+def test_categorical_dtype_latin1(all_parsers, datapath):
     # see gh-10153
-    pth = os.path.join(csv_dir_path, "unicode_series.csv")
+    pth = datapath("io", "parser", "data", "unicode_series.csv")
     parser = all_parsers
     encoding = "latin-1"
 

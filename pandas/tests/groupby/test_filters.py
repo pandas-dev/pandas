@@ -543,7 +543,7 @@ def test_filter_and_transform_with_non_unique_string_index():
 def test_filter_has_access_to_grouped_cols():
     df = DataFrame([[1, 2], [1, 3], [5, 6]], columns=["A", "B"])
     g = df.groupby("A")
-    # previously didn't have access to col A #????
+    # previously didn't have access to col A GH#6512
     filt = g.filter(lambda x: x["A"].sum() == 2)
     tm.assert_frame_equal(filt, df.iloc[[0, 1]])
 
@@ -606,3 +606,33 @@ def test_filter_consistent_result_before_after_agg_func():
     grouper.sum()
     result = grouper.filter(lambda x: True)
     tm.assert_frame_equal(result, expected)
+
+
+def test_filter_with_non_values():
+    # GH 62501
+    df = DataFrame(
+        [
+            [1],
+            [None],
+        ],
+        columns=["a"],
+    )
+
+    result = df.groupby("a", dropna=False).filter(lambda x: True)
+    tm.assert_frame_equal(result, df)
+
+
+def test_filter_with_non_values_multi_index():
+    # GH 62501
+    df = DataFrame(
+        [
+            [1, 2],
+            [3, None],
+            [None, 4],
+            [None, None],
+        ],
+        columns=["a", "b"],
+    )
+
+    result = df.groupby(["a", "b"], dropna=False).filter(lambda x: True)
+    tm.assert_frame_equal(result, df)

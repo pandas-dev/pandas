@@ -875,7 +875,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`Index.is_monotonic`, and :meth:`Series.is_monotonic`; use ``obj.is_monotonic_increasing`` instead (:issue:`45422`)
 - Removed deprecated :meth:`Index.is_all_dates` (:issue:`36697`)
 - Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
-- Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
+- Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing ``numpy.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor; pass ``"{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Enforced deprecation disallowing unit-less "datetime64" dtype in :meth:`Series.astype` and :meth:`DataFrame.astype` (:issue:`47844`)
 - Enforced deprecation disallowing using ``.astype`` to convert a ``datetime64[ns]`` :class:`Series`, :class:`DataFrame`, or :class:`DatetimeIndex` to timezone-aware dtype, use ``obj.tz_localize`` or ``ser.dt.tz_localize`` instead (:issue:`39258`)

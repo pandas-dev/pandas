@@ -21,7 +21,7 @@ from pandas.tests.groupby import get_groupby_method_args
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
-    """Reindex to a cartesian production for the groupers,
+    """Reindex to a cartesian product for the groupers,
     preserving the nature (Categorical) of each grouper
     """
 
@@ -169,8 +169,8 @@ def test_basic_monotonic():
     result3 = gbc.transform(max)
     result4 = gbc.transform(np.maximum.reduce)
     result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
-    tm.assert_frame_equal(result2, df[["a"]], check_dtype=False)
-    tm.assert_frame_equal(result3, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result2, df[["a"]])
+    tm.assert_frame_equal(result3, df[["a"]])
     tm.assert_frame_equal(result4, df[["a"]])
     tm.assert_frame_equal(result5, df[["a"]])
 
@@ -1190,7 +1190,7 @@ def test_groupby_multiindex_categorical_datetime():
         names=["key1", "key2"],
     )
     expected = DataFrame({"values": [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_freq=False)
 
 
 @pytest.mark.parametrize(
@@ -1368,9 +1368,7 @@ def test_groupby_cat_preserves_structure(observed, ordered):
     expected = df.copy()
 
     result = (
-        df.groupby("Name", observed=observed)
-        .agg(DataFrame.sum, skipna=True)
-        .reset_index()
+        df.groupby("Name", observed=observed).agg(Series.sum, skipna=True).reset_index()
     )
 
     tm.assert_frame_equal(result, expected)
@@ -1511,7 +1509,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func, observed
+    reduction_func, observed, using_python_scalars
 ):
     # GH 23865
     # GH 27075
@@ -1553,7 +1551,9 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
 
-    if expected is np.nan:
+    if using_python_scalars and reduction_func == "size":
+        assert (res.loc[unobserved_cats] == expected).all() is True
+    elif expected is np.nan:
         assert res.loc[unobserved_cats].isnull().all().all()
     else:
         assert (res.loc[unobserved_cats] == expected).all().all()
@@ -2143,6 +2143,69 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
             [(ind, "") for ind in expected.columns[:-1]] + [("b", reduction_func)]
         )
     elif not as_index:
-        expected.columns = keys + [reduction_func]
+        expected.columns = [*keys, reduction_func]
 
     tm.assert_equal(result, expected)
+
+
+def test_categorical_with_noncategorical_na(observed, sort):
+    # https://github.com/pandas-dev/pandas/issues/63920
+    df = DataFrame(
+        {
+            "dates": list("YXXYY"),
+            "sector": Categorical(
+                [2, 1, 2, 1, np.nan], categories=[1, 2, 3], ordered=True
+            ),
+            "metric": [1, 2, 3, 4, 5],
+        }
+    )
+    gb = df.groupby(["dates", "sector"], observed=observed, sort=sort)
+    # Only testing the ids/result_index, okay to just use one kernel
+    result = gb.sum()
+
+    if sort and observed:
+        taker = [0, 1, 2, 3]
+    elif not sort and observed:
+        taker = [3, 0, 1, 2]
+    elif sort and not observed:
+        taker = [0, 1, 4, 2, 3, 5]
+    elif not sort and not observed:
+        taker = [3, 0, 1, 2, 5, 4]
+    expected = (
+        DataFrame(
+            {
+                "dates": list("XXYYXY"),
+                "sector": Categorical(
+                    [1, 2, 1, 2, 3, 3], categories=[1, 2, 3], ordered=True
+                ),
+                "metric": [2, 3, 4, 1, 0, 0],
+            }
+        )
+        .set_index(["dates", "sector"])
+        .take(taker)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_observed_false_expands_only_categorical_levels():
+    # GH#24592 with observed=False only categorical groupers are expanded to
+    #  all their categories; non-categorical levels keep only observed values
+    df = DataFrame(
+        {
+            "L0": [1, 1, 2],
+            "L1": ["a", "b", "a"],
+            "L2": Categorical(["X", "X", "X"], categories=["X", "Y"]),
+        }
+    )
+    result = df.groupby(["L0", "L1", "L2"], observed=False).size()
+    # observed (L0, L1) pairs are (1, a), (1, b), (2, a); each is crossed with
+    # the two L2 categories -- crucially (2, b) is absent (never observed)
+    assert result.index.tolist() == [
+        (1, "a", "X"),
+        (1, "a", "Y"),
+        (1, "b", "X"),
+        (1, "b", "Y"),
+        (2, "a", "X"),
+        (2, "a", "Y"),
+    ]
+    assert result.tolist() == [1, 0, 1, 0, 1, 0]

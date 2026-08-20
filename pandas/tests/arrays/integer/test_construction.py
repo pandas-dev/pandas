@@ -67,7 +67,7 @@ def test_conversions(data_missing):
     expected = np.array([pd.NA, 1], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
-    for r, e in zip(result, expected):
+    for r, e in zip(result, expected, strict=True):
         if pd.isnull(r):
             assert pd.isnull(e)
         elif is_integer(r):
