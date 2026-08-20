@@ -11,6 +11,7 @@ from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
@@ -24,7 +25,10 @@ from pandas.util._exceptions import (
 from pandas.core.dtypes.common import (
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_integer
+
+from pandas.core.arrays.arrow.array import to_pyarrow_type
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import mangle_dupe_names
@@ -183,6 +187,33 @@ class ArrowParserWrapper(ParserBase):
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
 
+        if self.dtype is not None:
+            # GH#57666 dtypes whose conversion must start from the original
+            # text are applied while parsing; see _pyarrow_parse_type
+            if isinstance(self.dtype, dict):
+                # for a defaultdict only the explicitly-listed columns are
+                # mapped here; the default is applied in read()
+                column_types = {}
+                for col, col_dtype in self.dtype.items():
+                    if not isinstance(col, str):
+                        # pyarrow's column_types requires string column
+                        # names; other labels are cast in _finalize_dtype
+                        continue
+                    target_dtype = self._pyarrow_parse_type(col_dtype)
+                    if target_dtype is not None:
+                        column_types[col] = target_dtype
+                if column_types:
+                    self.convert_options["column_types"] = column_types
+            elif not pa_version_under25p0:
+                # a scalar dtype applies to every column, which pyarrow
+                # supports via ConvertOptions(default_column_type=...) from
+                # pyarrow 25.0 (apache/arrow#47663). With older versions the
+                # dtype is still applied afterwards in _finalize_dtype,
+                # which does not preserve the original text.
+                target_dtype = self._pyarrow_parse_type(self.dtype)
+                if target_dtype is not None:
+                    self.convert_options["default_column_type"] = target_dtype
+
         header = self.header
         if isinstance(header, list):
             # GH#66059 pyarrow.csv cannot produce multi-row/MultiIndex headers
@@ -220,6 +251,40 @@ class ArrowParserWrapper(ParserBase):
             "skip_rows_after_names": skip_rows_after_names,
             "encoding": self.encoding,
         }
+
+    def _pyarrow_parse_type(self, dtype) -> pa.DataType | None:
+        """
+        The pyarrow type a column should be parsed as in order to faithfully
+        apply the requested pandas dtype afterwards, or None to leave the
+        column to pyarrow's type inference.
+
+        GH#57666 dtypes whose conversion must start from the original text --
+        string dtypes, object, and categoricals whose categories hold the
+        parsed strings -- are parsed as strings: converting an inferred column
+        instead is lossy (e.g. leading zeros are lost once a column has been
+        inferred as integer). All other dtypes are left to inference and cast
+        afterwards in _finalize_dtype, which is lossless for them and keeps
+        behavior consistent with the other engines (e.g. a column of
+        "True"/"False" values with dtype=float is inferred as boolean and then
+        cast, which pyarrow's parse-time conversion would reject).
+        """
+        pa = import_optional_dependency("pyarrow")
+
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, CategoricalDtype):
+            if dtype.categories is None:
+                # match the other engines: the categories are the raw
+                # strings from the file
+                return pa.string()
+            # explicitly typed categories behave like their own dtype
+            dtype = dtype.categories.dtype
+        if dtype == object:
+            # match the other engines: object dtype holds the raw strings
+            return pa.string()
+        target_dtype = to_pyarrow_type(dtype.type)
+        if target_dtype is not None and pa.types.is_string(target_dtype):
+            return target_dtype
+        return None
 
     def _index_col_should_parse_dates(self, name, position: int) -> bool:
         """
