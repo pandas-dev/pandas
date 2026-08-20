@@ -4,6 +4,8 @@ import weakref
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import accessor
@@ -125,13 +127,9 @@ def test_no_circular_reference(klass, registrar):
 
 def test_cached_accessor_deprecation():
     # GH#66215
-    from pandas.errors import Pandas4Warning
-
     with tm.assert_produces_warning(
         Pandas4Warning, match="CachedAccessor is deprecated"
     ):
         from pandas.core.accessor import CachedAccessor
-
-        _ = CachedAccessor
 
     assert CachedAccessor is accessor.Accessor

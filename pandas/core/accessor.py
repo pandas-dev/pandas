@@ -231,9 +231,9 @@ class Accessor:
         return self._accessor(obj)
 
 
-# Alias kept for downstream libraries
 def __getattr__(name: str):
     if name == "CachedAccessor":
+        # Alias kept for downstream libraries
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use pandas.core.accessor.Accessor instead.",
