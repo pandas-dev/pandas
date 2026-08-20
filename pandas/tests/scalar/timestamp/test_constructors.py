@@ -811,15 +811,16 @@ class TestTimestampConstructors:
         with pytest.raises(ValueError, match=msg):
             Timestamp("2023 Sept Thu")
 
-
     def test_gmt_parsed_as_utc_independent_of_system_tz(self):
         # GH#66827 - GMT should be parsed as UTC, not system-dependent tzlocal
         # dateutil's parserinfo.UTCZONE is ["UTC", "GMT", "Z", "z"]
         # and all four should be treated as unambiguous zero-offset
-        for ts_str in ["Wed, 15 Jan 2020 08:30:00 GMT",
-                       "Wed, 15 Jan 2020 08:30:00 UTC",
-                       "Wed, 15 Jan 2020 08:30:00 Z",
-                       "Wed, 15 Jan 2020 08:30:00 z"]:
+        for ts_str in [
+            "Wed, 15 Jan 2020 08:30:00 GMT",
+            "Wed, 15 Jan 2020 08:30:00 UTC",
+            "Wed, 15 Jan 2020 08:30:00 Z",
+            "Wed, 15 Jan 2020 08:30:00 z",
+        ]:
             ts = Timestamp(ts_str)
             assert ts.tz is not None, f"{ts_str} should have tz"
             assert ts.utcoffset() == timedelta(0), f"{ts_str} should be UTC"
