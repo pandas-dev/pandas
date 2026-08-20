@@ -313,6 +313,8 @@ def to_numeric(
             mask = new_mask
         else:
             mask = mask.copy()
+            if new_mask is not None:
+                mask[~mask] = new_mask
         assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
