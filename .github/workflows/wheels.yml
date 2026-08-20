@@ -102,7 +102,7 @@ jobs:
         python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"], ["cp315", "3.15"], ["cp315t", "3.15"]]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
-            python: ["cp312", "3.12"]
+            python: ["cp315", "3.15"]
 
     steps:
       - name: Checkout pandas
@@ -129,9 +129,7 @@ jobs:
         uses: pypa/cibuildwheel@1828c10ab37f080699c7b81cea34097c684a7074 # v4.2.0
         with:
           package-dir: ./dist/${{ env.sdist_name }}
-        env:
-          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || 'auto' }}
+          only: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
       - name: Set up Python for validation
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
