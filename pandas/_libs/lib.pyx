@@ -2716,13 +2716,6 @@ def maybe_convert_numeric(
                         seen.null_ = True  # Legacy: treat "nan" string as logical pd.NA
                     floats[i] = complexes[i] = fval
                     continue
-
-                elif val_lower in ("<na>", "na", "", "null", "none"):
-                    fval = NaN
-                    seen.null_ = True      # Logical NA strings are ALWAYS pd.NA
-                    seen.float_ = True
-                    floats[i] = complexes[i] = fval
-                    continue
             try:
                 floatify(val, &fval, &maybe_int)
                 if fval in na_values:
