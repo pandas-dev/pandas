@@ -102,7 +102,7 @@ jobs:
         python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
-            python: cp315
+            python: cp314
 
     steps:
       - name: Download sdist
