@@ -48,6 +48,7 @@ Other enhancements
 - Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
 - Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
+- Improved the ``ValueError`` raised when constructing a :class:`MultiIndex` with duplicate level values; the message now identifies the duplicated values instead of printing the entire level, which could run to megabytes for a large level (:issue:`19432`)
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
