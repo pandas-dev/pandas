@@ -107,8 +107,8 @@ def _current_stances(
 ) -> dict[str | None, tuple[datetime, str | None]]:
     """Each maintainer reviewer's current stance, keyed by reviewer login.
 
-    Only an ``OWNER``/``MEMBER`` review counts; a drive-by verdict from an
-    outside account doesn't move the ball. A reviewer's stance is their newest
+    Only an ``OWNER``/``MEMBER`` review counts; a review from any other
+    account is ignored. A reviewer's stance is their newest
     ``APPROVED``/``CHANGES_REQUESTED``/``DISMISSED`` review — later
     ``COMMENTED`` reviews leave the previous verdict standing, while a
     dismissal (which rewrites the review's state to ``DISMISSED`` in place)
