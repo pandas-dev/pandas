@@ -2119,7 +2119,7 @@ class Index(IndexOpsMixin, PandasObject):
             names = names_adjusted
 
         if not is_list_like(names) or (
-            not isinstance(self, ABCMultiIndex) and isinstance(names, tuple)
+            not isinstance(self, ABCMultiIndex) and is_hashable(names)
         ):
             names = [names]  # type: ignore[assignment]
         if level is not None and not is_list_like(level):
