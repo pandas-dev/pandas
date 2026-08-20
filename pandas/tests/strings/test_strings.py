@@ -756,6 +756,18 @@ def test_normalize(form, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method, args", [("normalize", ("NFC",)), ("normalize", ("NFKC",)), ("zfill", (5,))]
+)
+def test_str_empty_filter_elementwise_fallback(method, args, any_string_dtype):
+    # GH#64359 an all-False filter leaves an arrow-backed array with zero chunks,
+    #  which the elementwise fallbacks used to rebuild without a type
+    ser = Series(["Café", "éclair"], dtype=any_string_dtype)
+    expected = ser[ser == "zzz"]
+    result = getattr(expected.str, method)(*args)
+    tm.assert_series_equal(result, expected)
+
+
 def test_normalize_bad_arg_raises(any_string_dtype):
     ser = Series(
         ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],  # noqa: RUF001
