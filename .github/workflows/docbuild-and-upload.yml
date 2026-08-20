@@ -179,7 +179,7 @@ jobs:
     - name: Commit and push to pandas-dev.github.io
       working-directory: pandas-dev.github.io
       env:
-        COMMIT_MSG: ${{ env.PUBLISH_PROD == 'true' && format('Update site for pandas {} (pandas-dev/pandas@{})', env.PANDAS_DOCS_VERSION, github.sha) || format('Update site from pandas-dev/pandas@{}', github.sha) }}
+        COMMIT_MSG: ${{ env.PUBLISH_PROD == 'true' && format('Update site for pandas {0} (pandas-dev/pandas@{1})', env.PANDAS_DOCS_VERSION, github.sha) || format('Update site from pandas-dev/pandas@{0}', github.sha) }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
