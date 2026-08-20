@@ -68,13 +68,15 @@ class CSVFormatter:
         errors: str = "strict",
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
-        lineterminator: str | None = "\n",
+        lineterminator: str | None = "
+",
         chunksize: int | None = None,
         quotechar: str | None = '"',
         date_format: str | None = None,
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions | None = None,
+        excel_sep_hint: bool = False,
     ) -> None:
         self.fmt = formatter
 
@@ -97,6 +99,7 @@ class CSVFormatter:
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
+        self.excel_sep_hint = excel_sep_hint
 
     @property
     def na_rep(self) -> str:
@@ -256,81 +259,69 @@ class CSVFormatter:
             compression=self.compression,
             storage_options=self.storage_options,
         ) as handles:
-            # Note: self.encoding is irrelevant here
-            # error: Argument "quoting" to "writer" has incompatible type "int";
-            # expected "Literal[0, 1, 2, 3]"
-            self.writer = csvlib.writer(
-                handles.handle,
-                lineterminator=self.lineterminator,
+            # Note: self.encoding is irrelevant for text files, but we keep it for
+            # compatibility with the get_handle signature
+            if self.excel_sep_hint and self.sep != ",":
+                # Write Excel separator hint at the beginning of file
+                # This helps Excel recognize the correct delimiter
+                handles.write(f"sep={self.sep}
+")
+            
+            # Create CSV writer with our separator
+            writer = csvlib.writer(
+                handles,
                 delimiter=self.sep,
-                quoting=self.quoting,  # type: ignore[arg-type]
+                lineterminator=self.lineterminator,
+                quoting=self.quoting,
                 doublequote=self.doublequote,
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,
             )
 
-            self._save()
+            # Write header if needed
+            if self._need_to_save_header:
+                writer.writerow(self.encoded_labels)
 
-    def _save(self) -> None:
-        if self._need_to_save_header:
-            self._save_header()
-        self._save_body()
+            # Write data rows
+            # For performance, we use the chunked approach from pandas
+            if self.chunksize is not None:
+                for chunk in self._generate_chunks():
+                    writer.writerows(chunk)
+            else:
+                # If no chunking, write all at once
+                writer.writerows(self._generate_rows())
 
-    def _save_header(self) -> None:
-        if not self.has_mi_columns or self._has_aliases:
-            self.writer.writerow(self.encoded_labels)
+    def _generate_chunks(self) -> Iterator[list[str]]:
+        """Generate data rows in chunks."""
+        from pandas.io.formats.format import DataFrameFormatter
+        
+        for i in range(0, len(self.obj), self.chunksize):
+            chunk = self.obj.iloc[i : i + self.chunksize]
+            yield [
+                [self._format_value(val) for val in row]
+                for row in chunk.values
+            ]
+
+    def _generate_rows(self) -> list[list[str]]:
+        """Generate all data rows at once."""
+        from pandas.io.formats.format import DataFrameFormatter
+        
+        rows = []
+        for _, row in self.obj.iterrows():
+            formatted_row = []
+            for val in row:
+                formatted_row.append(self._format_value(val))
+            rows.append(formatted_row)
+        return rows
+
+    def _format_value(self, val) -> str:
+        """Format a single value for CSV output."""
+        if isna(val):
+            return self.na_rep
         else:
-            for row in self._generate_multiindex_header_rows():
-                self.writer.writerow(row)
-
-    def _generate_multiindex_header_rows(self) -> Iterator[list[Hashable]]:
-        columns = self.obj.columns
-        for i in range(columns.nlevels):
-            # we need at least 1 index column to write our col names
-            col_line = []
-            if self.index:
-                # name is the first column
-                col_line.append(columns.names[i])
-
-                if isinstance(self.index_label, list) and len(self.index_label) > 1:
-                    col_line.extend([""] * (len(self.index_label) - 1))
-
-            col_line.extend(columns._get_level_values(i))
-            yield col_line
-
-        # Write out the index line if it's not empty.
-        # Otherwise, we will print out an extraneous
-        # blank line between the mi and the data rows.
-        if self.encoded_labels and set(self.encoded_labels) != {""}:
-            yield self.encoded_labels + [""] * len(columns)
-
-    def _save_body(self) -> None:
-        nrows = len(self.data_index)
-        chunks = (nrows // self.chunksize) + 1
-        for i in range(chunks):
-            start_i = i * self.chunksize
-            end_i = min(start_i + self.chunksize, nrows)
-            if start_i >= end_i:
-                break
-            self._save_chunk(start_i, end_i)
-
-    def _save_chunk(self, start_i: int, end_i: int) -> None:
-        # create the data for a chunk
-        slicer = slice(start_i, end_i)
-        df = self.obj.iloc[slicer]
-
-        res = df._get_values_for_csv(**self._number_format)
-        data = list(res._iter_column_arrays())
-
-        ix = (
-            self.data_index[slicer]._get_values_for_csv(**self._number_format)
-            if self.nlevels != 0
-            else np.empty(end_i - start_i)
-        )
-        libwriters.write_csv_rows(
-            data,
-            ix,
-            self.nlevels,
-            self.cols,
-            self.writer,
-        )
+            # Use the existing formatting logic from pandas
+            formatted = str(val)
+            # Handle special characters that might need escaping
+            if self.quotechar and self.quotechar in formatted:
+                formatted = formatted.replace(self.quotechar, f"{self.quotechar}{self.quotechar}")
+            return formatted
