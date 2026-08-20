@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Interval,
     interval_range,
@@ -98,3 +100,12 @@ IntervalArray.right values are different \\(50.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_interval_array_equal(arr1, arr2)
+
+
+def test_interval_array_equal_exact_deprecated():
+    # GH#49198 the 'exact' keyword has had no effect since pandas 1.2
+    arr = IntervalArray.from_tuples([(1, 2)])
+
+    msg = "the 'exact' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_interval_array_equal(arr, arr, exact=False)
