@@ -3108,6 +3108,34 @@ class TestLocBooleanMask:
         df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"].copy()
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_bool_column_indexer_single_ea_column(self):
+        # GH#66527 boolean column indexer on a single-column DataFrame with
+        #  EA dtype raised NotImplementedError
+        df = DataFrame({"a": ["x", "y", "z"]})
+        expected = df.copy()
+        df.loc[:, [True]] = df.loc[:, [True]]
+        tm.assert_frame_equal(df, expected)
+
+        df.loc[:, [True]] = "w"
+        expected = DataFrame({"a": ["w", "w", "w"]})
+        tm.assert_frame_equal(df, expected)
+
+        df2 = DataFrame({"a": pd.array([1, 2, 3], dtype="Int64")})
+        df2.loc[:, [True]] = Series([4, 5, 6])
+        expected2 = DataFrame({"a": pd.array([4, 5, 6], dtype="Int64")})
+        tm.assert_frame_equal(df2, expected2)
+
+    def test_loc_setitem_all_false_bool_column_indexer_ea_column(self):
+        # GH#66527 all-False boolean column indexer (and the equivalent
+        #  empty list of labels) on an EA column raised; should be a no-op
+        df = DataFrame({"a": ["x", "y", "z"]})
+        expected = df.copy()
+        df.loc[:, [False]] = "w"
+        tm.assert_frame_equal(df, expected)
+
+        df.loc[:, []] = "w"
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_indexer_length_one(self):
         # GH#51435
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)

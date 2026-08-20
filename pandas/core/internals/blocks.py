@@ -2158,6 +2158,11 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
+            elif is_list_like(indexer[1]) and len(indexer[1]) == 0:
+                # GH#66527 no columns selected, so there is nothing to set,
+                #  e.g. df.loc[:, []] or an all-False boolean column indexer
+                indexer = np.array([], dtype=np.intp)
+
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
 

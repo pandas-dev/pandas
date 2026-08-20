@@ -2916,6 +2916,22 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
         if isinstance(indexer, tuple):
+            if len(indexer) == 2 and com.is_bool_indexer(indexer[1]):
+                # GH#66527 convert boolean column indexer to positional, as
+                #  is done in the split path via
+                #  _ensure_iterable_column_indexer
+                col_mask = np.asarray(indexer[1])
+                if len(col_mask) != len(item_labels):
+                    # preserve numpy's length check, which the nonzero()
+                    #  conversion would otherwise silently bypass
+                    raise IndexError(
+                        f"boolean index did not match indexed array along "
+                        f"axis 1; size of axis is {len(item_labels)} but "
+                        f"size of corresponding boolean axis is "
+                        f"{len(col_mask)}"
+                    )
+                indexer = (indexer[0], col_mask.nonzero()[0])
+
             # if we are setting on the info axis ONLY
             # set using those methods to avoid block-splitting
             # logic here
