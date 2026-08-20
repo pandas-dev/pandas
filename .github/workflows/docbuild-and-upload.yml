@@ -178,6 +178,8 @@ jobs:
 
     - name: Commit and push to pandas-dev.github.io
       working-directory: pandas-dev.github.io
+      env:
+        COMMIT_MSG: ${{ env.PUBLISH_PROD == 'true' && format('Update site for pandas {} (pandas-dev/pandas@{})', env.PANDAS_DOCS_VERSION, github.sha) || format('Update site from pandas-dev/pandas@{}', github.sha) }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -186,8 +188,8 @@ jobs:
           echo "No changes to publish"
           exit 0
         fi
-        git commit -m "Update site from pandas-dev/pandas@${GITHUB_SHA}"
-        git push
+        git commit -m "${COMMIT_MSG}"
+        git push || (git pull --rebase && git push)
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true'
 
     - name: Move docs into site directory
