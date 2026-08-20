@@ -2031,7 +2031,13 @@ def test_method_calls_on_binop():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("engine", ["python", "numexpr"])
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "python",
+        pytest.param("numexpr", marks=td.skip_if_no("numexpr")),
+    ],
+)
 def test_eval_inplace_cow_alias_corruption(engine):
     # https://github.com/pandas-dev/pandas/issues/65664
     df = DataFrame({"old": [1, 2, 3]})
