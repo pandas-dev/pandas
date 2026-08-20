@@ -35,10 +35,10 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas._typing import (
