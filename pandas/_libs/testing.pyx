@@ -21,6 +21,8 @@ from pandas._libs.util cimport (
 
 from pandas.core.dtypes.missing import array_equivalent
 
+from pandas.io.formats.printing import pprint_thing
+
 
 cdef bint isiterable(obj):
     return hasattr(obj, "__iter__")
@@ -162,7 +164,9 @@ cpdef assert_almost_equal(a, b,
                 diff += 1
                 if not first_diff:
                     first_diff = (
-                        f"At positional index {i}, first diff: {a[i]} != {b[i]}"
+                        f"At positional index {i}, first diff: "
+                        f"{pprint_thing(a[i], quote_strings=True)} != "
+                        f"{pprint_thing(b[i], quote_strings=True)}"
                     )
 
         if is_unequal:
