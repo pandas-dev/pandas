@@ -356,6 +356,44 @@ def test_ambiguous_archive_tar(tmp_path):
         pd.read_csv(tarpath)
 
 
+@pytest.mark.parametrize(
+    "suffix, wrapper_name",
+    [
+        (".zip", "_BytesZipFile"),
+        (".tar", "_BytesTarFile"),
+    ],
+)
+def test_ambiguous_archive_closes_handle(suffix, wrapper_name, tmp_path, monkeypatch):
+    # GH#58131 the archive must not be left open when read_csv raises
+    path = tmp_path / f"archive{suffix}"
+    if suffix == ".zip":
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("a.csv", "foo,bar")
+            archive.writestr("b.csv", "foo,bar")
+    else:
+        with tarfile.TarFile(path, "w") as archive:
+            for name in ["a.csv", "b.csv"]:
+                info = tarfile.TarInfo(name)
+                info.size = len(b"foo,bar")
+                archive.addfile(info, io.BytesIO(b"foo,bar"))
+
+    opened = []
+    wrapper = getattr(icom, wrapper_name)
+
+    class Spy(wrapper):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            opened.append(self)
+
+    monkeypatch.setattr(icom, wrapper_name, Spy)
+
+    with pytest.raises(ValueError, match="Multiple files found"):
+        pd.read_csv(path)
+
+    assert len(opened) == 1
+    assert opened[0].closed
+
+
 def test_tar_gz_to_different_filename(temp_file):
     file = temp_file.parent / "archive.foo"
     pd.DataFrame(
