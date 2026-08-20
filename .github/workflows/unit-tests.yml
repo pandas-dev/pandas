@@ -516,7 +516,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.14'
+          python-version: '3.12'
 
       - name: Install pyodide-build
         run: python -m pip install pyodide-build
@@ -535,7 +535,7 @@ jobs:
 
       - name: Set up Pyodide virtual environment
         run: |
-          pyodide xbuildenv install 315.0.0a2
+          pyodide xbuildenv install 0.27.1
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           python -m pip install dist/*.whl
