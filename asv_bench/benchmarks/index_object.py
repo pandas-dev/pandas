@@ -66,18 +66,28 @@ class SetOperations:
         getattr(self.left, method)(self.right)
 
 
-class ArrowIntersectionDedup:
-    # Deduplicating the merge result costs more the more distinct values survive,
-    # and signed zeros force the general path. SetOperations covers neither: it
-    # only ever intersects all-unique values with a near-copy of themselves.
+class IntersectionDedup:
+    # SetOperations only intersects all-unique values with a near-copy of
+    # themselves. What deduplicating the merge result costs depends on how many
+    # distinct values survive, and on whether a sorted fastpath applies at all:
+    # signed zeros are equal to the comparison that orders the values but are
+    # distinct values, so they rule one out.
     params = (
-        ["int64[pyarrow]", "float64[pyarrow]", "string[pyarrow]"],
+        [
+            "int64",
+            "float64",
+            "Int64",
+            "int64[pyarrow]",
+            "float64[pyarrow]",
+            "string[pyarrow]",
+            "object",
+        ],
         ["unique", "duplicated", "low_cardinality", "partial_overlap", "signed_zero"],
     )
     param_names = ["dtype", "scenario"]
 
     def setup(self, dtype, scenario):
-        if scenario == "signed_zero" and dtype != "float64[pyarrow]":
+        if scenario == "signed_zero" and dtype not in ("float64", "float64[pyarrow]"):
             raise NotImplementedError
 
         N = 10**5
@@ -86,14 +96,14 @@ class ArrowIntersectionDedup:
             "duplicated": np.repeat(np.arange(N // 2), 2),
             "low_cardinality": np.repeat(np.arange(100), N // 100),
             "partial_overlap": np.arange(N + N // 2),
-            # -0.0 and 0.0 are equal to the comparison that orders the values but
-            # are distinct values, so the sorted fastpath cannot be used
             "signed_zero": np.concatenate(
                 [np.repeat([-0.0, 0.0], N // 2), np.arange(1, N)]
             ),
         }[scenario]
 
-        if dtype == "string[pyarrow]":
+        if dtype in ("string[pyarrow]", "object"):
+            # zero-padded so the strings really are sorted: the libjoin fastpath
+            # is only reachable for a monotonic index
             values = [f"i-{i:07d}" for i in values]
         index = Index(values, dtype=dtype)
 

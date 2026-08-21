@@ -2308,8 +2308,9 @@ class ArrowExtensionArray(
         duplicates that are adjacent. Sorted input is what makes them adjacent.
 
         Returns None if the fast path cannot be used: the type has no run-end
-        or comparison kernel, the values contain NA, or the encoded runs are not
-        strictly increasing, which means equal values were not all adjacent.
+        or comparison kernel, there are more values than the run end type can
+        hold, the values contain NA, or the encoded runs are not strictly
+        increasing, which means equal values were not all adjacent.
         Unsorted input lands there, and so do -0.0 and 0.0, which are equal to
         the comparison that orders the values but distinct to the encoder.
         Callers fall back to :meth:`unique`.
@@ -2329,7 +2330,9 @@ class ArrowExtensionArray(
                 or pc.all(pc.less(values[:-1], values[1:])).as_py() is not True
             ):
                 return None
-        except pa.ArrowNotImplementedError:
+        except (pa.ArrowNotImplementedError, pa.ArrowInvalid):
+            # no kernel for this type, or more elements than the run end type
+            # can hold
             return None
         return self._from_pyarrow_array(values)
 

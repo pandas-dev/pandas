@@ -5395,3 +5395,21 @@ def test_unique_by_run_ends_declines_without_kernel():
         pa.compute.run_end_encode(arr._pa_array.combine_chunks())
 
     assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_when_run_ends_overflow(monkeypatch):
+    # GH#66498 run_end_encode raises ArrowInvalid, not ArrowNotImplementedError,
+    # when the array holds more elements than the run end type can count. Force
+    # it with a narrow run end type rather than allocating 2**31 values.
+    narrow = pa.compute.RunEndEncodeOptions(run_end_type=pa.int16())
+    encode = pa.compute.run_end_encode
+    monkeypatch.setattr(
+        pa.compute, "run_end_encode", lambda arr: encode(arr, options=narrow)
+    )
+    arr = ArrowExtensionArray(
+        pa.chunked_array([pa.array(np.arange(2**15 + 1), type=pa.int64())])
+    )
+    with pytest.raises(pa.ArrowInvalid, match="run end type"):
+        pa.compute.run_end_encode(arr._pa_array.combine_chunks())
+
+    assert arr._unique_by_run_ends() is None
