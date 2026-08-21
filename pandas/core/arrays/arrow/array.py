@@ -2321,13 +2321,11 @@ class ArrowExtensionArray(
         """
         pa_array = self._pa_array
         try:
-            if pa_array.num_chunks == 1:
-                # combine_chunks copies even with nothing to combine, and
-                # take() hands this path a single chunk
-                combined = pa_array.chunk(0)
-            else:
-                # a run cannot be detected across a chunk boundary
-                combined = pa_array.combine_chunks()
+            combined = (
+                pa_array.chunk(0)
+                if pa_array.num_chunks == 1
+                else pa_array.combine_chunks()
+            )
             values = pc.run_end_encode(combined).values
             if len(values) > 1 and (
                 # pc.all skips null comparisons, so a null run would hide
