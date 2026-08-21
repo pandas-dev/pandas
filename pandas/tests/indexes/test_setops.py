@@ -1117,9 +1117,8 @@ def test_monotonic_index_has_monotonic_join_target(index):
     # GH#66498 the merge output is sorted only because a monotonic index has a
     # monotonic join target, which is nowhere stated as a contract. Pin it.
     if not index._can_use_libjoin:
+        # this also excludes MultiIndex, whose join target is not a flat array
         pytest.skip("_get_join_target is only used under _can_use_libjoin")
-    if isinstance(index, MultiIndex):
-        pytest.skip("MultiIndex join target is not a flat array")
 
     target = index._get_join_target()
     if target.dtype == object:

@@ -2309,11 +2309,11 @@ class ArrowExtensionArray(
 
         Returns None if the fast path cannot be used: the type has no run-end
         or comparison kernel, the values do not fit in a single combined array
-        or in the run end type, they contain NA, or the encoded runs are not
-        strictly increasing, which means equal values were not all adjacent.
-        Unsorted input lands there, and so do -0.0 and 0.0, which are equal to
-        the comparison that orders the values but distinct to the encoder.
-        Callers fall back to :meth:`unique`.
+        or in the run end type, or the runs cannot be shown to strictly
+        increase, which is what proves every duplicate was adjacent. Unsorted
+        input lands there, so does NA next to anything else, and so do -0.0 and
+        0.0, which are equal to the comparison that orders the values but
+        distinct to the encoder. Callers fall back to :meth:`unique`.
 
         Returns
         -------
