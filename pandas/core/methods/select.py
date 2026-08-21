@@ -55,14 +55,15 @@ def _parse_select_args(args: tuple) -> list:
     return list(args)
 
 
-def select(df: DataFrame, args: tuple, kwargs: dict[str, Any]) -> DataFrame:
+def select(
+    df: DataFrame, select_args: tuple, select_kwargs: dict[str, Any]
+) -> DataFrame:
     """
-    Implementation of DataFrame.select; args and kwargs are the method's
-    positional and keyword arguments, forwarded unpacked.
+    Implementation of DataFrame.select.
     """
     from pandas.core.reshape.concat import concat
 
-    items = _parse_select_args(args)
+    items = _parse_select_args(select_args)
     nlevels = df.columns.nlevels
 
     chunks: list[DataFrame] = []
@@ -127,7 +128,7 @@ def select(df: DataFrame, args: tuple, kwargs: dict[str, Any]) -> DataFrame:
             labels.append(item)
     flush_labels()
 
-    for key, value in kwargs.items():
+    for key, value in select_kwargs.items():
         if nlevels > 1:
             raise TypeError(
                 f"cannot create column {key!r} from a keyword argument: "

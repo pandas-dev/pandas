@@ -260,6 +260,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.col import Expression
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
@@ -5841,7 +5842,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self._mgr._get_data_subset_indices(predicate)
 
-    def select(self, *args, **kwargs) -> DataFrame:
+    @overload
+    def select(
+        self, arg0: ListLike | Hashable = ..., /, **kwargs: Any
+    ) -> DataFrame: ...
+
+    @overload
+    def select(self, /, *args: Hashable | Expression, **kwargs: Any) -> DataFrame: ...
+
+    def select(self, /, *args: Any, **kwargs: Any) -> DataFrame:
         """
         Select a subset of columns from the DataFrame.
 
@@ -5866,11 +5875,11 @@ class DataFrame(NDFrame, OpsMixin):
             provided, its elements are the items to select; a sequence
             cannot be mixed with further positional arguments.
         **kwargs : callable, Expression, Series, scalar, array-like, or dict
-            Additional computed columns, where the keyword is the resulting
-            column name. Values are resolved like the values of
-            :meth:`DataFrame.assign`: callables and expressions are evaluated
-            on the DataFrame, and other values are assigned as-is following
-            the alignment and broadcasting rules of
+            Additional computed columns, where each keyword results in a new column
+            with that name and are included in the selection. Values are resolved
+            like the values of :meth:`DataFrame.assign`: callables and expressions
+            are evaluated on the DataFrame, and other values are assigned as-is
+            following the alignment and broadcasting rules of
             :meth:`DataFrame.__setitem__`.
 
         Returns
