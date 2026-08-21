@@ -1352,13 +1352,34 @@ def test_multiply_dateoffset_typeerror(left, right):
         left * right
 
 
-def test_dateoffset_days_vs_n_near_dst_transition():
-    # GH#61862
-    ts = Timestamp("2022-10-30", tz="Europe/Brussels")
+@pytest.mark.parametrize("n", [1, 2, -1])
+def test_dateoffset_days_vs_n_near_dst_transition(warsaw, n):
+    # GH#61862, GH#61870
+    ts = Timestamp("2022-10-30", tz=warsaw)
 
-    offset_days = ts + offsets.DateOffset(days=1)
-    offset_n = ts + offsets.DateOffset(1)
+    offset_days = ts + offsets.DateOffset(days=n)
+    offset_n = ts + offsets.DateOffset(n)
     assert offset_days == offset_n
+    # the scalar result also agrees with the vectorized one
+    expected = DatetimeIndex([ts]) + offsets.DateOffset(n)
+    assert offset_n == expected[0]
+
+
+@pytest.mark.parametrize("n", [1, 2, -1])
+@pytest.mark.parametrize("start", ["2022-10-30", "2022-03-26 12:00"])
+def test_dateoffset_n_scalar_near_dst_transition(warsaw, start, n):
+    # GH#61870 the scalar path for a bare DateOffset(n) added a plain
+    #  timedelta, which kept pytz's pre-transition DstTzInfo instead of
+    #  re-localizing, so the result was an hour off across a DST boundary
+    ts = Timestamp(start, tz=warsaw)
+
+    result = ts + offsets.DateOffset(n)
+    expected = ts + offsets.DateOffset(days=n)
+    assert result == expected
+    assert result.utcoffset() == expected.utcoffset()
+
+    # the vectorized path is a separate implementation
+    assert (DatetimeIndex([ts]) + offsets.DateOffset(n))[0] == result
 
 
 @pytest.mark.parametrize("n", [1, 2, -1])

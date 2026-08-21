@@ -1566,7 +1566,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            if self.dtype.kind not in "iub" or not is_valid_na_for_dtype(
+            if self.dtype.kind not in "iubS" or not is_valid_na_for_dtype(
                 fill_value, self.dtype
             ):
                 # GH#53802

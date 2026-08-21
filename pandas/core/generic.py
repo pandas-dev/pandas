@@ -2747,7 +2747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None | lib.NoDefault = lib.no_default,
+        dropna: bool | lib.NoDefault | None = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -7103,9 +7103,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         method: Literal["ffill", "bfill", "pad", "backfill"],
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ):
         if axis is None:
@@ -7384,9 +7384,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def ffill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7489,9 +7489,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def bfill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -9188,8 +9188,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         between_time : Select values between particular times of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day.
 
@@ -9260,8 +9258,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         at_time : Select values at a particular time of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day.
 

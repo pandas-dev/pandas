@@ -69,6 +69,7 @@ from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
     format_dateaxis,
+    get_period_offset,
     maybe_convert_index,
     prepare_ts_data,
     use_dynamic_x,
@@ -88,6 +89,7 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
 
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         IndexLabel,
         NDFrameT,
@@ -168,9 +170,9 @@ class MPLPlot(ABC):
         include_bool: bool = False,
         column: IndexLabel | None = None,
         *,
-        logx: bool | None | Literal["sym"] = False,
-        logy: bool | None | Literal["sym"] = False,
-        loglog: bool | None | Literal["sym"] = False,
+        logx: bool | Literal["sym"] | None = False,
+        logy: bool | Literal["sym"] | None = False,
+        loglog: bool | Literal["sym"] | None = False,
         mark_right: bool = True,
         stacked: bool = False,
         label: Hashable | None = None,
@@ -327,8 +329,8 @@ class MPLPlot(ABC):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         if (
             value is None
             or isinstance(value, bool)
@@ -1920,11 +1922,19 @@ class BarPlot(MPLPlot):
             self.tick_pos = np.array(
                 PeriodConverter.convert_from_freq(
                     self._get_xticks(),
-                    data.index.freq,
+                    self._ts_freq,
                 )
             )
         else:
             self.tick_pos = np.arange(len(data))
+
+    @cache_readonly
+    def _ts_freq(self) -> BaseOffset:
+        freq = get_period_offset(self._get_ax(0), self.data.index)
+        # only evaluated when _is_ts_plot() is True, which resolves the freq
+        # the same way and is False unless it resolves to a period alias
+        assert freq is not None
+        return freq
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
@@ -2185,8 +2195,8 @@ class PiePlot(MPLPlot):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         super()._validate_log_kwd(kwd=kwd, value=value)
         if value is not False:
             warnings.warn(

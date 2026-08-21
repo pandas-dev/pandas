@@ -33,7 +33,6 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
-    pa_version_under14p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -515,11 +514,13 @@ class ArrowExtensionArray(
             else:
                 mask = isna(strings)
                 # to_numeric("") yields IEEE NaN without raising. Match numpy
-                # float64: an empty string that was not treated as NA is invalid.
+                # numeric dtypes: an empty string that was not treated as NA
+                # is invalid. Compare only non-NA slots so pd.NA does not
+                # raise "boolean value of NA is ambiguous".
                 arr = np.asarray(strings, dtype=object)
-                unmasked_empty = (arr == "") & ~np.asarray(mask, dtype=np.bool_)
-                if unmasked_empty.any():
-                    raise ValueError("could not convert string to float: ''")
+                keep = ~np.asarray(mask, dtype=np.bool_)
+                if keep.any() and np.any(arr[keep] == ""):
+                    raise ValueError(f"could not convert string to {pa_type}: ''")
                 if mask is not None:
                     scalars = pa.array(scalars, mask=mask, type=pa_type)
 
@@ -1957,10 +1958,6 @@ class ArrowExtensionArray(
             # contract.
             return super().round(decimals, *args, **kwargs)
         result = pc.round(self._pa_array, ndigits=decimals)
-        if pa_version_under14p0:
-            # pyarrow < 14 upcasts integer inputs to double; cast back so the
-            # output dtype matches the input.
-            result = result.cast(self._pa_array.type)
         return self._from_pyarrow_array(result)
 
     def searchsorted(
@@ -3783,14 +3780,14 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pc.binary_repeat(self._pa_array, repeats))
 
     def _str_join(self, sep: str) -> Self:
-        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
-            self._pa_array.type
-        ):
+        pa_type = self._pa_array.type
+        if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
             result = self._apply_elementwise(list)
-            result = pa.chunked_array(result, type=pa.list_(pa.string()))
-        else:
-            result = self._pa_array
-        return self._from_pyarrow_array(pc.binary_join(result, sep))
+            # pc.binary_join has no kernel for large_string values, so join as
+            #  string and restore the input's own type afterwards
+            listed = pa.chunked_array(result, type=pa.list_(pa.string()))
+            return self._from_pyarrow_array(pc.binary_join(listed, sep).cast(pa_type))
+        return self._from_pyarrow_array(pc.binary_join(self._pa_array, sep))
 
     def _str_partition(self, sep: str, expand: bool):
         if expand:
@@ -3800,22 +3797,32 @@ class ArrowExtensionArray(
             )
         predicate = lambda val: val.partition(sep)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+        )
 
     def _str_rpartition(self, sep: str, expand: bool) -> Self:
         predicate = lambda val: val.rpartition(sep)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+        )
 
     def _str_casefold(self) -> Self:
         predicate = lambda val: val.casefold()
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _str_encode(self, encoding: str, errors: str = "strict") -> Self:
         predicate = lambda val: val.encode(encoding, errors)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        if pa.types.is_large_string(self._pa_array.type):
+            pa_type = pa.large_binary()
+        else:
+            pa_type = pa.binary()
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa_type))
 
     def _str_extract(self, pat: str | re.Pattern, flags: int = 0, expand: bool = True):
         compiled = self._compile_re_fallback(pat, flags=flags)
@@ -3854,7 +3861,9 @@ class ArrowExtensionArray(
         regex = re.compile(pat, flags=flags)
         predicate = lambda val: regex.findall(val)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+        )
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
@@ -3883,17 +3892,17 @@ class ArrowExtensionArray(
     def _str_index(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.index(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_rindex(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.rindex(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_split(
         self,
@@ -3934,14 +3943,18 @@ class ArrowExtensionArray(
     def _str_translate(self, table: dict[int, str]) -> Self:
         predicate = lambda val: val.translate(table)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _str_wrap(self, width: int, **kwargs) -> Self:
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _dt_zero_or_null_int32(self) -> Self:
         """
