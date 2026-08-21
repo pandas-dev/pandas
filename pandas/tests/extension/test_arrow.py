@@ -48,6 +48,7 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -4761,6 +4762,15 @@ def test_string_to_time_parsing_cast():
     expected = pd.Series(
         ArrowExtensionArray(pa.array([time(11, 41, 43, 76160)], from_pandas=True))
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_not_us_locale
+@pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
+def test_string_to_time_parsing_cast_meridiem(dtype):
+    # GH#18793 the space before AM/PM used to make these coerce to null
+    result = pd.Series(["3:25:00 PM"], dtype=dtype)
+    expected = pd.Series(["15:25:00"], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
