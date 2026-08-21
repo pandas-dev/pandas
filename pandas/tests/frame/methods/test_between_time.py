@@ -225,3 +225,14 @@ class TestBetweenTime:
         msg = "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, inclusive=inclusive)
+
+
+@td.skip_if_not_us_locale
+def test_between_time_space_before_meridiem():
+    # GH#18793 the space before AM/PM used to make these unparsable
+    index = date_range("2012-01-01", periods=48, freq="h")
+    df = DataFrame({"A": range(len(index))}, index=index)
+
+    result = df.between_time("3:00 PM", "5:00 PM")
+    expected = df.between_time(time(15, 0), time(17, 0))
+    tm.assert_frame_equal(result, expected)

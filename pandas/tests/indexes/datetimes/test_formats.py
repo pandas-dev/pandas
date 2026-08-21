@@ -16,6 +16,19 @@ from pandas import (
 import pandas._testing as tm
 
 
+def test_get_values_for_csv_sub_minute_utc_offset():
+    # GH#66547 array formatting routes through Timestamp.isoformat, so a UTC
+    #  offset carrying seconds used to have the fraction spliced into it
+    dti = DatetimeIndex(["1800-01-01 00:00:00.000000001"], tz="UTC").tz_convert(
+        "Asia/Tokyo"
+    )
+    expected = np.array(["1800-01-01 09:18:59.000000001+09:18:59"], dtype=object)
+
+    tm.assert_numpy_array_equal(dti._get_values_for_csv(), expected)
+    tm.assert_numpy_array_equal(Series(dti).astype(str).to_numpy(), expected)
+    assert expected[0] in repr(dti)
+
+
 def test_get_values_for_csv():
     index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
 

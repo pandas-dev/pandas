@@ -26,8 +26,10 @@ from numpy.ma import mrecords
 import pytest
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -2211,18 +2213,24 @@ class TestDataFrameConstructors:
         # GH#64958 the uniform-dtype fast path must not silently truncate
         # ragged rows; they should be padded to max width with NaN
         # (pin int64 so the result dtype matches on 32- and 64-bit platforms)
-        result = DataFrame(
-            [np.array([1, 2], dtype=np.int64), np.array([3, 4, 5], dtype=np.int64)]
-        )
+        # GH#65751 the ragged padding itself is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame(
+                [np.array([1, 2], dtype=np.int64), np.array([3, 4, 5], dtype=np.int64)]
+            )
         expected = DataFrame([[1, 2, np.nan], [3, 4, 5]])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_ragged_arrays_first_longest(self):
         # GH#64958 a longer first row must not raise IndexError; ragged rows
         # should be padded to max width with NaN
-        result = DataFrame(
-            [np.array([1, 2, 3], dtype=np.int64), np.array([4, 5], dtype=np.int64)]
-        )
+        # GH#65751 the ragged padding itself is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame(
+                [np.array([1, 2, 3], dtype=np.int64), np.array([4, 5], dtype=np.int64)]
+            )
         expected = DataFrame([[1, 2, 3], [4, 5, np.nan]])
         tm.assert_frame_equal(result, expected)
 
@@ -2424,9 +2432,32 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
-        expected = DataFrame([list("abc"), list("abdefg")])
+        # GH#65751 ragged input is padded with NaN, which is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = DataFrame([list("abc"), list("abdefg")])
         tm.assert_frame_equal(df, expected)
+
+    def test_construct_ragged_list_deprecated(self):
+        # GH#65751 constructing from sequences of mismatched lengths pads the
+        #  shorter ones with NaN out to the longest, which is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        expected = DataFrame({0: [1, 3], 1: [2, 4], 2: [np.nan, 5]})
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame([[1, 2], [3, 4, 5]])
+        tm.assert_frame_equal(result, expected)
+
+        # list of tuples takes the same code path
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame([(1, 2), (3, 4, 5)])
+        tm.assert_frame_equal(result, expected)
+
+        # equal-length sequences are unaffected
+        with tm.assert_produces_warning(None):
+            DataFrame([[1, 2], [3, 4]])
 
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]
@@ -3288,9 +3319,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
         tm.assert_frame_equal(result, expected)
 
     # TODO: make this not cast to object in pandas 3.0
-    @pytest.mark.skipif(
-        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
-    )
     @pytest.mark.parametrize(
         "data",
         [

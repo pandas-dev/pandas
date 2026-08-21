@@ -223,7 +223,15 @@ def read_pickle(
     4    4    9
     """
     # TypeError for Cython complaints about object.__new__ vs Tick.__new__
-    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+    # ValueError for legacy Timestamp pickles that mix a value with
+    #  by-component arguments (GH#31930)
+    excs_to_catch = (
+        AttributeError,
+        ImportError,
+        ModuleNotFoundError,
+        TypeError,
+        ValueError,
+    )
     with get_handle(
         filepath_or_buffer,
         "rb",

@@ -240,13 +240,16 @@ class Preprocessors:
         for release in releases:
             if release["prerelease"]:
                 continue
+            name = release["tag_name"].lstrip("v")
+            parsed_version = version.parse(name)
             published = datetime.datetime.strptime(
                 release["published_at"], "%Y-%m-%dT%H:%M:%SZ"
             )
             context["releases"].append(
                 {
-                    "name": release["tag_name"].lstrip("v"),
-                    "parsed_version": version.parse(release["tag_name"].lstrip("v")),
+                    "name": name,
+                    "parsed_version": parsed_version,
+                    "short_name": f"{parsed_version.major}.{parsed_version.minor}",
                     "tag": release["tag_name"],
                     "published": published,
                     "url": (

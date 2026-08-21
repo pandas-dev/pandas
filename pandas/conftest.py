@@ -215,6 +215,11 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
         ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
+        (
+            # matches both DatetimeProperties.freq and TimedeltaProperties.freq
+            "Properties.freq",
+            "A future version of pandas will return a BaseOffset",
+        ),
     ]
 
     if is_doctest:
@@ -1119,8 +1124,8 @@ def all_arithmetic_functions(request):
 
     Notes
     -----
-    This includes divmod and rdivmod, whereas all_arithmetic_operators
-    does not.
+    This does not include divmod and rdivmod, which return a tuple and so
+    cannot be used interchangeably with the other operators.
     """
     return request.param
 
@@ -1972,7 +1977,7 @@ _any_skipna_inferred_dtype = [
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
     ("time", [time(1), np.nan, time(2)]),
-    ("period", [Period(2013), pd.NaT, Period(2018)]),
+    ("period", [Period("2013"), pd.NaT, Period("2018")]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
 ids = [

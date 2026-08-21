@@ -140,6 +140,41 @@ def test_unique_distinct_bad_unicode(index_or_series):
     assert set(uniques) == set(uvals)
 
 
+@pytest.mark.parametrize(
+    "uvals",
+    [
+        ["", "\x00"],
+        ["x\x00y", "x\x00z"],
+        ["a", "a\x00", "a\x00\x00", "\x00a"],
+    ],
+)
+def test_unique_embedded_null(index_or_series, uvals):
+    # GH#34551 object-dtype strings route through StringHashTable, which used
+    #  to key on a NUL-terminated C string and so collapsed distinct values
+    #  sharing a prefix up to their first NUL.
+    #  The values are repeated deliberately: Index.unique short-circuits on
+    #  is_unique for an all-distinct input, so only a duplicated input reaches
+    #  StringHashTable at all.
+    vals = uvals * 2
+    arr = np.empty(len(vals), dtype=object)
+    arr[:] = vals
+
+    result = index_or_series(arr, dtype=object).unique()
+    assert list(result) == uvals
+
+    codes, uniques = pd.factorize(arr)
+    expected = np.tile(np.arange(len(uvals), dtype=np.intp), 2)
+    tm.assert_numpy_array_equal(codes, expected)
+    assert list(uniques) == uvals
+
+    ser = pd.Series(arr, dtype=object)
+    assert ser.nunique() == len(uvals)
+
+    # groupby factorizes through the same table
+    grouped = pd.DataFrame({"key": ser}).groupby("key")
+    assert grouped.ngroups == len(uvals)
+
+
 def test_nunique_dropna(dropna):
     # GH37566
     ser = pd.Series(["yes", "yes", pd.NA, np.nan, None, pd.NaT])

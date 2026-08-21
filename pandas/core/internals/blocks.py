@@ -884,24 +884,51 @@ class Block(PandasObject, libinternals.Block):
                 )
 
                 if i != src_len:
-                    # This is ugly, but we have to get rid of intermediate refs. We
-                    # can simply clear the referenced_blocks if we already copied,
-                    # otherwise we have to remove ourselves
+                    # This is ugly, but we have to get rid of intermediate refs.
                     self_blk_ids = {
-                        id(b()): i for i, b in enumerate(self.refs.referenced_blocks)
+                        id(ref()): idx
+                        for idx, ref in enumerate(self.refs.referenced_blocks)
                     }
-                    for b in result:
-                        if b.refs is self.refs:
-                            # We are still sharing memory with self
-                            if id(b) in self_blk_ids and b is not self:
-                                # Remove ourselves from the refs; we are temporary
-                                self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
-                        else:
-                            # We have already copied, so we can clear the refs to avoid
-                            # future copies
-                            b.refs.referenced_blocks.clear()
+                    # Blocks still sharing memory with self are temporary, so drop
+                    #  them from self's refs. Pop highest index first: popping in
+                    #  ascending order shifts every later index down, so with two or
+                    #  more of them the later pops hit the wrong entry or ran off the
+                    #  end (GH#61972).
+                    drop = {
+                        self_blk_ids[id(res_blk)]
+                        for res_blk in result
+                        if res_blk.refs is self.refs
+                        and id(res_blk) in self_blk_ids
+                        and res_blk is not self
+                    }
+                    for idx in sorted(drop, reverse=True):
+                        self.refs.referenced_blocks.pop(idx)
+                    # Note: blocks whose refs are not self.refs are left alone. Those
+                    #  refs still track every live block sharing that data, which may
+                    #  include sibling sub-blocks from _split on an intermediate
+                    #  block, and always include the block itself. Emptying them would
+                    #  leave those blocks untracked, so writes through a later view
+                    #  would not trigger copy-on-write (GH#58966).
                 new_rb.extend(result)
             rb = new_rb
+
+        # The drop above assumes every block it removes is a short-lived intermediate,
+        #  but a block can survive to the end untouched (a later pair whose mask is
+        #  empty hands it straight back). Re-register whatever we are actually
+        #  returning, otherwise it stays invisible to has_reference() and writes
+        #  through a later view skip copy-on-write (GH#58966).
+        # Blocks split off the same parent share one refs, so cache the ids per refs
+        #  rather than rescanning the list for each of them.
+        registered: dict[int, set[int]] = {}
+        for ret_blk in rb:
+            refs = ret_blk.refs
+            ids = registered.get(id(refs))
+            if ids is None:
+                ids = {id(ref()) for ref in refs.referenced_blocks}
+                registered[id(refs)] = ids
+            if id(ret_blk) not in ids:
+                refs.add_reference(ret_blk)
+                ids.add(id(ret_blk))
         return rb
 
     @final
@@ -1539,7 +1566,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            if self.dtype.kind not in "iub" or not is_valid_na_for_dtype(
+            if self.dtype.kind not in "iubS" or not is_valid_na_for_dtype(
                 fill_value, self.dtype
             ):
                 # GH#53802

@@ -66,6 +66,34 @@ class TestTSPlot:
         assert (first.hour, first.minute) == (0, 0)
         assert (last.hour, last.minute) == (1, 0)
 
+    def test_ts_plot_tz_aware_values(self):
+        # GH#64613 the ts path read Series.values, which both raised the
+        #  lossy-.values deprecation from inside pandas and plotted tz-aware
+        #  values one utc offset away from where the non-ts path puts them
+        values = date_range("2020-01-01", periods=10, tz="US/Pacific")
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(2)
+        with tm.assert_produces_warning(None):
+            Series(values, index=date_range("2021-01-01", periods=10)).plot(ax=ax1)
+        Series(values).plot(ax=ax2)
+
+        tm.assert_numpy_array_equal(ax1.get_yticks(), ax2.get_yticks())
+
+    def test_replot_tz_aware_values(self):
+        # GH#64613 replotting onto an axes that already holds a coarser-freq
+        #  series goes through _replot_ax, which dropped the timezone
+        values = date_range("2020-01-01", periods=3, tz="US/Pacific")
+        _, ax = mpl.pyplot.subplots()
+
+        with tm.assert_produces_warning(None):
+            ser = Series(values, index=date_range("2020-01-31", periods=3, freq="ME"))
+            ser.plot(ax=ax)
+            other = Series(np.arange(6.0), index=date_range("2020-01-01", periods=6))
+            other.plot(ax=ax)
+
+        ydata = ax.get_lines()[0].get_ydata()
+        tm.assert_numpy_array_equal(ydata, np.asarray(values))
+
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = DataFrame(
@@ -171,7 +199,7 @@ class TestTSPlot:
         assert conv._get_datevalue(None, "D") is None
         assert conv._get_datevalue(1987, "Y") == 1987
         assert (
-            conv._get_datevalue(Period(1987, "Y"), "M")
+            conv._get_datevalue(Period("1987", "Y"), "M")
             == Period("1987-12", "M").ordinal
         )
         assert conv._get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
@@ -585,7 +613,7 @@ class TestTSPlot:
 
     def test_finder_annual(self):
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
-        xp = [Period(x, freq="Y").ordinal for x in xp]
+        xp = [Period(str(x), freq="Y").ordinal for x in xp]
         rs = []
         for nyears in [5, 10, 19, 49, 99, 199, 599, 1001]:
             rng = period_range("1987", periods=nyears, freq="Y")
@@ -1919,6 +1947,51 @@ class TestTSPlot:
         df.plot(ax=ax)
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_datetime_index_inferred_freq(self, kind):
+        # GH#66771 - the index freq attribute is unset but inferable, so the
+        # bar plot must resolve the freq instead of raising AttributeError
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        assert idx.freq is None
+        df = DataFrame({"A": [1, 2, 3]}, index=idx)
+
+        ax = df.plot(kind=kind)
+
+        ax.get_figure().canvas.draw()
+        axis = ax.get_yaxis() if kind == "barh" else ax.get_xaxis()
+        labels = [t.get_text() for t in axis.get_ticklabels()]
+        assert labels == [
+            "2020-01-01 00:00:00",
+            "2020-01-02 00:00:00",
+            "2020-01-03 00:00:00",
+        ]
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_datetime_index_freq_from_axes(self, kind):
+        # GH#66771 - the index carries no freq of its own, but the axes was
+        # already decorated by a line plot; that freq is stored as a period
+        # alias string, so it has to be normalized to an offset before it
+        # reaches the converter
+        _, ax = plt.subplots()
+        Series(
+            np.arange(10.0), index=date_range("2020-01-01", periods=10, freq="D")
+        ).plot(ax=ax)
+
+        idx = DatetimeIndex(["2020-01-02", "2020-01-05"])
+        assert idx.freq is None
+        assert idx.inferred_freq is None
+        Series([1.0, 2.0], index=idx).plot(kind=kind, ax=ax)
+
+        # the bars are centered on the same daily ordinals as the line
+        if kind == "bar":
+            centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        else:
+            centers = [p.get_y() + p.get_height() / 2 for p in ax.patches]
+        assert centers == [
+            Period("2020-01-02", freq="D").ordinal,
+            Period("2020-01-05", freq="D").ordinal,
+        ]
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

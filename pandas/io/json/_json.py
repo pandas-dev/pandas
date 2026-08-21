@@ -43,7 +43,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+    SparseDtype,
+)
 
 from pandas import (
     ArrowDtype,
@@ -85,6 +88,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         DtypeArg,
         DtypeBackend,
+        DtypeObj,
         FilePath,
         IndexLabel,
         JSONEngine,
@@ -97,6 +101,18 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
+
+
+def _has_dt_accessor(dtype: DtypeObj) -> bool:
+    """
+    Whether this dtype takes the ``.dt.as_unit`` conversion below.
+
+    SparseDtype reports the subtype's kind, so the kind check alone is not
+    enough. This is not an exhaustive test for a usable ``.dt.as_unit`` -- it
+    only rules out what is known to reach here. Datetime-likes it returns False
+    for are scaled to date_unit by the C encoder instead.
+    """
+    return dtype.kind in "Mm" and not isinstance(dtype, SparseDtype)
 
 
 # interface to/from
@@ -196,27 +212,27 @@ def to_json(
             raise ValueError(f"Invalid value '{date_unit}' for option 'date_unit'")
         if isinstance(obj, DataFrame):
             copied = False
-            cols = np.nonzero(obj.dtypes.map(lambda dt: dt.kind in ["M", "m"]))[0]
+            cols = np.nonzero(obj.dtypes.map(_has_dt_accessor))[0]
             if len(cols):
                 obj = obj.copy(deep=False)
                 copied = True
                 for col in cols:
                     obj.isetitem(col, obj.iloc[:, col].dt.as_unit(date_unit))
-            if obj.index.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.index.dtype):
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
-            if obj.columns.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.columns.dtype):
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
                 obj.columns = Series(obj.columns).dt.as_unit(date_unit)
         elif isinstance(obj, Series):
-            if obj.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.dtype):
                 obj = obj.copy(deep=False)
                 obj = obj.dt.as_unit(date_unit)
-            if obj.index.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.index.dtype):
                 obj = obj.copy(deep=False)
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
 
@@ -670,7 +686,7 @@ def read_json(
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
-        The set of possible orients is:
+        When ``typ == 'frame'``, the set of possible orients is:
 
         - ``'split'`` : dict like
           ``{index -> [index], columns -> [columns], data -> [values]}``
@@ -680,6 +696,14 @@ def read_json(
         - ``'columns'`` : dict like ``{column -> {index -> value}}``
         - ``'values'`` : just the values array
         - ``'table'`` : dict like ``{'schema': {schema}, 'data': {data}}``
+
+        When ``typ == 'series'``, the shapes differ, since a Series has no
+        columns:
+
+        - ``'split'`` : dict like
+          ``{name -> name, index -> [index], data -> [values]}``
+        - ``'records'`` : list like ``[value, ... , value]``
+        - ``'index'`` : dict like ``{index -> value}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.
@@ -1301,9 +1325,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
             with option_context("future.distinguish_nan_and_na", False):
-                return obj.convert_dtypes(
-                    infer_objects=False, dtype_backend=self.dtype_backend
-                )
+                return obj.convert_dtypes(dtype_backend=self.dtype_backend)
         else:
             return obj
 
@@ -1404,9 +1426,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         if self.dtype_backend is not lib.no_default:
             with option_context("future.distinguish_nan_and_na", False):
-                return obj.convert_dtypes(
-                    infer_objects=False, dtype_backend=self.dtype_backend
-                )
+                return obj.convert_dtypes(dtype_backend=self.dtype_backend)
         else:
             return obj
 
@@ -1641,32 +1661,79 @@ class Parser:
                 return data
 
         if new_data.dtype == "string":
-            with warnings.catch_warnings():
-                # ignore "Could not infer format" warnings from to_datetime
-                # which is incorrectly raised for non-date strings
-                warnings.simplefilter("ignore", UserWarning)
-                for format in (None, "iso8601", "mixed"):
+            for format in (None, "iso8601", "mixed"):
+                converted = None
+                with warnings.catch_warnings(record=True) as record:
+                    warnings.simplefilter("always")
                     try:
-                        return to_datetime(new_data, errors="raise", format=format)
+                        converted = to_datetime(new_data, errors="raise", format=format)
                     except Exception:
                         pass
+                if converted is not None:
+                    _reemit_parse_warnings(record, ignore_user_warnings=True)
+                    return converted
         else:
             # numeric or mixed objects
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+            converted = None
+            in_ns_bounds = False
             for date_unit in date_units:
-                try:
-                    # In case of multiple possible units, infer the likely unit
-                    # based on the first unit for which the parsed dates fit
-                    # within the nanoseconds bounds
-                    # -> do as_unit cast to ensure OutOfBounds error
-                    data = to_datetime(new_data, errors="raise", unit=date_unit)
-                    _ = data.dt.as_unit("ns")
+                with warnings.catch_warnings(record=True) as record:
+                    warnings.simplefilter("always")
+                    try:
+                        # In case of multiple possible units, infer the likely unit
+                        # based on the first unit for which the parsed dates fit
+                        # within the nanoseconds bounds
+                        # -> do as_unit cast to ensure OutOfBounds error
+                        converted = to_datetime(
+                            new_data, errors="raise", unit=date_unit
+                        )
+                        _ = converted.dt.as_unit("ns")
+                        in_ns_bounds = True
+                    except (
+                        OutOfBoundsDatetime,
+                        ValueError,
+                        OverflowError,
+                        TypeError,
+                    ):
+                        pass
+                if converted is not None and in_ns_bounds:
+                    _reemit_parse_warnings(record)
+                    data = converted
                     break
-                except OutOfBoundsDatetime:
-                    continue
-                except (ValueError, OverflowError, TypeError):
-                    pass
+            else:
+                if converted is not None:
+                    # all units failed to cast to ns (eg with mixed string / int)
+                    # but to_datetime still returned a result -> use this this
+                    # result (with the last unit) and re-emit any warning
+                    _reemit_parse_warnings(record)
+                    data = converted
         return data
+
+
+def _reemit_parse_warnings(
+    record: list[warnings.WarningMessage],
+    *,
+    ignore_user_warnings: bool = False,
+) -> None:
+    """
+    Re-emit the warnings captured from a date parse ``_try_convert_to_date`` may
+    discard.
+
+    GH#50907: it parses the same values several ways and keeps at most one
+    result. The quarterly-string deprecation asks the user to change a call, so
+    it may only be emitted for the parse whose result they actually receive.
+    Unrelated warnings keep the visibility they had before.
+    """
+    for warning in record:
+        if ignore_user_warnings and issubclass(warning.category, UserWarning):
+            # "Could not infer format", incorrectly raised for non-date strings
+            continue
+        warnings.warn(
+            warning.message,
+            warning.category,
+            stacklevel=find_stack_level(),
+        )
 
 
 class SeriesParser(Parser):
