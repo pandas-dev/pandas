@@ -288,6 +288,7 @@ cmd = [
   "manual",
   "--all-files",
 ]
+default-environment = "typing"
 
 [tasks.ci-scripts-tests]
 cmd = [
@@ -323,6 +324,7 @@ cmd = [
   "--python=same",
   "--show-stderr",
 ]
+default-environment = "asv"
 
 [tasks.ci-test-single-page-doc]
 args = [
@@ -340,6 +342,7 @@ cmd = [
   "doc/make.py",
   "clean",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-nbconvert-doc-notebooks]
 args = [
@@ -357,6 +360,7 @@ cmd = [
   "--stdout",
   ">/dev/null",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-documentation]
 args = [
@@ -368,6 +372,7 @@ cmd = [
   "--warnings-are-errors",
   "{{ doc_type }}",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-website]
 cmd = [
@@ -376,6 +381,7 @@ cmd = [
   "pytest",
   "web",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-website]
 cmd = [
@@ -384,6 +390,7 @@ cmd = [
   "web/pandas",
   "--target-path=web/build",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-interactive_terminal]
 cmd = [
@@ -394,3 +401,4 @@ cmd = [
   "build",
 ]
 cwd = "web/interactive_terminal/"
+default-environment = "docs-and-web"

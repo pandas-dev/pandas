@@ -52,6 +52,7 @@ Other enhancements
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
+- Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`Series.between_time` and :meth:`DataFrame.between_time` previously raised on them, and :meth:`Series.at_time` and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
 - Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
 
@@ -254,6 +255,7 @@ Deprecations
 - Deprecated implicit conversion of ``datetime.date`` objects to :class:`Timestamp` when indexing or joining a :class:`DatetimeIndex`. Use :func:`to_datetime` to explicitly convert to :class:`DatetimeIndex` instead (:issue:`62158`)
 - Deprecated parsing quarterly strings (e.g. ``"2014Q2"``) in :class:`Timestamp`, :func:`to_datetime`, :class:`DatetimeIndex`, and partial-string indexing on a :class:`DatetimeIndex` (e.g. ``ser["2014Q2"]``). This extends to string arguments that are parsed as datetimes internally, such as the bounds of :meth:`Series.truncate` and the ``where`` of :meth:`Series.asof`, which warn even when the index is a :class:`PeriodIndex`. Use :class:`Period` or :class:`PeriodIndex` with :meth:`PeriodIndex.to_timestamp` instead (:issue:`50907`)
 - Deprecated passing ``"datetimetz"`` or ``"datetime64tz"`` to the ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`. Pass :class:`DatetimeTZDtype` to select all timezone-aware columns, or a string such as ``"datetime64[ns, US/Eastern]"`` to select a single timezone (:issue:`24558`)
+- Deprecated passing ``None`` inside the list-like ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`, which silently selects float64 columns. Pass ``"float64"`` explicitly instead (:issue:`28943`)
 - Deprecated passing a ``dict`` to :meth:`DataFrame.from_records`, use the :class:`DataFrame` constructor or :meth:`DataFrame.from_dict` instead (:issue:`22025`)
 - Deprecated passing a ``format`` for integer or float columns to :func:`read_sql`, :func:`read_sql_query`, and :func:`read_sql_table` via ``parse_dates``. Cast the column to string and call :func:`to_datetime` after reading instead (:issue:`55663`)
 - Deprecated passing a non-dict (e.g. a list of dicts) to :meth:`DataFrame.from_dict`. Use the :class:`DataFrame` constructor instead (:issue:`58862`)
@@ -289,6 +291,10 @@ Deprecations
 - Deprecated ``inplace`` keyword for :meth:`DataFrame.rename` and :meth:`DataFrame.drop`. This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
 - Deprecated the ``infer_objects``, ``convert_string``, ``convert_integer``, ``convert_boolean``, and ``convert_floating`` keywords in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` (:issue:`62022`)
 - Deprecated using ``isinstance(obj, DateOffset)`` and ``issubclass(cls, DateOffset)`` to check for offset types that are not :class:`DateOffset`; these will return ``False`` in a future version. Use ``pd.offsets.BaseOffset`` instead (:issue:`48262`)
+- Deprecated passing tuple keys to :meth:`Resampler.__getitem__` and other
+  ``SelectionMixin``-based objects (e.g. ``Rolling.__getitem__``) for
+  selecting multiple columns; use a list instead. In a future version,
+  tuple keys will raise ``KeyError`` (:issue:`66266`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:
@@ -441,6 +447,7 @@ Bug fixes
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal`, :func:`testing.assert_index_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_extension_array_equal` where ``rtol`` and ``atol`` were applied after casting to ``float64``, so integers above ``2**53`` could compare equal while differing by more than the tolerance, or unequal while within it (:issue:`66400`)
 - Fixed bug in :func:`testing.assert_series_equal` showing a misleading class mismatch message when Series values were backed by different :class:`numpy.ndarray` subclasses (:issue:`65770`)
+- Fixed bug in :func:`testing.assert_series_equal`, :func:`testing.assert_index_equal`, and :func:`testing.assert_frame_equal` ignoring ``rtol`` and ``atol`` when comparing large integer and floating dtypes with ``check_dtype=False`` (:issue:`66699`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
 Categorical
@@ -589,8 +596,11 @@ Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
+- Bug in :meth:`Series.str.casefold`, :meth:`Series.str.encode`, :meth:`Series.str.findall`, :meth:`Series.str.index`, :meth:`Series.str.partition`, :meth:`Series.str.rfind`, :meth:`Series.str.rindex`, :meth:`Series.str.rpartition`, :meth:`Series.str.translate`, :meth:`Series.str.wrap` and their :class:`Index` counterparts with :class:`ArrowDtype` raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
+- Bug in :meth:`Series.str.casefold`, :meth:`Series.str.encode`, :meth:`Series.str.findall`, :meth:`Series.str.join`, :meth:`Series.str.partition`, :meth:`Series.str.rpartition`, :meth:`Series.str.translate`, :meth:`Series.str.wrap` and their :class:`Index` counterparts with :class:`ArrowDtype` downgrading a ``large_string`` input to a ``string``-based result dtype (:issue:`66822`)
 - Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising ``AttributeError`` for :class:`ArrowDtype` when ``flags`` was passed or ``pat`` was a compiled ``re.Pattern`` (:issue:`63108`)
+- Bug in :meth:`Series.str.normalize`, :meth:`Series.str.zfill` and their :class:`Index` counterparts with PyArrow-backed string dtypes raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising for regex flags other than ``re.IGNORECASE`` (e.g. ``re.MULTILINE``, ``re.DOTALL``, ``re.ASCII``), whether passed via ``flags`` or carried by a compiled ``re.Pattern`` (:issue:`63108`, :issue:`66348`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` where passing ``flags=0`` was not equivalent to omitting ``flags``, raising for patterns using PyArrow-only regex syntax such as ``\p{L}`` or an inline flag such as ``(?i)`` (:issue:`63108`)
 - Bug in :meth:`Series.str.match`, :meth:`Series.str.fullmatch`, :meth:`Series.str.contains`, :meth:`Series.str.count`, :meth:`Series.str.extract`, :meth:`Series.str.replace` and their :class:`Index` counterparts with :class:`ArrowDtype` raising instead of honoring ``flags`` such as ``re.ASCII``, or the flags carried by a compiled ``re.Pattern`` (:issue:`66348`)
@@ -654,6 +664,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with a dict value raising ``RecursionError`` when columns are a :class:`MultiIndex` with duplicate entries (:issue:`53498`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method`` in ``"index"``, ``"values"`` or ``"time"`` raising when the index had an :class:`ArrowDtype` timestamp or duration dtype; these now match the equivalent :class:`DatetimeIndex` or :class:`TimedeltaIndex` (:issue:`66338`)
+- Bug in :meth:`DataFrame.shift`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`Series.shift`, :meth:`Series.where`, and :meth:`Series.mask` raising an internal ``AssertionError`` for a NumPy bytes dtype instead of upcasting to ``object`` to hold a missing value; item assignment now raises the expected ``TypeError`` for the incompatible value (:issue:`52373`)
 - Bug in :meth:`Series.combine_first` crashing when Series names are :class:`Timestamp` objects (:issue:`65333`)
 
 MultiIndex

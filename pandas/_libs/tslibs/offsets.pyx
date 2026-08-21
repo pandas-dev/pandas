@@ -2,8 +2,6 @@ import re
 import time
 import warnings
 
-from pandas.util._exceptions import find_stack_level
-
 cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
@@ -37,6 +35,8 @@ cnp.import_array()
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
 
 from typing import ClassVar
+
+from dateutil.easter import EASTER_WESTERN
 
 from pandas._libs.properties import cache_readonly
 
@@ -6592,8 +6592,6 @@ cdef class Easter(SingleConstructorOffset):
 
     cdef readonly:
         int method
-
-    from dateutil.easter import EASTER_WESTERN
 
     def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
         BaseOffset.__init__(self, n, normalize)

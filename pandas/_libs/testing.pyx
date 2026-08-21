@@ -14,6 +14,7 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
+    is_float_object,
     is_integer_object,
     is_real_number_object,
 )
@@ -138,7 +139,18 @@ cpdef assert_almost_equal(a, b,
                 assert_attr_equal("dtype", a, b, obj=obj)
 
             if array_equivalent(a, b, strict_nan=True):
-                return True
+                if a.dtype.kind in "iu" and b.dtype.kind == "f":
+                    int_arr = a
+                elif a.dtype.kind == "f" and b.dtype.kind in "iu":
+                    int_arr = b
+                else:
+                    return True
+
+                if not int_arr.size or (
+                    int_arr.max() <= 2**53
+                    and (int_arr.dtype.kind == "u" or int_arr.min() >= -(2**53))
+                ):
+                    return True
 
         else:
             na, nb = len(a), len(b)
@@ -191,6 +203,28 @@ cpdef assert_almost_equal(a, b,
         raise AssertionError(f"{a} != {b}")
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")
+
+    # GH#66699 avoid casting a large integer to float64 before applying
+    #  tolerances when the float operand is itself an integer value.
+    if rtol >= 0 and atol >= 0 and (
+        (
+            is_integer_object(a)
+            and is_float_object(b)
+            and b.is_integer()
+        )
+        or (
+            is_float_object(a)
+            and a.is_integer()
+            and is_integer_object(b)
+        )
+    ):
+        ia = int(a)
+        ib = int(b)
+
+        if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
+            assert False, (f"expected {ib}.00000 but got {ia}.00000, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
 
     if a == b:
         # object comparison

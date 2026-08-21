@@ -98,28 +98,23 @@ jobs:
     - name: Test website
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-test-website
 
     - name: Test build single page doc
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-test-single-page-doc pandas.Series.value_counts
         pixi run \
-          --environment docs-and-web \
           ci-test-single-page-doc pandas.Series.str.split
 
     - name: Test nbconvert doc notebooks
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-test-nbconvert-doc-notebooks "$(find doc/source -name '*.ipynb')"
 
     - name: Build website
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-build-website
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -127,20 +122,17 @@ jobs:
     - name: Build documentation
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-build-documentation \
           html
 
     - name: Build the interactive terminal
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-build-interactive_terminal
 
     - name: Build documentation zip
       run: |
         pixi run \
-          --environment docs-and-web \
           ci-build-documentation \
           zip_html
 
