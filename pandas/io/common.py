@@ -782,6 +782,7 @@ def get_handle(
 
     handle = ioargs.filepath_or_buffer
     handles: list[BaseBuffer] = []
+    completed = False
 
     try:
         # memory mapping needs to be the first step
@@ -985,34 +986,36 @@ def get_handle(
                 f"got {type(ioargs.filepath_or_buffer)} type"
             )
 
-        handles.reverse()  # close the most recently added buffer first
-        if ioargs.should_close:
-            assert not isinstance(ioargs.filepath_or_buffer, str)
-            handles.append(ioargs.filepath_or_buffer)
-            handles.extend(ioargs.close_handles)
+        completed = True
+    finally:
+        if not completed:
+            # Do not leak the handles that were opened before the failure; the
+            # caller never receives an IOHandles to close them with (GH#58131)
+            for created_handle in reversed(handles):
+                created_handle.close()  # type: ignore[attr-defined]
+            if ioargs.should_close:
+                assert not isinstance(ioargs.filepath_or_buffer, str)
+                ioargs.filepath_or_buffer.close()  # type: ignore[attr-defined]
+                for close_handle in ioargs.close_handles:
+                    close_handle.close()
 
-        return IOHandles(
-            # error: Argument "handle" to "IOHandles" has incompatible type
-            # "Union[TextIOWrapper, GzipFile, BaseBuffer, typing.IO[bytes],
-            # typing.IO[Any]]"; expected "pandas._typing.IO[Any]"
-            handle=handle,  # type: ignore[arg-type]
-            # error: Argument "created_handles" to "IOHandles" has incompatible type
-            # "List[BaseBuffer]"; expected "List[Union[IO[bytes], IO[str]]]"
-            created_handles=handles,  # type: ignore[arg-type]
-            is_wrapped=is_wrapped,
-            compression=ioargs.compression,
-        )
-    except Exception:
-        # Do not leak the handles that were opened before the failure; the
-        # caller never receives an IOHandles to close them with (GH#58131)
-        for created_handle in reversed(handles):
-            created_handle.close()  # type: ignore[attr-defined]
-        if ioargs.should_close:
-            assert not isinstance(ioargs.filepath_or_buffer, str)
-            ioargs.filepath_or_buffer.close()  # type: ignore[attr-defined]
-            for close_handle in ioargs.close_handles:
-                close_handle.close()
-        raise
+    handles.reverse()  # close the most recently added buffer first
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        handles.append(ioargs.filepath_or_buffer)
+        handles.extend(ioargs.close_handles)
+
+    return IOHandles(
+        # error: Argument "handle" to "IOHandles" has incompatible type
+        # "Union[TextIOWrapper, GzipFile, BaseBuffer, typing.IO[bytes],
+        # typing.IO[Any]]"; expected "pandas._typing.IO[Any]"
+        handle=handle,  # type: ignore[arg-type]
+        # error: Argument "created_handles" to "IOHandles" has incompatible type
+        # "List[BaseBuffer]"; expected "List[Union[IO[bytes], IO[str]]]"
+        created_handles=handles,  # type: ignore[arg-type]
+        is_wrapped=is_wrapped,
+        compression=ioargs.compression,
+    )
 
 
 class _BufferedWriter(BytesIO, ABC):

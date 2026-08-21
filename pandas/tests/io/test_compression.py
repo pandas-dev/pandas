@@ -394,6 +394,35 @@ def test_ambiguous_archive_closes_handle(suffix, wrapper_name, tmp_path, monkeyp
     assert opened[0].closed
 
 
+def test_ambiguous_archive_closes_fsspec_handle(monkeypatch):
+    # GH#58131 the source opened by _get_filepath_or_buffer must not leak either
+    fsspec = pytest.importorskip("fsspec")
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("a.csv", "foo,bar")
+        archive.writestr("b.csv", "foo,bar")
+    with fsspec.open("memory://archive.zip", "wb") as handle:
+        handle.write(buffer.getvalue())
+
+    opened = []
+    fsspec_open = fsspec.open
+
+    def spy_open(*args, **kwargs):
+        open_file = fsspec_open(*args, **kwargs)
+        opened.append(open_file)
+        return open_file
+
+    monkeypatch.setattr(fsspec, "open", spy_open)
+
+    with pytest.raises(ValueError, match="Multiple files found"):
+        pd.read_csv("memory://archive.zip")
+
+    assert len(opened) == 1
+    # OpenFile.close() empties fobjects, so a leaked source would leave it there
+    assert opened[0].fobjects == []
+
+
 def test_tar_gz_to_different_filename(temp_file):
     file = temp_file.parent / "archive.foo"
     pd.DataFrame(
