@@ -122,7 +122,12 @@ def _windows_locale_candidates() -> list[str]:
     """
     return [
         f"{name.replace('_', '-')}.UTF-8"
-        for name in sorted(set(locale.windows_locale.values()))
+        # Names without a region ("ar") are settable too, but they resolve to a
+        #  region-qualified name that is already in the list, so they would only
+        #  duplicate its coverage.
+        for name in sorted(
+            {name for name in locale.windows_locale.values() if "_" in name}
+        )
     ]
 
 
@@ -177,6 +182,9 @@ def get_locales(
         # Windows doesn't define "locale -a", so probe the names it may know
         #  Note: is_platform_windows causes circular import here
         out_locales = _windows_locale_candidates()
+        # These are already spelled the way the CRT wants them; running them
+        #  through the POSIX alias table would rename them ("ar-SA" -> "ar_AA").
+        normalize = False
     else:
         return []
 
