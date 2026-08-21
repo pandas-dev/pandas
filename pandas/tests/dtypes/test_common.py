@@ -167,9 +167,6 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
-@pytest.mark.filterwarnings(
-    "ignore:is_categorical_dtype is deprecated:DeprecationWarning"
-)
 @pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
@@ -529,9 +526,6 @@ def test_is_datetime64_ns_dtype():
     assert not com.is_datetime64_ns_dtype(DatetimeTZDtype("us", "US/Eastern"))
 
 
-@pytest.mark.filterwarnings(
-    "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
-)
 def test_is_timedelta64_ns_dtype():
     assert not com.is_timedelta64_ns_dtype(np.dtype("m8[ps]"))
     assert not com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8"))

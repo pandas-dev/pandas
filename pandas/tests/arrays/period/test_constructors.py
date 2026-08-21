@@ -224,7 +224,6 @@ def test_int_deprecation_warns_once_all_dtypes(values):
     tm.assert_period_array_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Passing integer data:pandas.errors.Pandas4Warning")
 @pytest.mark.parametrize("val", [2**63, 2**64 - 5])
 def test_from_sequence_uint64_out_of_bounds(val):
     # GH#64231 uint64 values above int64 max used to wrap in the cast to

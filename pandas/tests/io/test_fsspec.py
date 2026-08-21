@@ -23,10 +23,6 @@ import pandas._testing as tm
 from pandas.util import _test_decorators as td
 from pandas.util.version import Version
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture
 def fsspectest():
