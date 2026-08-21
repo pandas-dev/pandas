@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_period_dtype,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1261,6 +1262,27 @@ def test_multi_column_dtype_assignment():
 
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
+
+
+def test_numpy_s3_dtype_on_index():
+    # GH#50127
+    index = pd.Index(["abcd", "1234"], dtype="S3")
+    expected = pd.Index(["abc", "123"], dtype="S3")
+    assert index.dtype == pandas_dtype("object")
+    tm.assert_index_equal(index, expected)
+
+    index = pd.Index(["abcd", "1234"])
+    assert index.get_indexer([b"abc"]) == [-1]
+    assert index.astype("S3").get_indexer([b"abc"]) == [0]
+    expected = pd.Index(["abc", "123"], dtype="S3")
+    tm.assert_index_equal(index.astype("S3"), expected)
+
+    index = pd.Index(["abcd", "1234"], dtype="S3")
+    msg = "abcd"
+    with pytest.raises(KeyError, match=msg):
+        index.get_loc("abcd")
+    assert index.get_loc(b"abc") == 0
+    assert index.get_loc(b"123") == 1
 
 
 def test_loc_setitem_empty_labels_no_dtype_conversion():
