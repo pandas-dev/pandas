@@ -33,6 +33,7 @@ from pandas.tseries.offsets import (
     CustomBusinessHour,
     DateOffset,
     FY5253Quarter,
+    HalfYearEnd,
     LastWeekOfMonth,
     MonthBegin,
     MonthEnd,
@@ -190,6 +191,70 @@ def test_apply_array_out_of_bounds_raises(offset):
 
     with pytest.raises(OutOfBoundsDatetime):
         Timestamp.max + offset
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        QuarterEnd(2**62),
+        YearEnd(2**62),
+        YearBegin(-(2**63)),
+        BYearEnd(2**63 - 1),
+        HalfYearEnd(-(2**63)),
+    ],
+)
+def test_apply_array_quarters_large_n_raises(offset):
+    # GH#66549 the quarter shift computed `modby * n` in wrapping int64, so
+    #  e.g. YearEnd(2**62) shifted by 12 * 2**62 == 0 months instead of raising
+    dti = DatetimeIndex(["1970-06-15"])
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+        dti + offset
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+        dti[0] + offset
+
+
+def test_apply_array_quarters_large_n_names_same_year_as_scalar():
+    # GH#66549 the wrapped shift amount also has to be redone in Python ints
+    #  for the message to name the year the scalar path names
+    dti = DatetimeIndex(["1970-06-15"])
+    offset = YearEnd(2**62)
+
+    with pytest.raises(OutOfBoundsDatetime, match="year 4611686018427389873"):
+        dti + offset
+
+    with pytest.raises(OutOfBoundsDatetime, match="4611686018427389873-12-31"):
+        dti[0] + offset
+
+
+def test_shift_month_year_overflow_names_shifted_year():
+    # GH#66549 the scalar path formed `dts.year + dy` in int64, so an n this
+    #  large wrapped the year negative in the error message
+    ts = Timestamp("1970-06-15")
+
+    with pytest.raises(OutOfBoundsDatetime, match="year 9223372036854777776"):
+        ts + BYearEnd(2**63 - 1)
+
+
+def test_apply_array_quarters_large_n_keeps_nat():
+    # GH#66549 a representable shift is unaffected by the overflow check
+    dti = DatetimeIndex(["1970-06-15", "NaT"])
+
+    result = dti + YearEnd(2)
+
+    expected = DatetimeIndex(["1971-12-31", "NaT"]).as_unit(result.unit)
+    tm.assert_index_equal(result, expected)
+
+
+def test_apply_array_quarters_large_n_all_nat():
+    # GH#66549 an all-NaT input has nothing to shift, so even an n that no
+    #  element could survive comes back all-NaT rather than raising
+    dti = DatetimeIndex(["NaT", "NaT"])
+
+    result = dti + YearEnd(2**62)
+
+    tm.assert_index_equal(result, dti.as_unit(result.unit))
 
 
 def test_apply_array_out_of_bounds_raises_non_nano():

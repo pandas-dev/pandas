@@ -43,6 +43,10 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+from pandas._libs.portable cimport (
+    checked_add,
+    checked_sub,
+)
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -51,11 +55,6 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     is_zoneinfo,
 )
-
-
-cdef extern from "pandas/portable.h":
-    int checked_add(int64_t a, int64_t b, int64_t *res)
-    int checked_sub(int64_t a, int64_t b, int64_t *res)
 
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
@@ -151,31 +150,50 @@ cdef class Localizer:
     cdef int64_t utc_val_to_local_val(
         self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
     ) except? -1:
+        cdef:
+            int64_t delta, result
+
         if self.use_utc:
             return utc_val
         elif self.use_tzlocal:
-            return utc_val + _tz_localize_using_tzinfo_api(
+            delta = _tz_localize_using_tzinfo_api(
                 utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
             )
         elif self.use_fixed:
-            return utc_val + self.delta
+            delta = self.delta
+        elif (
+            self.use_zoneinfo
+            and self.has_tz_rule
+            and utc_val > self.last_trans
+        ):
+            delta = _tz_localize_using_tzinfo_api(
+                utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
+            )
         else:
-            if (
-                self.use_zoneinfo
-                and self.has_tz_rule
-                and utc_val > self.last_trans
-            ):
-                return utc_val + _tz_localize_using_tzinfo_api(
-                    utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
-                )
-
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             if fold is not NULL:
                 fold[0] = _infer_dateutil_fold(
                     utc_val, self.trans, self.deltas, pos[0]
                 )
 
-            return utc_val + self.deltas[pos[0]]
+            delta = self.deltas[pos[0]]
+
+        # GH#66550 the shift out of UTC must not wrap int64 silently; the wrapped
+        #  value renders as a wall time centuries away and is stored as such by
+        #  tz_localize(None) and floor/ceil/round.  The scalar path already
+        #  refuses the same conversion via conversion.check_overflows.
+        # NB: landing exactly on the NaT sentinel is *not* rejected here.  That
+        #  value still renders the correct wall time, so it is only unusable for
+        #  the callers that store it back into an i8 buffer; those check for it
+        #  themselves.
+        if checked_add(utc_val, delta, &result):
+            raise_out_of_bounds(
+                utc_val,
+                BS_OVERFLOW if delta > 0 else BS_UNDERFLOW,
+                self._creso,
+                self.tz,
+            )
+        return result
 
 
 cdef int64_t tz_localize_to_utc_single(
@@ -546,16 +564,11 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     return str(ts)
 
 
-cdef enum BoundaryStatus:
-    BS_OK
-    BS_UNDERFLOW
-    BS_OVERFLOW
-
-
 cdef void raise_out_of_bounds(
     int64_t val,
     BoundaryStatus err,
-    NPY_DATETIMEUNIT creso
+    NPY_DATETIMEUNIT creso,
+    tzinfo to_tz=None,
 ) except *:
     cdef:
         npy_datetimestruct dts
@@ -566,16 +579,20 @@ cdef void raise_out_of_bounds(
 
     pandas_datetime_to_datetimestruct(val, creso, &dts)
     fmt = dts_to_iso_string(&dts)
+    # Going UTC->local the only value left to render is the in-bounds UTC
+    #  instant, so without naming the target tz the message looks like it is
+    #  complaining about a value that is plainly fine.
+    target = "" if to_tz is None else f" to {to_tz}"
 
     if err == BS_OVERFLOW:
         limit_ts = (<_Timestamp>Timestamp(0))._as_creso(creso).max
         raise OutOfBoundsDatetime(
-            f"Converting {fmt} overflows past {limit_ts}"
+            f"Converting {fmt}{target} overflows past {limit_ts}"
         )
     else:
         limit_ts = (<_Timestamp>Timestamp(0))._as_creso(creso).min
         raise OutOfBoundsDatetime(
-            f"Converting {fmt} underflows past {limit_ts}"
+            f"Converting {fmt}{target} underflows past {limit_ts}"
         )
 
 

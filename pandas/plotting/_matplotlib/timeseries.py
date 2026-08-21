@@ -315,6 +315,30 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     return True
 
 
+def get_period_offset(ax: Axes, index: Index) -> BaseOffset | None:
+    """
+    Resolve the period frequency to plot `index` with on `ax`, or None.
+
+    The freq is resolved the same way :func:`use_dynamic_x` resolves it, since
+    that is what decides whether the dynamic date axis is used at all: the
+    index ``freq`` attribute may be unset even when the index is regular (the
+    freq is then inferred), and an already-decorated axes carries the freq of
+    whatever was plotted on it first.  The result is normalized to a period
+    offset, because an axes stores its freq as a period alias string.
+    """
+    freq = _get_index_freq(index)
+    if freq is None:
+        freq = _get_ax_freq(ax)
+    if freq is None:
+        return None
+
+    freq_str = _get_period_alias(freq)
+    if freq_str is None:
+        return None
+    freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
+    return to_offset(freq_str, is_period=True)
+
+
 def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:

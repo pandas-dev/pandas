@@ -2235,6 +2235,12 @@ def test_find_result_type_floats(right, result):
     assert find_result_type(left_dtype, right) == result
 
 
+def test_find_result_type_bytes_with_na():
+    # GH#52373
+    left_dtype = np.dtype("S1")
+    assert find_result_type(left_dtype, np.nan) == np.dtype(object)
+
+
 @pytest.mark.parametrize(
     "right,result",
     [
