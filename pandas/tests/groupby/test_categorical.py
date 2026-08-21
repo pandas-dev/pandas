@@ -2209,3 +2209,36 @@ def test_groupby_observed_false_expands_only_categorical_levels():
         (2, "a", "Y"),
     ]
     assert result.tolist() == [1, 0, 1, 0, 1, 0]
+
+def test_groupby_indices_sort_false_categorical_multikey():
+    # GH#66893 - GroupBy.indices pairs labels with wrong row positions
+    # when sort=False, Categorical key, and multiple keys.
+    # The issue occurs because result_index.levels keep category order
+    # while grouping codes are in first-appearance order when sort=False,
+    # causing indices_fast to map codes to wrong labels.
+    cats = ["low", "mid"]
+    def tag(value, group):
+        return f"{group}@{value}"
+
+    # First-appearance order: "mid" before "low" (differs from category order)
+    rows = [(x, g, tag(x, g)) for x in [0, 1, 2] for g in ["mid", "low"]]
+    df = pd.DataFrame(rows, columns=["x", "g", "tag"])
+    df["g"] = pd.Categorical(df["g"], categories=cats, ordered=True)
+
+    gb = df.groupby(["x", "g"], sort=False, observed=False)
+
+    # Every index entry should point to the correct row
+    for key, indices in gb.indices.items():
+        for idx in indices:
+            assert df.loc[idx, "tag"] == tag(*key), (
+                f"indices[{key}] -> row {idx} ({df.loc[idx, 'tag']}) "
+                f"should be {tag(*key)}"
+            )
+
+    # get_group should also return the correct rows
+    for cat in cats:
+        grp = gb.get_group((0, cat))
+        assert grp["tag"].item() == tag(0, cat), (
+            f"get_group((0, '{cat}')) returned {grp['tag'].item()} "
+            f"should be {tag(0, cat)}"
+        )
