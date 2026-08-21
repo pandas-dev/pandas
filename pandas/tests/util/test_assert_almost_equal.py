@@ -653,7 +653,6 @@ NESTED_CASES = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize("a,b", NESTED_CASES)
 def test_assert_almost_equal_array_nested(a, b):
     _assert_almost_equal_both(a, b)

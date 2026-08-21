@@ -2167,7 +2167,6 @@ def test_nan_to_nat_conversions():
     assert s[8] is pd.NaT
 
 
-@pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 @pytest.mark.parametrize("spmatrix", ["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
 def test_is_scipy_sparse(spmatrix):
     sparse = pytest.importorskip("scipy.sparse")

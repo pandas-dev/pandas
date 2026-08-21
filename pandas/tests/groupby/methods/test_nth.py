@@ -771,9 +771,6 @@ def test_groupby_nth_interval():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:invalid value encountered in remainder:RuntimeWarning"
-)
 def test_head_tail_dropna_true():
     # GH#45089
     df = DataFrame(

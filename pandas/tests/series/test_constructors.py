@@ -1465,7 +1465,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
-    @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self, using_infer_string):
         data = {"a": 0, "b": 1, "c": 2, "d": 3}
 
@@ -1998,9 +1997,6 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:elementwise comparison failed:DeprecationWarning"
-    )
     @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
     def test_constructor_mismatched_null_nullable_dtype(
         self, func, any_numeric_ea_dtype
