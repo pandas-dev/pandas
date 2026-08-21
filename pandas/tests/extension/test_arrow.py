@@ -3562,18 +3562,20 @@ def test_from_sequence_of_strings_boolean():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
-def test_from_sequence_of_strings_empty_string_float(using_nan_is_na):
+def test_from_sequence_of_strings_empty_string_float():
+    # GH#66834 match numpy float64: empty string is not a valid float
     strings = ["1.5", "", "2.0"]
     dtype = ArrowDtype(pa.float64())
+    with pytest.raises(ValueError, match="could not convert string to float"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_none_float():
+    strings = ["1.5", None, "2.0"]
+    dtype = ArrowDtype(pa.float64())
     result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
-    if using_nan_is_na:
-        expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
-        tm.assert_extension_array_equal(result, expected)
-        filled = pd.Series(result, dtype=dtype).fillna(0)
-        tm.assert_series_equal(filled, pd.Series([1.5, 0.0, 2.0], dtype=dtype))
-    else:
-        assert not result.isna().any()
-        assert np.isnan(result.to_numpy(dtype="float64")[1])
+    expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_concat_empty_arrow_backed_series(dtype):

@@ -514,12 +514,12 @@ class ArrowExtensionArray(
                 scalars = strings.cast(pa_type)
             else:
                 mask = isna(strings)
-                if (
-                    is_nan_na()
-                    and isinstance(scalars, np.ndarray)
-                    and np.issubdtype(scalars.dtype, np.floating)
-                ):
-                    mask = np.asarray(mask, dtype=np.bool_) | np.isnan(scalars)
+                # to_numeric("") yields IEEE NaN without raising. Match numpy
+                # float64: an empty string that was not treated as NA is invalid.
+                arr = np.asarray(strings, dtype=object)
+                unmasked_empty = (arr == "") & ~np.asarray(mask, dtype=np.bool_)
+                if unmasked_empty.any():
+                    raise ValueError("could not convert string to float: ''")
                 if mask is not None:
                     scalars = pa.array(scalars, mask=mask, type=pa_type)
 
