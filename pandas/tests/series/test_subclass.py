@@ -80,3 +80,14 @@ def test_constructor_from_dict():
     # https://github.com/pandas-dev/pandas/issues/52445
     result = SubclassedSeries({"a": 1, "b": 2, "c": 3})
     assert isinstance(result, SubclassedSeries)
+
+
+def test_constructor_expanddim_from_mgr_removed():
+    # GH#56681 an override of the removed method is no longer called
+    class ExpanddimSubclass(pd.Series):
+        def _constructor_expanddim_from_mgr(self, mgr, axes):
+            raise AssertionError("should not be called")
+
+    ser = ExpanddimSubclass([1, 2, 3], name="a")
+    result = ser.to_frame()
+    tm.assert_frame_equal(result, pd.DataFrame({"a": [1, 2, 3]}))
