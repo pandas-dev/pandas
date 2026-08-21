@@ -619,7 +619,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
         if not (left[left_mask] <= right[left_mask]).all():
-            msg = "left side of interval must be <= right side"
+            offenders = left[left_mask] > right[left_mask]
+            offending_indices = offenders[offenders].index.tolist()
+            # Show at most 10 offending positions to keep the message readable
+            if len(offending_indices) > 10:
+                shown = offending_indices[:10]
+                msg = (
+                    "left side of interval must be <= right side. "
+                    f"Offending values found at index locations "
+                    f"{shown} (and {len(offending_indices) - 10} more)"
+                )
+            else:
+                msg = (
+                    "left side of interval must be <= right side. "
+                    f"Offending values found at index locations "
+                    f"{offending_indices}"
+                )
             raise ValueError(msg)
 
     def _shallow_copy(self, left, right) -> Self:
