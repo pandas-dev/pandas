@@ -10,7 +10,10 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas.compat import ISMUSL
+from pandas.compat import (
+    ISMUSL,
+    WASM,
+)
 
 import pandas as pd
 
@@ -56,7 +59,8 @@ def test_can_set_locale_valid_set(lc_var):
         pytest.param(
             locale.LC_TIME,
             marks=pytest.mark.skipif(
-                ISMUSL, reason="MUSL allows setting invalid LC_TIME."
+                ISMUSL or WASM,
+                reason="MUSL and Emscripten allow setting invalid LC_TIME.",
             ),
         ),
     ),
