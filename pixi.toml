@@ -25,9 +25,10 @@ platforms = ["win-64"]
 activation = { env = { CC = "gcc", CXX = "g++" } }
 
 [feature.mingw-compiler.dependencies]
-gcc = "*"
-gxx = "*"
 # Pinned due to https://github.com/conda-forge/m2w64-sysroot-feedstock/issues/23
+gcc = { version = "==16.1.0", build = "hb5e953d_1" }
+gxx = { version = "==16.1.0", build = "h1f05005_1" }
+libwinpthread = { version = "==12.0.0.r4.gg4f2fc60ca", build = "h57928b3_10" }
 m2w64-sysroot_win-64 = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
 mingw-w64-ucrt-x86_64-crt-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
 mingw-w64-ucrt-x86_64-headers-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
