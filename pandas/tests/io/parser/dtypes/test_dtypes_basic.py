@@ -886,6 +886,29 @@ def test_leading_zeros_with_missing_values_dtype_str(all_parsers, request):
     tm.assert_frame_equal(result, expected)
 
 
+def test_leading_zeros_preserved_with_dtype_defaultdict(all_parsers, request):
+    # GH#57666, GH#41574 the default of a defaultdict applies to columns
+    # not explicitly listed, like a scalar dtype
+    parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
+    dtype = defaultdict(lambda: str, col3="int64")
+    data = """col1,col2,col3
+AB,000388907,199
+CD,101044572,200"""
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected = DataFrame(
+        {
+            "col1": pd.Series(["AB", "CD"], dtype=str),
+            "col2": pd.Series(["000388907", "101044572"], dtype=str),
+            "col3": pd.Series([199, 200], dtype="int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_object_dtype_dict_preserves_raw_strings(all_parsers):
     # GH#57666, GH#9435 dtype=object holds the raw strings on every engine
     parser = all_parsers
