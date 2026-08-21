@@ -1300,3 +1300,33 @@ def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
     else:
         expected = DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
     tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_default_sort():
+    # GH#61943
+    ser = Series([5, 7], index=["b", "a"])
+
+    result = list(ser.groupby(Grouper(level=0)).groups)
+    expected = list(ser.groupby(level=0).groups)
+
+    assert result == expected
+
+
+def test_grouper_sort_true_in_list():
+    # GH#61943
+    df = DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
+
+    result = df.groupby([Grouper(key="k", sort=True)]).mean()
+    expected = df.groupby("k").mean()
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_sort_true_transform():
+    # GH#61943
+    df = DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
+
+    result = df.groupby(Grouper(key="k", sort=True)).cumsum()
+    expected = df.groupby("k").cumsum()
+
+    tm.assert_frame_equal(result, expected)

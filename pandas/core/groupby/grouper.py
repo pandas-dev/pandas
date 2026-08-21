@@ -101,7 +101,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default False
+    sort : bool, default True
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -279,7 +279,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        sort: bool = False,
+        sort: bool = True,
         dropna: bool = True,
     ) -> None:
         self.key = key
@@ -391,8 +391,17 @@ class Grouper:
                     raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        # Only binning groupers (those with a freq, i.e. TimeGrouper) need the
+        # object itself reordered, since binning requires a monotonic axis.
+        # For a plain Grouper the group order is already handled by passing
+        # sort through to Grouping, and reordering here desynchronises the
+        # codes from the object when this result is discarded (GH#61943).
         indexer: npt.NDArray[np.intp] | None = None
-        if (self.sort or sort) and not ax.is_monotonic_increasing:
+        if (
+            self.freq is not None
+            and (self.sort or sort)
+            and not ax.is_monotonic_increasing
+        ):
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self._indexer_deprecated = ax.array.argsort(
