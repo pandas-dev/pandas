@@ -9,6 +9,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 import pandas.util._test_decorators as td
 
@@ -70,11 +72,11 @@ def test_union_different_types(index_flat_sortable, index_flat2_sortable):
     idx1 = index_flat_sortable
     idx2 = index_flat2_sortable
 
-    if len(idx1) == 0 and idx1.dtype == object:
+    if using_string_dtype() and len(idx1) == 0 and idx1.dtype == object:
         # GH#60797 a zero-length object-dtype Index is ignored when determining
         #  the resulting dtype
         common_dtype = idx2.dtype
-    elif len(idx2) == 0 and idx2.dtype == object:
+    elif using_string_dtype() and len(idx2) == 0 and idx2.dtype == object:
         common_dtype = idx1.dtype
     else:
         common_dtype = find_common_type([idx1.dtype, idx2.dtype])
