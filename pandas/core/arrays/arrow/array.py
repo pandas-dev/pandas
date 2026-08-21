@@ -2308,9 +2308,9 @@ class ArrowExtensionArray(
         duplicates that are adjacent. Sorted input is what makes them adjacent.
 
         Returns None if the fast path cannot be used: the type has no run-end
-        or comparison kernel, there are more values than the run end type can
-        hold, the values contain NA, or the encoded runs are not strictly
-        increasing, which means equal values were not all adjacent.
+        or comparison kernel, the values do not fit in a single combined array
+        or in the run end type, they contain NA, or the encoded runs are not
+        strictly increasing, which means equal values were not all adjacent.
         Unsorted input lands there, and so do -0.0 and 0.0, which are equal to
         the comparison that orders the values but distinct to the encoder.
         Callers fall back to :meth:`unique`.
@@ -2319,10 +2319,9 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray or None
         """
-        # a run cannot be detected across a chunk boundary
-        combined = self._pa_array.combine_chunks()
         try:
-            values = pc.run_end_encode(combined).values
+            # a run cannot be detected across a chunk boundary
+            values = pc.run_end_encode(self._pa_array.combine_chunks()).values
             if len(values) > 1 and (
                 # pc.all skips null comparisons, so a null run would hide
                 # duplicates on either side of it
@@ -2331,8 +2330,9 @@ class ArrowExtensionArray(
             ):
                 return None
         except (pa.ArrowNotImplementedError, pa.ArrowInvalid):
-            # no kernel for this type, or more elements than the run end type
-            # can hold
+            # no kernel for this type, or the values do not fit: combining the
+            # chunks can overflow a 32-bit offset, and run-end encoding can
+            # exceed what the run end type counts
             return None
         return self._from_pyarrow_array(values)
 

@@ -28,6 +28,7 @@ import operator
 import pickle
 import re
 import sys
+from types import SimpleNamespace
 import unicodedata
 
 import numpy as np
@@ -5411,5 +5412,21 @@ def test_unique_by_run_ends_declines_when_run_ends_overflow(monkeypatch):
     )
     with pytest.raises(pa.ArrowInvalid, match="run end type"):
         pa.compute.run_end_encode(arr._pa_array.combine_chunks())
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_when_chunks_cannot_combine(monkeypatch):
+    # GH#66498 combining chunks raises ArrowInvalid once string data passes the
+    # 2 GiB a 32-bit offset can address, which is far too large to build here.
+    # That must decline rather than propagate.
+    arr = pd.array(["a", "a", "b"], dtype="string[pyarrow]")
+
+    def combine_chunks():
+        raise pa.ArrowInvalid("offset overflow while concatenating arrays")
+
+    monkeypatch.setattr(
+        arr, "_pa_array", SimpleNamespace(combine_chunks=combine_chunks)
+    )
 
     assert arr._unique_by_run_ends() is None
