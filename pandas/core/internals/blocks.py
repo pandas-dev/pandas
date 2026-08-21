@@ -1345,7 +1345,7 @@ class Block(PandasObject, libinternals.Block):
 
         else:
             other = casted
-            alt = setitem_datetimelike_compat(values, icond.sum(), other)
+            alt = setitem_datetimelike_compat(values, icond.sum(), other)  # type: ignore[arg-type]
             if isinstance(other, tuple) and values.dtype == _dtype_obj:
                 # GH#37681 np.where/np.putmask unpack tuples, so wrap in an
                 #  object array to ensure the tuple is treated as a scalar.
