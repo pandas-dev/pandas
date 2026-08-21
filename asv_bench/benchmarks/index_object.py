@@ -82,12 +82,21 @@ class IntersectionDedup:
             "string[pyarrow]",
             "object",
         ],
-        ["unique", "duplicated", "low_cardinality", "partial_overlap", "signed_zero"],
+        [
+            "unique",
+            "duplicated",
+            "low_cardinality",
+            "partial_overlap",
+            "signed_zero",
+            "chunked",
+        ],
     )
     param_names = ["dtype", "scenario"]
 
     def setup(self, dtype, scenario):
         if scenario == "signed_zero" and dtype not in ("float64", "float64[pyarrow]"):
+            raise NotImplementedError
+        if scenario == "chunked" and not dtype.endswith("[pyarrow]"):
             raise NotImplementedError
 
         N = 10**5
@@ -96,6 +105,7 @@ class IntersectionDedup:
             "duplicated": np.repeat(np.arange(N // 2), 2),
             "low_cardinality": np.repeat(np.arange(100), N // 100),
             "partial_overlap": np.arange(N + N // 2),
+            "chunked": np.arange(N),
             "signed_zero": np.concatenate(
                 [np.repeat([-0.0, 0.0], N // 2), np.arange(1, N)]
             ),
@@ -107,7 +117,12 @@ class IntersectionDedup:
             values = [f"i-{i:07d}" for i in values]
         index = Index(values, dtype=dtype)
 
-        if scenario == "partial_overlap":
+        if scenario == "chunked":
+            # take() gathers across the chunks before the dedup sees them, so
+            # this tracks that gather rather than the dedup itself
+            parts = [Index(p, dtype=dtype) for p in np.array_split(values, 100)]
+            self.left, self.right = parts[0].append(parts[1:]), index[:-1]
+        elif scenario == "partial_overlap":
             # half the keys match, which is the shape a caller is likelier to have
             self.left, self.right = index[:N], index[N // 2 :]
         else:
