@@ -678,7 +678,14 @@ class BaseGrouper:
             result = self.groupings[0].indices
         else:
             codes_list = [ping.codes for ping in self.groupings]
-            result = get_indexer_dict(codes_list, self.levels)
+            # GH#66893: use the groupings' uniques instead of `self.levels` as
+            # keys, since `self.levels` may use a different encoding than
+            # `codes` when `sort=False` with Categorical keys: the result
+            # index levels keep category order, while codes are encoded in
+            # first-appearance order, which made `indices` pair labels with
+            # the wrong rows.
+            keys = [ping.uniques for ping in self.groupings]
+            result = get_indexer_dict(codes_list, keys)
         if not self.dropna:
             has_mi = isinstance(self.result_index, MultiIndex)
             if not has_mi and self.result_index.hasnans:
