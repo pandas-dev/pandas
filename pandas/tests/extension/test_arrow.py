@@ -5426,7 +5426,7 @@ def test_unique_by_run_ends_declines_when_chunks_cannot_combine(monkeypatch):
         raise pa.ArrowInvalid("offset overflow while concatenating arrays")
 
     monkeypatch.setattr(
-        arr, "_pa_array", SimpleNamespace(combine_chunks=combine_chunks)
+        arr, "_pa_array", SimpleNamespace(num_chunks=2, combine_chunks=combine_chunks)
     )
 
     assert arr._unique_by_run_ends() is None
