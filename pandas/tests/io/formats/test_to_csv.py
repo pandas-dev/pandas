@@ -1038,3 +1038,9 @@ def test_to_csv_datetime_tz_consistent_format():
     ]
     expected = tm.convert_rows_list_to_csv_str(expected_rows)
     assert result == expected
+
+
+def test_excel_sep_hint():
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    result = df.to_csv(sep=";", excel_sep_hint=True, lineterminator="\n")
+    assert result.startswith("sep=;\n")
