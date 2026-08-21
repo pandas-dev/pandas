@@ -830,67 +830,35 @@ class TestDateOffset:
             DateOffset(picoseconds=1)
 
 
-def test_isinstance_dateoffset_warns_for_non_dateoffset():
+@pytest.mark.parametrize("obj", [BDay(), DateOffset(days=1), Day(2)])
+def test_isinstance_dateoffset(obj):
+    # GH#48262 DateOffset is the base class of every offset
+    assert isinstance(obj, DateOffset)
+    assert isinstance(obj, BaseOffset)
+
+
+@pytest.mark.parametrize("klass", [BDay, DateOffset, Day])
+def test_issubclass_dateoffset(klass):
     # GH#48262
-    bday = BDay()
-    msg = "isinstance.*DateOffset.*is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = isinstance(bday, DateOffset)
-    assert result is True
+    assert issubclass(klass, DateOffset)
+    assert issubclass(klass, BaseOffset)
 
 
-def test_issubclass_dateoffset_warns_for_non_dateoffset():
-    # GH#48262
-    msg = "issubclass.*DateOffset.*is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = issubclass(BDay, DateOffset)
-    assert result is True
-
-
-def test_isinstance_dateoffset_no_warning_for_dateoffset():
-    # GH#48262
-    class MySubclass(DateOffset):
-        pass
-
-    for obj in [DateOffset(days=1), MySubclass(days=1)]:
-        with tm.assert_produces_warning(None):
-            result = isinstance(obj, DateOffset)
-        assert result is True
-
-
-def test_issubclass_dateoffset_no_warning_for_dateoffset():
-    # GH#48262
-    class MySubclass(DateOffset):
-        pass
-
-    for klass in [DateOffset, MySubclass]:
-        with tm.assert_produces_warning(None):
-            result = issubclass(klass, DateOffset)
-        assert result is True
+def test_baseoffset_is_dateoffset():
+    # GH#48262 BaseOffset is retained as an alias for DateOffset
+    assert BaseOffset is DateOffset
 
 
 @pytest.mark.parametrize("obj", [1, None, "B", object()])
-def test_isinstance_dateoffset_no_warning_for_non_offset(obj):
-    # GH#48262 objects that are not offsets at all are unaffected
-    with tm.assert_produces_warning(None):
-        result = isinstance(obj, DateOffset)
-    assert result is False
+def test_isinstance_dateoffset_non_offset(obj):
+    # GH#48262 objects that are not offsets at all
+    assert not isinstance(obj, DateOffset)
 
 
 @pytest.mark.parametrize("klass", [int, str, object])
-def test_issubclass_dateoffset_no_warning_for_non_offset(klass):
+def test_issubclass_dateoffset_non_offset(klass):
     # GH#48262
-    with tm.assert_produces_warning(None):
-        result = issubclass(klass, DateOffset)
-    assert result is False
-
-
-def test_baseoffset_check_no_warning():
-    # GH#48262 BaseOffset is the non-deprecated alternative
-    bday = BDay()
-    with tm.assert_produces_warning(None):
-        assert isinstance(bday, BaseOffset)
-        assert issubclass(BDay, BaseOffset)
+    assert not issubclass(klass, DateOffset)
 
 
 class TestOffsetNames:

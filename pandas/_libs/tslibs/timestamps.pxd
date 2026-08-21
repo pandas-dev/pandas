@@ -9,7 +9,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
 )
-from pandas._libs.tslibs.offsets cimport BaseOffset
+from pandas._libs.tslibs.offsets cimport DateOffset
 
 
 cdef _Timestamp create_timestamp_from_ts(int64_t value,

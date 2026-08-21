@@ -39,7 +39,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
-    RelativeDeltaOffset,
     Week,
 )
 from pandas.compat.numpy import function as nv
@@ -1260,9 +1259,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         freq = self.freq
 
-        # GH#44025 DateOffset (RelativeDeltaOffset) has no fixed stride,
-        #  so matching freq alone doesn't guarantee alignment.
-        if isinstance(freq, RelativeDeltaOffset):
+        # GH#44025 DateOffset itself has no fixed stride, so matching freq
+        #  alone doesn't guarantee alignment.
+        if freq._is_relativedelta_offset:
             return False
 
         # Note we are assuming away Ticks, as those go through _range_intersect.

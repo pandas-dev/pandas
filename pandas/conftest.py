@@ -214,7 +214,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
-        ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
+        ("DateOffset.name.__get__", "The 'name' property is deprecated"),
         (
             # matches both DatetimeProperties.freq and TimedeltaProperties.freq
             "Properties.freq",

@@ -110,7 +110,7 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.offsets cimport (
-    BaseOffset,
+    DateOffset,
     is_offset_object,
     to_offset,
 )
@@ -2080,7 +2080,7 @@ cdef class _Period(PeriodMixin):
         return self._ordinal
 
     @cache_readonly
-    def _freq(self) -> BaseOffset:
+    def _freq(self) -> DateOffset:
         return to_offset(self._dtype._freqstr, is_period=True)
 
     @property
@@ -2154,7 +2154,7 @@ cdef class _Period(PeriodMixin):
         self._dtype = dtype
 
     @classmethod
-    def _maybe_convert_freq(cls, object freq) -> BaseOffset:
+    def _maybe_convert_freq(cls, object freq) -> DateOffset:
         """
         A Period's freq attribute must have `freq.n > 0`, which we check for here.
 
@@ -3558,7 +3558,7 @@ cdef bint is_period_object(object obj):
     return isinstance(obj, _Period)
 
 
-cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
+cpdef int freq_to_dtype_code(DateOffset freq) except? -1:
     try:
         return freq._period_dtype_code
     except AttributeError as err:
@@ -3567,7 +3567,7 @@ cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
 
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                                   int hour, int minute, int second,
-                                  BaseOffset freq):
+                                  DateOffset freq):
     base = freq_to_dtype_code(freq)
     if quarter is not None:
         year, month = quarter_to_myear(year, quarter, freq.freqstr)
@@ -3586,7 +3586,7 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     return how
 
 
-cdef _parse_weekly_str(value, BaseOffset freq):
+cdef _parse_weekly_str(value, DateOffset freq):
     """
     Parse e.g. "2017-01-23/2017-01-29", which cannot be parsed by the general
     datetime-parsing logic.  This ensures that we can round-trip with

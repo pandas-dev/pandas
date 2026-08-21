@@ -7,41 +7,6 @@ Date offsets
 ============
 .. currentmodule:: pandas.tseries.offsets
 
-BaseOffset
-----------
-.. autosummary::
-   :toctree: api/
-
-    BaseOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BaseOffset.freqstr
-    BaseOffset.kwds
-    BaseOffset.nanos
-    BaseOffset.normalize
-    BaseOffset.rule_code
-    BaseOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BaseOffset.copy
-    BaseOffset.is_on_offset
-    BaseOffset.is_month_start
-    BaseOffset.is_month_end
-    BaseOffset.is_quarter_start
-    BaseOffset.is_quarter_end
-    BaseOffset.is_year_start
-    BaseOffset.is_year_end
-    BaseOffset.rollback
-    BaseOffset.rollforward
-
 DateOffset
 ----------
 .. autosummary::
