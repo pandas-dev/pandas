@@ -17,6 +17,7 @@ from pandas.compat.pyarrow import (
     pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
+    pa_version_under26p0,
 )
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
@@ -1601,7 +1602,8 @@ class TestParquetFastParquet(Base):
 
 
 @pytest.mark.xfail(
-    reason="Upstream PyArrow fails to cast FIXED_LEN_BYTE_ARRAY to UUID - GH 61602"
+    pa_version_under26p0,
+    reason="Upstream PyArrow fails to cast FIXED_LEN_BYTE_ARRAY to UUID - GH 61602",
 )
 @td.skip_if_no("pyarrow", min_version="24.0.0")
 def test_to_parquet_uuid_supported(temp_file):
