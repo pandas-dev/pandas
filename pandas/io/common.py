@@ -19,6 +19,7 @@ import gzip
 from io import (
     BufferedIOBase,
     BytesIO,
+    IOBase,
     RawIOBase,
     StringIO,
     TextIOBase,
@@ -1251,13 +1252,21 @@ def _is_binary_mode(handle: FilePath | BaseBuffer, mode: str) -> bool:
         codecs.StreamWriter,
         codecs.StreamReader,
         codecs.StreamReaderWriter,
+        TextIOBase,
     )
     if issubclass(type(handle), text_classes):
         return False
 
-    return isinstance(handle, _get_binary_io_classes()) or "b" in getattr(
-        handle, "mode", mode
-    )
+    if isinstance(handle, _get_binary_io_classes()):
+        return True
+
+    if hasattr(handle, "mode"):
+        return "b" in handle.mode
+
+    # GH#52252 buffers without a "mode" attribute that are not covered by the
+    # classes above, e.g. mmap.mmap and botocore's StreamingBody, which is an
+    # IOBase subclass without being a Raw/BufferedIOBase subclass.
+    return isinstance(handle, (mmap.mmap, IOBase))
 
 
 @functools.lru_cache
