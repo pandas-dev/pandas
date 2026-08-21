@@ -1394,7 +1394,7 @@ class StataReader(StataParser, abc.Iterator):
                 if tp in self.OLD_TYPE_MAPPING:
                     typlist.append(self.OLD_TYPE_MAPPING[tp])  # type: ignore[index]
                 else:
-                    typlist.append(tp - 127)  # type: ignore[assignment]
+                    typlist.append(tp - 127)  # type: ignore[arg-type]
 
         try:
             self._typlist = [self.TYPE_MAP[typ] for typ in typlist]
