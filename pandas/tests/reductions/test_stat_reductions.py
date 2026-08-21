@@ -2,7 +2,9 @@
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
 
+from decimal import Decimal
 import inspect
+import warnings
 
 import numpy as np
 import pytest
@@ -305,3 +307,79 @@ def test_reduction_consistency(opname, loc, scale):
 
     result_frame = getattr(DataFrame(s), opname)().iloc[0]
     tm.assert_almost_equal(result_series, result_frame)
+
+
+# ---------------------------------------------------------------------------
+# object dtype
+#
+# GH#34671, GH#36703, GH#44008: a statistic over object-dtype data behaves
+# exactly as it does over the numeric dtype the values represent, and rejects
+# anything that is not a number, the same way for every statistic.
+
+OBJECT_STATS = ["mean", "median", "var", "std", "sem", "skew", "kurt"]
+
+
+@pytest.mark.parametrize("opname", OBJECT_STATS)
+@pytest.mark.parametrize(
+    "data, numeric_dtype",
+    [
+        ([1, 2, 3, 5], "int64"),
+        ([1.0, 2.0, 3.0, 5.0], "float64"),
+        ([1.0, None, 3.0, 5.0], "float64"),
+        ([True, False, True, True], "float64"),
+        ([1.0, True, 3.0, 5.0], "float64"),
+        ([Decimal(1), Decimal(2), Decimal(3), Decimal(5)], "float64"),
+        ([1 + 2j, 3 + 4j, 5j, 1j], "complex128"),
+    ],
+)
+def test_object_stat_matches_numeric_dtype(opname, data, numeric_dtype):
+    obj = Series(data, dtype=object)
+    expected_obj = Series(np.array(data, dtype=numeric_dtype))
+
+    with warnings.catch_warnings():
+        # skew/kurt of complex data warn about the discarded imaginary part
+        warnings.simplefilter("ignore", np.exceptions.ComplexWarning)
+        expected = getattr(expected_obj, opname)()
+        result = getattr(obj, opname)()
+
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize("opname", OBJECT_STATS)
+@pytest.mark.parametrize(
+    "data, match",
+    [
+        (["1", "2", "3"], "'1'"),
+        ([1.0, "2", 3.0], "'2'"),
+        (["a", "b", "c"], "'a'"),
+        ([b"1", b"2", b"3"], "b'1'"),
+        ([np.datetime64("2020-01-01"), np.datetime64("2020-01-03")], "datetime64"),
+        ([np.timedelta64(1, "D"), np.timedelta64(3, "D")], "timedelta64"),
+        ([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-03")], "Timestamp"),
+        ([pd.Timedelta(days=1), pd.Timedelta(days=3)], "Timedelta"),
+    ],
+)
+def test_object_stat_raises_on_non_numbers(opname, data, match):
+    obj = Series(data, dtype=object)
+    with pytest.raises(TypeError, match=f"Could not convert .*{match}"):
+        getattr(obj, opname)()
+
+
+@pytest.mark.parametrize("opname", OBJECT_STATS)
+def test_object_stat_matches_frame_axis(opname):
+    # the same values reduced column-wise and row-wise agree
+    df = DataFrame({"a": [1.0, 2.0, 3.0, 5.0], "b": [4.0, 8.0, 1.0, 2.0]}).astype(
+        object
+    )
+    expected = getattr(df.astype("float64"), opname)(axis=1)
+    result = getattr(df, opname)(axis=1)
+    # the reduction of an object block is still wrapped as object dtype
+    tm.assert_series_equal(result, expected, check_dtype=False)
+
+
+def test_object_none_does_not_warn_complex():
+    # missing values are filled with NaN rather than routed through complex128
+    obj = Series([1.0, None, 2.0, 4.0], dtype=object)
+    for opname in OBJECT_STATS:
+        with tm.assert_produces_warning(None):
+            getattr(obj, opname)()

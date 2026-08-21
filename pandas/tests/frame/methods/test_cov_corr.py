@@ -352,7 +352,7 @@ class TestDataFrameCorrWith:
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols])
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(TypeError, match="unsupported operand type"):
+        with pytest.raises(TypeError, match="Could not convert 'foo' to numeric"):
             df1.corrwith(df2, axis=1)
         result = df1.corrwith(df2, axis=1, numeric_only=True)
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
