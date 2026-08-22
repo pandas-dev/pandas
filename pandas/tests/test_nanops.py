@@ -984,8 +984,28 @@ def test_ensure_numeric_raises(values, match):
         nanops._ensure_numeric(arr)
 
 
-def test_ensure_numeric_str_dtype():
-    values = np.array(["1", "2"], dtype="U1")
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        # numpy's own object->complex128 cast maps None to nan+nanj, not nan+0j
+        ([1 + 2j, None], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        ([1 + 2j, np.nan], np.array([1 + 2j, complex(np.nan, 0)])),
+        # NaT/pd.NA numpy refuses outright, so they get the same NaN as None
+        ([1 + 2j, pd.NaT], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        ([1 + 2j, pd.NA], np.array([1 + 2j, complex(np.nan, np.nan)])),
+    ],
+)
+def test_ensure_numeric_complex_na(values, expected):
+    # the NaN standing in for NA keeps its imaginary part
+    arr = np.empty(len(values), dtype=object)
+    arr[:] = values
+    tm.assert_numpy_array_equal(nanops._ensure_numeric(arr), expected)
+
+
+@pytest.mark.parametrize("dtype", ["U1", "S1", np.dtypes.StringDType()])
+def test_ensure_numeric_str_dtype(dtype):
+    # numeric-looking strings are rejected whichever string dtype holds them
+    values = np.array(["1", "2"], dtype=dtype)
     with pytest.raises(TypeError, match="Could not convert .* values to numeric"):
         nanops._ensure_numeric(values)
 

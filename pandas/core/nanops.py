@@ -541,7 +541,7 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
     TypeError
         If the values are not numbers.
     """
-    if values.dtype.kind in "SU":
+    if values.dtype.kind in "SUT":
         raise TypeError(f"Could not convert {values.dtype} values to numeric")
     if values.dtype != object:
         return values
@@ -558,22 +558,35 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         pass
 
     mask = isna(values)
+    filled = values
     if mask.any():
         # None/NaT/pd.NA have no float(); retry with the NaN sentinel
-        values = values.copy()
-        values[mask] = np.nan
+        filled = values.copy()
+        filled[mask] = np.nan
         try:
-            return values.astype(np.float64)
+            return filled.astype(np.float64)
         except (TypeError, ValueError):
             pass
 
     try:
-        # e.g. complex, which has no __float__
+        # e.g. complex, which has no __float__.  Cast the *unfilled* values, so
+        #  that NA maps the way it does in any object->complex128 cast: None
+        #  becomes nan+nanj and np.nan becomes nan+0j.
         return values.astype(np.complex128)
+    except (TypeError, ValueError):
+        pass
+
+    if mask.any():
+        # numpy refuses NaT/pd.NA outright, so hand them the complex NaN it
+        #  would have produced for None
+        filled[mask] = complex(np.nan, np.nan)
+
+    try:
+        return filled.astype(np.complex128)
     except (TypeError, ValueError) as err:
         # GH#29941 e.g. Timestamps, or elements that are themselves list-like
         raise TypeError(
-            f"Could not convert {_first_unconvertible(values)!r} to numeric"
+            f"Could not convert {_first_unconvertible(filled)!r} to numeric"
         ) from err
 
 
