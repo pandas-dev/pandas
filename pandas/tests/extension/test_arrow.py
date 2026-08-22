@@ -3548,13 +3548,13 @@ def test_dt_day_remainder_cache_invalidation():
         [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
     )
     tm.assert_series_equal(result_before, expected_before)
-    assert "_dt_day_remainder" in arr._cache
+    assert "_dt_day_and_remainder" in arr._cache
 
     # Modify the array
     arr[0] = pd.Timedelta("3 days 7:08:09")
 
     # Cache should be invalidated
-    assert "_dt_day_remainder" not in arr._cache
+    assert "_dt_day_and_remainder" not in arr._cache
 
     # Accessing again should give correct (recomputed) values, not stale cached values
     result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
@@ -3576,7 +3576,7 @@ def test_dt_day_remainder_cache_not_pickled(tmp_path):
     )
     arr = ser.array
     arr._dt_day_remainder  # populate the cache
-    assert "_dt_day_remainder" in arr._cache
+    assert "_dt_day_and_remainder" in arr._cache
 
     result = tm.round_trip_pickle(arr, tmp_path / "cache.pkl")
     assert result._cache == {}
@@ -3591,7 +3591,7 @@ def test_dt_day_remainder_cache_invalidated_on_sort():
         dtype=ArrowDtype(pa.duration("ns")),
     )
     arr._dt_day_remainder  # populate the cache
-    assert "_dt_day_remainder" in arr._cache
+    assert "_dt_day_and_remainder" in arr._cache
 
     arr.sort()
     assert arr._cache == {}
