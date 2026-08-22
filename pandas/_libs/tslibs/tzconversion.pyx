@@ -50,6 +50,7 @@ from pandas._libs.portable cimport (
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
+    get_zoneinfo_twin,
     is_fixed_offset,
     is_tzlocal,
     is_utc,
@@ -95,6 +96,17 @@ cdef class Localizer:
 
         elif is_tzlocal(tz):
             self.use_tzlocal = True
+
+        elif is_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
+            # GH#64379 for e.g. a ZoneInfo.from_file zone the pure-python
+            #  ZoneInfo backing the cached-transitions fast path cannot be
+            #  reconstructed.  Send every value down the tzinfo-API path that
+            #  other ZoneInfos already use for dates past their last cached
+            #  transition, by putting that last transition below every value.
+            self.use_dst = True
+            self.use_zoneinfo = True
+            self.has_tz_rule = True
+            self.last_trans = NPY_NAT
 
         else:
             trans, deltas, typ, has_tz_rule = get_dst_info(tz)
