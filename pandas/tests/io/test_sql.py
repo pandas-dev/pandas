@@ -10,6 +10,7 @@ from datetime import (
 )
 from decimal import Decimal
 from io import StringIO
+import os
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING
@@ -597,6 +598,35 @@ def drop_view(
                 con.execute(stmt)  # type: ignore[union-attr]
 
 
+# Cache the outcome of the connection check per database so that we pay the
+# cost of a failed connection once rather than for every parametrized test.
+_db_connection_errors: dict[str, str] = {}
+
+
+def skip_if_no_db(name: str, connect) -> None:
+    """
+    Skip the test if the database `name` is not reachable.
+
+    On CI the databases are expected to be up, so we leave the connection error
+    alone there instead of silently skipping the whole test suite.
+    """
+    if os.environ.get("CI"):
+        return
+
+    if name not in _db_connection_errors:
+        try:
+            connect().close()
+        except Exception as err:
+            # only the first line; these messages tend to be several lines long
+            first_line = str(err).split("\n")[0]
+            _db_connection_errors[name] = f"{type(err).__name__}: {first_line}"
+        else:
+            _db_connection_errors[name] = ""
+
+    if err_msg := _db_connection_errors[name]:
+        pytest.skip(f"Could not connect to {name} database: {err_msg}")
+
+
 @pytest.fixture
 def mysql_pymysql_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
@@ -606,6 +636,7 @@ def mysql_pymysql_engine():
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
         poolclass=sqlalchemy.pool.NullPool,
     )
+    skip_if_no_db("mysql", engine.connect)
     yield engine
     for view in get_all_views(engine):
         drop_view(view, engine)
@@ -653,6 +684,7 @@ def postgresql_psycopg2_engine():
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
         poolclass=sqlalchemy.pool.NullPool,
     )
+    skip_if_no_db("postgresql", engine.connect)
     yield engine
     for view in get_all_views(engine):
         drop_view(view, engine)
@@ -687,6 +719,7 @@ def postgresql_adbc_conn():
     from adbc_driver_postgresql import dbapi
 
     uri = "postgresql://postgres:postgres@localhost:5432/pandas"
+    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
     with dbapi.connect(uri) as conn:
         yield conn
         for view in get_all_views(conn):

@@ -801,15 +801,17 @@ speed by skipping some tests using the ``-m`` mark flag:
 
 - slow: any test taking long (think seconds rather than milliseconds)
 - network: tests requiring network connectivity
-- db: tests requiring a database (mysql or postgres)
+- db: tests requiring a database (mysql or postgres); these skip themselves if
+  no database is running, so ``-m "not db"`` is only needed to avoid the cost
+  of checking for one
 - single_cpu: tests that should run on a single cpu only
 
 You might want to enable the following option if it's relevant for you:
 
 - arm_slow: any test taking long on arm64 architecture
 
-These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/main/pyproject.toml>`_
-, under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
+These markers are defined `in pandas/conftest.py <https://github.com/pandas-dev/pandas/blob/main/pandas/conftest.py>`_
+, in a list called ``PANDAS_MARKERS``, in case
 you want to check if new ones have been created which are of interest to you.
 
 The ``-r`` report flag will display a short summary info (see `pytest
