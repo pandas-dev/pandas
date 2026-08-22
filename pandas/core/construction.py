@@ -563,7 +563,7 @@ def ensure_wrapped_if_datetimelike(arr):
 
 def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
-    Convert numpy MaskedArray to ensure mask is softened.
+    Convert numpy MaskedArray to a plain ndarray with the masked entries filled.
     """
     mask = ma.getmaskarray(data)
     if mask.any():
