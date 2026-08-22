@@ -94,3 +94,21 @@ def test_concat_chain(styler):
     )"""
     )
     assert result == expected
+
+
+def test_hide_index():
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    result = Styler(df).hide(axis="index").to_typst()
+
+    expected = dedent(
+        """\
+    #table(
+      columns: 2,
+       [A], [B],
+
+       [1], [3],
+       [2], [4],
+    )"""
+    )
+
+    assert result == expected
