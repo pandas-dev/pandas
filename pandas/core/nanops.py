@@ -1438,7 +1438,7 @@ def nanargmax(
     # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
     result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[assignment]
     return result
 
 
@@ -1487,7 +1487,7 @@ def nanargmin(
     # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
     result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[assignment]
     return result
 
 
