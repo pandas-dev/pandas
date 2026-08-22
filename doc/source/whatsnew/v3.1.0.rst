@@ -423,6 +423,7 @@ Performance improvements
 - Performance improvement in reductions along ``axis=1`` and other operations on DataFrames produced by :meth:`DataFrame.copy` (:issue:`60469`)
 - Performance improvement in reductions with ``axis=1`` (e.g. :meth:`DataFrame.sum`, :meth:`DataFrame.mean`, :meth:`DataFrame.std`), especially on single-dtype DataFrames with many rows (:issue:`51474`)
 - Performance improvement in repr of :class:`Series` and :class:`DataFrame` containing third-party array-like objects (e.g. xarray ``DataArray``) in object dtype columns (:issue:`61809`)
+- Reduced memory usage of :func:`to_numeric`, and of the numeric type inference :func:`read_csv` performs with ``engine="python"``, which reserved roughly six times the memory of the converted column (:issue:`35051`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
   setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
   through an intermediate object array (:issue:`64229`).
@@ -591,6 +592,7 @@ Conversion
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`)
 - Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
 - Fixed bug in :func:`to_numeric` where a string containing an embedded NUL byte was converted using only the bytes before the NUL, so e.g. ``"1.5\x00xyz"`` silently became ``1.5``; such values now raise, or become ``NaN`` with ``errors="coerce"`` (:issue:`66524`)
+- Fixed bug in :func:`to_numeric` where values preceding the first complex number in ``object``-dtype data were replaced with uninitialized memory, so e.g. ``to_numeric(Series(["1.5", 2j]))`` returned ``0j`` in place of ``1.5+0j`` (:issue:`35051`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 - Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
