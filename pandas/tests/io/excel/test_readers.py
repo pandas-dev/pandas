@@ -1246,6 +1246,32 @@ class TestReaders:
         expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_read_excel_noncontiguous_header_index_names(self, read_ext, tmp_excel):
+        # GH 66802
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        raw = DataFrame(
+            [
+                ["", "", "foo", "foo"],  # header row 0
+                ["SKIP", "SKIP", "SKIP", "SKIP"],  # not in header=[0, 2]; dropped
+                ["", "", "a", "b"],  # header row 2
+                ["ilvl1", "ilvl2", "", ""],  # index-name row
+                ["", "p", 1, 2],
+                ["y", "q", 3, 4],
+            ]
+        )
+        raw.to_excel(tmp_excel, header=False, index=False)
+
+        result = pd.read_excel(tmp_excel, header=[0, 2], index_col=[0, 1])
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_tuples([("foo", "a"), ("foo", "b")]),
+            index=MultiIndex.from_tuples(
+                [(np.nan, "p"), ("y", "q")], names=["ilvl1", "ilvl2"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_excel_old_index_format(self, read_ext):
         # see gh-4679
         filename = "test_index_name_pre17" + read_ext
