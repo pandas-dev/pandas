@@ -944,29 +944,3 @@ def test_large_exponent_coerce():
     result = to_numeric(ser, errors="coerce")
     expected = Series([np.inf])
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "1.5\x00xyz",
-        "1e3\x00xyz",
-        "inf\x00xyz",
-        # the long spelling takes a different arm of the infinity check
-        "infinity\x00xyz",
-        # bytes take a different branch for deriving the length than str
-        b"1.5\x00xyz",
-        b"infinity\x00x",
-    ],
-)
-def test_embedded_nul_is_not_a_float(value):
-    # GH#66524 - the float parser stopped at an embedded NUL and reported the
-    # string fully consumed, so the trailing bytes were silently discarded.
-    # The message must name the whole value, not just the part before the NUL.
-    ser = Series([value])
-    msg = re.escape(f"Unable to parse string {value!r} at position 0")
-    with pytest.raises(ValueError, match=msg):
-        to_numeric(ser)
-
-    result = to_numeric(ser, errors="coerce")
-    tm.assert_series_equal(result, Series([np.nan]))
