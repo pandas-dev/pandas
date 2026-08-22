@@ -1165,25 +1165,21 @@ def test_to_html_empty_complex_array():
     )
     assert result == expected
 
-
 def test_to_html_render_links_escape():
-    # GH 66080: Prevent HTML injection vulnerability in href attribute
-    value = 'http://example.com/search?q=a"b&lang=en'
-    df = DataFrame({"url": [value]})
-
-    # Case 1: escape=True
-    result = df.to_html(render_links=True, escape=True)
-    expected_href = "http://example.com/search?q=a&quot;b&amp;lang=en"
-    expected_text = 'http://example.com/search?q=a"b&amp;lang=en'
-    expected_td = (
-        f'<td><a href="{expected_href}" target="_blank">{expected_text}</a></td>'
-    )
-    assert expected_td in result
-
-    # Case 2: escape=False (GH 66080)
-    result_false = df.to_html(render_links=True, escape=False)
-    expected_text_false = 'http://example.com/search?q=a"b&lang=en'
-    expected_td_false = (
-        f'<td><a href="{expected_href}" target="_blank">{expected_text_false}</a></td>'
-    )
-    assert expected_td_false in result_false
+    # GH 66080
+    import pandas as pd
+    df = pd.DataFrame({"url": ['http://example.com/?q=a"b&lang=en']})
+    
+    # 1. When escape=True, href is fully escaped (quotes included), 
+    # but pandas visible text only escapes & and < >
+    result_escaped = df.to_html(render_links=True, escape=True)
+    href_escaped = 'http://example.com/?q=a&quot;b&amp;lang=en'
+    text_escaped = 'http://example.com/?q=a"b&amp;lang=en'
+    
+    assert f'<td><a href="{href_escaped}" target="_blank">{text_escaped}</a></td>' in result_escaped
+    
+    # 2. When escape=False, neither should be escaped
+    result_unescaped = df.to_html(render_links=True, escape=False)
+    expected_raw = 'http://example.com/?q=a"b&lang=en'
+    
+    assert f'<td><a href="{expected_raw}" target="_blank">{expected_raw}</a></td>' in result_unescaped

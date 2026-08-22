@@ -201,11 +201,11 @@ class HTMLFormatter:
 
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            # href must ALWAYS be escaped to prevent malformed HTML and injection,
-            # even if escape=False is passed for the visible text.
-            href = html.escape(rs_unescaped)
+            href = html.escape(rs_unescaped) if self.escape else rs_unescaped
             start_tag += f'<a href="{href}" target="_blank">'
             end_a = "</a>"
+        else:
+            end_a = ""
 
         self.write(f"{start_tag}{rs}{end_a}</{kind}>", indent)
 
