@@ -2183,12 +2183,6 @@ fallback:
     p += (tsep != '\0' && *p == tsep);
   }
 
-  // All-zero integer part (e.g. "0", "000", "0.x"): count one digit so we
-  // don't treat the input as unparsable below.
-  if (saw_digit && num_digits == 0) {
-    num_digits = 1;
-  }
-
   // Process decimal part
   if (*p == decimal) {
     if (maybe_int != NULL)
@@ -2209,7 +2203,11 @@ fallback:
     exponent -= num_decimals;
   }
 
-  if (num_digits == 0) {
+  // saw_digit covers an all-zero mantissa ("0", "000", "0."), which is a valid
+  // zero rather than an unparsable string. Testing it here instead of seeding
+  // num_digits leaves the full max_digits budget for the fractional part, so
+  // "0.5" and ".5" get the same precision.
+  if (num_digits == 0 && !saw_digit) {
     *error = ERANGE;
     return 0.0;
   }
