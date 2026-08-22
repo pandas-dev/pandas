@@ -125,16 +125,18 @@ class OptionError(AttributeError, KeyError):
 # User API
 
 
-def _get_single_key(pat: str, extra_stacklevel: int = 0) -> str:
+def _get_single_key(pat: str, warn: bool = True, extra_stacklevel: int = 0) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
-        _warn_if_deprecated(pat, extra_stacklevel=extra_stacklevel)
+        if warn:
+            _warn_if_deprecated(pat, extra_stacklevel=extra_stacklevel)
         raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
 
-    _warn_if_deprecated(key, extra_stacklevel=extra_stacklevel)
+    if warn:
+        _warn_if_deprecated(key, extra_stacklevel=extra_stacklevel)
 
     key = _translate_key(key)
 
@@ -185,15 +187,20 @@ def get_option(pat: str) -> Any:
     >>> pd.get_option("display.max_columns")  # doctest: +SKIP
     4
     """
-    key = _get_single_key(pat)
+    return _get_option_impl(pat)
+
+
+def _get_option_impl(pat: str, warn: bool = True) -> Any:
+    key = _get_single_key(pat, warn=warn)
 
     # walk the nested dict
     root, k = _get_root(key)
     return root[k]
 
 
-def _set_option_impl(*args: Any, extra_stacklevel: int = 0) -> None:
-    # GH#63235: extra_stacklevel lets callers shift warning target to user code
+def _set_option_impl(*args: Any, warn: bool = True, extra_stacklevel: int = 0) -> None:
+    # GH#63235: `warn` and `extra_stacklevel` let option_context warn exactly
+    # once, aimed at the caller rather than at contextlib.
     # Handle dictionary input
     if len(args) == 1 and isinstance(args[0], dict):
         args = tuple(kv for item in args[0].items() for kv in item)
@@ -203,7 +210,7 @@ def _set_option_impl(*args: Any, extra_stacklevel: int = 0) -> None:
         raise ValueError("Must provide an even number of non-keyword arguments")
 
     for k, v in zip(args[::2], args[1::2], strict=True):
-        key = _get_single_key(k, extra_stacklevel=extra_stacklevel)
+        key = _get_single_key(k, warn=warn, extra_stacklevel=extra_stacklevel)
 
         opt = _get_registered_option(key)
         if opt and opt.validator:
@@ -517,22 +524,17 @@ def option_context(*args: Any) -> Generator[None]:
     ops = tuple(zip(args[::2], args[1::2], strict=True))
     undo: tuple[tuple[Any, Any], ...] = ()
     try:
-        # GH#63235: suppress here; warning emitted at correct stacklevel below
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            warnings.simplefilter("ignore", DeprecationWarning)
-            undo = tuple((pat, get_option(pat)) for pat, val in ops)
+        # GH#63235: a deprecated option must warn exactly once per option_context,
+        # so only the entry below warns; reading the old value and restoring it are
+        # bookkeeping the user did not ask for. extra_stacklevel=1 skips the
+        # contextlib.__enter__ frame so the warning lands on the ``with`` statement.
+        undo = tuple((pat, _get_option_impl(pat, warn=False)) for pat, val in ops)
         for pat, val in ops:
-            # GH#63235: +1 to skip past contextlib.__enter__ to user code
             _set_option_impl(pat, val, extra_stacklevel=1)
         yield
     finally:
-        # GH#63235: suppress; user already warned on context entry
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            warnings.simplefilter("ignore", DeprecationWarning)
-            for pat, val in undo:
-                _set_option_impl(pat, val)
+        for pat, val in undo:
+            _set_option_impl(pat, val, warn=False)
 
 
 def register_option(

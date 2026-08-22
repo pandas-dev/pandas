@@ -1,3 +1,4 @@
+import inspect
 import os
 import warnings
 
@@ -510,203 +511,121 @@ def test_option_context_invalid_option():
             pass
 
 
-def test_option_context_deprecated_key_stacklevel(monkeypatch):
-    # GH#63235: warning must point to user code, not contextlib.__enter__
+@pytest.fixture
+def clean_config(monkeypatch):
+    # module-level counterpart of TestConfig.clean_config
     with monkeypatch.context() as m:
         m.setattr(cf, "_global_config", {})
         m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
         m.setattr(cf, "_deprecated_options", {})
         m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with cf.option_context("a", 2):
-                pass
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 1, (
-        f"Expected exactly 1 FutureWarning, got {len(dep_warnings)}"
-    )
-    assert os.path.normcase(dep_warnings[0].filename) == os.path.normcase(
-        os.path.abspath(__file__)
-    ), (
-        f"Warning filename {dep_warnings[0].filename!r} "
-        "should point to this test file, not contextlib or internal pandas code"
-    )
+        yield
 
 
-def test_set_option_deprecated_key_stacklevel(monkeypatch):
-    # GH#63235: set_option must still point to user code, not pandas internals
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            cf.set_option("a", 2)
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 1, (
-        f"Expected exactly 1 FutureWarning, got {len(dep_warnings)}"
-    )
-    assert os.path.normcase(dep_warnings[0].filename) == os.path.normcase(
-        os.path.abspath(__file__)
-    ), (
-        f"Warning filename {dep_warnings[0].filename!r} "
-        "should point to this test file, not pandas internals"
-    )
-
-
-def test_option_context_multiple_deprecated_keys(monkeypatch):
-    # GH#63235: two deprecated keys emit exactly one warning each (2 total)
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.register_option("b", 1)
-        cf.deprecate_option("a", FutureWarning)
-        cf.deprecate_option("b", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with cf.option_context("a", 2, "b", 3):
-                pass
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 2, (
-        f"Expected exactly 2 FutureWarnings (one per key), got {len(dep_warnings)}"
-    )
-
-
-def test_option_context_deprecated_key_stacklevel_lineno(monkeypatch):
-    # GH#63235: warning lineno must point to the ``with option_context(...)`` line
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with cf.option_context("a", 2):
-                pass
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 1
-    assert os.path.normcase(dep_warnings[0].filename) == os.path.normcase(
-        os.path.abspath(__file__)
-    )
-    assert dep_warnings[0].lineno > 0
-
-
-def test_option_context_deprecation_warning_category(monkeypatch):
-    # GH#63235: fix works for DeprecationWarning too, not only FutureWarning
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", DeprecationWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with cf.option_context("a", 2):
-                pass
-    dep_warnings = [w for w in recorded if issubclass(w.category, DeprecationWarning)]
-    assert len(dep_warnings) == 1, (
-        f"Expected 1 DeprecationWarning, got {len(dep_warnings)}"
-    )
-    assert os.path.normcase(dep_warnings[0].filename) == os.path.normcase(
-        os.path.abspath(__file__)
-    )
-
-
-def test_option_context_no_warning_for_non_deprecated_key(monkeypatch):
-    # GH#63235: non-deprecated key must not emit FutureWarning/DeprecationWarning
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with cf.option_context("a", 2):
-                pass
-    dep_warnings = [
-        w
-        for w in recorded
-        if issubclass(w.category, (FutureWarning, DeprecationWarning))
+def _deprecation_warnings(recorded):
+    return [
+        warning
+        for warning in recorded
+        if issubclass(warning.category, (FutureWarning, DeprecationWarning))
     ]
-    assert len(dep_warnings) == 0, (
-        f"Expected no deprecation warnings for non-deprecated key, "
-        f"got {len(dep_warnings)}"
+
+
+def _assert_points_here(warning, lineno):
+    assert os.path.normcase(warning.filename) == os.path.normcase(
+        os.path.abspath(__file__)
     )
+    assert warning.lineno == lineno
 
 
-def test_option_context_no_restore_warning(monkeypatch):
-    # GH#63235: context exit restore must not emit an additional deprecation warning
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
+@pytest.mark.parametrize("category", [FutureWarning, DeprecationWarning])
+def test_option_context_deprecated_key_stacklevel(clean_config, category):
+    # GH#63235: warning points at the "with" statement, not contextlib.__enter__,
+    # and entering plus restoring the option warns only once in total
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", category)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 1
+        with cf.option_context("a", 2):
+            pass
+
+    (warning,) = _deprecation_warnings(recorded)
+    _assert_points_here(warning, lineno)
+
+
+def test_set_option_deprecated_key_stacklevel(clean_config):
+    # GH#63235: set_option still points at the caller after the refactor
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 1
+        cf.set_option("a", 2)
+
+    (warning,) = _deprecation_warnings(recorded)
+    _assert_points_here(warning, lineno)
+
+
+def test_option_context_deprecated_key_raising(clean_config):
+    # GH#63235: unwinding through the finally-restore does not warn a second time
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 2
+        with pytest.raises(ValueError, match="inside context"):
             with cf.option_context("a", 2):
-                pass  # exit triggers restore — must NOT warn again
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 1, (
-        f"Expected exactly 1 FutureWarning (entry only, not restore), "
-        f"got {len(dep_warnings)}"
-    )
+                raise ValueError("inside context")
+
+    (warning,) = _deprecation_warnings(recorded)
+    _assert_points_here(warning, lineno)
 
 
-def test_option_context_exception_no_duplicate_warning(monkeypatch):
-    # GH#63235: finally-restore on exception must not produce a duplicate warning
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with pytest.raises(ValueError, match="inside context"):
-                with cf.option_context("a", 2):
-                    raise ValueError("inside context")
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 1, (
-        f"Expected exactly 1 FutureWarning even when exception raised inside "
-        f"option_context, got {len(dep_warnings)}"
-    )
+def test_option_context_multiple_deprecated_keys(clean_config):
+    # GH#63235: one warning per deprecated key
+    cf.register_option("a", 1)
+    cf.register_option("b", 1)
+    cf.deprecate_option("a", FutureWarning)
+    cf.deprecate_option("b", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 1
+        with cf.option_context("a", 2, "b", 3):
+            pass
+
+    first, second = _deprecation_warnings(recorded)
+    _assert_points_here(first, lineno)
+    _assert_points_here(second, lineno)
 
 
-def test_option_context_nested_deprecated_key_stacklevel(monkeypatch):
-    # GH#63235: nested option_context each emit one warning pointing to user code
-    with monkeypatch.context() as m:
-        m.setattr(cf, "_global_config", {})
-        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
-        m.setattr(cf, "_deprecated_options", {})
-        m.setattr(cf, "_registered_options", {})
-        cf.register_option("a", 1)
-        cf.deprecate_option("a", FutureWarning)
-        with warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("always")
-            with cf.option_context("a", 2):
-                with cf.option_context("a", 3):
-                    pass
-    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
-    assert len(dep_warnings) == 2, (
-        f"Expected 2 FutureWarnings for 2 nested option_context calls, "
-        f"got {len(dep_warnings)}"
-    )
-    for w in dep_warnings:
-        assert os.path.normcase(w.filename) == os.path.normcase(
-            os.path.abspath(__file__)
-        ), f"Warning {w!r} should point to this test file"
+def test_option_context_nested_deprecated_key(clean_config):
+    # GH#63235: each nested context warns at its own "with" statement
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        outer = inspect.currentframe().f_lineno + 1
+        with cf.option_context("a", 2):
+            with cf.option_context("a", 3):
+                pass
+
+    first, second = _deprecation_warnings(recorded)
+    _assert_points_here(first, outer)
+    _assert_points_here(second, outer + 1)
+
+
+def test_option_context_non_deprecated_key(clean_config):
+    # GH#63235: a live option must not start warning
+    cf.register_option("a", 1)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        with cf.option_context("a", 2):
+            pass
+
+    assert _deprecation_warnings(recorded) == []
