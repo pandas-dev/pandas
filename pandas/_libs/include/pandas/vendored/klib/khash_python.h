@@ -363,6 +363,21 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
   return acc;
 }
 
+// True if the given PyObject* is hashable.
+// Assumes its type has been finalized with PyType_Ready.
+// CPython only hashes if tp->tp_hash is not NULL:
+// https://github.com/python/cpython/blob/9eaf48a56547872b86de5cecbaa7edd3279159ed/Objects/object.c#L774-L775
+// However, unhashable builtin types (for example list) set their tp_hash
+// function pointer directly to PyObject_HashNotImplemented:
+// https://github.com/python/cpython/blob/9eaf48a56547872b86de5cecbaa7edd3279159ed/Objects/listobject.c#L3141
+static inline bool is_hashable(PyObject *o) {
+  if (o == NULL) {
+    return false;
+  }
+  PyTypeObject *tp = Py_TYPE(o);
+  return tp->tp_hash != NULL && tp->tp_hash != PyObject_HashNotImplemented;
+}
+
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
   if (PyErr_Occurred() != NULL) {
     return 0;
@@ -385,13 +400,15 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   } else if (PyTuple_Check(key)) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
-  } else if (PyDict_Check(key) || PyList_Check(key)) {
+  } else if (!is_hashable(key)) {
     // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were
-    // suppressed. Existing code that relies on this behaviour is for example:
+    // silently suppressed. Examples of existing code that relies on this
+    // behaviour:
     //   * _libs.hashtable.value_count_object via DataFrame.describe
     //   * _libs.hashtable.ismember_object via Series.isin
-    // Using hash = 0 puts all dict and list objects in the same bucket,
-    // which is bad for performance but that is how it worked before.
+    // Using hash = 0 puts all unhashable objects (for example dict, list, set)
+    // in the same bucket, which is bad for performance but that is how it
+    // worked before.
     hash = 0;
   } else {
     hash = PyObject_Hash(key);
