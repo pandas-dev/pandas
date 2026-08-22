@@ -2406,6 +2406,15 @@ class ArrowExtensionArray(
 
         pa_dtype = data_to_accum.type
 
+        # GH#66605: cumsum/cumprod on narrow integer dtypes should widen to
+        # 64-bit before accumulating, matching the widen rule used by _reduce,
+        # so accumulations that fit in a wider integer don't raise ArrowInvalid.
+        if name in ("cumsum", "cumprod") and pa.types.is_integer(pa_dtype):
+            if pa.types.is_signed_integer(pa_dtype) and pa_dtype.bit_width < 64:
+                data_to_accum = data_to_accum.cast(pa.int64())
+            elif pa.types.is_unsigned_integer(pa_dtype) and pa_dtype.bit_width < 64:
+                data_to_accum = data_to_accum.cast(pa.uint64())
+
         convert_to_int = (
             pa.types.is_temporal(pa_dtype) and name in ["cummax", "cummin"]
         ) or (pa.types.is_duration(pa_dtype) and name == "cumsum")
