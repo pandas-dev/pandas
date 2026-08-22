@@ -5,6 +5,7 @@ from pandas.compat import PY315
 
 from pandas import (
     DataFrame,
+    Period,
     PeriodIndex,
     Series,
     date_range,
@@ -14,6 +15,23 @@ import pandas._testing as tm
 
 
 class TestPeriodIndex:
+    @pytest.mark.parametrize(
+        "freq, label",
+        [("Q-FEB", "2001Q1"), ("Y-JUN", "2002"), ("Q-DEC", "2001Q1")],
+    )
+    def test_partial_string_slice_anchored_freq(self, freq, label):
+        # GH#66571
+        periods = 12 if freq.startswith("Q") else 8
+        start = "2000Q1" if freq.startswith("Q") else "2000"
+        pi = period_range(start, periods=periods, freq=freq)
+        ser = Series(np.arange(periods), index=pi)
+
+        result = ser.loc[label:label]
+        expected = ser.loc[Period(label, freq=freq) : Period(label, freq=freq)]
+
+        tm.assert_series_equal(result, expected)
+        assert len(result) == 1
+
     def test_getitem_periodindex_duplicates_string_slice(self):
         # monotonic
         idx = PeriodIndex(["2000", "2007", "2007", "2009", "2009"], freq="Y-JUN")
