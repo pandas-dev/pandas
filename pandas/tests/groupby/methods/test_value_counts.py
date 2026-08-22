@@ -142,7 +142,9 @@ def test_series_groupby_value_counts_with_grouper(utc):
     # https://github.com/pandas-dev/pandas/issues/49909
     expected = expected.rename("count")
 
-    tm.assert_series_equal(result, expected)
+    # the apply path retains the grouper freq on the datetimelike MultiIndex
+    #  level while value_counts does not; freq is not what this test checks
+    tm.assert_series_equal(result, expected, check_freq=False)
 
 
 @pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])

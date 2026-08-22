@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -651,3 +653,25 @@ def test_assert_series_equal_check_index_false_ignores_freq():
     right = Series([1, 2, 3], index=idx._with_freq(None))
     with tm.assert_produces_warning(None):
         tm.assert_series_equal(left, right, check_index=False)
+
+
+def test_assert_series_equal_check_freq_multiindex_level():
+    # GH#66761 a freq mismatch in a MultiIndex level was not checked before
+    #  the check_freq deprecation, so it warns rather than raising
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = Series([1, 2, 3], index=pd.MultiIndex.from_arrays([dates, [1, 2, 3]]))
+    right = Series(
+        [1, 2, 3],
+        index=pd.MultiIndex.from_arrays([dates._with_freq(None), [1, 2, 3]]),
+    )
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_series_equal(left, right)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_series_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_series_equal(left, right, check_freq=False)

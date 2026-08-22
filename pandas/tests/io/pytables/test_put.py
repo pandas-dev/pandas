@@ -404,7 +404,8 @@ def test_store_multiindex(temp_hdfstore):
     # GH 5527
 
     def make_index(names=None):
-        dti = date_range("2013-12-01", "2013-12-02")
+        # the freq is not round-tripped through HDF5
+        dti = date_range("2013-12-01", "2013-12-02")._with_freq(None)
         mi = MultiIndex.from_product([dti, range(2), range(3)], names=names)
         return mi
 

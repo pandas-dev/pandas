@@ -480,13 +480,14 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
         df = df._consolidate()
 
     result = df.groupby(["key"]).resample("W", on="date").min()
-    idx = pd.MultiIndex.from_arrays(
-        [
-            ["A"] * 3 + ["B"] * 3,
-            pd.to_datetime(["2020-01-05", "2020-01-12", "2020-01-19"] * 2).as_unit(
-                "ns"
+    idx = pd.MultiIndex(
+        levels=[
+            ["A", "B"],
+            pd.DatetimeIndex(
+                ["2020-01-05", "2020-01-12", "2020-01-19"], freq="W", dtype="M8[ns]"
             ),
         ],
+        codes=[[0] * 3 + [1] * 3, [0, 1, 2] * 2],
         names=["key", "date"],
     )
     expected = DataFrame(
@@ -510,7 +511,10 @@ def test_groupby_resample_empty_sum_string(
     result = gbrs.sum(min_count=min_count)
 
     index = pd.MultiIndex(
-        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns").as_unit("ns")]],
+        levels=[
+            [1, 2, 3],
+            pd.DatetimeIndex(["2000-01-01"], freq="40s", dtype="M8[ns]"),
+        ],
         codes=[[0, 1, 2], [0, 0, 0]],
         names=["A", None],
     )
@@ -608,11 +612,12 @@ def test_groupby_resample_size_all_index_same():
     )
     result = df.groupby("A").resample("D").size()
 
-    mi_exp = pd.MultiIndex.from_arrays(
-        [
-            [1, 1, 2, 2],
-            pd.DatetimeIndex(["2000-12-31", "2001-01-01"] * 2, dtype="M8[ns]"),
+    mi_exp = pd.MultiIndex(
+        levels=[
+            [1, 2],
+            pd.DatetimeIndex(["2000-12-31", "2001-01-01"], dtype="M8[ns]", freq="D"),
         ],
+        codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
         names=["A", None],
     )
     expected = Series(
