@@ -1705,3 +1705,78 @@ def test_td_integral_float_op_is_exact(op):
     td = Timedelta(2**53 + 1, "ns")
     assert op(td, 1.0)._value == 2**53 + 1
     assert op(td, 1.0) == op(td, 1)
+
+
+def assert_masked_array_equal(result, expected):
+    # what a MaskedArray holds underneath a masked slot is unspecified, so only
+    #  the mask itself and the visible values are meaningful
+    assert isinstance(result, np.ma.MaskedArray)
+    mask = np.ma.getmaskarray(expected)
+    tm.assert_numpy_array_equal(np.ma.getmaskarray(result), mask)
+    tm.assert_numpy_array_equal(result.data[~mask], expected.data[~mask])
+
+
+@pytest.mark.parametrize("kind", ["m", "M"])
+def test_td_add_sub_ndarray_subclass(kind):
+    # GH#66552 the overflow guard views the operand as i8 and rebuilds a plain
+    #  ndarray, which drops an ndarray subclass' own semantics; a MaskedArray
+    #  used to come back unmasked, exposing the payload under the mask
+    td = Timedelta(5, "ns")
+    other = np.ma.MaskedArray(
+        np.array([10, 20], dtype=f"{kind}8[ns]"), mask=[False, True]
+    )
+    m8 = td.to_timedelta64()
+
+    assert_masked_array_equal(td + other, m8 + other)
+    assert_masked_array_equal(other + td, other + m8)
+    assert_masked_array_equal(other - td, other - m8)
+    if kind == "m":
+        assert_masked_array_equal(td - other, m8 - other)
+
+
+@pytest.mark.parametrize("dtype", ["i8", "f8"])
+def test_td_mul_ndarray_subclass(dtype):
+    # GH#66552 the float overflow guard reduces with np.max(..., initial=0.0),
+    #  which dispatches to a subclass' own max() and raised there
+    td = Timedelta(4, "ns")
+    other = np.ma.MaskedArray(np.array([2, 3], dtype=dtype), mask=[False, True])
+    m8 = td.to_timedelta64()
+
+    assert_masked_array_equal(td * other, other * m8)
+    assert_masked_array_equal(other * td, other * m8)
+
+
+@pytest.mark.filterwarnings("ignore:__array_wrap__:DeprecationWarning")
+def test_td_div_ndarray_subclass():
+    # GH#66552 the overflow guard reduces with np.max(..., initial=, where=),
+    #  which dispatches to a subclass' own max() and raised there.
+    # NB: numpy's own MaskedArray.__array_wrap__ is broken on this path, with
+    #  an m8 divisor or not: it drops the mask and emits the DeprecationWarning
+    #  filtered above. So the expected values are not meaningful on their own;
+    #  they are taken from numpy so that what is pinned is only that Timedelta
+    #  does not diverge from timedelta64.
+    td = Timedelta(4, "ns")
+    other = np.ma.MaskedArray(np.array([2.0, 4.0]), mask=[False, True])
+    m8 = td.to_timedelta64()
+
+    assert_masked_array_equal(td / other, m8 / other)
+    assert_masked_array_equal(td // other, m8 // other)
+
+
+@pytest.mark.parametrize("kind", ["m", "M"])
+def test_td_add_sub_ndarray_unit_multiplier(kind):
+    # GH#66552 a dtype such as m8[10s] carries a multiplier that our
+    #  resolutions cannot express; it used to be silently read as m8[s]
+    td = Timedelta(1, "s")
+    other = np.array([1, 2], dtype=f"{kind}8[10s]")
+
+    expected = np.array([11, 21], dtype=f"{kind}8[s]")
+    tm.assert_numpy_array_equal(td + other, expected)
+    tm.assert_numpy_array_equal(other + td, expected)
+
+    expected = np.array([9, 19], dtype=f"{kind}8[s]")
+    tm.assert_numpy_array_equal(other - td, expected)
+
+    if kind == "m":
+        expected = np.array([-9, -19], dtype="m8[s]")
+        tm.assert_numpy_array_equal(td - other, expected)

@@ -74,6 +74,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
+    get_unit_count_from_dtype,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -969,9 +970,18 @@ cdef _addsub_timedelta64_array(
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic timedelta64 in the other operand's unit
         other_reso = reso
-    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
-        # year/month, which numpy itself refuses to add to a time unit, and
-        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+
+    if (
+        not cnp.PyArray_CheckExact(other)
+        or get_unit_count_from_dtype(other.dtype) != 1
+        or other_reso < NPY_FR_W
+        or other_reso > NPY_FR_ns
+    ):
+        # an ndarray subclass, whose semantics would be dropped by the i8 view
+        #  below (e.g. a MaskedArray's mask); a unit multiplier such as m8[10s],
+        #  which our resolutions cannot express; year/month, which numpy
+        #  itself refuses to add to a time unit; or sub-nanosecond units,
+        #  which we have no reso for. Leave all of them to numpy.
         m8 = td.to_timedelta64()
         if not subtract:
             return m8 + other
@@ -1033,8 +1043,16 @@ cdef _addsub_datetime64_array(
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic datetime64 in the other operand's unit
         other_reso = reso
-    elif other_reso > NPY_FR_ns:
-        # sub-nanosecond units, which we have no reso for; leave both to numpy
+
+    if (
+        not cnp.PyArray_CheckExact(other)
+        or get_unit_count_from_dtype(other.dtype) != 1
+        or other_reso > NPY_FR_ns
+    ):
+        # an ndarray subclass, whose semantics would be dropped by the i8 view
+        #  below (e.g. a MaskedArray's mask); a unit multiplier such as M8[10s],
+        #  which our resolutions cannot express; or sub-nanosecond units,
+        #  which we have no reso for. Leave all of them to numpy.
         m8 = td.to_timedelta64()
         return (other - m8) if subtract else (m8 + other)
 
@@ -1080,6 +1098,11 @@ cdef _mul_numeric_array(_Timedelta td, ndarray other):
         str abbrev = npy_unit_to_abbrev(td._creso)
         ndarray i8other, i8result
         bint has_nan
+
+    if not cnp.PyArray_CheckExact(other):
+        # an ndarray subclass; the reductions and casts below would drop its
+        #  semantics (e.g. a MaskedArray's mask), so leave it to numpy
+        return other * td.to_timedelta64()
 
     if other.dtype.kind == "f":
         # widen a float32 multiplier first: numpy would otherwise keep the
@@ -1129,6 +1152,11 @@ cdef _check_div_float_array(_Timedelta td, ndarray other):
     because numpy returns NaT for those, which TimedeltaIndex keeps.
     """
     if other.size == 0:
+        return
+
+    if not cnp.PyArray_CheckExact(other):
+        # an ndarray subclass, whose own reductions need not accept the
+        #  initial=/where= keywords used below; leave the division to numpy
         return
 
     with np.errstate(divide="ignore", invalid="ignore"):
