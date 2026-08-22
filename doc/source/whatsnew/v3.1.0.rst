@@ -387,6 +387,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.append` for table format when appending to an existing wide table with many ``data_columns`` (:issue:`25839`)
 - Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)
 - Performance improvement in :meth:`DataFrame.unstack` and :meth:`Series.unstack` when the :class:`MultiIndex` is already sorted and the unstacked level is the last level (:issue:`65107`)
+- Performance improvement in :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`DataFrame.clip`, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.clip`, and boolean-mask ``__setitem__`` with a boolean ``cond``; largest when ``cond`` does not share the object's index (:issue:`51547`)
 - Performance improvement in :meth:`DataFrame.xs` and :meth:`Series.xs` with a partial key on a :class:`MultiIndex` (:issue:`38650`)
 - Performance improvement in :meth:`DataFrame` reductions (e.g. :meth:`DataFrame.any`, :meth:`DataFrame.sum`, :meth:`DataFrame.idxmax`) with ``axis=1`` on extension array dtypes such as :class:`BooleanDtype`, nullable integer/float, and :class:`ArrowDtype` (:issue:`56903`)
 - Performance improvement in :meth:`DatetimeIndex.month_name` and :meth:`DatetimeIndex.day_name` when using the default string dtype by using PyArrow compute instead of going through an intermediate object array (:issue:`65104`)
