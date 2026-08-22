@@ -121,3 +121,13 @@ class TestDataFrameRenameAxis:
         expected_columns = columns.rename(None) if rename_columns else columns
         expected = DataFrame(data, expected_index, expected_columns)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("name", [(1, 2, 3), frozenset([1, 2, 3])])
+    def test_rename_axis_hashable_iterable_name_1d_index(self, name):
+        # GH#66656
+        df = DataFrame([1], index=Index([1], name=name))
+        result = df.rename_axis(name)
+        assert result.index.name == name
+
+        result_reset = df.reset_index().rename_axis(df.index.name)
+        assert result_reset.index.name == name
