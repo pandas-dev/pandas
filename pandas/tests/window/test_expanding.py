@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 
@@ -228,6 +230,16 @@ def test_expanding_skew_kurt_numerical_stability(method):
     s = s + 5000
     result = getattr(s.expanding(3), method)()
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("sp_func, exp_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+@pytest.mark.parametrize("bias", [True, False])
+def test_expanding_skew_kurt_bias(sp_func, exp_func, bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+    compare_func = partial(getattr(sp_stats, sp_func), bias=bias)
+    s = Series([1.0, 2.0, 2.0, 3.0, 10.0])
+    result = getattr(s.expanding(), exp_func)(bias=bias)
+    tm.assert_almost_equal(result.iloc[-1], compare_func(s))
 
 
 @pytest.mark.parametrize("window", [1, 3, 10, 20])

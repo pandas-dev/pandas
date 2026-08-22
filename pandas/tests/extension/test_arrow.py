@@ -5265,6 +5265,19 @@ def test_reduction_axis_valid(method, axis):
     assert result == expected or (pd.isna(result) and pd.isna(expected))
 
 
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+def test_reduce_pyarrow_biased_kwarg_not_overridden(name, sp_func):
+    pa = pytest.importorskip("pyarrow")
+    if not hasattr(pa.compute, "skew"):
+        pytest.skip("pyarrow version does not support skew/kurtosis")
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    arr = pd.array([1.0, 2.0, 2.0, 3.0, 10.0], dtype="float64[pyarrow]")
+    result = arr._reduce_pyarrow(name, skipna=True, biased=True)
+    expected = getattr(sp_stats, sp_func)([1.0, 2.0, 2.0, 3.0, 10.0], bias=True)
+    tm.assert_almost_equal(result.as_py(), expected)
+
+
 @pytest.mark.parametrize(
     "method",
     ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],

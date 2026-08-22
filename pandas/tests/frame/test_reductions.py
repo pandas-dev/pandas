@@ -3026,6 +3026,45 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("bias", [True, False])
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+def test_axis1_extension_array_bias(name, sp_func, bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 2], dtype="Int64"),
+            "b": pd.array([5, 1, 9], dtype="Int64"),
+            "c": pd.array([3, 8, 4], dtype="Int64"),
+            "d": pd.array([7, 2, 5], dtype="Int64"),
+        }
+    )
+    result = getattr(df, name)(axis=1, bias=bias)
+    expected = Series(
+        [getattr(sp_stats, sp_func)(df.iloc[i], bias=bias) for i in range(len(df))],
+        dtype="Float64",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+def test_axis1_extension_array_bias_skipna(name, sp_func):
+    sp_stats = pytest.importorskip("scipy.stats")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, pd.NA, 3], dtype="Int64"),
+            "b": pd.array([5, 1, 9, 2], dtype="Int64"),
+            "c": pd.array([3, 8, 4, 6], dtype="Int64"),
+            "d": pd.array([7, 2, 5, 1], dtype="Int64"),
+            "e": pd.array([2, 4, 6, 3], dtype="Int64"),
+        }
+    )
+    result_skipna = getattr(df, name)(axis=1, bias=True, skipna=True)
+    result_no_skipna = getattr(df, name)(axis=1, bias=True, skipna=False)
+    expected = getattr(sp_stats, sp_func)([9.0, 4.0, 5.0, 6.0], bias=True)
+    tm.assert_almost_equal(result_skipna.iloc[2], expected)
+    assert isna(result_no_skipna.iloc[2])
+
+
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(

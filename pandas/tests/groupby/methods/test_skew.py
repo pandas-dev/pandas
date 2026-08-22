@@ -44,3 +44,33 @@ def test_skew_kwargs_deprecated(klass):
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         with pytest.raises(TypeError, match="got an unexpected keyword argument"):
             gb.skew(foo=1)
+
+
+@pytest.mark.parametrize("bias", [True, False])
+def test_groupby_skew_bias(bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    df = pd.DataFrame({"g": ["a", "a", "a", "a", "a"], "v": [1.0, 2.0, 2.0, 3.0, 10.0]})
+    result = df.groupby("g")["v"].skew(bias=bias)
+    expected = sp_stats.skew(df["v"], bias=bias)
+    tm.assert_almost_equal(result.iloc[0], expected)
+
+
+def test_groupby_skew_bias_mixed_group_sizes():
+    # GH#54556: a group below the minimum observation count must return
+    # NaN while a larger group in the same call computes a real value.
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    df = pd.DataFrame(
+        {
+            "g": ["small", "small", "big", "big", "big", "big", "big"],
+            "v": [1.0, 2.0, 1.0, 2.0, 2.0, 3.0, 10.0],
+        }
+    )
+    result = df.groupby("g")["v"].skew(bias=True)
+    expected = pd.Series(
+        [sp_stats.skew([1.0, 2.0, 2.0, 3.0, 10.0], bias=True), np.nan],
+        index=pd.Index(["big", "small"], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)

@@ -1499,13 +1499,14 @@ def nanskew(
     axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
+    bias: bool = False,
 ) -> np.ndarray | float:
     """
-    Compute the sample skewness.
+    Compute the skewness, optionally corrected for statistical bias.
 
-    The statistic computed here is the adjusted Fisher-Pearson standardized
-    moment coefficient G1. The algorithm computes this coefficient directly
-    from the second and third central moment.
+    By default, the result applies a small correction for bias when
+    estimating from a sample. Set ``bias=True`` to skip this correction
+    and return the raw (uncorrected) value instead
 
     Parameters
     ----------
@@ -1514,6 +1515,8 @@ def nanskew(
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
+    bias : bool, default False
+        If False, the calculations are corrected for statistical bias.
 
     Returns
     -------
@@ -1527,6 +1530,8 @@ def nanskew(
     >>> s = pd.Series([1, np.nan, 1, 2])
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
+    >>> round(nanops.nanskew(s.values, bias=True), 6)
+    np.float64(0.707107)
     """
     dtype = values.dtype
     values = ensure_float64(values)
@@ -1535,11 +1540,14 @@ def nanskew(
     if axis is None or (values.ndim == 1 and axis == 0):
         order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_skew(
-            values.ravel(order), skipna, mask.ravel(order) if mask is not None else None
+            values.ravel(order),
+            skipna,
+            mask.ravel(order) if mask is not None else None,
+            bias,
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
-        result = libalgos.axis_skew(values, axis, skipna, mask)
+        result = libalgos.axis_skew(values, axis, skipna, mask, bias)
     else:
         raise ValueError("axis must be 0, 1 or None")
 
@@ -1557,13 +1565,14 @@ def nankurt(
     axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
+    bias: bool = False,
 ) -> np.ndarray | float:
     """
-    Compute the sample excess kurtosis
+    Compute the excess kurtosis, optionally corrected for statistical bias.
 
-    The statistic computed here is the adjusted Fisher-Pearson standardized
-    moment coefficient G2, computed directly from the second and fourth
-    central moment.
+    By default, the result applies a small correction for bias when
+    estimating from a sample. Set ``bias=True`` to skip this correction
+    and return the raw (uncorrected) value instead.
 
     Parameters
     ----------
@@ -1572,6 +1581,8 @@ def nankurt(
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
+    bias : bool, default False
+        If False, the calculations are corrected for statistical bias.
 
     Returns
     -------
@@ -1585,6 +1596,8 @@ def nankurt(
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
+    >>> round(nanops.nankurt(s.values, bias=True), 6)
+    np.float64(-1.371901)
     """
     dtype = values.dtype
     values = ensure_float64(values)
@@ -1593,11 +1606,14 @@ def nankurt(
     if axis is None or (values.ndim == 1 and axis == 0):
         order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
         result_float = libalgos.scalar_kurt(
-            values.ravel(order), skipna, mask.ravel(order) if mask is not None else None
+            values.ravel(order),
+            skipna,
+            mask.ravel(order) if mask is not None else None,
+            bias,
         )
         result = np.float64(result_float)
     elif axis in {0, 1}:
-        result = libalgos.axis_kurt(values, axis, skipna, mask)
+        result = libalgos.axis_kurt(values, axis, skipna, mask, bias)
     else:
         raise ValueError("axis must be 0, 1 or None")
 
