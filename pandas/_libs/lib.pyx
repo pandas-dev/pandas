@@ -2249,6 +2249,62 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def first_non_numeric(ndarray values):
+    """
+    Return the first element of an object-dtype array that numpy would convert
+    to a number even though it is not one, or None if there is no such element.
+
+    ``np.ndarray.astype(np.float64)`` happily turns ``"1"`` into ``1.0`` and
+    ``np.datetime64("2020-01-01")`` into ``18262.0``. Neither is ever what a
+    numeric reduction was asked for, so nanops rejects these up front rather
+    than silently computing a statistic of the wrong thing.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+
+    Returns
+    -------
+    object or None
+        The offending element, for use in the error message.
+
+    Examples
+    --------
+    >>> arr = np.array([1.0, "2", 3.0], dtype=object)
+    >>> first_non_numeric(arr)
+    '2'
+    >>> first_non_numeric(np.array([1.0, 2.0], dtype=object)) is None
+    True
+    """
+    cdef:
+        Py_ssize_t _i, n = cnp.PyArray_SIZE(values)
+        flatiter it = PyArray_IterNew(values)
+        object val
+        type val_type, prev_type = None
+
+    for _i in range(n):
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
+
+        val_type = type(val)
+        if val_type is prev_type:
+            # object arrays are near-always homogeneous, so checking each
+            # distinct type once keeps this a pointer comparison per element
+            continue
+        prev_type = val_type
+
+        if (
+            issubclass(val_type, (str, bytes))
+            or cnp.is_datetime64_object(val)
+            or cnp.is_timedelta64_object(val)
+        ):
+            return val
+
+    return None
+
+
 @cython.internal
 cdef class BytesValidator(Validator):
     cdef bint is_value_typed(self, object value) except -1:
