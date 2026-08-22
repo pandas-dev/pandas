@@ -1103,6 +1103,101 @@ class TestArrowArray(base.ExtensionTests):
         else:
             super().test_json_roundtrip(data)
 
+    def test_plot_on_x_axis(self, plot_data):
+        # GH 64535
+        self.skip_if_no_matplotlib()
+        # Setup expected exception and message for expected failures
+        err_cls = None
+        err_msg = ""
+
+        # Set expected values for certain dtypes
+        pa_dtype = plot_data["Data"].dtype.pyarrow_dtype
+
+        # Certain dtypes fail with NA values
+        if plot_data["Data"].isna().any():
+            if (
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or pa.types.is_time(pa_dtype)
+            ):
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                )
+            elif (
+                pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
+            ) or pa.types.is_decimal(pa_dtype):
+                from matplotlib.units import ConversionError
+
+                err_cls = ConversionError
+                err_msg = re.escape("Failed to convert value(s) to axis units: array(")
+
+        # Call test, errors should only be raised for unsupported dtypes set above
+        if err_cls:
+            with pytest.raises(err_cls, match=err_msg):
+                super().test_plot_on_x_axis(plot_data)
+        else:
+            super().test_plot_on_x_axis(plot_data)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        self.skip_if_no_matplotlib()
+        # Setup expected exception and message for expected failures
+        err_cls = None
+        err_msg = ""
+        wrn_cls = None
+        wrn_msg = ""
+
+        # Set expected values for certain dtypes
+        pa_dtype = plot_data["Data"].dtype.pyarrow_dtype
+
+        # str and binary are supported by matplotlib, but not pandas at the moment
+        if pa.types.is_string(pa_dtype):
+            err_cls = TypeError
+            err_msg = "no numeric data to plot"
+        elif pa.types.is_binary(pa_dtype):
+            err_cls = TypeError
+            err_msg = "no numeric data to plot"
+
+        # Certain dtypes fail with NA values
+        if plot_data["Data"].isna().any():
+            if pa.types.is_time(pa_dtype):
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                )
+                wrn_cls = UserWarning
+                wrn_msg = "Warning: converting a masked element to nan."
+            elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+                from matplotlib.units import ConversionError
+
+                err_cls = ConversionError
+                err_msg = re.escape(
+                    "Failed to convert value(s) to axis units: masked_array(data="
+                )
+            elif pa.types.is_duration(pa_dtype):
+                err_cls = AssertionError
+                err_msg = "numpy array are different"
+            elif pa.types.is_boolean(pa_dtype):
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                )
+
+        # Call test, errors and warnings should only be raised for unsupported dtypes
+        # set above
+        if err_cls and wrn_cls:
+            with tm.assert_produces_warning(
+                wrn_cls, check_stacklevel=False, match=wrn_msg
+            ):
+                with pytest.raises(err_cls, match=err_msg):
+                    super().test_plot_on_y_axis(plot_data)
+        elif err_cls:
+            with pytest.raises(err_cls, match=err_msg):
+                super().test_plot_on_y_axis(plot_data)
+        else:
+            super().test_plot_on_y_axis(plot_data)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""

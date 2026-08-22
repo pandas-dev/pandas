@@ -14,6 +14,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 
+import re
+
 import numpy as np
 import pytest
 
@@ -349,6 +351,32 @@ class TestMaskedArrays(base.ExtensionTests):
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+    def test_plot_on_x_axis(self, plot_data):
+        # All non boolean dtypes cannot be plotted on x-axis with missing values
+        if plot_data["Data"].isna().any() and plot_data["Data"].dtype.kind != "b":
+            with pytest.raises(
+                TypeError,
+                match=re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                ),
+            ):
+                super().test_plot_on_x_axis(plot_data)
+        else:
+            super().test_plot_on_x_axis(plot_data)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # Only boolean dtype cannot be plotted on y-axis with missing values
+        if plot_data["Data"].isna().any() and plot_data["Data"].dtype.kind == "b":
+            with pytest.raises(
+                TypeError,
+                match=re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                ),
+            ):
+                super().test_plot_on_y_axis(plot_data)
+        else:
+            super().test_plot_on_y_axis(plot_data)
 
 
 @pytest.mark.parametrize(
