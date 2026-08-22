@@ -1034,20 +1034,28 @@ def process_class_docstrings(app, what, name, obj, options, lines) -> None:
         joined = "\n".join(lines)
 
         templates = [
-            """.. rubric:: Attributes
-
-.. autosummary::
-   :toctree:
-
-   None
-""",
-            """.. rubric:: Methods
-
-.. autosummary::
-   :toctree:
-
-   None
-""",
+            "\n".join(  # noqa: FLY002
+                [
+                    ".. rubric:: Attributes",
+                    "",
+                    "",
+                    "",
+                    "========  ==========",
+                    "**None**    ",
+                    "========  ==========",
+                ]
+            ),
+            "\n".join(  # noqa: FLY002
+                [
+                    ".. rubric:: Methods",
+                    "",
+                    "",
+                    "",
+                    "========  ==========",
+                    "**None**    ",
+                    "========  ==========",
+                ]
+            ),
         ]
 
         for template in templates:
