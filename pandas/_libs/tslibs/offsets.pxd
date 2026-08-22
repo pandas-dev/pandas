@@ -12,5 +12,5 @@ cdef class DateOffset:
         dict _cache
 
     # Needed for the relativedelta keywords passed to DateOffset itself,
-    #  which are set with object.__setattr__ in __init__.
+    #  which __init__ writes straight into __dict__.
     cdef dict __dict__

@@ -587,11 +587,13 @@ cdef class DateOffset:
         self._cache = {}
 
         off, use_rd = _determine_offset(kwds)
-        object.__setattr__(self, "_offset", off)
-        object.__setattr__(self, "_use_relativedelta", use_rd)
+        # Write straight into __dict__: CPython can reject object.__setattr__
+        #  on an instance of a C type that defines its own __setattr__, as we
+        #  do below to keep offsets immutable.
+        self.__dict__["_offset"] = off
+        self.__dict__["_use_relativedelta"] = use_rd
         for key in kwds:
-            val = kwds[key]
-            object.__setattr__(self, key, val)
+            self.__dict__[key] = kwds[key]
 
     def __getstate__(self):
         """
