@@ -184,6 +184,10 @@ def _is_type(t):
 _is_list = _is_type(list)
 _is_str = _is_type(str)
 
+# symbols for the membership ops we synthesize when rewriting ==/!= into in/not
+# in (see BaseExprVisitor._rewrite_membership_op)
+_cmp_op_to_sym = {ast.In: "in", ast.NotIn: "not in"}
+
 
 # partition all AST nodes
 _all_nodes = frozenset(
@@ -433,6 +437,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         op_instance = node.op
         op_type = type(op_instance)
 
+        # whether we internally rewrote ==/!= into an in/not in membership op
+        rewritten = False
+
         # must be two terms and the comparison operator must be ==/!=/in/not in
         if is_term(left) and is_term(right) and op_type in self.rewrite_map:
             left_list, right_list = map(_is_list, (left, right))
@@ -440,7 +447,12 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             # if there are any strings or lists in the expression
             if left_list or right_list or left_str or right_str:
-                op_instance = self.rewrite_map[op_type]()
+                new_op_type = self.rewrite_map[op_type]
+                # only ==/!= are rewritten here; an explicit in/not in keeps its
+                # original op_type and is still routed through ``self.visit`` so
+                # that parsers which disallow those nodes reject them (GH#57812)
+                rewritten = new_op_type is not op_type
+                op_instance = new_op_type()
 
             # pop the string variable out of locals and replace it with a list
             # of one string, kind of a hack
@@ -452,7 +464,14 @@ class BaseExprVisitor(ast.NodeVisitor):
                 name = self.env.add_tmp([left.value])
                 left = self.term_type(name, self.env)
 
-        op = self.visit(op_instance)
+        if rewritten:
+            # The membership op we synthesized from ==/!= may be disallowed by
+            # this parser (e.g. the python parser rejects In/NotIn). Build the
+            # BinOp directly instead of dispatching through the (possibly
+            # disallowed) ``visit_*`` handler.
+            op = partial(BinOp, _cmp_op_to_sym[type(op_instance)])
+        else:
+            op = self.visit(op_instance)
         return op, op_instance, left, right
 
     def _maybe_transform_eq_ne(self, node, left=None, right=None):
