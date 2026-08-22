@@ -496,6 +496,21 @@ def get_finest_unit(left: str, right: str) -> str:
     return right
 
 
+def _pa_buffer_addresses(pa_data) -> set[int]:
+    """
+    Addresses of the non-empty buffers backing a pyarrow ChunkedArray.
+
+    Zero-length buffers are excluded because distinct empty arrays can be
+    handed out the same address, which would look like sharing.
+    """
+    return {
+        buf.address
+        for chunk in pa_data.iterchunks()
+        for buf in chunk.buffers()
+        if buf is not None and buf.size > 0
+    }
+
+
 def shares_memory(left: Any, right: Any) -> bool:
     """
     Pandas-compat for np.shares_memory.
@@ -509,7 +524,7 @@ def shares_memory(left: Any, right: Any) -> bool:
     if isinstance(left, RangeIndex):
         return False
     if isinstance(left, MultiIndex):
-        return shares_memory(left._codes, right)
+        return any(shares_memory(codes, right) for codes in left._codes)
     if isinstance(left, (Index, Series)):
         if isinstance(right, (Index, Series)):
             return shares_memory(left._values, right._values)
@@ -525,22 +540,22 @@ def shares_memory(left: Any, right: Any) -> bool:
     if isinstance(left, ArrowExtensionArray):
         if isinstance(right, ArrowExtensionArray):
             # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-            left_pa_data = left._pa_array
-            right_pa_data = right._pa_array
-            left_buf1 = left_pa_data.chunk(0).buffers()[1]
-            right_buf1 = right_pa_data.chunk(0).buffers()[1]
-            return left_buf1.address == right_buf1.address
+            left_addrs = _pa_buffer_addresses(left._pa_array)
+            right_addrs = _pa_buffer_addresses(right._pa_array)
+            return not left_addrs.isdisjoint(right_addrs)
         else:
             # if we have one ArrowExtensionArray and one other array, assume
             # they can only share memory if they share the same numpy buffer
             return np.shares_memory(left, right)
 
-    if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
+    if isinstance(left, BaseMaskedArray):
         # By convention, we'll say these share memory if they share *either*
         #  the _data or the _mask
-        return np.shares_memory(left._data, right._data) or np.shares_memory(
-            left._mask, right._mask
-        )
+        if isinstance(right, BaseMaskedArray):
+            return shares_memory(left._data, right._data) or shares_memory(
+                left._mask, right._mask
+            )
+        return shares_memory(left._data, right) or shares_memory(left._mask, right)
 
     if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
         arr = left._mgr.blocks[0].values
