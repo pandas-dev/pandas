@@ -28,6 +28,7 @@ import operator
 import pickle
 import re
 import sys
+from types import SimpleNamespace
 import unicodedata
 
 import numpy as np
@@ -5276,3 +5277,156 @@ def test_reduction_axis_out_of_bounds(method, axis):
     msg = "`axis` must be fewer than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["int64[pyarrow]", "uint32[pyarrow]", "float64[pyarrow]", "float32[pyarrow]"],
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        [],
+        [1],
+        [1, 2, 3],
+        [1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 2, 3],
+        [1, 2, 2, 3],
+        [1, 2, 3, 3],
+        [0, 0, 1, 1, 2, 2],
+        [0, 1, 1, 1, 1, 1, 2],
+    ],
+    ids=[
+        "empty",
+        "single",
+        "all_unique",
+        "one_dup",
+        "all_same",
+        "dup_first",
+        "dup_middle",
+        "dup_last",
+        "paired_runs",
+        "long_run",
+    ],
+)
+def test_unique_by_run_ends_matches_unique(values, dtype):
+    # GH#66498
+    arr = pd.array(values, dtype=dtype)
+
+    result = arr._unique_by_run_ends()
+
+    assert result is not None
+    tm.assert_extension_array_equal(result, arr.unique())
+
+
+def test_unique_by_run_ends_run_across_chunk_seam():
+    # GH#66498
+    chunked = pa.chunked_array([[1.0, 2.0, 2.0], [2.0, 3.0]])
+    arr = ArrowExtensionArray(chunked)
+    # guard against the test silently no longer covering the seam
+    assert arr._pa_array.num_chunks == 2
+
+    result = arr._unique_by_run_ends()
+
+    assert result is not None
+    # without combining chunks first the run of 2.0 spans the seam and this
+    # is [1.0, 2.0, 2.0, 3.0]
+    assert result.tolist() == [1.0, 2.0, 3.0]
+
+
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+def test_unique_by_run_ends_signed_zero_declines(dtype):
+    # GH#66498 -0.0 and 0.0 are equal to the ordering comparison but distinct
+    # to the encoder, so their runs are not strictly increasing
+    arr = pd.array([-0.0, 0.0, 1.0], dtype=dtype)
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[3, 1, 2], [1, 2, 1], [3, 2, 1], [2, 2, 1, 1, 2, 2]],
+    ids=["unsorted", "dup_not_adjacent", "descending", "repeating_runs"],
+)
+def test_unique_by_run_ends_declines_unsorted(values):
+    # GH#66498 equal values are not all adjacent, so the shortcut declines
+    # rather than returning a partly deduplicated result
+    arr = pd.array(values, dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[1, 1, 2, None, 2], [1, 2, 3, None, 3], [1, None, 2]],
+    ids=["dup_across_null", "dup_after_null", "no_dup"],
+)
+def test_unique_by_run_ends_declines_with_na(values):
+    # GH#66498 pc.all skips null comparisons, so without rejecting NA the
+    # first case returns [1, 2, NA, 2], keeping a duplicate
+    arr = pd.array(values, dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_without_comparison_kernel():
+    # GH#66498 some types encode but cannot be compared; the guard has to
+    # cover the comparison too or it raises instead of declining
+    arr = ArrowExtensionArray(
+        pa.chunked_array(
+            [pa.array([(1, 1, 1), (2, 2, 2)], type=pa.month_day_nano_interval())]
+        )
+    )
+    encoded = pa.compute.run_end_encode(arr._pa_array.combine_chunks()).values
+    with pytest.raises(pa.ArrowNotImplementedError):
+        pa.compute.less(encoded[:-1], encoded[1:])
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_without_kernel():
+    # GH#66498 dictionary has no run-end kernel, and arrives from
+    # read_parquet(dtype_backend="pyarrow") of a categorical column
+    dtype = pa.dictionary(pa.int32(), pa.string())
+    arr = ArrowExtensionArray(
+        pa.chunked_array([pa.array(["a", "a", "b", "c"], type=dtype)])
+    )
+    with pytest.raises(pa.ArrowNotImplementedError):
+        pa.compute.run_end_encode(arr._pa_array.combine_chunks())
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_when_run_ends_overflow(monkeypatch):
+    # GH#66498 run_end_encode raises ArrowInvalid, not ArrowNotImplementedError,
+    # when the array holds more elements than the run end type can count. Force
+    # it with a narrow run end type rather than allocating 2**31 values.
+    narrow = pa.compute.RunEndEncodeOptions(run_end_type=pa.int16())
+    encode = pa.compute.run_end_encode
+    monkeypatch.setattr(
+        pa.compute, "run_end_encode", lambda arr: encode(arr, options=narrow)
+    )
+    arr = ArrowExtensionArray(
+        pa.chunked_array([pa.array(np.arange(2**15 + 1), type=pa.int64())])
+    )
+    with pytest.raises(pa.ArrowInvalid, match="run end type"):
+        pa.compute.run_end_encode(arr._pa_array.combine_chunks())
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_when_chunks_cannot_combine(monkeypatch):
+    # GH#66498 combining chunks raises ArrowInvalid once string data passes the
+    # 2 GiB a 32-bit offset can address, which is far too large to build here.
+    # That must decline rather than propagate.
+    arr = pd.array(["a", "a", "b"], dtype="string[pyarrow]")
+
+    def combine_chunks():
+        raise pa.ArrowInvalid("offset overflow while concatenating arrays")
+
+    monkeypatch.setattr(
+        arr, "_pa_array", SimpleNamespace(num_chunks=2, combine_chunks=combine_chunks)
+    )
+
+    assert arr._unique_by_run_ends() is None

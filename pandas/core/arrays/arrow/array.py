@@ -2299,6 +2299,48 @@ class ArrowExtensionArray(
         pa_result = pc.unique(self._pa_array)
         return self._from_pyarrow_array(pa_result)
 
+    def _unique_by_run_ends(self) -> Self | None:
+        """
+        Compute the unique values by collapsing runs of equal adjacent values.
+
+        Run-end encoding does this in a single pass instead of building a hash
+        table, so it is much faster than :meth:`unique`, but it only finds the
+        duplicates that are adjacent. Sorted input is what makes them adjacent.
+
+        Returns None if the fast path cannot be used: the type has no run-end
+        or comparison kernel, the values do not fit in a single combined array
+        or in the run end type, or the runs cannot be shown to strictly
+        increase, which is what proves every duplicate was adjacent. Unsorted
+        input lands there, so does NA next to anything else, and so do -0.0 and
+        0.0, which are equal to the comparison that orders the values but
+        distinct to the encoder. Callers fall back to :meth:`unique`.
+
+        Returns
+        -------
+        ArrowExtensionArray or None
+        """
+        pa_array = self._pa_array
+        try:
+            combined = (
+                pa_array.chunk(0)
+                if pa_array.num_chunks == 1
+                else pa_array.combine_chunks()
+            )
+            values = pc.run_end_encode(combined).values
+            if len(values) > 1 and (
+                # pc.all skips null comparisons, so a null run would hide
+                # duplicates on either side of it
+                values.null_count
+                or pc.all(pc.less(values[:-1], values[1:])).as_py() is not True
+            ):
+                return None
+        except (pa.ArrowNotImplementedError, pa.ArrowInvalid):
+            # no kernel for this type, or the values do not fit: combining the
+            # chunks can overflow a 32-bit offset, and run-end encoding can
+            # exceed what the run end type counts
+            return None
+        return self._from_pyarrow_array(values)
+
     def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of each unique value.
