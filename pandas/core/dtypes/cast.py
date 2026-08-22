@@ -445,7 +445,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
             #  overriding instead of returning object below.
             return IntervalDtype(np.float64, closed=dtype.closed)
         return _dtype_obj
-    elif dtype.kind == "b":
+    elif dtype.kind in "bS":
         return _dtype_obj
     elif dtype.kind in "iu":
         return np.dtype(np.float64)
