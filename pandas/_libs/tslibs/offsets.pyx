@@ -154,7 +154,7 @@ cdef _raise_out_of_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT reso, err):
 # Misc Helpers
 
 cdef bint is_offset_object(object obj):
-    return isinstance(obj, BaseOffset)
+    return isinstance(obj, DateOffset)
 
 
 cdef bint is_tick_object(object obj):
@@ -179,7 +179,7 @@ def apply_wraps(func):
         if other is NaT:
             return NaT
         elif (
-            isinstance(other, BaseOffset)
+            isinstance(other, DateOffset)
             or PyDelta_Check(other)
             or cnp.is_timedelta64_object(other)
         ):
@@ -411,54 +411,227 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-cdef class BaseOffset:
+cdef class DateOffset:
     """
-    Base class for all pandas date offsets.
+    Standard kind of date increment used for a date range.
 
-    Every offset in ``pandas.tseries.offsets`` is a subclass of ``BaseOffset``,
-    so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
-    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
+    ``DateOffset`` is also the base class of every offset in
+    ``pandas.tseries.offsets``, so ``isinstance(obj, DateOffset)`` is the way
+    to check whether an object is a pandas offset.  ``pd.offsets.BaseOffset``
+    is an alias for this class.
+
+    Works exactly like the keyword argument form of relativedelta.
+    Note that the positional argument form of relativedelta is not
+    supported. Use of the keyword n is discouraged-- you would be better
+    off specifying n in the keywords you use, but regardless it is
+    there for you. n is needed for DateOffset subclasses.
+
+    DateOffset works as follows.  Each offset specify a set of dates
+    that conform to the DateOffset.  For example, Bday defines this
+    set to be the set of dates that are weekdays (M-F).  To test if a
+    date is in the set of a DateOffset dateOffset we can use the
+    is_on_offset method: dateOffset.is_on_offset(date).
+
+    If a date is not on a valid date, the rollback and rollforward
+    methods can be used to roll the date to the nearest valid date
+    before/after the date.
+
+    DateOffsets can be created to move dates forward a given number of
+    valid dates.  For example, Bday(2) can be added to a date to move
+    it two business days forward.  If the date does not start on a
+    valid date, it is first rolled forward to the next valid date, and
+    that roll counts as the first of the n increments.  For example,
+    2014-08-31 is a Sunday, so ``Timestamp("2014-08-31") + BDay(1)``
+    only rolls forward to Monday 2014-09-01, and adding ``BDay(2)``
+    gives Tuesday 2014-09-02.  Equivalently, the date is first rolled
+    back to the previous valid date, then moved n valid dates forward.
+    Thus pseudo code is::
+
+        def __add__(date):
+          date = rollback(date) # does nothing if date is valid
+          return date + <n number of periods>
+
+    When a date offset is created for a negative number of periods,
+    the roll is symmetric: rolling back to the previous valid date
+    counts as the first decrement; equivalently, the date is first
+    rolled forward, then moved ``abs(n)`` valid dates backward.  The
+    pseudo code is::
+
+        def __add__(date):
+          date = rollforward(date) # does nothing if date is valid
+          return date + <n number of periods>
+
+    Zero presents a problem.  Should it roll forward or back?  We
+    arbitrarily have it rollforward:
+
+    date + BDay(0) == BDay.rollforward(date)
+
+    Since 0 is a bit weird, we suggest avoiding its use.  Because the
+    roll counts as an increment, ``date + BDay(0)`` and
+    ``date + BDay(1)`` give the same result when date is not a
+    business day.
+
+    Besides, adding a DateOffsets specified by the singular form of the date
+    component can be used to replace certain component of the timestamp.
 
     Attributes
     ----------
     n : int, default 1
-        Number of multiples of the frequency.
+        The number of time periods the offset represents.
+        If specified without a temporal pattern, defaults to n days.
     normalize : bool, default False
-        Whether the frequency can align with midnight.
+        Whether to round the result of a DateOffset addition down to the
+        previous midnight.
+    weekday : int {0, 1, ..., 6}, default 0
+
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday
+
+        Instead Weekday type from dateutil.relativedelta can be used.
+
+        - MO is Monday
+        - TU is Tuesday
+        - WE is Wednesday
+        - TH is Thursday
+        - FR is Friday
+        - SA is Saturday
+        - SU is Sunday.
+
+    **kwds
+        Temporal parameter that add to or replace the offset value.
+
+        Parameters that **add** to the offset (like Timedelta):
+
+        - years
+        - months
+        - weeks
+        - days
+        - hours
+        - minutes
+        - seconds
+        - milliseconds
+        - microseconds
+        - nanoseconds
+
+        Parameters that **replace** the offset value:
+
+        - year
+        - month
+        - day
+        - weekday
+        - hour
+        - minute
+        - second
+        - microsecond
+        - nanosecond.
 
     See Also
     --------
-    tseries.offsets.DateOffset : Offset backed by a ``dateutil.relativedelta``.
-    tseries.frequencies.to_offset : Convert a string or timedelta to an offset.
+    dateutil.relativedelta.relativedelta : The relativedelta type is designed
+        to be applied to an existing datetime and can replace specific components of
+        that datetime, or represents an interval of time.
+
+    Notes
+    -----
+    When added to a :class:`DatetimeIndex` or datetime :class:`Series`, a
+    ``DateOffset`` is applied to each entry independently. Calendar components
+    such as ``months`` and ``years`` do not represent a fixed duration, so
+    evenly spaced input dates are not guaranteed to remain evenly spaced: dates
+    that would fall on a nonexistent day are clamped to the end of the month.
+    For example, adding ``DateOffset(months=1)`` to both ``2018-01-30`` and
+    ``2018-01-31`` yields ``2018-02-28`` in each case.
 
     Examples
     --------
-    >>> pd.offsets.Hour(5).n
-    5
-    >>> pd.offsets.Hour(5).normalize
-    False
+    >>> from pandas.tseries.offsets import DateOffset
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=3)
+    Timestamp('2017-04-01 09:10:11')
 
-    >>> isinstance(pd.offsets.BDay(), pd.offsets.BaseOffset)
-    True
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=2)
+    Timestamp('2017-03-01 09:10:11')
+    >>> ts + DateOffset(day=31)
+    Timestamp('2017-01-31 09:10:11')
+
+    >>> ts + pd.DateOffset(hour=8)
+    Timestamp('2017-01-01 08:10:11')
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
 
     _day_opt = None
-    _attributes = tuple(["n", "normalize"])
+    _attributes = tuple(["n", "normalize"] + list(_relativedelta_kwds))
+    _adjust_dst = False
     _use_relativedelta = False
-    _adjust_dst = True
+    # Whether we get our _apply implementation from DateOffset, i.e. are
+    #  backed by a dateutil relativedelta (or timedelta) instead of by a
+    #  fixed calendar rule.  False for every subclass.
+    _is_relativedelta_offset = True
 
     # cdef readonly:
     #    int64_t n
     #    bint normalize
     #    dict _cache
 
-    def __init__(self, n=1, normalize=False):
-        n = self._validate_n(n)
-        self._n = n
+    def __init__(self, n=1, normalize=False, **kwds):
+        self._n = self._validate_n(n)
         self._normalize = normalize
         self._cache = {}
+
+        off, use_rd = _determine_offset(kwds)
+        # Write straight into __dict__: CPython can reject object.__setattr__
+        #  on an instance of a C type that defines its own __setattr__, as we
+        #  do below to keep offsets immutable.
+        self.__dict__["_offset"] = off
+        self.__dict__["_use_relativedelta"] = use_rd
+        for key in kwds:
+            self.__dict__[key] = kwds[key]
+
+    def __getstate__(self):
+        """
+        Return a picklable state
+        """
+        # Only DateOffset itself puts anything in __dict__; subclasses
+        #  store their attributes as cdef attributes.
+        state = self.__dict__.copy()
+        state["n"] = self._n
+        state["normalize"] = self.normalize
+        return state
+
+    def __setstate__(self, state):
+        """
+        Reconstruct an instance from a pickled state
+        """
+
+        if "offset" in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if "_offset" in state:  # pragma: no cover
+                raise AssertionError("Unexpected key `_offset`")
+            state["_offset"] = state.pop("offset")
+            state["kwds"]["offset"] = state["_offset"]
+
+        self._n = state.pop("n")
+        self._normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
+
+        self.__dict__.update(state)
+
+    def __reduce__(self):
+        # GH#45790: SingleConstructorOffset.__reduce__ can't be used here
+        #  because DateOffset has kwargs not captured by _attributes.
+        #  We need our own __reduce__ (rather than relying on __getstate__/
+        #  __setstate__) so that pickle protocol 0 also works — pytables
+        #  hardcodes protocol 0 when storing object attrs, which routes
+        #  through copyreg._reduce_ex and breaks for DateOffset.
+        return type(self), (), self.__getstate__()
 
     @property
     def n(self):
@@ -623,7 +796,7 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self._n, normalize=self._normalize,
                               **self.kwds)
-        elif isinstance(other, BaseOffset):
+        elif isinstance(other, DateOffset):
             # Otherwise raises RecurrsionError due to __rmul__
             raise TypeError(
                 f"Cannot multiply {type(self).__name__} with "
@@ -840,17 +1013,6 @@ cdef class BaseOffset:
 
     # ------------------------------------------------------------------
 
-    def _apply(self, other):
-        raise NotImplementedError("implemented by subclasses")
-
-    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
-        # NB: _apply_array does not handle respecting `self.normalize`, the
-        #  caller (DatetimeArray) handles that in post-processing.
-        raise NotImplementedError(
-            f"DateOffset subclass {type(self).__name__} "
-            "does not have a vectorized implementation"
-        )
-
     @property
     def _supports_daily_offset_mask(self) -> bool:
         """
@@ -962,56 +1124,8 @@ cdef class BaseOffset:
         pydate_to_dtstruct(other, &dts)
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
-    def is_on_offset(self, dt: datetime) -> bool:
-        """
-        Return boolean whether a timestamp intersects with this frequency.
-
-        This method determines if a given timestamp aligns with the start
-        of a custom business month, as defined by this offset. It accounts
-        for custom rules, such as skipping weekends or other non-business days,
-        and checks whether the provided datetime falls on a valid business day
-        that marks the beginning of the custom business month.
-
-        Parameters
-        ----------
-        dt : datetime.datetime
-            Timestamp to check intersections with frequency.
-
-        See Also
-        --------
-        tseries.offsets.CustomBusinessMonthBegin : Represents the start of a custom
-            business month.
-        tseries.offsets.CustomBusinessMonthEnd : Represents the end of a custom
-            business month.
-
-        Examples
-        --------
-        >>> ts = pd.Timestamp(2022, 1, 1)
-        >>> freq = pd.offsets.Day(1)
-        >>> freq.is_on_offset(ts)
-        True
-
-        >>> ts = pd.Timestamp(2022, 8, 6)
-        >>> ts.day_name()
-        'Saturday'
-        >>> freq = pd.offsets.BusinessDay(1)
-        >>> freq.is_on_offset(ts)
-        False
-        """
-        if self._normalize and not _is_normalized(dt):
-            return False
-
-        # Default (slow) method for determining if some date is a member of the
-        # date range generated by this offset. Subclasses may have this
-        # re-implemented in a nicer way.
-        a = dt
-        b = (dt + self) - self
-        return a == b
-
     # ------------------------------------------------------------------
 
-    # Staticmethod so we can call from Tick.__init__, will be unnecessary
-    #  once BaseOffset is a cdef class and is inherited by Tick
     @staticmethod
     def _validate_n(n) -> int:
         """
@@ -1039,31 +1153,6 @@ cdef class BaseOffset:
         if n != nint:
             raise ValueError(f"`n` argument must be an integer, got {n}")
         return nint
-
-    def __setstate__(self, state):
-        """
-        Reconstruct an instance from a pickled state
-        """
-        self._n = state.pop("n")
-        self._normalize = state.pop("normalize")
-        self._cache = state.pop("_cache", {})
-        # At this point we expect state to be empty
-
-    def __getstate__(self):
-        """
-        Return a picklable state
-        """
-        state = {}
-        state["n"] = self._n
-        state["normalize"] = self.normalize
-
-        # we don't want to actually pickle the calendar object
-        # as its an np.busyday; we recreate on deserialization
-        state.pop("calendar", None)
-        if "kwds" in state:
-            state["kwds"].pop("calendar", None)
-
-        return state
 
     @property
     def nanos(self):
@@ -1248,8 +1337,297 @@ cdef class BaseOffset:
         """
         return ts._get_start_end_field("is_year_end", self)
 
+    @apply_wraps
+    def _apply(self, other: datetime) -> datetime:
+        other_nanos = 0
+        if self._use_relativedelta:
+            if isinstance(other, _Timestamp):
+                other_nanos = other.nanosecond
+                other = other.to_pydatetime(warn=False)
 
-cdef class SingleConstructorOffset(BaseOffset):
+        # GH#61870 Do not shortcut the empty-kwds case: a bare DateOffset(n)
+        #  carries its n-days default in self._offset, and adding that outside
+        #  the tz round-trip below left pytz results on the stale UTC offset.
+        tzinfo = getattr(other, "tzinfo", None)
+        if tzinfo is not None and self._use_relativedelta:
+            # perform calculation in UTC
+            other = other.replace(tzinfo=None)
+
+        other = other + (self._offset * self._n)
+
+        if hasattr(self, "nanoseconds"):
+            other = self._n * Timedelta(nanoseconds=self.nanoseconds) + other
+        if other_nanos != 0:
+            other = Timedelta(nanoseconds=other_nanos) + other
+
+        if tzinfo is not None and self._use_relativedelta:
+            # bring tz back from UTC calculation
+            other = localize_pydatetime(other, tzinfo)
+
+        result = Timestamp(other)
+        # GH#64806 The computation above uses Python timedelta /
+        # relativedelta, which floor sub-second components to microseconds
+        # and lose the offset's declared resolution (e.g. milliseconds).
+        # Coerce to that resolution when lossless so the scalar result
+        # matches the vectorized DatetimeIndex/Series path; apply_wraps
+        # then narrows back to ``other``'s unit where that is also lossless.
+        try:
+            offset_unit = self._pd_timedelta.unit
+        except NotImplementedError:
+            return result
+        result2 = result.as_unit(offset_unit)
+        if result == result2:
+            result = result2
+        return result
+
+    @cache_readonly
+    def _pd_timedelta(self) -> Timedelta:
+        # components of _offset that can be cast to pd.Timedelta
+
+        kwds = self.kwds
+        relativedelta_fast = {
+            "years",
+            "months",
+            "weeks",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "microseconds",
+            "milliseconds",
+        }
+        # relativedelta/_offset path only valid for base DateOffset
+        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+            td_args = {
+                "days",
+                "hours",
+                "minutes",
+                "seconds",
+                "microseconds",
+                "milliseconds"
+            }
+            td_kwds = {
+                key: val
+                for key, val in kwds.items()
+                if key in td_args
+            }
+            if "weeks" in kwds:
+                days = td_kwds.get("days", 0)
+                td_kwds["days"] = days + 7 * kwds["weeks"]
+
+            if td_kwds:
+                delta = Timedelta(**td_kwds)
+                if "microseconds" in kwds:
+                    delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
+                else:
+                    delta = delta.as_unit("s")
+            elif not kwds:
+                # GH#61870: bare DateOffset(n) with no keywords defaults to
+                # n days (matching the scalar path); without this branch it
+                # would incorrectly become a no-op on the vectorized path.
+                delta = Timedelta(days=1).as_unit("s")
+            else:
+                delta = Timedelta(0).as_unit("s")
+
+            return delta * self._n
+
+        elif not self._use_relativedelta and hasattr(self, "_offset"):
+            # timedelta
+            num_nano = getattr(self, "nanoseconds", 0)
+            if num_nano != 0:
+                rem_nano = Timedelta(nanoseconds=num_nano)
+                delta = Timedelta((self._offset + rem_nano) * self._n)
+            else:
+                delta = Timedelta(self._offset * self._n)
+                if "microseconds" in kwds:
+                    delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
+                else:
+                    delta = delta.as_unit("s")
+            return delta
+
+        else:
+            # relativedelta with other keywords
+            kwd = set(kwds) - relativedelta_fast
+            raise NotImplementedError(
+                "DateOffset with relativedelta "
+                f"keyword(s) {kwd} not able to be "
+                "applied vectorized"
+            )
+
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        reso = get_unit_from_dtype(dtarr.dtype)
+        dt64other = np.asarray(dtarr)
+
+        delta = self._pd_timedelta  # may raise NotImplementedError
+
+        kwds = self.kwds
+        months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self._n
+        if months and delta._value:
+            # GH#66549 apply both components in one pass, so that an
+            #  out-of-range month-shifted intermediate does not reject a
+            #  representable result the scalar path accepts
+            dt64other, delta = _match_reso(dt64other, delta)
+            shifted = _shift_months_and_add(
+                dt64other.view("i8"),
+                months,
+                delta._value,
+                get_unit_from_dtype(dt64other.dtype),
+            )
+            return shifted.view(dt64other.dtype)
+        if months:
+            shifted = shift_months(dt64other.view("i8"), months, reso=reso)
+            dt64other = shifted.view(dtarr.dtype)
+        return _add_timedelta_overflowsafe(dt64other, delta)
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For DateOffset, the check is straightforward: it returns True for any
+        timestamp, unless normalize is True, in which case it verifies that
+        the timestamp is at midnight (normalized to the start of the day).
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp intersects with this frequency.
+
+        See Also
+        --------
+        DateOffset.rollforward : Roll provided date forward to next offset.
+        DateOffset.rollback : Roll provided date backward to previous offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.DateOffset(months=2)
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 1, 12, 0, 0)
+        >>> freq = pd.DateOffset(months=2, normalize=True)
+        >>> freq.is_on_offset(ts)
+        False
+        """
+        if self._normalize and not _is_normalized(dt):
+            return False
+        return True
+
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
+
+
+set_module("pandas")(DateOffset)
+
+# DateOffset is the base class of every offset, so BaseOffset is just an
+#  alias for it.  It is retained because it has been the documented way to
+#  check for an offset since 1.5.
+BaseOffset = DateOffset
+
+
+cdef class SingleConstructorOffset(DateOffset):
+    _attributes = tuple(["n", "normalize"])
+    _adjust_dst = True
+    _use_relativedelta = False
+    _is_relativedelta_offset = False
+
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        self._n = n
+        self._normalize = normalize
+        self._cache = {}
+
+    def __setstate__(self, state):
+        """
+        Reconstruct an instance from a pickled state
+        """
+        self._n = state.pop("n")
+        self._normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
+        # At this point we expect state to be empty
+
+    def __getstate__(self):
+        """
+        Return a picklable state
+        """
+        state = {}
+        state["n"] = self._n
+        state["normalize"] = self.normalize
+
+        # we don't want to actually pickle the calendar object
+        # as its an np.busyday; we recreate on deserialization
+        state.pop("calendar", None)
+        if "kwds" in state:
+            state["kwds"].pop("calendar", None)
+
+        return state
+
+    def _apply(self, other):
+        raise NotImplementedError("implemented by subclasses")
+
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        # NB: _apply_array does not handle respecting `self.normalize`, the
+        #  caller (DatetimeArray) handles that in post-processing.
+        raise NotImplementedError(
+            f"DateOffset subclass {type(self).__name__} "
+            "does not have a vectorized implementation"
+        )
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp aligns with the start
+        of a custom business month, as defined by this offset. It accounts
+        for custom rules, such as skipping weekends or other non-business days,
+        and checks whether the provided datetime falls on a valid business day
+        that marks the beginning of the custom business month.
+
+        Parameters
+        ----------
+        dt : datetime.datetime
+            Timestamp to check intersections with frequency.
+
+        See Also
+        --------
+        tseries.offsets.CustomBusinessMonthBegin : Represents the start of a custom
+            business month.
+        tseries.offsets.CustomBusinessMonthEnd : Represents the end of a custom
+            business month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Day(1)
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> ts.day_name()
+        'Saturday'
+        >>> freq = pd.offsets.BusinessDay(1)
+        >>> freq.is_on_offset(ts)
+        False
+        """
+        if self._normalize and not _is_normalized(dt):
+            return False
+
+        # Default (slow) method for determining if some date is a member of the
+        # date range generated by this offset. Subclasses may have this
+        # re-implemented in a nicer way.
+        a = dt
+        b = (dt + self) - self
+        return a == b
+
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
@@ -1258,8 +1636,8 @@ cdef class SingleConstructorOffset(BaseOffset):
         return cls()
 
     def __reduce__(self):
-        # This __reduce__ implementation is for all BaseOffset subclasses
-        #  except for RelativeDeltaOffset
+        # This __reduce__ implementation is for all DateOffset subclasses,
+        #  i.e. every offset except DateOffset itself
         # np.busdaycalendar objects do not pickle nicely, but we can reconstruct
         #  from attributes that do get pickled.
         tup = tuple(
@@ -1404,7 +1782,7 @@ cdef class Tick(SingleConstructorOffset):
         """
         return True
 
-    # This is identical to BaseOffset.__hash__, but has to be redefined here
+    # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self) -> int:
         return hash(self._params)
@@ -1448,7 +1826,7 @@ cdef class Tick(SingleConstructorOffset):
                 return type(self)(int(n))
             new_self = self._next_higher_resolution()
             return new_self * other
-        return BaseOffset.__mul__(self, other)
+        return DateOffset.__mul__(self, other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -1551,7 +1929,7 @@ cdef class Day(SingleConstructorOffset):
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
     def __init__(self, n=1, normalize=False):
-        BaseOffset.__init__(self, n)
+        SingleConstructorOffset.__init__(self, n)
         if normalize:
             # GH#21427
             raise ValueError(
@@ -1967,437 +2345,6 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
     return i8result.view(dt64arr.dtype)
 
 
-cdef class RelativeDeltaOffset(BaseOffset):
-    """
-    DateOffset subclass backed by a dateutil relativedelta object.
-    """
-    _attributes = tuple(["n", "normalize"] + list(_relativedelta_kwds))
-    _adjust_dst = False
-
-    def __init__(self, n=1, normalize=False, **kwds):
-        BaseOffset.__init__(self, n, normalize)
-        off, use_rd = _determine_offset(kwds)
-        object.__setattr__(self, "_offset", off)
-        object.__setattr__(self, "_use_relativedelta", use_rd)
-        for key in kwds:
-            val = kwds[key]
-            object.__setattr__(self, key, val)
-
-    def __getstate__(self):
-        """
-        Return a picklable state
-        """
-        # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
-        #  class, so the only one with __dict__
-        state = self.__dict__.copy()
-        state["n"] = self._n
-        state["normalize"] = self.normalize
-        return state
-
-    def __setstate__(self, state):
-        """
-        Reconstruct an instance from a pickled state
-        """
-
-        if "offset" in state:
-            # Older (<0.22.0) versions have offset attribute instead of _offset
-            if "_offset" in state:  # pragma: no cover
-                raise AssertionError("Unexpected key `_offset`")
-            state["_offset"] = state.pop("offset")
-            state["kwds"]["offset"] = state["_offset"]
-
-        self._n = state.pop("n")
-        self._normalize = state.pop("normalize")
-        self._cache = state.pop("_cache", {})
-
-        self.__dict__.update(state)
-
-    def __reduce__(self):
-        # GH#45790: BaseOffset.__reduce__ can't be used here because
-        #  RelativeDeltaOffset has kwargs not captured by _attributes.
-        #  We need our own __reduce__ (rather than relying on __getstate__/
-        #  __setstate__) so that pickle protocol 0 also works — pytables
-        #  hardcodes protocol 0 when storing object attrs, which routes
-        #  through copyreg._reduce_ex and breaks for RelativeDeltaOffset.
-        return type(self), (), self.__getstate__()
-
-    @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
-        other_nanos = 0
-        if self._use_relativedelta:
-            if isinstance(other, _Timestamp):
-                other_nanos = other.nanosecond
-                other = other.to_pydatetime(warn=False)
-
-        # GH#61870 Do not shortcut the empty-kwds case: a bare DateOffset(n)
-        #  carries its n-days default in self._offset, and adding that outside
-        #  the tz round-trip below left pytz results on the stale UTC offset.
-        tzinfo = getattr(other, "tzinfo", None)
-        if tzinfo is not None and self._use_relativedelta:
-            # perform calculation in UTC
-            other = other.replace(tzinfo=None)
-
-        other = other + (self._offset * self._n)
-
-        if hasattr(self, "nanoseconds"):
-            other = self._n * Timedelta(nanoseconds=self.nanoseconds) + other
-        if other_nanos != 0:
-            other = Timedelta(nanoseconds=other_nanos) + other
-
-        if tzinfo is not None and self._use_relativedelta:
-            # bring tz back from UTC calculation
-            other = localize_pydatetime(other, tzinfo)
-
-        result = Timestamp(other)
-        # GH#64806 The computation above uses Python timedelta /
-        # relativedelta, which floor sub-second components to microseconds
-        # and lose the offset's declared resolution (e.g. milliseconds).
-        # Coerce to that resolution when lossless so the scalar result
-        # matches the vectorized DatetimeIndex/Series path; apply_wraps
-        # then narrows back to ``other``'s unit where that is also lossless.
-        try:
-            offset_unit = self._pd_timedelta.unit
-        except NotImplementedError:
-            return result
-        result2 = result.as_unit(offset_unit)
-        if result == result2:
-            result = result2
-        return result
-
-    @cache_readonly
-    def _pd_timedelta(self) -> Timedelta:
-        # components of _offset that can be cast to pd.Timedelta
-
-        kwds = self.kwds
-        relativedelta_fast = {
-            "years",
-            "months",
-            "weeks",
-            "days",
-            "hours",
-            "minutes",
-            "seconds",
-            "microseconds",
-            "milliseconds",
-        }
-        # relativedelta/_offset path only valid for base DateOffset
-        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
-            td_args = {
-                "days",
-                "hours",
-                "minutes",
-                "seconds",
-                "microseconds",
-                "milliseconds"
-            }
-            td_kwds = {
-                key: val
-                for key, val in kwds.items()
-                if key in td_args
-            }
-            if "weeks" in kwds:
-                days = td_kwds.get("days", 0)
-                td_kwds["days"] = days + 7 * kwds["weeks"]
-
-            if td_kwds:
-                delta = Timedelta(**td_kwds)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
-            elif not kwds:
-                # GH#61870: bare DateOffset(n) with no keywords defaults to
-                # n days (matching the scalar path); without this branch it
-                # would incorrectly become a no-op on the vectorized path.
-                delta = Timedelta(days=1).as_unit("s")
-            else:
-                delta = Timedelta(0).as_unit("s")
-
-            return delta * self._n
-
-        elif not self._use_relativedelta and hasattr(self, "_offset"):
-            # timedelta
-            num_nano = getattr(self, "nanoseconds", 0)
-            if num_nano != 0:
-                rem_nano = Timedelta(nanoseconds=num_nano)
-                delta = Timedelta((self._offset + rem_nano) * self._n)
-            else:
-                delta = Timedelta(self._offset * self._n)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
-            return delta
-
-        else:
-            # relativedelta with other keywords
-            kwd = set(kwds) - relativedelta_fast
-            raise NotImplementedError(
-                "DateOffset with relativedelta "
-                f"keyword(s) {kwd} not able to be "
-                "applied vectorized"
-            )
-
-    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
-        reso = get_unit_from_dtype(dtarr.dtype)
-        dt64other = np.asarray(dtarr)
-
-        delta = self._pd_timedelta  # may raise NotImplementedError
-
-        kwds = self.kwds
-        months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self._n
-        if months and delta._value:
-            # GH#66549 apply both components in one pass, so that an
-            #  out-of-range month-shifted intermediate does not reject a
-            #  representable result the scalar path accepts
-            dt64other, delta = _match_reso(dt64other, delta)
-            shifted = _shift_months_and_add(
-                dt64other.view("i8"),
-                months,
-                delta._value,
-                get_unit_from_dtype(dt64other.dtype),
-            )
-            return shifted.view(dt64other.dtype)
-        if months:
-            shifted = shift_months(dt64other.view("i8"), months, reso=reso)
-            dt64other = shifted.view(dtarr.dtype)
-        return _add_timedelta_overflowsafe(dt64other, delta)
-
-    def is_on_offset(self, dt: datetime) -> bool:
-        """
-        Return boolean whether a timestamp intersects with this frequency.
-
-        For DateOffset, the check is straightforward: it returns True for any
-        timestamp, unless normalize is True, in which case it verifies that
-        the timestamp is at midnight (normalized to the start of the day).
-
-        Parameters
-        ----------
-        dt : datetime
-            Timestamp to check.
-
-        Returns
-        -------
-        bool
-            True if the timestamp intersects with this frequency.
-
-        See Also
-        --------
-        DateOffset.rollforward : Roll provided date forward to next offset.
-        DateOffset.rollback : Roll provided date backward to previous offset.
-
-        Examples
-        --------
-        >>> ts = pd.Timestamp(2022, 1, 1)
-        >>> freq = pd.DateOffset(months=2)
-        >>> freq.is_on_offset(ts)
-        True
-
-        >>> ts = pd.Timestamp(2022, 1, 1, 12, 0, 0)
-        >>> freq = pd.DateOffset(months=2, normalize=True)
-        >>> freq.is_on_offset(ts)
-        False
-        """
-        if self._normalize and not _is_normalized(dt):
-            return False
-        return True
-
-
-class OffsetMeta(type):
-    """
-    Metaclass that allows us to pretend that all BaseOffset subclasses
-    inherit from DateOffset (which is needed for backward-compatibility).
-    """
-
-    @classmethod
-    def __instancecheck__(cls, obj) -> bool:
-        result = isinstance(obj, BaseOffset)
-        if result and not isinstance(obj, RelativeDeltaOffset):
-            from pandas.errors import Pandas4Warning
-
-            warnings.warn(
-                "isinstance(obj, DateOffset) is deprecated for offsets that are "
-                "not DateOffset instances and will return False in a future "
-                "version. Use isinstance(obj, pd.offsets.BaseOffset) instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        return result
-
-    @classmethod
-    def __subclasscheck__(cls, obj) -> bool:
-        result = issubclass(obj, BaseOffset)
-        if result and not issubclass(obj, RelativeDeltaOffset):
-            from pandas.errors import Pandas4Warning
-
-            warnings.warn(
-                "issubclass(cls, DateOffset) is deprecated for offset classes "
-                "that are not DateOffset subclasses and will return False in a "
-                "future version. Use issubclass(cls, pd.offsets.BaseOffset) "
-                "instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        return result
-
-
-# TODO: figure out a way to use a metaclass with a cdef class
-@set_module("pandas")
-class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
-    """
-    Standard kind of date increment used for a date range.
-
-    Works exactly like the keyword argument form of relativedelta.
-    Note that the positional argument form of relativedelta is not
-    supported. Use of the keyword n is discouraged-- you would be better
-    off specifying n in the keywords you use, but regardless it is
-    there for you. n is needed for DateOffset subclasses.
-
-    DateOffset works as follows.  Each offset specify a set of dates
-    that conform to the DateOffset.  For example, Bday defines this
-    set to be the set of dates that are weekdays (M-F).  To test if a
-    date is in the set of a DateOffset dateOffset we can use the
-    is_on_offset method: dateOffset.is_on_offset(date).
-
-    If a date is not on a valid date, the rollback and rollforward
-    methods can be used to roll the date to the nearest valid date
-    before/after the date.
-
-    DateOffsets can be created to move dates forward a given number of
-    valid dates.  For example, Bday(2) can be added to a date to move
-    it two business days forward.  If the date does not start on a
-    valid date, it is first rolled forward to the next valid date, and
-    that roll counts as the first of the n increments.  For example,
-    2014-08-31 is a Sunday, so ``Timestamp("2014-08-31") + BDay(1)``
-    only rolls forward to Monday 2014-09-01, and adding ``BDay(2)``
-    gives Tuesday 2014-09-02.  Equivalently, the date is first rolled
-    back to the previous valid date, then moved n valid dates forward.
-    Thus pseudo code is::
-
-        def __add__(date):
-          date = rollback(date) # does nothing if date is valid
-          return date + <n number of periods>
-
-    When a date offset is created for a negative number of periods,
-    the roll is symmetric: rolling back to the previous valid date
-    counts as the first decrement; equivalently, the date is first
-    rolled forward, then moved ``abs(n)`` valid dates backward.  The
-    pseudo code is::
-
-        def __add__(date):
-          date = rollforward(date) # does nothing if date is valid
-          return date + <n number of periods>
-
-    Zero presents a problem.  Should it roll forward or back?  We
-    arbitrarily have it rollforward:
-
-    date + BDay(0) == BDay.rollforward(date)
-
-    Since 0 is a bit weird, we suggest avoiding its use.  Because the
-    roll counts as an increment, ``date + BDay(0)`` and
-    ``date + BDay(1)`` give the same result when date is not a
-    business day.
-
-    Besides, adding a DateOffsets specified by the singular form of the date
-    component can be used to replace certain component of the timestamp.
-
-    Attributes
-    ----------
-    n : int, default 1
-        The number of time periods the offset represents.
-        If specified without a temporal pattern, defaults to n days.
-    normalize : bool, default False
-        Whether to round the result of a DateOffset addition down to the
-        previous midnight.
-    weekday : int {0, 1, ..., 6}, default 0
-
-        A specific integer for the day of the week.
-
-        - 0 is Monday
-        - 1 is Tuesday
-        - 2 is Wednesday
-        - 3 is Thursday
-        - 4 is Friday
-        - 5 is Saturday
-        - 6 is Sunday
-
-        Instead Weekday type from dateutil.relativedelta can be used.
-
-        - MO is Monday
-        - TU is Tuesday
-        - WE is Wednesday
-        - TH is Thursday
-        - FR is Friday
-        - SA is Saturday
-        - SU is Sunday.
-
-    **kwds
-        Temporal parameter that add to or replace the offset value.
-
-        Parameters that **add** to the offset (like Timedelta):
-
-        - years
-        - months
-        - weeks
-        - days
-        - hours
-        - minutes
-        - seconds
-        - milliseconds
-        - microseconds
-        - nanoseconds
-
-        Parameters that **replace** the offset value:
-
-        - year
-        - month
-        - day
-        - weekday
-        - hour
-        - minute
-        - second
-        - microsecond
-        - nanosecond.
-
-    See Also
-    --------
-    dateutil.relativedelta.relativedelta : The relativedelta type is designed
-        to be applied to an existing datetime and can replace specific components of
-        that datetime, or represents an interval of time.
-
-    Notes
-    -----
-    When added to a :class:`DatetimeIndex` or datetime :class:`Series`, a
-    ``DateOffset`` is applied to each entry independently. Calendar components
-    such as ``months`` and ``years`` do not represent a fixed duration, so
-    evenly spaced input dates are not guaranteed to remain evenly spaced: dates
-    that would fall on a nonexistent day are clamped to the end of the month.
-    For example, adding ``DateOffset(months=1)`` to both ``2018-01-30`` and
-    ``2018-01-31`` yields ``2018-02-28`` in each case.
-
-    Examples
-    --------
-    >>> from pandas.tseries.offsets import DateOffset
-    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
-    >>> ts + DateOffset(months=3)
-    Timestamp('2017-04-01 09:10:11')
-
-    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
-    >>> ts + DateOffset(months=2)
-    Timestamp('2017-03-01 09:10:11')
-    >>> ts + DateOffset(day=31)
-    Timestamp('2017-01-31 09:10:11')
-
-    >>> ts + pd.DateOffset(hour=8)
-    Timestamp('2017-01-01 08:10:11')
-    """
-    def __setattr__(self, name, value):
-        raise AttributeError("DateOffset objects are immutable.")
-
 # --------------------------------------------------------------------
 
 
@@ -2412,7 +2359,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         object _weekmask, _holidays, _calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
         self._offset = offset
 
     cpdef _init_custom(self, weekmask, holidays, calendar):
@@ -2662,7 +2609,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
             self._calendar = calendar
             self._holidays = holidays
 
-        BaseOffset.__setstate__(self, state)
+        SingleConstructorOffset.__setstate__(self, state)
 
 
 cdef class BusinessDay(BusinessMixin):
@@ -3477,7 +3424,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         int _weekday, _week
 
     def __init__(self, n=1, normalize=False, weekday=0):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
         self._weekday = weekday
 
         if weekday < 0 or weekday > 6:
@@ -3650,7 +3597,7 @@ cdef class YearOffset(SingleConstructorOffset):
         int _month
 
     def __init__(self, n=1, normalize=False, month=None):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
 
         month = month if month is not None else self._default_month
         self._month = month
@@ -3769,7 +3716,7 @@ cdef class YearOffset(SingleConstructorOffset):
         return dt.month == self._month and dt.day == self._get_offset_day(dt)
 
     def _get_offset_day(self, other: datetime) -> int:
-        # override BaseOffset method to use self._month instead of other.month
+        # override DateOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
@@ -3996,7 +3943,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
@@ -4351,7 +4298,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
@@ -4709,7 +4656,7 @@ cdef class MonthOffset(SingleConstructorOffset):
         state.pop("_offset", None)
         state.pop("kwds", {})
 
-        BaseOffset.__setstate__(self, state)
+        SingleConstructorOffset.__setstate__(self, state)
 
 
 cdef class MonthEnd(MonthOffset):
@@ -4897,7 +4844,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         return self._day_of_month
 
     def __init__(self, n=1, normalize=False, day_of_month=None):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
 
         if day_of_month is None:
             day_of_month = self._default_day_of_month
@@ -5307,7 +5254,7 @@ cdef class Week(SingleConstructorOffset):
         return self._weekday
 
     def __init__(self, n=1, normalize=False, weekday=None):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
         self._weekday = weekday
 
         if self._weekday is not None:
@@ -5767,7 +5714,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     def __init__(
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
         self._startingMonth = startingMonth
         self._weekday = weekday
         self._variation = variation
@@ -6594,7 +6541,7 @@ cdef class Easter(SingleConstructorOffset):
         int method
 
     def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
-        BaseOffset.__init__(self, n, normalize)
+        SingleConstructorOffset.__init__(self, n, normalize)
 
         self.method = method
 
@@ -6760,7 +6707,7 @@ cdef class CustomBusinessDay(BusinessDay):
         # GH#52534
         raise ValueError(f"{self.base} is not supported as period frequency")
 
-    _apply_array = BaseOffset._apply_array
+    _apply_array = SingleConstructorOffset._apply_array
 
     def __init__(
         self,
@@ -7495,7 +7442,7 @@ cdef _validate_to_offset_alias(str alias, bint is_period):
 
 
 # TODO: better name?
-def _get_offset(name: str) -> BaseOffset:
+def _get_offset(name: str) -> DateOffset:
     """
     Return DateOffset object associated with rule name.
 
@@ -7523,11 +7470,11 @@ cpdef to_offset(freq, bint is_period=False):
 
     This function converts a frequency string (e.g. ``"5min"``, ``"1D1h"``,
     ``"2W"``) or a ``datetime.timedelta`` into a pandas ``DateOffset`` subclass.
-    It can also pass through existing ``BaseOffset`` instances unchanged.
+    It can also pass through existing ``DateOffset`` instances unchanged.
 
     Parameters
     ----------
-    freq : str, datetime.timedelta, BaseOffset or None
+    freq : str, datetime.timedelta, DateOffset or None
         The frequency represented.
     is_period : bool, default False
         Convert string denoting period frequency to corresponding offsets
@@ -7535,7 +7482,7 @@ cpdef to_offset(freq, bint is_period=False):
 
     Returns
     -------
-    BaseOffset subclass or None
+    DateOffset subclass or None
 
     Raises
     ------
@@ -7544,7 +7491,7 @@ cpdef to_offset(freq, bint is_period=False):
 
     See Also
     --------
-    BaseOffset : Standard kind of date increment used for a date range.
+    DateOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------
@@ -7586,7 +7533,7 @@ cpdef to_offset(freq, bint is_period=False):
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
-    if isinstance(freq, BaseOffset):
+    if isinstance(freq, DateOffset):
         result = freq
 
     elif PyDelta_Check(freq):

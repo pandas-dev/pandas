@@ -119,7 +119,6 @@ CAPITALIZATION_EXCEPTIONS = {
     "BusinessHour",
     "BusinessDay",
     "DateOffset",
-    "BaseOffset",
     "January",
     "February",
     "March",

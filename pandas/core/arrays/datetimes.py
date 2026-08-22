@@ -50,7 +50,6 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS_FULL,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import RelativeDeltaOffset
 from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
@@ -798,7 +797,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # re-localizing wall-time results near DST (GH#28610).
         if (
             self.tz is not None
-            and isinstance(offset, RelativeDeltaOffset)
+            and offset._is_relativedelta_offset
             and not offset._use_relativedelta
         ):
             # GH#64806 _add_timedeltalike_scalar casts to the finer of the two
