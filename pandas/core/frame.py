@@ -291,13 +291,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         If data is a list of dicts, column order follows insertion-order.
 
-    index : Index or array-like
+    index : Index or array-like or dict
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided.
-    columns : Index or array-like
-        Column labels to use for resulting frame when data does not have them,
-        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
-        will perform column selection instead.
+        If a dict is provided, the keys will be used as the index values.
+    columns : Index or array-like or dict
+        Column labels to use for resulting frame. When data does not have
+        column labels, defaults to RangeIndex(0, 1, 2, ..., n). If data
+        contains column labels, will perform column selection instead.
+        If a dict is provided, the keys will be used as the column labels.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
         If ``data`` is DataFrame then is ignored. Missing values in ``data``
