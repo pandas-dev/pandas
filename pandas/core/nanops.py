@@ -1260,7 +1260,7 @@ def nanvar(
     # unless we were dealing with a float array, in which case use the same
     # precision as the original values array.
     if dtype.kind == "f":
-        result = result.astype(dtype, copy=False)
+        result = cast("np.ndarray", result).astype(dtype, copy=False)
     return result
 
 

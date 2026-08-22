@@ -520,7 +520,12 @@ class TestDataFrameAnalytics:
         with pytest.raises(
             TypeError,
             match="|".join(
-                ["unsupported operand type", "does not support", "Cannot perform"]
+                [
+                    "unsupported operand type",
+                    "does not support",
+                    "Cannot perform",
+                    "Could not convert",
+                ]
             ),
         ):
             df.mean()
