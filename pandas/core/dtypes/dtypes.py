@@ -74,7 +74,10 @@ if HAS_PYARROW:
     import pyarrow as pa
 
 if TYPE_CHECKING:
-    from collections.abc import MutableMapping
+    from collections.abc import (
+        Callable,
+        MutableMapping,
+    )
     from datetime import tzinfo
 
     import pyarrow as pa  # noqa: TC004
@@ -2166,6 +2169,17 @@ class SparseDtype(ExtensionDtype):
         return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)  # type: ignore [arg-type]
 
 
+# pyarrow type keyword -> name of the constructor for that type, used when
+#  parsing a type out of the string it renders as. Looked up lazily since not
+#  all of these exist in every supported pyarrow version.
+_ARROW_LIST_CONSTRUCTORS = {
+    "list": "list_",
+    "large_list": "large_list",
+    "list_view": "list_view",
+    "large_list_view": "large_list_view",
+}
+
+
 @register_extension_dtype
 @set_module("pandas")
 class ArrowDtype(StorageExtensionDtype):
@@ -2408,17 +2422,10 @@ class ArrowDtype(StorageExtensionDtype):
 
         base_type = string[:-9]  # get rid of "[pyarrow]"
         try:
-            pa_dtype = pa.type_for_alias(base_type)
+            pa_dtype = cls._parse_dtype_string(base_type)
         except ValueError as err:
             has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
             if has_parameters:
-                # Fallback to try common temporal types
-                try:
-                    return cls._parse_temporal_dtype_string(base_type)
-                except (NotImplementedError, ValueError):
-                    # Fall through to raise with nice exception message below
-                    pass
-
                 raise NotImplementedError(
                     "Passing pyarrow type specific parameters "
                     f"({has_parameters.group()}) in the string is not supported. "
@@ -2428,34 +2435,194 @@ class ArrowDtype(StorageExtensionDtype):
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
         return cls(pa_dtype)
 
-    # TODO(arrow#33642): This can be removed once supported by pyarrow
+    # TODO(arrow#33642): This can be removed if/when pyarrow can parse the
+    #  strings its DataTypes render as.
     @classmethod
-    def _parse_temporal_dtype_string(cls, string: str) -> ArrowDtype:
+    def _parse_dtype_string(cls, string: str) -> pa.DataType:
         """
-        Construct a temporal ArrowDtype from string.
+        Reconstruct a pyarrow DataType from the string it renders as.
+
+        Parameters
+        ----------
+        string : str
+            e.g. "list<item: int64>". "[pyarrow]" is assumed to already have
+            been stripped from the end.
+
+        Raises
+        ------
+        ValueError
+            If the string does not describe a pyarrow type.
         """
-        # we assume
-        #  1) "[pyarrow]" has already been stripped from the end of our string.
-        #  2) we know "[" is present
-        head, tail = string.split("[", 1)
+        string = string.strip()
+        try:
+            return pa.type_for_alias(string)
+        except ValueError:
+            # Not a plain alias; the type is parametrized and/or nested.
+            pass
 
-        if not tail.endswith("]"):
-            raise ValueError
-        tail = tail[:-1]
+        openers = [pos for pos in (string.find(char) for char in "<([") if pos != -1]
+        if not openers:
+            raise ValueError(string)
+        start = min(openers)
+        stop = cls._find_closing_bracket(string, start)
+        keyword = string[:start]
+        body = string[start + 1 : stop]
+        suffix = string[stop + 1 :]
 
-        if head == "timestamp":
-            assert "," in tail  # otherwise type_for_alias should work
-            unit, tz = tail.split(",", 1)
-            unit = unit.strip()
-            tz = tz.strip()
-            if tz.startswith("tz="):
-                tz = tz[3:]
+        if string[start] == "<":
+            return cls._parse_nested_dtype_string(keyword, body, suffix)
 
-            pa_type = pa.timestamp(unit, tz=tz)
-            dtype = cls(pa_type)
-            return dtype
+        if suffix:
+            raise ValueError(string)
+        if string[start] == "(":
+            if keyword in ("decimal32", "decimal64", "decimal128", "decimal256"):
+                # e.g. "decimal128(10, 2)"
+                precision, scale = (int(part) for part in cls._split_top_level(body))
+                return cls._pyarrow_constructor(keyword)(precision, scale)
+        elif keyword == "fixed_size_binary":
+            return pa.binary(int(body))
+        elif keyword == "timestamp":
+            # tz-naive timestamps are handled by type_for_alias above, so here
+            #  we have e.g. "timestamp[us, tz=UTC]"
+            unit, tz = cls._split_top_level(body)
+            return pa.timestamp(unit, tz=tz.removeprefix("tz="))
+        raise ValueError(string)
 
-        raise NotImplementedError(string)
+    @classmethod
+    def _parse_nested_dtype_string(
+        cls, keyword: str, body: str, suffix: str
+    ) -> pa.DataType:
+        """
+        Reconstruct a pyarrow DataType rendered as f"{keyword}<{body}>{suffix}".
+        """
+        if suffix and keyword != "fixed_size_list":
+            raise ValueError(f"{keyword}<{body}>{suffix}")
+
+        if keyword in _ARROW_LIST_CONSTRUCTORS:
+            return cls._pyarrow_constructor(_ARROW_LIST_CONSTRUCTORS[keyword])(
+                cls._parse_field_string(body)
+            )
+        if keyword == "fixed_size_list":
+            # the list size is rendered after the child, e.g.
+            #  "fixed_size_list<item: int64>[3]"
+            if not (suffix.startswith("[") and suffix.endswith("]")):
+                raise ValueError(f"{keyword}<{body}>{suffix}")
+            return pa.list_(cls._parse_field_string(body), int(suffix[1:-1]))
+        if keyword == "struct":
+            return pa.struct(
+                [cls._parse_field_string(part) for part in cls._split_top_level(body)]
+            )
+        if keyword == "map":
+            # e.g. "map<string, int64>" or "map<string, int64, keys_sorted>"
+            parts = cls._split_top_level(body)
+            keys_sorted = len(parts) == 3 and parts[2] == "keys_sorted"
+            if not keys_sorted and len(parts) != 2:
+                raise ValueError(f"{keyword}<{body}>")
+            return pa.map_(
+                cls._parse_dtype_string(parts[0]),
+                cls._parse_dtype_string(parts[1]),
+                keys_sorted=keys_sorted,
+            )
+        if keyword == "dictionary":
+            # e.g. "dictionary<values=string, indices=int32, ordered=0>"
+            options = dict(part.split("=", 1) for part in cls._split_top_level(body))
+            if options.keys() != {"values", "indices", "ordered"}:
+                raise ValueError(f"{keyword}<{body}>")
+            return pa.dictionary(
+                cls._parse_dtype_string(options["indices"]),
+                cls._parse_dtype_string(options["values"]),
+                ordered=options["ordered"] == "1",
+            )
+        if keyword == "run_end_encoded":
+            # e.g. "run_end_encoded<run_ends: int32, values: int64>"
+            run_ends, values = (
+                cls._parse_field_string(part).type
+                for part in cls._split_top_level(body)
+            )
+            return cls._pyarrow_constructor(keyword)(run_ends, values)
+        if keyword in ("sparse_union", "dense_union"):
+            # e.g. "sparse_union<a: int64=0, b: string=1>"
+            fields = []
+            type_codes = []
+            for part in cls._split_top_level(body):
+                field_string, sep, type_code = part.rpartition("=")
+                if not sep:
+                    raise ValueError(f"{keyword}<{body}>")
+                fields.append(cls._parse_field_string(field_string))
+                type_codes.append(int(type_code))
+            return cls._pyarrow_constructor(keyword)(fields, type_codes)
+        raise ValueError(f"{keyword}<{body}>{suffix}")
+
+    @classmethod
+    def _parse_field_string(cls, string: str) -> pa.Field:
+        """
+        Reconstruct a pyarrow Field rendered as e.g. "item: int64 not null".
+        """
+        # Split on the *last* top-level ": " so that field names containing
+        #  ": " round-trip.
+        depth = 0
+        cut = -1
+        for pos, char in enumerate(string):
+            if char in "<([":
+                depth += 1
+            elif char in ">)]":
+                depth -= 1
+            elif depth == 0 and string[pos : pos + 2] == ": ":
+                cut = pos
+        if cut == -1:
+            raise ValueError(string)
+
+        name = string[:cut]
+        type_string = string[cut + 2 :].strip()
+        nullable = True
+        if type_string.endswith(" not null"):
+            type_string = type_string[: -len(" not null")]
+            nullable = False
+        return pa.field(name, cls._parse_dtype_string(type_string), nullable=nullable)
+
+    @staticmethod
+    def _pyarrow_constructor(name: str) -> Callable[..., pa.DataType]:
+        """
+        Look up a pyarrow type constructor, raising if this pyarrow is too old.
+        """
+        constructor = getattr(pa, name, None)
+        if constructor is None:
+            raise ValueError(f"pyarrow has no type constructor '{name}'")
+        return constructor
+
+    @staticmethod
+    def _find_closing_bracket(string: str, start: int) -> int:
+        """
+        Find the index of the bracket closing the one opened at position start.
+        """
+        depth = 0
+        for pos in range(start, len(string)):
+            if string[pos] in "<([":
+                depth += 1
+            elif string[pos] in ">)]":
+                depth -= 1
+                if depth == 0:
+                    return pos
+        raise ValueError(string)
+
+    @staticmethod
+    def _split_top_level(string: str) -> list[str]:
+        """
+        Split on commas that are not nested inside brackets.
+        """
+        parts = []
+        depth = 0
+        start = 0
+        for pos, char in enumerate(string):
+            if char in "<([":
+                depth += 1
+            elif char in ">)]":
+                depth -= 1
+            elif char == "," and depth == 0:
+                parts.append(string[start:pos].strip())
+                start = pos + 1
+        parts.append(string[start:].strip())
+        return parts
 
     @property
     def _is_numeric(self) -> bool:

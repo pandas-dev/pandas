@@ -1069,6 +1069,55 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
         check_round_trip(df, temp_file, pa, check_dtype=False)
 
+    def test_roundtrip_nested_arrow_dtypes(self, pa, temp_file):
+        # GH#57411 the dtype is recorded in the pandas metadata as e.g.
+        #  "list<item: int64>[pyarrow]" and has to be parsed back out of it
+        pyarrow = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "list": pd.Series(
+                    [[1, 2], [3]],
+                    dtype=pd.ArrowDtype(pyarrow.list_(pyarrow.int64())),
+                ),
+                "map": pd.Series(
+                    [{"a": 1.0}, {"b": 2.0}],
+                    dtype=pd.ArrowDtype(
+                        pyarrow.map_(pyarrow.string(), pyarrow.float64())
+                    ),
+                ),
+                "struct": pd.Series(
+                    [{"a": 1, "ts": None}] * 2,
+                    dtype=pd.ArrowDtype(
+                        pyarrow.struct(
+                            [
+                                ("a", pyarrow.int64()),
+                                ("ts", pyarrow.timestamp("us", tz="UTC")),
+                            ]
+                        )
+                    ),
+                ),
+            }
+        )
+        check_round_trip(df, temp_file, pa)
+
+    def test_roundtrip_nested_arrow_dtypes_twice(self, pa, tmp_path):
+        # GH#57411 parquet renames the child of a list to "element", so the
+        #  second round-trip has to parse a dtype we did not write ourselves
+        pyarrow = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {"a": pd.Series([[1, 2], [3]], dtype="list<item: int64>[pyarrow]")}
+        )
+        path = tmp_path / "first.parquet"
+        df.to_parquet(path, engine=pa)
+        result = read_parquet(path, pa, dtype_backend="pyarrow")
+        assert result.dtypes.iloc[0] == pd.ArrowDtype(
+            pyarrow.list_(pyarrow.field("element", pyarrow.int64()))
+        )
+
+        path = tmp_path / "second.parquet"
+        result.to_parquet(path, engine=pa)
+        check_round_trip(result, path, pa)
+
     def test_filter_row_groups(self, pa, temp_file):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")

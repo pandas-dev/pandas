@@ -137,6 +137,28 @@ class TestFeather:
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         self.check_external_error_on_write(df, temp_file)
 
+    def test_nested_arrow_dtypes(self, temp_file):
+        # GH#57411 the dtype is recorded in the pandas metadata as e.g.
+        #  "list<item: int64>[pyarrow]" and has to be parsed back out of it
+        df = pd.DataFrame(
+            {
+                "list": pd.Series(
+                    [[1, 2], [3]], dtype=pd.ArrowDtype(pa.list_(pa.int64()))
+                ),
+                "map": pd.Series(
+                    [{"a": 1.0}, {"b": 2.0}],
+                    dtype=pd.ArrowDtype(pa.map_(pa.string(), pa.float64())),
+                ),
+                "struct": pd.Series(
+                    [{"a": 1, "d": None}] * 2,
+                    dtype=pd.ArrowDtype(
+                        pa.struct([("a", pa.int64()), ("d", pa.decimal128(10, 2))])
+                    ),
+                ),
+            }
+        )
+        self.check_round_trip(df, temp_file)
+
     def test_rw_use_threads(self, temp_file):
         df = pd.DataFrame({"A": np.arange(100000)})
         self.check_round_trip(df, temp_file, use_threads=True)
