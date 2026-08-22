@@ -206,6 +206,18 @@ class TestSeriesStatReductions:
         result = s.std(ddof=1)
         assert pd.isna(result)
 
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_object_with_missing(self, method, missing_value, skipna):
+        base = Series([1.0, np.nan, 3.0, 4.0, 5.0], dtype=np.float64)
+        ser = base.astype(object)
+        ser[pd.isna(base)] = missing_value
+
+        result = getattr(ser, method)(skipna=skipna)
+        expected = getattr(base, method)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
     def test_sem(self):
         string_series = Series(range(20), dtype=np.float64, name="series")
         datetime_series = Series(
@@ -277,6 +289,9 @@ class TestSeriesStatReductions:
 @pytest.mark.parametrize(
     "opname",
     [
+        "std",
+        "sem",
+        "var",
         "skew",
         "kurt",
     ],
@@ -305,3 +320,18 @@ def test_reduction_consistency(opname, loc, scale):
 
     result_frame = getattr(DataFrame(s), opname)().iloc[0]
     tm.assert_almost_equal(result_series, result_frame)
+
+
+@pytest.mark.parametrize("opname", ["var", "std", "sem"])
+def test_stat_nobs_equal_ddof(opname):
+    s = Series([1.0, 2.0, 3.0])
+    ddof = 3
+
+    result_series = getattr(s, opname)(ddof=ddof)
+    assert np.isnan(result_series)
+
+    result_gb = getattr(s.groupby([0, 0, 0]), opname)(ddof=ddof).iloc[0]
+    assert np.isnan(result_gb)
+
+    result_window = getattr(s.rolling(3, min_periods=3), opname)(ddof=ddof).iloc[2]
+    assert np.isnan(result_window)

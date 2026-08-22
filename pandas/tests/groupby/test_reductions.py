@@ -1798,6 +1798,14 @@ def test_groupby_std_datetimelike():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_std_datetimelike_with_nat():
+    ser = Series(pd.to_datetime(["2020-01-01", "NaT", "2020-01-03", "2020-01-05"]))
+    gb = ser.groupby([0] * 4)
+    result = gb.std(skipna=False)
+    expected = Series([pd.NaT], dtype="m8[us]", index=np.array([0]))
+    tm.assert_series_equal(result, expected)
+
+
 def test_mean_numeric_only_validates_bool():
     # GH#62778
 
