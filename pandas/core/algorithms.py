@@ -876,7 +876,7 @@ def factorize(
         .. note::
 
            Even if there's a missing value in `values`, `uniques` will
-           *not* contain an entry for it.
+           *not* contain an entry for it when ``use_na_sentinel=True`` (default).
 
     See Also
     --------
