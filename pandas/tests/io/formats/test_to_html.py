@@ -1164,3 +1164,30 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
+
+
+def test_to_html_render_links_escape():
+    # GH 66080
+    import pandas as pd
+
+    df = pd.DataFrame({"url": ['http://example.com/?q=a"b&lang=en']})
+
+    # 1. When escape=True, href is fully escaped (quotes included),
+    # but pandas visible text only escapes & and < >
+    result_escaped = df.to_html(render_links=True, escape=True)
+    href_escaped = "http://example.com/?q=a&quot;b&amp;lang=en"
+    text_escaped = 'http://example.com/?q=a"b&amp;lang=en'
+
+    assert (
+        f'<td><a href="{href_escaped}" target="_blank">{text_escaped}</a></td>'
+        in result_escaped
+    )
+
+    # 2. When escape=False, neither should be escaped
+    result_unescaped = df.to_html(render_links=True, escape=False)
+    expected_raw = 'http://example.com/?q=a"b&lang=en'
+
+    assert (
+        f'<td><a href="{expected_raw}" target="_blank">{expected_raw}</a></td>'
+        in result_unescaped
+    )
