@@ -724,7 +724,9 @@ class Block(PandasObject, libinternals.Block):
             #  bc _can_hold_element is incorrect.
             return [self._maybe_copy(inplace, deep=False)]
 
-        elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
+        elif (value is not None or self.is_object) and (
+            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
+        ):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
             blk = self._maybe_copy(inplace)

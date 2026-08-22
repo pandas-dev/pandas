@@ -41,6 +41,13 @@ class TestSeriesReplace:
         assert expected.iloc[-1] is None
         tm.assert_series_equal(result, expected)
 
+        # GH#65892 scalar replace should preserve explicit None for "str" dtype
+        ser = pd.Series([np.nan, "a"], dtype="str")
+        result = ser.replace(np.nan, None)
+        expected = pd.Series([None, "a"], dtype=object)
+        assert result.iloc[0] is None
+        tm.assert_series_equal(result, expected)
+
     def test_replace_noop_doesnt_downcast(self):
         # GH#44498
         ser = pd.Series([None, None, pd.Timestamp("2021-12-16 17:31")], dtype=object)
