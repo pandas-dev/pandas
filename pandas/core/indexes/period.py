@@ -177,6 +177,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     _data_cls = PeriodArray
     _supports_partial_string_indexing = True
 
+    _warn_quarter: bool = False
+
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
@@ -413,8 +415,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. The frequency is inferred from
-        the fields provided or can be given explicitly.
+        specified as a scalar or array-like. At least one field must be
+        array-like; scalar fields are broadcast to its length. The frequency
+        is inferred from the fields provided or can be given explicitly.
 
         Parameters
         ----------

@@ -142,7 +142,7 @@ class TestDatetimeArray(base.ExtensionTests):
             return super().check_reduce(ser, op_name, skipna)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_values_for_json(self, data):
         # GH 65127
@@ -151,7 +151,7 @@ class TestDatetimeArray(base.ExtensionTests):
         super().test_values_for_json(data)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     @pytest.mark.xfail(
         raises=AssertionError, reason="DatetimeArray does not support JSON roundtrip."

@@ -211,6 +211,20 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
 
 
+def _is_np_bool_backed(obj: NDFrame) -> bool:
+    """
+    Is obj backed entirely by numpy bool arrays?
+
+    Such an object needs neither filling nor casting to be used as a `where`
+    condition, so we can skip that machinery altogether (GH#51547).
+    """
+    if isinstance(obj, ABCDataFrame):
+        dtypes: list[DtypeObj] = [block.dtype for block in obj._mgr.blocks]
+    else:
+        dtypes = [obj.dtype]
+    return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -2697,8 +2711,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 dtypes = [self.dtype, self.index.dtype]
             if any(dtype.kind in "mM" for dtype in dtypes):
                 warnings.warn(
-                    "The default 'epoch' date format is deprecated and will be removed "
-                    "in a future version, please use 'iso' date format instead.",
+                    "The default formatting of datetime/timedelta values will change "
+                    'from numbers ("epoch") to strings ("iso") in a future version. '
+                    'Specify `date_format="iso"` explicitly in the `to_json()` call '
+                    "to opt-in to the future behaviour and silence this warning.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
@@ -2745,7 +2761,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None | lib.NoDefault = lib.no_default,
+        dropna: bool | lib.NoDefault | None = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -7101,9 +7117,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         method: Literal["ffill", "bfill", "pad", "backfill"],
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ):
         if axis is None:
@@ -7382,9 +7398,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def ffill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7487,9 +7503,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def bfill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -9186,8 +9202,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         between_time : Select values between particular times of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day.
 
@@ -9258,8 +9272,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         at_time : Select values at a particular time of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day.
 
@@ -10264,6 +10276,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        fill_value = bool(inplace)
+
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -10282,7 +10296,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         copy=False,
                     )
                     cond.columns = self.columns
-            cond = cond.align(self, join="right")[0]
+            if _is_np_bool_backed(cond) and self.ndim == 2:
+                # GH#51547 a bool cond that needs reindexing would otherwise be
+                #  cast to object and cast back by the fillna/infer_objects
+                #  below.  Only safe for ndim==2: _align_series applies
+                #  fill_value via fillna to *both* objects, so it would alter
+                #  self.  Only safe for bool cond: for other dtypes a bool
+                #  fill_value is an incompatible reindex fill.
+                cond = cond.align(self, join="right", fill_value=fill_value)[0]
+            else:
+                cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -10291,39 +10314,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
         # make sure we are boolean
-        fill_value = bool(inplace)
-        with warnings.catch_warnings():
-            # GH#45153 suppress Pandas4Warning from fillna with
-            # incompatible value; if cond is not boolean, the dtype
-            # check below will raise TypeError anyway.
-            warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
-            cond = cond.fillna(fill_value)
-        cond = cond.infer_objects()
+        if not _is_np_bool_backed(cond):
+            with warnings.catch_warnings():
+                # GH#45153 suppress Pandas4Warning from fillna with
+                # incompatible value; if cond is not boolean, the dtype
+                # check below will raise TypeError anyway.
+                warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
+                cond = cond.fillna(fill_value)
+            cond = cond.infer_objects()
 
-        msg = "Boolean array expected for the condition, not {dtype}"
+            msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not cond.empty:
-            if not isinstance(cond, ABCDataFrame):
-                # This is a single-dimensional object.
-                if not is_bool_dtype(cond):
-                    raise TypeError(msg.format(dtype=cond.dtype))
+            if not cond.empty:
+                if not isinstance(cond, ABCDataFrame):
+                    # This is a single-dimensional object.
+                    if not is_bool_dtype(cond):
+                        raise TypeError(msg.format(dtype=cond.dtype))
+                else:
+                    for block in cond._mgr.blocks:
+                        if not is_bool_dtype(block.dtype):
+                            raise TypeError(msg.format(dtype=block.dtype))
+                    if cond._mgr.any_extension_types:
+                        # GH51574: avoid object ndarray conversion later on
+                        cond = cond._constructor(
+                            cond.to_numpy(dtype=bool, na_value=fill_value),
+                            **cond._construct_axes_dict(),
+                        )
             else:
-                for block in cond._mgr.blocks:
-                    if not is_bool_dtype(block.dtype):
-                        raise TypeError(msg.format(dtype=block.dtype))
-                if cond._mgr.any_extension_types:
-                    # GH51574: avoid object ndarray conversion later on
-                    cond = cond._constructor(
-                        cond.to_numpy(dtype=bool, na_value=fill_value),
-                        **cond._construct_axes_dict(),
-                    )
-        else:
-            # GH#21947 we have an empty DataFrame/Series, could be object-dtype
-            cond = cond.astype(bool)
+                # GH#21947 we have an empty DataFrame/Series, could be object-dtype
+                cond = cond.astype(bool)
 
         cond_for_ea = cond
         cond = -cond if inplace else cond
-        cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
+        if not cond._info_axis.equals(self._info_axis):
+            cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
         # try to align with other
         if isinstance(other, NDFrame):

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import (
+    datetime,
+    tzinfo,
+)
 import functools
 from itertools import zip_longest
 import operator
@@ -46,6 +49,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     tz_compare,
 )
+from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
@@ -2872,9 +2876,20 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
-            if not can_hold_element(self._values, value) and not is_valid_na_for_dtype(
-                value, self.dtype
-            ):
+            values = self._values
+            validate = getattr(values, "_validate_setitem_value", None)
+            if validate is not None and not isinstance(self.dtype, np.dtype):
+                # GH#25288 can_hold_element is permissive for most ExtensionArrays;
+                #  the array's own setitem validation is authoritative.
+                try:
+                    validate(value)
+                    can_hold = True
+                except (ValueError, TypeError):
+                    can_hold = False
+            else:
+                can_hold = can_hold_element(values, value)
+
+            if not can_hold and not is_valid_na_for_dtype(value, self.dtype):
                 # GH#45153 fillna with incompatible value requiring any
                 #  dtype casting is deprecated.
                 warnings.warn(
@@ -4275,7 +4290,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         form: Literal["slice", "positional"],
         key: object,
-        reraise: lib.NoDefault | None | Exception = lib.no_default,
+        reraise: lib.NoDefault | Exception | None = lib.no_default,
     ) -> None:
         """
         Raise consistent invalid indexer message.
@@ -7335,12 +7350,12 @@ class Index(IndexOpsMixin, PandasObject):
         # attempt to parse and check that the offsets are the same
         if isinstance(start, (str, datetime)) and isinstance(end, (str, datetime)):
             try:
-                ts_start = Timestamp(start)
-                ts_end = Timestamp(end)
+                tz_start = _slice_bound_tzinfo(start)
+                tz_end = _slice_bound_tzinfo(end)
             except (ValueError, TypeError):
                 pass
             else:
-                if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                if not tz_compare(tz_start, tz_end):
                     raise ValueError("Both dates must have the same UTC offset")
 
         start_slice = None
@@ -8364,6 +8379,25 @@ def trim_front(strings: list[str]) -> list[str]:
     if smallest_leading_space > 0:
         strings = [x[smallest_leading_space:] for x in strings]
     return strings
+
+
+def _slice_bound_tzinfo(bound: str | datetime) -> tzinfo | None:
+    """
+    tzinfo of a ``slice_locs`` bound, for the GH#16785 UTC-offset comparison.
+
+    GH#50907: this parse is internal, so a quarterly string bound must not emit
+    the deprecation -- on a :class:`DatetimeIndex` that would duplicate the one
+    ``get_slice_bound`` gives, and on a :class:`PeriodIndex` or an object Index
+    it would be spurious. A quarterly string is always naive, so the opted-out
+    parse is needed only to recognize one; anything else falls through to
+    ``Timestamp``, which does not warn.
+    """
+    if isinstance(bound, str) and ("Q" in bound or "q" in bound):
+        # GH#45580 parse_datetime_string_with_reso rejects a non-exact str
+        parsed, reso = parse_datetime_string_with_reso(str(bound), warn_quarter=False)
+        if reso == "quarter":
+            return parsed.tzinfo
+    return Timestamp(bound).tzinfo
 
 
 def _validate_join_method(method: str) -> None:
