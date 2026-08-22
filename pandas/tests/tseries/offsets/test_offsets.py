@@ -5,6 +5,7 @@ Tests of pandas.tseries.offsets
 from __future__ import annotations
 
 from datetime import (
+    date,
     datetime,
     timedelta,
 )
@@ -1480,6 +1481,15 @@ def test_to_offset_period_dtype_roundtrip(unit, n):
     dtype = PeriodDtype(off)
     assert dtype.freq == off
 
-    round_trip = to_offset(dtype)
-
     assert round_trip == off
+
+
+def test_rollforward_rollback_date():
+    # GH#66877: rollforward/rollback accepting date inputs
+    offset = liboffsets.BusinessDay()
+    d = date(2026, 8, 22)  # Saturday
+    assert offset.rollforward(d) == Timestamp("2026-08-24")
+    assert offset.rollback(d) == Timestamp("2026-08-21")
+    assert not offset.is_on_offset(d)
+    assert offset.is_on_offset(date(2026, 8, 24))
+
