@@ -204,6 +204,14 @@ def test_set_levels(idx):
     assert_matching(idx.codes, original_index.codes, check_dtype=True)
 
 
+def test_set_levels_with_tuple_values(idx):
+    # GH#66287 a scalar level whose values are tuples must be accepted, not
+    # mistaken for a nested list-of-lists
+    mi = MultiIndex.from_tuples([((1, 2), "a"), ((3, 4), "b")])
+    result = mi.set_levels([(5, 6), (7, 8)], level=0)
+    assert list(result.levels[0]) == [(5, 6), (7, 8)]
+
+
 def test_set_codes(idx):
     # side note - you probably wouldn't want to use levels and codes
     # directly like this - but it is possible.
@@ -271,14 +279,15 @@ def test_set_levels_codes_names_bad_input(idx):
     with pytest.raises(TypeError, match="list of lists-like"):
         idx.set_levels(levels[0], level=[0, 1])
 
-    with pytest.raises(TypeError, match="list-like"):
+    # a nested value with a scalar level demands a flat value, and says so
+    with pytest.raises(TypeError, match="list-like, not a list of lists"):
         idx.set_levels(levels, level=0)
 
     # should have equal lengths
     with pytest.raises(TypeError, match="list of lists-like"):
         idx.set_codes(codes[0], level=[0, 1])
 
-    with pytest.raises(TypeError, match="list-like"):
+    with pytest.raises(TypeError, match="list-like, not a list of lists"):
         idx.set_codes(codes, level=0)
 
     # should have equal lengths

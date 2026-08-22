@@ -5123,8 +5123,10 @@ def _require_listlike(level, arr, arrname: str):
     if level is not None and not is_list_like(level):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
-        if len(arr) > 0 and is_list_like(arr[0]):
-            raise TypeError(f"{arrname} must be list-like")
+        if len(arr) > 0 and is_list_like(arr[0]) and not isinstance(arr[0], tuple):
+            # tuples are valid scalar level values (e.g. a level of tuple keys),
+            # so a flat list of tuples is not a nested list-of-lists
+            raise TypeError(f"{arrname} must be list-like, not a list of lists-like")
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):
