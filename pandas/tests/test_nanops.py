@@ -1643,3 +1643,16 @@ class TestNanopsEmptyInput:
             assert isna(result).all()
         else:
             assert isna(result)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_nanstd_empty_datetime64_returns_timedelta(unit):
+    # GH#18976 std of datetimes is a timedelta, empty input included
+    dtype = f"M8[{unit}]"
+    result = nanops.nanstd(np.array([], dtype=dtype))
+    assert result.dtype == np.dtype(f"m8[{unit}]")
+    assert isna(result)
+
+    result = nanops.nanstd(np.empty((0, 3), dtype=dtype), axis=0)
+    assert result.dtype == np.dtype(f"m8[{unit}]")
+    assert isna(result).all()

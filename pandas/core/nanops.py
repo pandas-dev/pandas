@@ -128,13 +128,14 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
+            # GH#18976 bottleneck's nanmin/nanmax raise on empty input; skip it
+            #  and let each nanops function return the NA for its own dtype.
             if (
                 _USE_BOTTLENECK
                 and skipna
-                and _bn_ok_dtype(values.dtype, bn_name)
                 and values.size > 0
+                and _bn_ok_dtype(values.dtype, bn_name)
             ):
-                # GH-18976 skip bottleneck for empty arrays, let each function handle it
                 if kwds.get("mask", None) is None:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
@@ -836,7 +837,7 @@ def nanmean(
     np.float64(1.5)
     """
     if values.size == 0:
-        # GH-18976
+        # GH#18976
         return cast("float", _na_for_min_count(values, axis))
     if values.dtype == object and len(values) > 1_000 and mask is None:
         # GH#54754 if we are going to fail, try to fail-fast
@@ -1097,7 +1098,7 @@ def nanstd(
         values = values.view(f"m8[{unit}]")
 
     if values.size == 0:
-        # GH-18976
+        # GH#18976
         return cast("float", _na_for_min_count(values, axis))
 
     orig_dtype = values.dtype
@@ -1145,7 +1146,7 @@ def nanvar(
     1.0
     """
     if values.size == 0:
-        # GH-18976
+        # GH#18976
         return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
@@ -1229,10 +1230,6 @@ def nansem(
     >>> nanops.nansem(s.values)
      np.float64(0.5773502691896258)
     """
-    if values.size == 0:
-        # GH#18976
-        return cast("float", _na_for_min_count(values, axis))
-
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
     nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
@@ -1539,10 +1536,6 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
-    if values.size == 0:
-        # GH#18976
-        return cast("float", _na_for_min_count(values, axis))
-
     dtype = values.dtype
     values = ensure_float64(values)
 
@@ -1601,10 +1594,6 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
-    if values.size == 0:
-        # GH#18976
-        return cast("float", _na_for_min_count(values, axis))
-
     dtype = values.dtype
     values = ensure_float64(values)
 
