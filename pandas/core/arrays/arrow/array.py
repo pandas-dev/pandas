@@ -513,6 +513,14 @@ class ArrowExtensionArray(
                 scalars = strings.cast(pa_type)
             else:
                 mask = isna(strings)
+                # to_numeric("") yields IEEE NaN without raising. Match numpy
+                # numeric dtypes: an empty string that was not treated as NA
+                # is invalid. Compare only non-NA slots so pd.NA does not
+                # raise "boolean value of NA is ambiguous".
+                arr = np.asarray(strings, dtype=object)
+                keep = ~np.asarray(mask, dtype=np.bool_)
+                if keep.any() and np.any(arr[keep] == ""):
+                    raise ValueError(f"could not convert string to {pa_type}: ''")
                 if mask is not None:
                     scalars = pa.array(scalars, mask=mask, type=pa_type)
 
