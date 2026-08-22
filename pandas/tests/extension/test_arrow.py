@@ -4605,16 +4605,68 @@ def test_factorize_chunked_dictionary():
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
-def test_factorize_dictionary_with_na():
-    # GH#60567
-    arr = pd.array(
-        ["a1", pd.NA], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+@pytest.mark.parametrize(
+    ("codes", "uniques", "use_na_sentinel", "expected_indices", "expected_uniques"),
+    [
+        pytest.param(
+            [0, None], ["a1"], True, [0, -1], ["a1"], id="null_in_indices_w_na_sentinel"
+        ),
+        pytest.param(
+            [0, None],
+            ["a1"],
+            False,
+            [0, 1],
+            ["a1", None],
+            id="null_in_indices_wo_na_sentinel",
+        ),
+        pytest.param(
+            [0, 1],
+            ["a1", None],
+            True,
+            [0, -1],
+            ["a1"],
+            id="null_in_uniques_w_na_sentinel",
+        ),
+        pytest.param(
+            [0, 1],
+            ["a1", None],
+            False,
+            [0, 1],
+            ["a1", None],
+            id="null_in_uniques_wo_na_sentinel",
+        ),
+        pytest.param(
+            [None, 0, 1, 1, 2, None],
+            ["a1", None, "a2"],
+            True,
+            [-1, 0, -1, -1, 1, -1],
+            ["a1", "a2"],
+            id="null_in_both_w_na_sentinel",
+        ),
+        pytest.param(
+            [None, 0, 1, 1, 2, None],
+            ["a1", None, "a2"],
+            False,
+            [1, 0, 1, 1, 2, 1],
+            ["a1", None, "a2"],
+            id="null_in_both_w_na_sentinel",
+        ),
+    ],
+)
+def test_factorize_dictionary_with_na(
+    codes, uniques, use_na_sentinel, expected_indices, expected_uniques
+):
+    # GH#60567 & GH#66490
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array(codes, type=pa.int32()),
+        pa.array(uniques, type=pa.utf8()),
     )
-    indices, uniques = arr.factorize(use_na_sentinel=False)
-    expected_indices = np.array([0, 1], dtype=np.intp)
-    expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
-    tm.assert_numpy_array_equal(indices, expected_indices)
-    tm.assert_extension_array_equal(uniques, expected_uniques)
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    tm.assert_numpy_array_equal(indices, np.array(expected_indices, dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
+    )
 
 
 def test_dictionary_astype_categorical():

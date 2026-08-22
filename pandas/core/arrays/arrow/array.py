@@ -1888,32 +1888,55 @@ class ArrowExtensionArray(
         null_encoding = "mask" if use_na_sentinel else "encode"
 
         data = self._pa_array
-
-        if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
-                encoded = data
-        else:
-            encoded = data.dictionary_encode(null_encoding=null_encoding)
-        if encoded.length() == 0:
+        if data.length() == 0:
             indices = np.array([], dtype=np.intp)
-            uniques = self._from_pyarrow_array(
-                pa.chunked_array([], type=encoded.type.value_type)
-            )
-        else:
-            # GH 54844
-            combined = encoded.combine_chunks()
-            pa_indices = combined.indices
-            if pa_indices.null_count > 0:
-                pa_indices = _safe_fill_null(pa_indices, -1)
-            indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
-                np.intp, copy=False
-            )
-            uniques = self._from_pyarrow_array(combined.dictionary)
+            uniques = self._from_pyarrow_array(pa.chunked_array([], type=data.type))
+            return indices, uniques
 
+        if not pa.types.is_dictionary(data.type):
+            encoded = data.dictionary_encode(null_encoding=null_encoding)
+        else:
+            encoded = data
+
+        encoded = encoded.combine_chunks()  # GH 54844
+
+        # GH 66490
+        dictionary_has_nulls = encoded.dictionary.null_count > 0
+        indices_has_nulls = encoded.indices.null_count > 0
+        if (null_encoding == "mask") and dictionary_has_nulls:
+            null_index = pc.indices_nonzero(encoded.dictionary.is_null())[0]
+            is_null = pc.equal(encoded.indices, null_index)
+            needs_shift = pc.greater(encoded.indices, null_index)
+            pa_indices = pc.if_else(
+                is_null,
+                pa.scalar(None, type=encoded.indices.type),
+                pc.subtract(
+                    encoded.indices,
+                    pc.cast(needs_shift, encoded.indices.type),
+                ),
+            )
+            pa_uniques = encoded.dictionary.drop_null()
+
+        elif (null_encoding == "encode") and indices_has_nulls:
+            if dictionary_has_nulls:
+                null_index = pc.indices_nonzero(encoded.dictionary.is_null())[0]
+                pa_uniques = encoded.dictionary
+            else:
+                null_index = len(encoded.dictionary)
+                pa_uniques = pa.concat_arrays(
+                    [encoded.dictionary, pa.array([None], type=encoded.dictionary.type)]
+                )
+            pa_indices = pc.fill_null(encoded.indices, null_index)
+
+        else:
+            pa_indices, pa_uniques = encoded.indices, encoded.dictionary
+
+        if pa_indices.null_count > 0:
+            pa_indices = _safe_fill_null(pa_indices, -1)
+        indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
+            np.intp, copy=False
+        )
+        uniques = self._from_pyarrow_array(pa_uniques)
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
