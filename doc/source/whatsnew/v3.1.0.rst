@@ -682,6 +682,7 @@ MultiIndex
 
 I/O
 ^^^
+- :func:`read_csv` and :func:`read_table` now raise an informative ``ValueError`` for ``sep="\r"`` or ``delimiter="\r"``, which were silently mis-parsed into a frame of one column plus all-NaN padding, matching the error already raised for ``"\n"``; the error message no longer misattributes the failure to the ``python`` engine (:issue:`43528`, :issue:`51801`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``EmptyDataError`` (matching the ``c`` and ``python`` engines) instead of a cryptic ``ParserError`` reporting ``Empty CSV file or block`` when no columns can be parsed from the input (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``TypeError`` when passed a text-mode file handle (the engine requires a binary buffer) instead of a cryptic ``a bytes-like object is required`` error (:issue:`66065`)
