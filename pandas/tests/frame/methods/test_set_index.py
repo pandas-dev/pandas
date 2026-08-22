@@ -545,6 +545,18 @@ class TestSetIndex:
         tm.assert_index_equal(df.index.get_level_values(1), idx2)
         tm.assert_index_equal(df.index.get_level_values(2), idx3)
 
+    def test_set_index_numpy_bytes_dtype(self):
+        # GH#57645
+        arr = np.array(["apple", "banana", "orange", "grape"], dtype="S6")
+        df = DataFrame(Series(arr), columns=["fruits"])
+
+        result = df.set_index("fruits")
+        expected = Index(
+            np.array([b"apple", b"banana", b"orange", b"grape"], dtype=object),
+            name="fruits",
+        )
+        tm.assert_index_equal(result.index, expected)
+
 
 class TestSetIndexInvalid:
     def test_set_index_verify_integrity(self, frame_of_index_cols):
