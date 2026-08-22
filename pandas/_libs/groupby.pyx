@@ -946,7 +946,11 @@ def group_var(
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     mean = np.zeros((<object>out).shape, dtype=np.float64)
-    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    if floating is double:
+        out[:, :] = 0.0
+        M2 = out
+    else:
+        M2 = np.zeros((<object>out).shape, dtype=np.float64)
 
     N, K = (<object>values).shape
 
