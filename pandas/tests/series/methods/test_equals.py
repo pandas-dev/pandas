@@ -69,8 +69,8 @@ def test_equals_false_negative():
 
 def test_equals_matching_nas():
     # matching but not identical NAs
-    left = Series([np.datetime64("NaT")], dtype=object)
-    right = Series([np.datetime64("NaT")], dtype=object)
+    left = Series([np.datetime64("NaT", "ns")], dtype=object)
+    right = Series([np.datetime64("NaT", "ns")], dtype=object)
     assert left.equals(right)
     assert Index(left).equals(Index(right))
     assert left.array.equals(right.array)

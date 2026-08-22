@@ -1,7 +1,10 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 from pandas.compat._optional import import_optional_dependency
@@ -11,7 +14,10 @@ from pandas.util._exceptions import find_stack_level
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
-    from pyxlsb import Workbook
+    from pyxlsb import (
+        Workbook,
+        Worksheet,
+    )
 
     from pandas._typing import (
         FilePath,
@@ -69,7 +75,9 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         return Workbook
 
     def load_workbook(
-        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
+        self,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
+        engine_kwargs: dict[str, Any],
     ) -> Workbook:
         from pyxlsb import open_workbook
 
@@ -83,17 +91,17 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
     def sheet_names(self) -> list[str]:
         return self.book.sheets
 
-    def get_sheet_by_name(self, name: str):
+    def get_sheet_by_name(self, name: str) -> Worksheet:
         self.raise_if_bad_sheet_by_name(name)
         return self.book.get_sheet(name)
 
-    def get_sheet_by_index(self, index: int):
+    def get_sheet_by_index(self, index: int) -> Worksheet:
         self.raise_if_bad_sheet_by_index(index)
         # pyxlsb sheets are indexed from 1 onwards
         # There's a fix for this in the source, but the pypi package doesn't have it
         return self.book.get_sheet(index + 1)
 
-    def _convert_cell(self, cell) -> Scalar:
+    def _convert_cell(self, cell: Any) -> Scalar:
         # TODO: there is no way to distinguish between floats and datetimes in pyxlsb
         # This means that there is no way to read datetime types from an xlsb file yet
         if cell.v is None:
@@ -109,7 +117,7 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
 
     def get_sheet_data(
         self,
-        sheet,
+        sheet: Worksheet,
         file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []

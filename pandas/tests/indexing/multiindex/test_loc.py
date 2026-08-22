@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -40,7 +43,7 @@ class TestMultiIndexLoc:
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-    def test_loc_getitem_general(self, performance_warning, any_real_numpy_dtype):
+    def test_loc_getitem_general(self, any_real_numpy_dtype):
         # GH#2817
         dtype = any_real_numpy_dtype
         data = {
@@ -53,8 +56,7 @@ class TestMultiIndexLoc:
         df = df.set_index(keys=["col", "num"])
         key = 4.0, 12
 
-        with tm.assert_produces_warning(performance_warning):
-            tm.assert_frame_equal(df.loc[key], df.iloc[2:])
+        tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
         return_value = df.sort_index(inplace=True)
@@ -520,6 +522,27 @@ def test_loc_getitem_duplicates_multiindex_non_scalar_type_object():
     assert result == expected
 
 
+def test_loc_getitem_unique_key_in_nonunique_multiindex():
+    # GH#42102 - unique key in a non-unique MultiIndex should return scalar
+    mi = MultiIndex.from_tuples([(0, 0), (1, 0), (1, 0)])
+    ser = Series(range(3), index=mi)
+
+    # (0, 0) is unique even though the overall index is non-unique
+    result = ser.loc[(0, 0)]
+    assert result == 0
+    assert not isinstance(result, Series)
+
+    # (1, 0) is duplicated, should still return a Series
+    result = ser.loc[(1, 0)]
+    assert isinstance(result, Series)
+
+    # DataFrame column case: unique key in non-unique column MultiIndex
+    columns = MultiIndex.from_tuples([("A", "x"), ("B", "y"), ("B", "y")])
+    df = DataFrame([[1, 2, 3]], columns=columns)
+    result = df[("A", "x")]
+    assert isinstance(result, Series)
+
+
 def test_loc_getitem_tuple_plus_slice():
     # GH 671
     df = DataFrame(
@@ -570,7 +593,8 @@ def test_loc_setitem_single_column_slice():
         index=list("abcd"),
         columns=MultiIndex.from_product([["Main"], ("another", "one")]),
     )
-    df["labels"] = "a"
+    with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+        df["labels"] = "a"
     df.loc[:, "labels"] = df.index
     tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
 
@@ -1030,3 +1054,64 @@ def test_loc_np_datetime64_key_on_object_dt64_level():
     result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
     expected = DataFrame({"val": [1]}, index=Index(["X"]))
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_multiindex_with_overlapping_interval_single_match():
+    # GH#27456 - tuple .loc on MultiIndex with overlapping IntervalIndex
+    # level returned Series instead of scalar when only one interval matched
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["label1", "label1", "label2", "label2"]),
+            pd.IntervalIndex.from_arrays([1, 3, 1, 2], [3, 4, 2, 4]),
+        ]
+    )
+    ser = Series([1, 2, 3, 4], index=idx, name="Value")
+
+    result = ser.loc[("label1", 1.5)]
+    expected = ser.loc["label1"].loc[1.5]
+    assert result == expected == 1
+
+
+def test_loc_multiindex_with_overlapping_interval_multiple_matches():
+    # GH#27456 - tuple .loc on MultiIndex where the scalar falls in
+    # multiple overlapping intervals for the same outer label;
+    # the intervals in the level are non-contiguous (get_loc returns
+    # a boolean array, not a slice)
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["A", "A", "B", "B"]),
+            pd.IntervalIndex.from_arrays([1, 0, 0.5, 2], [3, 2, 0.8, 4]),
+        ]
+    )
+    ser = Series([10, 20, 30, 40], index=idx, name="Value")
+
+    result = ser.loc[("A", 1.5)]
+    expected = np.array([10, 20], dtype=result.values.dtype)
+    tm.assert_numpy_array_equal(result.values, expected)
+
+
+def test_loc_multiindex_interval_level_inf_break():
+    # GH#46699 - .loc with a tuple/list-of-tuples key on a MultiIndex whose
+    # inner IntervalIndex level has breaks at +/-inf used to raise ValueError
+    # from the engine when the scalar fell in the inf-bounded interval.
+    left = DataFrame(
+        {"Result": [101, 102, 103]},
+        index=pd.IntervalIndex.from_breaks(
+            [-np.inf, 35, 59, np.inf], closed="left", name="age"
+        ),
+    )
+    right = DataFrame(
+        {"Result": [1, 2, 3, 4]},
+        index=pd.IntervalIndex.from_breaks(
+            [-np.inf, 35, 59, 70, np.inf], closed="left", name="age"
+        ),
+    )
+    mapper = pd.concat([left, right], axis=0, keys=[False, True], names=["children"])
+
+    # scalar tuple: 99 falls in the [59, inf) interval of the False group
+    result = mapper.loc[(False, 99)]
+    tm.assert_series_equal(result, mapper.iloc[2])
+
+    # list of tuples, one of which falls in the [59, inf) interval
+    result = mapper.loc[[(False, 45), (False, 99)], :]
+    tm.assert_frame_equal(result, mapper.iloc[[1, 2]])

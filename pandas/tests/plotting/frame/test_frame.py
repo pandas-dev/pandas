@@ -43,7 +43,6 @@ from pandas.tests.plotting.common import (
     _check_visible,
     get_y_axis,
 )
-from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -220,7 +219,9 @@ class TestDataFramePlots:
         # GH 6951
         # Test with single column
         df = DataFrame({"x": np.random.default_rng(2).random(10)})
-        axes = _check_plot_works(df.plot.bar, subplots=True, layout=layout)
+        axes = _check_plot_works(
+            df.plot.bar, default_axes=True, subplots=True, layout=layout
+        )
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @pytest.mark.slow
@@ -665,11 +666,11 @@ class TestDataFramePlots:
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data()[0][0]
         assert xmax >= lines[0].get_data()[0][-1]
-        assert ymin == 0
+        assert ymin == 0, f"ymin={ymin!r} ymax={ymax!r}"
 
         ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
         ymin, ymax = ax.get_ylim()
-        assert ymax == 0
+        assert ymax == 0, f"ymin={ymin!r} ymax={ymax!r}"
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
@@ -681,6 +682,24 @@ class TestDataFramePlots:
 
         assert get_y_axis(ax1).joined(ax1, ax2)
         assert get_y_axis(ax2).joined(ax1, ax2)
+
+    def test_area_lim_unaffected_by_unrelated_sharey(self):
+        # Unrelated sharey'd axes elsewhere in the process must not defeat
+        # the ymin=0 baseline pin for an all-positive area plot.
+        unrelated_fig, unrelated_axes = mpl.pyplot.subplots(1, 2, sharey=True)
+
+        df = DataFrame(
+            np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
+        )
+        _fig, ax = mpl.pyplot.subplots()
+        df.plot.area(ax=ax, stacked=True)
+        ymin, _ymax = ax.get_ylim()
+        assert ymin == 0
+
+        # keep the sharey'd axes alive until after the assertion so the
+        # class-level Grouper still contains them at check time
+        assert unrelated_fig is not None
+        assert unrelated_axes is not None
 
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
@@ -873,6 +892,19 @@ class TestDataFramePlots:
         df = DataFrame({"dates": dates, "vals": vals})
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
+
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_scatterplot_datetime_y_data(self, tz):
+        # GH#64613 datetime y-column raised instead of plotting; the y axis
+        #  should get the same datetime scaling a line plot gets
+        dates = date_range(start=date(2019, 1, 1), periods=12, freq="W", tz=tz)
+        vals = np.random.default_rng(2).normal(0, 1, len(dates))
+        df = DataFrame({"vals": vals, "dates": dates})
+
+        _, ax = plt.subplots(2)
+        df.plot.scatter(x="vals", y="dates", ax=ax[0])
+        df.plot(x="vals", y="dates", ax=ax[1])
+        assert ax[0].get_yticks() == pytest.approx(ax[1].get_yticks())
 
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
@@ -1091,7 +1123,6 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     @pytest.mark.xfail(
-        Version(mpl.__version__) >= Version("3.10"),
         reason="Fails starting with matplotlib 3.10",
     )
     def test_boxplot_vertical(self, hist_df):
@@ -1100,32 +1131,25 @@ class TestDataFramePlots:
         labels = [pprint_thing(c) for c in numeric_cols]
 
         # if horizontal, yticklabels are rotated
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
-        ax = df.plot.box(rot=50, fontsize=8, **kwargs)
+        ax = df.plot.box(rot=50, fontsize=8, orientation="horizontal")
         _check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
         _check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == 7 * len(numeric_cols)
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.xfail(
-        Version(mpl.__version__) >= Version("3.10"),
         reason="Fails starting with matplotlib version 3.10",
     )
     def test_boxplot_vertical_subplots(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
         axes = _check_plot_works(
-            df.plot.box, default_axes=True, subplots=True, logx=True, **kwargs
+            df.plot.box,
+            default_axes=True,
+            subplots=True,
+            logx=True,
+            orientation="horizontal",
         )
         _check_axes_shape(axes, axes_num=3, layout=(1, 3))
         _check_ax_scales(axes, xaxis="log")
@@ -1135,7 +1159,6 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     @pytest.mark.xfail(
-        Version(mpl.__version__) >= Version("3.10"),
         reason="Fails starting with matplotlib 3.10",
     )
     def test_boxplot_vertical_positions(self, hist_df):
@@ -1143,12 +1166,7 @@ class TestDataFramePlots:
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
         positions = np.array([3, 2, 8])
-        kwargs = (
-            {"vert": False}
-            if Version(mpl.__version__) < Version("3.10")
-            else {"orientation": "horizontal"}
-        )
-        ax = df.plot.box(positions=positions, **kwargs)
+        ax = df.plot.box(positions=positions, orientation="horizontal")
         _check_text_labels(ax.get_yticklabels(), labels)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
         assert len(ax.lines) == 7 * len(numeric_cols)
@@ -2553,14 +2571,10 @@ class TestDataFramePlots:
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = DataFrame(d)
 
-        if Version(np.__version__) < Version("2.0.0"):
-            with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
-                df.plot(subplots=[("a", "bad_name")])
-        else:
-            with pytest.raises(
-                ValueError, match=r"Column label\(s\) \[np\.str\_\('bad_name'\)\]"
-            ):
-                df.plot(subplots=[("a", "bad_name")])
+        with pytest.raises(
+            ValueError, match=r"Column label\(s\) \[np\.str\_\('bad_name'\)\]"
+        ):
+            df.plot(subplots=[("a", "bad_name")])
 
     def test_group_subplot_duplicated_column(self):
         d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
@@ -2660,11 +2674,11 @@ class TestDataFramePlots:
             index=idx,
             columns=["A"],
         )
-        expected = idx.values
+        expected = idx.asi8
 
         ax = df.plot()
         result = ax.get_lines()[0].get_xdata()
-        assert all(str(result[i]) == str(expected[i]) for i in range(4))
+        assert all(result[i] == expected[i] for i in range(4))
 
     def test_plot_display_xlabel_and_xticks(self):
         # GH#44050

@@ -143,6 +143,79 @@ def test_assert_not_almost_equal_numbers_rtol(a, b):
     _assert_not_almost_equal_both(a, b, rtol=0.05)
 
 
+@pytest.mark.parametrize("dtype", [int, np.int64, np.uint64])
+def test_assert_almost_equal_large_integers_within_atol(dtype):
+    # GH#66400 these land on float64s 256 apart, so the comparison used to
+    #  report a difference that is not there
+    a = 1450804465901089690
+    b = 1450804465901089614  # 76 apart
+
+    _assert_almost_equal_both(dtype(a), dtype(b), rtol=0, atol=100)
+
+
+@pytest.mark.parametrize("dtype", [int, np.int64, np.uint64])
+def test_assert_not_almost_equal_large_integers_outside_atol(dtype):
+    # GH#66400 these land on the same float64, so the comparison used to pass
+    a = 1450804465901089690
+    b = a + 100
+
+    _assert_not_almost_equal_both(dtype(a), dtype(b), rtol=0, atol=10)
+
+
+@pytest.mark.parametrize("kwargs", [{"rtol": -1}, {"atol": -1}])
+def test_assert_almost_equal_integers_negative_tolerance(kwargs):
+    # GH#66400 the integer path must not swallow the math.isclose validation
+    with pytest.raises(ValueError, match="tolerances must be non-negative"):
+        tm.assert_almost_equal(1, 2, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (2**60 + 1, float(2**60)),
+        (np.int64(2**60 + 1), np.float64(2**60)),
+        (np.uint64(2**63 + 1), np.float64(2**63)),
+        (
+            np.array([2**60 + 1], dtype="int64"),
+            np.array([float(2**60)], dtype="float64"),
+        ),
+        (
+            np.array([2**53 + 1], dtype="int64"),
+            np.array([float(2**53)], dtype="float64"),
+        ),
+        (
+            np.array([-(2**53) - 1], dtype="int64"),
+            np.array([float(-(2**53))], dtype="float64"),
+        ),
+    ],
+)
+def test_assert_almost_equal_large_mixed_integer_float_atol(a, b):
+    # GH#66699 float64 cannot represent the one-integer difference.
+    _assert_not_almost_equal_both(a, b, check_dtype=False, rtol=0, atol=0.5)
+    _assert_almost_equal_both(a, b, check_dtype=False, rtol=0, atol=1)
+
+
+def test_assert_almost_equal_large_mixed_integer_float_rtol():
+    a = 2**60 + 1
+    b = float(2**60)
+
+    _assert_not_almost_equal_both(a, b, check_dtype=False, rtol=0.5 / 2**60, atol=0)
+    _assert_almost_equal_both(a, b, check_dtype=False, rtol=1 / 2**60, atol=0)
+
+
+def test_assert_almost_equal_large_mixed_integer_float_message():
+    integer = 2**60 + 1
+    floating = float(2**60)
+
+    with pytest.raises(AssertionError) as exc_info:
+        tm.assert_almost_equal(integer, floating, rtol=0, atol=0.5)
+
+    assert str(exc_info.value) == (
+        "expected 1152921504606846976.00000 but got 1152921504606846977.00000, "
+        "with rtol=0, atol=0.5"
+    )
+
+
 @pytest.mark.parametrize(
     "a,b,rtol",
     [
@@ -306,7 +379,7 @@ def test_assert_almost_equal_inf(a, b):
     _assert_almost_equal_both(a, b)
 
 
-objs = [NA, np.nan, NaT, None, np.datetime64("NaT"), np.timedelta64("NaT", "ns")]
+objs = [NA, np.nan, NaT, None, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
 
 
 @pytest.mark.parametrize("left", objs)

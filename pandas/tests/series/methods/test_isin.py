@@ -235,6 +235,23 @@ def test_isin_large_series_and_pdNA(dtype, data, values, expected, monkeypatch):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, data, values, expected",
+    [
+        ("int64[pyarrow]", [1, None], [1, pd.NA], [True, True]),
+        ("binary[pyarrow]", [None, b"\xe3"], [pd.NA, b"\xe3"], [True, True]),
+    ],
+)
+def test_isin_arrow_dtype_with_na_value(dtype, data, values, expected):
+    # GH#63304
+    pytest.importorskip("pyarrow")
+
+    result = Series(data, dtype=dtype).isin(values)
+    expected = Series(expected)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_isin_complex_numbers():
     # GH 17927
     array = [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j]
@@ -267,3 +284,49 @@ def test_isin_filtering_on_iterable(data, isin):
     expected_result = Series([True, True, False])
 
     tm.assert_series_equal(result, expected_result)
+
+
+@pytest.mark.parametrize("set_cls", [set, frozenset])
+@pytest.mark.parametrize("dtype", ["int64", "int32", "uint8", "uint64"])
+@pytest.mark.parametrize("n_comps", [2, 20])
+def test_isin_set_matches_list(set_cls, dtype, n_comps):
+    # GH#25507: passing a set must match the list-based path. With a small
+    # comps (n_comps=2 < len(targets)) this exercises the set-membership fast
+    # path; with a larger comps it exercises the materialize-to-list fallback.
+    ser = Series(range(n_comps), dtype=dtype)
+    targets = [1, 3, 5, 7, 9, 11, 13]
+    expected = ser.isin(list(targets))
+    result = ser.isin(set_cls(targets))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("set_cls", [set, frozenset])
+def test_isin_set_matches_list_bool(set_cls):
+    # GH#25507: boolean comps go through the same set fast path (taken here
+    # since the single-element comps is smaller than the two-element set).
+    ser = Series([True])
+    expected = ser.isin([True, False])
+    result = ser.isin(set_cls([True, False]))
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_empty_set():
+    # GH#25507 set fast path must handle empty set
+    ser = Series([1, 2, 3])
+    result = ser.isin(set())
+    expected = Series([False, False, False])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("n_comps", [1, 2])
+@pytest.mark.parametrize("magnitude", [2**53, 2**53 + 1])
+@pytest.mark.parametrize("values", [{2.0**53, 0.5}, {2**53 + 1, 0.5}])
+def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
+    # GH#25507: comps at or beyond float64's exact-int range can match
+    # lossily under the materialized path (which casts through float64) but
+    # not under exact set membership; the result must not depend on the
+    # comps size.
+    ser = Series([magnitude] * n_comps, dtype="int64")
+    result = ser.isin(values)
+    expected = ser.isin(list(values))
+    tm.assert_series_equal(result, expected)

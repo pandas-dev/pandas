@@ -92,16 +92,17 @@ def _new_DatetimeIndex(cls, d):
             #  a DatetimeArray to adapt to the newer _simple_new signature
             tz = d.pop("tz")
             freq = d.pop("freq")
-            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
+            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz))
         else:
             dta = data
-            for key in ["tz", "freq"]:
-                # These are already stored in our DatetimeArray; if they are
-                #  also in the pickle and don't match, we have a problem.
-                if key in d:
-                    assert d[key] == getattr(dta, key)
-                    d.pop(key)
+            if "tz" in d:
+                assert d.pop("tz") == dta.tz
+            # Legacy pickles stored freq on the DatetimeArray; current pickles
+            # include it in ``d``. Migrate either up onto the Index.
+            legacy_freq = vars(dta).pop("_freq", None)
+            freq = d.pop("freq", legacy_freq)
         result = cls._simple_new(dta, **d)
+        result._freq = freq
     else:
         with warnings.catch_warnings():
             # TODO: If we knew what was going in to **d, we might be able to
@@ -180,10 +181,19 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise a ValueError if there are ambiguous times.
+
+        .. deprecated:: 3.1.0
+            Use :meth:`DatetimeIndex.tz_localize` instead.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
+
+        .. deprecated:: 3.1.0
+            Use :func:`to_datetime` instead.
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
+
+        .. deprecated:: 3.1.0
+            Use :func:`to_datetime` instead.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
         Note that the only NumPy dtypes allowed are 'datetime64[ns]',
         'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
@@ -495,9 +505,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        arr = self._data.normalize()
-        arr = arr._with_freq("infer")
-        return type(self)._simple_new(arr, name=self.name)
+        data = self._data
+        # Inferring frequency from naive normalization is significantly
+        # cheaper than tz-aware.
+        naive = data._normalize_naive()
+        freq = to_offset(naive._inferred_freq_str)
+        arr = naive.tz_localize(data.tz) if data.tz is not None else naive
+        result = type(self)._simple_new(arr, name=self.name)
+        result._freq = freq
+        return result
 
     def tz_convert(self, tz) -> Self:
         """
@@ -571,10 +587,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                         dtype='datetime64[us]', freq='h')
         """  # noqa: E501
         arr = self._data.tz_convert(tz)
-        freq = self._data.freq
-        if isinstance(freq, Tick):
-            arr._freq = freq
-        return type(self)._simple_new(arr, name=self.name, refs=self._references)
+        result = type(self)._simple_new(arr, name=self.name, refs=self._references)
+        if isinstance(self.freq, Tick):
+            result._freq = self.freq
+        return result
 
     def tz_localize(
         self,
@@ -594,9 +610,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
-            Time zone to convert timestamps to. Passing ``None`` will
-            remove the time zone information preserving local time.
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+            Time zone to attach to the tz-naive timestamps; the wall time is
+            preserved. Passing ``None`` detaches the time zone from a tz-aware
+            DatetimeIndex, returning a tz-naive DatetimeIndex with the same
+            wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -660,8 +678,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2018-03-03 09:00:00-05:00'],
                       dtype='datetime64[us, US/Eastern]', freq=None)
 
-        With the ``tz=None``, we can remove the time zone information
-        while keeping the local time (not converted to UTC):
+        With ``tz=None`` we can remove the time zone information while
+        preserving the wall time (no conversion to UTC):
 
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
@@ -713,7 +731,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
-        1   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00.000000000+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
@@ -721,16 +739,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
         """  # noqa: E501
-        freq = self._data.freq
+        freq = self._freq
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        result = type(self)._simple_new(arr, name=self.name)
         if timezones.is_utc(arr.tz) or (len(arr) == 1 and arr[0] is not NaT):
             # we can preserve freq
             # TODO: Also for fixed-offsets
-            arr._freq = freq
+            result._freq = freq
         elif arr.tz is None and self._data.tz is None:
             # no-op
-            arr._freq = freq
-        return type(self)._simple_new(arr, name=self.name)
+            result._freq = freq
+        return result
 
     def to_period(self, freq=None) -> PeriodIndex:
         """
@@ -740,9 +759,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        freq : str or Period, optional
-            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
-            or a Period object. Will be inferred by default.
+        freq : str, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`.
+            Will be inferred by default.
 
         Returns
         -------
@@ -796,7 +815,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 freq = PeriodDtype(dt_freq)._freqstr
 
             if freq is None:
-                freq = self.inferred_freq
+                freq = self._inferred_freq_str
 
             if freq is not None:
                 res = get_period_alias(freq)
@@ -872,15 +891,46 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
         tz=lib.no_default,
-        ambiguous: TimeAmbiguous = "raise",
-        dayfirst: bool = False,
-        yearfirst: bool = False,
+        ambiguous: TimeAmbiguous | lib.NoDefault = lib.no_default,
+        dayfirst: bool | lib.NoDefault = lib.no_default,
+        yearfirst: bool | lib.NoDefault = lib.no_default,
         dtype: Dtype | None = None,
         copy: bool | None = None,
         name: Hashable | None = None,
     ) -> Self:
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
+
+        if dayfirst is lib.no_default:
+            dayfirst = False
+        else:
+            warnings.warn(
+                f"The 'dayfirst' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
+                "Use pd.to_datetime instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if yearfirst is lib.no_default:
+            yearfirst = False
+        else:
+            warnings.warn(
+                f"The 'yearfirst' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
+                "Use pd.to_datetime instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if ambiguous is lib.no_default:
+            ambiguous = "raise"
+        else:
+            warnings.warn(
+                f"The 'ambiguous' keyword in {cls.__name__} is deprecated "
+                "and will be removed in a future version. "
+                f"Use {cls.__name__}.tz_localize instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -901,14 +951,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        # Extract freq from incoming data before array conversion strips it
-        inferred_freq = None
-        if isinstance(data, DatetimeArray):
-            inferred_freq = data.freq
-        elif isinstance(data, (Index, ABCSeries)):
-            values = data._values
-            if isinstance(values, DatetimeArray):
-                inferred_freq = values.freq
+        inferred_freq = data.freq if isinstance(data, DatetimeIndex) else None
 
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
@@ -920,15 +963,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             ambiguous=ambiguous,
         )
 
-        if inferred_freq is not None:
-            dtarr._freq = inferred_freq
-        dtarr._maybe_pin_freq(freq, {"ambiguous": ambiguous})
-
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
+        subarr._pin_freq(freq, inferred_freq)
         return subarr
 
     # --------------------------------------------------------------------
@@ -951,7 +991,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return self._values._is_dates_only
 
     def __reduce__(self):
-        d = {"data": self._data, "name": self.name}
+        d = {"data": self._data, "name": self.name, "freq": self._freq}
         return _new_DatetimeIndex, (type(self), d), None
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -1761,7 +1801,9 @@ def date_range(
         unit=unit,
         **kwargs,
     )
-    return DatetimeIndex._simple_new(dtarr, name=name)
+    result = DatetimeIndex._simple_new(dtarr, name=name)
+    result._freq = freq
+    return result
 
 
 @set_module("pandas")

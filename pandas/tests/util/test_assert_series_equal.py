@@ -324,6 +324,23 @@ def test_series_equal_series_type():
         tm.assert_series_equal(s3, s1, check_series_type=True)
 
 
+def test_series_equal_ndarray_subclass_values():
+    # GH#65770
+    class OtherArray(np.ndarray):
+        pass
+
+    left = Series(np.array([1, 2, 3]))
+    right = Series(np.array([1, 2, 3]).view(OtherArray), copy=False)
+
+    msg = """Series values are different
+
+Series values classes are different
+\\[left\\]:  ndarray
+\\[right\\]: OtherArray"""
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_series_type=False)
+
+
 def test_series_equal_exact_for_nonnumeric():
     # https://github.com/pandas-dev/pandas/issues/35446
     s1 = Series(["a", "b"])
@@ -415,6 +432,31 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, x, check_exact=True)
     tm.assert_series_equal(x, y)
     tm.assert_series_equal(x, y, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            Series([pd.array([1, 2, 3])], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+        (
+            Series([[1, 2, 3]], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_series_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = "Series are different"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(right, left, check_exact=True)
 
 
 @pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])
@@ -518,3 +560,94 @@ def test_assert_series_equal_int_near_bounds():
     msg = "Series are different"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(ser1, ser2)
+
+
+@pytest.mark.parametrize(
+    "left_values,right_values,left_dtype,right_dtype",
+    [
+        ([2**60 + 1], [float(2**60)], "int64", "float64"),
+        ([2**63 + 1], [float(2**63)], "uint64", "float64"),
+        ([pd.NA, 2**60 + 1], [pd.NA, float(2**60)], "Int64", "Float64"),
+    ],
+)
+def test_assert_series_equal_large_mixed_integer_float_atol(
+    left_values, right_values, left_dtype, right_dtype
+):
+    # GH#66699 comparison must retain integer precision with check_dtype=False.
+    left = Series(left_values, dtype=left_dtype)
+    right = Series(right_values, dtype=right_dtype)
+
+    for first, second in [(left, right), (right, left)]:
+        with pytest.raises(AssertionError, match="Series are different"):
+            tm.assert_series_equal(
+                first,
+                second,
+                check_dtype=False,
+                check_exact=False,
+                rtol=0,
+                atol=0.5,
+            )
+    _assert_series_equal_both(
+        left, right, check_dtype=False, check_exact=False, rtol=0, atol=1
+    )
+
+
+def test_assert_series_equal_large_mixed_integer_float_rtol():
+    left = Series([2**60 + 1], dtype="int64")
+    right = Series([float(2**60)], dtype="float64")
+
+    for first, second in [(left, right), (right, left)]:
+        with pytest.raises(AssertionError, match="Series are different"):
+            tm.assert_series_equal(
+                first,
+                second,
+                check_dtype=False,
+                check_exact=False,
+                rtol=0.5 / 2**60,
+                atol=0,
+            )
+    _assert_series_equal_both(
+        left,
+        right,
+        check_dtype=False,
+        check_exact=False,
+        rtol=1 / 2**60,
+        atol=0,
+    )
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_assert_series_equal_large_int_atol(dtype):
+    # GH#66400 an explicitly passed atol must be honored above 2**53 too;
+    #  GH#40719 covers the default, which never reaches the tolerance check
+    val = 1450804465901089690
+    ser = Series([val], dtype=dtype)
+
+    tm.assert_series_equal(
+        ser, Series([val - 76], dtype=dtype), check_exact=False, rtol=0, atol=100
+    )
+
+    msg = "Series are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(
+            ser, Series([val + 100], dtype=dtype), check_exact=False, rtol=0, atol=10
+        )
+
+
+def test_assert_series_equal_check_like_check_freq():
+    # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
+    #  the freq check is skipped with check_like=True
+    idx = pd.date_range("2020-01-01", periods=3, freq="D")
+    ser = Series([1, 2, 3], index=idx)
+    shuffled = ser.iloc[[2, 0, 1]]
+    with tm.assert_produces_warning(None):
+        tm.assert_series_equal(shuffled, ser, check_like=True)
+
+
+def test_assert_series_equal_check_index_false_ignores_freq():
+    # GH#51920 freq is an index attribute, so check_index=False skips it
+    idx = pd.date_range("2020-01-01", periods=3, freq="D")
+    left = Series([1, 2, 3], index=idx)
+    right = Series([1, 2, 3], index=idx._with_freq(None))
+    with tm.assert_produces_warning(None):
+        tm.assert_series_equal(left, right, check_index=False)

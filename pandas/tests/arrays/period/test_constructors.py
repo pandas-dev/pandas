@@ -4,6 +4,10 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -18,11 +22,9 @@ from pandas.core.arrays import (
     [
         ([pd.Period("2017", "D")], None, [17167]),
         ([pd.Period("2017", "D")], "D", [17167]),
-        ([2017], "D", [17167]),
         (["2017"], "D", [17167]),
         ([pd.Period("2017", "D")], pd.tseries.offsets.Day(), [17167]),
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
-        (pd.Series(pd.date_range("2017", periods=3)), None, [17167, 17168, 17169]),
         (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
         (pd.period_range("2017", periods=4, freq="Q"), None, [188, 189, 190, 191]),
     ],
@@ -40,6 +42,21 @@ def test_period_array_ok(data, freq, expected):
     tm.assert_numpy_array_equal(result.asi8, expected)
 
     result = pd.PeriodIndex(data, freq=freq)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
+
+def test_period_array_from_datetime_series_inferred_freq():
+    # GH#64241
+    data = pd.Series(pd.date_range("2017", periods=3))
+    expected = np.asarray([17167, 17168, 17169], dtype=np.int64)
+
+    msg = "Constructing PeriodArray from a Series of datetime64 data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.PeriodIndex(data, freq=None).array.asi8
+    tm.assert_numpy_array_equal(result, expected)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence(data, dtype=None)
     tm.assert_numpy_array_equal(result.asi8, expected)
 
 
@@ -111,25 +128,130 @@ def test_period_array_freq_mismatch():
         PeriodArray(arr, dtype=dtype)
 
 
-def test_from_sequence_allows_i8():
-    # GH#64227 this used to be allowed for PeriodIndex and period_array
-    # but not PeriodArray._from_sequence
+def test_from_sequence_int_deprecation():
+    # GH#64227 passing integer data is deprecated; integers will be treated
+    # as period ordinals in a future version instead of year values.
     arr = period_array(["1975", "1976"], dtype="period[D]")
 
-    expected = pd.PeriodIndex([pd.Period(x, freq=arr.freq) for x in arr.asi8]).array
+    # During deprecation, integer inputs are still treated as year values
+    scalar_msg = "Passing an integer to Period is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=scalar_msg):
+        expected_years = pd.PeriodIndex(
+            [pd.Period(x, freq=arr.freq) for x in arr.asi8]
+        ).array
 
-    result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
-    result2 = period_array(arr.asi8, dtype=arr.dtype)
-    result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
-    # FIXME: GH#64227 this goes through a different path and gives different behavior
-    # result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
-    result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result2 = period_array(arr.asi8, dtype=arr.dtype)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
 
-    tm.assert_period_array_equal(result1, expected)
-    tm.assert_period_array_equal(result2, expected)
-    tm.assert_period_array_equal(result3, expected)
-    # tm.assert_period_array_equal(result4, expected)
-    tm.assert_period_array_equal(result5, expected)
+    tm.assert_period_array_equal(result1, expected_years)
+    tm.assert_period_array_equal(result2, expected_years)
+    tm.assert_period_array_equal(result3, expected_years)
+    tm.assert_period_array_equal(result5, expected_years)
+
+    # The object-dtype path treats integers as year values too, and is
+    #  deprecated on the same timeline so the two stay in step
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
+    tm.assert_period_array_equal(result4, expected_years)
+
+
+def test_from_sequence_integers_with_na_consistent():
+    # GH#64227 an int is interpreted as a calendar year regardless of whether
+    #  an NA is present; previously a None flipped ints to raw-ordinal values
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = PeriodArray._from_sequence([2000, 2001], dtype="period[D]")
+    assert expected.tolist() == [pd.Period("2000", "D"), pd.Period("2001", "D")]
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence([2000, None], dtype="period[D]")
+    tm.assert_period_array_equal(result[:1], expected[:1])
+    assert result[1] is pd.NaT
+
+    # the integer NaT sentinel is still respected in the object path
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence([iNaT, 2001], dtype="period[D]")
+    assert result[0] is pd.NaT
+    tm.assert_period_array_equal(result[1:], expected[1:])
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt32", "int64[pyarrow]"])
+def test_from_sequence_masked_arrow_integers_with_na(dtype):
+    # GH#64227 masked/arrow integer arrays with NA used to raise a misleading
+    #  "does not allow floating point" TypeError from the np.asarray-float path
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = pd.array([2000, None], dtype=dtype)
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence(values, dtype="period[D]")
+
+    expected = PeriodArray._from_sequence(
+        [pd.Period("2000", "D"), None], dtype="period[D]"
+    )
+    tm.assert_period_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([2000, 2001], dtype=np.int64),
+        np.array([2000, 2001], dtype=np.uint32),
+        np.array([2000, 2001], dtype=object),
+        [2000, 2001],
+        pd.array([2000, 2001], dtype="Int64"),
+        pd.Series([2000, 2001]),
+        pd.Index([2000, 2001]),
+    ],
+)
+def test_int_deprecation_warns_once_all_dtypes(values):
+    # GH#64227 every integer input warns exactly once, whatever container or
+    #  integer dtype it arrives in
+    msg = "Passing integer data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence(values, dtype="period[D]")
+
+    expected = PeriodArray._from_sequence(
+        [pd.Period("2000", "D"), pd.Period("2001", "D")], dtype="period[D]"
+    )
+    tm.assert_period_array_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:Passing integer data:pandas.errors.Pandas4Warning")
+@pytest.mark.parametrize("val", [2**63, 2**64 - 5])
+def test_from_sequence_uint64_out_of_bounds(val):
+    # GH#64231 uint64 values above int64 max used to wrap in the cast to
+    #  int64, silently giving a negative (BC) year or NaT
+    arr = np.array([val], dtype=np.uint64)
+    msg = f'Parsing "{val}" to datetime overflows'
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        PeriodArray._from_sequence(arr, dtype="period[D]")
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "int64", "int64[pyarrow]", object])
+def test_from_sequence_integers_container_independent(dtype):
+    # GH#64227 the integer container must not change how the integers are
+    #  read; the numpy-int64 path used to read 200701 as year 200701 while
+    #  every other path read it as 2007-01
+    if "pyarrow" in str(dtype):
+        pytest.importorskip("pyarrow")
+    values = pd.array([200701, 200702], dtype=dtype)
+
+    depr_msg = "Passing integer data"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = PeriodArray._from_sequence(values, dtype="period[M]")
+
+    expected = PeriodArray._from_sequence(
+        [pd.Period("2007-01", "M"), pd.Period("2007-02", "M")], dtype="period[M]"
+    )
+    tm.assert_period_array_equal(result, expected)
 
 
 def test_from_td64nat_sequence_raises():

@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 from pandas._libs import (
     index as libindex,
@@ -22,6 +23,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.timedeltas import parse_timedelta_string_reso
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -53,6 +55,30 @@ if TYPE_CHECKING:
         DtypeObj,
         TimeUnit,
     )
+
+
+def _new_TimedeltaIndex(cls, d):
+    """
+    This is called upon unpickling, rather than the default which doesn't
+    have arguments and breaks __new__
+    """
+    if "data" in d and not isinstance(d["data"], TimedeltaIndex):
+        data = d.pop("data")
+        if isinstance(data, TimedeltaArray):
+            tdarr = data
+        else:
+            tdarr = TimedeltaArray._simple_new(data, dtype=data.dtype)
+        # Legacy pickles stored freq on the TimedeltaArray; current pickles
+        # include it in ``d``. Migrate either up onto the Index.
+        legacy_freq = vars(tdarr).pop("_freq", None)
+        freq = d.pop("freq", legacy_freq)
+        result = cls._simple_new(tdarr, **d)
+        result._freq = freq
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = cls.__new__(cls, **d)
+    return result
 
 
 @inherit_names(
@@ -207,13 +233,20 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
+        inferred_freq = data.freq if isinstance(data, TimedeltaIndex) else None
+
         tdarr = TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
-        tdarr._maybe_pin_freq(freq, {})
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        return cls._simple_new(tdarr, name=name, refs=refs)
+        result = cls._simple_new(tdarr, name=name, refs=refs)
+        result._pin_freq(freq, inferred_freq)
+        return result
+
+    def __reduce__(self):
+        d = {"data": self._data, "name": self.name, "freq": self._freq}
+        return _new_TimedeltaIndex, (type(self), d), None
 
     # -------------------------------------------------------------------
 
@@ -232,14 +265,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         result = self._data.__neg__()
         idx = type(self)._simple_new(result, name=self.name)
         if self.freq is not None:
-            idx._data._freq = -self.freq  # type: ignore[assignment]
+            idx._freq = -self.freq
         return idx
 
     def __pos__(self) -> TimedeltaIndex:
         result = self._data.__pos__()
         idx = type(self)._simple_new(result, name=self.name)
         if self.freq is not None:
-            idx._data._freq = self.freq  # type: ignore[assignment]
+            idx._freq = self.freq
         return idx
 
     def _arith_method(self, other: object, op: Callable) -> Index:
@@ -259,7 +292,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             new_freq = self._get_rsub_datetime_result_freq(other)
 
         if new_freq is not None:
-            result._data._freq = new_freq
+            result._freq = new_freq
         return result
 
     def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:
@@ -351,23 +384,32 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # "tuple[datetime, Resolution]" in supertype
     # "pandas.core.indexes.datetimelike.DatetimeIndexOpsMixin"
     def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
-        parsed = Timedelta(label)
+        # Resolution comes from the string text (GH#33603), not the value's
+        # components: "720s" resolves to "s", not "min" (even though
+        # 720s == 12 minutes). The parser reports both in a single pass.
+        parsed, string_reso_code = parse_timedelta_string_reso(label)
         if isinstance(parsed, Timedelta):
-            reso = Resolution.get_reso_from_freqstr(parsed.unit)
+            string_reso = Resolution(string_reso_code)
+            # Fold in sub-unit precision the written unit doesn't capture,
+            # e.g. "1.5min" is minute-written but second-resolution.
+            value_reso = Resolution.get_reso_from_freqstr(parsed.resolution_string)
+            reso = min(string_reso, value_reso)
         else:
             # i.e. pd.NaT
-            reso = Resolution.get_reso_from_freqstr("s")
+            reso = Resolution.RESO_SEC
         return parsed, reso
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
-        # reso is unused, included to match signature of DTI/PI
-        lbound = parsed.round(parsed.resolution_string)
+        reso_str = reso.attr_abbrev
+        lbound = parsed.floor(reso_str)
         rbound = (
             lbound
-            + to_offset(parsed.resolution_string)
+            + to_offset(reso_str)
             - Timedelta(1, unit=self.unit).as_unit(self.unit)
         )
-        return lbound, rbound
+        # If reso is finer than the index unit, the window [lbound, rbound]
+        # collapses to lbound alone; without the clamp rbound < lbound.
+        return lbound, max(lbound, rbound)
 
     # -------------------------------------------------------------------
 
@@ -517,4 +559,6 @@ def timedelta_range(
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )
-    return TimedeltaIndex._simple_new(tdarr, name=name)
+    result = TimedeltaIndex._simple_new(tdarr, name=name)
+    result._freq = freq
+    return result

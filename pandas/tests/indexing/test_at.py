@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 from decimal import Decimal
 
@@ -86,7 +86,7 @@ def test_at_timezone():
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
     with pytest.raises(TypeError, match="Invalid value"):
-        result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
+        result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=UTC)
 
 
 def test_selection_methods_of_assigned_col():
@@ -195,6 +195,34 @@ class TestAtSetItemWithExpansion:
         expected = Series([1, 2, 6], index=[0, 1, 5])
         tm.assert_series_equal(ser, expected)
 
+    def test_at_setitem_expansion_deprecated_new_column(self):
+        # GH#48323 - new column (existing row) also expands
+        df = DataFrame({"a": [1, 2]})
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, "b"] = 99
+        assert "b" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_rows(self):
+        # GH#48323 - new column on a frame with MultiIndex rows
+        mi = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
+        df = DataFrame({"x": [1, 2, 3]}, index=mi)
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[("a", 1), "y"] = 99
+        assert "y" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_cols(self):
+        # GH#48323 - new tuple column on a frame with MultiIndex columns
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_tuples([("a", 1), ("a", 2)]),
+        )
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, ("b", 1)] = 99
+        assert ("b", 1) in df.columns
+
     def test_at_setitem_no_warning_existing_key(self):
         # GH#48323 - no warning for existing keys
         df = DataFrame({"a": [1, 2]})
@@ -286,7 +314,7 @@ class TestAtErrors:
         new_row = [6, 7]
         with pytest.raises(
             InvalidIndexError,
-            match=f"You can only assign a scalar value not a \\{type(new_row)}",
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
         ):
             df.at[5] = new_row
 
@@ -317,6 +345,31 @@ class TestAtErrors:
         new_row = [123, 15]
         with pytest.raises(
             InvalidIndexError,
-            match=f"You can only assign a scalar value not a \\{type(new_row)}",
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
         ):
             df.at["a"] = new_row
+
+    @pytest.mark.parametrize("key", [lambda df: df["b"] == 6, [0, 1], np.array([0, 1])])
+    def test_at_setitem_nonscalar_indexer_raises(self, key):
+        # GH#51866 - .at setitem with a mask/list/array indexer should raise a
+        #  clear error directing the user to .loc, not the misleading
+        #  "scalar value" message
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = key(df) if callable(key) else key
+        with pytest.raises(
+            InvalidIndexError,
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
+        ):
+            df.at[indexer, "b"] = 9.0
+
+    @pytest.mark.parametrize("key", [lambda ser: ser > 2, [0, 1], np.array([0, 1])])
+    def test_at_setitem_series_nonscalar_indexer_raises(self, key):
+        # GH#51866 - Series .at setitem with a non-scalar indexer should raise a
+        #  clear error rather than dumping the raw indexer
+        ser = Series([1, 2, 3, 4])
+        indexer = key(ser) if callable(key) else key
+        with pytest.raises(
+            InvalidIndexError,
+            match=".at-based indexing can only have scalar indexers; use .loc instead",
+        ):
+            ser.at[indexer] = 9.0

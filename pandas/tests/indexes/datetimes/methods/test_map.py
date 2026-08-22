@@ -36,6 +36,18 @@ class TestMap:
         expected = Index([f(index[0])])
         tm.assert_index_equal(result, expected)
 
+    def test_map_tz_aware_to_tz_naive(self):
+        # GH#57192 a function that strips the tz should give a tz-naive result,
+        #  not silently re-localize back to the original tz
+        dti = date_range("2024-02-01", "2024-02-03", freq="8h", tz="UTC")
+
+        result = dti.map(lambda ts: ts.normalize().tz_convert(None))
+        expected = DatetimeIndex(
+            [ts.normalize().tz_convert(None) for ts in dti], dtype="M8[us]"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.tz is None
+
     @pytest.mark.parametrize("name", [None, "name"])
     def test_index_map(self, name):
         # see GH#20990

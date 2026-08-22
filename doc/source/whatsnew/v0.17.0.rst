@@ -308,7 +308,7 @@ See the :ref:`documentation <io.excel>` for more details.
    df
    df.to_excel("test.xlsx")
 
-   df = pd.read_excel("test.xlsx", header=[0, 1], index_col=[0, 1])
+   df = pd.read_excel("test.xlsx", header=[0, 1], index_col=[0, 1], engine="openpyxl")
    df
 
 .. ipython:: python
@@ -668,6 +668,7 @@ v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
 New behavior:
 
 .. ipython:: python
+   :okwarning:
 
    pd.Timestamp("2012Q2")
    pd.Timestamp("2014")

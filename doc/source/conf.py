@@ -231,6 +231,7 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
     # Offset .base properties
+    r"pandas\.tseries\.offsets\.BaseOffset\.base$",
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
     r"pandas\.tseries\.offsets\.BusinessDay\.base$",
     r"pandas\.tseries\.offsets\.BusinessHour\.base$",
@@ -609,6 +610,10 @@ html_favicon = "../../web/pandas/static/img/favicon.ico"
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
 
+# Our html theme does not have "show source" button in the sidebar, so also
+# don't copy source files to the html output to save space.
+html_copy_source = False
+
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 
@@ -761,11 +766,10 @@ latex_documents = [
 
 if include_api:
     intersphinx_mapping = {
-        "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
+        "dateutil": ("https://dateutil.readthedocs.io/en/stable/", None),
         "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "python": ("https://docs.python.org/3/", None),
-        "scipy": ("https://docs.scipy.org/doc/scipy/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
@@ -963,6 +967,10 @@ def linkcode_resolve(domain, info) -> str | None:
         except AttributeError:
             return None
 
+    if isinstance(obj, type):
+        if hasattr(obj, "_module_source"):
+            obj.__module__, obj._module_source = obj._module_source, obj.__module__
+
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
@@ -989,6 +997,9 @@ def linkcode_resolve(domain, info) -> str | None:
         linespec = ""
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
+
+    if isinstance(obj, type) and hasattr(obj, "_module_source"):
+        obj.__module__, obj._module_source = obj._module_source, obj.__module__
 
     if "+" in version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"

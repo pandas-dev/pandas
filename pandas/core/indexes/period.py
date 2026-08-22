@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
+import warnings
 
 import numpy as np
 
@@ -22,9 +23,11 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -174,6 +177,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     _data_cls = PeriodArray
     _supports_partial_string_indexing = True
 
+    _warn_quarter: bool = False
+
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
@@ -284,8 +289,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
-        arr = self._data.to_timestamp(freq, how)
-        return DatetimeIndex._simple_new(arr, name=self.name)
+        parr = self._data
+        arr = parr.to_timestamp(freq, how)
+        result = DatetimeIndex._simple_new(arr, name=self.name)
+        result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
+        return result
 
     @property
     def hour(self) -> Index:
@@ -407,8 +415,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. The frequency is inferred from
-        the fields provided or can be given explicitly.
+        specified as a scalar or array-like. At least one field must be
+        array-like; scalar fields are broadcast to its length. The frequency
+        is inferred from the fields provided or can be given explicitly.
 
         Parameters
         ----------
@@ -500,7 +509,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @property
     def values(self) -> npt.NDArray[np.object_]:
+        warnings.warn(
+            "PeriodIndex.values returning an object-dtype ndarray is "
+            "deprecated. In a future version, this will return the "
+            "underlying PeriodArray instead. Use 'PeriodIndex.to_numpy()' "
+            "to get a NumPy array, or 'PeriodIndex.array' to get the "
+            "ExtensionArray.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return np.asarray(self, dtype=object)
+
+    def _mpl_repr(self) -> np.ndarray:
+        # Return ordinals directly so matplotlib receives numeric x-values,
+        # bypassing a round-trip through Period scalar objects.  GH#10578
+        return self.asi8
 
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
         """
@@ -561,9 +584,27 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Returns True if this PeriodIndex is range-like in that all Periods
-        between start and end are present, in order.
+        Return True if the index contains all periods from start to end
+        (inclusive) with no gaps.
+
+        Requires monotonic increasing order. Duplicate periods are allowed.
+
+        .. deprecated:: 3.1.0
+            ``PeriodIndex.is_full`` is deprecated and will be removed in
+            a future version. Use
+            ``index.empty or len(index.unique()) ==
+            len(period_range(index.min(), index.max(), freq=index.freq))``
+            instead. Unlike ``is_full``, this does not raise on a
+            non-monotonic index.
         """
+        warnings.warn(
+            "PeriodIndex.is_full is deprecated and will be removed in a "
+            "future version. Use index.empty or len(index.unique()) == "
+            "len(period_range(index.min(), index.max(), freq=index.freq)) "
+            "instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if len(self) == 0:
             return True
         if not self.is_monotonic_increasing:

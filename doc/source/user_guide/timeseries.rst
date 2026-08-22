@@ -394,6 +394,15 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
    (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")
 
+.. note::
+
+   You may also see :meth:`Timestamp.timestamp` used for this conversion.
+   The explicit subtraction above is recommended because it is unambiguous
+   about treating a timezone-naive value as UTC: :meth:`Timestamp.timestamp`
+   treats a naive ``Timestamp`` as UTC, which does *not* match the standard
+   library ``datetime.datetime.timestamp``, where a naive value is
+   interpreted as local time.
+
 Another common way to perform this conversion is to convert directly to an integer dtype. Note that the exact integers this produces will depend on the specific unit
 or resolution of the datetime64 dtype:
 
@@ -526,17 +535,43 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-The limits of timestamp representation depend on the chosen resolution. For
-nanosecond resolution, the time span that
-can be represented using a 64-bit integer is limited to approximately 584 years:
+:class:`Timestamp` uses a 64-bit integer to represent time, so the representable
+range depends on the chosen resolution (``unit``). For the default nanosecond
+resolution the span is limited to approximately 584 years; coarser resolutions
+such as second extend the range to roughly ``+/- 2.9e11`` years.
+
+The class-level attributes :attr:`Timestamp.min`, :attr:`Timestamp.max`, and
+:attr:`Timestamp.resolution` default to nanosecond limits:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+   pd.Timestamp.resolution
 
-When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
-Different resolutions can be converted to each other through ``as_unit``.
+On a :class:`Timestamp` *instance*, the same attributes reflect the bounds and
+step size of that instance's resolution:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2262-04-12").as_unit("s")
+   ts.min
+   ts.max
+   ts.resolution
+
+Because :class:`Timestamp` construction automatically picks a resolution wide
+enough to represent the input, a value outside the nanosecond range (such as
+``"3000-06-10"``) is parsed using a coarser unit rather than raising
+:class:`OutOfBoundsDatetime`:
+
+.. ipython:: python
+
+   far_future = pd.Timestamp("3000-06-10")
+   far_future
+   far_future.unit
+
+Different resolutions can be converted to each other through
+:meth:`Timestamp.as_unit`.
 
 .. seealso::
 
@@ -771,6 +806,87 @@ With no defaults.
            2013, 2, 28, 10, 12, 0
        )
    ]
+
+.. _timeseries.noninclusive_slicing:
+
+Non-inclusive slicing
+~~~~~~~~~~~~~~~~~~~~~
+
+As noted in the sections above, label-based slicing with a ``DatetimeIndex``
+**includes both endpoints**. This differs from standard Python sequence slicing
+where the stop endpoint is excluded.
+
+If you need to select data using open or half-open intervals (for example,
+``start < t < end`` or ``start <= t < end``), you can use boolean indexing:
+
+.. ipython:: python
+
+   ts_example = pd.Series(
+       range(5),
+       index=pd.date_range("2000-01-01", periods=5, freq="D"),
+   )
+   ts_example
+
+Select all entries strictly between ``"2000-01-02"`` and ``"2000-01-04"``
+(excluding both endpoints):
+
+.. ipython:: python
+
+   ts_example[(ts_example.index > "2000-01-02") & (ts_example.index < "2000-01-04")]
+
+Select entries with a half-open interval (include left, exclude right):
+
+.. ipython:: python
+
+   ts_example[(ts_example.index >= "2000-01-02") & (ts_example.index < "2000-01-04")]
+
+For large time series where boolean indexing may be less efficient, you can use
+:meth:`~pandas.Index.get_slice_bound` together with ``.iloc`` to achieve
+non-inclusive slicing on a sorted index:
+
+.. ipython:: python
+
+   lo = ts_example.index.get_slice_bound("2000-01-02", "right")
+   hi = ts_example.index.get_slice_bound("2000-01-04", "left")
+   ts_example.iloc[lo:hi]
+
+Here, ``side="right"`` returns the position just past ``"2000-01-02"``, and
+``side="left"`` returns the position of ``"2000-01-04"`` itself. Since ``.iloc``
+uses standard Python half-open slicing, the result excludes both endpoints.
+
+.. _timeseries.at_time:
+
+Selecting a time of day
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Like :ref:`partial string indexing <timeseries.partialindexing>`, the methods
+:meth:`~DataFrame.at_time` and :meth:`~DataFrame.between_time` operate on the
+object's index, selecting rows by their time of day regardless of the date.
+:meth:`~DataFrame.at_time` selects all timestamps at a particular time:
+
+.. ipython:: python
+
+   rng_time = pd.date_range("2018-01-01", periods=10, freq="6h")
+   ts_time = pd.Series(range(10), index=rng_time)
+   ts_time
+   ts_time.at_time("12:00")
+
+:meth:`~DataFrame.between_time` selects the rows whose time of day falls
+between two times, including both endpoints by default; the ``inclusive``
+argument controls whether each endpoint is included:
+
+.. ipython:: python
+
+   ts_time.between_time("00:00", "12:00")
+   ts_time.between_time("00:00", "12:00", inclusive="left")
+
+Both methods also accept ``datetime.time`` objects:
+
+.. ipython:: python
+
+   import datetime
+
+   ts_time.at_time(datetime.time(12, 0))
 
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1385,30 +1501,54 @@ For some frequencies you can specify an anchoring suffix:
     "W\-THU", "weekly frequency, week ends on Thursday"
     "W\-FRI", "weekly frequency, week ends on Friday"
     "W\-SAT", "weekly frequency, week ends on Saturday"
-    "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
-    "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
-    "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
-    "(B)Q(E)(S)\-MAR", "quarterly frequency, year ends in March"
-    "(B)Q(E)(S)\-APR", "quarterly frequency, year ends in April"
-    "(B)Q(E)(S)\-MAY", "quarterly frequency, year ends in May"
-    "(B)Q(E)(S)\-JUN", "quarterly frequency, year ends in June"
-    "(B)Q(E)(S)\-JUL", "quarterly frequency, year ends in July"
-    "(B)Q(E)(S)\-AUG", "quarterly frequency, year ends in August"
-    "(B)Q(E)(S)\-SEP", "quarterly frequency, year ends in September"
-    "(B)Q(E)(S)\-OCT", "quarterly frequency, year ends in October"
-    "(B)Q(E)(S)\-NOV", "quarterly frequency, year ends in November"
-    "(B)Y(E)(S)\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
-    "(B)Y(E)(S)\-JAN", "annual frequency, anchored end of January"
-    "(B)Y(E)(S)\-FEB", "annual frequency, anchored end of February"
-    "(B)Y(E)(S)\-MAR", "annual frequency, anchored end of March"
-    "(B)Y(E)(S)\-APR", "annual frequency, anchored end of April"
-    "(B)Y(E)(S)\-MAY", "annual frequency, anchored end of May"
-    "(B)Y(E)(S)\-JUN", "annual frequency, anchored end of June"
-    "(B)Y(E)(S)\-JUL", "annual frequency, anchored end of July"
-    "(B)Y(E)(S)\-AUG", "annual frequency, anchored end of August"
-    "(B)Y(E)(S)\-SEP", "annual frequency, anchored end of September"
-    "(B)Y(E)(S)\-OCT", "annual frequency, anchored end of October"
-    "(B)Y(E)(S)\-NOV", "annual frequency, anchored end of November"
+    "(B)QE\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
+    "(B)QE\-JAN", "quarterly frequency, year ends in January"
+    "(B)QE\-FEB", "quarterly frequency, year ends in February"
+    "(B)QE\-MAR", "quarterly frequency, year ends in March"
+    "(B)QE\-APR", "quarterly frequency, year ends in April"
+    "(B)QE\-MAY", "quarterly frequency, year ends in May"
+    "(B)QE\-JUN", "quarterly frequency, year ends in June"
+    "(B)QE\-JUL", "quarterly frequency, year ends in July"
+    "(B)QE\-AUG", "quarterly frequency, year ends in August"
+    "(B)QE\-SEP", "quarterly frequency, year ends in September"
+    "(B)QE\-OCT", "quarterly frequency, year ends in October"
+    "(B)QE\-NOV", "quarterly frequency, year ends in November"
+    "(B)QS\-JAN", "quarterly frequency, year starts in January. Same as 'QS'"
+    "(B)QS\-FEB", "quarterly frequency, year starts in February"
+    "(B)QS\-MAR", "quarterly frequency, year starts in March"
+    "(B)QS\-APR", "quarterly frequency, year starts in April"
+    "(B)QS\-MAY", "quarterly frequency, year starts in May"
+    "(B)QS\-JUN", "quarterly frequency, year starts in June"
+    "(B)QS\-JUL", "quarterly frequency, year starts in July"
+    "(B)QS\-AUG", "quarterly frequency, year starts in August"
+    "(B)QS\-SEP", "quarterly frequency, year starts in September"
+    "(B)QS\-OCT", "quarterly frequency, year starts in October"
+    "(B)QS\-NOV", "quarterly frequency, year starts in November"
+    "(B)QS\-DEC", "quarterly frequency, year starts in December"
+    "(B)YE\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
+    "(B)YE\-JAN", "annual frequency, anchored end of January"
+    "(B)YE\-FEB", "annual frequency, anchored end of February"
+    "(B)YE\-MAR", "annual frequency, anchored end of March"
+    "(B)YE\-APR", "annual frequency, anchored end of April"
+    "(B)YE\-MAY", "annual frequency, anchored end of May"
+    "(B)YE\-JUN", "annual frequency, anchored end of June"
+    "(B)YE\-JUL", "annual frequency, anchored end of July"
+    "(B)YE\-AUG", "annual frequency, anchored end of August"
+    "(B)YE\-SEP", "annual frequency, anchored end of September"
+    "(B)YE\-OCT", "annual frequency, anchored end of October"
+    "(B)YE\-NOV", "annual frequency, anchored end of November"
+    "(B)YS\-JAN", "annual frequency, anchored start of January. Same as 'YS'"
+    "(B)YS\-FEB", "annual frequency, anchored start of February"
+    "(B)YS\-MAR", "annual frequency, anchored start of March"
+    "(B)YS\-APR", "annual frequency, anchored start of April"
+    "(B)YS\-MAY", "annual frequency, anchored start of May"
+    "(B)YS\-JUN", "annual frequency, anchored start of June"
+    "(B)YS\-JUL", "annual frequency, anchored start of July"
+    "(B)YS\-AUG", "annual frequency, anchored start of August"
+    "(B)YS\-SEP", "annual frequency, anchored start of September"
+    "(B)YS\-OCT", "annual frequency, anchored start of October"
+    "(B)YS\-NOV", "annual frequency, anchored start of November"
+    "(B)YS\-DEC", "annual frequency, anchored start of December"
 
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
@@ -1484,8 +1624,8 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
-    "next_workday", "move Saturday and Sunday to Monday"
-    "previous_workday", "move Saturday and Sunday to Friday"
+    "next_workday", "move to the next weekday, always advancing by at least one day"
+    "previous_workday", "move to the previous weekday, always moving back by at least one day"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
     "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
     "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"

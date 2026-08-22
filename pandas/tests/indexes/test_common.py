@@ -313,7 +313,7 @@ class TestCommon:
         # make duplicated index
         n = len(unique_idx)
         duplicated_selection = np.random.default_rng(2).choice(n, int(n * 1.5))
-        idx = holder(unique_idx.values[duplicated_selection])
+        idx = holder(unique_idx._values[duplicated_selection])
 
         # Series.duplicated is tested separately
         expected_duplicated = (
@@ -450,7 +450,7 @@ def test_sort_values_with_missing(index_with_missing_sortable, na_position):
     index_with_missing = index_with_missing_sortable
 
     missing_count = np.sum(index_with_missing.isna())
-    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    not_na_vals = index_with_missing[index_with_missing.notna()]._values
     sorted_values = np.sort(not_na_vals)
     if na_position == "first":
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
@@ -482,7 +482,7 @@ def test_ndarray_compat_properties(index):
     assert idx.T.equals(idx)
     assert idx.transpose().equals(idx)
 
-    values = idx.values
+    values = idx._values
 
     assert idx.shape == values.shape
     assert idx.ndim == values.ndim
@@ -494,7 +494,7 @@ def test_ndarray_compat_properties(index):
 
     # test for validity
     idx.nbytes
-    idx.values.nbytes
+    idx._values.nbytes
 
 
 def test_compare_read_only_array():
@@ -528,3 +528,33 @@ def test_join_series_deprecated():
         Pandas4Warning, match="Passing .* to .* is deprecated"
     ):
         idx.join(ser)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.0, None], "Float64"),
+        ([True, None], "boolean"),
+        ([1, None], "int64[pyarrow]"),
+        ([1.0, None], "category"),
+    ],
+)
+def test_fillna_incompatible_value_deprecated_ea_dtype(data, dtype):
+    # GH#25288 the casting deprecation also applies to Index with an
+    #  ExtensionArray dtype, which used to cast to object silently
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    idx = pd.Index(data, dtype=dtype)
+
+    msg = "'str' is not supported as a fill value"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = idx.fillna("x")
+
+    expected = pd.Index([data[0], "x"], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+    # a value the dtype can hold is unaffected
+    with tm.assert_produces_warning(None):
+        result = idx.fillna(data[0])
+    tm.assert_index_equal(result, pd.Index([data[0], data[0]], dtype=dtype))

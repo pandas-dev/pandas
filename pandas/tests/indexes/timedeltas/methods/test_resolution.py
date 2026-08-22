@@ -15,13 +15,13 @@ from pandas import TimedeltaIndex
     ],
 )
 def test_tdi_resolution(timedelta_val, expected):
-    # GH#?????
+    # GH#65186
     tdi = TimedeltaIndex([timedelta_val])
     assert tdi.resolution == expected
 
 
 def test_tdi_resolution_no_freq():
-    # GH#????? resolution should work even without a freq
+    # GH#65186 resolution should work even without a freq
     tdi = TimedeltaIndex(["1 day", "2 days", "4 days"])
     assert tdi.resolution == "day"
 

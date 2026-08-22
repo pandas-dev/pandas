@@ -1,5 +1,6 @@
 cimport cython
 from cpython.ref cimport (
+    Py_DECREF,
     Py_INCREF,
     PyObject,
 )
@@ -28,6 +29,7 @@ from pandas._libs.khash cimport (
     kh_needed_n_buckets,
     kh_python_hash_equal,
     kh_python_hash_func,
+    kh_strview,
     khiter_t,
 )
 from pandas._libs.missing cimport (

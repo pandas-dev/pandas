@@ -223,7 +223,6 @@ def test_multifunc_numba_vs_cython_frame_noskipna(func):
     "agg_kwargs,expected_func",
     [
         ({"func": lambda values, index: values.sum()}, "sum"),
-        # FIXME
         pytest.param(
             {
                 "func": [

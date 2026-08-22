@@ -132,7 +132,7 @@ def test_unsortedindex():
         df.loc(axis=0)["q", :]
 
 
-def test_unsortedindex_doc_examples(performance_warning):
+def test_unsortedindex_doc_examples():
     # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
         {
@@ -143,8 +143,8 @@ def test_unsortedindex_doc_examples(performance_warning):
     )
 
     dfm = dfm.set_index(["jim", "joe"])
-    with tm.assert_produces_warning(performance_warning):
-        dfm.loc[(1, "z")]
+    # Full-length key uses the engine directly; no PerformanceWarning
+    dfm.loc[(1, "z")]
 
     msg = r"Key length \(2\) was greater than MultiIndex lexsort depth \(1\)"
     with pytest.raises(UnsortedIndexError, match=msg):

@@ -12,11 +12,6 @@
 Nullable Boolean data type
 **************************
 
-.. note::
-
-   BooleanArray is currently experimental. Its API or implementation may
-   change without warning.
-
 .. _boolean.indexing:
 
 Indexing with NA values

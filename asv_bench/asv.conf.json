@@ -8,13 +8,15 @@
     "show_commit_url": "https://github.com/pandas-dev/pandas/commit/",
     "matrix": {
         "pip+build": [],
+        "versioneer[toml]": [],
         "Cython": [],
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
         "numba": [],
         "numexpr": [],
-        "pytables": [],
+        "pytables": [null, ""],
+        "tables": [null, ""],
         "pyarrow": [],
         "openpyxl": [],
         "xlsxwriter": [],
@@ -24,11 +26,17 @@
         "meson-python": [],
         "python-build": []
     },
+    "exclude": [
+        {"environment_type": "conda|rattler", "tables": ""},
+        {"environment_type": "conda|rattler", "pytables": null},
+        {"environment_type": "(?!(?:conda|rattler)).*", "tables": null},
+        {"environment_type": "(?!(?:conda|rattler)).*", "pytables": ""}
+    ],
     "conda_channels": ["conda-forge"],
     "build_cache_size": 8,
     "regressions_first_commits": {
         ".*": "0409521665"
     },
     "build_command":
-    ["python -m build -Cbuilddir=builddir --wheel --outdir {build_cache_dir} {build_dir}"]
+    ["python -m build -Cbuilddir=builddir --no-isolation --wheel --outdir {build_cache_dir} {build_dir}"]
 }

@@ -932,6 +932,20 @@ class TestDataFrameFormatting:
         result2 = repr(frame.iloc[:5])
         assert result.startswith(result2)
 
+    def test_to_string_truncate_formatters(self):
+        # GH#35410 - formatters dict applied to wrong columns after truncation
+        df = DataFrame(
+            np.arange(30).reshape(5, 6),
+            columns=[f"Col{i}" for i in range(6)],
+        )
+        formatters = {c: (lambda x, c=c: f"{c}: {x}") for c in df.columns}
+        result = df.to_string(formatters=formatters, max_cols=4)
+        # Col4 and Col5 should use their own formatters, not Col2/Col3
+        assert "Col4:" in result
+        assert "Col5:" in result
+        assert "Col2: 4" not in result
+        assert "Col3: 5" not in result
+
     def test_datetimelike_frame(self):
         # GH 12211
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})
@@ -1271,10 +1285,6 @@ class TestDataFrameFormatting:
             5,
         ):
             assert not has_non_verbose_info_repr(df)
-
-        # FIXME: don't leave commented-out
-        # test verbose overrides
-        # set_option('display.max_info_columns', 4)  # exceeded
 
     def test_pprint_pathological_object(self):
         """
@@ -2130,6 +2140,36 @@ class TestTimedelta64Formatter:
         x = pd.to_timedelta(list(range(1)), unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
+
+    def test_fractional_seconds_aligned(self):
+        # GH#57188 - fractional seconds should be right-padded to uniform width
+        s = 1 / Series(np.arange(1, 4))
+        td = pd.to_timedelta(s, unit="s")._values
+        result = fmt._Timedelta64Formatter(td).get_result()
+        expected = [
+            "0 days 00:00:01.000000000",
+            "0 days 00:00:00.500000000",
+            "0 days 00:00:00.333333333",
+        ]
+        assert result == expected
+
+    def test_fractional_seconds_no_frac_unchanged(self):
+        # GH#57188 - whole-second values should not gain a decimal point
+        y = pd.to_timedelta(list(range(3)), unit="s")._values
+        result = fmt._Timedelta64Formatter(y).get_result()
+        expected = ["0 days 00:00:00", "0 days 00:00:01", "0 days 00:00:02"]
+        assert result == expected
+
+    def test_fractional_seconds_nat_handled(self):
+        # GH#57188 - NaT should not break alignment
+        td = pd.to_timedelta([1e9, NaT.value, 5e8], unit="ns")._values
+        result = fmt._Timedelta64Formatter(td).get_result()
+        expected = [
+            "0 days 00:00:01.000000",
+            "                   NaT",
+            "0 days 00:00:00.500000",
+        ]
+        assert result == expected
 
 
 class TestDatetime64Formatter:

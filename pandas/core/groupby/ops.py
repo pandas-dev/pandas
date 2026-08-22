@@ -115,6 +115,15 @@ def extract_result(res):
     return res
 
 
+_REDUCEAT_UFUNCS: dict[str, np.ufunc] = {
+    "sum": np.add,
+    "prod": np.multiply,
+    "min": np.minimum,
+    "max": np.maximum,
+    "mean": np.add,
+}
+
+
 class WrappedCythonOp:
     """
     Dispatch logic for functions defined in _libs.groupby
@@ -223,7 +232,9 @@ class WrappedCythonOp:
                 dtype,
             )
 
-    def _get_cython_vals(self, values: np.ndarray) -> np.ndarray:
+    def _get_cython_vals(
+        self, values: np.ndarray, uses_mask: bool = False
+    ) -> np.ndarray:
         """
         Cast numeric dtypes to float64 for functions that only support that.
 
@@ -245,7 +256,7 @@ class WrappedCythonOp:
 
         elif values.dtype.kind in "iu":
             if how in ["var", "mean"] or (
-                self.kind == "transform" and self.has_dropped_na
+                self.kind == "transform" and self.has_dropped_na and not uses_mask
             ):
                 # has_dropped_na check need for test_null_group_str_transformer
                 # result may still include NaN, so we have to cast
@@ -418,7 +429,7 @@ class WrappedCythonOp:
 
         out_shape = self._get_output_shape(ngroups, values)
         func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
-        values = self._get_cython_vals(values)
+        values = self._get_cython_vals(values, uses_mask=mask is not None)
         out_dtype = self._get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
@@ -734,7 +745,10 @@ class BaseGrouper:
         ngroups = self.ngroups
         out: np.ndarray | list
         if ngroups:
-            out = np.bincount(ids[ids != -1], minlength=ngroups)
+            if self.has_dropped_na:
+                out = np.bincount(ids + 1, minlength=ngroups + 1)[1:]
+            else:
+                out = np.bincount(ids, minlength=ngroups)
         else:
             out = []
         return Series(out, index=self.result_index, dtype="int64", copy=False)
@@ -767,6 +781,34 @@ class BaseGrouper:
         Whether grouper has null value(s) that are dropped.
         """
         return bool((self.ids < 0).any())
+
+    @final
+    @cache_readonly
+    def _reduceat_segment_info(
+        self,
+    ) -> tuple[int, npt.NDArray[np.intp], npt.NDArray[np.intp], np.ndarray] | None:
+        """
+        Precompute segment boundaries for _reduceat_aggregate.
+
+        Returns (na_count, group_starts, segment_ids, segment_sizes),
+        or None when comp_ids is empty after dropping NA rows.
+        """
+        comp_ids = self.ids
+
+        if self.has_dropped_na:
+            na_count = int((comp_ids < 0).sum())
+            comp_ids = comp_ids[na_count:]
+        else:
+            na_count = 0
+
+        if comp_ids.size == 0:
+            return None
+
+        group_starts = np.flatnonzero(np.r_[True, comp_ids[1:] != comp_ids[:-1]])
+        segment_ids = comp_ids[group_starts]
+        segment_sizes = np.diff(group_starts, append=comp_ids.size)
+
+        return na_count, group_starts, segment_ids, segment_sizes
 
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
@@ -971,6 +1013,17 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
+        if (
+            kind == "aggregate"
+            and how in _REDUCEAT_UFUNCS
+            and isinstance(values, np.ndarray)
+            and values.dtype.kind in "iufb"
+            and self.is_monotonic
+        ):
+            result = self._reduceat_aggregate(values, how, axis, min_count)
+            if result is not None:
+                return result
+
         cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
 
         return cy_op.cython_operation(
@@ -981,6 +1034,115 @@ class BaseGrouper:
             ngroups=self.ngroups,
             **kwargs,
         )
+
+    @final
+    def _reduceat_aggregate(
+        self,
+        values: np.ndarray,
+        how: str,
+        axis: AxisInt,
+        min_count: int,
+    ) -> np.ndarray | None:
+        """
+        Use ufunc.reduceat for sorted group ids.  Returns None to fall back.
+        """
+        info = self._reduceat_segment_info
+        if info is None:
+            return None
+
+        na_count, group_starts, segment_ids, segment_sizes = info
+        ngroups = self.ngroups
+        orig_dtype = values.dtype
+
+        # reduceat propagates NaN, but the Cython kernels skip it
+        if orig_dtype.kind == "f" and np.isnan(values).any():
+            return None
+
+        # dropped-NA rows (comp_ids < 0) are at the front when monotonic
+        if na_count > 0:
+            if axis == 0:
+                values = values[na_count:]
+            else:
+                values = values[:, na_count:]
+
+        # avoid overflow, matching _get_cython_vals
+        work_dtype: np.dtype
+        if how == "mean":
+            work_dtype = np.dtype(np.float64)
+        elif how in ("sum", "prod") and orig_dtype.kind in "ib":
+            work_dtype = np.dtype(np.int64)
+        elif how in ("sum", "prod") and orig_dtype.kind == "u":
+            work_dtype = np.dtype(np.uint64)
+        else:
+            work_dtype = orig_dtype
+
+        work_values = values.astype(work_dtype, copy=False)
+
+        ufunc = _REDUCEAT_UFUNCS[how]
+        seg = ufunc.reduceat(work_values, group_starts, axis=axis)
+
+        if how == "mean":
+            sizes = segment_sizes.astype(np.float64)
+            if seg.ndim == 1:
+                seg = seg / sizes
+            else:
+                shape = [1] * seg.ndim
+                shape[axis] = len(sizes)
+                seg = seg / sizes.reshape(shape)
+
+        # inline _get_result_dtype for the ops we handle
+        res_dtype: np.dtype
+        if how == "mean":
+            res_dtype = np.dtype(np.float64)
+        elif how in ("sum", "prod") and orig_dtype.kind == "b":
+            res_dtype = np.dtype(np.int64)
+        else:
+            res_dtype = orig_dtype
+
+        # ngroups may exceed present segments
+        out_shape = list(values.shape)
+        out_shape[axis] = ngroups
+
+        if how == "sum":
+            result = np.zeros(out_shape, dtype=work_dtype)
+        elif how == "prod":
+            result = np.ones(out_shape, dtype=work_dtype)
+        elif work_dtype.kind == "f":
+            # mean, or float min/max — NaN for empty groups
+            result = np.full(out_shape, np.nan, dtype=work_dtype)
+        # int/bool min/max: fill with dtype extreme; empty groups
+        # will be converted to NaN below
+        elif work_dtype.kind == "b":
+            result = np.full(out_shape, how == "min", dtype=work_dtype)
+        else:
+            iinfo = np.iinfo(work_dtype)
+            fill = iinfo.max if how == "min" else iinfo.min
+            result = np.full(out_shape, fill, dtype=work_dtype)
+
+        indexer: list[Any] = [slice(None)] * len(out_shape)
+        indexer[axis] = segment_ids
+        result[tuple(indexer)] = seg
+
+        # see _call_cython_op for the min_count logic
+        if how in ("sum", "prod"):
+            cutoff = max(0, min_count)
+        else:
+            cutoff = max(1, min_count)
+
+        if cutoff > 0:
+            group_counts = np.zeros(ngroups, dtype=np.int64)
+            group_counts[segment_ids] = segment_sizes
+            empty_mask = group_counts < cutoff
+            if empty_mask.any():
+                if result.dtype.kind in "iub":
+                    result = result.astype(np.float64)
+                indexer2: list[Any] = [slice(None)] * result.ndim
+                indexer2[axis] = empty_mask
+                result[tuple(indexer2)] = np.nan
+
+        result = maybe_downcast_to_dtype(result, res_dtype)
+
+        return result
 
     @final
     def agg_series(
@@ -1265,30 +1427,52 @@ class DataSplitter(Generic[NDFrameT]):
 
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
         sdata = self._sorted_data
+        # __finalize__ is a no-op for an exact Series/DataFrame with empty
+        # attrs and default flags; skip it in that case. Safe to compute the
+        # gate once because sdata is splitter-owned and its type/attrs/flags
+        # can't be mutated through the yielded chunks.
+        needs_finalize = (
+            type(sdata) is not self._sorted_cls
+            or bool(sdata.attrs)
+            or not sdata._flags._allows_duplicate_labels
+        )
         for start, end in zip(starts, ends, strict=True):
-            yield self._chop(sdata, slice(start, end))
+            yield self._chop(sdata, slice(start, end), needs_finalize)
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=0)
 
-    def _chop(self, sdata, slice_obj: slice) -> NDFrame:
+    _sorted_cls: type[NDFrame]
+
+    def _chop(self, sdata, slice_obj: slice, needs_finalize: bool) -> NDFrame:
         raise AbstractMethodError(self)
 
 
 class SeriesSplitter(DataSplitter):
-    def _chop(self, sdata: Series, slice_obj: slice) -> Series:
+    _sorted_cls = Series
+
+    def _chop(self, sdata: Series, slice_obj: slice, needs_finalize: bool) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
         ser = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
-        ser._name = sdata.name
-        return ser.__finalize__(sdata, method="groupby")
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
+        object.__setattr__(ser, "_name", sdata.name)
+        if needs_finalize:
+            return ser.__finalize__(sdata, method="groupby")
+        return ser
 
 
 class FrameSplitter(DataSplitter):
-    def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
+    _sorted_cls = DataFrame
+
+    def _chop(
+        self, sdata: DataFrame, slice_obj: slice, needs_finalize: bool
+    ) -> DataFrame:
         # Fastpath equivalent to:
         # return sdata.iloc[slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
-        return df.__finalize__(sdata, method="groupby")
+        if needs_finalize:
+            return df.__finalize__(sdata, method="groupby")
+        return df

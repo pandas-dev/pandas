@@ -152,3 +152,29 @@ def test_can_hold_element_ea_series_with_na(dtype, ea_dtype):
         ser = Series([1, pd.NA], dtype=ea_dtype)
 
     assert not can_hold_element(arr, ser)
+
+
+@pytest.mark.parametrize("wrapper", [lambda values: values, Series, pd.Index])
+@pytest.mark.parametrize("backend", ["numpy_nullable", "pyarrow"])
+def test_can_hold_element_ea_no_na_lossy_values(wrapper, backend):
+    # GH#47776 - even without NAs, the values themselves must fit losslessly;
+    #  previously these were silently held (e.g. -1 wrapping to 2**64-1).
+    if backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+        int_dtype, float_dtype = "int64[pyarrow]", "double[pyarrow]"
+    else:
+        int_dtype, float_dtype = "Int64", "Float64"
+
+    # signed values cannot go into an unsigned dtype
+    uint_arr = np.array([], dtype=np.uint64)
+    assert can_hold_element(uint_arr, wrapper(pd.array([1, 2, 3], dtype=int_dtype)))
+    assert not can_hold_element(
+        uint_arr, wrapper(pd.array([-1, 2, 3], dtype=int_dtype))
+    )
+
+    # values that overflow the target float dtype cannot be held
+    f32_arr = np.array([], dtype=np.float32)
+    assert can_hold_element(f32_arr, wrapper(pd.array([1.0, 2.0], dtype=float_dtype)))
+    assert not can_hold_element(
+        f32_arr, wrapper(pd.array([1e300, 2.0], dtype=float_dtype))
+    )

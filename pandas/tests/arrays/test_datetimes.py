@@ -130,6 +130,29 @@ class TestNonNano:
         assert res._creso == dta._creso
         assert res == dti.std().floor(unit)
 
+    def test_tz_convert_localize_pre_1677_non_nano(self, unit):
+        # GH#66252 the NPY_NAT+1 "beginning of time" transition sentinel was
+        #  scaled along with the real transitions when localizing a non-nano
+        #  resolution, so tz-aware values before ~1677 (not representable in
+        #  nanoseconds) bisected past the transitions and got a garbage offset
+        #  from an out-of-bounds read.
+        arr = np.array(["1600-01-01"], dtype=f"M8[{unit}]")
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        # Asia/Kolkata observed LMT (UTC+05:53:28) for all dates before 1854
+        result = dta.tz_localize("UTC").tz_convert("Asia/Kolkata")
+        assert result[0].tz_localize(None) == pd.Timestamp("1600-01-01 05:53:28")
+        # and the original UTC instant is recovered
+        assert result.tz_convert("UTC").tz_localize(None)[0] == pd.Timestamp(
+            "1600-01-01"
+        )
+
+        # localize direction is affected by the same sentinel
+        localized = dta.tz_localize("Asia/Kolkata")
+        assert localized.tz_convert("UTC").tz_localize(None)[0] == pd.Timestamp(
+            "1599-12-31 18:06:32"
+        )
+
     @pytest.mark.filterwarnings("ignore:Converting to PeriodArray.*:UserWarning")
     def test_to_period(self, dta_dti):
         dta, dti = dta_dti
@@ -299,7 +322,6 @@ class TestDatetimeArrayComparisons:
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
         arr = dti._data
-        assert arr.freq == dti.freq
         assert arr.tz == dti.tz
 
         right = dti
@@ -478,11 +500,6 @@ class TestDatetimeArray:
         ts = pd.Timestamp("2000", tz="US/Eastern")
         arr[0] = ts
         assert arr[0] == ts.tz_convert("US/Central")
-
-    def test_setitem_clears_freq(self):
-        a = pd.date_range("2000", periods=2, freq="D", tz="US/Central")._data
-        a[0] = pd.Timestamp("2000", tz="US/Central")
-        assert a.freq is None
 
     @pytest.mark.parametrize(
         "obj",
@@ -671,7 +688,7 @@ class TestDatetimeArray:
             pd.Timedelta(days=2),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
-            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10**9,
+            np.arange(10, dtype="i8").view("timedelta64[ns]") * 24 * 3600 * 10**9,
             pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )

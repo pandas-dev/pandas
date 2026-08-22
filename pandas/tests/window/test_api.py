@@ -3,6 +3,7 @@ import pytest
 
 from pandas.errors import (
     DataError,
+    Pandas4Warning,
     SpecificationError,
 )
 
@@ -28,9 +29,17 @@ def test_getitem(step):
     r = frame.rolling(window=5, step=step)[1]
     assert r._selected_obj.name == frame[::step].columns[1]
 
-    # technically this is allowed
-    r = frame.rolling(window=5, step=step)[1, 3]
-    tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns[[1, 3]])
+    # tuple keys are deprecated but should preserve the current behavior
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="Passing a tuple to __getitem__ is deprecated",
+    ):
+        r = frame.rolling(window=5, step=step)[1, 3]
+
+    tm.assert_index_equal(
+        r._selected_obj.columns,
+        frame[::step].columns[[1, 3]],
+    )
 
     r = frame.rolling(window=5, step=step)[[1, 3]]
     tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns[[1, 3]])
@@ -71,7 +80,7 @@ def test_sum_object_str_raises(step):
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
     with pytest.raises(
-        DataError, match="Cannot aggregate non-numeric type: object|str"
+        DataError, match="Cannot aggregate non-numeric type: (object|str)"
     ):
         # GH#42738, enforced in 2.0
         r.sum()

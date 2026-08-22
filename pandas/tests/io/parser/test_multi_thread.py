@@ -13,9 +13,6 @@ import pytest
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.util.version import Version
-
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 # We'll probably always skip these for pyarrow
 # Maybe we'll add our own tests for pyarrow too
@@ -26,15 +23,9 @@ pytestmark = [
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_multi_thread_string_io_read_csv(all_parsers, request):
+def test_multi_thread_string_io_read_csv(all_parsers):
     # see gh-11786
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        if Version(pa.__version__) < Version("16.0"):
-            request.applymarker(
-                pytest.mark.xfail(reason="# ValueError: Found non-unique column index")
-            )
     max_row_range = 100
     num_files = 10
 
@@ -126,7 +117,6 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
     return final_dataframe
 
 
-@xfail_pyarrow  # ValueError: The 'nrows' option is not supported
 def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
     # see gh-11786
     num_tasks = 4
@@ -151,6 +141,12 @@ def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
 
     path = tmp_path / file_name
     df.to_csv(path)
+
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
+        return
 
     result = _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
 

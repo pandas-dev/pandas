@@ -23,6 +23,7 @@ from io import (
     StringIO,
     TextIOBase,
     TextIOWrapper,
+    UnsupportedOperation,
 )
 import mmap
 import os
@@ -34,7 +35,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
-    DefaultDict,
     Generic,
     Literal,
     TypeVar,
@@ -79,6 +79,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         CompressionDict,
         CompressionOptions,
+        DtypeArg,
         FilePath,
         ReadBuffer,
         StorageOptions,
@@ -99,6 +100,7 @@ class IOArgs:
     mode: str
     compression: CompressionDict
     should_close: bool = False
+    close_handles: list[Any] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
@@ -447,9 +449,10 @@ def _get_filepath_or_buffer(
             pass
 
         try:
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
             if storage_options is None:
@@ -458,14 +461,16 @@ def _get_filepath_or_buffer(
                 # don't mutate user input.
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
 
         return IOArgs(
             filepath_or_buffer=file_obj,
             encoding=encoding,
             compression=compression,
+            close_handles=[open_file],
             should_close=True,
             mode=fsspec_mode,
         )
@@ -981,6 +986,7 @@ def get_handle(
     if ioargs.should_close:
         assert not isinstance(ioargs.filepath_or_buffer, str)
         handles.append(ioargs.filepath_or_buffer)
+        handles.extend(ioargs.close_handles)
 
     return IOHandles(
         # error: Argument "handle" to "IOHandles" has incompatible type
@@ -1203,6 +1209,14 @@ def _maybe_memory_map(
                 access=mmap.ACCESS_READ,  # type: ignore[arg-type]
             )
         )
+    except UnsupportedOperation as err:
+        # GH#45630 in-memory buffers like BytesIO/StringIO have a fileno
+        # method but raise UnsupportedOperation when it is called
+        raise ValueError(
+            "memory_map=True is only supported when reading from a file path "
+            "or a file-like object backed by a real file descriptor; "
+            "in-memory buffers (e.g. BytesIO, StringIO) are not supported."
+        ) from err
     finally:
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"
@@ -1310,7 +1324,7 @@ def dedup_names(
     ['x', 'y', 'x.1', 'x.2']
     """
     names = list(names)  # so we can index
-    counts: DefaultDict[Hashable, int] = defaultdict(int)
+    counts: defaultdict[Hashable, int] = defaultdict(int)
 
     for i, col in enumerate(names):
         cur_count = counts[col]
@@ -1325,6 +1339,65 @@ def dedup_names(
             else:
                 col = f"{col}.{cur_count}"
             cur_count = counts[col]
+
+        names[i] = col
+        counts[col] = cur_count + 1
+
+    return names
+
+
+def mangle_dupe_names(
+    names: Sequence[Hashable],
+    unnamed_col_indices: Sequence[int] = (),
+    dtype: DtypeArg | None = None,
+) -> list[Hashable]:
+    """
+    De-duplicate column names, matching ``pandas._libs.parsers.TextReader``.
+
+    This is the header-mangling used by the read_csv engines, and it differs
+    from :func:`dedup_names` in three ways (see GH#50371):
+
+    - a mangled name that would collide with a name already present in
+      ``names`` is skipped, so ``["x", "x", "x.1"]`` becomes
+      ``["x", "x.2", "x.1"]`` rather than ``["x", "x.1", "x.1.1"]``;
+    - columns whose position is listed in ``unnamed_col_indices`` are mangled
+      only after the named columns, so the named columns keep their name;
+    - a dict ``dtype`` is updated in place so that a renamed column keeps the
+      dtype requested for its original name.
+
+    Examples
+    --------
+    >>> mangle_dupe_names(["x", "x", "x.1"])
+    ['x', 'x.2', 'x.1']
+    """
+    names = list(names)  # so we can index
+    unnamed = set(unnamed_col_indices)
+    # Ensure that regular columns are used before unnamed ones
+    # to keep given names and mangle unnamed columns
+    col_loop_order = [i for i in range(len(names)) if i not in unnamed] + list(
+        unnamed_col_indices
+    )
+    counts: dict[Hashable, int] = {}
+
+    for i in col_loop_order:
+        col = old_col = names[i]
+        cur_count = counts.get(col, 0)
+
+        if cur_count > 0:
+            while cur_count > 0:
+                counts[old_col] = cur_count + 1
+                col = f"{old_col}.{cur_count}"
+                if col in names:
+                    cur_count += 1
+                else:
+                    cur_count = counts.get(col, 0)
+
+            if (
+                isinstance(dtype, dict)
+                and dtype.get(old_col) is not None
+                and dtype.get(col) is None
+            ):
+                dtype[col] = dtype[old_col]
 
         names[i] = col
         counts[col] = cur_count + 1

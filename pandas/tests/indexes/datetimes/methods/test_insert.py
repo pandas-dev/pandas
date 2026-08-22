@@ -16,7 +16,9 @@ import pandas._testing as tm
 
 
 class TestInsert:
-    @pytest.mark.parametrize("null", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
@@ -263,7 +265,7 @@ class TestInsert:
 
         ts = Timestamp(value).tz_localize(tz)
         expected = DatetimeIndex([ts, *list(dti)], dtype=dti.dtype, name=9)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_insert_non_castable_str(self, tz_aware_fixture):
         # GH#33703

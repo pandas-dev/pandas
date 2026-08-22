@@ -19,12 +19,12 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.9
+    rev: v0.16.1
     hooks:
-    -   id: ruff
+    -   id: ruff-check
         args: [--exit-non-zero-on-fix]
         exclude: ^pandas/tests/frame/test_query_eval.py
-    -   id: ruff
+    -   id: ruff-check
         # TODO: remove autofix only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
@@ -41,12 +41,12 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.19.0
+    rev: v0.21.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -67,14 +67,9 @@ repos:
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 8.0.1
+    rev: 9.0.0b1
     hooks:
     -   id: isort
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-    -   id: pyupgrade
-        args: [--py311-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -92,14 +87,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.2
+    rev: v22.1.8
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: ['-i', '--style', '{IndentPPDirectives: AfterHash}']
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.10.2
+    rev: v1.11.2
     hooks:
     - id: meson-fmt
       args: ['--inplace']
@@ -119,7 +114,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.404
+        - pyright@1.1.409
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -132,7 +127,7 @@ repos:
     -   id: mypy
         # note: assumes python env is setup and activated
         name: mypy
-        entry: mypy
+        entry: python -m mypy
         language: system
         pass_filenames: false
         types: [python]
@@ -141,11 +136,11 @@ repos:
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
-        entry: python
+        entry: python -m mypy.stubtest
         language: system
         pass_filenames: false
         types: [pyi]
-        args: [scripts/run_stubtest.py]
+        args: [pandas._libs, --ignore-missing-stub, --ignore-disjoint-base, --concise, --mypy-config-file, pyproject.toml, --allowlist, scripts/stubtest_allowlist.txt]
         stages: [manual]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
@@ -180,19 +175,12 @@ repos:
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
-    -   id: seed-check-asv
-        name: Check for unnecessary random seeds in asv benchmarks
-        language: pygrep
-        entry: 'np\.random\.seed'
-        files: ^asv_bench/benchmarks
-        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep
@@ -269,6 +257,12 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="doesnt_use_pandas_warnings"
         types: [ python ]
+    -   id: unwanted-patterns-bare-pipe-alternation-in-message
+        name: Check that message regexes use '|'.join([...]) instead of a bare | alternation
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pipe_alternation_in_message"
+        types: [python]
+        files: ^pandas/tests/
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
@@ -285,13 +279,13 @@ repos:
         name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
         language: pygrep
         entry: 'pg8000'
-        files: ^ci/deps
-        types: [yaml]
+        files: pixi\.toml
+        types: [toml]
     -   id: validate-min-versions-in-sync
         name: Check minimum version of dependencies are aligned
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
-        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        files: ^(pixi\.toml|pandas/compat/_optional\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations

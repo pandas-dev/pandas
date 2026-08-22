@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+import pandas.core.arrays.string_ as string_module
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
 )
@@ -481,6 +482,19 @@ def test_memory_usage(dtype):
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
 
 
+def test_memory_usage_pypy_compat(dtype, monkeypatch):
+    # GH#46176 deep introspection uses sys.getsizeof, which always raises
+    # TypeError on PyPy; deep=True should fall back to the shallow result
+    if dtype.storage == "pyarrow":
+        pytest.skip(f"not applicable for {dtype.storage}")
+
+    series = pd.Series(["a", "b", "c"], dtype=dtype)
+
+    monkeypatch.setattr(string_module, "PYPY", True)
+    result = series.memory_usage(index=False, deep=True)
+    assert result == series.memory_usage(index=False)
+
+
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])
 def test_astype_from_float_dtype(float_dtype, dtype):
     # https://github.com/pandas-dev/pandas/issues/36451
@@ -488,6 +502,17 @@ def test_astype_from_float_dtype(float_dtype, dtype):
     result = ser.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_astype_from_masked_float_with_nan(dtype, using_nan_is_na):
+    # GH#61617, GH#65227 - FloatingArray.astype(str) with unmasked NaN
+    arr = pd.array([np.nan, pd.NA, 3.0], dtype="Float64")
+    result = arr.astype(dtype)
+    if using_nan_is_na:
+        expected = pd.array([pd.NA, pd.NA, "3.0"], dtype=dtype)
+    else:
+        expected = pd.array(["nan", pd.NA, "3.0"], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_to_numpy_returns_pdna_default(dtype):
@@ -639,3 +664,12 @@ def test_numpy_random_permute(dtype, box):
     result = rng.permutation(arr)
     assert isinstance(result, np.ndarray)
     assert sorted(result.tolist()) == ["a", "bb", "ccc"]
+
+
+def test_sort_unique_result(dtype):
+    # https://github.com/pandas-dev/pandas/issues/64977
+    arr = pd.array(["Bob", "Alice", "Bob"], dtype=dtype)
+    unique_names = arr.unique()
+    unique_names.sort()
+    expected = pd.array(["Alice", "Bob"], dtype=dtype)
+    tm.assert_extension_array_equal(unique_names, expected)

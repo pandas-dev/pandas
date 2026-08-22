@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.compat import PY315
 
 from pandas.core.dtypes.common import is_integer
 
@@ -29,7 +30,10 @@ from pandas import (
 import pandas._testing as tm
 
 # We pass through a TypeError raised by numpy
-_slice_msg = "slice indices must be integers or None or have an __index__ method"
+if PY315:
+    _slice_msg = "slice indices must be integers or have an __index__ method"
+else:
+    _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
 class TestDataFrameIndexing:
@@ -1134,7 +1138,7 @@ class TestDataFrameIndexing:
         df["F"] = np.timedelta64("NaT", "ns")
         df.loc[df.index[:-1], "F"] = np.array([6 * one_hour] * 3, dtype="m8[ns]")
         df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3, unit="ns")
-        df["H"] = np.datetime64("NaT")
+        df["H"] = np.datetime64("NaT", "ns")
         result = df.dtypes
         expected = Series(
             [np.dtype("timedelta64[ns]")] * 6 + [np.dtype("datetime64[ns]")] * 2,
@@ -1183,7 +1187,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df2, expected)
 
         df["foo"] = "test"
-        msg = "not supported between instances|unorderable types|Invalid comparison"
+        msg = "|".join(
+            [
+                "not supported between instances",
+                "unorderable types",
+                "Invalid comparison",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
@@ -1918,7 +1928,7 @@ class TestSetitemValidation:
         "1",
         "1.0",
         pd.NaT,
-        np.datetime64("NaT"),
+        np.datetime64("NaT", "ns"),
         np.timedelta64("NaT", "ns"),
     ]
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
