@@ -583,7 +583,7 @@ class TestAstype:
 
         msg = (
             "Expected value of kwarg 'errors' to be one of "
-            "['raise', 'ignore']. Supplied value is 'True'"
+            "['raise', 'ignore', 'coerce']. Supplied value is 'True'"
         )
         with pytest.raises(ValueError, match=re.escape(msg)):
             df.astype(np.float64, errors=True)
@@ -918,3 +918,66 @@ def test_astype_to_string_dtype_not_modifying_input(any_string_dtype, val):
     expected = df.copy()
     df.astype(any_string_dtype)
     tm.assert_frame_equal(df, expected)
+
+
+class TestAstypeCoerce:
+    """Tests for errors='coerce' in DataFrame.astype (GH#48781)."""
+
+    def test_coerce_numeric_dtype(self):
+        # object column with strings -> float64 with NaN for bad values
+        df = DataFrame({"a": [1, 2, "bad", None], "b": [3.0, "err", 5.0, 6.0]})
+        result = df.astype(float, errors="coerce")
+        expected = DataFrame(
+            {"a": [1.0, 2.0, np.nan, np.nan], "b": [3.0, np.nan, 5.0, 6.0]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_coerce_nullable_float_dtype(self):
+        df = DataFrame({"a": [1, 2, "bad", None]})
+        result = df.astype("Float64", errors="coerce")
+        expected = DataFrame({"a": pd.array([1.0, 2.0, pd.NA, pd.NA], dtype="Float64")})
+        tm.assert_frame_equal(result, expected)
+
+    def test_coerce_nullable_int_dtype(self):
+        # int64 can't hold NA; coerce to Float64 (same as to_numeric behaviour)
+        df = DataFrame({"a": [1, 2, "bad"]})
+        result = df.astype("int64", errors="coerce")
+        # "bad" -> NaN -> float64 result (numpy int can't hold NaN)
+        assert result["a"].dtype == np.dtype("float64")
+        assert np.isnan(result["a"].iloc[2])
+
+    def test_coerce_nullable_Int64_dtype(self):
+        # nullable Int64 CAN hold pd.NA
+        df = DataFrame({"a": [1, 2, "bad"]})
+        result = df.astype("Int64", errors="coerce")
+        expected = DataFrame({"a": pd.array([1, 2, pd.NA], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)
+
+    def test_coerce_datetime_dtype(self):
+        df = DataFrame({"d": ["2021-01-01", "not-a-date", "2021-03-01"]})
+        result = df.astype("datetime64[us]", errors="coerce")
+        expected = DataFrame(
+            {"d": pd.to_datetime(["2021-01-01", NaT, "2021-03-01"])}
+        ).astype("datetime64[us]")
+        tm.assert_frame_equal(result, expected)
+
+    def test_coerce_dict_dtype(self):
+        # Per-column dtype mapping with errors='coerce'
+        df = DataFrame({"a": [1, "bad", 3], "b": ["2021-01-01", "nope", "2021-03-01"]})
+        result = df.astype({"a": float, "b": "datetime64[us]"}, errors="coerce")
+        assert result["a"].dtype == np.dtype("float64")
+        assert pd.isna(result["a"].iloc[1])
+        assert pd.isna(result["b"].iloc[1])
+
+    def test_coerce_all_valid_unchanged(self):
+        # When all values are valid, coerce behaves identically to raise
+        df = DataFrame({"a": [1, 2, 3]})
+        result = df.astype(float, errors="coerce")
+        expected = df.astype(float, errors="raise")
+        tm.assert_frame_equal(result, expected)
+
+    def test_coerce_invalid_value_raises(self):
+        # errors='coerce' still validates the errors kwarg itself
+        df = DataFrame({"a": [1, 2]})
+        with pytest.raises(ValueError, match="Expected value of kwarg 'errors'"):
+            df.astype(float, errors="bad_value")
