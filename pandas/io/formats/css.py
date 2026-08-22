@@ -26,8 +26,9 @@ def _side_expander(prop_fmt: str) -> Callable:
 
     Parameters
     ----------
-    side : str
-        The border side to expand into properties
+    prop_fmt : str
+        Format string for the expanded property, with a placeholder for the
+        side, e.g. ``"margin-{:s}"``.
 
     Returns
     -------
@@ -256,7 +257,7 @@ class CSSResolver:
 
         Parameters
         ----------
-        declarations_str : str | Iterable[tuple[str, str]]
+        declarations : str | Iterable[tuple[str, str]]
             A CSS string or set of CSS declaration tuples
             e.g. "font-weight: bold; background: blue" or
             {("font-weight", "bold"), ("background", "blue")}
