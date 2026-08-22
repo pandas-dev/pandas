@@ -461,6 +461,16 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    def test_replace_ellipsis(self):
+        # GH#50373 Ellipsis should be accepted as a scalar to_replace
+        series = pd.Series([..., 2, 3])
+        result = series.replace(..., 1)
+        expected = pd.Series([1, 2, 3], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        # Ellipsis is equivalent to the spelled-out singleton
+        tm.assert_series_equal(series.replace(Ellipsis, 1), expected)
+
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):
         obj = pd.Series(["a", "b", "c "])
@@ -648,6 +658,27 @@ class TestSeriesReplace:
         expected = pd.Series([1], dtype=object)
         result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_no_replacement_keeps_nan(self, regex):
+        # GH#48034 a non-matching replace on an object Series of Timestamp + NaN
+        #  should be a no-op and must not coerce np.nan to NaT
+        ser = pd.Series([pd.Timestamp(1000223), np.nan], dtype=object)
+        result = ser.replace("abcdef", pd.NaT, regex=regex)
+        tm.assert_series_equal(result, ser)
+        assert result.dtype == object
+        assert result[1] is np.nan
+
+    def test_replace_keeps_nan_no_downcast(self):
+        # GH#48034 replacing a value should not downcast object dtype and
+        #  thereby convert np.nan to NaT
+        ser = pd.Series([pd.Timedelta("PT1H"), np.nan, 1], dtype=object)
+        result = ser.replace(1, pd.Timedelta("PT1H"), regex=False)
+        expected = pd.Series(
+            [pd.Timedelta("PT1H"), np.nan, pd.Timedelta("PT1H")], dtype=object
+        )
+        tm.assert_series_equal(result, expected)
+        assert result[1] is np.nan
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):
         # GH#45311

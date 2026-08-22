@@ -116,7 +116,7 @@ of the index is up to you:
 
 We've "sparsified" the higher levels of the indexes to make the console output a
 bit easier on the eyes. Note that how the index is displayed can be controlled using the
-``multi_sparse`` option in ``pandas.set_options()``:
+``multi_sparse`` option in ``pandas.set_option()``:
 
 .. ipython:: python
 
@@ -165,8 +165,32 @@ completely analogous way to selecting a column in a regular DataFrame:
    df["bar"]["one"]
    s["qux"]
 
+For a ``Series``, ``[]`` selects on the index, so ``s["qux"]`` above performs
+partial selection on the row labels. For a ``DataFrame``, however, ``[]``
+selects *columns*: ``df["bar"]`` works above only because this ``df`` has a
+``MultiIndex`` on its columns. If the ``MultiIndex`` is on the rows instead,
+selecting a partial label with ``[]`` raises a ``KeyError`` — use ``.loc``
+for partial selection on the rows:
+
+.. ipython:: python
+   :okexcept:
+
+   df.T["bar"]
+
+.. ipython:: python
+
+   df.T.loc["bar"]
+
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
+
+.. note::
+
+   Empty strings in a ``MultiIndex`` on the columns are treated as missing
+   level values when selecting with ``[]``. For example, with columns
+   ``pd.MultiIndex.from_tuples([("a", ""), ("b", "c")])``, selecting
+   ``df["a"]`` drops the empty level and returns a ``Series`` rather than a
+   ``DataFrame`` with a single column labeled ``""``.
 
 .. _advanced.shown_levels:
 
@@ -329,6 +353,13 @@ As usual, **both sides** of the slicers are included as this is label indexing.
    .. code-block:: python
 
       df.loc[(slice("A1", "A3"), ...)]  # noqa: E999
+
+   The same ambiguity arises with integer labels. ``df.loc[0, 0]`` is
+   first tried as ``df.loc[(0, 0)]`` -- a single key into the row
+   ``MultiIndex`` -- and is only interpreted as row label ``0`` of column
+   label ``0`` when that lookup fails. Use :class:`pandas.IndexSlice`, e.g.
+   ``df.loc[pd.IndexSlice[0, :], 0]``, or pass a length-1 tuple for the rows,
+   e.g. ``df.loc[(0,), 0]``, to disambiguate.
 
 .. ipython:: python
 
@@ -862,15 +893,69 @@ For example:
 
 .. _advanced.intervalindex:
 
-IntervalIndex
-~~~~~~~~~~~~~
+Intervals
+~~~~~~~~~
 
-:class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
-as well as the :class:`Interval` scalar type,  allow first-class support in pandas
-for interval notation.
+:class:`Interval` represents a single interval, while a collection of intervals
+can be held in an :class:`IntervalIndex` (with corresponding dtype
+:class:`~pandas.api.types.IntervalDtype`). Together these provide first-class
+support for interval notation in pandas. The ``IntervalIndex`` allows some
+unique indexing and is also used as a return type for the categories in
+:func:`cut` and :func:`qcut`.
 
-The ``IntervalIndex`` allows some unique indexing and is also used as a
-return type for the categories in :func:`cut` and :func:`qcut`.
+The ``Interval`` scalar
+^^^^^^^^^^^^^^^^^^^^^^^
+
+An :class:`Interval` is constructed from a left and a right endpoint:
+
+.. ipython:: python
+
+   iv = pd.Interval(0, 5)
+   iv
+
+By default, an ``Interval`` is closed on the right.  The ``closed`` argument
+controls which side(s) are inclusive — ``"right"``, ``"left"``, ``"both"``,
+or ``"neither"``:
+
+.. ipython:: python
+
+   pd.Interval(0, 5, closed="left")
+   pd.Interval(0, 5, closed="both")
+   pd.Interval(0, 5, closed="neither")
+
+The endpoints and derived quantities are accessible as attributes:
+
+.. ipython:: python
+
+   iv.left, iv.right
+   iv.mid
+   iv.length
+
+Membership is tested with ``in``.  Inclusion respects the ``closed`` setting,
+so an endpoint is only contained when its side is closed:
+
+.. ipython:: python
+
+   2.5 in iv
+   0 in iv
+   5 in iv
+   0 in pd.Interval(0, 5, closed="left")
+
+Two intervals can be compared with :meth:`Interval.overlaps`.  Intervals that
+share only an open endpoint do not overlap:
+
+.. ipython:: python
+
+   iv.overlaps(pd.Interval(3, 8))
+   iv.overlaps(pd.Interval(5, 10))
+   iv.overlaps(pd.Interval(5, 10, closed="both"))
+
+Endpoints may also be :class:`Timestamp` or :class:`Timedelta` values, which
+makes ``Interval`` useful for representing time ranges:
+
+.. ipython:: python
+
+   pd.Interval(pd.Timestamp("2017-01-01"), pd.Timestamp("2017-01-08"))
 
 Indexing with an ``IntervalIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -2871,7 +2871,11 @@ class Styler(StylerRenderer):
         elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            idf = (
+                f".{self.css['row']}"  # pyright: ignore[reportOptionalSubscript]
+                if axis == 1
+                else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            )
 
             table_styles = [
                 {
@@ -3087,10 +3091,15 @@ class Styler(StylerRenderer):
             )
         else:
             if axis == 0:
-                subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+                subset_1 = IndexSlice[
+                    subset, :
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_1)
             else:
-                subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
-            subset = non_reducing_slice(subset_)
+                subset_2 = IndexSlice[
+                    :, subset
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_2)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)

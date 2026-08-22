@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
@@ -100,13 +101,29 @@ pytz = import_optional_dependency("pytz", errors="ignore")
 # ----------------------------------------------------------------
 # pytest
 
+PANDAS_MARKERS = [
+    "single_cpu: tests that should run on a single cpu only",
+    "slow: mark a test as slow",
+    "network: mark a test as network",
+    "db: tests requiring a database (mysql or postgres)",
+    "clipboard: mark a pd.read_clipboard test",
+    "arm_slow: mark a test as slow for arm64 architecture",
+]
+
 
 def pytest_addoption(parser) -> None:
     parser.addoption(
         "--no-strict-data-files",
         action="store_false",
+        dest="strict_data_files",
+        default=True,
         help="Don't fail if a test is skipped for missing data file.",
     )
+
+
+def pytest_configure(config) -> None:
+    for marker in PANDAS_MARKERS:
+        config.addinivalue_line("markers", marker)
 
 
 def pytest_sessionstart(session):
@@ -198,6 +215,11 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
         ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
+        (
+            # matches both DatetimeProperties.freq and TimedeltaProperties.freq
+            "Properties.freq",
+            "A future version of pandas will return a BaseOffset",
+        ),
     ]
 
     if is_doctest:
@@ -809,7 +831,7 @@ def index_with_missing(request):
         vals[-1] = (None, *vals[-1][1:])
         return MultiIndex.from_tuples(vals)
     else:
-        vals = ind.values.copy()
+        vals = ind._values.copy()
         vals[0] = None
         vals[-1] = None
         return type(ind)(vals, copy=False)
@@ -831,7 +853,7 @@ def index_with_missing_sortable(request):
     index_with_missing fixture, but excluding types that are not orderable.
     """
     ind = indices_dict[request.param]
-    vals = ind.values.copy()
+    vals = ind._values.copy()
     vals[0] = None
     vals[-1] = None
     return type(ind)(vals, copy=False)
@@ -1102,8 +1124,8 @@ def all_arithmetic_functions(request):
 
     Notes
     -----
-    This includes divmod and rdivmod, whereas all_arithmetic_operators
-    does not.
+    This does not include divmod and rdivmod, which return a tuple and so
+    cannot be used interchangeably with the other operators.
     """
     return request.param
 
@@ -1217,7 +1239,7 @@ def strict_data_files(pytestconfig):
     """
     Returns the configuration for the test setting `--no-strict-data-files`.
     """
-    return pytestconfig.getoption("--no-strict-data-files")
+    return pytestconfig.getoption("strict_data_files")
 
 
 @pytest.fixture
@@ -1270,7 +1292,7 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    timezone.utc,
+    UTC,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
@@ -1305,7 +1327,7 @@ def tz_aware_fixture(request):
     return request.param
 
 
-_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
+_UTCS = ["utc", "dateutil/UTC", tzutc(), UTC]
 
 if pytz is not None:
     _UTCS.append(pytz.utc)
@@ -1955,7 +1977,7 @@ _any_skipna_inferred_dtype = [
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
     ("time", [time(1), np.nan, time(2)]),
-    ("period", [Period(2013), pd.NaT, Period(2018)]),
+    ("period", [Period("2013"), pd.NaT, Period("2018")]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
 ids = [

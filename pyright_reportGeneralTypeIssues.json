@@ -16,7 +16,6 @@
     "include":
       [
         "pandas",
-        "typings"
       ],
     "exclude":
       [
@@ -27,7 +26,6 @@
 
         "pandas/_testing/__init__.py",
         "pandas/_testing/_io.py",
-        "pandas/compat/pickle_compat.py",
         "pandas/core/_numba/extensions.py",
         "pandas/core/_numba/kernels/sum_.py",
         "pandas/core/_numba/kernels/var_.py",

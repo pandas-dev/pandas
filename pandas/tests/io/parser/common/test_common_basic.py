@@ -8,6 +8,7 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
+import re
 import sys
 
 import numpy as np
@@ -126,7 +127,6 @@ def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5
@@ -659,9 +659,9 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_sub_character(all_parsers, csv_dir_path):
+def test_sub_character(all_parsers, datapath):
     # see gh-16893
-    filename = os.path.join(csv_dir_path, "sub_char.csv")
+    filename = datapath("io", "parser", "data", "sub_char.csv")
     expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
 
     parser = all_parsers
@@ -810,20 +810,20 @@ def test_read_csv_delimiter_and_sep_no_default(all_parsers):
         parser.read_csv(f, sep=" ", delimiter=".")
 
 
-@pytest.mark.parametrize("kwargs", [{"delimiter": "\n"}, {"sep": "\n"}])
-def test_read_csv_line_break_as_separator(kwargs, all_parsers):
-    # GH#43528
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+@pytest.mark.parametrize("sep", ["\n", "\r"])
+def test_read_csv_line_break_as_separator(key, sep, all_parsers):
+    # GH#43528, GH#51801
     parser = all_parsers
     data = """a,b,c
 1,2,3
     """
     msg = (
-        r"Specified \\n as separator or delimiter. This forces the python engine "
-        r"which does not accept a line terminator. Hence it is not allowed to use "
-        r"the line terminator as separator."
+        f"Specified {sep!r} as separator or delimiter, but a line "
+        "terminator cannot be used as a separator."
     )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), **kwargs)
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        parser.read_csv(StringIO(data), **{key: sep})
 
 
 @skip_pyarrow

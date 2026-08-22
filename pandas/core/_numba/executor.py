@@ -8,6 +8,7 @@ from typing import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from pandas._typing import Scalar
 
 import numpy as np
@@ -18,7 +19,9 @@ from pandas.core.util.numba_ import jit_user_function
 
 
 @functools.cache
-def generate_apply_looper(func, nogil: bool = True, parallel: bool = False):
+def generate_apply_looper(
+    func: Callable, nogil: bool = True, parallel: bool = False
+) -> Callable:
     if TYPE_CHECKING:
         import numba
     else:
@@ -26,7 +29,7 @@ def generate_apply_looper(func, nogil: bool = True, parallel: bool = False):
     nb_compat_func = jit_user_function(func)
 
     @numba.jit(nogil=nogil, parallel=parallel)
-    def nb_looper(values, axis, *args):
+    def nb_looper(values: np.ndarray, axis: int, *args: Any) -> np.ndarray:
         # Operate on the first row/col in order to get
         # the output shape
         if axis == 0:
@@ -46,11 +49,11 @@ def generate_apply_looper(func, nogil: bool = True, parallel: bool = False):
 
         if axis == 1:
             buff[0] = res0
-            for i in numba.prange(1, values.shape[0]):
+            for i in numba.prange(1, values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
                 buff[i] = nb_compat_func(values[i], *args)
         else:
             buff[:, 0] = res0
-            for j in numba.prange(1, values.shape[1]):
+            for j in numba.prange(1, values.shape[1]):  # type: ignore[no-untyped-call,attr-defined]
                 buff[:, j] = nb_compat_func(values[:, j], *args)
         return buff
 
@@ -58,7 +61,13 @@ def generate_apply_looper(func, nogil: bool = True, parallel: bool = False):
 
 
 @functools.cache
-def make_looper(func, result_dtype, is_grouped_kernel, nogil: bool, parallel: bool):
+def make_looper(
+    func: Callable,
+    result_dtype: np.dtype,
+    is_grouped_kernel: bool,
+    nogil: bool,
+    parallel: bool,
+) -> Callable:
     if TYPE_CHECKING:
         import numba
     else:
@@ -72,11 +81,11 @@ def make_looper(func, result_dtype, is_grouped_kernel, nogil: bool, parallel: bo
             labels: np.ndarray,
             ngroups: int,
             min_periods: int,
-            *args,
-        ):
+            *args: Any,
+        ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], ngroups), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):
+            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
                 output, na_pos = func(
                     values[i], result_dtype, labels, ngroups, min_periods, *args
                 )
@@ -88,20 +97,16 @@ def make_looper(func, result_dtype, is_grouped_kernel, nogil: bool, parallel: bo
     else:
 
         @numba.jit(nogil=nogil, parallel=parallel)
-        # error: Incompatible redefinition (redefinition with type
-        # "Callable[[ndarray[Any, Any], ndarray[Any, Any], ndarray[Any, Any],
-        # int, VarArg(Any)], Any]", original type "Callable[[ndarray[Any, Any],
-        # ndarray[Any, Any], int, int, VarArg(Any)], Any]")
-        def column_looper(  # type: ignore[misc]
+        def column_looper(
             values: np.ndarray,
             start: np.ndarray,
             end: np.ndarray,
             min_periods: int,
-            *args,
-        ):
+            *args: Any,
+        ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], len(start)), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):
+            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
                 output, na_pos = func(
                     values[i], result_dtype, start, end, min_periods, *args
                 )
@@ -168,7 +173,7 @@ def generate_shared_aggregator(
     is_grouped_kernel: bool,
     nogil: bool,
     parallel: bool,
-):
+) -> Callable:
     """
     Generate a Numba function that loops over the columns 2D object and applies
     a 1D numba kernel over each column.
@@ -201,14 +206,14 @@ def generate_shared_aggregator(
     # It also post-processes the values by inserting nans where number of observations
     # is less than min_periods
     def looper_wrapper(
-        values,
-        start=None,
-        end=None,
-        labels=None,
-        ngroups=None,
+        values: np.ndarray,
+        start: np.ndarray | None = None,
+        end: np.ndarray | None = None,
+        labels: np.ndarray | None = None,
+        ngroups: int | None = None,
         min_periods: int = 0,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> np.ndarray:
         result_dtype = dtype_mapping[values.dtype]
         column_looper = make_looper(
             func, result_dtype, is_grouped_kernel, nogil, parallel

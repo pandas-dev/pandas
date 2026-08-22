@@ -2106,3 +2106,21 @@ def test_multiple_partial_functions_same_name():
     gb = df.groupby("col1")
     result = gb.agg({"col2": [quant50, quant70]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_dict_with_duplicate_multiindex_columns():
+    # GH#50402 aggregating with a dict when the frame has duplicate MultiIndex
+    # columns must not raise AttributeError
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6]],
+        columns=MultiIndex.from_tuples([("a", 0), ("b", 0), ("b", 0)]),
+    )
+    # pin the grouping key dtype: a list key goes through np.asarray, which is
+    #  platform-dependent, while Index([1, 2]) always infers int64
+    result = df.groupby(by=np.array([1, 2], dtype=np.int64)).agg({("a", 0): "sum"})
+    expected = DataFrame(
+        [[1], [4]],
+        index=Index([1, 2], dtype=np.int64),
+        columns=MultiIndex.from_tuples([("a", 0)]),
+    )
+    tm.assert_frame_equal(result, expected)

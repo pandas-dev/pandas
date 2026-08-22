@@ -55,6 +55,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -110,6 +111,8 @@ if TYPE_CHECKING:
         Dtype,
         NpDtype,
         Ordered,
+        RankMethod,
+        RankNaOption,
         Shape,
         SortKind,
         npt,
@@ -177,6 +180,10 @@ def _cat_compare_op(op):
         else:
             # allow categorical vs object dtype array comparisons for equality
             # these are only positional comparisons
+            # (hashable list-likes such as tuple/range take the branch above and
+            #  are already treated as scalar-like, so only non-standard
+            #  positional list-likes like ``deque`` warn here, GH#62423)
+            ops.maybe_warn_listlike(other)
             if opname not in ["__eq__", "__ne__"]:
                 raise TypeError(
                     f"Cannot compare a Categorical for op {opname} with "
@@ -1641,11 +1648,31 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         na_val = np.nan
         if na_action is None and has_nans:
-            na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
+            if callable(mapper):
+                na_val = mapper(np.nan)
+            else:
+                try:
+                    na_val = mapper[np.nan]
+                except KeyError:
+                    na_val = np.nan
 
-        if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
+        # A MultiIndex (i.e. mapper returned tuples) can't back a
+        # CategoricalDtype, so it must take the slow path below regardless
+        # of uniqueness/na checks.
+        if (
+            not isinstance(new_categories, ABCMultiIndex)
+            and new_categories.is_unique
+            and not new_categories.hasnans
+            and na_val is np.nan
+        ):
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
+
+        if isinstance(new_categories, ABCMultiIndex):
+            # mapper returned tuples; a CategoricalDtype/Categorical cannot be
+            # constructed from a MultiIndex, so fall back to a flat
+            # object-dtype Index of tuples.
+            new_categories = new_categories.to_flat_index()
 
         if has_nans:
             new_categories = new_categories.insert(len(new_categories), na_val)
@@ -2143,8 +2170,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):
@@ -2631,7 +2658,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return False
         elif self._categories_match_up_to_permutation(other):
             other = self._encode_with_my_categories(other)
-            return np.array_equal(self._codes, other._codes)
+            return lib.array_equivalent_bytes(self._codes, other._codes)
         return False
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> Self:

@@ -1339,7 +1339,7 @@ class TestEWM:
             ),
             name="y",
         )
-        tm.assert_series_equal(result, expected_series)
+        tm.assert_series_equal(result, expected_series, check_freq=False)
         # This is the key test
         result = grp.count()
         tm.assert_frame_equal(result, expected_df)

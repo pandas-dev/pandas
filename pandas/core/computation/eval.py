@@ -336,6 +336,10 @@ def eval(
     if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
+    elif isinstance(expr, NDFrame):
+        # GH#16289 a Series/DataFrame would otherwise be converted to its
+        #  (possibly truncated) repr and parsed, producing a confusing error
+        raise ValueError(f"expr must be a string to be evaluated, {type(expr)} given")
     else:
         # ops.BinOp; for internal compat, not intended to be passed by users
         exprs = [expr]

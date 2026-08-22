@@ -7,8 +7,8 @@ import errno
 from functools import partial
 from io import (
     BytesIO,
+    IOBase,
     StringIO,
-    UnsupportedOperation,
 )
 import mmap
 import os
@@ -292,10 +292,15 @@ Look,a snake,🐍"""
                 ("io", "data", "fixed_width", "fixed_width_format.txt"),
             ),
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
-            (
+            # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+            # suppress until we migrate the implementation (GH#66177)
+            pytest.param(
                 pd.read_feather,
                 "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
+                marks=pytest.mark.filterwarnings(
+                    "ignore:Feather V1 files are deprecated:DeprecationWarning"
+                ),
             ),
             (
                 pd.read_hdf,
@@ -311,6 +316,12 @@ Look,a snake,🐍"""
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
@@ -474,9 +485,11 @@ class TestMMapWrapper:
             df.to_csv(temp_file, compression=compression_, encoding=encoding)
 
         # reading should fail (otherwise we wouldn't need the warning)
-        msg = (
-            r"UTF-\d+ stream does not start with BOM|"
-            r"'utf-\d+' codec can't decode byte"
+        msg = "|".join(
+            [
+                r"UTF-\d+ stream does not start with BOM",
+                r"'utf-\d+' codec can't decode byte",
+            ]
         )
         with pytest.raises(UnicodeError, match=msg):
             pd.read_csv(temp_file, compression=compression_, encoding=encoding)
@@ -623,8 +636,40 @@ def test_errno_attribute():
         assert err.errno == errno.ENOENT
 
 
+@pytest.mark.parametrize("encoding", ["cp1252", "ISO-8859-1"])
+def test_binary_buffer_without_mode_respects_encoding(encoding):
+    # GH#52252 a binary buffer that is neither a Raw/BufferedIOBase subclass nor
+    # has a "mode" attribute was treated as a text buffer, so "encoding" was
+    # ignored and the bytes were decoded as utf-8
+    data = "X,Y\nm,\N{DEGREE SIGN}\n1,2\n".encode(encoding)
+    expected = pd.read_csv(BytesIO(data), encoding=encoding)
+
+    with mmap.mmap(-1, len(data)) as buffer:
+        buffer.write(data)
+        buffer.seek(0)
+        result = pd.read_csv(buffer, encoding=encoding)
+    tm.assert_frame_equal(result, expected)
+
+    # botocore's StreamingBody subclasses IOBase directly
+    class StreamingBuffer(IOBase):
+        def __init__(self, data) -> None:
+            self.buffer = BytesIO(data)
+
+        def readable(self) -> bool:
+            return True
+
+        def read(self, amt=None):
+            return self.buffer.read(-1 if amt is None else amt)
+
+    result = pd.read_csv(StreamingBuffer(data), encoding=encoding)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_fail_mmap():
-    with pytest.raises(UnsupportedOperation, match="fileno"):
+    # GH#45630 raise a clear ValueError instead of the cryptic
+    # UnsupportedOperation("fileno") from BytesIO
+    msg = "memory_map=True is only supported when reading from a file path"
+    with pytest.raises(ValueError, match=msg):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
 

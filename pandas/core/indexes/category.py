@@ -37,13 +37,23 @@ from pandas.core.indexes.extension import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._typing import (
+        ArrayLike,
+        Axes,
         Dtype,
         DtypeObj,
+        Level,
+        ReindexMethod,
         npt,
     )
+
+    from pandas import Series
+    from pandas.core.indexes.multi import MultiIndex
 
 
 @inherit_names(
@@ -172,7 +182,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     _data_cls = Categorical
 
     @property
-    def _can_hold_strings(self):
+    def _can_hold_strings(self) -> bool:
         return self.categories._can_hold_strings
 
     @cache_readonly
@@ -201,9 +211,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def __new__(
         cls,
-        data=None,
-        categories=None,
-        ordered=None,
+        data: Axes | None = None,
+        categories: Axes | None = None,
+        ordered: bool | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
@@ -345,10 +355,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter_func(self, val) -> str:
+    def _formatter_func(self, val: Hashable) -> str:
         return self.categories._formatter_func(val)
 
-    def _format_attrs(self):
+    def _format_attrs(self) -> list[tuple[str, str | int | bool | None]]:
         """
         Return a list of tuples of the (attr,formatted_value)
         """
@@ -417,7 +427,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         return contains(self, key, container=container)
 
     def reindex(
-        self, target, method=None, level=None, limit: int | None = None, tolerance=None
+        self,
+        target: Axes,
+        method: ReindexMethod | None = None,
+        level: Level | None = None,
+        limit: int | None = None,
+        tolerance: float | None = None,
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -447,7 +462,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key) -> int:
+    def _maybe_cast_indexer(self, key: Hashable) -> int:
         # GH#41933: we have to do this instead of self._data._validate_scalar
         #  because this will correctly get partial-indexing on Interval categories
         try:
@@ -457,7 +472,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 return -1
             raise
 
-    def _maybe_cast_listlike_indexer(self, values) -> CategoricalIndex:
+    def _maybe_cast_listlike_indexer(self, values: Axes) -> CategoricalIndex:
         if isinstance(values, CategoricalIndex):
             values = values._data
         if isinstance(values, Categorical):
@@ -477,32 +492,34 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def _intersection(self, other: Index, sort: bool = False):
+    def _intersection(
+        self, other: Index, sort: bool = False
+    ) -> Index | ArrayLike | MultiIndex:
+        # Reached only via Index.intersection after dtype reconciliation, so
+        # other is necessarily a CategoricalIndex with matching dtype.
         # For unordered CategoricalIndex, libjoin operates on integer codes.
         # When two indexes have the same categories in different order, matching
         # codes map to different values, giving incorrect results (GH#55335).
         # Reorder other's categories to match self so the codes align.
-        if (
-            not self.ordered
-            and isinstance(other, CategoricalIndex)
-            and not self.categories.equals(other.categories)
-        ):
+        other = cast("CategoricalIndex", other)
+        if not self.ordered and not self.categories.equals(other.categories):
             reordered = other._data.reorder_categories(self.categories)
             other = other._shallow_copy(reordered)
         return super()._intersection(other, sort=sort)
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None) -> Index | ArrayLike | MultiIndex:
         # See _intersection for explanation of GH#55335.
-        if (
-            not self.ordered
-            and isinstance(other, CategoricalIndex)
-            and not self.categories.equals(other.categories)
-        ):
+        other = cast("CategoricalIndex", other)
+        if not self.ordered and not self.categories.equals(other.categories):
             reordered = other._data.reorder_categories(self.categories)
             other = other._shallow_copy(reordered)
         return super()._union(other, sort)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(
+        self,
+        mapper: Callable | dict | Series,
+        na_action: Literal["ignore"] | None = None,
+    ) -> Index:
         """
         Map values using input an input mapping or function.
 

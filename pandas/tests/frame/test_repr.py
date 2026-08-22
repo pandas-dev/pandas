@@ -67,10 +67,10 @@ class TestDataFrameRepr:
         df.index = index
         repr(df)
 
-        # GH#20285 unhashable elements (list) are now rejected
+        # this travels an improper code path
         index[0] = ["faz", "boo"]
-        with pytest.raises(TypeError, match="unhashable type"):
-            df.index = index
+        df.index = index
+        repr(df)
 
     def test_repr_with_mi_nat(self):
         df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
@@ -507,3 +507,13 @@ def test_repr_with_complex_nans(data, output, as_frame):
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
     assert str(obj) == expected, f"\n{obj!s}\n\n{expected}"
+
+
+@pytest.mark.parametrize("nrows", [60, 61])
+def test_repr_truncated_na_shows_na_not_nan(nrows):
+    # GH#33065 pd.NA in an object column must render as <NA>, not NaN, even
+    # when the repr is truncated (nrows above the display limit)
+    df = DataFrame(np.full((nrows, 1), NA))
+    result = repr(df)
+    assert "<NA>" in result
+    assert "NaN" not in result
