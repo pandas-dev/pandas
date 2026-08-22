@@ -92,6 +92,7 @@ class CParserWrapper(ParserBase):
             "encoding",
             "memory_map",
             "compression",
+            "to_pandas_kwargs",
         ):
             kwds.pop(key, None)
 

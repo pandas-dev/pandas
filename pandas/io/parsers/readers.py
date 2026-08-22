@@ -1236,6 +1236,7 @@ def read_csv(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    to_pandas_kwargs: dict | None = None,
 ) -> DataFrame | TextFileReader:
     """
     Read a comma-separated values (csv) file into DataFrame.
@@ -1622,6 +1623,12 @@ def read_csv(
 
         .. versionadded:: 2.0
 
+    to_pandas_kwargs : dict | None, default None
+        Keyword arguments to pass through to :func:`pyarrow.Table.to_pandas`
+        when ``engine="pyarrow"``.
+
+        .. versionadded:: 3.1.0
+
     Returns
     -------
     DataFrame or TextFileReader
@@ -1836,6 +1843,7 @@ def read_table(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    to_pandas_kwargs: dict | None = None,
 ) -> DataFrame | TextFileReader:
     """
     Read general delimited file into DataFrame.
@@ -2217,6 +2225,12 @@ def read_table(
           :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
+
+    to_pandas_kwargs : dict | None, default None
+        Keyword arguments to pass through to :func:`pyarrow.Table.to_pandas`
+        when ``engine="pyarrow"``.
+
+        .. versionadded:: 3.1.0
 
     Returns
     -------
@@ -2621,6 +2635,16 @@ class TextFileReader(abc.Iterator):
             ):
                 raise ValueError(
                     f"The {argname!r} option is not supported with the 'pyarrow' engine"
+                )
+            # GH#34823: to_pandas_kwargs is only valid for pyarrow engine
+            if (
+                argname == "to_pandas_kwargs"
+                and value is not None
+                and engine != "pyarrow"
+            ):
+                raise ValueError(
+                    "The 'to_pandas_kwargs' option is only supported with the "
+                    "'pyarrow' engine"
                 )
             options[argname] = value
 
