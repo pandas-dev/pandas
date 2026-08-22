@@ -25,7 +25,6 @@ from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
-    ensure_float64,
     is_complex,
     is_float,
     is_float_dtype,
@@ -1528,8 +1527,11 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
+    values = _ensure_numeric(values, preferred_order=preferred_order)
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -1586,8 +1588,11 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
+    values = _ensure_numeric(values, preferred_order=preferred_order)
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -1969,23 +1974,22 @@ def nancov(
     return np.cov(a, b, ddof=ddof)[0, 1]
 
 
-def _ensure_numeric(x):
+def _ensure_numeric(x, preferred_order: Literal["K", "F", "C"] = "K"):
     if isinstance(x, np.ndarray):
         if x.dtype.kind in "biu":
-            x = x.astype(np.float64)
+            x = x.astype(np.float64, order=preferred_order)
         elif x.dtype == object:
-            inferred = lib.infer_dtype(x)
-            if inferred in ["string", "mixed"]:
+            if lib.contains_strings(x):
                 # GH#44008, GH#36703 avoid casting e.g. strings to numeric
-                raise TypeError(f"Could not convert {x} to numeric")
+                raise TypeError("Could not convert array to numeric")
             try:
-                x = x.astype(np.complex128)
+                x = x.astype(np.complex128, order=preferred_order)
             except (TypeError, ValueError):
                 try:
-                    x = x.astype(np.float64)
+                    x = x.astype(np.float64, order=preferred_order)
                 except ValueError as err:
                     # GH#29941 we get here with object arrays containing strs
-                    raise TypeError(f"Could not convert {x} to numeric") from err
+                    raise TypeError("Could not convert array to numeric") from err
             else:
                 if not np.any(np.imag(x)):
                     x = x.real
