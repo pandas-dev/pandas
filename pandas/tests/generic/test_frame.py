@@ -46,6 +46,22 @@ class TestDataFrame:
         assert result.columns.names == ["L1", "L2"]
         assert result.index.names == [None, None]
 
+    def test_rename_axis_tuple_name(self):
+        # GH#66656
+        name = (1, 2, 3)
+        df = DataFrame([1], index=pd.Index([1], name=name))
+
+        result = df.reset_index().rename_axis(name)
+
+        assert result.index.name == name
+
+    def test_rename_axis_tuple_name_multiindex(self):
+        df = DataFrame([1], index=MultiIndex.from_tuples([("a", "b")]))
+
+        result = df.rename_axis(("level1", "level2"))
+
+        assert result.index.names == ["level1", "level2"]
+
     def test_nonzero_single_element(self):
         df = DataFrame([[False, False]])
         msg_err = "The truth value of a DataFrame is ambiguous"

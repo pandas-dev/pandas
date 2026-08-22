@@ -445,6 +445,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed :meth:`DataFrame.rename_axis` treating a tuple name as multiple names for a non-:class:`MultiIndex`. (:issue:`66656`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal`, :func:`testing.assert_index_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_extension_array_equal` where ``rtol`` and ``atol`` were applied after casting to ``float64``, so integers above ``2**53`` could compare equal while differing by more than the tolerance, or unequal while within it (:issue:`66400`)
