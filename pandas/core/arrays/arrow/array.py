@@ -3300,6 +3300,16 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
+        if pa.types.is_null(values.type):
+            # GH#66703 replace_with_mask aborts the process (not a catchable
+            # exception, so it cannot be handled by the try/except below) for
+            # null-typed arrays on pyarrow < 25.0.0.
+            # https://github.com/apache/arrow/issues/47447
+            # A null-typed array can only ever contain None, so masking some
+            # positions to be replaced with `replacements` -- which, to be a
+            # valid value for this dtype, must itself be null -- can never
+            # change the result. Skip the buggy kernel entirely.
+            return values
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
