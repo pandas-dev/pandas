@@ -431,6 +431,9 @@ def assert_index_equal(
         assert_interval_array_equal(
             cast("IntervalArray", left._values),
             cast("IntervalArray", right._values),
+            check_exact=check_exact,
+            rtol=rtol,
+            atol=atol,
         )
 
     # freq is not preserved by sorting, so when check_order=False the freqs
@@ -640,6 +643,10 @@ def assert_interval_array_equal(
     right: IntervalArray,
     exact: bool | Literal["equiv"] = "equiv",
     obj: str = "IntervalArray",
+    *,
+    check_exact: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
 ) -> None:
     """
     Test that two IntervalArrays are equivalent.
@@ -655,11 +662,27 @@ def assert_interval_array_equal(
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
+    check_exact : bool, default True
+        Whether to compare the endpoints exactly.
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_equal(left._left, right._left, obj=f"{obj}.left")
-    assert_equal(left._right, right._right, obj=f"{obj}.right")
+    if check_exact or left._left.dtype.kind not in "iuf":
+        # a tolerance is only meaningful for numeric endpoints, and the
+        #  datetimelike comparison additionally checks tz/freq
+        assert_equal(left._left, right._left, obj=f"{obj}.left")
+        assert_equal(left._right, right._right, obj=f"{obj}.right")
+    else:
+        assert_almost_equal(
+            left._left, right._left, rtol=rtol, atol=atol, obj=f"{obj}.left"
+        )
+        assert_almost_equal(
+            left._right, right._right, rtol=rtol, atol=atol, obj=f"{obj}.right"
+        )
 
     assert_attr_equal("closed", left, right, obj=obj)
 
@@ -1172,6 +1195,7 @@ def assert_series_equal(
                 left_values,
                 right_values,
                 check_dtype=check_dtype,
+                check_exact=check_exact,
                 index_values=left.index,
                 obj=str(obj),
             )
@@ -1209,7 +1233,11 @@ def assert_series_equal(
         right.dtype, IntervalDtype
     ):
         assert_interval_array_equal(
-            cast("IntervalArray", left.array), cast("IntervalArray", right.array)
+            cast("IntervalArray", left.array),
+            cast("IntervalArray", right.array),
+            check_exact=False,
+            rtol=rtol,
+            atol=atol,
         )
     elif isinstance(left.dtype, CategoricalDtype) or isinstance(
         right.dtype, CategoricalDtype

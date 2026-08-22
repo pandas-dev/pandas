@@ -20,6 +20,8 @@ from pandas._libs.util cimport (
 )
 
 
+from pandas._libs.interval import Interval
+
 from pandas.core.dtypes.missing import array_equivalent
 
 
@@ -256,6 +258,15 @@ cpdef assert_almost_equal(a, b,
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")
+        return True
+
+    if isinstance(a, Interval) and isinstance(b, Interval):
+        # GH#43913 the tolerance applies to the endpoints; the closed side is
+        #  not numeric and has to match exactly
+        if a.closed != b.closed:
+            raise AssertionError(f"{a} != {b}")
+        assert_almost_equal(a.left, b.left, rtol=rtol, atol=atol)
+        assert_almost_equal(a.right, b.right, rtol=rtol, atol=atol)
         return True
 
     raise AssertionError(f"{a} != {b}")

@@ -8,6 +8,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
     NaT,
     RangeIndex,
@@ -385,3 +386,14 @@ def test_assert_index_equal_check_freq_check_order_false(box, start):
     with tm.assert_produces_warning(None):
         tm.assert_index_equal(shuffled, idx, check_order=False)
         tm.assert_index_equal(shuffled, idx, check_order=False, check_freq=True)
+
+
+def test_index_equal_interval_dtype_tolerance():
+    # GH#43913 rtol/atol were not propagated to interval dtype
+    idx1 = IntervalIndex.from_tuples([(1.0, 2.0)])
+    idx2 = IntervalIndex.from_tuples([(1.0000000000001, 2.0)])
+
+    tm.assert_index_equal(idx1, idx2, check_exact=False, rtol=10.0, atol=10.0)
+
+    with pytest.raises(AssertionError, match="Index are different"):
+        tm.assert_index_equal(idx1, idx2, check_exact=False, rtol=0, atol=1e-14)
