@@ -55,6 +55,7 @@ Other enhancements
 - Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`Series.between_time` and :meth:`DataFrame.between_time` previously raised on them, and :meth:`Series.at_time` and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
 - Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
+- Vertical bar plots with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` now format the x-axis with the same dynamic date tick labeling as line plots, instead of labeling every bar with the full string representation of its timestamp. The tick labels of such plots are no longer rotated by default, matching line plots; pass ``rot`` to override. Bar plots over a frequency the date ticks cannot be aligned to — a multiplied business-day, monthly, quarterly or annual frequency such as ``"3B"`` or ``"2ME"`` — keep the previous labeling (:issue:`1918`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:

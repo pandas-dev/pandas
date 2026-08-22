@@ -401,8 +401,30 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
+def set_period_converter(ax: Axes) -> None:
+    """
+    Register PeriodConverter on the x-axis of ``ax``.
+
+    The x-axis holds plain int64 ordinals (Period ordinals for PeriodIndex
+    plots; business-day ordinals for BDay), so matplotlib's units machinery
+    never registers a converter of its own.  Setting it explicitly is what lets
+    ax.set_xlim("2020-01-01"), axvline(timestamp) and user-supplied datetime
+    xticks map to those ordinals via _get_datevalue().
+    """
+    xaxis = ax.get_xaxis()
+    if hasattr(xaxis, "set_converter"):
+        # matplotlib >= 3.10: only set if not already a PeriodConverter
+        if not isinstance(xaxis.get_converter(), PeriodConverter):
+            xaxis.set_converter(PeriodConverter())
+    else:
+        xaxis.converter = PeriodConverter()
+
+
 def format_dateaxis(
-    subplot, freq: BaseOffset, index: DatetimeIndex | PeriodIndex
+    subplot,
+    freq: BaseOffset,
+    index: DatetimeIndex | PeriodIndex,
+    anchor: int | None = None,
 ) -> None:
     """
     Pretty-formats the date axis (x-axis).
@@ -411,6 +433,10 @@ def format_dateaxis(
     current underlying series.  As the dynamic mode is activated by
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
+
+    ``anchor`` is an ordinal the tick grid has to land on; a bar plot passes
+    the ordinal of its first bar, since its axis limits sit half a period
+    below it.  Line plots leave it unset.
     """
     import matplotlib.pyplot as plt
 
@@ -422,19 +448,35 @@ def format_dateaxis(
         # (not a PeriodIndex) to avoid the deprecated Period[B].  The tick
         # locator and formatter both operate on those ordinals directly.
         majlocator = TimeSeries_DateLocator(
-            freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=False,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         minlocator = TimeSeries_DateLocator(
-            freq, dynamic_mode=True, minor_locator=True, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=True,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         subplot.xaxis.set_major_locator(majlocator)
         subplot.xaxis.set_minor_locator(minlocator)
 
         majformatter = TimeSeries_DateFormatter(
-            freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=False,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         minformatter = TimeSeries_DateFormatter(
-            freq, dynamic_mode=True, minor_locator=True, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=True,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         subplot.xaxis.set_major_formatter(majformatter)
         subplot.xaxis.set_minor_formatter(minformatter)
@@ -442,19 +484,7 @@ def format_dateaxis(
         # x and y coord info
         subplot.format_coord = functools.partial(_format_coord, freq)
 
-        # The x-axis holds plain int64 ordinals (Period ordinals for PeriodIndex
-        # plots; business-day ordinals for BDay), so matplotlib's units
-        # machinery never registers a converter.  Set PeriodConverter
-        # explicitly so that post-plot ax.set_xlim(string, ...) /
-        # ax.set_xlim(datetime, ...) calls can map values to ordinals via
-        # _get_datevalue().
-        if hasattr(subplot.xaxis, "set_converter"):
-            # matplotlib >= 3.10: only set if not already a PeriodConverter
-            existing = subplot.xaxis.get_converter()
-            if not isinstance(existing, PeriodConverter):
-                subplot.xaxis.set_converter(PeriodConverter())
-        else:
-            subplot.xaxis.converter = PeriodConverter()
+        set_period_converter(subplot)
 
     elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))
