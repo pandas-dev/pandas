@@ -4,6 +4,8 @@ import importlib
 import inspect
 import pathlib
 import pkgutil
+import subprocess
+import sys
 
 import pytest
 
@@ -577,3 +579,16 @@ def test_attributes_module(module_name):
         except Exception:
             failures.append((module_name, name, type(obj), obj.__module__))
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports():
+    # `import pandas` should not eagerly import the deferred I/O backends
+    code = (
+        "import pandas, sys; "
+        "assert 'pandas.io.excel' not in sys.modules; "
+        "assert 'pandas.testing' not in sys.modules"
+    )
+    subprocess.check_call([sys.executable, "-c", code])
