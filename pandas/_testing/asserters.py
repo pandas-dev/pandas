@@ -24,6 +24,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_bool,
     is_float_dtype,
@@ -533,6 +534,25 @@ def assert_attr_equal(
         result = False
     elif not isinstance(result, bool):
         result = result.all()
+
+    if (
+        not result
+        and isinstance(left_attr, (tuple, list))
+        and type(left_attr) is type(right_attr)
+    ):
+        # MultiIndex labels (tuples) and Index.names (FrozenList) can contain
+        # NA values that == does not treat as equal. Build the arrays with
+        # construct_1d_object_array_from_listlike: np.asarray would read
+        # equal-length nested sequences as a second dimension, discarding the
+        # nested types that == distinguishes.
+        try:
+            result = array_equivalent(
+                construct_1d_object_array_from_listlike(left_attr),
+                construct_1d_object_array_from_listlike(right_attr),
+                strict_nan=True,
+            )
+        except TypeError:
+            result = False
 
     if not result:
         msg = f'Attribute "{attr}" are different'
