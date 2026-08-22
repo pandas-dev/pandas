@@ -70,6 +70,7 @@ def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
 
     result = np.empty(n, dtype=bool).view(np.uint8)
     isnull_val = checknull(val)
+    is_complex_val = isinstance(val, complex)
 
     if flag == Py_NE:
         for i in range(n):
@@ -99,7 +100,17 @@ def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
     else:
         for i in range(n):
             x = values[i]
-            if checknull(x):
+            if isinstance(x, complex) or is_complex_val:
+                symbol = {
+                    "lt": "<", "le": "<=",
+                    "gt": ">", "ge": ">=",
+                    "eq": "==", "ne": "!="
+                }
+                raise TypeError(
+                    f"'{symbol.get(op.__name__)}' not supported between instances of "
+                    f"'{type(x).__name__}' and '{type(val).__name__}'"
+                )
+            elif checknull(x):
                 result[i] = False
             elif isnull_val:
                 result[i] = False
@@ -167,7 +178,17 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
             x = left[i]
             y = right[i]
 
-            if checknull(x) or checknull(y):
+            if (flag != Py_EQ) and (isinstance(x, complex) or isinstance(y, complex)):
+                symbol = {
+                    "lt": "<", "le": "<=",
+                    "gt": ">", "ge": ">=",
+                    "eq": "==", "ne": "!="
+                }
+                raise TypeError(
+                    f"'{symbol.get(op.__name__)}' not supported between instances of "
+                    f"'{type(x).__name__}' and '{type(y).__name__}'"
+                )
+            elif checknull(x) or checknull(y):
                 result[i] = False
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
