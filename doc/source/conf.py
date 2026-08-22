@@ -230,6 +230,46 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.IncompatibilityWarning$",
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
+    # Offset class docstrings - parameters (PR02) and order (GL07)
+    r"pandas\.tseries\.offsets\.DateOffset$",
+    r"pandas\.tseries\.offsets\.BusinessDay$",
+    r"pandas\.tseries\.offsets\.BusinessHour$",
+    r"pandas\.tseries\.offsets\.CustomBusinessDay$",
+    r"pandas\.tseries\.offsets\.CustomBusinessHour$",
+    r"pandas\.tseries\.offsets\.MonthEnd$",
+    r"pandas\.tseries\.offsets\.MonthBegin$",
+    r"pandas\.tseries\.offsets\.BusinessMonthEnd$",
+    r"pandas\.tseries\.offsets\.BusinessMonthBegin$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin$",
+    r"pandas\.tseries\.offsets\.SemiMonthEnd$",
+    r"pandas\.tseries\.offsets\.SemiMonthBegin$",
+    r"pandas\.tseries\.offsets\.Week$",
+    r"pandas\.tseries\.offsets\.WeekOfMonth$",
+    r"pandas\.tseries\.offsets\.LastWeekOfMonth$",
+    r"pandas\.tseries\.offsets\.BQuarterEnd$",
+    r"pandas\.tseries\.offsets\.BQuarterBegin$",
+    r"pandas\.tseries\.offsets\.QuarterEnd$",
+    r"pandas\.tseries\.offsets\.QuarterBegin$",
+    r"pandas\.tseries\.offsets\.BHalfYearEnd$",
+    r"pandas\.tseries\.offsets\.BHalfYearBegin$",
+    r"pandas\.tseries\.offsets\.HalfYearEnd$",
+    r"pandas\.tseries\.offsets\.HalfYearBegin$",
+    r"pandas\.tseries\.offsets\.BYearEnd$",
+    r"pandas\.tseries\.offsets\.BYearBegin$",
+    r"pandas\.tseries\.offsets\.YearEnd$",
+    r"pandas\.tseries\.offsets\.YearBegin$",
+    r"pandas\.tseries\.offsets\.FY5253$",
+    r"pandas\.tseries\.offsets\.FY5253Quarter$",
+    r"pandas\.tseries\.offsets\.Easter$",
+    r"pandas\.tseries\.offsets\.Tick$",
+    r"pandas\.tseries\.offsets\.Day$",
+    r"pandas\.tseries\.offsets\.Hour$",
+    r"pandas\.tseries\.offsets\.Minute$",
+    r"pandas\.tseries\.offsets\.Second$",
+    r"pandas\.tseries\.offsets\.Milli$",
+    r"pandas\.tseries\.offsets\.Micro$",
+    r"pandas\.tseries\.offsets\.Nano$",
     # Offset .base properties
     r"pandas\.tseries\.offsets\.BaseOffset\.base$",
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
@@ -667,6 +707,33 @@ for old, new in moved_classes:
     ]
     # ... and each of its public methods
     moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
+
+
+offset_attrs = ["freqstr", "kwds", "name", "nanos", "normalize", "rule_code", "n"]
+offset_methods = [
+    "copy",
+    "is_on_offset",
+    "is_month_start",
+    "is_month_end",
+    "is_quarter_start",
+    "is_quarter_end",
+    "is_year_start",
+    "is_year_end",
+    "rollback",
+    "rollforward",
+]
+
+for cls_name in pandas.tseries.offsets.__all__:
+    if cls_name == "BaseOffset":
+        continue
+    moved_api_pages.extend(
+        (
+            f"pandas.tseries.offsets.{cls_name}.{name}",
+            f"pandas.tseries.offsets.BaseOffset.{name}",
+        )
+        for name in offset_attrs + offset_methods
+    )
+
 
 if include_api:
     html_additional_pages = {
