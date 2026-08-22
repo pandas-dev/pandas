@@ -889,6 +889,34 @@ def test_short_multi_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_single_line_without_line_terminator(all_parsers):
+    # GH#62635
+    parser = all_parsers
+    result = parser.read_csv(StringIO("1,2,3"), names=["col1", "col2", "col3"])
+    expected = DataFrame([[1, 2, 3]], columns=["col1", "col2", "col3"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_single_line_without_line_terminator_header_only(all_parsers):
+    # GH#62635 a lone header row is still a header row; the frame is empty.
+    # check_dtype is off because the pyarrow engine types columns of an empty
+    # frame as float64 rather than object. That divergence is pre-existing and
+    # unrelated to the missing line terminator -- "a,b,c\n" behaves the same.
+    parser = all_parsers
+    result = parser.read_csv(StringIO("a,b,c"))
+    expected = DataFrame(columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_single_line_without_line_terminator_implicit_index(all_parsers):
+    # GH#62635 fewer names than fields: the leading column becomes the index,
+    # as it does for a source that ends with a line terminator.
+    parser = all_parsers
+    result = parser.read_csv(StringIO("1,2,3"), names=["col2", "col3"])
+    expected = DataFrame([[2, 3]], columns=["col2", "col3"], index=[1])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_read_seek(all_parsers, tmp_path):
     # GH48646
     parser = all_parsers

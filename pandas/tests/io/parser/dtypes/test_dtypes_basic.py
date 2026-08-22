@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
-    EmptyDataError,
     Pandas4Warning,
     ParserWarning,
 )
@@ -249,9 +248,12 @@ def test_boolean_dtype(all_parsers):
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     if all_parsers.engine == "pyarrow":
-        # pyarrow cannot parse this single-line input with these options
-        msg = "No columns to parse from file"
-        with pytest.raises(EmptyDataError, match=msg):
+        # GH#62635 the single-line input parses now, but 'usecols' given as
+        # labels still cannot be mapped to the names pyarrow autogenerates for
+        # 'names'. That limitation is independent of the line terminator -- a
+        # multi-line file with these same arguments raises identically.
+        msg = "does not support 'usecols' given as column labels together"
+        with pytest.raises(ValueError, match=msg):
             all_parsers.read_csv(
                 StringIO('"dump","-9,1","-9,1",20101010'),
                 engine="python",
