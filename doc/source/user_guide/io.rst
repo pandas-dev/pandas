@@ -93,6 +93,10 @@ header : int or list of ints, default ``'infer'``
   skipped). Note that this parameter ignores commented lines and empty
   lines if ``skip_blank_lines=True``, so header=0 denotes the first
   line of data rather than the first line of the file.
+  When a list is passed to ``header``, rows before the first specified
+  header row are skipped. Likewise, when a list is passed to ``index_col``,
+  columns before the first specified index column are skipped.
+
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
@@ -3503,6 +3507,9 @@ Reading a ``MultiIndex``
 and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
 or ``columns`` have serialized level names those will be read in as well by specifying
 the rows/columns that make up the levels.
+
+When reading an Excel file, rows before the first row specified by a list passed to ``header`` are skipped.
+Columns before the first column specified by a list passed to ``index_col`` are skipped as well.
 
 For example, to read in a ``MultiIndex`` index without names:
 
