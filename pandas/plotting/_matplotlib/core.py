@@ -1493,6 +1493,7 @@ class ScatterPlot(PlanePlot):
         else:
             cmap = None
 
+        norm: mpl.colors.Normalize | None
         if color_by_categorical and cmap is not None:
             n_cats = len(self.data[c].cat.categories)
             cmap = mpl.colors.ListedColormap([cmap(i) for i in range(cmap.N)])
@@ -1502,7 +1503,26 @@ class ScatterPlot(PlanePlot):
             #  Doesn't happen in any tests 2023-11-09
         else:
             norm = self.norm
+            if norm is None:
+                norm = self._get_scatter_norm(c_values)
         return norm, cmap
+
+    def _get_scatter_norm(self, c_values) -> mpl.colors.Normalize | None:
+        # GH#64980: the colorbar widens the norm it shares with the scatter,
+        #  which recolors the points. Set the limits here so it has nothing
+        #  left to widen.
+        try:
+            values = np.asarray(c_values, dtype=float)
+        except (TypeError, ValueError):
+            return None  # color names
+        if values.ndim != 1 or not np.isfinite(values).any():
+            return None  # RGB(A) values, or nothing to scale to
+        vmin = np.nanmin(values)
+        vmax = np.nanmax(values)
+        if vmin == vmax:
+            # +1 is not enough at large magnitudes, e.g. 1e16 + 1 == 1e16
+            vmax = vmin + max(abs(vmin), 1.0)
+        return mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
     def _get_colorbar(self, c_values, c_is_column: bool) -> bool:
         # plot colorbar if
