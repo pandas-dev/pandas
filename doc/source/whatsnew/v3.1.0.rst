@@ -225,6 +225,7 @@ Other API changes
 - :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file; the value was hardcoded to ``"0.15.2"`` and never reflected the pandas version. As a consequence, ``format="table"`` files written with pandas 3.1 or later cannot be read by pandas 3.0 or earlier (:issue:`62792`)
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
+- The ``year`` column of :meth:`DatetimeIndex.isocalendar` and :meth:`Series.dt.isocalendar` is now ``Int32`` instead of ``UInt32``, so that years before year 1 are representable (:issue:`66549`)
 -
 
 .. _whatsnew_310.api_breaking.build:
@@ -462,6 +463,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :attr:`DatetimeIndex.year` and :attr:`Series.dt.year` silently returning a wrapped year, e.g. ``219250468`` for year ``292277026596``, for second-resolution datetimes with a year beyond ``2**31``; these now raise ``ValueError``, and :attr:`DatetimeIndex.is_leap_year` no longer takes the leap-year status from the wrapped year (:issue:`66549`)
 - Bug in :attr:`Timestamp.days_in_month`, and in month-end and business-day offsets, using a wrapped year to decide whether the year is a leap year, for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
 - Bug in :class:`ArrowExtensionArray` where adding a :class:`DateOffset` to a ``date32[pyarrow]`` or ``date64[pyarrow]`` Series raised an ``ArrowTypeError`` (:issue:`57168`)
 - Bug in :class:`DatetimeIndex` constructor raising ``ValueError`` when passing equivalent but not equal frequencies (e.g. ``QS-FEB`` vs ``QS-MAY``) (:issue:`61086`)
@@ -491,11 +493,13 @@ Datetimelike
 - Bug in :meth:`DataFrame.to_string` and :meth:`Series.to_string` where ``na_rep`` was ignored for datetime and timedelta columns, always displaying ``NaT`` (:issue:`55426`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
 - Bug in :meth:`DatetimeIndex.intersection` returning incorrect results when the two indexes had matching ``freq`` but did not lie on the same grid, e.g. ranges with the same business-day frequency but different time-of-day components (:issue:`44025`)
+- Bug in :meth:`DatetimeIndex.isocalendar` and :meth:`Series.dt.isocalendar` returning a wrapped year for dates before year 1, e.g. ``4294967196`` for year ``-100``; a year beyond ``2**31`` now raises ``ValueError`` instead of being silently truncated (:issue:`66549`)
 - Bug in :meth:`DatetimeIndex.tz_localize`, :meth:`Series.dt.tz_localize`, and the :class:`Timestamp` constructor with a timezone that observes DST, where a wall time whose shift to UTC lands exactly on the ``NaT`` sentinel read out of bounds and reported a spurious "nonexistent time" ``ValueError`` instead of raising :class:`OutOfBoundsDatetime` (:issue:`66550`)
 - Bug in :meth:`DatetimeIndex.union` and :meth:`TimedeltaIndex.union` with ``sort=False`` silently dropping values from the other index that fell after the end of ``self`` (:issue:`66322`)
 - Bug in :meth:`Series.dt.isocalendar` with a pyarrow-backed datetime or date dtype not preserving the original index, resetting it to a default :class:`RangeIndex` (:issue:`65894`)
 - Bug in :meth:`Series.dt.to_pydatetime` not preserving the original index and name (:issue:`66443`)
 - Bug in ``day_of_week``, :meth:`Timestamp.weekday` and :meth:`Timestamp.day_name` returning a wrong weekday, or raising ``OverflowError``, for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
+- Bug in ``day_of_year`` and ``week``, on :class:`Timestamp` as well as on :class:`DatetimeIndex` and :class:`Series`, taking the leap-year status from a wrapped year for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
 - Bug in adding a :class:`BusinessDay` offset to a :class:`DatetimeIndex` or :class:`Series` where an out-of-bounds result silently wrapped to an unrelated date, and a result landing exactly on the ``NaT`` sentinel came back as a missing value, instead of raising ``OverflowError`` (:issue:`66552`)
 - Bug in adding a :class:`BusinessDay` offset with ``n`` of magnitude ``2**31`` or more to a :class:`DatetimeIndex` or :class:`Series` silently shifting by a wrapped number of business days, e.g. ``n=2**32`` behaving like ``n=0`` (:issue:`66549`)
 - Bug in adding a :class:`DateOffset` to a :class:`DatetimeIndex` or :class:`Series` where a result landing exactly on the ``NaT`` sentinel came back as a missing value, and where promoting the values to the offset's finer resolution silently wrapped to an unrelated date, instead of raising as the equivalent :class:`Timedelta` operations already did (:issue:`66552`)
