@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import inspect
 import types
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -13,6 +16,8 @@ from pandas.errors import NumbaUtilError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from pandas import Series
 
 GLOBAL_USE_NUMBA: bool = False
 
@@ -147,3 +152,109 @@ def prepare_function_arguments(
 
     args = args[num_required_args:]
     return args, kwargs
+
+
+_JIT_APPLY_CACHE: dict[int, Callable] = {}
+_GLOBAL_LOOP: Callable | None = None
+
+
+def get_global_loop(numba: types.ModuleType) -> Callable:
+    global _GLOBAL_LOOP
+    if _GLOBAL_LOOP is None:
+
+        @numba.njit(parallel=True)  # type: ignore[untyped-decorator]
+        def global_numba_apply_loop(
+            arr: np.ndarray, jitted_func: Callable[[Any], Any]
+        ) -> np.ndarray:
+            n = len(arr)
+            first_val = jitted_func(arr[0])
+            res = np.empty(n, dtype=type(first_val))
+            res[0] = first_val
+            for i in numba.prange(1, n):
+                res[i] = jitted_func(arr[i])
+            return res
+
+        _GLOBAL_LOOP = global_numba_apply_loop
+    assert _GLOBAL_LOOP is not None
+    return _GLOBAL_LOOP
+
+
+def maybe_run_numba_apply(
+    series: Series,
+    func: Callable[[Any], Any],
+    engine: str | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
+) -> np.ndarray | None:
+    """
+    Attempt to JIT compile the user function using Numba and run it over the Series.
+
+    Parameters
+    ----------
+    series : Series
+        The Pandas Series object.
+    func : Callable
+        The User Defined Function (UDF).
+    engine : str, optional
+        The execution engine (e.g. 'numba' or 'python').
+    engine_kwargs : dict, optional
+        Keyword arguments passed to numba.njit.
+
+    Returns
+    -------
+    np.ndarray or None
+        The result array if compilation and execution succeed, otherwise None.
+    """
+    if not maybe_use_numba(engine):
+        return None
+
+    # Size threshold only applies to automatic JIT
+    # (engine is None and GLOBAL_USE_NUMBA is True)
+    if engine is None and len(series) < 50_000:
+        return None
+
+    is_supported_dtype = isinstance(series.dtype, np.dtype) and (
+        np.issubdtype(series.dtype, np.number)
+        or np.issubdtype(series.dtype, np.datetime64)
+        or np.issubdtype(series.dtype, np.timedelta64)
+    )
+    if not is_supported_dtype:
+        if engine == "numba":
+            raise ValueError(
+                "Numba engine only supports numeric/datetime dtypes, "
+                f"got {series.dtype}"
+            )
+        return None
+
+    try:
+        import numba
+    except ImportError as err:
+        if engine == "numba":
+            raise ImportError(
+                "Numba is not installed. Please install numba to use engine='numba'"
+            ) from err
+        return None
+
+    func_id = id(func)
+    if func_id in _JIT_APPLY_CACHE:
+        jitted_udf = _JIT_APPLY_CACHE[func_id]
+    else:
+        try:
+            nogil = True
+            parallel = False
+            if engine_kwargs:
+                nogil = engine_kwargs.get("nogil", True)
+                parallel = engine_kwargs.get("parallel", False)
+            jitted_udf = numba.njit(func, nogil=nogil, parallel=parallel)
+            _JIT_APPLY_CACHE[func_id] = jitted_udf
+        except Exception as err:
+            if engine == "numba":
+                raise NumbaUtilError(f"Failed to JIT compile function: {err}") from err
+            return None
+
+    try:
+        loop = get_global_loop(numba)
+        return loop(series.to_numpy(), jitted_udf)
+    except Exception as err:
+        if engine == "numba":
+            raise NumbaUtilError(f"Failed to execute Numba JIT loop: {err}") from err
+        return None
