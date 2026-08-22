@@ -604,6 +604,31 @@ to a column created earlier in the same :meth:`~DataFrame.assign`.
 In the second expression, ``x['C']`` will refer to the newly created column,
 that's equal to ``dfa['A'] + dfa['B']``.
 
+.. _dsintro.select:
+
+Selecting columns in method chains
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to selecting with ``[]``, :meth:`DataFrame.select` returns a DataFrame
+with the specified columns, but as a method it composes naturally in chains.
+Columns can be given either as individual arguments or as a single list:
+
+.. ipython:: python
+
+   dfa.select("B", "A")
+   dfa.select(["B", "A"])
+
+Columns can also be computed via :func:`pandas.col` expressions, or callables
+passed as keyword arguments. A positional expression keeps the name of the
+underlying column, while a keyword argument names the resulting column:
+
+.. ipython:: python
+
+   dfa.select("A", pd.col("B") * 2, C=pd.col("A") + pd.col("B"))
+
+Unlike :meth:`~pandas.DataFrame.assign`, all expressions are evaluated against
+the original DataFrame, and the result contains only the requested columns.
+
 
 Indexing / selection
 ~~~~~~~~~~~~~~~~~~~~
