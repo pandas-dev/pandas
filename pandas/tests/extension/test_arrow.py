@@ -3673,6 +3673,32 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+def test_setitem_null_dtype_replace_with_mask_abort():
+    # GH#66703 pc.replace_with_mask aborts for null dtype (apache/arrow#47447).
+    # Operations routed through _replace_with_mask must not crash the process.
+    ser = pd.Series(
+        pa.array([None, None, None], type=pa.null()), dtype=ArrowDtype(pa.null())
+    )
+    mask = np.array([True, False, False])
+
+    # boolean-mask setitem
+    result = ser.copy()
+    result[mask] = None
+    tm.assert_series_equal(result, ser)
+
+    # where / mask
+    tm.assert_series_equal(ser.where(~mask), ser)
+    tm.assert_series_equal(ser.mask(mask), ser)
+
+    # combine_first
+    tm.assert_series_equal(ser.combine_first(ser), ser)
+
+    # DataFrame.loc setitem
+    df = ser.to_frame("a")
+    df.loc[mask, "a"] = None
+    tm.assert_frame_equal(df, ser.to_frame("a"))
+
+
 def test_setitem_na_chunked_string_if_else():
     # GH#64320
     df = pd.concat(
