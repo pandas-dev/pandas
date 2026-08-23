@@ -21,7 +21,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    Pandas4Warning,
+    PandasFutureWarning,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -280,7 +283,7 @@ def is_sparse(arr) -> bool:
     warnings.warn(
         "is_sparse is deprecated and will be removed in a future "
         "version. Check `isinstance(dtype, pd.SparseDtype)` instead.",
-        Pandas4Warning,
+        PandasFutureWarning,
         stacklevel=2,
     )
 
