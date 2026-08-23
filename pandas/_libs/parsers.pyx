@@ -588,7 +588,10 @@ cdef class TextReader:
         self.warning_sink = None
         self.na_left_literal = False
 
-        if float_precision in ("round_trip", "legacy", "high", None):
+        # None by identity, not in the tuple; see tzconversion.pyx (GH#66939)
+        if float_precision is None or float_precision in (
+            "round_trip", "legacy", "high"
+        ):
             self.parser.double_converter = precise_xstrtod_wrapper
         else:
             raise ValueError(f"Unrecognized float_precision option: "
