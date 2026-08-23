@@ -14,7 +14,6 @@ from pandas.util.version import Version
 xarray = pytest.importorskip("xarray")
 
 
-@pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestDataFrameToXArray:
     @pytest.fixture
     def df(self):
@@ -83,9 +82,6 @@ class TestDataFrameToXArray:
 
 
 class TestSeriesToXArray:
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_to_xarray_index_types(self, index_flat, request):
         # MultiIndex is tested in test_to_xarray_with_multiindex
         index = index_flat

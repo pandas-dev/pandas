@@ -1799,7 +1799,6 @@ class TestLocWithEllipsis:
         result = indexer(obj)[...]
         tm.assert_equal(result, obj)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
@@ -2274,7 +2273,6 @@ class TestLocSetitemWithExpansion:
         expected = Index([0, 1, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_with_expansion_nonunique_index(self, index, has_ref):
         # GH#40096
