@@ -803,6 +803,11 @@ def index_flat_sortable(request):
     return indices_dict[request.param].copy(deep=False)
 
 
+# Aliases so we can test with the cartesian product of index_flat
+index_flat2 = index_flat
+index_flat2_sortable = index_flat_sortable
+
+
 @pytest.fixture(
     params=[
         key

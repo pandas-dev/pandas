@@ -22,9 +22,20 @@ from pandas._libs.util cimport (
 
 from pandas.core.dtypes.missing import array_equivalent
 
+from pandas.io.formats.printing import pprint_thing
+
 
 cdef bint isiterable(obj):
-    return hasattr(obj, "__iter__")
+    if not hasattr(obj, "__iter__"):
+        return False
+
+    if is_array(obj):
+        return True
+
+    # GH#45240 exclude zero-dimensional duck-arrays, effectively scalars, as
+    #  lib.c_is_list_like does. pint's scalar Quantity is one of these: it
+    #  defines __iter__ and __len__ that delegate to its scalar magnitude.
+    return not (hasattr(obj, "ndim") and obj.ndim == 0)
 
 
 cdef bint has_length(obj):
@@ -174,7 +185,9 @@ cpdef assert_almost_equal(a, b,
                 diff += 1
                 if not first_diff:
                     first_diff = (
-                        f"At positional index {i}, first diff: {a[i]} != {b[i]}"
+                        f"At positional index {i}, first diff: "
+                        f"{pprint_thing(a[i], quote_strings=True)} != "
+                        f"{pprint_thing(b[i], quote_strings=True)}"
                     )
 
         if is_unequal:
