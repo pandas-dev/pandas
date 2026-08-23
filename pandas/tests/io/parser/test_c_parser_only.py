@@ -17,14 +17,17 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.compat import WASM
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     StringDtype,
     concat,
@@ -860,16 +863,157 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
-def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs):
-    # GH#66277: the pyarrow string fast path computed token lengths with
-    # strlen, so a quoted field with an embedded NUL byte was truncated at the
-    # NUL instead of matching the object path
+def test_pyarrow_string_non_ascii_eager_wrap_mutable(c_parser_only, kwargs):
+    # GH#66277: the eager wrap that bypasses the ExtensionArray constructor
+    # for non-ASCII columns did not set _cache, so mutating the result raised
+    # AttributeError (reachable with low_memory=False, where the array
+    # reaches the frame without an intermediate concat)
     pytest.importorskip("pyarrow")
     parser = c_parser_only
-    result = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), **kwargs)
-    expected = parser.read_csv(BytesIO(b'a\n"x\x00y"\n'), dtype=object)
-    assert result["a"][0] == "x\x00y"
-    assert expected["a"][0] == "x\x00y"
+    result = parser.read_csv(StringIO("a\ncafé\nnaïve\n"), **kwargs)
+    arr = result["a"].array
+    arr[0] = "x"
+    arr.sort()
+    assert list(arr) == ["naïve", "x"]
+
+
+@pytest.mark.parametrize("tail", ["", "café\nnaïve\n" * 4])
+def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
+    # GH#66277: with low_memory=True, deferred string chunks combine into a
+    # single column at the end of the read; all-ASCII chunks take the
+    # zero-copy path while non-ASCII chunks are wrapped eagerly, and either
+    # mix must match a single-chunk read
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    data = "a\n" + "foo\nbar\nNA\nbaz\n" * 8 + tail
+    expected = parser.read_csv(StringIO(data))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv(StringIO(data))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_mutable(kwargs):
+    # GH#66619: the fast path builds its result without going through the
+    # ExtensionArray constructor, so it must set every attribute the
+    # constructor does; omitting _cache made mutating the result raise
+    # AttributeError.  low_memory=False is required, not incidental: the
+    # low-memory path concatenates its chunks, which rebuilds the array and
+    # would hide the omission.
+    pytest.importorskip("pyarrow")
+    # pinned rather than inherited: the default-kwargs case would otherwise get
+    # an object-dtype column, and stop exercising the fast path at all, in the
+    # PANDAS_FUTURE_INFER_STRING=0 build.
+    with option_context("future.infer_string", True):
+        result = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
+    arr = result["a"].array
+    arr[0] = "zzz"
+    arr.sort()
+    assert list(arr) == ["bar", "zzz"]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
+    # GH#66619: the fast path sets the instance attributes itself instead of
+    # calling __init__, so it has to track whatever set the constructor
+    # establishes.  Adding an attribute to ArrowStringArray.__init__ or
+    # ArrowExtensionArray.__init__ without teaching parsers.pyx about it should
+    # fail here rather than silently producing a half-built array.
+    pytest.importorskip("pyarrow")
+    with option_context("future.infer_string", True):
+        result = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
+    arr = result["a"].array
+    expected = type(arr)(arr._pa_array)
+    assert vars(arr).keys() == vars(expected).keys()
+
+
+def test_pyarrow_string_iterator_dtype_stable_across_chunks():
+    # GH#66619: a reader resolves its pyarrow target once, when it converts its
+    # first string column, so every chunk of one read gets the same dtype even
+    # if the options change mid-iteration.  Previously the target was looked up
+    # per chunk and the second chunk here came back object-dtype.
+    pytest.importorskip("pyarrow")
+    with option_context("future.infer_string", True):
+        reader = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", chunksize=1, iterator=True
+        )
+        first = next(reader)
+    with option_context("future.infer_string", False):
+        second = next(reader)
+    assert first["a"].dtype == StringDtype(na_value=np.nan)
+    assert second["a"].dtype == first["a"].dtype
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
+    # GH#66756: the fast path copies a short token at a compile-time-constant
+    # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
+    # one byte either side of a tier boundary is where a mis-sized copy would
+    # truncate the value or trail the following token's bytes into it.
+    pa = pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = [
+        "".join(chr(ord("a") + pos % 26) for pos in range(width)) for width in widths
+    ]
+    data = "a,b\n" + "".join(f"{value},{value.upper()}\n" for value in values)
+    # The fast path requires infer_string *and* pyarrow storage, so pin both;
+    # the dtype check below turns any silent fall-back to the object path
+    # (which would satisfy the value assertions) into a loud failure.
+    with option_context("future.infer_string", True, "mode.string_storage", "pyarrow"):
+        result = read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        ArrowDtype(pa.string()) if kwargs else StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert result["a"].dtype == expected_dtype
+    assert result["a"].tolist() == values
+    assert result["b"].tolist() == [value.upper() for value in values]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
+    # GH#66756: the fast path sizes its data buffer from the column's leading
+    # tokens and grows it mid-pass when that estimate falls short, re-copying
+    # what it has already written.  A column whose first rows are far narrower
+    # than the rest takes that path repeatedly, where a stale buffer pointer or
+    # an undersized grow would corrupt everything written before it.
+    pa = pytest.importorskip("pyarrow")
+    values = ["ab"] * 20 + [f"{num:x}" * 900 for num in range(1, 200)]
+    data = "a\n" + "".join(f"{value}\n" for value in values)
+    with option_context("future.infer_string", True, "mode.string_storage", "pyarrow"):
+        result = read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        ArrowDtype(pa.string()) if kwargs else StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert result["a"].dtype == expected_dtype
+    assert result["a"].tolist() == values
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("prefix_len", [1, 200])
+def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
+    # GH#66415: the pyarrow string fast path computed token lengths with
+    # strlen, so a quoted field with an embedded NUL byte was truncated at the
+    # NUL.  Column "a" takes its length from the next token's start and column
+    # "b", last in the stream, from the stream end, covering both branches of
+    # the length helper; the two prefix_len values keep a length-capped scan
+    # from passing by accident.
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    value = b"x" * prefix_len + b"\x00y"
+    data = b'a,b\n"' + value + b'","' + value + b'"'
+    result = parser.read_csv(BytesIO(data), **kwargs)
+    # engine="python" shares none of the C tokenizer's length arithmetic, so it
+    # is an independent reference for what the field should decode to
+    expected = read_csv(BytesIO(data), engine="python")
+    assert result["a"][0] == value.decode()
+    assert result["b"][0] == value.decode()
+    assert expected["a"][0] == value.decode()
+    assert expected["b"][0] == value.decode()
 
 
 def test_embedded_nul_fixed_width_bytes(c_parser_only):
@@ -971,6 +1115,153 @@ def test_categorical_encoding_errors_merge_with_na(c_parser_only):
     assert list(result.cat.codes) == [0, -1, 0, 1]
 
 
+@pytest.mark.parametrize(
+    "field,other",
+    [
+        ("1\x00xyz", "2"),
+        ("-1\x00xyz", "2"),
+        ("18446744073709551615\x00xyz", "2"),
+        ("1.5\x00xyz", "2.5"),
+        ("1e3\x00xyz", "2.5"),
+        ("inf\x00xyz", "2.5"),
+        ("infinity\x00xyz", "2.5"),
+        ("True\x00xyz", "False"),
+        # not a default true_values entry, so only to_boolean can accept it
+        ("TRue\x00xyz", "False"),
+    ],
+)
+def test_embedded_nul_is_not_a_numeric_or_boolean_literal(c_parser_only, field, other):
+    # GH#66524: the numeric and boolean converters finished on a NUL rather
+    # than on the end of the token, so a field was silently accepted at its
+    # pre-NUL prefix and the trailing bytes were discarded.  `other` keeps the
+    # rest of the column parseable, so the column would convert if the bad
+    # field were accepted.
+    parser = c_parser_only
+    data = f'a\n"{field}"\n{other}\n'.encode()
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"][0] == field
+
+
+def test_embedded_nul_with_thousands_separator(c_parser_only):
+    # GH#66524: the thousands-separator path strips the separator into a scratch
+    # buffer, so it needs the same end-of-token check as the plain path.
+    parser = c_parser_only
+    data = b'a\n"1,234\x00xyz"\n2\n'
+
+    result = parser.read_csv(BytesIO(data), thousands=",")
+    expected = read_csv(BytesIO(data), engine="python", thousands=",")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"][0] == "1,234\x00xyz"
+
+
+@pytest.mark.parametrize("na_filter", [True, False])
+@pytest.mark.parametrize(
+    "good,field",
+    [
+        ("2.5", "1.5\x00xyz"),
+        ("2.5", "inf\x00xyz"),
+        # the long spelling takes a different arm of the infinity check
+        ("2.5", "-Infinity\x00x"),
+        # default spelling: covers the true/false hashset lookup, which must
+        # compare the full length rather than the pre-NUL prefix
+        ("True", "True\x00xyz"),
+        ("True", "TRue\x00xyz"),
+        # neither spelling is in the default true_values/false_values, so each
+        # reaches a different arm of to_boolean
+        ("True", "FAlse\x00xyz"),
+    ],
+)
+def test_embedded_nul_in_later_row(c_parser_only, good, field, na_filter):
+    # GH#66524: the float and boolean converters probe only the first non-NA
+    # token and bail out before their bulk loop when it rejects, so a NUL field
+    # in the first row never reaches the per-row conversion.  Put a good value
+    # first so the bulk loop is the code under test; na_filter picks between
+    # the two separate loops in each converter.
+    parser = c_parser_only
+    data = f'a\n{good}\n"{field}"\n'.encode()
+
+    result = parser.read_csv(BytesIO(data), na_filter=na_filter)
+    expected = read_csv(BytesIO(data), engine="python", na_filter=na_filter)
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == [good, field]
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "1\x00xyz",
+        "18446744073709551614\x00z",
+        # the pre-NUL digits exceed uint64, so this leaves str_to_uint64 by the
+        # overflow arm rather than by the end-of-token check the others take
+        "18446744073709551616\x00z",
+    ],
+)
+def test_embedded_nul_is_not_a_uint64(c_parser_only, field):
+    # GH#66524: str_to_uint64 is reached only after str_to_int64 reports a
+    # *clean* overflow, which a NUL-bearing token can never produce, so the
+    # leading row has to genuinely exceed int64 for the uint64 path to see the
+    # NUL-bearing field at all.
+    parser = c_parser_only
+    data = f'a\n18446744073709551615\n"{field}"\n'.encode()
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["18446744073709551615", field]
+
+
+def test_embedded_nul_int64_overflow(c_parser_only):
+    # GH#66524: the pre-NUL digits are int64max + 1, so the token leaves
+    # str_to_int64 by the overflow arm and its truncation has to be caught
+    # before the uint64 retry, where the truncated value would fit.
+    parser = c_parser_only
+    data = b'a\n1\n"9223372036854775808\x00z"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["1", "9223372036854775808\x00z"]
+
+
+def test_embedded_nul_is_not_a_python_int(c_parser_only):
+    # GH#66524: a column containing a value too large for uint64 falls back to
+    # a Python-int path built on PyLong_FromString, which also stops at a NUL.
+    parser = c_parser_only
+    data = b'a\n99999999999999999999999999\n"1\x00xyz"\n'
+
+    result = parser.read_csv(BytesIO(data))
+    expected = read_csv(BytesIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].tolist() == ["99999999999999999999999999", "1\x00xyz"]
+
+
+def test_embedded_nul_raises_for_explicit_int_dtype(c_parser_only):
+    # GH#66524: with the dtype pinned there is no string column to fall back
+    # to, so the truncated value has to raise rather than parse.
+    parser = c_parser_only
+    data = b'a\n"1\x00xyz"\n2\n'
+
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        parser.read_csv(BytesIO(data), dtype="Int64")
+
+
+@pytest.mark.parametrize(
+    "field", ["1\x00x", "0\x00x", "1.0\x00x", "0.0\x00x", "True\x00x"]
+)
+def test_embedded_nul_raises_for_boolean_dtype(c_parser_only, field):
+    # GH#66524: "1"/"1.0"/"0"/"0.0" are the numeric spellings dtype="boolean"
+    # accepts; none of these are one of them.  The "1.0"/"0.0" spellings take a
+    # separate arm of the literal check from the one-character ones.
+    parser = c_parser_only
+    data = f'a\nTrue\n"{field}"\n'.encode()
+
+    with pytest.raises(ValueError, match="cannot be cast to bool"):
+        parser.read_csv(BytesIO(data), dtype="boolean")
+
+
 @pytest.mark.parametrize("value", [b"NA\x00x", b"nan\x00junk", b"null\x00z"])
 def test_default_na_value_prefix_is_not_na(c_parser_only, value):
     # GH#19886: a field was compared against na_values only up to its first
@@ -1039,3 +1330,75 @@ def test_na_values_leading_nul(c_parser_only):
     assert result["a"].isna().tolist() == [True, False, False]
     assert result["a"][1] == "\x00z"
     assert result["a"][2] == ""
+
+
+def _raise_on_five(value):
+    if value == "5":
+        raise RuntimeError("boom")
+    return value
+
+
+@pytest.mark.parametrize(
+    "data,kwargs,error,match",
+    [
+        (
+            "a,b\n" + "".join(f"{i},{'oops' if i == 5 else i}\n" for i in range(20)),
+            {"dtype": {"b": "int64"}},
+            ValueError,
+            "invalid literal for int",
+        ),
+        (
+            "a,b\n" + "".join(f"{i},{i}\n" for i in range(20)),
+            {"converters": {"b": _raise_on_five}},
+            RuntimeError,
+            "boom",
+        ),
+        (
+            "a,b\n"
+            + "".join(
+                (f"{i},{i},{i}\n" if i == 15 else f"{i},{i}\n") for i in range(20)
+            ),
+            {},
+            ParserError,
+            "Expected 2 fields",
+        ),
+    ],
+)
+def test_read_after_chunk_raised(c_parser_only, data, kwargs, error, match):
+    # GH#66622: a chunk that raised closed the reader, and reading again then
+    # dereferenced the freed tokenizer buffers instead of raising.
+    parser = c_parser_only
+
+    with parser.read_csv(StringIO(data), chunksize=10, **kwargs) as reader:
+        with pytest.raises(error, match=match):
+            for _ in reader:
+                pass
+
+        with pytest.raises(ValueError, match="I/O operation on closed file"):
+            next(reader)
+
+
+def test_read_after_close(c_parser_only):
+    # GH#66622: reading from a closed reader crashed the interpreter.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    with parser.read_csv(StringIO(data), chunksize=10) as reader:
+        assert len(next(reader)) == 10
+
+    with pytest.raises(ValueError, match="I/O operation on closed file"):
+        next(reader)
+
+
+def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
+    # GH#66622: exhausting a reader closes it, but it must keep behaving like a
+    # spent iterator rather than reporting a closed file.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    reader = parser.read_csv(StringIO(data), chunksize=10)
+    assert len(list(reader)) == 2
+
+    for _ in range(2):
+        with pytest.raises(StopIteration):
+            next(reader)

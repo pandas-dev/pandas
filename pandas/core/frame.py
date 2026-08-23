@@ -184,6 +184,7 @@ from pandas.core.sorting import (
     nargsort,
 )
 
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import get_handle
 from pandas.io.formats import (
     console,
@@ -1661,7 +1662,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             pa_table = data
 
-        df = pa_table.to_pandas()
+        df = arrow_table_to_pandas(pa_table)
         return df
 
     @classmethod
@@ -5411,12 +5412,19 @@ class DataFrame(NDFrame, OpsMixin):
           ``'timedelta64[ms]'``; this matches only columns with exactly that
           resolution, whereas an unqualified spec matches every resolution
         * To select Pandas categorical dtypes, use ``'category'``
-        * To select Pandas datetimetz dtypes, use ``'datetimetz'``
-          or ``'datetime64[ns, tz]'``
+        * To select all timezone-aware datetime dtypes, use
+          :class:`pandas.DatetimeTZDtype`; a string such as
+          ``'datetime64[ns, US/Eastern]'`` selects only that exact dtype
+        * To select all period dtypes, use :class:`pandas.PeriodDtype`; a
+          string such as ``'period[D]'`` selects only that frequency
         * An :class:`~pandas.api.extensions.ExtensionDtype` subclass matches
           every instance of that subclass regardless of parametrization, e.g.
           ``pd.ArrowDtype`` selects all pyarrow-backed columns and
           ``pd.CategoricalDtype`` selects all categorical columns
+
+        .. deprecated:: 3.1.0
+            The strings ``'datetimetz'`` and ``'datetime64tz'`` are deprecated;
+            pass :class:`pandas.DatetimeTZDtype` instead.
 
         Examples
         --------
@@ -5557,6 +5565,20 @@ class DataFrame(NDFrame, OpsMixin):
             klasses: list[type[ExtensionDtype]] = []
             resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
+                if dtype is None:
+                    # GH#28943: a bare include=None means "not specified", but a
+                    # None inside the list-like reaches np.dtype(None) and
+                    # silently selects float64 columns.
+                    warnings.warn(
+                        "Passing None in the include/exclude list to "
+                        "select_dtypes is deprecated and will raise in a "
+                        "future version. None currently selects float64 "
+                        "columns; pass 'float64' explicitly if that is "
+                        "intended.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+
                 if isinstance(dtype, (np.dtype, ExtensionDtype)):
                     # GH#40234: a dtype instance matches only columns with
                     # exactly that dtype, whereas a class or string matches
@@ -5652,11 +5674,27 @@ class DataFrame(NDFrame, OpsMixin):
                             if not isinstance(dtype, str):
                                 raise
                             # strings accepted here but not by pandas_dtype
-                            # TODO(jreback) should deprecate these
                             if dtype in ("datetimetz", "datetime64tz"):
-                                dtype_type = DatetimeTZDtype.type
+                                # GH#24558
+                                warnings.warn(
+                                    f"Passing {dtype!r} to select_dtypes is "
+                                    "deprecated and will raise in a future "
+                                    "version. Pass pd.DatetimeTZDtype instead.",
+                                    Pandas4Warning,
+                                    stacklevel=find_stack_level(),
+                                )
+                                resolved.add(DatetimeTZDtype)
+                                ea_funcs.append(matches_ea_class(DatetimeTZDtype))
+                                continue
                             elif dtype == "period":
-                                raise NotImplementedError from None
+                                # GH#24558: never implemented; the class spec
+                                # selects every period column
+                                raise TypeError(
+                                    "select_dtypes does not support the 'period' "
+                                    "string; pass pd.PeriodDtype to select all "
+                                    "period columns, or a string such as "
+                                    "'period[D]' to select one frequency"
+                                ) from None
                             elif dtype == "datetime":
                                 dtype_type = np.datetime64
                             elif dtype == "timedelta":
@@ -8835,9 +8873,10 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to modify the DataFrame rather than creating a new one.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. `mergesort` and `stable` are the only stable algorithms. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
+            information. The sort order is deterministic for a given input.
+            'mergesort' and 'stable' are the only stable algorithms, which preserve
+            the relative order of equal keys. This option is ignored when sorting on a
+            MultiIndex or when a `level` is specified.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
             Not implemented for MultiIndex.
@@ -10902,11 +10941,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11019,11 +11058,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11135,11 +11174,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11253,11 +11292,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11371,11 +11410,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11491,11 +11530,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11591,11 +11630,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11708,11 +11747,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11803,11 +11842,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11896,11 +11935,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -11988,11 +12027,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -12082,11 +12121,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -12175,11 +12214,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -12268,11 +12307,11 @@ class DataFrame(NDFrame, OpsMixin):
         level : int or label
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : float or None, default None
-            Fill existing missing (NaN) values, and any new element needed for
-            successful DataFrame alignment, with this value before computation.
-            If data in both corresponding DataFrame locations is missing
-            the result will be missing.
+        fill_value : scalar or None, default None
+            Fill NA values, whether present in the original data or introduced
+            by alignment, with this value before computation. Positions where
+            both inputs are NA are left unfilled and behave as NA does for the
+            operation.
 
         Returns
         -------
@@ -13912,7 +13951,9 @@ class DataFrame(NDFrame, OpsMixin):
         fill_value : scalar
             Replace NaN with this value if the unstack produces missing values.
         sort : bool, default True
-            Sort the level(s) in the resulting MultiIndex columns.
+            Sort the level(s) in the resulting MultiIndex columns. This also
+            orders the rows of the result: sorted by the remaining levels if
+            ``True``, in order of first appearance if ``False``.
 
         Returns
         -------
@@ -14546,7 +14587,7 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: Callable | None | Literal["python", "numba"] = None,
+        engine: Callable | Literal["python", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -18180,7 +18221,6 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.min : Return the minimum over
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
-        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
@@ -18288,7 +18328,6 @@ class DataFrame(NDFrame, OpsMixin):
             but ignores ``NaN`` values.
         DataFrame.max : Return the maximum over
             DataFrame axis.
-        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
@@ -18399,7 +18438,6 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
-        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
         Examples
@@ -18502,14 +18540,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        core.window.expanding.Expanding.prod : Similar functionality
-            but ignores ``NaN`` values.
         DataFrame.prod : Return the product over
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
-        DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
         Examples
         --------

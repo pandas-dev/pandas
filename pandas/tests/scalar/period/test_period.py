@@ -174,6 +174,37 @@ class TestPeriodConstruction:
         rt2 = per2.to_timestamp()
         assert rt2.asm8 == dt64
 
+    @pytest.mark.parametrize(
+        "freq",
+        ["Y", "Q-DEC", "M", "W-SUN", "D", "h", "min", "s", "ms", "us", "ns"],
+    )
+    @pytest.mark.parametrize(
+        "year", [2**31 - 1, -(2**31), 300000, -300000, 9999, 2263, 1677]
+    )
+    def test_construction_extreme_years_never_silent(self, freq, year):
+        # GH#64158 an ordinal that overflows int64 used to come back as 0,
+        #  i.e. a 1970 period, instead of raising
+        try:
+            per = Period(year=year, month=1, day=1, freq=freq)
+        except (OutOfBoundsDatetime, OverflowError):
+            return
+        assert per.year == year
+
+    @pytest.mark.parametrize("value", ["2300-01-01", "1600-01-01"])
+    def test_construction_out_of_bounds_ordinal(self, value):
+        # GH#64158 the ordinal overflows int64 at nanosecond freq; the C
+        #  conversion detected it but the error was swallowed, so we got a
+        #  1970 epoch Period instead
+        msg = f"Out of bounds nanosecond timestamp: {value}"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Period(value, freq="ns")
+
+    def test_construction_out_of_bounds_ordinal_from_fields(self):
+        # GH#64158 same, for the year/month/day keywords
+        msg = "Out of bounds microsecond timestamp: 300000-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Period(year=300000, month=1, day=1, freq="us")
+
     @pytest.mark.parametrize("freq", ["ms", "us", "ns"])
     def test_construction_from_min_timestamp(self, freq):
         # GH-63278
@@ -254,7 +285,9 @@ class TestPeriodConstruction:
         i1 = Period("200701", freq="M")
         assert i1 == expected
 
-        i1 = Period(200701, freq="M")
+        msg = "Passing an integer to Period is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            i1 = Period(200701, freq="M")
         assert i1 == expected
 
         i1 = Period(ordinal=200701, freq="M")
@@ -310,7 +343,9 @@ class TestPeriodConstruction:
                 year=2012, month=3, day=10, freq="3B"
             )
 
-        assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
+        msg = "Passing an integer to Period is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
 
         i1 = Period(ordinal=200701, freq=offsets.MonthEnd())
         i2 = Period(ordinal=200701, freq="M")
@@ -1317,6 +1352,39 @@ def test_period_np_str():
     expected = Period("2023-01", freq="M")
     assert result == expected
 
+
+@pytest.mark.parametrize("value", [2000, np.int64(2000), np.uint16(2000)])
+def test_period_int_deprecated(value):
+    # GH#64227 an integer is currently read as a calendar year; in a future
+    #  version it will be read as an ordinal, matching PeriodArray
+    msg = "Passing an integer to Period is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = Period(value, freq="D")
+    assert result == Period("2000", freq="D")
+
+    # the two unambiguous spellings are unaffected
+    with tm.assert_produces_warning(None):
+        assert Period("2000", freq="D") == result
+        assert Period(ordinal=2000, freq="D").ordinal == 2000
+
+
+def test_period_int_nat_sentinel_not_deprecated():
+    # GH#64227 iNaT means NaT under both the old and new interpretations
+    with tm.assert_produces_warning(None):
+        assert Period(iNaT, freq="D") is NaT
+
     result = Period(np.str_("2023"), freq="Y")
     expected = Period("2023", freq="Y")
     assert result == expected
+
+
+def test_period_quarterly_string_no_deprecation_warning():
+    # GH#50907 Period is the recommended replacement for quarterly-string
+    # parsing in Timestamp, so it must not emit the deprecation warning
+    with tm.assert_produces_warning(None):
+        per = Period("2014Q2")
+    assert per == Period(year=2014, quarter=2, freq="Q-DEC")
+
+    with tm.assert_produces_warning(None):
+        per = Period("2014Q2", freq="Q-FEB")
+    assert per == Period(year=2014, quarter=2, freq="Q-FEB")
