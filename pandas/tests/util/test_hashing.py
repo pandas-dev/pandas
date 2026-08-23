@@ -521,3 +521,33 @@ class TestHashArrow:
         # Duplicate values across chunks should hash the same
         assert result.iloc[0] == result.iloc[2]
         assert len(result) == 4
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+def test_hash_nan_bit_patterns(dtype):
+    # GH#28363 all NaNs hash alike, whatever their sign/payload
+    nan = np.array([np.nan], dtype=dtype)
+    uint_dtype = f"u{nan.dtype.itemsize}"
+    other_payload = (nan.view(uint_dtype) + 1).view(dtype)
+    arr = np.concatenate([nan, -nan, other_payload, -other_payload])
+
+    result = hash_array(arr)
+    assert (result == result[0]).all()
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+def test_hash_negative_zero(dtype):
+    # GH#28363 -0.0 == 0.0, so the two hash alike
+    arr = np.array([0.0, -0.0], dtype=dtype)
+
+    result = hash_array(arr)
+    assert result[0] == result[1]
+
+
+def test_hash_complex_nan_bit_patterns():
+    # GH#28363
+    nan = np.float64(np.nan)
+    arr = np.array([complex(nan, -0.0), complex(-nan, 0.0)])
+
+    result = hash_array(arr)
+    assert result[0] == result[1]

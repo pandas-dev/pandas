@@ -357,7 +357,17 @@ def _hash_ndarray(
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
     elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view(f"u{vals.dtype.itemsize}").astype("u8")
+        uints = vals.view(f"u{dtype.itemsize}").astype("u8")
+        if issubclass(dtype.type, np.floating):
+            # GH#28363 a single float value can have more than one bit
+            # pattern: 0.0 vs -0.0, and NaN with any sign or payload.
+            # Canonicalize those so that equal values hash equal.
+            isna = np.isnan(vals)
+            if isna.any():
+                uints[isna] = np.array(np.nan, dtype=dtype).view(f"u{dtype.itemsize}")
+            neg_zero = np.array(-0.0, dtype=dtype).view(f"u{dtype.itemsize}")
+            uints[uints == neg_zero] = 0
+        vals = uints
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
