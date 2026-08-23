@@ -118,7 +118,7 @@ def test_frame_equal_index_mismatch(check_like, frame_or_series, using_infer_str
 {frame_or_series.__name__}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='{dtype}'\\)
 \\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='{dtype}'\\)
-At positional index 2, first diff: c != d"""
+At positional index 2, first diff: 'c' != 'd'"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])
@@ -440,6 +440,25 @@ def test_assert_frame_equal_nested_df_na(na_value):
     tm.assert_frame_equal(df1, df2)
 
 
+def test_assert_frame_equal_check_freq_columns():
+    # GH#51920 a freq mismatch on datetimelike columns is being introduced via
+    #  a deprecation: it warns by default, raises only with check_freq=True
+    cols = pd.date_range("2016-01-01", periods=2)
+    df1 = DataFrame([[1, 2]], columns=cols)
+    df2 = DataFrame([[1, 2]], columns=cols._with_freq(None))
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_frame_equal(df1, df2)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(df1, df2, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(df1, df2, check_freq=False)
+
+
 @pytest.mark.parametrize(
     "left,right",
     [
@@ -463,3 +482,23 @@ def test_assert_frame_equal_nested_arraylike_type_mismatch_check_exact(left, rig
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(right, left, check_exact=True)
+
+
+def test_assert_frame_equal_check_like_check_freq():
+    # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
+    #  the freq check is skipped with check_like=True
+    idx = pd.date_range("2020-01-01", periods=3, freq="D")
+    df = DataFrame({"a": [1, 2, 3]}, index=idx)
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(df.iloc[[2, 0, 1]], df, check_like=True)
+
+
+def test_assert_frame_equal_first_diff_quotes_strings():
+    # GH#37488 string and numeric labels have identical str(), so the first-diff
+    #  line was unreadable without quoting
+    df1 = DataFrame({"1": [1, 2, 3], "2": [1, 5, 9]})
+    df2 = DataFrame({1: [1, 2, 3], 2: [1, 5, 9]})
+    msg = "At positional index 0, first diff: '1' != 1"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, check_column_type=False)

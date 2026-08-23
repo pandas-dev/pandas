@@ -4,6 +4,11 @@ import numpy as np
 
 cimport numpy as cnp
 from libc.math cimport log10
+from libc.stdint cimport (
+    INT32_MAX,
+    INT32_MIN,
+)
+from libc.string cimport memset
 from numpy cimport (
     PyDatetimeScalarObject,
     int32_t,
@@ -29,6 +34,8 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.portable cimport checked_sub
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
@@ -41,8 +48,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
+    check_nat_sentinel,
     convert_reso,
     dts_to_iso_string,
+    dts_to_iso_string_ns,
     get_conversion_factor,
     get_datetime64_unit,
     get_implementation_bounds,
@@ -58,13 +67,17 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.parsing cimport parse_datetime_string
+from pandas._libs.tslibs.parsing cimport (
+    parse_datetime_string,
+    warn_quarter_deprecated,
+)
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
@@ -154,21 +167,29 @@ def cast_from_unit_vectorized(
     if p:
         frac = np.round(frac, p)
 
-    # Overflow check: 2**63 and -(2**63) are exactly representable in float64
-    # so this comparison is exact at the boundary. The actual integer result
-    # base * m + int64(frac * m) cannot exceed the float result (truncation
-    # toward zero), so if the float result is in bounds, the int result is too.
+    out = base * np.int64(m) + (frac * m).astype("i8")
+
+    # Overflow check. On overflow base * m + int64(frac * m) wraps modulo 2**64.
+    # A float bound check on the analytic result (result_f >= 2**63) is unreliable
+    # near the boundary because result_f is itself rounded, landing on the wrong
+    # side within half an ULP. Detect the wrap directly instead: the exact integer
+    # result tracks its float64 estimate to within a few ULP when it fits, but a
+    # wrap shifts it by ~2**64. (GH#57366)
     if m != 1:
         result_f = base.astype("f8") * m + frac * m
-        oob = (result_f >= 2**63) | (result_f < -(2**63))
-        non_nat = ~nat_mask
-        if (oob & non_nat).any():
-            bad_idx = int(np.where(oob & non_nat)[0][0])
-            raise OutOfBoundsDatetime(
-                f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
-            )
+        # Detecting the wrap costs an extra pass over the data, so gate it behind
+        # a cheap bound. result_f tracks the true result to ~2**-50 relative, well
+        # inside this margin, so a wrap can never land outside it.
+        near_bound = np.float64(2**63) * (1 - 2**-30)
+        if ((result_f >= near_bound) | (result_f <= -near_bound)).any():
+            oob = np.abs(result_f - out.astype("f8")) >= np.float64(2**63)
+            non_nat = ~nat_mask
+            if (oob & non_nat).any():
+                bad_idx = int(np.where(oob & non_nat)[0][0])
+                raise OutOfBoundsDatetime(
+                    f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+                )
 
-    out = base * np.int64(m) + (frac * m).astype("i8")
     out[nat_mask] = NPY_NAT
     return out
 
@@ -196,6 +217,15 @@ cdef int64_t cast_from_unit(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso
+
+    # GH#56996 the base/frac arithmetic below stays in `ts`'s own dtype, so a
+    #  numpy scalar narrower than int64/float64 does it at that width: under
+    #  NEP 50 `frac * m` then overflows (int8) or rounds (float32/float16).
+    #  Widen to Python int/float up front so the math matches the builtin case.
+    if is_float_object(ts):
+        ts = float(ts)
+    elif is_integer_object(ts):
+        ts = int(ts)
 
     if unit in ["Y", "M"]:
         if is_float_object(ts) and not ts.is_integer():
@@ -312,6 +342,81 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     return ival
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def datetime_from_fields(
+    const int64_t[:] years,
+    const int64_t[:] months,
+    const int64_t[:] days,
+    const int64_t[:] hours,
+    const int64_t[:] minutes,
+    const int64_t[:] seconds,
+):
+    """
+    Construct datetime64[us] values from arrays of date/time fields.
+
+    Entries with an invalid month/day, an hour/minute/second outside int32
+    range, or an out-of-bounds datetime get NPY_NAT.
+
+    Parameters
+    ----------
+    years, months, days, hours, minutes, seconds : int64 arrays
+
+    Returns
+    -------
+    (ndarray[int64], int)
+        The datetime64[us] values (as int64), and the index of the first
+        invalid entry (-1 if all entries are valid).
+    """
+    cdef:
+        Py_ssize_t i, n = len(years)
+        int64_t[::1] result = np.empty(n, dtype="i8")
+        npy_datetimestruct dts
+        int64_t month, day, hour, minute, second
+        Py_ssize_t first_invalid = -1
+
+    memset(&dts, 0, sizeof(npy_datetimestruct))
+
+    for i in range(n):
+        month = months[i]
+        day = days[i]
+        hour = hours[i]
+        minute = minutes[i]
+        second = seconds[i]
+        # The cast to C int can wrap for |year| > 2**31, but any such year
+        #  raises OverflowError below regardless of the leap-year check.
+        # hour/min/sec land in int32 npy_datetimestruct fields, so values
+        #  outside int32 range would silently wrap; treat them as invalid.
+        if (
+            month < 1
+            or month > 12
+            or day < 1
+            or day > get_days_in_month(<int>years[i], month)
+            or not (INT32_MIN <= hour <= INT32_MAX)
+            or not (INT32_MIN <= minute <= INT32_MAX)
+            or not (INT32_MIN <= second <= INT32_MAX)
+        ):
+            result[i] = NPY_NAT
+            if first_invalid == -1:
+                first_invalid = i
+            continue
+
+        dts.year = years[i]
+        dts.month = month
+        dts.day = day
+        dts.hour = hour
+        dts.min = minute
+        dts.sec = second
+        try:
+            result[i] = npy_datetimestruct_to_datetime(NPY_FR_us, &dts)
+        except OverflowError:
+            result[i] = NPY_NAT
+            if first_invalid == -1:
+                first_invalid = i
+
+    return result.base, first_invalid
+
+
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
@@ -350,7 +455,8 @@ cdef class _TSObject:
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
-                                   bint dayfirst, bint yearfirst, int32_t nanos=0):
+                                   bint dayfirst, bint yearfirst, int32_t nanos=0,
+                                   bint* warned_quarter=NULL):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -376,7 +482,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if type(ts) is not str:
             # GH#48974 np.str_ object
             ts = str(ts)
-        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
+        return convert_str_to_tsobject(
+            ts, tz, dayfirst, yearfirst, warned_quarter=warned_quarter
+        )
 
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
@@ -398,6 +506,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                 obj.value = tz_localize_to_utc_single(
                     obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
                 )
+                # GH#66510 the shift to UTC must not land on the NaT sentinel
+                check_nat_sentinel(obj.value, &obj.dts, reso)
     elif is_integer_object(ts) or (is_float_object(ts) and ts.is_integer()):
         try:
             ts = <int64_t>ts
@@ -416,6 +526,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             obj.creso = reso
             pandas_datetime_to_datetimestruct(ts, reso, &obj.dts)
     elif is_float_object(ts):
+        # GH#56996 widen first: comparing e.g. a np.float16 against NPY_NAT
+        #  casts the sentinel down to float16 and warns about the overflow.
+        ts = float(ts)
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
@@ -490,7 +603,7 @@ cdef _TSObject convert_datetime_to_tsobject(
     """
     cdef:
         _TSObject obj = _TSObject()
-        int64_t pps
+        int64_t pps, offset_val
 
     obj.creso = reso
     obj.fold = ts.fold
@@ -528,8 +641,18 @@ cdef _TSObject convert_datetime_to_tsobject(
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
         pps = periods_per_second(reso)
-        obj.value -= int(offset.total_seconds() * pps)
+        # utcoffset is bounded by +/-24h, so this cannot itself overflow
+        offset_val = int(offset.total_seconds() * pps)
+        # GH#66510 the shift to UTC must not wrap int64 silently
+        if checked_sub(obj.value, offset_val, &obj.value):
+            attrname = npy_unit_to_attrname[reso]
+            raise OutOfBoundsDatetime(
+                f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(&obj.dts)}"
+            )
 
+    # GH#66510. NB: after the shift rather than before, since a wall time that
+    #  renders onto the sentinel can still shift to a representable UTC value.
+    check_nat_sentinel(obj.value, &obj.dts, reso)
     check_overflows(obj, reso)
     return obj
 
@@ -578,7 +701,8 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
 
 cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=False,
-                                       bint yearfirst=False):
+                                       bint yearfirst=False,
+                                       bint* warned_quarter=NULL):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -598,6 +722,10 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
     yearfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "01/05/09"
         as "May 9, 2001", as opposed to the default "Jan 5, 2009"
+    warned_quarter : bint*, default NULL
+        Tracks whether the quarterly-string deprecation has already been
+        emitted, so that array callers warn once per call instead of once
+        per element. NULL means "warn unconditionally".
 
     Returns
     -------
@@ -610,6 +738,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         int64_t ival, nanos = 0
         NPY_DATETIMEUNIT out_bestunit, reso
         _TSObject obj
+        bint is_quarter = 0
 
     if len(ts) == 0 or ts in nat_strings:
         obj = _TSObject()
@@ -645,13 +774,18 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
 
                 if out_local == 1:
                     obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
-                    obj.value = tz_localize_to_utc_single(
-                        ival,
-                        obj.tzinfo,
-                        ambiguous="raise",
-                        nonexistent=None,
-                        creso=reso,
-                    )
+                    # equiv: tz_localize_to_utc_single(
+                    #  ival, obj.tzinfo, creso=reso)
+                    # GH#65353 the shift to UTC must not wrap int64 silently
+                    if checked_sub(
+                        ival, out_tzoffset * 60 * periods_per_second(reso), &obj.value
+                    ):
+                        attrname = npy_unit_to_attrname[reso]
+                        raise OutOfBoundsDatetime(
+                            f"Out of bounds {attrname} timestamp: {ts}"
+                        )
+                    # GH#66510 nor may it land on the NaT sentinel
+                    check_nat_sentinel(obj.value, &dts, reso)
                     if tz is None:
                         check_overflows(obj, reso)
                         return obj
@@ -663,6 +797,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                         ival = tz_localize_to_utc_single(
                             ival, tz, ambiguous="raise", nonexistent=None, creso=reso
                         )
+                        # GH#66510 the shift must not land on the NaT sentinel
+                        check_nat_sentinel(ival, &dts, reso)
                     obj.value = ival
                     maybe_localize_tso(obj, tz, obj.creso)
                     return obj
@@ -673,11 +809,19 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             yearfirst=yearfirst,
             out_bestunit=&out_bestunit,
             nanos=&nanos,
+            out_is_quarter=&is_quarter,
         )
+        if is_quarter and (warned_quarter == NULL or not warned_quarter[0]):
+            # GH#50907; this path has no freq, so the quarter is calendar-anchored
+            warn_quarter_deprecated(ts, None)
+            if warned_quarter != NULL:
+                warned_quarter[0] = 1
         reso = get_supported_reso(out_bestunit)
         if reso < NPY_FR_us:
             reso = NPY_FR_us
-        return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        obj = convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        obj.parsed_by_dateutil = True
+        return obj
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):

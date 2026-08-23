@@ -1,4 +1,7 @@
-from datetime import timedelta
+from datetime import (
+    date,
+    timedelta,
+)
 from decimal import Decimal
 import re
 
@@ -10,7 +13,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -37,8 +39,9 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+from pandas.tests.extension.decimal import DecimalArray
 
-is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
+is_windows_np2_or_is32 = not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 
@@ -1126,7 +1129,6 @@ class TestDataFrameAnalytics:
                 tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmin_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -1175,7 +1177,6 @@ class TestDataFrameAnalytics:
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmax_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -1919,12 +1920,12 @@ class TestDataFrameReductions:
             _make_2d_ea_df(
                 [
                     to_datetime(["2020-02-01", "2020-02-02", pd.NaT])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                     to_datetime([pd.NaT, "2020-02-04", "2020-02-05"])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                 ],
                 ["dz3", "dz4"],
@@ -2035,6 +2036,171 @@ class TestDataFrameReductions:
                 check_dtype=False,
                 check_names=False,
             )
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "any",
+            "all",
+            "median",
+            "std",
+            "var",
+            "sem",
+            "skew",
+            "kurt",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "kwargs",
+        [{}, {"min_count": 2}, {"min_count": 5}],
+        ids=["default", "min_count", "min_count_high"],
+    )
+    def test_reduce_axis1_single_block_exhaustive(
+        self, reduction_block_1, method, skipna, kwargs
+    ):
+        # GH#51474: single-block fastpath must match the transpose path,
+        # result or raised exception alike.
+        if "min_count" in kwargs and method not in ("sum", "prod"):
+            pytest.skip("min_count only applies to sum/prod")
+        df = reduction_block_1
+        if len(df._mgr.blocks) != 1:
+            # 1D EA columns don't consolidate; covered by the multiblock test
+            pytest.skip("fixture frame is not single-block")
+        kw = {"skipna": skipna, **kwargs}
+
+        transpose_err = None
+        expected = None
+        try:
+            expected = getattr(df.T, method)(**kw)
+        except (TypeError, ValueError) as err:
+            transpose_err = err
+
+        if isinstance(df._mgr.blocks[0].values, np.ndarray):
+            # numpy block: identical computation, so match exactly incl. dtype
+            if transpose_err is not None:
+                with pytest.raises(
+                    type(transpose_err), match=re.escape(str(transpose_err))
+                ):
+                    getattr(df, method)(axis=1, **kw)
+            else:
+                result = getattr(df, method)(axis=1, **kw)
+                tm.assert_series_equal(result, expected, check_names=False)
+        else:
+            # 2D EA block: paths differ; mirror the multiblock test's lax compare
+            axis1_err = None
+            result = None
+            try:
+                result = getattr(df, method)(axis=1, **kw)
+            except (TypeError, ValueError) as err:
+                axis1_err = err
+            if transpose_err is not None or axis1_err is not None:
+                return
+            result_na = isna(result)
+            expected_na = isna(expected)
+            assert (result_na == expected_na).all()
+            both_valid = ~result_na & ~expected_na
+            if both_valid.any():
+                tm.assert_series_equal(
+                    result[both_valid].reset_index(drop=True),
+                    expected[both_valid].reset_index(drop=True),
+                    check_dtype=False,
+                    check_names=False,
+                )
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_with_nat(self, method):
+        # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
+        # must skip NaT under skipna=True, matching the transpose path.
+        ts = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        df = DataFrame({"a": [ts, ts], "b": [ts, pd.NaT]})
+        # Two separate blocks (CoW), same EA dtype.
+        assert len(df._mgr.blocks) == 2
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([ts, ts], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        # skipna=False propagates NaT.
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_single_block_dt64tz_with_nat(self, method):
+        # GH#51474, GH#65500: 2D EA block fastpath must skip NaT (skipna=True)
+        # and propagate it (skipna=False) without raising or changing dtype.
+        df = _make_2d_ea_df(
+            [
+                to_datetime(["2020-01-01", "2020-01-02"])
+                .as_unit("us")
+                .tz_localize("UTC")
+                ._data,
+                to_datetime(["2020-01-02", pd.NaT])
+                .as_unit("us")
+                .tz_localize("UTC")
+                ._data,
+            ],
+            ["dz1", "dz2"],
+        )
+        # the fastpath only applies to a single 2D EA block
+        assert len(df._mgr.blocks) == 1
+        assert df._mgr.blocks[0].values.ndim == 2
+
+        first = Timestamp("2020-01-01", tz="UTC")
+        second = Timestamp("2020-01-02", tz="UTC")
+        # row 0 is [first, second]; row 1 is [second, NaT]
+        winner = first if method == "min" else second
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, second], dtype=df["dz1"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, pd.NaT], dtype=df["dz1"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
+        # GH#65500: different tz across blocks must not enter the EA fast
+        # path (which would silently produce a wrong-dtype result); fall
+        # through to the slow path so the result has object dtype.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, ts2]})
+
+        result = df.max(axis=1)
+        expected = Series([ts1, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = df.min(axis=1)
+        expected = Series([ts2, ts2], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_mixed_tz_with_nat(self, method):
+        # GH#65500: mixed-tz frames reduce via the object path; NaT must
+        # be skipped under skipna=True instead of raising TypeError on
+        # comparison with the NA fill value.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, pd.NaT]})
+        winner = ts2 if method == "min" else ts1
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        # GH#4147: the NaT row holds an NA, so skipna=False propagates it.
+        # object-dtype reductions use None as the NA sentinel.
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, None], dtype=object)
+        tm.assert_series_equal(result, expected)
 
     def test_frame_any_with_timedelta(self):
         # GH#17667
@@ -2362,6 +2528,67 @@ def test_sum_empty_mixed_with_timedelta_column():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_sum_timedelta64_overflow_raises(axis, skipna):
+    # GH#43178: DataFrame.sum on an overflowing timedelta64 frame should raise
+    #  OutOfBoundsTimedelta, consistent with Series.sum, rather than silently
+    #  returning a saturated result.
+    half = np.iinfo(np.int64).max // 2
+    arr = np.array([half, half, half], dtype="m8[ns]")
+    df = DataFrame({"a": arr, "b": arr, "c": arr})
+
+    msg = "overflow in timedelta operation"
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        df.sum(axis=axis, skipna=skipna)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_all_nat_skipna_false(axis):
+    # GH#43178: an all-NaT reduction with skipna=False must return NaT, not be
+    #  mistaken for an overflow (the NaT sentinels accumulate past int64 bounds)
+    nat = np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]")
+    df = DataFrame({"a": nat, "b": nat, "c": nat})
+
+    result = df.sum(axis=axis, skipna=False)
+    assert result.dtype == "m8[ns]"
+    assert result.isna().all()
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_exact(axis):
+    # GH#66551: the sum used to accumulate in float64, whose 53-bit mantissa
+    #  silently rounded results above 2**53
+    arr = np.array([2**53 + 1, 0], dtype="m8[ns]")
+    df = DataFrame({"a": arr, "b": arr[::-1]})
+
+    result = df.sum(axis=axis)
+    expected = Series(
+        np.array([2**53 + 1] * 2, dtype="m8[ns]"), index=df.axes[1 - axis]
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_overflow_only_in_exempt_slice(axis):
+    # GH#66551: the check applies per reduced slice, and a slice that reduces to
+    #  NaT under skipna=False is exempt even though its entries overflow
+    df = DataFrame(
+        {
+            "a": [pd.Timedelta(1, "ns"), pd.Timedelta(2, "ns")],
+            "b": [pd.Timedelta.max, pd.NaT],
+        }
+    )
+    if axis == 1:
+        df = df.T
+
+    result = df.sum(axis=axis, skipna=False)
+    expected = Series(
+        [pd.Timedelta(3, "ns"), pd.NaT], index=df.axes[1 - axis], dtype="m8[ns]"
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
@@ -2383,6 +2610,225 @@ def test_minmax_extensionarray(method, numeric_only):
         [getattr(int64_info, method)],
         dtype="Int64",
         index=Index(["Int64"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_minmax_axis0_string_columns_with_na(dtype):
+    # GH#18588: the string columns were silently dropped as nuisance columns,
+    # and once numeric_only stopped dropping them the +/-inf NA fill raised
+    df = DataFrame(
+        {
+            "col1": [0, 1, 2, 3],
+            "col2": Series(["a", "b", None, "d"], dtype=dtype),
+            "col3": Series(["e", "f", None, "h"], dtype=dtype),
+        }
+    )
+    index = Index(["col1", "col2", "col3"])
+
+    result = df.min(axis=0)
+    tm.assert_series_equal(result, Series([0, "a", "e"], index=index, dtype=object))
+
+    result = df.max(axis=0)
+    tm.assert_series_equal(result, Series([3, "d", "h"], index=index, dtype=object))
+
+
+def test_minmax_axis0_object_date_with_na():
+    # GH#61204
+    df = DataFrame(
+        {"dates": [np.nan, np.nan, date(2025, 1, 3), date(2025, 1, 4)]}, dtype=object
+    )
+    index = Index(["dates"])
+
+    result = df.min(axis=0)
+    tm.assert_series_equal(
+        result, Series([date(2025, 1, 3)], index=index, dtype=object)
+    )
+
+    result = df.max(axis=0)
+    tm.assert_series_equal(
+        result, Series([date(2025, 1, 4)], index=index, dtype=object)
+    )
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_minmax_object_na_positions_differ_per_slice(axis):
+    # GH#18588: the NA fill is taken per reduction slice, so slices whose NAs
+    # sit in different positions do not borrow each other's values, and an
+    # all-NA slice reduces to NA rather than poisoning its neighbours
+    df = DataFrame(
+        {
+            "a": ["x", None, "b"],
+            "b": [None, "q", "p"],
+            "c": [None, None, None],
+        },
+        dtype=object,
+    )
+    if axis == 0:
+        exp_min = Series(["b", "p", None], index=Index(["a", "b", "c"]), dtype=object)
+        exp_max = Series(["x", "q", None], index=Index(["a", "b", "c"]), dtype=object)
+    else:
+        exp_min = Series(["x", "q", "b"], dtype=object)
+        exp_max = Series(["x", "q", "p"], dtype=object)
+
+    tm.assert_series_equal(df.min(axis=axis), exp_min)
+    tm.assert_series_equal(df.max(axis=axis), exp_max)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_minmax_object_skipna_false_propagates_per_slice(axis):
+    # GH#4147: only the slices that actually hold an NA reduce to NA
+    df = DataFrame(
+        {
+            "a": ["x", None, "b"],
+            "b": ["r", "q", "p"],
+        },
+        dtype=object,
+    )
+    if axis == 0:
+        exp_min = Series([None, "p"], index=Index(["a", "b"]), dtype=object)
+        exp_max = Series([None, "r"], index=Index(["a", "b"]), dtype=object)
+    else:
+        exp_min = Series(["r", None, "b"], dtype=object)
+        exp_max = Series(["x", None, "p"], dtype=object)
+
+    tm.assert_series_equal(df.min(axis=axis, skipna=False), exp_min)
+    tm.assert_series_equal(df.max(axis=axis, skipna=False), exp_max)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_idxminmax_object_with_na(axis):
+    # GH#4147: idxmin/idxmax raised TypeError on object data holding NAs even
+    # though min/max on the same data works
+    # the NA fill is taken per slice, so the data has to be one where a global
+    # fill (the frame's first non-NA) would give a different answer
+    df = DataFrame(
+        {
+            "a": ["d", None, "a"],
+            "b": ["z", "y", None],
+            "c": ["a", "b", None],
+        },
+        dtype=object,
+    )
+    if axis == 0:
+        exp_min = Series([2, 1, 0], index=Index(["a", "b", "c"]))
+        exp_max = Series([0, 0, 1], index=Index(["a", "b", "c"]))
+    else:
+        exp_min = Series(["c", "c", "a"])
+        exp_max = Series(["b", "b", "a"])
+
+    tm.assert_series_equal(df.idxmin(axis=axis), exp_min)
+    tm.assert_series_equal(df.idxmax(axis=axis), exp_max)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [object, "str", pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_string_reduction_skipna_false_axis1(dtype, method):
+    # GH#18588: string columns reduce along axis=1 via the EA _groupby_op
+    # fastpath, whose python fallback used to drop skipna and return a non-NA
+    # answer.  object is not an ExtensionDtype, so it transposes onto nanops
+    # instead, where the NA used to raise TypeError.
+    df = DataFrame(
+        {
+            "a": Series(["x", None], dtype=dtype),
+            "b": Series(["y", "z"], dtype=dtype),
+        }
+    )
+    result = getattr(df, method)(axis=1, skipna=False)
+    expected = Series([("x" if method == "min" else "y"), None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_prod_object_skipna_false(axis):
+    # GH#4147: only the slices holding an NA are nulled out; the others still
+    # reduce normally.  Deliberately non-square, so that nulling along the
+    # wrong axis is distinguishable.
+    df = DataFrame({"a": [1, 2, None], "b": [3, 4, 5]}, dtype=object)
+    if axis == 0:
+        exp_sum = Series([None, 12], index=Index(["a", "b"]), dtype=object)
+        exp_prod = Series([None, 60], index=Index(["a", "b"]), dtype=object)
+    else:
+        exp_sum = Series([4, 6, None], dtype=object)
+        exp_prod = Series([3, 8, None], dtype=object)
+
+    tm.assert_series_equal(df.sum(axis=axis, skipna=False), exp_sum)
+    tm.assert_series_equal(df.prod(axis=axis, skipna=False), exp_prod)
+
+
+@pytest.mark.parametrize(
+    "method, exp_skipna, exp_no_na",
+    [("min", 1, 1), ("max", 4, 4), ("sum", 8, 10), ("prod", 12, 24)],
+)
+def test_object_reduction_axis_none(method, exp_skipna, exp_no_na):
+    # GH#4147: axis=None reduces over the whole frame, so one NA anywhere
+    # makes the skipna=False result NA
+    df = DataFrame({"a": [1, None], "b": [3, 4]}, dtype=object)
+    assert isna(getattr(df, method)(axis=None, skipna=False))
+    # ... while skipna=True reduces over the rest
+    assert getattr(df, method)(axis=None) == exp_skipna
+
+    # without an NA it still reduces normally
+    df = DataFrame({"a": [1, 2], "b": [3, 4]}, dtype=object)
+    assert getattr(df, method)(axis=None, skipna=False) == exp_no_na
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("method", ["sum", "prod"])
+def test_sum_prod_object_skipna_false_min_count(axis, method):
+    # GH#4147: a min_count larger than the slice still nulls out the slices
+    # that hold no NA, i.e. skipna=False must not weaken it
+    df = DataFrame({"a": [1, None], "b": [3, 4]}, dtype=object)
+    result = getattr(df, method)(axis=axis, skipna=False, min_count=5)
+    # column/row "b" holds no NA, so only min_count nulls it out
+    index = Index(["a", "b"]) if axis == 0 else Index([0, 1])
+    expected = Series([None, None], index=index, dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_minmax_object_incomparable_skipna_false_axis1(method):
+    # GH#4147: every row holds an NA, so every row is nulled out and the
+    # mutually-incomparable values must never be compared
+    df = DataFrame({"a": [1, "p"], "b": ["a", "q"], "c": [None, None]}, dtype=object)
+    result = getattr(df, method)(axis=1, skipna=False)
+    tm.assert_series_equal(result, Series([None, None], dtype=object))
+
+
+@pytest.mark.parametrize("method", ["sum", "prod"])
+def test_sum_prod_ea_skipna_false_axis1(method):
+    # GH#18588: an extension dtype reduces along axis=1 through the same python
+    # fallback, which used to drop skipna.  object does not reach it (not an
+    # ExtensionDtype), so it needs an actual EA to cover.
+    df = DataFrame(
+        {
+            "a": DecimalArray([Decimal(2), Decimal("NaN")]),
+            "b": DecimalArray([Decimal(3), Decimal(4)]),
+        }
+    )
+    result = getattr(df, method)(axis=1, skipna=False)
+    assert result.iloc[0] == (5 if method == "sum" else 6)
+    assert isna(result.iloc[1])
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_interval_reduction_skipna_false_axis1(method):
+    # GH#18588: IntervalDtype takes the same python fallback as the string dtypes
+    df = DataFrame(
+        {
+            "a": pd.arrays.IntervalArray.from_tuples([(0, 1), (4, 5)]),
+            "b": pd.arrays.IntervalArray.from_tuples([(2, 3), None]),
+        }
+    )
+    result = getattr(df, method)(axis=1, skipna=False)
+    expected = Series(
+        pd.arrays.IntervalArray.from_tuples(
+            [(0, 1) if method == "min" else (2, 3), None]
+        )
     )
     tm.assert_series_equal(result, expected)
 
@@ -2428,6 +2874,17 @@ def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     else:
         expected = getattr(np, method)(np_arr, axis=None)
         assert result == expected
+
+
+def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
+    # GH#64266
+    left = np.int8(1)
+    df = DataFrame({"a": [left], "b": [np.int8(5)]}, dtype=object)
+    result = df.min(axis=None)
+    assert result is left
+
+    result = np.minimum.reduce(df, axis=None)
+    assert result is left
 
 
 @pytest.mark.parametrize(
@@ -2564,6 +3021,89 @@ def test_numeric_ea_axis_1(
         if not skipna and method == "all":
             # GH#65710 Kleene "all" on (truthy, NA) row returns NA
             expected.iloc[2] = pd.NA
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", "UInt32", "boolean", "int64[pyarrow]"]
+)
+def test_idxmax_idxmin_axis_1_ea_matches_numpy(how, skipna, dtype):
+    # GH#56903 the EA-backed axis=1 path must agree with the numpy-backed path,
+    # including skipna=False when there are no NA values (previously the cython
+    # kernel returned the all-NA sentinel for every row).
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False, True], [False, False, True], [True, True, False]]
+        np_dtype = bool
+    else:
+        values = [[1, 4, 0], [5, 2, 9], [2, 8, 1], [3, 3, 7]]
+        np_dtype = "float64"
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"]).astype(np_dtype)
+
+    result = getattr(df_ea, how)(axis=1, skipna=skipna)
+    expected = getattr(df_np, how)(axis=1, skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean", "int64[pyarrow]"])
+def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
+    # GH#56903 a fully-NA row must raise (matching the numpy-backed path) rather
+    # than leak the -1 cython sentinel as a column label.
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False], [pd.NA, pd.NA], [False, True]]
+    else:
+        values = [[1, 4], [pd.NA, pd.NA], [3, 9]]
+    df = DataFrame(values, columns=["a", "b"]).astype(dtype)
+    with pytest.raises(ValueError, match="[Ee]ncountered an?.*NA value"):
+        getattr(df, how)(axis=1, skipna=skipna)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["boolean", "bool[pyarrow]"])
+def test_logical_reductions_axis_1_ea_matches_numpy(dtype, skipna):
+    # GH#56903 any/all axis=1 fastpath for boolean-like EA dtypes
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = [[True, False, True], [False, False, False], [True, True, True]]
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"])
+    for how in ["any", "all"]:
+        result = getattr(df_ea, how)(axis=1, skipna=skipna)
+        expected = getattr(df_np, how)(axis=1, skipna=skipna).astype(dtype)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["str", "string"])
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_str_min_max_axis_1(how, dtype):
+    # GH#56903 no cython groupby op for object-backed str min/max; the
+    # axis=1 EA fastpath must fall back to python aggregation
+    df = DataFrame({"a": ["x", "b"], "b": ["c", "d"]}, dtype=dtype)
+    result = getattr(df, how)(axis=1)
+    values = ["c", "b"] if how == "min" else ["x", "d"]
+    expected = Series(values, dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_third_party_ea_axis_1():
+    # GH#56903 EAs without a _groupby_op override must fall back to
+    # python aggregation in the axis=1 EA fastpath
+    df = DataFrame(
+        {
+            "a": DecimalArray([Decimal("1"), Decimal("2")]),
+            "b": DecimalArray([Decimal("3"), Decimal("4")]),
+        }
+    )
+    result = df.sum(axis=1)
+    expected = Series(DecimalArray([Decimal("4"), Decimal("6")]))
     tm.assert_series_equal(result, expected)
 
 

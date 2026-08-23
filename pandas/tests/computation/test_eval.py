@@ -818,7 +818,6 @@ class TestAlignment:
         res = pd.eval(s, engine=engine, parser=parser)
         tm.assert_frame_equal(res, df * ~2)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
     @pytest.mark.parametrize("lr_idx_type", lhs_index_types)
     @pytest.mark.parametrize("rr_idx_type", index_types)
     @pytest.mark.parametrize("c_idx_type", index_types)
@@ -894,7 +893,6 @@ class TestAlignment:
             res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2 + df3)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
@@ -926,7 +924,6 @@ class TestAlignment:
         "r_idx_type, c_idx_type",
         [*list(product(["i", "s"], ["i", "s"])), ("dt", "dt")],
     )
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
         self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
@@ -980,7 +977,6 @@ class TestAlignment:
             if engine == "numexpr":
                 tm.assert_frame_equal(a, b)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
     @pytest.mark.parametrize("r1", lhs_index_types)
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)
@@ -1644,6 +1640,19 @@ class TestMath:
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect)
 
+    def test_unary_function_integer_argument(self, engine, parser):
+        # GH#20890 a math function applied to an integer literal must not
+        #  truncate the result to an integer
+        result = self.eval("exp(2)", engine=engine, parser=parser)
+        assert result == np.exp(2)
+
+    def test_unary_function_integer_array(self, engine, parser):
+        # GH#20890 the same truncation bug affected a math function over an
+        #  integer array (the manifestation that lingered longest)
+        arr = np.array([1, 2, 3])  # noqa: F841
+        result = self.eval("exp(arr)", engine=engine, parser=parser)
+        tm.assert_numpy_array_equal(np.asarray(result), np.exp(np.array([1, 2, 3])))
+
     @pytest.mark.parametrize("fn", _binary_math_ops)
     def test_binary_functions(self, fn, engine, parser):
         df = DataFrame(
@@ -1880,6 +1889,15 @@ def test_empty_string_raises(engine, parser):
     # GH 13139
     with pytest.raises(ValueError, match="expr cannot be an empty string"):
         pd.eval("", engine=engine, parser=parser)
+
+
+@pytest.mark.parametrize("box", [Series, DataFrame])
+def test_pandas_object_raises(box, engine, parser):
+    # GH#16289 passing a Series/DataFrame parsed its (possibly truncated) repr
+    obj = box(["1 == 1", "2 == 1"] * 1000)
+    msg = "expr must be a string to be evaluated"
+    with pytest.raises(ValueError, match=msg):
+        pd.eval(obj, engine=engine, parser=parser)
 
 
 def test_more_than_one_expression_raises(engine, parser):

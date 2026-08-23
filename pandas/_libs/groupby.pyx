@@ -52,6 +52,9 @@ from pandas._libs.dtypes cimport (
     numeric_t,
 )
 from pandas._libs.missing cimport checknull
+from pandas._libs.portable cimport checked_add
+
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -337,7 +340,12 @@ def group_cumprod(
                             result_mask[i, j] = True
 
                     else:
-                        accum[lab, j] *= val
+                        if int64float_t is int64_t:
+                            # Use uint64_t to avoid UB on signed integer overflow.
+                            accum[lab, j] = <int64_t>(<uint64_t>accum[lab, j] *
+                                                      <uint64_t>val)
+                        else:
+                            accum[lab, j] *= val
                         out[i, j] = accum[lab, j]
 
                 else:
@@ -726,6 +734,8 @@ def group_sum(
         sum_t val, t, y, nan_val
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
+        int64_t[:, ::1] carry
+        uint8_t[:, ::1] na_result
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
         bint isna_entry, isna_result
@@ -743,6 +753,10 @@ def group_sum(
         assert sum_t is object
         sumx = np.full((<object>out).shape, initial, dtype=object)
         # object code path does not use `compensation`
+
+    if sum_t is int64_t:
+        carry = np.zeros((<object>out).shape, dtype=np.int64)
+        na_result = np.zeros((<object>out).shape, dtype=np.uint8)
 
     N, K = (<object>values).shape
     if uses_mask:
@@ -774,6 +788,16 @@ def group_sum(
                 if not skipna:
                     if uses_mask:
                         isna_result = result_mask[lab, j]
+                    elif sum_t is int64_t and is_datetimelike:
+                        # GH#66551: track NA-ness explicitly rather than reading
+                        #  it back off sumx, which cannot tell a group holding a
+                        #  real NaT from one whose running total merely landed on
+                        #  NPY_NAT.  The latter must keep accumulating.
+                        isna_result = na_result[lab, j]
+                        if isna_entry:
+                            # marked after the read so this entry still falls
+                            #  through to set sumx to nan_val
+                            na_result[lab, j] = 1
                     else:
                         isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
 
@@ -793,6 +817,17 @@ def group_sum(
                             # i.e. we haven't added anything yet; avoid TypeError
                             #  if e.g. val is a str and sumx[lab, j] is 0
                             t = val
+                        elif sum_t is int64_t and is_datetimelike:
+                            # GH#66551: int64 addition is modular, so a wrapped
+                            #  intermediate does not corrupt the total; keep the
+                            #  wrapped value and track the net carry instead.  The
+                            #  total is representable iff the carry is back to zero
+                            #  at the end, which makes this independent of the
+                            #  order values arrive in.
+                            if checked_add(sumx[lab, j], val, &t):
+                                t = <int64_t>(<uint64_t>sumx[lab, j] +
+                                              <uint64_t>val)
+                                carry[lab, j] += 1 if val > 0 else -1
                         else:
                             t = sumx[lab, j] + val
                         sumx[lab, j] = t
@@ -830,6 +865,19 @@ def group_sum(
                         result_mask[lab, j] = True
                     else:
                         sumx[lab, j] = nan_val
+
+    if sum_t is int64_t:
+        if is_datetimelike:
+            for i in range(ncounts):
+                for j in range(K):
+                    if na_result[i, j] or nobs[i, j] < min_count:
+                        # discarded downstream, so exempt from the bounds check
+                        continue
+                    # representable totals are (NPY_NAT, i8max]
+                    if carry[i, j] != 0 or sumx[i, j] == NPY_NAT:
+                        raise OutOfBoundsTimedelta(
+                            "overflow in timedelta operation"
+                        )
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, sumx
@@ -1453,11 +1501,17 @@ def group_quantile(
             end = ends[i]
 
             # Count non-NA elements in this group using direct indexing
-            # (avoids memoryview slicing, which is not nogil-safe).
+            # (avoids memoryview slicing, which is not nogil-safe). A float
+            # NaN that is not flagged by ``mask`` (e.g. a non-null NaN in a
+            # pyarrow/masked float array, GH#64330) must be treated as NA too:
+            # it would corrupt kth_smallest_c's ordering comparisons below.
             grp_size = end - start
             non_na_sz = 0
             for j in range(grp_size):
                 if mask[start + j] == 0:
+                    if numeric_t is float32_t or numeric_t is float64_t:
+                        if values[start + j] != values[start + j]:
+                            continue
                     non_na_sz += 1
 
             if non_na_sz == 0:
@@ -1467,10 +1521,10 @@ def group_quantile(
                     else:
                         out[i, k] = NaN
             else:
-                # Copy non-NA values into a temporary mutable buffer.
-                # Pre-filtering NAs means kth_smallest_c's comparisons are
-                # always valid (no NaN/NaT values), so is_datetimelike needs
-                # no special handling here.
+                # Copy non-NA values into a temporary mutable buffer. NAs are
+                # pre-filtered (using the same condition as the count above) so
+                # that kth_smallest_c's comparisons are always valid (no NaN/NaT
+                # values), meaning is_datetimelike needs no special handling.
                 tmp = <numeric_t*>malloc(non_na_sz * sizeof(numeric_t))
                 if tmp is NULL:
                     raise MemoryError()
@@ -1478,6 +1532,9 @@ def group_quantile(
                 j = 0
                 for k in range(grp_size):
                     if mask[start + k] == 0:
+                        if numeric_t is float32_t or numeric_t is float64_t:
+                            if values[start + k] != values[start + k]:
+                                continue
                         tmp[j] = values[start + k]
                         j += 1
 
@@ -2127,8 +2184,11 @@ def group_idxmin_idxmax(
                 continue
 
             for j in range(K):
-                if not skipna and out[lab, j] == -1:
-                    # Once we've hit NA there is no going back
+                if not skipna and seen[lab, j] and out[lab, j] == -1:
+                    # Once we've hit an NA in this group there is no going back.
+                    # seen[lab, j] distinguishes this locked state from the
+                    # initial out[lab, j] == -1 sentinel that holds before any
+                    # row of the group has been visited (GH#56903).
                     continue
 
                 val = values[i, j]
@@ -2139,7 +2199,12 @@ def group_idxmin_idxmax(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if isna_entry:
-                    if not skipna or not seen[lab, j]:
+                    if not skipna:
+                        # Lock the group to the NA sentinel; the guard above
+                        # then keeps later non-NA values from overwriting it.
+                        out[lab, j] = -1
+                        seen[lab, j] = True
+                    elif not seen[lab, j]:
                         out[lab, j] = -1
                 else:
                     if not seen[lab, j]:

@@ -5,6 +5,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -170,7 +172,6 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("shuffle", [True, False])
-@pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
 def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
@@ -364,7 +365,12 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[1]
-            if using_python_scalars and values.dtype.kind in "if":
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -389,7 +395,12 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[0]
-            if using_python_scalars and values.dtype.kind in ["i", "f"]:
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -402,7 +413,11 @@ def test_binary_ufunc_other_types(type_):
     a = pd.Series([1, 2, 3], name="name")
     b = type_([3, 4, 5])
 
-    result = np.add(a, b)
+    # GH#62423 tuple/deque operands are deprecated in favor of scalar-like
+    warn = None if type_ is list else Pandas4Warning
+    depr_msg = "In a future version these will be treated as scalar-like"
+    with tm.assert_produces_warning(warn, match=depr_msg):
+        result = np.add(a, b)
     expected = pd.Series(np.add(a.to_numpy(), b), name="name")
     tm.assert_series_equal(result, expected)
 

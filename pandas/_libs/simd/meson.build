@@ -18,3 +18,15 @@ configure_file(
 )
 
 simd_config_inc = include_directories('.')
+
+moments_lib = static_library(
+    'moments_@0@'.format(simd_target),
+    'moments_@0@.cpp'.format(simd_target),
+    include_directories: [inc_pd],
+    dependencies: [xsimd_dep],
+)
+
+moments_simd_dep = declare_dependency(
+    link_with: moments_lib,
+    include_directories: [inc_pd],
+)

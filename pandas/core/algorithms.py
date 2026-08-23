@@ -502,6 +502,25 @@ unique1d = unique
 
 _MINIMUM_COMP_ARR_LEN = 1_000_000
 
+# Integers with magnitude <= 2**53 are exactly representable as float64; above
+# this a 64-bit int cast to float64 may collide with a distinct value.
+_FLOAT64_INT_EXACT_MAX = 2**53
+
+
+def _may_lose_precision_as_float64(arr: np.ndarray) -> bool:
+    """
+    Whether casting ``arr`` to float64 could change an integer's identity.
+
+    Only 64-bit integers can carry a magnitude that float64 cannot represent
+    exactly; narrower widths always round-trip.
+    """
+    if arr.dtype.kind not in "iu" or arr.dtype.itemsize < 8 or arr.size == 0:
+        return False
+    return (
+        int(arr.min()) < -_FLOAT64_INT_EXACT_MAX
+        or int(arr.max()) > _FLOAT64_INT_EXACT_MAX
+    )
+
 
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
@@ -528,6 +547,48 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f"to isin(), you passed a `{type(values).__name__}`"
         )
 
+    if isinstance(values, (set, frozenset)) and len(values) > 0:
+        # GH#25507: for a set of values, membership can be tested directly
+        # via the set, avoiding an O(len(values)) materialization that
+        # otherwise dominates when comps is much smaller than values.
+        # Restrict to integer/bool comps (i.e. dtypes that cannot contain
+        # NaN), since Python set membership would mis-handle the case where
+        # both sides contain NaN values that are not identical.
+        if isinstance(comps, (ABCSeries, ABCIndex)):
+            comps_arr = comps._values
+        else:
+            comps_arr = comps
+        if (
+            isinstance(comps_arr, np.ndarray)
+            and comps_arr.ndim == 1
+            and comps_arr.dtype.kind in "iub"
+            # Only worth it when comps is smaller than values: this path does
+            # an O(len(comps)) Python-level scan, which is much slower per
+            # element than the vectorized htable path below. It wins only by
+            # skipping the O(len(values)) materialization of the set, so it
+            # must not fire for the common large-comps/small-set case.
+            and comps_arr.size < len(values)
+            # A 64-bit comp with magnitude >= 2**53 can match a float in the
+            # set lossily under the materialized path below (via a float64
+            # cast) but never under exact Python equality, so the result would
+            # depend on which path is taken. Only use this path when comps
+            # values are strictly inside float64's exact-int range, where the
+            # two agree.
+            and (
+                comps_arr.dtype.itemsize < 8
+                or comps_arr.size == 0
+                or (
+                    -_FLOAT64_INT_EXACT_MAX < int(comps_arr.min())
+                    and int(comps_arr.max()) < _FLOAT64_INT_EXACT_MAX
+                )
+            )
+        ):
+            return np.fromiter(
+                (item in values for item in comps_arr.tolist()),
+                dtype=bool,
+                count=comps_arr.size,
+            )
+
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
@@ -538,9 +599,50 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             and not is_signed_integer_dtype(comps)
             and not is_dtype_equal(values, comps)
         ):
-            # GH#46485 Use object to avoid upcast to float64 later
+            # GH#46485: casting a 64-bit integer to float64 loses precision
+            # for magnitudes > 2**53, so a numeric comparison can give wrong
+            # results. Recast to object only when such a lossy cast is actually
+            # at risk; otherwise keep the numeric ndarray so the downstream
+            # htable dispatch can use the fast numeric path.
             # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(orig_values)
+            comps_dtype = getattr(comps, "dtype", None)
+            # values came from _ensure_arraylike's numeric branch, so its
+            # dtype is an np.dtype.
+            values_dtype = cast("np.dtype", values.dtype)
+            if not isinstance(comps_dtype, np.dtype):
+                needs_object = True
+            else:
+                common = np_find_common_type(values_dtype, comps_dtype)
+                if common.kind not in "iufcb":
+                    needs_object = True
+                elif common.kind not in "fc":
+                    # integer/bool common type -> no lossy float cast
+                    # (complex128 components are float64, so "c" is as lossy
+                    # as "f")
+                    needs_object = False
+                elif comps_dtype.kind in "iu" and comps_dtype.itemsize == 8:
+                    # comps is the (potentially large) caller and a 64-bit
+                    # integer that would be cast down to float64; too costly to
+                    # inspect element-wise, so fall back to object to be safe.
+                    needs_object = True
+                elif values_dtype.kind in "iu" and values_dtype.itemsize == 8:
+                    # values is the (small) targets list -> cheap to check
+                    # exactly. Only object-cast if a target falls outside
+                    # float64's exact integer range; otherwise the numeric
+                    # cast is lossless and the fast path stays correct.
+                    # values is an ndarray here (it came from the numeric
+                    # branch of _ensure_arraylike above).
+                    values_arr = cast("np.ndarray", values)
+                    needs_object = _may_lose_precision_as_float64(values_arr)
+                else:
+                    # float/complex values_dtype means _ensure_arraylike may
+                    # already have rounded large ints in a mixed int/float
+                    # list, so exactness cannot be checked from the array;
+                    # recover it from orig_values via the object cast. Smaller
+                    # ints/bools cast to float64 exactly.
+                    needs_object = values_dtype.kind in "fc"
+            if needs_object:
+                values = construct_1d_object_array_from_listlike(orig_values)
 
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
@@ -567,6 +669,23 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps_array), np.asarray(values))
 
+    # GH#59609: uint64 mixed with int64 has float64 as its common dtype, which
+    # is lossy above 2**53. Targets outside the other side's range can never
+    # match, so dropping them lets the rest be cast losslessly.
+    if comps_array.dtype == np.uint64 and values.dtype == np.int64:
+        values = values[values >= 0].astype(np.uint64)
+    elif comps_array.dtype == np.int64 and values.dtype == np.uint64:
+        values = values[values <= np.iinfo(np.int64).max].astype(np.int64)
+
+    # GH#46485, GH#59609: whatever remains may still have a float64/complex128
+    # common dtype, which cannot represent every 64-bit integer; comparing
+    # through it would report a match between distinct values above 2**53.
+    common = np_find_common_type(values.dtype, comps_array.dtype)
+    lossy_common = common.kind in "fc" and (
+        _may_lose_precision_as_float64(values)
+        or _may_lose_precision_as_float64(comps_array)
+    )
+
     # GH16012
     # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
@@ -579,6 +698,8 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
+        # np.isin would do the same lossy promotion internally
+        and not lossy_common
         and not any(v is NA for v in values)
     ):
         # If the values include nan we need to check for nan explicitly
@@ -592,7 +713,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f = lambda a, b: np.isin(a, b).ravel()
 
     else:
-        common = np_find_common_type(values.dtype, comps_array.dtype)
+        if lossy_common:
+            # Compare as Python ints instead of through the lossy float.
+            common = np.dtype(object)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
@@ -660,6 +783,54 @@ def factorize_array(
 
     codes = ensure_platform_int(codes)
     return codes, uniques
+
+
+def factorize_monotonic_codes(
+    arr: np.ndarray,
+    ascending: bool,
+    sort: bool,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+    """
+    Factorize an array known to be monotonic and of length >= 2.
+
+    Uses adjacent-element comparison instead of hash table construction.
+    The caller is responsible for having verified monotonicity; monotonic
+    arrays contain no NA values (NAs break monotonicity checks), so NA
+    handling is not needed.
+
+    Parameters
+    ----------
+    arr : ndarray
+    ascending : bool
+        Whether `arr` is monotonic increasing (otherwise decreasing).
+    sort : bool
+        Whether the uniques should be in sorted order.
+
+    Returns
+    -------
+    codes : ndarray[np.intp]
+    uniques_indexer : ndarray[np.intp]
+        Positions in `arr` of the unique values, ordered to match `codes`.
+    """
+    n = len(arr)
+
+    # Find group transitions via adjacent-element comparison.
+    transitions = np.empty(n, dtype=bool)
+    transitions[0] = True
+    transitions[1:] = arr[1:] != arr[:-1]
+
+    # Build codes using repeat (faster than cumsum on bool).
+    group_starts = np.flatnonzero(transitions)
+    ngroups = len(group_starts)
+    run_lengths = np.diff(group_starts, append=n)
+    codes = np.repeat(np.arange(ngroups, dtype=np.intp), run_lengths)
+
+    if sort and not ascending:
+        # Reverse uniques to sorted order and remap codes.
+        codes = ensure_platform_int(ngroups - 1 - codes)
+        group_starts = group_starts[::-1]
+
+    return codes, group_starts
 
 
 @set_module("pandas")
@@ -1471,6 +1642,11 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
 # Helper functions
 
 
+# Minimum number of values before safe_sort's counting-sort path is worth it.
+# Below this, argsort's n*log(n) is cheaper than the linear counting work.
+_MIN_COUNTING_SORT_LEN = 5_000
+
+
 # Note: safe_sort is in algorithms.py instead of sorting.py because it is
 #  low-dependency, is used in this module, and used private methods from
 #  this module.
@@ -1531,15 +1707,41 @@ def safe_sort(
     sorter = None
     ordered: AnyArrayLike
 
+    # For integer values spanning a modest range, the codes remapping below
+    #  can rank each value within that range (a counting sort) instead of
+    #  argsorting.
+    use_counting = False
+    vmin = rng_size = 0
     if (
+        codes is not None
+        and isinstance(values, np.ndarray)
+        and values.dtype.kind in "iu"
+        and len(values) >= _MIN_COUNTING_SORT_LEN
+    ):
+        vmin = int(values.min())
+        rng_size = int(values.max()) - vmin + 1
+        use_counting = rng_size <= 4 * len(values)
+
+    if use_counting:
+        ordered = np.sort(cast("np.ndarray", values))
+    elif (
         not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
         ordered = _sort_mixed(values)
     else:
         try:
-            sorter = values.argsort()
-            ordered = values.take(sorter)
+            if (
+                codes is None
+                and isinstance(values, np.ndarray)
+                and values.dtype.kind in "iufb"
+            ):
+                # we only need the sorted values here, and a direct sort
+                #  is cheaper than argsort + take
+                ordered = np.sort(values)
+            else:
+                sorter = values.argsort()
+                ordered = values.take(sorter)
         except (TypeError, decimal.InvalidOperation):
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays
@@ -1564,34 +1766,57 @@ def safe_sort(
         )
     codes = ensure_platform_int(np.asarray(codes))
 
-    if not assume_unique and not len(unique(values)) == len(values):
-        raise ValueError("values should be unique if codes is not None")
+    # ranks[i] gives the position of values[i] in `ordered`
+    if use_counting:
+        arr = cast("np.ndarray", values)
+        if arr.dtype.kind == "i":
+            # go through int64 so differences don't overflow narrower signed
+            #  dtypes; int64 wraparound is exact since the true differences
+            #  are within rng_size
+            shifted = arr.astype(np.int64, copy=False) - vmin
+        else:
+            # unsigned: differences always fit the unsigned dtype
+            shifted = arr - vmin
+        present = np.zeros(rng_size, dtype=bool)
+        present[shifted] = True
+        counts = present.cumsum(dtype=np.intp)
+        # the counting pass gives the uniqueness check for free
+        if not assume_unique and counts[-1] != len(values):
+            raise ValueError("values should be unique if codes is not None")
+        ranks = counts[shifted]
+        ranks -= 1
+    else:
+        if not assume_unique and not len(unique(values)) == len(values):
+            raise ValueError("values should be unique if codes is not None")
 
-    if sorter is None:
-        # mixed types
-        # error: Argument 1 to "_get_hashtable_algo" has incompatible type
-        # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
-        # "ndarray[Any, Any]"
-        hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
-        t = hash_klass(len(values))
-        t.map_locations(values)
-        # error: Argument 1 to "lookup" of "HashTable" has incompatible type
-        # "ExtensionArray | ndarray[Any, Any] | Index | Series"; expected "ndarray"
-        sorter = ensure_platform_int(t.lookup(ordered))  # type: ignore[arg-type]
+        if sorter is not None:
+            # sorter is a permutation, so scatter is a faster equivalent to
+            #  `ranks = sorter.argsort()`
+            ranks = np.empty(len(sorter), dtype=np.intp)
+            ranks[sorter] = np.arange(len(sorter), dtype=np.intp)
+        else:
+            # mixed types
+            # error: Argument 1 to "_get_hashtable_algo" has incompatible type
+            # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
+            # "ndarray[Any, Any]"
+            hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
+            t = hash_klass(len(values))
+            # error: Argument 1 to "map_locations" of "HashTable" has incompatible
+            # type "ExtensionArray | ndarray[Any, Any] | Index | Series";
+            # expected "ndarray"
+            t.map_locations(ordered)  # type: ignore[arg-type]
+            ranks = ensure_platform_int(t.lookup(values))
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
-        order2 = sorter.argsort()
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
             codes[mask] = -1
-        new_codes = take_nd(order2, codes, fill_value=-1)
+        new_codes = take_nd(ranks, codes, fill_value=-1)
     else:
-        reverse_indexer = np.empty(len(sorter), dtype=int)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
-        new_codes = reverse_indexer.take(codes, mode="wrap")
+        new_codes = ranks.take(codes, mode="wrap")
 
     return ordered, ensure_platform_int(new_codes)
 

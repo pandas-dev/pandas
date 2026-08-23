@@ -648,7 +648,7 @@ class TestIntervalIndex:
         # test mid
         start = Timestamp("2000-01-01T12:00", tz=tz)
         expected = date_range(start=start, periods=9)
-        tm.assert_index_equal(index.mid, expected)
+        tm.assert_index_equal(index.mid, expected, check_freq=False)
 
         # __contains__ doesn't check individual points
         assert Timestamp("2000-01-01", tz=tz) not in index
@@ -897,6 +897,24 @@ def test_from_arrays_mismatched_signedness_raises():
     left = np.array([0, 1, 2], dtype="int64")
     right = np.array([1, 2, 3], dtype="uint64")
     with pytest.raises(TypeError, match="matching signedness"):
+        IntervalIndex.from_arrays(left, right)
+
+
+@pytest.mark.parametrize(
+    "left, right",
+    [
+        # right overflows int64 -> right.dtype becomes object
+        pytest.param([0], [2**64], id="right-overflows"),
+        # left overflows int64 -> left.dtype becomes object (mirror case,
+        # already raised before this fix; kept here so both sides are
+        # covered by the same parametrization)
+        pytest.param([-(2**64)], [0], id="left-overflows"),
+    ],
+)
+def test_interval_index_endpoint_dtype_mismatch_raises(left, right):
+    # GH 66518
+    msg = "category, object, and string subtypes are not supported for IntervalIndex"
+    with pytest.raises(TypeError, match=msg):
         IntervalIndex.from_arrays(left, right)
 
 

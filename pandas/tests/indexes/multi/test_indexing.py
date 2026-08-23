@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
+from pandas.compat import PY312
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
@@ -13,8 +14,11 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    Interval,
+    IntervalIndex,
     MultiIndex,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -93,7 +97,7 @@ class TestSliceLocs:
                 np.array([1, 0, 1, 1, 0, 0, 1, 0]),
             ],
         )
-        msg = "[Kk]ey length.*greater than MultiIndex lexsort depth"
+        msg = "Key length.*was greater than MultiIndex lexsort depth"
         with pytest.raises(KeyError, match=msg):
             index.slice_locs((1, 0, 1), (2, 1, 0))
 
@@ -1049,6 +1053,404 @@ def test_get_locs_list_like_nan_not_in_level():
     idx = MultiIndex.from_product([["a"], [1, 2]])
     with pytest.raises(KeyError, match="nan"):
         idx.get_locs((["a"], [np.nan]))
+
+
+@pytest.mark.parametrize(
+    "level",
+    [
+        date_range("2020-01-01", "2020-03-31", freq="D"),
+        period_range("2020-01-01", "2020-03-31", freq="D"),
+    ],
+)
+@pytest.mark.parametrize("keys", [["2020-02"], ["2020-02", "2020-03"]])
+def test_get_locs_list_like_partial_string(level, keys):
+    # GH#64807 - a list-like of partial-string keys on a level that supports
+    #  partial indexing (Datetime/Period) must match the same rows as the
+    #  scalar key, not just the exact-coerced timestamp.
+    idx = MultiIndex.from_product([level, ["a", "b"]])
+
+    result = idx.get_locs([keys])
+    expected = np.concatenate([idx.get_locs([key]) for key in keys])
+    expected.sort()
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_partial_string_missing_raises():
+    # GH#64807 - a partial-string key absent from the level still raises KeyError
+    level = date_range("2020-01-01", "2020-03-31", freq="D")
+    idx = MultiIndex.from_product([level, ["a", "b"]])
+    with pytest.raises(KeyError, match="2021-01"):
+        idx.get_locs([["2021-01"]])
+
+
+@pytest.mark.parametrize(
+    "make_key",
+    [
+        lambda: range(1, 3),
+        lambda: (val for val in [1, 2]),
+        lambda: {1, 2},
+        lambda: {1: None, 2: None},
+    ],
+)
+def test_get_locs_list_like_not_a_list(make_key):
+    # GH#64807 - a level key that is list-like but neither a list nor an array
+    #  (range/generator/set/dict) must select the same rows as the equivalent
+    #  list. Ordering is a separate matter: reordering an unordered container
+    #  raises here, both before and after GH#64807.
+    idx = MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    result = idx.get_locs((["a"], make_key()))
+    expected = np.array([0, 1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_not_a_list_with_na():
+    # GH#64807 - the NA inside a non-list list-like has to survive into the code
+    #  bookkeeping; isna() on the container itself is a scalar, not elementwise
+    idx = MultiIndex.from_arrays([["a", "a", "a"], [1.0, np.nan, 3.0]])
+    result = idx.get_locs((slice(None), {1.0: 0, np.nan: 0}))
+    tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "labels", [[frozenset({1}), frozenset({2})], [range(2), range(3)]]
+)
+def test_get_locs_hashable_list_like_label(labels):
+    # GH#64807 - a hashable list-like may be a level label rather than a
+    #  sequence of labels, so it must not be materialized before the lookup
+    idx = MultiIndex.from_arrays([labels, ["x", "y"]])
+    result = idx.get_locs((labels[0], slice(None)))
+    tm.assert_numpy_array_equal(result, np.array([0], dtype=np.intp))
+
+
+def test_get_locs_generator_reordering():
+    # GH#64807 - the generator must survive long enough to reorder the result
+    idx = MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    result = idx.get_locs((["a"], (val for val in [3, 1])))
+    tm.assert_numpy_array_equal(result, np.array([2, 0], dtype=np.intp))
+
+
+def test_get_locs_list_like_loc():
+    # GH#64807 - .loc with a non-list list-like level key
+    idx = MultiIndex.from_product([["a", "b"], [0, 1, 2]])
+    df = DataFrame({"x": range(6)}, index=idx)
+    result = df.loc[(["a"], range(2)), :]
+    expected = df.iloc[[0, 1]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [([], [1, 2]), (["a"], []), ([], [])])
+def test_get_locs_list_like_empty(keys):
+    # GH#64807 - an empty level key matches nothing rather than raising
+    idx = MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    result = idx.get_locs(keys)
+    expected = np.array([], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_empty_typed():
+    # GH#64807 - an empty key that is not object dtype reaches the vectorized
+    #  branch, where it has to short-circuit the levels after it rather than let
+    #  them raise. An empty *list* is object dtype and takes the strict path.
+    idx = MultiIndex.from_product([[1, 2], [1, 2, 3]])
+    result = idx.get_locs((np.array([], dtype=np.int64), [1]))
+    tm.assert_numpy_array_equal(result, np.array([], dtype=np.intp))
+
+
+@pytest.mark.skipif(not PY312, reason="a slice is unhashable before 3.12")
+@pytest.mark.parametrize("dtype", [None, object])
+def test_get_locs_list_like_slice_label(dtype):
+    # GH#64807 - a slice is hashable from Python 3.12 on, so it arrives as a
+    #  level label; resolving it must not depend on the level's dtype
+    idx = MultiIndex.from_product([["a"], Index([1, 2, 3], dtype=dtype)])
+    result = idx.get_locs((["a"], [slice(1, 2)]))
+    tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
+
+
+@pytest.mark.skipif(not PY312, reason="a slice is unhashable before 3.12")
+def test_get_locs_list_like_slice_label_mixed_level():
+    # GH#64807 - a level that infers as "mixed", just as the slice key does,
+    #  gets past the dtype gate, so the slice needs recognizing on its own
+    level = Index([(1,), (2,), (3,)], dtype=object)
+    assert level.inferred_type == "mixed"
+    idx = MultiIndex.from_product([["a"], level])
+    result = idx.get_locs((["a"], [slice((1,), (2,))]))
+    tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
+
+
+@pytest.mark.parametrize("dtype", [None, object])
+def test_get_locs_list_like_unhashable_after_missing(dtype):
+    # GH#64807 - an unhashable entry is not a label, but it must not preempt an
+    #  earlier label that is merely missing. The tuple level infers as "mixed",
+    #  like the key, so nothing else routes it off the vectorized path.
+    labels = [(1,), (2,), (3,)] if dtype is object else [1, 2, 3]
+    missing, unhashable = ((9,), [1, 2]) if dtype is object else ("missing", [1, 2])
+    idx = MultiIndex.from_product([["a"], Index(labels, dtype=dtype)])
+
+    with pytest.raises(KeyError, match=re.escape(str(missing))):
+        idx.get_locs((["a"], [missing, unhashable]))
+    with pytest.raises(InvalidIndexError, match=re.escape(str([unhashable, missing]))):
+        idx.get_locs((["a"], [unhashable, missing]))
+
+
+def test_get_locs_list_like_unsupported_timedelta_unit():
+    # GH#64807 - an Index cannot hold a month-unit timedelta, so building one
+    #  from the key must not turn a lookup into ValueError
+    level = Index(
+        np.array([np.timedelta64(1, "M"), np.timedelta64(2, "M")], dtype=object),
+        dtype=object,
+    )
+    idx = MultiIndex.from_arrays([["x", "y"], level])
+    result = idx.get_locs((slice(None), [np.timedelta64(1, "M")]))
+    tm.assert_numpy_array_equal(result, np.array([0], dtype=np.intp))
+
+    idx = MultiIndex.from_product([["x"], date_range("2020", periods=3)])
+    with pytest.raises(KeyError, match="1"):
+        idx.get_locs((slice(None), [np.timedelta64(1, "M")]))
+
+
+def test_get_locs_list_like_interval_level():
+    # GH#64807 - an IntervalIndex level matches a numeric key by containment,
+    #  the same as a flat IntervalIndex does for a list-like key
+    level = IntervalIndex.from_breaks([0.0, 1.0, 2.0, 3.0])
+    idx = MultiIndex.from_product([["a"], level])
+    result = idx.get_locs((["a"], [0.5, 2.5]))
+    tm.assert_numpy_array_equal(result, np.array([0, 2], dtype=np.intp))
+
+
+def test_get_locs_list_like_categorical_overlapping_interval_level():
+    # GH#64807 - a CategoricalIndex reports itself unique whatever its
+    #  categories do, so overlapping interval categories still need the
+    #  per-label path
+    categories = IntervalIndex.from_tuples([(0, 2), (1, 3)])
+    level = pd.CategoricalIndex(
+        Categorical.from_codes([0, 1], dtype=pd.CategoricalDtype(categories))
+    )
+    assert level._index_as_unique and not level.categories._index_as_unique
+    idx = MultiIndex.from_arrays([["a", "b"], level])
+    # the lookups the per-label path makes work
+    tm.assert_numpy_array_equal(
+        idx.get_locs((slice(None), [Interval(0, 2)])), np.array([0], dtype=np.intp)
+    )
+    tm.assert_numpy_array_equal(
+        idx.get_locs((slice(None), [0.5])), np.array([0], dtype=np.intp)
+    )
+
+
+def test_get_locs_list_like_float16_key():
+    # GH#64807 - an Index cannot hold float16 at all, so building one from the
+    #  key must not turn a lookup into NotImplementedError
+    idx = MultiIndex.from_product([["a"], [1.0, 2.0, 3.0]])
+    result = idx.get_locs((["a"], [np.float16(1.0)]))
+    tm.assert_numpy_array_equal(result, np.array([0], dtype=np.intp))
+
+    idx = MultiIndex.from_product([["a"], date_range("2020", periods=3)])
+    with pytest.raises(KeyError, match="1.0"):
+        idx.get_locs((["a"], [np.float16(1.0)]))
+
+
+def test_get_locs_list_like_nan_key_without_nan_rows():
+    # GH#64807 - a NaN key must raise when the data carries no NA rows, even
+    #  though NaN is looked up without needing a level entry
+    idx = MultiIndex.from_arrays([["a", "a"], [1.0, 2.0]])
+    with pytest.raises(KeyError, match="nan"):
+        idx.get_locs((slice(None), [np.nan]))
+
+
+def test_get_locs_list_like_categorical_level():
+    # GH#64807 - smoke test for a CategoricalIndex level, which no other case
+    #  in this file covers
+    idx = MultiIndex.from_product([pd.CategoricalIndex(list("abc")), [1, 2]])
+    result = idx.get_locs((["a", "c"], slice(None)))
+    tm.assert_numpy_array_equal(result, np.array([0, 1, 4, 5], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "keys, match",
+    [
+        ((["a", "b"], slice(None)), "['a', 'b']"),
+        ((["b"], slice(None)), "['b']"),
+    ],
+)
+def test_get_locs_list_like_unused_level_raises(keys, match):
+    # GH#64807 - a label present in the level but unused by any code is missing,
+    #  just as it is when passed as a scalar
+    idx = MultiIndex.from_product([["a", "b"], [1, 2, 3]])[:3]
+    assert "b" in idx.levels[0]
+    with pytest.raises(KeyError, match=re.escape(match)):
+        idx.get_locs(keys)
+
+
+def test_get_locs_list_like_nan_code_vs_last_level_label():
+    # GH#64807 - the -1 code standing for NaN must not wrap around onto the
+    #  last level entry, which would both leak the NaN row in...
+    idx = MultiIndex.from_arrays([["a"] * 3, [1.0, np.nan, 2.0]])
+    result = idx.get_locs((["a"], [2.0]))
+    tm.assert_numpy_array_equal(result, np.array([2], dtype=np.intp))
+
+    # ...and make an unused last label look used
+    idx = MultiIndex.from_arrays([["a"] * 4, [1.0, np.nan, 1.0, 2.0]])[:3]
+    assert 2.0 in idx.levels[1]
+    with pytest.raises(KeyError, match=re.escape("[2.0]")):
+        idx.get_locs((["a"], [2.0]))
+
+
+def test_get_locs_list_like_na_label_against_na_in_level():
+    # GH#64807 - a level can carry an NA entry of its own that no code uses,
+    #  while the NA rows carry code -1 (e.g. concatenating a
+    #  groupby(dropna=False) result with an ordinary NaN-indexed frame, then
+    #  dropping rows). get_indexer matches an NA label to that entry, so it must
+    #  not be mistaken for a label the level does not have.
+    idx = MultiIndex(
+        levels=[Index(["a"]), Index([1.0, np.nan, 2.0])], codes=[[0, 0], [-1, 0]]
+    )
+    expected = idx.get_locs((slice(None), np.nan))
+    result = idx.get_locs((slice(None), [np.nan]))
+    tm.assert_numpy_array_equal(result, expected)
+
+    # and a genuinely missing label alongside it must still raise
+    with pytest.raises(KeyError, match=re.escape("[nan, 9.9]")):
+        idx.get_locs((slice(None), [np.nan, 9.9]))
+
+
+def test_get_locs_list_like_na_label_not_matched_to_level_entry():
+    # GH#64807 - get_indexer can match an NA label to an NA entry of the level,
+    #  but the scalar path always resolves NA to code -1, so the list path has
+    #  to select the -1 rows only and agree with it
+    idx = MultiIndex.from_arrays([["a"] * 3, [1.0, np.nan, 3.0]])
+    idx = idx.set_levels(Index([1.0, np.nan]), level=1, verify_integrity=False)
+    assert idx.levels[1].hasnans
+
+    expected = np.array([1], dtype=np.intp)
+    tm.assert_numpy_array_equal(idx.get_locs((slice(None), [np.nan])), expected)
+    tm.assert_numpy_array_equal(idx.get_locs((slice(None), np.nan)), expected)
+
+
+def test_get_locs_list_like_multiindex_key():
+    # GH#64807 - tuple-valued level labels, so the key itself is a MultiIndex.
+    #  isna() answers per tuple *element*, which for a single label broadcasts
+    #  against the codes silently and for several of them does not broadcast at
+    #  all, so both lengths are worth covering.
+    idx = MultiIndex.from_arrays([[("x", 1), ("y", 2), ("z", 3)], list("abc")])
+    result = idx.get_locs((Index([("x", 1), ("y", 2), ("z", 3)]), slice(None)))
+    tm.assert_numpy_array_equal(result, np.array([0, 1, 2], dtype=np.intp))
+
+    result = idx.get_locs((Index([("x", 1)]), slice(None)))
+    tm.assert_numpy_array_equal(result, np.array([0], dtype=np.intp))
+
+
+def test_get_locs_list_like_mixed_type_key():
+    # GH#64807 - a list-like key resolves through get_indexer, which cannot
+    #  convert an object-dtype target mixing strings and Timedeltas, so it
+    #  reports the string as missing. A flat Index rejects the same key, even
+    #  though the scalar path parses "1 days".
+    idx = MultiIndex.from_product([["a"], pd.timedelta_range("1 day", periods=3)])
+    key = ["1 days", pd.Timedelta("2 days")]
+    with pytest.raises(KeyError, match="1 days"):
+        idx.get_locs((["a"], key))
+    with pytest.raises(KeyError, match="1 days"):
+        pd.Series(range(3), index=idx.levels[1]).loc[key]
+
+    tm.assert_numpy_array_equal(
+        idx.get_locs((["a"], "1 days")), np.array([0], dtype=np.intp)
+    )
+
+
+def test_get_locs_list_like_float32_level():
+    # GH#64807 - a float64 key never equals a float32 label once get_indexer
+    #  widens the level to hold it, matching what a flat Index does. The scalar
+    #  path is not held to that; the two are not expected to agree here.
+    idx = MultiIndex.from_arrays(
+        [["a", "a", "b"], np.array([1.1, 2.2, 1.1], dtype=np.float32)]
+    )
+    with pytest.raises(KeyError, match="1.1"):
+        idx.get_locs((slice(None), [1.1]))
+    with pytest.raises(KeyError, match="1.1"):
+        pd.Series(range(2), index=idx.levels[1]).loc[[1.1]]
+
+    tm.assert_numpy_array_equal(
+        idx.get_locs((slice(None), 1.1)), np.array([0, 2], dtype=np.intp)
+    )
+
+
+def test_get_locs_list_like_na_in_object_container():
+    # GH#64807 - pd.NA alongside a real label leaves the key container object
+    #  dtype; the NA still has to be recognized and matched to the -1 codes
+    idx = MultiIndex(
+        levels=[Index(["a", "b"]), Index([1.1, 2.2])],
+        codes=[[0, 0, 1], [0, -1, 0]],
+    )
+    # the key order puts the 1.1 rows ahead of the NA row
+    result = idx.get_locs((slice(None), [1.1, pd.NA]))
+    tm.assert_numpy_array_equal(result, np.array([0, 2, 1], dtype=np.intp))
+
+
+def test_get_locs_list_like_signed_unsigned_level():
+    # GH#64807 - get_indexer reconciles a signed level and an unsigned key
+    #  through float64, colliding two labels above 2**53 and selecting the
+    #  wrong row; a flat Index resolves the same key correctly
+    idx = MultiIndex.from_arrays([["a", "b"], [2**53, 2**53 + 1]])
+    key = pd.array([2**53], dtype="UInt64")
+    tm.assert_numpy_array_equal(
+        idx.get_locs((slice(None), key)), np.array([0], dtype=np.intp)
+    )
+    assert pd.Series(range(2), index=idx.levels[1]).loc[key].tolist() == [0]
+
+
+def test_get_locs_list_like_categorical_key():
+    # GH#64807 - a Categorical key against an object level of tuple labels:
+    #  a label the level lacks still raises rather than matching
+    level = Index([(1,), (2,), (3,)], dtype=object)
+    idx = MultiIndex(
+        levels=[Index(list("abc")), level],
+        codes=[[0, 1, 2], [0, 1, 2]],
+        verify_integrity=False,
+    )
+    with pytest.raises(KeyError, match="9"):
+        idx.get_locs((slice(None), Categorical([(1,), 9])))
+
+
+def test_get_locs_list_like_narrow_int_level():
+    # GH#64807 - a wider integer holds every value of a narrower one, so an
+    #  int64 key still matches an int32 level exactly (no float widening)
+    idx = MultiIndex.from_product([["a"], Index(np.arange(5, dtype="int32"))])
+    result = idx.get_locs((["a"], [1, 3]))
+    tm.assert_numpy_array_equal(result, np.array([1, 3], dtype=np.intp))
+
+
+def test_get_locs_list_like_ragged_tuple_labels():
+    # GH#64807 - a tuple key of tuple-valued labels must not be tupleized into
+    #  a single label by Index()
+    idx = MultiIndex.from_arrays([[("x", 1), ("y", 2, 3)], ["a", "b"]])
+    expected = np.array([0, 1], dtype=np.intp)
+    tm.assert_numpy_array_equal(
+        idx.get_locs(((("x", 1), ("y", 2, 3)), slice(None))), expected
+    )
+    tm.assert_numpy_array_equal(
+        idx.get_locs(([("x", 1), ("y", 2, 3)], slice(None))), expected
+    )
+
+
+def test_get_locs_list_like_wide_level():
+    # GH#64807 - slicing a MultiIndex leaves its levels untrimmed, so the level
+    #  can be bigger than the codes; unused labels must still raise there
+    idx = MultiIndex.from_product([list("abcde"), [1]])[:2]
+    assert len(idx.levels[0]) > len(idx.codes[0])
+
+    result = idx.get_locs((["a", "b"], slice(None)))
+    tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
+
+    with pytest.raises(KeyError, match=re.escape("['a', 'c']")):
+        idx.get_locs((["a", "c"], slice(None)))
+
+
+@pytest.mark.parametrize("keys, expected", [([1.5], [0, 1]), ([Interval(0, 2)], [0])])
+def test_get_locs_list_like_overlapping_interval_level(keys, expected):
+    # GH#64807 - an overlapping IntervalIndex level cannot use get_indexer; a
+    #  label there can match several level entries, e.g. 1.5 is in both
+    level = IntervalIndex.from_tuples([(0, 2), (1, 3)])
+    idx = MultiIndex.from_product([["a", "b"], level])
+    result = idx.get_locs((["a"], keys))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
 
 
 def test_get_indexer_for_multiindex_with_nans(nulls_fixture):

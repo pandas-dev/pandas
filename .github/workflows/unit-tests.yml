@@ -31,8 +31,7 @@ jobs:
         environment: [py311, py312, py313, py314]
         # Prevent the include jobs from overriding other jobs
         pytest_marker_expression: [""]
-        pandas_future_infer_string: ["1"]
-        pandas_future_python_scalars: ["0"]
+        pandas_future: ["default"]
         include:
           - name: "Downstream Compat"
             environment: downstream
@@ -73,13 +72,13 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
-          - name: "PANDAS_FUTURE_INFER_STRING=0"
+          - name: "Future configs legacy values"
             environment: py313
-            pandas_future_infer_string: "0"
+            pandas_future: "legacy"
             platform: ubuntu-24.04
-          - name: "PANDAS_FUTURE_PYTHON_SCALARS=1"
+          - name: "Future configs upcoming values"
             environment: py313
-            pandas_future_python_scalars: "1"
+            pandas_future: "upcoming"
             platform: ubuntu-24.04
           - name: "Numpy Nightly"
             environment: numpy-nightly
@@ -96,7 +95,7 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pytest_marker_expression }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pytest_marker_expression }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future }}-${{ matrix.platform }}
       cancel-in-progress: true
 
     services:
@@ -135,7 +134,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
 
@@ -182,8 +181,7 @@ jobs:
         numprocesses: 'auto'
         pytest_marker_expression: ${{ matrix.pytest_marker_expression == '' && 'not single_cpu' || matrix.pytest_marker_expression }}
         pytest_target: ${{ matrix.pytest_target || 'pandas' }}
-        pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
-        pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
+        pandas_future: ${{ matrix.pandas_future || 'default' }}
 
     - name: Test (single_cpu)
       id: test-single-cpu
@@ -196,8 +194,7 @@ jobs:
         numprocesses: 0
         pytest_marker_expression: 'single_cpu'
         pytest_target: ${{ matrix.pytest_target || 'pandas' }}
-        pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
-        pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
+        pandas_future: ${{ matrix.pandas_future || 'default' }}
       if: ${{ matrix.pytest_marker_expression == '' && (always() && steps.build.outcome == 'success')}}
 
     - name: Upload test coverage to Codecov
@@ -230,7 +227,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -288,10 +285,12 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel meson[ninja]==1.2.3 meson-python==0.18.0
+          python -m pip install --no-cache-dir -U pip wheel meson[ninja] meson-python
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil "pytest>=8.3.4,<9.1" pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
-          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
+          # hypothesis 6.156+ ships a compiled extension with no i686 wheel, and
+          # its sdist needs a Rust target rustup lacks on 32-bit. Cap until fixed.
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil "pytest>=8.3.4" pytest-xdist>=3.6.1 hypothesis>=6.156.5 pytest-cov
+          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror" -Csetup-args=-Dc_args="-Wno-overflow -Wno-type-limits -Wno-shift-count-overflow -Wno-sign-compare"
           python -m pip list --no-cache-dir
 
       - name: Run Tests
@@ -332,8 +331,8 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel meson-python==0.18.0 meson[ninja]==1.2.3
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil "pytest>=8.3.4,<9.1" pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
+          python -m pip install --no-cache-dir -U pip wheel meson-python meson[ninja]
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil "pytest>=8.3.4" pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
       - name: Run Tests
@@ -351,7 +350,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -383,7 +382,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -441,7 +440,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false
+    # if: false
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -463,22 +462,25 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.15-dev'
 
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip wheel meson[ninja]==1.2.3 meson-python==0.18.0
+          python -m pip install --upgrade pip wheel meson[ninja] meson-python
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
-          python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 "pytest>=8.3.4,<9.1" pytest-xdist>=3.6.1 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
+          python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps \
+            -Csetup-args="--werror" \
+            ${{ matrix.os != 'windows-2025' && '-Csetup-args=-Dcpp_args="-Wno-missing-field-initializers"' || '' }} \
+            ${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv"' || '' }}
           python -m pip list
 
       - name: Run Tests
@@ -502,20 +504,22 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
-          pip-install: pyodide-build
+
+      - name: Install pyodide-build
+        run: python -m pip install pyodide-build
 
       - name: Save Emscripten version
         run: echo EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) >> $GITHUB_ENV
@@ -539,7 +543,7 @@ jobs:
       - name: Test pandas for Pyodide
         run: |
           source .venv-pyodide/bin/activate
-          python -m pip install "pytest>=8.3.4,<9.1" hypothesis pytest-cov
+          python -m pip install "pytest>=8.3.4" hypothesis pytest-cov
           # do not import pandas from the checked out repo
           cd ../..
           pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas

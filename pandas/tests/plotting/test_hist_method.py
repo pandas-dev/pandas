@@ -52,6 +52,21 @@ class TestSeriesPlots:
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(ts.hist, by=ts.index.month, **kwargs)
 
+    @pytest.mark.parametrize("by", [None, np.array(list("aabbaabbaa"))])
+    def test_hist_tz_aware(self, by):
+        # GH#64613 .hist() read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and binned in UTC rather than in the
+        #  data's own timezone
+        ser = Series(date_range("2020-01-01", periods=10, tz="US/Pacific"))
+
+        with tm.assert_produces_warning(None):
+            result = ser.hist(by=by)
+
+        axes = np.ravel(result)
+        expected = ser.groupby(by).min() if by is not None else Series([ser.min()])
+        for ax, first in zip(axes, expected, strict=True):
+            assert ax.patches[0].get_x() == mpl.dates.date2num(first)
+
     def test_hist_legacy_ax(self, ts):
         fig, ax = mpl.pyplot.subplots(1, 1)
         _check_plot_works(ts.hist, ax=ax, default_axes=True)
@@ -240,6 +255,18 @@ class TestSeriesPlots:
 
 
 class TestDataFramePlots:
+    def test_hist_df_tz_aware(self):
+        # GH#64613 .hist() read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and binned in UTC rather than in the
+        #  data's own timezone
+        df = DataFrame({"a": date_range("2020-01-01", periods=10, tz="US/Pacific")})
+
+        with tm.assert_produces_warning(None):
+            axes = df.hist()
+
+        ax = np.ravel(axes)[0]
+        assert ax.patches[0].get_x() == mpl.dates.date2num(df["a"].min())
+
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -267,7 +294,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy_layout2(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
-        _check_plot_works(df.hist)
+        _check_plot_works(df.hist, default_axes=True)
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout3(self):

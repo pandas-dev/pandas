@@ -560,7 +560,8 @@ class NaTType(_NaT):
         Total seconds in the duration.
 
         This method calculates the total duration in seconds by combining
-        the days, seconds, and microseconds of the `Timedelta` object.
+        the days, seconds, microseconds, and nanoseconds of the `Timedelta`
+        object.
 
         See Also
         --------

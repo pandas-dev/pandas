@@ -149,8 +149,30 @@ class TestDataFramePlotsSubplots:
 
         ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
-        expected = testdata[col].values
+        expected = testdata[col]._values
         assert (result == expected).all()
+
+    def test_plot_y_datetime_tz_aware(self):
+        # GH#26676 the tz was dropped when plotting a tz-aware column on the y-axis
+        mdates = pytest.importorskip("matplotlib.dates")
+
+        dti = pd.to_datetime(
+            ["2017-08-01 00:00:00", "2017-08-01 02:00:00", "2017-08-02 00:00:00"]
+        )
+        ser = Series(dti.tz_localize("US/Eastern"), name="dt_tz")
+
+        ax = ser.to_frame().plot(y="dt_tz")
+
+        ydata = ax.get_lines()[0].get_ydata()
+        assert all(entry.tz is not None for entry in ydata)
+
+        # the points sit at their actual instants, not at the naive wall times
+        positions = np.asarray(ax.yaxis.get_converter().convert(ydata, None, ax.yaxis))
+        tm.assert_numpy_array_equal(positions, mdates.date2num(np.asarray(ydata)))
+        assert (positions != mdates.date2num(dti._values)).all()
+
+        # ... and the ticks are labeled in the column's own tz
+        assert ax.yaxis.units == ser.dt.tz
 
     def test_subplots_timeseries_y_text_error(self):
         # GH16953

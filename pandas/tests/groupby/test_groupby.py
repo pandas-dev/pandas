@@ -30,8 +30,6 @@ import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 
-pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-
 
 def test_repr():
     # GH18203
@@ -233,15 +231,15 @@ def test_indices_concatenation_order():
 
     # should fail (not the same number of levels)
     msg = "Cannot concat indices that do not have the same number of levels"
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f2)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f2)
 
     # should fail (incorrect shape)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f3)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f3)
 
 
@@ -2654,9 +2652,6 @@ def test_sum_of_booleans(n):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:invalid value encountered in remainder:RuntimeWarning"
-)
 @pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
 def test_groupby_method_drop_na(method):
     # GH 21755
