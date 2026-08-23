@@ -496,7 +496,7 @@ def get_finest_unit(left: str, right: str) -> str:
     return right
 
 
-def _pa_buffer_addresses(pa_data) -> set[int]:
+def _pa_buffer_addresses(pa_data: pa.ChunkedArray) -> set[int]:
     """
     Addresses of the non-empty buffers backing a pyarrow ChunkedArray.
 
