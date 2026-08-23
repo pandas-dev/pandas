@@ -9,18 +9,18 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
-    CategoricalDtype,
     CategoricalIndex,
     DatetimeTZDtype,
     Index,
     MultiIndex,
-    PeriodDtype,
     RangeIndex,
     Series,
     Timestamp,
@@ -58,16 +58,6 @@ def any_dtype_for_small_pos_integer_indexes(request):
     return request.param
 
 
-@pytest.fixture
-def index_flat2(index_flat):
-    return index_flat
-
-
-@pytest.fixture
-def index_flat2_sortable(index_flat_sortable):
-    return index_flat_sortable
-
-
 def test_union_same_types(index_sortable):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
@@ -82,7 +72,14 @@ def test_union_different_types(index_flat_sortable, index_flat2_sortable):
     idx1 = index_flat_sortable
     idx2 = index_flat2_sortable
 
-    common_dtype = find_common_type([idx1.dtype, idx2.dtype])
+    if using_string_dtype() and len(idx1) == 0 and idx1.dtype == object:
+        # GH#60797 a zero-length object-dtype Index is ignored when determining
+        #  the resulting dtype
+        common_dtype = idx2.dtype
+    elif using_string_dtype() and len(idx2) == 0 and idx2.dtype == object:
+        common_dtype = idx1.dtype
+    else:
+        common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
     warn = None
     msg = "'<' not supported between"
@@ -93,13 +90,6 @@ def test_union_different_types(index_flat_sortable, index_flat2_sortable):
     ):
         # complex objects non-sortable
         warn = RuntimeWarning
-    elif (
-        isinstance(idx1.dtype, PeriodDtype) and isinstance(idx2.dtype, CategoricalDtype)
-    ) or (
-        isinstance(idx2.dtype, PeriodDtype) and isinstance(idx1.dtype, CategoricalDtype)
-    ):
-        warn = FutureWarning
-        msg = r"PeriodDtype\[B\] is deprecated"
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)

@@ -43,7 +43,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+    SparseDtype,
+)
 
 from pandas import (
     ArrowDtype,
@@ -85,6 +88,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         DtypeArg,
         DtypeBackend,
+        DtypeObj,
         FilePath,
         IndexLabel,
         JSONEngine,
@@ -97,6 +101,18 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
+
+
+def _has_dt_accessor(dtype: DtypeObj) -> bool:
+    """
+    Whether this dtype takes the ``.dt.as_unit`` conversion below.
+
+    SparseDtype reports the subtype's kind, so the kind check alone is not
+    enough. This is not an exhaustive test for a usable ``.dt.as_unit`` -- it
+    only rules out what is known to reach here. Datetime-likes it returns False
+    for are scaled to date_unit by the C encoder instead.
+    """
+    return dtype.kind in "Mm" and not isinstance(dtype, SparseDtype)
 
 
 # interface to/from
@@ -196,27 +212,27 @@ def to_json(
             raise ValueError(f"Invalid value '{date_unit}' for option 'date_unit'")
         if isinstance(obj, DataFrame):
             copied = False
-            cols = np.nonzero(obj.dtypes.map(lambda dt: dt.kind in ["M", "m"]))[0]
+            cols = np.nonzero(obj.dtypes.map(_has_dt_accessor))[0]
             if len(cols):
                 obj = obj.copy(deep=False)
                 copied = True
                 for col in cols:
                     obj.isetitem(col, obj.iloc[:, col].dt.as_unit(date_unit))
-            if obj.index.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.index.dtype):
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
-            if obj.columns.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.columns.dtype):
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
                 obj.columns = Series(obj.columns).dt.as_unit(date_unit)
         elif isinstance(obj, Series):
-            if obj.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.dtype):
                 obj = obj.copy(deep=False)
                 obj = obj.dt.as_unit(date_unit)
-            if obj.index.dtype.kind in "Mm":
+            if _has_dt_accessor(obj.index.dtype):
                 obj = obj.copy(deep=False)
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
 
@@ -1653,18 +1669,15 @@ class Parser:
                         converted = to_datetime(new_data, errors="raise", format=format)
                     except Exception:
                         pass
-                _reemit_parse_warnings(
-                    record, kept=converted is not None, ignore_user_warnings=True
-                )
                 if converted is not None:
+                    _reemit_parse_warnings(record, ignore_user_warnings=True)
                     return converted
         else:
             # numeric or mixed objects
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
-            kept_record: list[warnings.WarningMessage] = []
+            converted = None
+            in_ns_bounds = False
             for date_unit in date_units:
-                converted = None
-                in_ns_bounds = False
                 with warnings.catch_warnings(record=True) as record:
                     warnings.simplefilter("always")
                     try:
@@ -1684,28 +1697,23 @@ class Parser:
                         TypeError,
                     ):
                         pass
-                if converted is None:
-                    _reemit_parse_warnings(record, kept=False)
-                else:
-                    # `data` is returned below even when the bounds check failed,
-                    #  so this attempt counts as kept either way; only the last
-                    #  such attempt survives, so defer its warnings until then
+                if converted is not None and in_ns_bounds:
+                    _reemit_parse_warnings(record)
                     data = converted
-                    kept_record = record
-                if in_ns_bounds:
                     break
-            _reemit_parse_warnings(kept_record, kept=True)
+            else:
+                if converted is not None:
+                    # all units failed to cast to ns (eg with mixed string / int)
+                    # but to_datetime still returned a result -> use this this
+                    # result (with the last unit) and re-emit any warning
+                    _reemit_parse_warnings(record)
+                    data = converted
         return data
-
-
-# GH#50907; matched on the message too, since Pandas4Warning covers many deprecations
-_QUARTER_DEPR_MSG = "as a quarterly string is deprecated"
 
 
 def _reemit_parse_warnings(
     record: list[warnings.WarningMessage],
     *,
-    kept: bool,
     ignore_user_warnings: bool = False,
 ) -> None:
     """
@@ -1720,12 +1728,6 @@ def _reemit_parse_warnings(
     for warning in record:
         if ignore_user_warnings and issubclass(warning.category, UserWarning):
             # "Could not infer format", incorrectly raised for non-date strings
-            continue
-        if (
-            not kept
-            and issubclass(warning.category, Pandas4Warning)
-            and _QUARTER_DEPR_MSG in str(warning.message)
-        ):
             continue
         warnings.warn(
             warning.message,

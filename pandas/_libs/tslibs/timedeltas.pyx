@@ -430,7 +430,11 @@ def array_to_timedelta64(
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
-                if dt64_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+                # GH#63018 skip the NaT sentinel: it is the same int64 in every
+                #  reso, so converting it would spuriously overflow. A unitless
+                #  item is already in ns, and get_supported_reso pins creso to
+                #  ns for it, so it needs no conversion either.
+                if ival != NPY_NAT and dt64_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
                     try:
                         ival = convert_reso(
                             ival,
@@ -440,9 +444,6 @@ def array_to_timedelta64(
                         )
                     except (OverflowError, OutOfBoundsDatetime) as err:
                         raise OutOfBoundsTimedelta(item) from err
-                else:
-                    # e.g. NaT
-                    pass
 
             elif isinstance(item, _Timedelta):
                 item_reso = item._creso
@@ -471,19 +472,22 @@ def array_to_timedelta64(
                     ival = parse_iso_format_string(item)
                 else:
                     ival = parse_timedelta_string(item)
-                if (
-                    (infer_reso or creso == NPY_DATETIMEUNIT.NPY_FR_us)
-                    and not needs_nano_unit(ival, item)
-                ):
-                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
-                    ival = ival // 1000
-                else:
-                    item_reso = NPY_FR_ns
-
                 if ival != NPY_NAT:
-                    state.update_creso(item_reso)
                     if infer_reso:
+                        # only the inferring pass reads item_reso/state, and
+                        #  needs_nano_unit runs a regex, so skip it otherwise
+                        if needs_nano_unit(ival, item):
+                            item_reso = NPY_FR_ns
+                        else:
+                            item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+                        state.update_creso(item_reso)
                         creso = state.creso
+
+                    if creso != NPY_FR_ns:
+                        # GH#63196 the string parsers give nanoseconds; express
+                        #  that in the array's current reso, which may already
+                        #  be finer than this element needs (ns is a no-op)
+                        ival = convert_reso(ival, NPY_FR_ns, creso, round_ok=True)
 
             elif is_tick_object(item):
                 item_reso = get_supported_reso(item._creso)
@@ -506,7 +510,7 @@ def array_to_timedelta64(
                     ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif is_float_object(item):
-                # GH#63275 use is_integer() (not int(item)) so that non-finite
+                # GH#66247 use is_integer() (not int(item)) so that non-finite
                 #  floats fall through to _numeric_to_td64ns, which raises a
                 #  clear OutOfBoundsTimedelta rather than a bare OverflowError.
                 if item.is_integer():
@@ -757,6 +761,15 @@ cdef int64_t parse_timedelta_string(
     elif current_unit is not None:
         if current_unit != "m":
             raise ValueError("expected hh:mm:ss format")
+        if len(unit):
+            # trailing characters after the seconds field, e.g. the "PM" in
+            #  "3:25:00 PM".  Silently ignoring these means "3:25:00 PM"
+            #  parses as three hours rather than fifteen (GH#18793).
+            leftover = "".join(unit)
+            raise ValueError(
+                f"unexpected characters, {leftover}, after hh:mm:ss format, "
+                f"received: {ts}"
+            )
         m = 1000000000
         r = <int64_t>int("".join(number)) * m
         result += timedelta_as_neg(r, neg)
@@ -2563,25 +2576,31 @@ class Timedelta(_Timedelta):
             # create the timedelta. This ensures that any potential
             # nanosecond contributions from kwargs parsed as floats
             # are taken into consideration.
-            seconds = int((
-                (
-                    (kwargs.get("days", 0) + kwargs.get("weeks", 0) * 7) * 24
-                    + kwargs.get("hours", 0)
-                ) * 3600
-                + kwargs.get("minutes", 0) * 60
-                + kwargs.get("seconds", 0)
-                ) * 1_000_000_000
-            )
-
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
-            total_ns = (
-                int(ns)
-                + int(us * 1_000)
-                + int(ms * 1_000_000)
-                + seconds
-            )
+            try:
+                seconds = int((
+                    (
+                        (kwargs.get("days", 0) + kwargs.get("weeks", 0) * 7) * 24
+                        + kwargs.get("hours", 0)
+                    ) * 3600
+                    + kwargs.get("minutes", 0) * 60
+                    + kwargs.get("seconds", 0)
+                    ) * 1_000_000_000
+                )
+
+                total_ns = (
+                    int(ns)
+                    + int(us * 1_000)
+                    + int(ms * 1_000_000)
+                    + seconds
+                )
+            except OverflowError as err:
+                # GH#66823 int() of an infinite float raises a bare OverflowError
+                raise OutOfBoundsTimedelta(
+                    f"Cannot construct Timedelta from {kwargs}"
+                ) from err
 
             try:
                 value = np.timedelta64(total_ns, "ns")
@@ -2716,7 +2735,7 @@ class Timedelta(_Timedelta):
                     try:
                         td = np.timedelta64(value, unit)
                     except OverflowError as err:
-                        # GH#63275 e.g. Timedelta(10**19, unit="s"); numpy
+                        # GH#66247 e.g. Timedelta(10**19, unit="s"); numpy
                         #  raises a bare OverflowError, so re-raise as
                         #  OutOfBoundsTimedelta for consistency.
                         raise OutOfBoundsTimedelta(
@@ -2726,7 +2745,7 @@ class Timedelta(_Timedelta):
                 value = _numeric_to_td64ns(value, unit)
 
         elif is_float_object(value):
-            # GH#63275 use is_integer() (not int(value)) so that non-finite
+            # GH#66247 use is_integer() (not int(value)) so that non-finite
             #  floats fall through to _numeric_to_td64ns, which raises a clear
             #  OutOfBoundsTimedelta rather than a bare OverflowError.
             if value.is_integer():

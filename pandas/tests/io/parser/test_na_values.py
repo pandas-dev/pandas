@@ -861,3 +861,52 @@ def test_na_values_dict_without_dtype(all_parsers, na_values):
     result = parser.read_csv(StringIO(data), na_values=na_values)
     expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_int64_min_with_na_upcasts(all_parsers):
+    # GH#66855 a column mixing int64 min with a genuine NA upcasts to float,
+    # and only the NA row becomes NaN
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("A\n-9223372036854775808\n\n1\n"), skip_blank_lines=False
+    )
+    expected = DataFrame({"A": [float(-(2**63)), np.nan, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_filter", [True, False])
+def test_int64_min_not_read_as_na_nullable(all_parsers, na_filter):
+    # GH#66855
+    parser = all_parsers
+    if parser.engine == "pyarrow" and not na_filter:
+        pytest.skip("pyarrow engine does not support na_filter=False")
+    result = parser.read_csv(
+        StringIO("A\n-9223372036854775808\n1\n"),
+        na_filter=na_filter,
+        dtype_backend="numpy_nullable",
+    )
+    expected = DataFrame({"A": [-9223372036854775808, 1]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # the pyarrow engine reads uint64 max as a float
+def test_uint64_max_not_read_as_na_nullable(all_parsers):
+    # GH#66855 the uint64 NA sentinel is uint64 max
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("A\n18446744073709551615\n1\n"), dtype_backend="numpy_nullable"
+    )
+    expected = DataFrame({"A": [18446744073709551615, 1]}, dtype="UInt64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_int64_min_with_na_explicit_nullable_dtype(all_parsers):
+    # GH#66855 an explicitly requested nullable dtype parses through
+    # _parse_numeric_natural, which used to rescan the tokens to rebuild the NA
+    # mask; the mask now comes from the parse itself
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("A\n-9223372036854775808\nNA\n1\n"), dtype="Int64"
+    )
+    expected = DataFrame({"A": [-9223372036854775808, None, 1]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)

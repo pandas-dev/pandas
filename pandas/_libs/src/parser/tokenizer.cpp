@@ -192,6 +192,8 @@ void parser_set_default_options(parser_t *self) {
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
   self->preloaded = 0;
+  self->header_done = 0;
+  self->prev_line_fields = -1;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -447,12 +449,12 @@ static int end_line(parser_t *self) {
   int64_t ex_fields = self->expected_fields;
   int64_t fields = self->line_fields[self->lines];
 
-  if (self->lines > 0) {
-    if (self->expected_fields >= 0) {
-      ex_fields = self->expected_fields;
-    } else {
-      ex_fields = self->line_fields[self->lines - 1];
-    }
+  if (self->expected_fields < 0) {
+    // Width of the preceding line.  Slot 0 has no predecessor left in the
+    // buffer once parser_consume_rows has shifted the chunk down, so fall back
+    // to the count carried over from before the boundary.
+    ex_fields = self->lines > 0 ? self->line_fields[self->lines - 1]
+                                : self->prev_line_fields;
   }
 
   if (self->state == START_FIELD_IN_SKIP_LINE ||
@@ -470,12 +472,18 @@ static int end_line(parser_t *self) {
     return 0;
   }
 
-  /* The first line is normally exempt from the field-count check: it is the
-   * header, or it defines the table width (implicit-index inference).  In
-   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
-   * the first line is plain data, so the exemption must not apply. */
-  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
-      (fields > ex_fields) && !(self->usecols)) {
+  /* The first lines are normally exempt from the field-count check: they are
+   * the header, plus the line after it that defines the table width
+   * (implicit-index inference).  Those slots only hold header rows while the
+   * header is being read: once header_done is set the buffer holds nothing but
+   * data rows, and parser_consume_rows keeps shifting them down into slot 0.
+   * In preloaded mode (TextReader.load_buffer) the width was fixed up front
+   * and the first line is plain data, so the exemption never applies. */
+  const int in_header = !self->header_done && !self->preloaded &&
+                        self->lines <= self->header_end + 1;
+
+  if (!in_header && (ex_fields >= 0) && (fields > ex_fields) &&
+      !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -503,7 +511,8 @@ static int end_line(parser_t *self) {
     }
   } else {
     // missing trailing delimiters
-    if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
+    if ((self->header_done || self->lines >= self->header_end + 1) &&
+        fields < ex_fields) {
       // might overrun the buffer when closing fields
       if (make_stream_space(self, ex_fields - fields) < 0) {
         parser_set_error_msg(self, "out of memory");
@@ -1777,6 +1786,11 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   /* cannot guarantee that nrows + 1 has been observed */
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
+
+  /* The last line going away is the one end_line will want to compare the
+   * next line against, once the shift below has left it with no predecessor
+   * in the buffer. */
+  self->prev_line_fields = self->line_fields[nrows - 1];
 
   uint64_t char_count;
   if (word_deletions < 1) {

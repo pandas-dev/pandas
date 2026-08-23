@@ -42,6 +42,7 @@ class TextReader:
     header: list[list[int]]  # non-negative integers
     defer_pa_wrap: bool
     trim_after_read: bool
+    warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(
         self,
         source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],
@@ -96,5 +97,8 @@ class TextReader:
 na_values: dict[type | np.dtype, float | int]
 
 def _maybe_upcast(
-    arr: np.ndarray, use_dtype_backend: bool = ..., dtype_backend: str = ...
+    arr: np.ndarray,
+    use_dtype_backend: bool = ...,
+    dtype_backend: str = ...,
+    na_mask: np.ndarray | None = ...,
 ) -> np.ndarray: ...

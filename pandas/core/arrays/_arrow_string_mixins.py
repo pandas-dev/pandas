@@ -107,6 +107,38 @@ class ArrowStringArrayMixin:
             return False
         return has_unsupported_code(tokens)
 
+    @staticmethod
+    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
+        # check if `pat` is a compiled regex pattern with flags that are not
+        # supported by pyarrow
+        return (
+            isinstance(pat, re.Pattern)
+            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
+        )
+
+    @staticmethod
+    def _unwrap_re_pattern(
+        pat: str | re.Pattern, case: bool, flags: int
+    ) -> tuple[str, bool, int]:
+        """
+        Reduce `pat` to the (pattern, case, flags) triple the pyarrow kernels take.
+
+        IGNORECASE is the only flag they support and they spell it as `case`, so
+        it is folded into `case`; whatever `flags` remain afterwards cannot be
+        honored by a kernel.
+        """
+        if isinstance(pat, re.Pattern):
+            # a compiled str pattern always carries re.UNICODE, which pyarrow
+            #  assumes for strings anyway
+            flags |= pat.flags & ~re.UNICODE
+            pattern = pat.pattern
+        else:
+            pattern = pat
+        if flags & re.IGNORECASE:
+            case = False
+            flags &= ~re.IGNORECASE
+        return pattern, case, flags
+
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
@@ -174,7 +206,9 @@ class ArrowStringArrayMixin:
         if pa_version_under21p0:
             predicate = lambda val: val.zfill(width)
             result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
         return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
@@ -186,7 +220,9 @@ class ArrowStringArrayMixin:
             #  output. Fall back to unicodedata for these.
             predicate = lambda val: unicodedata.normalize(form, val)
             result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
         return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_get(self, i: int) -> Self:
@@ -403,6 +439,11 @@ class ArrowStringArrayMixin:
         na: Scalar | lib.NoDefault = lib.no_default,
         regex: bool = True,
     ):
+        if regex:
+            # GH#66348 a compiled `pat` reaches us from ArrowExtensionArray, which
+            #  unlike ArrowStringArray does not unwrap it before dispatching here.
+            pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
         if flags:
             raise NotImplementedError(f"contains not implemented with {flags=}")
 
@@ -415,25 +456,30 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if pat.startswith("^"):
-            pat = pat[1:]
-        pat = f"^({pat})"
+        # GH#63108 the accessor pre-compiles `pat` whenever the user passes `flags`
+        pattern, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
+        if pattern.startswith("^"):
+            pattern = pattern[1:]
+        pattern = f"^({pattern})"
         return ArrowStringArrayMixin._str_contains(
-            self, pat, case, flags, na, regex=True
+            self, pattern, case, flags, na, regex=True
         )
 
     def _str_fullmatch(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
+        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
         if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
             pat = f"^({pat})$"
         elif not pat.endswith("$") or pat.endswith("\\$"):
@@ -443,12 +489,14 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if not pc.all(pc.string_is_ascii(self._pa_array)).as_py():
+        # min_count=0 so that an empty or all-null array reports True instead of
+        #  null, keeping it on the pyarrow path below
+        if not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py():
             # GH#64123 - pc.find_substring returns byte offsets instead of
             # character offsets for multi-byte UTF-8 characters, so we fall back
             # to Python str.find which correctly returns character offsets.
             res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
-            return self._convert_int_result(pa.chunked_array(res_list))
+            return self._convert_int_result(pa.chunked_array(res_list, type=pa.int64()))
 
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
@@ -458,7 +506,9 @@ class ArrowStringArrayMixin:
                 res_list = self._apply_elementwise(
                     lambda val: val.find(sub, start, end)
                 )
-                return self._convert_int_result(pa.chunked_array(res_list))
+                return self._convert_int_result(
+                    pa.chunked_array(res_list, type=pa.int64())
+                )
             if start is None:
                 start_offset = 0
                 start = 0
