@@ -99,6 +99,8 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         bint uses_mask = mask is not None
         bint isna_entry = False
 
+        int64_t[::1] result_counts
+
     # we track the order in which keys are first seen (GH39009),
     # khash-map isn't insertion-ordered, thus:
     #    table maps keys to counts
@@ -106,70 +108,72 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
 
     result_keys = {{name}}Vector()
     table = kh_init_{{tfunc}}()
+    try:
 
-    {{if dtype == 'object'}}
-    if uses_mask:
-        raise NotImplementedError("uses_mask not implemented with object dtype")
-
-    kh_resize_{{tfunc}}(table, n // 10)
-
-    for i in range(n):
-        val = values[i]
-        if not dropna or not checknull(val):
-            k = kh_get_{{tfunc}}(table, {{to_c_type}}val)
-            if k != table.n_buckets:
-                table.vals[k] += 1
-            else:
-                k = kh_put_{{tfunc}}(table, {{to_c_type}}val, &ret)
-                table.vals[k] = 1
-                result_keys.append(val)
-    {{else}}
-    kh_resize_{{tfunc}}(table, n)
-
-    for i in range(n):
-        val = {{to_c_type}}(values[i])
-
+        {{if dtype == 'object'}}
         if uses_mask:
-            isna_entry = mask[i]
+            raise NotImplementedError("uses_mask not implemented with object dtype")
 
-        if dropna:
-            if not uses_mask:
-                isna_entry = is_nan_{{c_type}}(val)
+        kh_resize_{{tfunc}}(table, n // 10)
 
-        if not dropna or not isna_entry:
-            if uses_mask and isna_entry:
-                na_counter += 1
-            else:
-                k = kh_get_{{tfunc}}(table, val)
+        for i in range(n):
+            val = values[i]
+            if not dropna or not checknull(val):
+                k = kh_get_{{tfunc}}(table, {{to_c_type}}val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
                 else:
-                    k = kh_put_{{tfunc}}(table, val, &ret)
+                    k = kh_put_{{tfunc}}(table, {{to_c_type}}val, &ret)
                     table.vals[k] = 1
                     result_keys.append(val)
-    {{endif}}
-
-    # collect counts in the order corresponding to result_keys:
-    if na_counter > 0:
-        na_add = 1
-    cdef:
-        int64_t[::1] result_counts = np.empty(table.size + na_add, dtype=np.int64)
-
-    for i in range(table.size):
-        {{if dtype == 'object'}}
-        k = kh_get_{{tfunc}}(table, result_keys.data[i])
         {{else}}
-        k = kh_get_{{tfunc}}(table, result_keys.data.data[i])
+        kh_resize_{{tfunc}}(table, n)
+
+        for i in range(n):
+            val = {{to_c_type}}(values[i])
+
+            if uses_mask:
+                isna_entry = mask[i]
+
+            if dropna:
+                if not uses_mask:
+                    isna_entry = is_nan_{{c_type}}(val)
+
+            if not dropna or not isna_entry:
+                if uses_mask and isna_entry:
+                    na_counter += 1
+                else:
+                    k = kh_get_{{tfunc}}(table, val)
+                    if k != table.n_buckets:
+                        table.vals[k] += 1
+                    else:
+                        k = kh_put_{{tfunc}}(table, val, &ret)
+                        table.vals[k] = 1
+                        result_keys.append(val)
         {{endif}}
-        result_counts[i] = table.vals[k]
 
-    if na_counter > 0:
-        result_counts[table.size] = na_counter
-        result_keys.append(val)
+        # collect counts in the order corresponding to result_keys:
+        if na_counter > 0:
+            na_add = 1
 
-    kh_destroy_{{tfunc}}(table)
+        result_counts = np.empty(table.size + na_add, dtype=np.int64)
 
-    return result_keys.to_array(), result_counts.base, na_counter
+        for i in range(table.size):
+            {{if dtype == 'object'}}
+            k = kh_get_{{tfunc}}(table, result_keys.data[i])
+            {{else}}
+            k = kh_get_{{tfunc}}(table, result_keys.data.data[i])
+            {{endif}}
+            result_counts[i] = table.vals[k]
+
+        if na_counter > 0:
+            result_counts[table.size] = na_counter
+            result_keys.append(val)
+
+        return result_keys.to_array(), result_counts.base, na_counter
+
+    finally:
+        kh_destroy_{{tfunc}}(table)
 
 
 @cython.wraparound(False)
@@ -188,72 +192,76 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
         {{endif}}
         Py_ssize_t i, n = len(values), first_na = -1
         khiter_t k
-        kh_{{ttype}}_t *table = kh_init_{{tfunc}}()
+        kh_{{ttype}}_t *table
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
         bint seen_na = False, uses_mask = mask is not None
         bint seen_multiple_na = False
 
-    kh_resize_{{tfunc}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
+    table = kh_init_{{tfunc}}()
+    try:
+        kh_resize_{{tfunc}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
-    if keep not in ('last', 'first', False):
-        raise ValueError('keep must be either "first", "last" or False')
+        if keep not in ('last', 'first', False):
+            raise ValueError('keep must be either "first", "last" or False')
 
-    {{for cond, keep in [('if', '"last"'), ('elif', '"first"')]}}
-    {{cond}} keep == {{keep}}:
-        {{if dtype == 'object'}}
-        if True:
-        {{else}}
-        with nogil:
-        {{endif}}
-            {{if keep == '"last"'}}
-            for i in range(n - 1, -1, -1):
+        {{for cond, keep in [('if', '"last"'), ('elif', '"first"')]}}
+        {{cond}} keep == {{keep}}:
+            {{if dtype == 'object'}}
+            if True:
             {{else}}
-            for i in range(n):
+            with nogil:
             {{endif}}
-                if uses_mask and mask[i]:
-                    if seen_na:
-                        out[i] = True
+                {{if keep == '"last"'}}
+                for i in range(n - 1, -1, -1):
+                {{else}}
+                for i in range(n):
+                {{endif}}
+                    if uses_mask and mask[i]:
+                        if seen_na:
+                            out[i] = True
+                        else:
+                            out[i] = False
+                            seen_na = True
                     else:
-                        out[i] = False
-                        seen_na = True
-                else:
-                    value = {{to_c_type}}(values[i])
-                    kh_put_{{tfunc}}(table, value, &ret)
-                    out[i] = ret == 0
-    {{endfor}}
+                        value = {{to_c_type}}(values[i])
+                        kh_put_{{tfunc}}(table, value, &ret)
+                        out[i] = ret == 0
+        {{endfor}}
 
-    else:
-        {{if dtype == 'object'}}
-        if True:
-        {{else}}
-        with nogil:
-        {{endif}}
-            for i in range(n):
-                if uses_mask and mask[i]:
-                    if not seen_na:
-                        first_na = i
-                        seen_na = True
-                        out[i] = 0
-                    elif not seen_multiple_na:
-                        out[i] = 1
-                        out[first_na] = 1
-                        seen_multiple_na = True
+        else:
+            {{if dtype == 'object'}}
+            if True:
+            {{else}}
+            with nogil:
+            {{endif}}
+                for i in range(n):
+                    if uses_mask and mask[i]:
+                        if not seen_na:
+                            first_na = i
+                            seen_na = True
+                            out[i] = 0
+                        elif not seen_multiple_na:
+                            out[i] = 1
+                            out[first_na] = 1
+                            seen_multiple_na = True
+                        else:
+                            out[i] = 1
+
                     else:
-                        out[i] = 1
+                        value = {{to_c_type}}(values[i])
+                        k = kh_get_{{tfunc}}(table, value)
+                        if k != table.n_buckets:
+                            out[table.vals[k]] = 1
+                            out[i] = 1
+                        else:
+                            k = kh_put_{{tfunc}}(table, value, &ret)
+                            table.vals[k] = i
+                            out[i] = 0
 
-                else:
-                    value = {{to_c_type}}(values[i])
-                    k = kh_get_{{tfunc}}(table, value)
-                    if k != table.n_buckets:
-                        out[table.vals[k]] = 1
-                        out[i] = 1
-                    else:
-                        k = kh_put_{{tfunc}}(table, value, &ret)
-                        table.vals[k] = i
-                        out[i] = 0
+        return out
 
-    kh_destroy_{{tfunc}}(table)
-    return out
+    finally:
+        kh_destroy_{{tfunc}}(table)
 
 
 # ----------------------------------------------------------------------
