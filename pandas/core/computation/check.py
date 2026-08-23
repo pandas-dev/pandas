@@ -9,8 +9,9 @@ from pandas.util.version import Version
 
 # GH#65408 some 2.14.1 binaries intermittently and silently return an all-zero
 #  array for large inputs, consistent with a swallowed VM engine failure leaving
-#  the output buffer unwritten; fixed upstream in 2.14.2, though the trigger was
-#  never confirmed.  See https://github.com/pydata/numexpr/issues/557 and /566.
+#  the output buffer unwritten.  Nobody has reproduced it on 2.14.2, but upstream
+#  never root-caused it and does not claim the 2.14.2 patch is the fix.  See
+#  https://github.com/pydata/numexpr/issues/557 and /566.
 #  Both conda and PyPI shipped good and bad builds at this same version, so we
 #  cannot tell them apart and refuse the release as a whole.
 BLOCKED_NUMEXPR_VERSIONS = frozenset({"2.14.1"})

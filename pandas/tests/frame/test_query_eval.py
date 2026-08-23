@@ -26,6 +26,14 @@ skip_if_no_numexpr = pytest.mark.skipif(
 )
 
 
+def skip_if_no_numexpr_fixture():
+    # Applied inside the engine fixture rather than as a class-level mark: the
+    #  python-engine subclasses override that fixture, but pytest collects marks
+    #  from the whole MRO, so a class mark would skip them too.
+    if not NUMEXPR_INSTALLED:
+        pytest.skip("numexpr not installed or an unsupported version")
+
+
 @pytest.fixture(params=["python", "pandas"], ids=lambda x: x)
 def parser(request):
     return request.param
@@ -526,10 +534,10 @@ class TestDataFrameQueryWithMultiIndex:
                 raise AssertionError("object must be a Series or Index")
 
 
-@skip_if_no_numexpr
 class TestDataFrameQueryNumExprPandas:
     @pytest.fixture
     def engine(self):
+        skip_if_no_numexpr_fixture()
         return "numexpr"
 
     @pytest.fixture
@@ -864,7 +872,7 @@ class TestDataFrameQueryNumExprPandas:
         result = df.query(q, engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
 
-    def test_check_tz_aware_index_query(self, tz_aware_fixture):
+    def test_check_tz_aware_index_query(self, tz_aware_fixture, engine, parser):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
         df_index = date_range(
@@ -872,11 +880,15 @@ class TestDataFrameQueryNumExprPandas:
         )
         expected = DataFrame(index=df_index)
         df = DataFrame(index=df_index)
-        result = df.query('"2018-01-03 00:00:00+00" < time')
+        result = df.query(
+            '"2018-01-03 00:00:00+00" < time', engine=engine, parser=parser
+        )
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(df_index)
-        result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
+        result = df.reset_index().query(
+            '"2018-01-03 00:00:00+00" < time', engine=engine, parser=parser
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_method_calls_in_query(self, engine, parser):
@@ -907,10 +919,10 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
 
-@skip_if_no_numexpr
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     @pytest.fixture
     def engine(self):
+        skip_if_no_numexpr_fixture()
         return "numexpr"
 
     @pytest.fixture
@@ -1011,6 +1023,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         )
         tm.assert_frame_equal(expected, result)
 
+    @skip_if_no_numexpr
     def test_query_numexpr_with_min_and_max_columns(self):
         df = DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
         regex_to_match = (

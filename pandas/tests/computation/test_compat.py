@@ -20,9 +20,10 @@ def test_compat():
     ne = pytest.importorskip("numexpr")
 
     ver = ne.__version__
-    if Version(ver) < Version(VERSIONS["numexpr"]):
-        assert not check.NUMEXPR_INSTALLED
-    elif Version(ver).base_version in check.BLOCKED_NUMEXPR_VERSIONS:
+    if (
+        Version(ver) < Version(VERSIONS["numexpr"])
+        or Version(ver).base_version in check.BLOCKED_NUMEXPR_VERSIONS
+    ):
         assert not check.NUMEXPR_INSTALLED
     else:
         assert check.NUMEXPR_INSTALLED
