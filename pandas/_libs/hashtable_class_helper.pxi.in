@@ -1412,11 +1412,11 @@ cdef class PyObjectHashTable(HashTable):
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         if ret != 0:
             Py_INCREF(key)
-        raise_if_errors()
-        if kh_exist_pymap_checked(self.table, k):
+        if kh_exist_pymap(self.table, k):
             self.table.vals[k] = val
         else:
             raise KeyError(key)
+        raise_if_errors()
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1435,8 +1435,8 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             if ret != 0:
                 Py_INCREF(val)
-            raise_if_errors()
             self.table.vals[k] = i
+            raise_if_errors()
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
