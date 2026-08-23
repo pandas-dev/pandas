@@ -1000,6 +1000,70 @@ class TestTSPlot:
         expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
         tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
 
+    @pytest.mark.parametrize("freq", ["D", "h", "min", "s"])
+    def test_mixed_freq_bday_onto_finer_axis(self, freq):
+        # GH#64311, GH#66222 business-day data plotted onto an axis that
+        # already holds a daily-or-finer series raised TypeError("index type
+        # not supported"): the axis was formatted with the unresampled
+        # business-day ordinal index while ax.freq was the finer alias.
+        ser = Series(
+            np.arange(30, dtype=np.float64),
+            index=date_range("2020-01-01", periods=30, freq=freq),
+        )
+        bidx = bdate_range("2020-01-01", periods=10)
+        bser = Series(np.arange(10, dtype=np.float64), index=bidx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        bser.plot(ax=ax)
+        assert ax.freq == freq
+        # the business-day line lands on the ordinals of its own timestamps
+        expected = PeriodIndex(bidx, freq=freq).asi8
+        tm.assert_numpy_array_equal(ax.get_lines()[1].get_xdata(), expected)
+
+    def test_mixed_freq_bday_frame_onto_finer_axis(self):
+        # GH#65278 format_dateaxis runs once per axes, so it must use the index
+        # actually drawn on that axes rather than the frame-level index.
+        ser = Series(
+            np.arange(30, dtype=np.float64),
+            index=date_range("2020-01-01", periods=30, freq="D"),
+        )
+        bidx = bdate_range("2020-01-01", periods=10)
+        df = DataFrame(
+            np.arange(20, dtype=np.float64).reshape(10, 2),
+            index=bidx,
+            columns=["a", "b"],
+        )
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        df.plot(ax=ax)
+        assert ax.freq == "D"
+        expected = PeriodIndex(bidx, freq="D").asi8
+        for line in ax.get_lines()[1:]:
+            tm.assert_numpy_array_equal(line.get_xdata(), expected)
+
+    def test_mixed_freq_bday_onto_weekly_axis(self):
+        # GH#66222 business-day data plotted onto a weekly axis raised
+        # TypeError from resampling the int64 business-day ordinal index.
+        weekly_ser = Series(
+            np.arange(8, dtype=np.float64),
+            index=date_range("2020-01-05", periods=8, freq="W-SUN"),
+        )
+        bser = Series(
+            np.arange(30, dtype=np.float64),
+            index=bdate_range("2020-01-01", periods=30),
+        )
+        _, ax = mpl.pyplot.subplots()
+        weekly_ser.plot(ax=ax)
+        bser.plot(ax=ax)
+        assert ax.freq == "W-SUN"
+        # the business-day data is aggregated onto the weekly axis
+        expected = bser.resample("W-SUN").last().dropna()
+        line_b = ax.get_lines()[1]
+        tm.assert_numpy_array_equal(
+            line_b.get_xdata(), PeriodIndex(expected.index, freq="W-SUN").asi8
+        )
+        tm.assert_numpy_array_equal(line_b.get_ydata(), expected.to_numpy())
+
     def test_plain_int_index_onto_ts_axis_raises(self):
         # GH#64311 an integer index only means business-day ordinals when it
         # came from the BDay conversion; a genuine int-index series overlaid

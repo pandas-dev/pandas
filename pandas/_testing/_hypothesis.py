@@ -26,6 +26,11 @@ DATETIME_JAN_1_1900_OPTIONAL_TZ = st.datetimes(  # pyright: ignore[reportCallIss
     min_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),  # pyright: ignore[reportArgumentType]
     max_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),  # pyright: ignore[reportArgumentType]
     timezones=st.one_of(st.none(), dateutil_timezones(), st.timezones()),
+    # 1900-01-01 is the first transition for some zones (e.g. Indian/Cocos in
+    # tzdata builds that include "backzone"), making it a nonexistent local
+    # time there.  Such datetimes do not survive a UTC round-trip, so they
+    # break invariants like (dt + offset) - offset == dt.
+    allow_imaginary=False,
 )
 
 DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ = st.datetimes(
