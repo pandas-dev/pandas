@@ -544,10 +544,20 @@ def test_hash_negative_zero(dtype):
     assert result[0] == result[1]
 
 
-def test_hash_complex_nan_bit_patterns():
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+def test_hash_complex_nan_bit_patterns(dtype):
     # GH#28363
     nan = np.float64(np.nan)
-    arr = np.array([complex(nan, -0.0), complex(-nan, 0.0)])
+    arr = np.array([complex(nan, -0.0), complex(-nan, 0.0)], dtype=dtype)
+
+    result = hash_array(arr)
+    assert result[0] == result[1]
+
+
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+def test_hash_complex_negative_zero(dtype):
+    # GH#28363
+    arr = np.array([complex(0.0, 0.0), complex(-0.0, -0.0)], dtype=dtype)
 
     result = hash_array(arr)
     assert result[0] == result[1]
