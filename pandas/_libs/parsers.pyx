@@ -283,6 +283,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         int64_t skip_empty_lines
 
         int preloaded
+        int header_done
 
     ctypedef struct coliter_t:
         const char *stream
@@ -652,6 +653,10 @@ cdef class TextReader:
 
         self.names = names
         header, table_width, unnamed_cols = self._get_header(prelim_header)
+        # The header rows and the first data row have been tokenized, so the
+        # table width is now pinned down.  Everything tokenized from here on is
+        # a data row, whichever buffer slot it lands in (GH#40587).
+        self.parser.header_done = 1
         # header, table_width, and unnamed_cols are set here, never changed
         self.header = header
         self.table_width = table_width
