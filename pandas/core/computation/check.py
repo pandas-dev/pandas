@@ -7,11 +7,12 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
-# GH#65408 these numexpr releases ship binaries whose multithreaded evaluation
-#  path can intermittently and silently return wrong results (e.g. an all-zero
-#  array) for large inputs, see https://github.com/pydata/numexpr/issues/566.
-#  Only some builds of an affected release are broken, but we have no way to
-#  tell them apart, so we refuse the release as a whole.
+# GH#65408 some 2.14.1 binaries intermittently and silently return an all-zero
+#  array for large inputs, consistent with a swallowed VM engine failure leaving
+#  the output buffer unwritten; fixed upstream in 2.14.2, though the trigger was
+#  never confirmed.  See https://github.com/pydata/numexpr/issues/557 and /566.
+#  Both conda and PyPI shipped good and bad builds at this same version, so we
+#  cannot tell them apart and refuse the release as a whole.
 BLOCKED_NUMEXPR_VERSIONS = frozenset({"2.14.1"})
 
 ne = import_optional_dependency("numexpr", errors="warn")
