@@ -263,7 +263,7 @@ class CSSResolver:
             {("font-weight", "bold"), ("background", "blue")}
         inherited : dict, optional
             Atomic properties indicating the inherited style context in which
-            declarations_str is to be resolved. ``inherited`` should already
+            declarations is to be resolved. ``inherited`` should already
             be resolved, i.e. valid output of this method.
 
         Returns
