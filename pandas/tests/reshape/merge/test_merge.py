@@ -3422,3 +3422,19 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_label", [np.nan, pd.NaT])
+def test_merge_on_na_labeled_key_no_duplicate_columns(na_label):
+    # GH#65899 merging on a join key whose *label* is a missing-value sentinel
+    #  (e.g. np.nan or NaT) must de-duplicate the key column, like any other
+    #  key label. The label-equality check used a bare ``==``, which is False
+    #  for ``np.nan == np.nan``, so the right key was not dropped and the
+    #  result gained spurious ``<label>_x`` / ``<label>_y`` columns.
+    left = DataFrame({na_label: [1, 2, 3], "a": [10, 20, 30]})
+    right = DataFrame({na_label: [1, 2, 3], "b": [40, 50, 60]})
+
+    result = merge(left, right, left_on=na_label, right_on=na_label)
+
+    expected = DataFrame({na_label: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)

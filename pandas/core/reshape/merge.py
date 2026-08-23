@@ -24,6 +24,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.missing import is_matching_na
 from pandas.errors import MergeError
 from pandas.util._decorators import (
     cache_readonly,
@@ -1623,7 +1624,7 @@ class _MergeOperation:
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
-                        if lk is not None and lk == rk:  # FIXME: what about other NAs?
+                        if lk is not None and _labels_match(lk, rk):
                             right_drop.append(rk)
                     else:
                         rk = cast("ArrayLike", rk)
@@ -3282,6 +3283,25 @@ def _fuse_int64_keys(
         lkey += _shift_to_int64(lview, cmin, stride)
         rkey += _shift_to_int64(rview, cmin, stride)
     return lkey, rkey
+
+
+def _labels_match(left_label, right_label) -> bool:
+    """
+    Whether two join-key labels refer to the same key.
+
+    Matching missing-value sentinels (e.g. ``np.nan``/``np.nan``,
+    ``pd.NA``/``pd.NA``, ``NaT``/``NaT``) are treated as equal. Comparing
+    labels with ``==`` alone is unsafe for NA labels: ``np.nan == np.nan`` is
+    ``False`` (so a NaN-labeled key would not be de-duplicated) and
+    ``pd.NA == pd.NA`` raises in a boolean context (GH#65899).
+    """
+    if is_matching_na(left_label, right_label):
+        return True
+    try:
+        return bool(left_label == right_label)
+    except (TypeError, ValueError):
+        # e.g. pd.NA compared against a non-matching label
+        return False
 
 
 def _should_fill(lname, rname) -> bool:
