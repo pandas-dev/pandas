@@ -61,19 +61,20 @@ from pandas.util.version import Version
 
 numexpr = import_optional_dependency("numexpr", errors="ignore")
 
+skip_if_no_numexpr = pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
+
 
 @pytest.fixture(
     params=(
         pytest.param(
             engine,
-            marks=[
-                pytest.mark.skipif(
-                    engine == "numexpr" and not USE_NUMEXPR,
-                    reason=f"numexpr enabled->{USE_NUMEXPR}, "
-                    f"installed->{NUMEXPR_INSTALLED}",
-                ),
-                td.skip_if_no("numexpr"),
-            ],
+            marks=pytest.mark.skipif(
+                engine == "numexpr" and not USE_NUMEXPR,
+                reason=f"numexpr enabled->{USE_NUMEXPR}, "
+                f"installed->{NUMEXPR_INSTALLED}",
+            ),
         )
         for engine in ENGINES
     )
@@ -1785,14 +1786,14 @@ class TestScope:
             pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_invalid_engine():
     msg = "Invalid engine 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, engine="asdf")
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 @pytest.mark.parametrize(
     ("use_numexpr", "expected"),
     (
@@ -1809,7 +1810,7 @@ def test_numexpr_option_respected(use_numexpr, expected):
         assert result == expected
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_numexpr_option_incompatible_op():
     # GH 32556
     with pd.option_context("compute.use_numexpr", False):
@@ -1821,7 +1822,7 @@ def test_numexpr_option_incompatible_op():
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
@@ -2028,7 +2029,7 @@ def test_validate_bool_args(value):
         pd.eval("2+2", inplace=value)
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_eval_float_div_numexpr():
     # GH 59736
     result = pd.eval("1 / 2", engine="numexpr")

@@ -21,6 +21,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
+skip_if_no_numexpr = pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
+
 
 @pytest.fixture(params=["python", "pandas"], ids=lambda x: x)
 def parser(request):
@@ -28,7 +32,7 @@ def parser(request):
 
 
 @pytest.fixture(
-    params=["python", pytest.param("numexpr", marks=td.skip_if_no("numexpr"))],
+    params=["python", pytest.param("numexpr", marks=skip_if_no_numexpr)],
     ids=lambda x: x,
 )
 def engine(request):
@@ -522,7 +526,7 @@ class TestDataFrameQueryWithMultiIndex:
                 raise AssertionError("object must be a Series or Index")
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 class TestDataFrameQueryNumExprPandas:
     @pytest.fixture
     def engine(self):
@@ -903,7 +907,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     @pytest.fixture
     def engine(self):

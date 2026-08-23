@@ -475,6 +475,8 @@ filterwarnings = [
   "ignore:Couldn't import C tracer",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
+  # Emitted at import time when a blocked numexpr version is installed, GH#65408
+  "ignore:numexpr version .* can silently return incorrect results:UserWarning",
 ]
 junit_family = "xunit2"
 
