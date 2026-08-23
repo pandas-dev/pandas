@@ -612,6 +612,22 @@ class Interpolate:
         self.df2.interpolate()
 
 
+class InterpolateMethods:
+    # GH#48236: interpolate loops over 1-d slices, so the per-slice overhead
+    #  dominates for frames with many rows (axis=0) or many columns (axis=1).
+    params = [["linear", "nearest", "zero", "slinear", "cubic"], [0, 1]]
+    param_names = ["method", "axis"]
+
+    def setup(self, method, axis):
+        N = 1000
+        arr = np.random.randn(N, 100)
+        arr[np.random.rand(*arr.shape) < 0.8] = np.nan
+        self.df = DataFrame(arr)
+
+    def time_interpolate(self, method, axis):
+        self.df.interpolate(method=method, axis=axis)
+
+
 class Shift:
     # frame shift speedup issue-5609
     params = [0, 1]

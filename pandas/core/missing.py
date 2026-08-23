@@ -412,6 +412,12 @@ def interpolate_2d_inplace(
 
     indices = _index_to_interp_indices(index, method)
 
+    if method in SP_METHODS:
+        # Check once here rather than once per 1-d slice below.
+        import_optional_dependency(
+            "scipy", extra=f"{method} interpolation requires SciPy."
+        )
+
     def func(yvalues: np.ndarray) -> None:
         # process 1-d slices in the axis direction
 
@@ -428,7 +434,13 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    np.apply_along_axis(func, axis, data)
+    if data.ndim == 1:
+        func(data)
+    else:
+        # NB: not np.apply_along_axis, which allocates and then discards a
+        #  result array; func mutates yvalues in place and returns None.
+        for yvalues in data if axis == 1 else data.T:
+            func(yvalues)
 
 
 def _is_arrow_temporal(dtype: DtypeObj | None) -> bool:
@@ -541,9 +553,6 @@ def _interpolate_1d(
     if valid.all():
         return
 
-    # These index pointers to invalid values... i.e. {0, 1, etc...
-    all_nans = np.flatnonzero(invalid)
-
     first_valid_index = find_valid_index(how="first", is_valid=valid)
     if first_valid_index is None:  # no nan found in start
         first_valid_index = 0
@@ -563,7 +572,16 @@ def _interpolate_1d(
     # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    if limit_direction == "forward":
+    if limit is None:
+        # _interp_limit would return nothing, and start_nans/end_nans are
+        #  already sorted and unique, so skip it and the union1d sort.
+        if limit_direction == "forward":
+            preserve_nans = start_nans
+        elif limit_direction == "backward":
+            preserve_nans = end_nans
+        else:
+            preserve_nans = np.array([], dtype=np.intp)
+    elif limit_direction == "forward":
         preserve_nans = np.union1d(start_nans, _interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
         preserve_nans = np.union1d(end_nans, _interp_limit(invalid, 0, limit))
@@ -579,6 +597,7 @@ def _interpolate_1d(
         preserve_nans = np.union1d(preserve_nans, end_nans)
     elif limit_area == "outside":
         # preserve NaNs on the inside
+        all_nans = np.flatnonzero(invalid)
         mid_nans = np.setdiff1d(all_nans, start_nans, assume_unique=True)
         mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
         preserve_nans = np.union1d(preserve_nans, mid_nans)
@@ -632,8 +651,6 @@ def _interpolate_scipy_wrapper(
     Returns an array interpolated at new_x.  Add any new methods to
     the list in _clean_interp_method.
     """
-    extra = f"{method} interpolation requires SciPy."
-    import_optional_dependency("scipy", extra=extra)
     from scipy import interpolate
 
     new_x = np.asarray(new_x)
