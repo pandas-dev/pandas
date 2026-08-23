@@ -294,6 +294,9 @@ Look,a snake,🐍"""
                 pd.read_feather,
                 "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
+                marks=pytest.mark.filterwarnings(
+                    "ignore:Feather V1 files are deprecated:DeprecationWarning"
+                ),
             ),
             (
                 pd.read_hdf,
