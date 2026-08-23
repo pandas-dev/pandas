@@ -341,7 +341,9 @@ timedelta-like}
     elif PyDelta_Check(nonexistent):
         from .timedeltas import delta_to_nanoseconds
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
-    elif nonexistent not in ("raise", None):
+    # `is not None` rather than `in (..., None)`: comparing an object against
+    # Py_None trips GCC -Warray-bounds in Cython's inline compare helper (GH#66939)
+    elif nonexistent is not None and nonexistent != "raise":
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
                "'shift_backward'} or a timedelta object")
         raise ValueError(msg)
