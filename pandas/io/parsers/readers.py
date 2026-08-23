@@ -3234,11 +3234,12 @@ def _refine_defaults_read(
     if delimiter is None:
         delimiter = sep
 
-    if delimiter == "\n":
+    # GH#43528, GH#51801: the C engine silently mis-parses these, as the field
+    # separator is consumed as a line terminator before it can split a field.
+    if delimiter in ("\n", "\r"):
         raise ValueError(
-            r"Specified \n as separator or delimiter. This forces the python engine "
-            "which does not accept a line terminator. Hence it is not allowed to use "
-            "the line terminator as separator.",
+            f"Specified {delimiter!r} as separator or delimiter, but a line "
+            "terminator cannot be used as a separator.",
         )
 
     if delimiter is lib.no_default:

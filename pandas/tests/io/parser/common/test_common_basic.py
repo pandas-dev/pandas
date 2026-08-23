@@ -8,6 +8,7 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
+import re
 import sys
 
 import numpy as np
@@ -809,20 +810,20 @@ def test_read_csv_delimiter_and_sep_no_default(all_parsers):
         parser.read_csv(f, sep=" ", delimiter=".")
 
 
-@pytest.mark.parametrize("kwargs", [{"delimiter": "\n"}, {"sep": "\n"}])
-def test_read_csv_line_break_as_separator(kwargs, all_parsers):
-    # GH#43528
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+@pytest.mark.parametrize("sep", ["\n", "\r"])
+def test_read_csv_line_break_as_separator(key, sep, all_parsers):
+    # GH#43528, GH#51801
     parser = all_parsers
     data = """a,b,c
 1,2,3
     """
     msg = (
-        r"Specified \\n as separator or delimiter. This forces the python engine "
-        r"which does not accept a line terminator. Hence it is not allowed to use "
-        r"the line terminator as separator."
+        f"Specified {sep!r} as separator or delimiter, but a line "
+        "terminator cannot be used as a separator."
     )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), **kwargs)
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        parser.read_csv(StringIO(data), **{key: sep})
 
 
 @skip_pyarrow
