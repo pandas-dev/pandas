@@ -2694,16 +2694,20 @@ class TextFileReader(abc.Iterator):
                 )
                 engine = "python"
         else:
+            # The C engine always tokenizes a utf-8 byte stream: text handles
+            # are re-encoded to utf-8 before reaching it, whatever `encoding`
+            # says. So the separator has to be a single utf-8 byte; the
+            # platform's filesystem encoding has nothing to do with it.
             encodeable = True
-            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
-                if len(sep.encode(encoding)) > 1:
+                if len(sep.encode("utf-8")) > 1:
                     encodeable = False
-            except UnicodeDecodeError:
+            except UnicodeEncodeError:
+                # e.g. a lone surrogate
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    f"the separator encoded in {encoding} "
+                    "the separator encoded in utf-8 "
                     f"is > 1 char long, and the '{engine}' engine "
                     "does not support such separators"
                 )
