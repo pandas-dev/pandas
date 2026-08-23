@@ -55,10 +55,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import NDFrameT
 
-    from pandas import (
-        PeriodIndex,
-        Series,
-    )
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -103,12 +100,6 @@ def maybe_resample(
     if freq is None:  # pragma: no cover
         raise ValueError("Cannot use dynamic axis without frequency info")
 
-    # Convert DatetimeIndex to PeriodIndex so the x-axis uses Period ordinals.
-    # For BDay freq this ensures consecutive business days get consecutive
-    # ordinals with no weekend gaps (GH#1482).
-    if isinstance(series.index, ABCDatetimeIndex):
-        series = series.to_period(freq=freq)
-
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy(deep=False)
@@ -116,6 +107,11 @@ def maybe_resample(
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = "last"
+            if is_integer_dtype(series.index):
+                # business-day ordinals cannot be resampled; re-express them
+                # as daily Periods first (GH#66222)
+                series = series.copy(deep=False)
+                series.index = _asfreq_plotting(series.index, "D")
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
@@ -401,9 +397,7 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
-def format_dateaxis(
-    subplot, freq: BaseOffset, index: DatetimeIndex | PeriodIndex
-) -> None:
+def format_dateaxis(subplot, freq: BaseOffset, index: Index) -> None:
     """
     Pretty-formats the date axis (x-axis).
 

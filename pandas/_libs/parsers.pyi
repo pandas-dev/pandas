@@ -96,5 +96,8 @@ class TextReader:
 na_values: dict[type | np.dtype, float | int]
 
 def _maybe_upcast(
-    arr: np.ndarray, use_dtype_backend: bool = ..., dtype_backend: str = ...
+    arr: np.ndarray,
+    use_dtype_backend: bool = ...,
+    dtype_backend: str = ...,
+    na_mask: np.ndarray | None = ...,
 ) -> np.ndarray: ...
