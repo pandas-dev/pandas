@@ -223,6 +223,16 @@ SP_METHODS = [
     "cubicspline",
 ]
 
+# interpolation methods whose value at a missing position depends only on the
+# closest valid value on either side, and so can be computed for a whole 2-D
+# block at once by _interpolate_2d_neighbors
+
+NEIGHBOR_METHODS = ["linear", "index", "values", "nearest", "zero"]
+
+# how many values _interpolate_2d_neighbors handles per pass; keeping this
+# bounded keeps its temporaries small no matter how big the block is
+_NEIGHBOR_CHUNK_SIZE = 2**18
+
 
 def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     order = kwargs.get("order")
@@ -392,7 +402,8 @@ def interpolate_2d_inplace(
     # validate the interp method
     clean_interp_method(method, index, **kwargs)
 
-    if is_valid_na_for_dtype(fill_value, data.dtype):
+    fill_value_is_na = is_valid_na_for_dtype(fill_value, data.dtype)
+    if fill_value_is_na:
         fill_value = na_value_for_dtype(data.dtype, compat=False)
 
     if method == "time":
@@ -411,6 +422,37 @@ def interpolate_2d_inplace(
     limit = algos.validate_limit(nobs=None, limit=limit)
 
     indices = _index_to_interp_indices(index, method)
+
+    if (
+        # GH#48236 the per-slice loop below costs more than the interpolation
+        #  itself, so handle the whole block at once where we can.
+        data.ndim == 2
+        and mask is None
+        and method in NEIGHBOR_METHODS
+        and data.dtype.kind == "f"
+        and indices.dtype.kind in "iuf"
+        # limit and a non-default fill_value both need the slower path
+        and limit is None
+        and fill_value_is_na
+        # a later valid value must also be a larger x value
+        and index.is_monotonic_increasing
+        and index.is_unique
+    ):
+        if method in SP_METHODS:
+            # unchanged requirement: _interpolate_2d_neighbors reproduces what
+            #  scipy.interpolate.interp1d gives for these kinds, but making
+            #  them work without SciPy would be an API change, not a perf one
+            import_optional_dependency(
+                "scipy", extra=f"{method} interpolation requires SciPy."
+            )
+        _interpolate_2d_neighbors(
+            data if axis == 1 else data.T,
+            indices,
+            method=method,
+            limit_direction=limit_direction,
+            limit_area=limit_area_validated,
+        )
+        return
 
     def func(yvalues: np.ndarray) -> None:
         # process 1-d slices in the axis direction
@@ -503,6 +545,88 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
                 inds = lib.maybe_convert_objects(inds)
 
     return inds
+
+
+def _interpolate_2d_neighbors(
+    values: np.ndarray,
+    indices: np.ndarray,
+    method: str,
+    limit_direction: str,
+    limit_area: Literal["inside", "outside"] | None,
+) -> None:
+    """
+    Interpolate every row of a 2-d block at once.
+
+    Equivalent to _interpolate_1d applied to each row, for the subset of
+    arguments the caller checks for: a float `values`, a strictly increasing
+    `indices`, a method in NEIGHBOR_METHODS, no `limit` and no `fill_value`.
+
+    Notes
+    -----
+    Alters `values` in-place.
+    """
+    nrows, ncols = values.shape
+    # np.interp and scipy both interpolate in double precision
+    xvals = indices.astype(np.float64, copy=False)
+    # positions fit in int32 for any array we can hold in memory
+    positions = np.arange(ncols, dtype=np.int32)
+    # everything below is O(chunk.size) in temporaries, so work in chunks
+    step = max(1, _NEIGHBOR_CHUNK_SIZE // ncols)
+
+    for start in range(0, nrows, step):
+        chunk = values[start : start + step]
+        invalid = np.isnan(chunk)
+
+        # position of the closest valid value at or before / at or after each
+        #  position, or -1 / ncols where there is none
+        prev = np.where(invalid, -1, positions)
+        np.maximum.accumulate(prev, axis=1, out=prev)
+        nxt = np.where(invalid, ncols, positions)
+        np.minimum.accumulate(nxt[:, ::-1], axis=1, out=nxt[:, ::-1])
+
+        has_prev = prev >= 0
+        has_next = nxt < ncols
+
+        if limit_area != "outside":
+            rows, cols = np.nonzero(invalid & has_prev & has_next)
+            prev_idx = prev[rows, cols]
+            next_idx = nxt[rows, cols]
+            xprev = xvals[prev_idx]
+            xnext = xvals[next_idx]
+            xhere = xvals[cols]
+            yprev = chunk[rows, prev_idx]
+            ynext = chunk[rows, next_idx]
+            if method == "zero":
+                filled = yprev
+            elif method == "nearest":
+                # ties go to the earlier value, as interp1d does
+                filled = np.where(xhere - xprev <= xnext - xhere, yprev, ynext)
+            else:
+                # associated as np.interp does it, to get the same rounding
+                slope = (ynext - yprev) / (xnext - xprev)
+                filled = slope * (xhere - xprev) + yprev
+                retry = np.isnan(filled)
+                if retry.any():
+                    # np.interp works from the other end when that gives NaN,
+                    #  which happens next to an infinite value
+                    alt = slope[retry] * (xhere[retry] - xnext[retry]) + ynext[retry]
+                    flat = np.isnan(alt) & (yprev[retry] == ynext[retry])
+                    filled[retry] = np.where(flat, yprev[retry], alt)
+            chunk[rows, cols] = filled
+
+        if method in SP_METHODS or limit_area == "inside":
+            # interp1d(bounds_error=False) fills fill_value, i.e. NaN, outside
+            #  the valid range, and limit_area="inside" keeps the NaNs there
+            continue
+
+        # np.interp instead clamps to the closest valid value; limit_direction
+        #  puts the NaNs back on the side it does not fill
+        if limit_direction != "forward":
+            rows, cols = np.nonzero(invalid & ~has_prev & has_next)
+            chunk[rows, cols] = chunk[rows, nxt[rows, cols]]
+        if limit_direction != "backward":
+            rows, cols = np.nonzero(invalid & has_prev & ~has_next)
+            chunk[rows, cols] = chunk[rows, prev[rows, cols]]
 
 
 def _interpolate_1d(

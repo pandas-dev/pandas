@@ -495,3 +495,38 @@ class TestDataFrameInterpolate:
         result = df.interpolate(method="time")
         expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["linear", "index", "values", "nearest", "zero"])
+@pytest.mark.parametrize("limit_direction", ["forward", "backward", "both"])
+@pytest.mark.parametrize("limit_area", [None, "inside", "outside"])
+@pytest.mark.parametrize("index_values", [None, [0.0, 1.5, 2.0, 6.0, 6.5, 9.0, 20.0]])
+def test_interpolate_frame_matches_series(
+    method, limit_direction, limit_area, index_values
+):
+    # GH#48236 a frame interpolates every 1-d slice at once for these methods;
+    #  a Series takes the slice-at-a-time path, so the two must agree
+    if method != "linear":
+        pytest.importorskip("scipy")
+    data = {
+        "all_nan": [np.nan] * 7,
+        "no_nan": [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
+        "one_valid": [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, np.nan],
+        "edges_nan": [np.nan, 1.0, np.nan, np.nan, 5.0, np.nan, np.nan],
+        "interior": [0.0, np.nan, 2.0, np.nan, np.nan, 5.0, 6.0],
+    }
+    df = DataFrame(data, index=index_values)
+    kwargs = {
+        "method": method,
+        "limit_direction": limit_direction,
+        "limit_area": limit_area,
+    }
+    result = df.interpolate(**kwargs)
+    expected = DataFrame(
+        {name: df[name].interpolate(**kwargs) for name in data}, index=df.index
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # and the axis=1 spelling gives the transposed result
+    result = df.T.interpolate(axis=1, **kwargs)
+    tm.assert_frame_equal(result, expected.T)
