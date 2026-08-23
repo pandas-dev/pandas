@@ -1,4 +1,5 @@
 from itertools import product
+import re
 
 import numpy as np
 import pytest
@@ -101,15 +102,36 @@ def test_unique_level(idx, level):
 def test_duplicate_multiindex_codes():
     # GH 17464
     # Make sure that a MultiIndex with duplicate levels throws a ValueError
-    msg = r"Level values must be unique: \[[A', ]+\] on level 0"
+    msg = r"Level values must be unique. Duplicate values on level 0: \[[A', ]+\]"
     with pytest.raises(ValueError, match=msg):
         mi = MultiIndex([["A"] * 10, range(10)], [[0] * 10, range(10)])
 
     # And that using set_levels with duplicate levels fails
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
-    msg = r"Level values must be unique: \[[AB', ]+\] on level 0"
+    msg = r"Level values must be unique. Duplicate values on level 0: \[[AB', ]+\]"
     with pytest.raises(ValueError, match=msg):
         mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
+
+
+def test_duplicate_level_message_reports_only_duplicates():
+    # GH 19432 - the message names the colliding values instead of dumping the
+    # whole level, and shows both members so 1 vs 1.0 reads as a collision
+    levels = [Index([1, 1.0], dtype=object), range(3)]
+    msg = re.escape(
+        "Level values must be unique. Duplicate values on level 0: [1, 1.0]"
+    )
+    with pytest.raises(ValueError, match=msg):
+        MultiIndex(levels=levels, codes=[[0, 1], [1, 1]])
+
+
+def test_duplicate_level_message_truncates_long_levels():
+    # GH 19432 - a large level must not produce a megabyte-long message
+    level = list(range(200)) + [0] * 20
+    with pytest.raises(ValueError, match="Level values must be unique") as err:
+        MultiIndex(levels=[level, range(3)], codes=[[0, 1], [1, 1]])
+    msg = str(err.value)
+    assert len(msg) < 200
+    assert "... (21 total)" in msg
 
 
 @pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
