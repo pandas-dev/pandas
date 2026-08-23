@@ -429,6 +429,12 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
+            if getattr(result, "dtype", None) == orig_values.dtype:
+                # GH#18976 empty input short-circuits to NA of the original
+                #  dtype; _wrap_results expects an i8 result and would compare
+                #  this against iNaT.
+                return result
+
             result_mask = None
             if not skipna:
                 assert mask is not None  # checked above
