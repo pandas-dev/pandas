@@ -105,7 +105,6 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)
 
-    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_get_indexer_non_unique_np_nats(self, np_nat_fixture, np_nat_fixture2):
         expected_missing = np.array([], dtype=np.intp)
         # matching-but-not-identical nats

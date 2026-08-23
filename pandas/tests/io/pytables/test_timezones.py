@@ -39,9 +39,6 @@ gettz_dateutil = lambda x: maybe_get_tz("dateutil/" + x)
 gettz_pytz = lambda x: x
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
-)
 @pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
 def test_append_with_timezones(temp_hdfstore, gettz):
     # as columns
@@ -318,9 +315,6 @@ def test_dst_transitions(temp_hdfstore):
         temp_hdfstore.remove("df")
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
-)
 def test_read_with_where_tz_aware_index(temp_hdfstore):
     # GH 11926
     periods = 10
