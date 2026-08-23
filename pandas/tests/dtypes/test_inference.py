@@ -709,6 +709,23 @@ class TestInference:
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
     @pytest.mark.parametrize(
+        "arr, expected",
+        [
+            (["1.5", 2j], [1.5 + 0j, 2j]),
+            (["1", 2j], [1 + 0j, 2j]),
+            ([1.5, 2j], [1.5 + 0j, 2j]),
+            ([1, 2j], [1 + 0j, 2j]),
+            ([True, 2j], [1 + 0j, 2j]),
+            ([Decimal("1.5"), 2j], [1.5 + 0j, 2j]),
+            ([np.nan, 2j], [complex(np.nan, 0), 2j]),
+        ],
+    )
+    def test_convert_numeric_complex_keeps_preceding_values(self, arr, expected):
+        # GH#35051 entries seen before the first complex were left uninitialized
+        result, _ = lib.maybe_convert_numeric(np.array(arr, dtype=object), set())
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.complex128))
+
+    @pytest.mark.parametrize(
         "arr",
         [
             np.array([2**63, np.nan], dtype=object),
@@ -2233,6 +2250,12 @@ def test_find_result_type_int_int(right, result):
 def test_find_result_type_floats(right, result):
     left_dtype = np.dtype("float16")
     assert find_result_type(left_dtype, right) == result
+
+
+def test_find_result_type_bytes_with_na():
+    # GH#52373
+    left_dtype = np.dtype("S1")
+    assert find_result_type(left_dtype, np.nan) == np.dtype(object)
 
 
 @pytest.mark.parametrize(

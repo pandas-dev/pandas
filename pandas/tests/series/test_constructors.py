@@ -1309,9 +1309,11 @@ class TestSeriesConstructors:
         assert result.dtype == "Period[D]"
 
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
+        # GH#64158 the integers are read as calendar years, so they have to be
+        #  years Period(int, freq) accepts
         msg = "Passing integer data"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+            series = Series([1000, 2000, 3000, pd._libs.iNaT], dtype="period[D]")
 
         val = series[3]
         assert isna(val)
