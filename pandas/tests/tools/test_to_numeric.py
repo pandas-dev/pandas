@@ -970,3 +970,16 @@ def test_embedded_nul_is_not_a_float(value):
 
     result = to_numeric(ser, errors="coerce")
     tm.assert_series_equal(result, Series([np.nan]))
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (["1.5", 2j], [1.5 + 0j, 2j]),
+        ([True, 2j], [1 + 0j, 2j]),
+    ],
+)
+def test_complex_keeps_preceding_values(data, expected):
+    # GH#35051 entries seen before the first complex were left uninitialized
+    result = to_numeric(Series(data, dtype=object))
+    tm.assert_series_equal(result, Series(expected, dtype=np.complex128))

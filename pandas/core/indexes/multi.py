@@ -209,7 +209,9 @@ class MultiIndex(Index):
     Parameters
     ----------
     levels : sequence of arrays
-        The unique labels for each level.
+        The unique labels for each level. Uniqueness is determined by equality,
+        so values that compare equal (e.g. ``1``, ``1.0`` and ``True``) cannot
+        appear in the same level.
     codes : sequence of arrays
         Integers for each level designating which label at each location.
     sortorder : optional int
@@ -254,6 +256,12 @@ class MultiIndex(Index):
     get_locs
     get_loc_level
     drop
+
+    Raises
+    ------
+    ValueError
+        If ``verify_integrity`` is True and the levels are not unique or are
+        not consistent with the codes.
 
     See Also
     --------
@@ -426,8 +434,15 @@ class MultiIndex(Index):
             if len(level_codes) and level_codes.min() < -1:
                 raise ValueError(f"On level {i}, code value ({level_codes.min()}) < -1")
             if not level.is_unique:
+                # keep=False so both members of a collision are shown; that is
+                # what makes e.g. 1 and 1.0 in an object level legible as dupes
+                duplicates = level[level.duplicated(keep=False)]
+                extra = ""
+                if len(duplicates) > 10:
+                    extra = f", ... ({len(duplicates)} total)"
                 raise ValueError(
-                    f"Level values must be unique: {list(level)} on level {i}"
+                    "Level values must be unique. Duplicate values on "
+                    f"level {i}: {list(duplicates[:10])}{extra}"
                 )
         if self.sortorder is not None:
             if self.sortorder > _lexsort_depth(self.codes, self.nlevels):
@@ -622,7 +637,10 @@ class MultiIndex(Index):
         Parameters
         ----------
         iterables : list / sequence of iterables
-            Each iterable has unique labels for each level of the index.
+            Each iterable gives the labels for one level of the index. Labels
+            that compare equal (e.g. ``1``, ``1.0`` and ``True``) are collapsed
+            into a single label; the first occurrence determines the value
+            stored in the level.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level).
