@@ -4010,11 +4010,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
     @property
     def startingMonth(self) -> int:
         """
-        Return the month of the year from which quarters start.
+        Return the month of the year that anchors the quarters.
 
-        This value determines which month marks the beginning of a quarterly period.
-        For example, with startingMonth=1, quarters start in January, April, July,
-        and October.
+        For the ``*Begin`` offsets this is a month in which a quarter starts, so
+        ``startingMonth=1`` anchors on January 1, April 1, July 1 and October 1.
+        For the ``*End`` offsets it is a month in which a quarter *ends*, so
+        ``startingMonth=1`` anchors on January 31, April 30, July 31 and
+        October 31.
 
         See Also
         --------
@@ -4023,14 +4025,21 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BQuarterBegin().startingMonth
-        3
+        A ``*Begin`` offset starts its quarters in ``startingMonth``:
 
-        >>> pd.offsets.QuarterEnd().startingMonth
-        3
+        >>> pd.offsets.QuarterBegin(startingMonth=2).startingMonth
+        2
 
-        >>> pd.offsets.QuarterBegin(startingMonth=1).startingMonth
-        1
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.QuarterBegin(startingMonth=2)
+        Timestamp('2022-02-01 00:00:00')
+
+        An ``*End`` offset ends its quarters in ``startingMonth``:
+
+        >>> pd.offsets.QuarterEnd(startingMonth=2).startingMonth
+        2
+
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.QuarterEnd(startingMonth=2)
+        Timestamp('2022-02-28 00:00:00')
         """
         return self._startingMonth
 
@@ -4196,7 +4205,7 @@ cdef class BQuarterEnd(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters end.
 
     See Also
     --------
@@ -4237,7 +4246,7 @@ cdef class BQuarterBegin(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters start.
 
     See Also
     --------
@@ -4278,7 +4287,7 @@ cdef class QuarterEnd(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters end.
 
     See Also
     --------
@@ -4319,7 +4328,7 @@ cdef class QuarterBegin(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters start.
 
     See Also
     --------
@@ -4365,10 +4374,12 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     @property
     def startingMonth(self) -> int:
         """
-        Return the month of the year from which half-years start.
+        Return the month of the year that anchors the half-years.
 
-        This value determines which month marks the beginning of a half-year period.
-        For example, with startingMonth=1, half-years start in January and July.
+        For the ``*Begin`` offsets this is a month in which a half-year starts, so
+        ``startingMonth=1`` anchors on January 1 and July 1. For the ``*End``
+        offsets it is a month in which a half-year *ends*, so ``startingMonth=1``
+        anchors on January 31 and July 31.
 
         See Also
         --------
@@ -4377,14 +4388,21 @@ cdef class HalfYearOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BHalfYearBegin().startingMonth
-        1
+        A ``*Begin`` offset starts its half-years in ``startingMonth``:
 
-        >>> pd.offsets.BHalfYearEnd().startingMonth
-        6
+        >>> pd.offsets.HalfYearBegin(startingMonth=2).startingMonth
+        2
 
-        >>> pd.offsets.HalfYearBegin(startingMonth=3).startingMonth
-        3
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearBegin(startingMonth=2)
+        Timestamp('2022-02-01 00:00:00')
+
+        An ``*End`` offset ends its half-years in ``startingMonth``:
+
+        >>> pd.offsets.HalfYearEnd(startingMonth=2).startingMonth
+        2
+
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearEnd(startingMonth=2)
+        Timestamp('2022-02-28 00:00:00')
         """
         return self._startingMonth
 
@@ -4508,7 +4526,7 @@ cdef class BHalfYearEnd(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 6
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years end.
 
     See Also
     --------
@@ -4549,7 +4567,7 @@ cdef class BHalfYearBegin(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 1
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years start.
 
     See Also
     --------
@@ -4590,7 +4608,7 @@ cdef class HalfYearEnd(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 6
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years end.
 
     See Also
     --------
@@ -4623,7 +4641,7 @@ cdef class HalfYearBegin(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 1
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years start.
 
     See Also
     --------
