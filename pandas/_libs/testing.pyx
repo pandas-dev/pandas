@@ -24,7 +24,16 @@ from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
-    return hasattr(obj, "__iter__")
+    if not hasattr(obj, "__iter__"):
+        return False
+
+    if is_array(obj):
+        return True
+
+    # GH#45240 exclude zero-dimensional duck-arrays, effectively scalars, as
+    #  lib.c_is_list_like does. pint's scalar Quantity is one of these: it
+    #  defines __iter__ and __len__ that delegate to its scalar magnitude.
+    return not (hasattr(obj, "ndim") and obj.ndim == 0)
 
 
 cdef bint has_length(obj):
