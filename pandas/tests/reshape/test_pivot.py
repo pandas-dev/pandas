@@ -3202,7 +3202,6 @@ class TestPivot:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_pivot_with_pyarrow_categorical(self):
         # GH#53051
         pa = pytest.importorskip("pyarrow")

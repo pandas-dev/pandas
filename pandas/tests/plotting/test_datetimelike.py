@@ -51,7 +51,6 @@ import pandas.plotting._matplotlib.converter as conv
 
 
 class TestTSPlot:
-    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture

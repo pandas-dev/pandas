@@ -564,7 +564,6 @@ class TestArrowArray(base.ExtensionTests):
             }[arr.dtype.kind]
         return cmp_dtype
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)

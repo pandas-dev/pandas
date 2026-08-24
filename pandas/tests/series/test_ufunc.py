@@ -172,7 +172,6 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("shuffle", [True, False])
-@pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
 def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to

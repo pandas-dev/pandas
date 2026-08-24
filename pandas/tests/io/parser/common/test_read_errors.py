@@ -265,7 +265,6 @@ def test_null_byte_char(all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-@pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(all_parsers, temp_file):
     # GH 39024
     parser = all_parsers

@@ -377,7 +377,6 @@ class TestDataFramePlots:
             assert subplot.get_xlabel() == xlabel
             assert subplot.get_ylabel() == ylabel
 
-    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_no_xlabel_ylabel(self, vert, request):
         request.applymarker(
             pytest.mark.xfail(
