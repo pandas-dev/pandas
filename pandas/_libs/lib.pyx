@@ -2758,7 +2758,9 @@ def maybe_convert_numeric(
                     seen.float_ = True
                     if not distinguish_nan_and_na:
                         seen.null_ = True  # Legacy: treat "nan" string as logical pd.NA
-                    floats[i] = complexes[i] = fval
+                    floats[i] = fval
+                    if have_complexes:
+                        complexes[i] = fval
                     continue
             try:
                 floatify(val, &fval, &maybe_int)
