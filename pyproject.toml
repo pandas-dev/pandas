@@ -165,7 +165,6 @@ dist = ['--include-subprojects']
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
 enable = ["pyodide-eol"]
 build-verbosity = 1
-build-frontend = "pip"
 config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
@@ -195,11 +194,6 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-# Pyodide repairs wheels on its own, using auditwheel-emscripten
-repair-wheel-command = ""
-# https://github.com/pyodide/pyodide/issues/5805
-build-verbosity = 1
-build-frontend = "build"
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
 # nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
@@ -479,9 +473,8 @@ filterwarnings = [
   "ignore:Plugin file tracers",
   # Raised by coverage in freethreading
   "ignore:Couldn't import C tracer",
-  # Remove 2 below when pyarrow version > ??
-  "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
-  "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  # NumPy 2.5 DeprecationWarning in fastparquet
+  "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
 ]
 junit_family = "xunit2"
 

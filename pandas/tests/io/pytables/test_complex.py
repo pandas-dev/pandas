@@ -76,9 +76,6 @@ def test_complex_mixed_fixed(temp_h5_path):
     tm.assert_frame_equal(df, reread)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
-)
 def test_complex_mixed_table_store_select(temp_hdfstore):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
@@ -102,9 +99,6 @@ def test_complex_mixed_table_store_select(temp_hdfstore):
     tm.assert_frame_equal(df.loc[df.A > 2], result)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
-)
 def test_complex_mixed_table_store_to_path(temp_h5_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64

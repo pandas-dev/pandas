@@ -653,7 +653,33 @@ NESTED_CASES = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize("a,b", NESTED_CASES)
 def test_assert_almost_equal_array_nested(a, b):
     _assert_almost_equal_both(a, b)
+
+
+def test_assert_almost_equal_zero_dim_duck_array():
+    # GH#45240 a scalar that defines __iter__/__len__ delegating to a scalar
+    #  payload (as pint's Quantity does) is compared as a scalar
+    class Quantity:
+        # mimics pint's Quantity: __iter__/__len__ delegate to the magnitude,
+        #  and ndim reports 0 when that magnitude is a scalar
+        ndim = 0
+
+        def __init__(self, magnitude):
+            self.magnitude = magnitude
+
+        def __iter__(self):
+            return iter(self.magnitude)
+
+        def __len__(self):
+            return len(self.magnitude)
+
+        def __eq__(self, other):
+            return self.magnitude == other.magnitude
+
+    left = np.array([Quantity(1), Quantity(2)], dtype=object)
+    right = np.array([Quantity(1), Quantity(3)], dtype=object)
+
+    _assert_almost_equal_both(left, left.copy())
+    _assert_not_almost_equal_both(left, right)

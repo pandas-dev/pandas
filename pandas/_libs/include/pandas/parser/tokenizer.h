@@ -168,6 +168,17 @@ typedef struct parser_t {
   // no special treatment: no BOM strip, no exemption from field-count checks.
   int preloaded;
 
+  // Boolean: 1 once the header (and the first data row, which fixes the table
+  // width) has been tokenized.  The header-row exemptions in end_line key off
+  // buffer slot numbers, which stop identifying header rows as soon as
+  // parser_consume_rows shifts data rows down into those slots.
+  int header_done;
+
+  // Field count of the last line parser_consume_rows dropped, or -1 before the
+  // first chunk boundary.  end_line normally reads the preceding line's count
+  // straight out of line_fields, which the boundary throws away.
+  int64_t prev_line_fields;
+
   // Message storage, kept last so every other field keeps its offset.
   // error_msg points into error_buf (or is NULL) and is never freed.  Warnings
   // get their own buffer so formatting one can never rewrite a pending error
