@@ -981,6 +981,8 @@ def test_string_nan_and_specific_na():
         tm.assert_series_equal(res, expected)
         assert np.isnan(res.iloc[1])
         assert res.iloc[2] is pd.NA
+
+
 @pytest.mark.parametrize(
     "data, expected",
     [
