@@ -1019,3 +1019,16 @@ def test_select_dtypes_interval_family_string_and_bare_instance():
     expected = df[["int_right", "float_left"]]
     tm.assert_frame_equal(df.select_dtypes(include="interval"), expected)
     tm.assert_frame_equal(df.select_dtypes(include=pd.IntervalDtype()), expected)
+
+
+@pytest.mark.parametrize("kwarg", ["include", "exclude"])
+def test_select_dtypes_none_in_listlike_deprecated(kwarg):
+    # GH#28943: None inside the list-like reaches np.dtype(None) and selects
+    # float64 columns, unlike a bare include=None/exclude=None
+    df = DataFrame({"a": [1, 2], "b": [True, False], "c": [1.0, 2.0]})
+    msg = "Passing None in the include/exclude list to select_dtypes"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(**{kwarg: [None]})
+
+    expected = df[["c"]] if kwarg == "include" else df[["a", "b"]]
+    tm.assert_frame_equal(result, expected)

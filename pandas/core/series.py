@@ -536,13 +536,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
             if len(index) or dtype is not None:
-                # error: Incompatible types in assignment (expression has type
-                # "Scalar", variable has type "list[Any]")
-                values = na_value_for_dtype(  # type: ignore[assignment]
-                    pandas_dtype(dtype), compat=False
-                )
-            else:
-                values = []
+                na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                # GH#33900, GH#41377 na_value may itself be dict-like (e.g. for a
+                #  nested ExtensionDtype), so broadcast it here rather than passing
+                #  it back through the Series constructor, which would route it to
+                #  _init_dict again and recurse.
+                arr = construct_1d_arraylike_from_scalar(na_value, len(index), dtype)
+                return SingleBlockManager.from_array(arr, index), index
+            values = []
             keys = index
         else:
             keys, values = default_index(0), []
