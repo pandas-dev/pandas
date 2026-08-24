@@ -9,10 +9,9 @@ env:
   DOCS_URL: https://pandas.pydata.org/docs/dev/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle
   TAKE_BLOCKED: >-
     Thanks for your interest, @{user}! This issue is still labeled
-    `{blocking}`, which means a maintainer needs to review it before work
-    starts — so it isn't open to claim just yet. Please hold off on a PR
-    until that label is removed. See the [contributing guide]({docs}) for
-    more.
+    `{blocking}`, which means it needs another look before work starts — so
+    it isn't open to claim just yet. Please hold off on a PR until that
+    label is removed. See the [contributing guide]({docs}) for more.
   TAKE_ALREADY_YOURS: >-
     You already have this one, @{user} — it's assigned to you and you're all
     set to work on it.
@@ -66,7 +65,8 @@ jobs:
             const user = context.payload.comment.user.login;
             const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
             const assignees = issue.assignees.map(assignee => assignee.login);
-            const blocking = ['Needs Triage', 'Needs Discussion'].find(label => labels.includes(label));
+            const blocking = ['Needs Triage', 'Needs Discussion', 'Needs Info', 'Closing Candidate']
+              .find(label => labels.includes(label));
             const comment = body => github.rest.issues.createComment({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body,
             });
