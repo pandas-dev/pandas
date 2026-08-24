@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 
 from pandas.tseries.offsets import (
@@ -117,7 +119,16 @@ def offset_cases(request):
     [
         datetime(1900, 1, 1),
         datetime(1900, 1, 1, tzinfo=UTC),
-        datetime(1900, 1, 1, tzinfo=ZoneInfo("US/Eastern")),
+        pytest.param(
+            datetime(1900, 1, 1, tzinfo=ZoneInfo("US/Eastern")),
+            marks=pytest.mark.skipif(
+                not IS64,
+                reason=(
+                    "stdlib datetime.fromtimestamp fails on 32-bit platforms with "
+                    "overflow"
+                ),
+            ),
+        ),
         datetime(1900, 1, 1, tzinfo=ZoneInfo("Africa/Kinshasa")),
     ],
 )
