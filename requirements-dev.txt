@@ -28,7 +28,7 @@ jinja2>=3.1.6
 lxml>=6.0.0
 matplotlib>=3.10.5
 numba>=0.61.2
-numexpr>=2.11.0
+numexpr>=2.11.0,!=2.14.1
 openpyxl>=3.1.5
 odfpy>=1.4.1
 psycopg2-binary>=2.9.10
