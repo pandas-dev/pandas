@@ -2486,7 +2486,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         keep: DropKeep = "first",
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = False,
     ) -> Series | None:
         """
@@ -2507,6 +2507,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
 
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
@@ -2585,6 +2592,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         d     hippo
         Name: animal, dtype: str
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.drop_duplicates is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
 
@@ -6898,7 +6918,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         how: AnyAll | None = None,
         ignore_index: bool = False,
     ) -> Series | None:
@@ -6914,6 +6934,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused. Parameter needed for compatibility with DataFrame.
         inplace : bool, default False
             If True, do operation inplace and return None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         how : str, optional
             Not in use. Kept for compatibility.
         ignore_index : bool, default ``False``
@@ -6968,6 +6996,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    I stay
         dtype: object
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.dropna is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         # Validate the axis parameter
