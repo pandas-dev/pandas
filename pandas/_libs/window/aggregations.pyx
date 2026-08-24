@@ -1,6 +1,9 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport fabs
+from libc.math cimport (
+    fabs,
+    isinf,
+)
 from libcpp.cmath cimport signbit
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
@@ -197,6 +200,149 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 
     return output
 
+
+# ----------------------------------------------------------------------
+# Rolling product
+
+
+cdef float64_t calc_prod(int64_t minp, int64_t nobs, int64_t zero_count,
+                         int64_t neg_count, float64_t prod_x) noexcept nogil:
+    cdef:
+        float64_t result
+
+    if nobs == 0 == minp:
+        result = 1.0
+    elif nobs >= minp:
+        if zero_count > 0:
+            if neg_count % 2:
+                result = -0.0
+            else:
+                result = 0.0
+        else:
+            result = prod_x
+    else:
+        result = NaN
+
+    return result
+
+
+cdef void add_prod(
+    float64_t val,
+    int64_t *nobs,
+    int64_t *zero_count,
+    int64_t *neg_count,
+    float64_t *prod_x,
+    bint *numerically_unstable,
+) noexcept nogil:
+    # Not NaN
+    if val == val:
+        nobs[0] += 1
+
+        if signbit(val):
+            neg_count[0] += 1
+
+        if val == 0:
+            zero_count[0] += 1
+        else:
+            prod_x[0] *= val
+            if prod_x[0] == 0 or isinf(prod_x[0]):
+                numerically_unstable[0] = True
+
+
+cdef void remove_prod(
+    float64_t val,
+    int64_t *nobs,
+    int64_t *zero_count,
+    int64_t *neg_count,
+    float64_t *prod_x,
+    bint *numerically_unstable,
+) noexcept nogil:
+    # Not NaN
+    if val == val:
+        nobs[0] -= 1
+
+        if signbit(val):
+            neg_count[0] -= 1
+
+        if val == 0:
+            zero_count[0] -= 1
+        else:
+            if prod_x[0] == 0 or isinf(prod_x[0]):
+                numerically_unstable[0] = True
+            prod_x[0] /= val
+            if prod_x[0] == 0 or isinf(prod_x[0]):
+                numerically_unstable[0] = True
+
+
+def roll_prod(const float64_t[:] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    cdef:
+        Py_ssize_t i, j
+        float64_t prod_x
+        int64_t s, e, zero_count, neg_count
+        int64_t nobs = 0, N = len(start)
+        ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable = False
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    output = np.empty(N, dtype=np.float64)
+
+    with nogil:
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
+
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
+
+            if not requires_recompute:
+                for j in range(start[i - 1], s):
+                    remove_prod(
+                        values[j],
+                        &nobs,
+                        &zero_count,
+                        &neg_count,
+                        &prod_x,
+                        &numerically_unstable,
+                    )
+
+                for j in range(end[i - 1], e):
+                    add_prod(
+                        values[j],
+                        &nobs,
+                        &zero_count,
+                        &neg_count,
+                        &prod_x,
+                        &numerically_unstable,
+                    )
+
+            if requires_recompute or numerically_unstable:
+                prod_x = 1.0
+                zero_count = 0
+                neg_count = 0
+                nobs = 0
+
+                for j in range(s, e):
+                    add_prod(
+                        values[j],
+                        &nobs,
+                        &zero_count,
+                        &neg_count,
+                        &prod_x,
+                        &numerically_unstable,
+                    )
+
+                numerically_unstable = False
+
+            output[i] = calc_prod(minp, nobs, zero_count, neg_count, prod_x)
+
+    return output
 
 # ----------------------------------------------------------------------
 # Rolling mean
