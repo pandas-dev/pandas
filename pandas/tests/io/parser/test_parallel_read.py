@@ -554,6 +554,19 @@ class TestReadCsvParallel:
         expected = self._serial_read(path, header=None)
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
+    def test_short_unterminated_last_row(self, tmp_path):
+        # GH#66657 - the last chunk's buffer ends mid-file on a short,
+        # un-terminated row. end_line runs at EOF with datalen == 0, so the
+        # pending-input reservation must not underflow the byte subtraction.
+        path = tmp_path / "data.csv"
+        n = 5_000
+        lines = ["a,b,c\n"] + [f"{i},{i},{i}\n" for i in range(n)] + ["9"]
+        path.write_text("".join(lines), encoding="utf-8")
+        kwds = self._base_kwds(path)
+        result = self._parallel_read(path, kwds)
+        expected = self._serial_read(path)
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
     def test_skiprows_int(self, tmp_path):
         path = tmp_path / "data.csv"
         n = 5_000

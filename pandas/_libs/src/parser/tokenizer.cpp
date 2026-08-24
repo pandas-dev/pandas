@@ -475,18 +475,36 @@ static int end_line(parser_t *self) {
   } else {
     // missing trailing delimiters
     if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
-      // The synthetic terminators written for the missing fields take stream
-      // space the bulk-scan copies in tokenize_bytes still need for the
-      // unconsumed input: those copies write input 1:1 with no per-copy
-      // capacity check and rely on the up-front reservation. Reserve for the
-      // terminators AND the rest of the chunk, so a run of short rows before a
-      // wide field cannot leave the stream too small for the next bulk copy.
-      if (make_stream_space(self, (size_t)(ex_fields - fields) +
-                                      (self->datalen - self->datapos)) < 0) {
+      // Reserve terminators for the missing fields (this also sizes the word
+      // and line vectors for them).
+      if (make_stream_space(self, ex_fields - fields) < 0) {
         const size_t bufsize = 100;
         self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize, "out of memory");
         return -1;
+      }
+
+      // The synthetic terminators consume stream space the bulk-scan copies in
+      // tokenize_bytes still need for the unconsumed input: those copies write
+      // input 1:1 with no per-copy capacity check and rely on the up-front
+      // reservation. Top the character stream back up for the terminators plus
+      // the rest of the chunk, so a run of short rows before a wide field
+      // cannot leave the stream too small for the next bulk copy. Only the
+      // character stream needs this; the padding adds no input tokens. datalen
+      // is 0 when end_line runs at EOF (parser_handle_eof), so the subtraction
+      // can go negative -- clamp it before widening to size_t.
+      const int64_t pending = self->datalen - self->datapos;
+      if (pending > 0) {
+        int status;
+        self->stream = (char *)grow_buffer(
+            (void *)self->stream, self->stream_len, &self->stream_cap,
+            (ex_fields - fields) + pending, 1, &status);
+        if (status != 0) {
+          const size_t bufsize = 100;
+          self->error_msg = (char *)malloc(bufsize);
+          snprintf(self->error_msg, bufsize, "out of memory");
+          return -1;
+        }
       }
 
       while (fields < ex_fields) {
