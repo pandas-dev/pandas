@@ -383,21 +383,23 @@ def dti_local_on_sentinel():
 
 
 @pytest.mark.parametrize(
-    "func",
+    "func, msg",
     [
-        lambda dti: dti.tz_localize(None),
-        lambda dti: dti.year,
-        lambda dti: dti.floor("D"),
-        lambda dti: dti.to_period("ns"),
+        (lambda dti: dti.tz_localize(None), "underflows past"),
+        (lambda dti: dti.year, "underflows past"),
+        (lambda dti: dti.floor("D"), "underflows past"),
+        # to_period rejects the wall time as out of bounds for the frequency
+        #  before it gets as far as an ordinal
+        (lambda dti: dti.to_period("ns"), "Out of bounds nanosecond timestamp"),
     ],
     ids=["tz_localize", "year", "floor", "to_period_ns"],
 )
 @pytest.mark.filterwarnings("ignore:Converting to PeriodArray:UserWarning")
-def test_dti_local_on_sentinel_raises_where_stored(dti_local_on_sentinel, func):
+def test_dti_local_on_sentinel_raises_where_stored(dti_local_on_sentinel, func, msg):
     # GH#66550 the wall time is fine to render, but these consumers store it in
     #  an i8 buffer where the sentinel reads back as NaT -- tz_localize(None) and
     #  to_period("ns") silently returned NaT, and the field accessors returned -1.
-    with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
         func(dti_local_on_sentinel)
 
 

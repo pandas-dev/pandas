@@ -7,6 +7,7 @@ import pytest
 from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     DatetimeIndex,
@@ -209,6 +210,14 @@ class TestToPeriod:
         assert 2 == len(period)
         assert period[0] == Period("2007-01-01 10:11:12.123Z", "ms")
         assert period[1] == Period("2007-01-01 10:11:13.789Z", "ms")
+
+    def test_to_period_out_of_bounds_ordinal(self):
+        # GH#64158 the nanosecond ordinal overflows int64 for these dates; the
+        #  overflow used to be swallowed, giving 1970 epoch periods
+        dti = date_range("2300-01-01", periods=2, freq="D", unit="s")
+        msg = "Out of bounds nanosecond timestamp: 2300-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            dti.to_period("ns")
 
     def test_to_period_microsecond(self):
         index = DatetimeIndex(

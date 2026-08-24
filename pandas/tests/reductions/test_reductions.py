@@ -55,9 +55,6 @@ def get_objs():
 
 
 class TestReductions:
-    @pytest.mark.filterwarnings(
-        "ignore:Period with BDay freq is deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize("obj", get_objs())
     def test_ops(self, opname, obj):

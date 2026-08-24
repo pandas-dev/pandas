@@ -818,7 +818,6 @@ class TestAlignment:
         res = pd.eval(s, engine=engine, parser=parser)
         tm.assert_frame_equal(res, df * ~2)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
     @pytest.mark.parametrize("lr_idx_type", lhs_index_types)
     @pytest.mark.parametrize("rr_idx_type", index_types)
     @pytest.mark.parametrize("c_idx_type", index_types)
@@ -894,7 +893,6 @@ class TestAlignment:
             res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2 + df3)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
@@ -926,7 +924,6 @@ class TestAlignment:
         "r_idx_type, c_idx_type",
         [*list(product(["i", "s"], ["i", "s"])), ("dt", "dt")],
     )
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
         self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
@@ -980,7 +977,6 @@ class TestAlignment:
             if engine == "numexpr":
                 tm.assert_frame_equal(a, b)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
     @pytest.mark.parametrize("r1", lhs_index_types)
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)

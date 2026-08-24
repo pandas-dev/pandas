@@ -356,7 +356,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("val", [np.inf, -np.inf])
     def test_to_timedelta_object_inf(self, val):
-        # GH#63275 non-finite floats in an object array used to raise a bare
+        # GH#66247 non-finite floats in an object array used to raise a bare
         #  OverflowError from int(item); coerce should give NaT and the
         #  default should raise OutOfBoundsTimedelta.
         arr = np.array([1.0, val, 3.0], dtype=object)
@@ -633,3 +633,34 @@ def test_from_timedelta_arrow_dtype(unit):
     expected = Series([timedelta(1)], dtype=f"duration[{unit}][pyarrow]")
     result = to_timedelta(expected)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, unit",
+    [
+        ([1.5, 1e30], "s"),
+        ([1.5, 106751.99616730065], "D"),
+        ([2.0**63, 1.0], "ns"),
+        ([1.0, np.inf], None),
+        ([1.0, -np.inf], None),
+    ],
+)
+@pytest.mark.parametrize(
+    "box", [np.array, Series, lambda x: pd.array(x, dtype="Float64")]
+)
+def test_to_timedelta_float_array_coerce_out_of_bounds(values, unit, box):
+    # GH#66823 the float branch raised unconditionally, so errors="coerce" gave
+    #  OutOfBoundsTimedelta instead of NaT for float ndarray/Series/masked input,
+    #  diverging from the equivalent list (object-dtype) input.
+    kwargs = {} if unit is None else {"unit": unit}
+    expected = to_timedelta(values, errors="coerce", **kwargs)
+
+    result = to_timedelta(box(values), errors="coerce", **kwargs)
+    if isinstance(result, Series):
+        tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+    else:
+        tm.assert_index_equal(result, expected)
+
+    # errors="raise" is unaffected
+    with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input"):
+        to_timedelta(box(values), **kwargs)

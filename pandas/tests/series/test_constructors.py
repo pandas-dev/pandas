@@ -1309,9 +1309,11 @@ class TestSeriesConstructors:
         assert result.dtype == "Period[D]"
 
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
+        # GH#64158 the integers are read as calendar years, so they have to be
+        #  years Period(int, freq) accepts
         msg = "Passing integer data"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+            series = Series([1000, 2000, 3000, pd._libs.iNaT], dtype="period[D]")
 
         val = series[3]
         assert isna(val)
@@ -1463,7 +1465,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
-    @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self, using_infer_string):
         data = {"a": 0, "b": 1, "c": 2, "d": 3}
 
@@ -1996,9 +1997,6 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:elementwise comparison failed:DeprecationWarning"
-    )
     @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
     def test_constructor_mismatched_null_nullable_dtype(
         self, func, any_numeric_ea_dtype
