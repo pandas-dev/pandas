@@ -553,7 +553,6 @@ def test_table_values_dtypes_roundtrip(temp_hdfstore, using_infer_string):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(temp_h5_path):
     s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)

@@ -536,13 +536,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
             if len(index) or dtype is not None:
-                # error: Incompatible types in assignment (expression has type
-                # "Scalar", variable has type "list[Any]")
-                values = na_value_for_dtype(  # type: ignore[assignment]
-                    pandas_dtype(dtype), compat=False
-                )
-            else:
-                values = []
+                na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                # GH#33900, GH#41377 na_value may itself be dict-like (e.g. for a
+                #  nested ExtensionDtype), so broadcast it here rather than passing
+                #  it back through the Series constructor, which would route it to
+                #  _init_dict again and recurse.
+                arr = construct_1d_arraylike_from_scalar(na_value, len(index), dtype)
+                return SingleBlockManager.from_array(arr, index), index
+            values = []
             keys = index
         else:
             keys, values = default_index(0), []
@@ -4247,9 +4248,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. 'mergesort' and 'stable' are the only stable algorithms. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
+            information. The sort order is deterministic for a given input.
+            'mergesort' and 'stable' are the only stable algorithms, which preserve
+            the relative order of equal keys. This option is ignored when sorting on a
+            MultiIndex or when a `level` is specified.
         na_position : {'first', 'last'}, default 'last'
             If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
             Not implemented for MultiIndex.
@@ -10205,8 +10207,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         --------
-        core.window.expanding.Expanding.prod : Similar functionality
-            but ignores ``NaN`` values.
         Series.prod : Return the product over Series.
         Series.cummax : Return cumulative maximum.
         Series.cummin : Return cumulative minimum.
