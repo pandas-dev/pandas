@@ -553,8 +553,14 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         raise TypeError(f"Could not convert {non_numeric!r} to numeric")
 
     try:
-        return values.astype(np.float64)
-    except (TypeError, ValueError):
+        with warnings.catch_warnings():
+            # numpy *scalars* have __float__ and so cast to float64 while
+            #  discarding the imaginary part; only Python complex refuses
+            #  outright.  Treat the warning as a failed cast either way, so a
+            #  complex payload falls through to complex128 below (GH#34671).
+            warnings.simplefilter("error", np.exceptions.ComplexWarning)
+            return values.astype(np.float64)
+    except (TypeError, ValueError, np.exceptions.ComplexWarning):
         pass
 
     mask = isna(values)
@@ -564,8 +570,10 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         filled = values.copy()
         filled[mask] = np.nan
         try:
-            return filled.astype(np.float64)
-        except (TypeError, ValueError):
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", np.exceptions.ComplexWarning)
+                return filled.astype(np.float64)
+        except (TypeError, ValueError, np.exceptions.ComplexWarning):
             pass
 
     try:
@@ -577,9 +585,12 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         pass
 
     if mask.any():
-        # numpy refuses NaT/pd.NA outright, so hand them the complex NaN it
-        #  would have produced for None
-        filled[mask] = complex(np.nan, np.nan)
+        # numpy maps None to nan+nanj but refuses NaT/pd.NA outright.  Swap in
+        #  None for only the NAs it refuses, so that every other one still maps
+        #  to what it would have mapped to on its own, e.g. a float or Decimal
+        #  NaN to nan+0j.
+        filled = values.copy()
+        filled[mask] = [val if _complex_castable(val) else None for val in values[mask]]
 
     try:
         return filled.astype(np.complex128)
@@ -590,14 +601,26 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         ) from err
 
 
+def _complex_castable(val: Any) -> bool:
+    """
+    Whether numpy's object->complex128 cast can handle `val` on its own.
+    """
+    try:
+        complex(val)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 def _first_unconvertible(values: np.ndarray) -> object:
     """
     Return the element responsible for a failed `_ensure_numeric` conversion.
     """
     for val in values.ravel():
-        try:
-            complex(val)
-        except (TypeError, ValueError):
+        if val is None:
+            # stands in for an NA, so never the reason the cast failed
+            continue
+        if not _complex_castable(val):
             return val
     # numpy balked at something complex() accepts; report the values as a whole
     return values

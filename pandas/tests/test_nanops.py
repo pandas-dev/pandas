@@ -934,6 +934,18 @@ def test_bn_not_ok_dtype(fixture, request, disable_bottleneck):
     assert not nanops._bn_ok_dtype(obj.dtype, "test")
 
 
+@pytest.mark.parametrize("scalar", [complex, np.complex64, np.complex128])
+@pytest.mark.parametrize("func", ["nanmean", "nanmedian", "nanvar", "nanstd"])
+def test_object_complex_matches_native(func, scalar):
+    # an object array of complex reduces exactly as the complex128 array it
+    #  represents, whichever flavour of complex scalar it holds
+    vals = [scalar(1 + 2j), scalar(3 - 1j), scalar(-2j)]
+    objarr = np.empty(3, dtype=object)
+    objarr[:] = vals
+    expected = getattr(nanops, func)(np.array(vals, dtype=np.complex128))
+    assert getattr(nanops, func)(objarr) == expected
+
+
 def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     # the imaginary part was silently discarded on builds without bottleneck
     values = np.array([1 + 2j, 3 + 4j, 5j, 1j])
@@ -955,6 +967,10 @@ def test_ensure_numeric_passthrough():
         ([Decimal(1), Decimal(2)], np.array([1.0, 2.0])),
         ([True, False], np.array([1.0, 0.0])),
         ([1 + 2j, 3.0], np.array([1 + 2j, 3 + 0j])),
+        # numpy complex scalars have __float__, unlike Python complex, so a
+        #  float64 attempt would silently discard the imaginary part
+        ([np.complex64(1 - 1j), 3.0], np.array([1 - 1j, 3 + 0j])),
+        ([np.complex128(1 - 1j), 3.0], np.array([1 - 1j, 3 + 0j])),
     ],
 )
 def test_ensure_numeric_object(values, expected):
@@ -972,6 +988,8 @@ def test_ensure_numeric_object(values, expected):
         ([np.datetime64("2020-01-01"), np.datetime64("2020-01-02")], "datetime64"),
         ([np.timedelta64(1, "D")], "timedelta64"),
         ([Timestamp("2020-01-01")], "Timestamp"),
+        # the NA is not the culprit; the message names the element that is
+        ([1 + 2j, pd.NA, Timestamp("2020-01-01")], "Timestamp"),
         ([[1, 2], [3, 4]], r"\[1, 2\]"),
         ([{}, {}], r"\{\}"),
     ],
@@ -993,6 +1011,26 @@ def test_ensure_numeric_raises(values, match):
         # NaT/pd.NA numpy refuses outright, so they get the same NaN as None
         ([1 + 2j, pd.NaT], np.array([1 + 2j, complex(np.nan, np.nan)])),
         ([1 + 2j, pd.NA], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        # each NA maps the same way whichever other NAs share the array
+        (
+            [1 + 2j, None, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, pd.NA, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, pd.NaT, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        # a Decimal NaN is one numpy can cast itself, so it keeps nan+0j even
+        #  when it shares the array with an NA that numpy refuses
+        ([1 + 2j, Decimal("NaN")], np.array([1 + 2j, complex(np.nan, 0)])),
+        (
+            [1 + 2j, pd.NA, Decimal("NaN")],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
     ],
 )
 def test_ensure_numeric_complex_na(values, expected):
