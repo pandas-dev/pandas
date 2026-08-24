@@ -625,7 +625,6 @@ class TestToDatetime:
         # GH#23055
         assert to_datetime(None) is NaT
 
-    @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
         # TODO: Timestamp raises ValueError("could not convert string to Timestamp")
@@ -2624,9 +2623,9 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("errors", ["raise", "coerce"])
-    def test_dataframe_infinite_float_time_field(self, errors):
-        # inf hour goes through to_timedelta, which raises under both modes
+    def test_dataframe_infinite_float_time_field(self):
+        # an inf hour goes through to_timedelta, which raises under errors="raise"
+        #  and coerces to NaT under errors="coerce" (GH#66823)
         df = DataFrame(
             {
                 "year": [2000.0, 2000.0],
@@ -2638,7 +2637,12 @@ class TestToDatetimeDataFrame:
         msg = r"cannot assemble the datetimes \[hour\]: cannot convert input inf"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(None):
-                to_datetime(df, errors=errors)
+                to_datetime(df)
+
+        with tm.assert_produces_warning(None):
+            result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["bool", "boolean"])
     def test_dataframe_bool_column(self, dtype):
@@ -4349,7 +4353,6 @@ dtstr = "2020-01-01 00:00+00:00"
 ts = Timestamp(dtstr)
 
 
-@pytest.mark.filterwarnings("ignore:Could not infer format:UserWarning")
 @pytest.mark.parametrize(
     "aware_val",
     [dtstr, Timestamp(dtstr)],

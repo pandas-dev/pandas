@@ -1118,9 +1118,6 @@ class TestDataFrameConstructors:
         frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2])
         assert np.all(~np.asarray(frame == frame))
 
-    @pytest.mark.filterwarnings(
-        "ignore:elementwise comparison failed:DeprecationWarning"
-    )
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
         mat = ma.masked_all((2, 3), dtype=int)
@@ -2573,9 +2570,6 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_constructor_series_nonexact_categoricalindex(self):
         # GH 42424
         ser = Series(range(100))

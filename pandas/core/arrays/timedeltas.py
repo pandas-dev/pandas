@@ -1309,11 +1309,17 @@ def sequence_to_td64ns(
 
         data = data.astype(np.float64, copy=False)
         try:
-            data = cast_from_unit_vectorized(data, unit or "ns")
+            converted = cast_from_unit_vectorized(data, unit or "ns")
         except OutOfBoundsDatetime as err:
-            raise OutOfBoundsTimedelta(*err.args) from err
-        data[mask] = iNaT
-        data = data.view("m8[ns]")
+            if errors == "raise":
+                raise OutOfBoundsTimedelta(*err.args) from err
+            # GH#66823 fall back to the element-wise path, which honors
+            #  errors="coerce", like the integer branch above does.
+            data = np.where(mask, np.nan, data)
+            data = _objects_to_td64ns(data.astype(object), unit=unit, errors=errors)
+        else:
+            converted[mask] = iNaT
+            data = converted.view("m8[ns]")
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):

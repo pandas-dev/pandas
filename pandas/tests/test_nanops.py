@@ -496,7 +496,6 @@ class TestnanopsDataFrame:
             nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanmedian(self, skipna):
         self.check_funs(
             nanops.nanmedian,
@@ -547,7 +546,6 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanmin, np.min), (nanops.nanmax, np.max)]
     )
@@ -566,12 +564,10 @@ class TestnanopsDataFrame:
             res = -1
         return res
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmax(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmax)
         self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmin(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmin)
         self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)

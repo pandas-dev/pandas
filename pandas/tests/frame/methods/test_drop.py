@@ -573,7 +573,6 @@ class TestDataFrameDrop:
         expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_inplace_depr(self):
         # GH 63207
         df = DataFrame(

@@ -2876,9 +2876,20 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
-            if not can_hold_element(self._values, value) and not is_valid_na_for_dtype(
-                value, self.dtype
-            ):
+            values = self._values
+            validate = getattr(values, "_validate_setitem_value", None)
+            if validate is not None and not isinstance(self.dtype, np.dtype):
+                # GH#25288 can_hold_element is permissive for most ExtensionArrays;
+                #  the array's own setitem validation is authoritative.
+                try:
+                    validate(value)
+                    can_hold = True
+                except (ValueError, TypeError):
+                    can_hold = False
+            else:
+                can_hold = can_hold_element(values, value)
+
+            if not can_hold and not is_valid_na_for_dtype(value, self.dtype):
                 # GH#45153 fillna with incompatible value requiring any
                 #  dtype casting is deprecated.
                 warnings.warn(
@@ -4279,7 +4290,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         form: Literal["slice", "positional"],
         key: object,
-        reraise: lib.NoDefault | None | Exception = lib.no_default,
+        reraise: lib.NoDefault | Exception | None = lib.no_default,
     ) -> None:
         """
         Raise consistent invalid indexer message.
@@ -8199,7 +8210,6 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     Parameters
     ----------
     sequence : 1D sequence
-    names : sequence of str
 
     Returns
     -------

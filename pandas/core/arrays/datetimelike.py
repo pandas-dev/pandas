@@ -1025,7 +1025,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _get_i8_values_and_mask(
         self, other
-    ) -> tuple[int | npt.NDArray[np.int64], None | npt.NDArray[np.bool_]]:
+    ) -> tuple[int | npt.NDArray[np.int64], npt.NDArray[np.bool_] | None]:
         """
         Get the int64 values and b_mask to pass to add_overflowsafe.
         """
