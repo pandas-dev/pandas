@@ -186,3 +186,8 @@ As contributors and maintainers to this project, you are expected to abide by pa
 <hr>
 
 [Go to Top](#table-of-contents)
+
+## Student Contribution
+
+This repository was explored as part of an open-source contribution
+practical to understand GitHub fork, branch and pull request workflows.
