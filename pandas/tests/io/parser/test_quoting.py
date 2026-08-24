@@ -14,11 +14,6 @@ from pandas.errors import ParserError
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
-
 if PY314:
     # TODO: write a regex that works with all new possitibilities here
     MSG1 = ""
