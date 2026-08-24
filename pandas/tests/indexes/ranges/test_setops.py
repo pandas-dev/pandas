@@ -3,11 +3,6 @@ from datetime import (
     timedelta,
 )
 
-from hypothesis import (
-    assume,
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -459,22 +454,24 @@ def assert_range_or_not_is_rangelike(index):
         assert not (diff == diff[0]).all()
 
 
-@pytest.mark.slow
-@given(
-    st.integers(-20, 20),
-    st.integers(-20, 20),
-    st.integers(-20, 20),
-    st.integers(-20, 20),
-    st.integers(-20, 20),
-    st.integers(-20, 20),
-)
+RANGE_SPECS = [
+    (0, 10, 1),
+    (10, 0, -1),
+    (-20, 20, 5),
+    (20, -20, -5),
+    (1, 1, 1),
+    (-5, 5, 2),
+    (0, 20, 3),
+    (5, -5, -2),
+]
+
+
+@pytest.mark.parametrize("start1,stop1,step1", RANGE_SPECS)
+@pytest.mark.parametrize("start2,stop2,step2", RANGE_SPECS)
 def test_range_difference(start1, stop1, step1, start2, stop2, step2):
     # test that
     #  a) we match Index[int64].difference and
     #  b) we return RangeIndex whenever it is possible to do so.
-    assume(step1 != 0)
-    assume(step2 != 0)
-
     left = RangeIndex(start1, stop1, step1)
     right = RangeIndex(start2, stop2, step2)
 

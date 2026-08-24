@@ -1,7 +1,3 @@
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -91,8 +87,21 @@ class TestTimedeltaRound:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta.max.round("s")
 
-    @pytest.mark.slow
-    @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
+    @pytest.mark.parametrize(
+        "val",
+        [
+            iNaT + 1,
+            -1,
+            0,
+            1,
+            lib.i8max,
+            10**9 - 1,
+            10**9,
+            10**9 + 1,
+            60 * 10**9 - 1,
+            24 * 3600 * 10**9 - 1,
+        ],
+    )
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
     )
