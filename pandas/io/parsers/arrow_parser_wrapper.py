@@ -70,18 +70,22 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
         if dtype.categories is None:
             # match the other engines: the categories are the raw
             # strings from the file
-            return pa.string()
+            return pa.large_string()
         # explicitly typed categories behave like their own dtype
         dtype = dtype.categories.dtype
     if dtype == object:
         # match the other engines: object dtype holds the raw strings
-        return pa.string()
+        return pa.large_string()
     # pass the scalar type: to_pyarrow_type accepts numpy dtypes and
     # scalar types but not extension dtype instances like StringDtype
     # (pa.from_numpy_dtype raises TypeError for those)
     target_dtype = to_pyarrow_type(dtype.type)
-    if target_dtype is not None and pa.types.is_string(target_dtype):
-        return target_dtype
+    if target_dtype is not None and (
+        pa.types.is_string(target_dtype) or pa.types.is_large_string(target_dtype)
+    ):
+        # the default string dtype is backed by large_string, so parsing
+        # directly as large_string avoids a cast in the conversion to pandas
+        return pa.large_string()
     return None
 
 
@@ -229,8 +233,6 @@ class ArrowParserWrapper(ParserBase):
             # GH#57666 dtypes whose conversion must start from the original
             # text are applied while parsing; see _pyarrow_parse_type
             if isinstance(self.dtype, dict):
-                # for a defaultdict only the explicitly-listed columns are
-                # mapped here; the default is applied in read()
                 column_types = {}
                 for col, col_dtype in self.dtype.items():
                     if not isinstance(col, str):
