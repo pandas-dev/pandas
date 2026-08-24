@@ -981,3 +981,14 @@ def test_string_nan_and_specific_na():
         tm.assert_series_equal(res, expected)
         assert np.isnan(res.iloc[1])
         assert res.iloc[2] is pd.NA
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (["1.5", 2j], [1.5 + 0j, 2j]),
+        ([True, 2j], [1 + 0j, 2j]),
+    ],
+)
+def test_complex_keeps_preceding_values(data, expected):
+    # GH#35051 entries seen before the first complex were left uninitialized
+    result = to_numeric(Series(data, dtype=object))
+    tm.assert_series_equal(result, Series(expected, dtype=np.complex128))

@@ -1129,7 +1129,6 @@ class TestDataFrameAnalytics:
                 tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmin_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -1178,7 +1177,6 @@ class TestDataFrameAnalytics:
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmax_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:

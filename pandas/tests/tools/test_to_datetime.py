@@ -625,7 +625,6 @@ class TestToDatetime:
         # GH#23055
         assert to_datetime(None) is NaT
 
-    @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
         # TODO: Timestamp raises ValueError("could not convert string to Timestamp")
@@ -4361,7 +4360,6 @@ dtstr = "2020-01-01 00:00+00:00"
 ts = Timestamp(dtstr)
 
 
-@pytest.mark.filterwarnings("ignore:Could not infer format:UserWarning")
 @pytest.mark.parametrize(
     "aware_val",
     [dtstr, Timestamp(dtstr)],

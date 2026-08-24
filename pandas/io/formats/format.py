@@ -1255,13 +1255,13 @@ class _GenericArrayFormatter:
             )
         inferred = lib.map_infer(vals, is_float)
         is_float_type = (
-            inferred
+            inferred  # type: ignore[operator]
             # vals may have 2 or more dimensions
             & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
         )
         leading_space = self.leading_space
         if leading_space is None:
-            leading_space = is_float_type.any()
+            leading_space = is_float_type.any()  # type: ignore[assignment]
 
         fmt_values = []
         for i, v in enumerate(vals):

@@ -22,8 +22,17 @@ cxx-compiler = "*"
 
 [feature.mingw-compiler]
 platforms = ["win-64"]
-dependencies = { gcc = "*", gxx = "*" }
 activation = { env = { CC = "gcc", CXX = "g++" } }
+
+[feature.mingw-compiler.dependencies]
+# Pinned due to https://github.com/conda-forge/m2w64-sysroot-feedstock/issues/23
+gcc = { version = "==16.1.0", build = "hb5e953d_1" }
+gxx = { version = "==16.1.0", build = "h1f05005_1" }
+libwinpthread = { version = "==12.0.0.r4.gg4f2fc60ca", build = "h57928b3_10" }
+m2w64-sysroot_win-64 = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-crt-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-headers-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-winpthreads-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
 
 [feature.sanitizers]
 platforms = ["linux-64"]
@@ -288,6 +297,7 @@ cmd = [
   "manual",
   "--all-files",
 ]
+default-environment = "typing"
 
 [tasks.ci-scripts-tests]
 cmd = [
@@ -323,6 +333,7 @@ cmd = [
   "--python=same",
   "--show-stderr",
 ]
+default-environment = "asv"
 
 [tasks.ci-test-single-page-doc]
 args = [
@@ -340,6 +351,7 @@ cmd = [
   "doc/make.py",
   "clean",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-nbconvert-doc-notebooks]
 args = [
@@ -357,6 +369,7 @@ cmd = [
   "--stdout",
   ">/dev/null",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-documentation]
 args = [
@@ -368,6 +381,7 @@ cmd = [
   "--warnings-are-errors",
   "{{ doc_type }}",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-website]
 cmd = [
@@ -376,6 +390,7 @@ cmd = [
   "pytest",
   "web",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-website]
 cmd = [
@@ -384,6 +399,7 @@ cmd = [
   "web/pandas",
   "--target-path=web/build",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-interactive_terminal]
 cmd = [
@@ -394,3 +410,4 @@ cmd = [
   "build",
 ]
 cwd = "web/interactive_terminal/"
+default-environment = "docs-and-web"

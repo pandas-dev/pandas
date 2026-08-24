@@ -53,6 +53,17 @@ class TestDataFrameDescribe:
         result = df.iloc[:0].describe()
         tm.assert_frame_equal(result, expected)
 
+    def test_describe_no_columns_raises(self):
+        # GH#58517 the guard against describing a column-less DataFrame was
+        #  uncovered; describing one is not supported, with or without rows
+        msg = "Cannot describe a DataFrame without columns"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame().describe()
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(index=range(3)).describe()
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": [1, 2]}).drop(columns="a").describe()
+
     def test_describe_bool_frame(self):
         # GH#13891
         df = DataFrame(
