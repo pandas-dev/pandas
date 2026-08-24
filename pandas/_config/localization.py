@@ -7,6 +7,7 @@ Name `localization` is chosen to avoid overlap with builtin `locale` module.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import functools
 import locale
 import platform
 import re
@@ -112,23 +113,71 @@ def _valid_locales(locales: list[str] | str, normalize: bool) -> list[str]:
     ]
 
 
-def _windows_locale_candidates() -> list[str]:
-    """
-    Locale names to test for availability on platforms without "locale -a".
+# Windows has no "locale -a" to enumerate with.  ``locale.windows_locale``
+#  lists the ~200 names the CRT knows, but it is undocumented and its only
+#  stdlib consumer is ``locale.getdefaultlocale``, which is slated for removal
+#  in 3.15.  The tests that consume get_locales() parametrize over every entry,
+#  so a curated list also keeps that from becoming ~800 cases with no added
+#  coverage.  The names are BCP-47 and carry an encoding suffix: the CRT wants
+#  "en-US" rather than "en_US", and ``can_set_locale`` calls
+#  ``locale.getlocale``, whose parser raises ValueError on a name without a
+#  ".".  GH#46597
+_WINDOWS_LOCALES = [
+    "ar-SA.UTF-8",
+    "de-DE.UTF-8",
+    "el-GR.UTF-8",
+    "en-GB.UTF-8",
+    "en-US.UTF-8",
+    "es-ES.UTF-8",
+    "fr-FR.UTF-8",
+    "he-IL.UTF-8",
+    "hi-IN.UTF-8",
+    "it-IT.UTF-8",
+    "ja-JP.UTF-8",
+    "ko-KR.UTF-8",
+    "pt-BR.UTF-8",
+    "ru-RU.UTF-8",
+    "th-TH.UTF-8",
+    "tr-TR.UTF-8",
+    "zh-CN.UTF-8",
+]
 
-    The Windows CRT accepts BCP-47 names such as "en-US", while
-    ``locale.getlocale`` can only parse the name that ``locale.setlocale``
-    echoes back if it carries an encoding suffix.  GH#46597
-    """
-    return [
-        f"{name.replace('_', '-')}.UTF-8"
-        # Names without a region ("ar") are settable too, but they resolve to a
-        #  region-qualified name that is already in the list, so they would only
-        #  duplicate its coverage.
-        for name in sorted(
-            {name for name in locale.windows_locale.values() if "_" in name}
-        )
-    ]
+
+@functools.cache
+def _get_locales(prefix: str | None, normalize: bool) -> tuple[str, ...]:
+    if platform.system() in ("Linux", "Darwin"):
+        raw_locales = subprocess.check_output(["locale", "-a"])
+        # raw_locales is "\n" separated list of locales
+        # it may contain non-decodable parts, so split
+        # extract what we can and then rejoin.
+        out_locales = []
+        for raw_locale in raw_locales.split(b"\n"):
+            try:
+                out_locales.append(
+                    str(raw_locale, encoding=cast("str", options.display.encoding))
+                )
+            except UnicodeError:
+                # 'locale -a' is used to populated 'raw_locales' and on
+                # Redhat 7 Linux (and maybe others) prints locale names
+                # using windows-1252 encoding.  Bug only triggered by
+                # a few special characters and when there is an
+                # extensive list of installed locales.
+                out_locales.append(str(raw_locale, encoding="windows-1252"))
+    elif platform.system() == "Windows":
+        # Note: is_platform_windows causes circular import here
+        out_locales = _WINDOWS_LOCALES
+        # These are already spelled the way the CRT wants them; running them
+        #  through the POSIX alias table would rename them ("ar-SA" -> "ar_AA").
+        normalize = False
+    else:
+        return ()
+
+    if prefix is None:
+        return tuple(_valid_locales(out_locales, normalize))
+
+    pattern = re.compile(f"{prefix}.*")
+    found = pattern.findall("\n".join(out_locales))
+    return tuple(_valid_locales(found, normalize))
 
 
 def get_locales(
@@ -160,37 +209,6 @@ def get_locales(
     On error will return an empty list (no locale available)
 
     """
-    if platform.system() in ("Linux", "Darwin"):
-        raw_locales = subprocess.check_output(["locale", "-a"])
-        # raw_locales is "\n" separated list of locales
-        # it may contain non-decodable parts, so split
-        # extract what we can and then rejoin.
-        out_locales = []
-        for raw_locale in raw_locales.split(b"\n"):
-            try:
-                out_locales.append(
-                    str(raw_locale, encoding=cast("str", options.display.encoding))
-                )
-            except UnicodeError:
-                # 'locale -a' is used to populated 'raw_locales' and on
-                # Redhat 7 Linux (and maybe others) prints locale names
-                # using windows-1252 encoding.  Bug only triggered by
-                # a few special characters and when there is an
-                # extensive list of installed locales.
-                out_locales.append(str(raw_locale, encoding="windows-1252"))
-    elif platform.system() == "Windows":
-        # Windows doesn't define "locale -a", so probe the names it may know
-        #  Note: is_platform_windows causes circular import here
-        out_locales = _windows_locale_candidates()
-        # These are already spelled the way the CRT wants them; running them
-        #  through the POSIX alias table would rename them ("ar-SA" -> "ar_AA").
-        normalize = False
-    else:
-        return []
-
-    if prefix is None:
-        return _valid_locales(out_locales, normalize)
-
-    pattern = re.compile(f"{prefix}.*")
-    found = pattern.findall("\n".join(out_locales))
-    return _valid_locales(found, normalize)
+    # Every candidate is probed with setlocale, and several test modules call
+    #  this at collection time, so the result is cached.
+    return list(_get_locales(prefix, normalize))
