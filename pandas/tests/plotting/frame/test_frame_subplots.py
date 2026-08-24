@@ -20,6 +20,7 @@ from pandas.tests.plotting.common import (
     _check_visible,
     _flatten_visible,
 )
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -148,8 +149,30 @@ class TestDataFramePlotsSubplots:
 
         ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
-        expected = testdata[col].values
+        expected = testdata[col]._values
         assert (result == expected).all()
+
+    def test_plot_y_datetime_tz_aware(self):
+        # GH#26676 the tz was dropped when plotting a tz-aware column on the y-axis
+        mdates = pytest.importorskip("matplotlib.dates")
+
+        dti = pd.to_datetime(
+            ["2017-08-01 00:00:00", "2017-08-01 02:00:00", "2017-08-02 00:00:00"]
+        )
+        ser = Series(dti.tz_localize("US/Eastern"), name="dt_tz")
+
+        ax = ser.to_frame().plot(y="dt_tz")
+
+        ydata = ax.get_lines()[0].get_ydata()
+        assert all(entry.tz is not None for entry in ydata)
+
+        # the points sit at their actual instants, not at the naive wall times
+        positions = np.asarray(ax.yaxis.get_converter().convert(ydata, None, ax.yaxis))
+        tm.assert_numpy_array_equal(positions, mdates.date2num(np.asarray(ydata)))
+        assert (positions != mdates.date2num(dti._values)).all()
+
+        # ... and the ticks are labeled in the column's own tz
+        assert ax.yaxis.units == ser.dt.tz
 
     def test_subplots_timeseries_y_text_error(self):
         # GH16953
@@ -422,7 +445,13 @@ class TestDataFramePlotsSubplots:
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
-        expected = np.array([0.1, 1.0, 10.0, 100])
+        # matplotlib 3.11 no longer pads log-axis ticks a decade past the
+        #  view limits, so the outermost tick is dropped (GH#65918)
+        expected = (
+            np.array([0.1, 1.0, 10.0, 100])
+            if Version(mpl.__version__) < Version("3.11.0rc1")
+            else np.array([0.1, 1.0, 10.0])
+        )
 
         # no subplots
         df = DataFrame({"A": [3] * 5, "B": list(range(1, 6))}, index=range(5))
@@ -434,7 +463,13 @@ class TestDataFramePlotsSubplots:
         tm.assert_almost_equal(result, expected, atol=1e-15)
 
     def test_bar_log_subplots(self):
-        expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
+        # matplotlib 3.11 no longer pads log-axis ticks a decade past the
+        #  view limits, so the outermost tick is dropped (GH#65918)
+        expected = (
+            np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
+            if Version(mpl.__version__) < Version("3.11.0rc1")
+            else np.array([0.1, 1.0, 10.0, 100.0, 1000.0])
+        )
 
         ax = DataFrame([Series([200, 300]), Series([300, 500])]).plot.bar(
             log=True, subplots=True

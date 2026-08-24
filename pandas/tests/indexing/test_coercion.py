@@ -12,7 +12,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -200,7 +200,7 @@ class TestInsertIndexCoercion(CoercionBase):
         obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
         coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        if np_version_gt2 and dtype == "float32" and coerced_val == 1.1:
+        if dtype == "float32" and coerced_val == 1.1:
             # Hack, in the 2nd test case, since 1.1 can be losslessly cast to float32
             # the expected dtype will be float32 if the original dtype was float32
             coerced_dtype = np.float32
@@ -527,7 +527,12 @@ class TestFillnaSeriesCoercion(CoercionBase):
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
         """test coercion triggered by fillna"""
         target = original.copy()
-        res = target.fillna(value)
+        # GH#45153 filling with incompatible value requiring casting is deprecated
+        warn = None
+        if expected_dtype != target.dtype:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match="fill value"):
+            res = target.fillna(value)
         tm.assert_equal(res, expected)
         assert res.dtype == expected_dtype
 

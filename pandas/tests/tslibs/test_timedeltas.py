@@ -3,13 +3,16 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import Resolution
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     delta_to_nanoseconds,
     ints_to_pytimedelta,
+    parse_timedelta_string_reso,
 )
 
 from pandas import (
+    NaT,
     Timedelta,
     offsets,
 )
@@ -151,3 +154,43 @@ def test_ints_to_pytimedelta_unsupported(unit):
     msg = "Only resolutions 's', 'ms', 'us', 'ns' are supported"
     with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)
+
+
+@pytest.mark.parametrize(
+    "label, expected_reso",
+    [
+        # unit-based format: the finest unit written, not the value
+        ("720s", "second"),  # GH#33603 - not "minute" even though == 12min
+        ("2000ms", "millisecond"),  # not "second" even though == 2s
+        ("2D 0 hours", "hour"),  # finest of the two written units
+        ("120s 0 days", "second"),  # order of units does not matter
+        ("1.5min", "minute"),  # the written unit; the value refines this
+        ("3.5s", "second"),
+        ("1000", "nanosecond"),  # bare number is nanoseconds
+        ("2000ns", "nanosecond"),
+        # hh:mm:ss always carries a seconds field
+        ("1:00:00", "second"),
+        ("1:01:00", "second"),
+        ("0:0:1.100000", "second"),  # fraction handled by the value, not here
+        # ISO 8601 durations
+        ("PT120S", "second"),  # not "minute"
+        ("PT2M", "minute"),
+        ("P1DT12H", "hour"),
+        ("P2D", "day"),
+        ("P2DT0H", "hour"),  # the T..H marker forces hour resolution
+        ("P1DT1H30M45S", "second"),
+    ],
+)
+def test_parse_timedelta_string_reso(label, expected_reso):
+    # GH#33603 - the resolution reflects the finest unit written in the string,
+    #  determined by the same single pass that computes the value.
+    parsed, code = parse_timedelta_string_reso(label)
+    assert parsed == Timedelta(label)
+    assert Resolution(code) == Resolution.from_attrname(expected_reso)
+
+
+def test_parse_timedelta_string_reso_nat():
+    # GH#33603 - NaT parses to NaT; the reported resolution is unused
+    parsed, code = parse_timedelta_string_reso("NaT")
+    assert parsed is NaT
+    assert Resolution(code) == Resolution.RESO_SEC

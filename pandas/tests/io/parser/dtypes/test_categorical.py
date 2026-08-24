@@ -4,7 +4,6 @@ for all of the parsers defined in parsers.py
 """
 
 from io import StringIO
-import os
 
 import numpy as np
 import pytest
@@ -21,10 +20,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
@@ -133,9 +128,9 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     tm.assert_frame_equal(actual, expected)
 
 
-def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
+def test_categorical_dtype_utf16(all_parsers, datapath):
     # see gh-10153
-    pth = os.path.join(csv_dir_path, "utf16_ex.txt")
+    pth = datapath("io", "parser", "data", "utf16_ex.txt")
     parser = all_parsers
     encoding = "utf-16"
     sep = "\t"
@@ -202,9 +197,9 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
             tm.assert_frame_equal(actual, expected)
 
 
-def test_categorical_dtype_latin1(all_parsers, csv_dir_path):
+def test_categorical_dtype_latin1(all_parsers, datapath):
     # see gh-10153
-    pth = os.path.join(csv_dir_path, "unicode_series.csv")
+    pth = datapath("io", "parser", "data", "unicode_series.csv")
     parser = all_parsers
     encoding = "latin-1"
 

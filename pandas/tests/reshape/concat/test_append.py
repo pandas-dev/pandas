@@ -200,7 +200,7 @@ class TestAppend:
 
     @pytest.mark.parametrize(
         "df_columns, series_index",
-        combinations(indexes_can_append, r=2),
+        list(combinations(indexes_can_append, r=2)),
         ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types(self, df_columns, series_index):

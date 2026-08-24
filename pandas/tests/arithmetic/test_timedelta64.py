@@ -4,13 +4,20 @@ from datetime import (
     datetime,
     timedelta,
 )
+import operator
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    iNaT,
+    timezones,
+)
 from pandas.compat import WASM
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -156,7 +163,13 @@ class TestTimedelta64ArrayLikeComparisons:
         result = rng != other
         tm.assert_numpy_array_equal(result, ~expected)
 
-        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        msg = "|".join(
+            [
+                "Invalid comparison between",
+                "Cannot compare type",
+                "not supported between",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             rng < other
         with pytest.raises(TypeError, match=msg):
@@ -344,11 +357,13 @@ class TestTimedelta64ArithmeticUnsorted:
             td - dti
 
         result = dt - dti
-        expected = TimedeltaIndex(["0 days", "-1 days", "-2 days"], name="bar")
+        expected = TimedeltaIndex(
+            ["0 days", "-1 days", "-2 days"], name="bar", freq="-1D"
+        )
         tm.assert_index_equal(result, expected)
 
         result = dti - dt
-        expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar")
+        expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar", freq="D")
         tm.assert_index_equal(result, expected)
 
         result = tdi - td
@@ -768,6 +783,20 @@ class TestAddSubNaTMasking:
         )
         tm.assert_index_equal(result, exp)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_tdi_sub_lands_on_nat_sentinel(self, unit, box_with_array):
+        # GH#66549 the difference fits in int64 but equals iNaT, so the result
+        #  used to come back as NaT instead of being reported as out of bounds
+        tdi = TimedeltaIndex(np.array([iNaT + 1], dtype=f"m8[{unit}]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            tdi - Timedelta(1, unit)
+
+        with pytest.raises(OverflowError, match=msg):
+            tdi + Timedelta(-1, unit)
+
 
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
@@ -864,7 +893,7 @@ class TestTimedeltaArraylikeAddSubOps:
         actual = df1 - timedelta_NaT
         tm.assert_frame_equal(actual, dfn)
 
-        msg = "cannot subtract a datelike from|unsupported operand type"
+        msg = "|".join(["cannot subtract a datelike from", "unsupported operand type"])
         with pytest.raises(TypeError, match=msg):
             df1 + np.nan
         with pytest.raises(TypeError, match=msg):
@@ -1082,7 +1111,9 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdarr - ts
 
-    @pytest.mark.filterwarnings("ignore:.*generic.*unit.*:DeprecationWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+    )
     def test_td64arr_add_datetime64_nat(self, box_with_array):
         # GH#23215
         # The bare np.datetime64("NaT") is load-bearing here: the expected
@@ -1478,7 +1509,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = "has incorrect type|cannot add the type MonthEnd"
+        msg = "|".join(["has incorrect type", "cannot add the type MonthEnd"])
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(performance_warning):
                 tdi + anchored
@@ -1513,7 +1544,7 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
-        msg = "unsupported operand type|cannot subtract a datelike"
+        msg = "|".join(["unsupported operand type", "cannot subtract a datelike"])
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(performance_warning):
                 tdarr - other
@@ -1543,6 +1574,181 @@ class TestTimedeltaArraylikeMulDivOps:
 
         result = 1 * idx
         tm.assert_equal(result, idx)
+
+    def test_td64arr_mul_int_overflow(self, box_with_array):
+        # GH#43178: int multiplication on timedelta64[ns] used to silently wrap
+        td = Timedelta(100000, "D").as_unit("ns")
+        tdi = TimedeltaIndex([td, td])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * 2
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            2 * tdi
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.int64(2)
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.array([2, 2], dtype="i8")
+
+    def test_td64arr_mul_uint_overflow(self, box_with_array):
+        # GH#43178: an unsigned multiplier above int64.max must not wrap to a
+        #  negative int64 before the overflow check; it should raise instead.
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(1, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.uint64(2**63 + 5)
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.array([2**63 + 5, 2**63 + 5], dtype="u8")
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * (2**63 + 5)
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * (-(2**63) - 5)
+
+    def test_td64arr_mul_int_min_boundary(self, box_with_array):
+        # GH#43178: a product landing exactly on int64.min would be
+        #  misinterpreted as iNaT; it must raise, not silently return NaT
+        tdi = TimedeltaIndex([Timedelta(-(2**62), "ns"), Timedelta(-(2**62), "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * 2
+
+    def test_td64arr_mul_float_overflow(self, box_with_array):
+        # GH#43178: float multiplication on timedelta64[ns] used to silently
+        #  saturate to int64.max
+        td = Timedelta(100000, "D").as_unit("ns")
+        tdi = TimedeltaIndex([td, td])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * 2.5
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            2.5 * tdi
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.float64(2.5)
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.array([2.5, 2.5])
+
+    def test_td64arr_mul_float_overflow_boundary(self, box_with_array):
+        # GH#43178: a product landing exactly on 2**63 (= int64.max + 1) must
+        #  raise rather than silently saturate on the float -> int64 cast.
+        # GH#66551: 2.0 is integral, so it now takes the same exact int64 path
+        #  as `tdi * 2` and reports the same message.
+        tdi = TimedeltaIndex([Timedelta(2**62, "ns"), Timedelta(2**62, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * 2.0
+
+    @pytest.mark.parametrize("op", [operator.mul, operator.truediv, operator.floordiv])
+    def test_td64arr_integral_float_op_is_exact(self, box_with_array, op):
+        # GH#66551 an integral float operand has an exact int equivalent, so it
+        #  takes the int64 path rather than float64, matching both the scalar
+        #  Timedelta and the equivalent int operand
+        tdi = TimedeltaIndex([Timedelta(2**53 + 1, "ns"), Timedelta.min])
+        obj = tm.box_expected(tdi, box_with_array)
+
+        tm.assert_equal(op(obj, 1.0), obj)
+        tm.assert_equal(op(obj, 1.0), op(obj, 1))
+
+    def test_td64arr_mul_inf_raises(self, box_with_array):
+        # GH#43178: multiplying by inf raises (matching scalar Timedelta)
+        #  instead of returning NaT as numpy does
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(1, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * np.inf
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi * -np.inf
+
+    def test_td64arr_mul_nan_returns_nat(self, box_with_array):
+        # GH#43178: nan multiplier still gives NaT through the new float path
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(2, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex([NaT, NaT], dtype="m8[ns]")
+        expected = tm.box_expected(expected, box_with_array)
+
+        tm.assert_equal(tdi * np.nan, expected)
+
+    def test_td64arr_mul_preserves_nat(self, box_with_array):
+        # GH#43178: NaT is preserved (not corrupted) through the overflow-safe
+        #  int and float multiplication paths.
+        tdi = TimedeltaIndex([Timedelta(5, "ns"), NaT])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex([Timedelta(10, "ns"), NaT])
+        expected = tm.box_expected(expected, box_with_array)
+
+        tm.assert_equal(tdi * 2, expected)
+        tm.assert_equal(tdi * 2.0, expected)
+
+    def test_td64arr_div_float_overflow(self, box_with_array):
+        # GH#43178: float division whose quotient exceeds int64 bounds must
+        #  raise instead of silently saturating
+        tdi = TimedeltaIndex([Timedelta(2**62, "ns"), Timedelta(2**62, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta division"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi / 0.4
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi // 0.4
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi / np.array([0.4, 0.4])
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            tdi // np.array([0.4, 0.4])
+
+    # numpy < 2.0 emits RuntimeWarnings for zero/NaN float divisors
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test_td64arr_div_float_zero_nan_still_nat(self, box_with_array):
+        # GH#43178: overflow detection must not change numpy's NaT results
+        #  for zero or NaN float divisors
+        tdi = TimedeltaIndex([Timedelta(2**62, "ns"), NaT])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex([NaT, NaT], dtype="m8[ns]")
+        expected = tm.box_expected(expected, box_with_array)
+
+        tm.assert_equal(tdi / 0.0, expected)
+        tm.assert_equal(tdi // 0.0, expected)
+        tm.assert_equal(tdi / np.nan, expected)
+        tm.assert_equal(tdi // np.nan, expected)
+        tm.assert_equal(tdi / np.array([0.0, np.nan]), expected)
+
+    def test_td64arr_mul_div_overflow_non_nano(self, box_with_array):
+        # GH#43178: overflow bounds are per-unit int64, not nanosecond-specific
+        tdi = TimedeltaIndex(np.array([2**62, 2**62], dtype="m8[s]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        with pytest.raises(
+            OutOfBoundsTimedelta, match="Overflow in int64 multiplication"
+        ):
+            tdi * 2
+        # GH#66551: 2.0 is integral, so it takes the same exact int64 path as 2
+        with pytest.raises(
+            OutOfBoundsTimedelta, match="Overflow in int64 multiplication"
+        ):
+            tdi * 2.0
+        with pytest.raises(
+            OutOfBoundsTimedelta, match="Overflow in timedelta division"
+        ):
+            tdi / 0.5
+
+        # values far outside the ns-representable range multiply fine in "s"
+        tdi = TimedeltaIndex(np.array([2**62 - 1, 2**62 - 1], dtype="m8[s]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+        expected = TimedeltaIndex(np.array([2**63 - 2, 2**63 - 2], dtype="m8[s]"))
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(tdi * 2, expected)
 
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
@@ -1863,7 +2069,7 @@ class TestTimedeltaArraylikeMulDivOps:
         mismatched = [1, 2, 3, 4]
 
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Cannot divide vectors|Unable to coerce to Series"
+        msg = "|".join(["Cannot divide vectors", "Unable to coerce to Series"])
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
             for other in [obj, np.array(obj), Index(obj)]:
@@ -1935,7 +2141,6 @@ class TestTimedeltaArraylikeMulDivOps:
             result = np.asarray(left) // right
         tm.assert_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831, GH#19125
         box = box_with_array
@@ -1999,7 +2204,9 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
-        if box_with_array is DataFrame and isinstance(three_days, pd.DateOffset):
+        if box_with_array is DataFrame and isinstance(
+            three_days, pd.tseries.offsets.BaseOffset
+        ):
             # TODO: making expected be object here a result of DataFrame.__divmod__
             #  being defined in a naive way that does not dispatch to the underlying
             #  array's __divmod__

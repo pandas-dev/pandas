@@ -563,6 +563,22 @@ class TestMelt:
         with pytest.raises(ValueError, match=msg):
             df.melt(id_vars=["A"], value_vars=["B"])
 
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"id_vars": "id", "var_name": "id"},
+            {"id_vars": "id", "var_name": "x", "value_name": "x"},
+            {"id_vars": ["id", "variable"], "value_vars": ["a"]},
+        ],
+    )
+    def test_melt_var_name_collision_raises(self, kwargs):
+        # GH 65654
+        df = DataFrame(
+            {"id": [1, 2], "variable": [9, 9], "a": [10, 20], "b": [100, 200]}
+        )
+        with pytest.raises(ValueError, match="duplicate names"):
+            df.melt(**kwargs)
+
 
 class TestLreshape:
     def test_pairs(self):

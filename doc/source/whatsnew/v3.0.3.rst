@@ -46,6 +46,7 @@ Bug fixes
 - Fixed :class:`ArrowDtype` string arithmetic for addition between ``string`` and ``large_string`` typed arrays (:issue:`65220`)
 - Fixed a bug in adding missing values (e.g. :attr:`NA`) to a pyarrow-backed string array or Series
   raising an error instead of propagating the missing value (:issue:`64968`)
+- Fixed a bug in :meth:`DataFrame.from_dict` where rows corresponding to an empty :class:`Series` or ``dict`` are dropped when ``orient='index'`` (:issue:`62775`)
 - Fixed a bug in :meth:`Series.rank` with period dtype and missing values, always sorting missing values at the top, regardless of the ``na_option`` value (:issue:`64976`)
 - Fixed a bug in reading files with a chained URL scheme (e.g. ``tar://``) with the latest version of ``fsspec`` (:issue:`65462`).
 - Fixed a hang in :meth:`Series.str.replace` for PyArrow-backed string data when replacing an empty pattern; behavior now matches Python's ``str.replace`` (:issue:`64941`).

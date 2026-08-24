@@ -2141,6 +2141,36 @@ class TestTimedelta64Formatter:
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
 
+    def test_fractional_seconds_aligned(self):
+        # GH#57188 - fractional seconds should be right-padded to uniform width
+        s = 1 / Series(np.arange(1, 4))
+        td = pd.to_timedelta(s, unit="s")._values
+        result = fmt._Timedelta64Formatter(td).get_result()
+        expected = [
+            "0 days 00:00:01.000000000",
+            "0 days 00:00:00.500000000",
+            "0 days 00:00:00.333333333",
+        ]
+        assert result == expected
+
+    def test_fractional_seconds_no_frac_unchanged(self):
+        # GH#57188 - whole-second values should not gain a decimal point
+        y = pd.to_timedelta(list(range(3)), unit="s")._values
+        result = fmt._Timedelta64Formatter(y).get_result()
+        expected = ["0 days 00:00:00", "0 days 00:00:01", "0 days 00:00:02"]
+        assert result == expected
+
+    def test_fractional_seconds_nat_handled(self):
+        # GH#57188 - NaT should not break alignment
+        td = pd.to_timedelta([1e9, NaT.value, 5e8], unit="ns")._values
+        result = fmt._Timedelta64Formatter(td).get_result()
+        expected = [
+            "0 days 00:00:01.000000",
+            "                   NaT",
+            "0 days 00:00:00.500000",
+        ]
+        assert result == expected
+
 
 class TestDatetime64Formatter:
     def test_mixed(self):

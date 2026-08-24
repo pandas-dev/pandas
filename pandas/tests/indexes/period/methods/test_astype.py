@@ -67,18 +67,18 @@ class TestPeriodIndexAsType:
 
         exp = np.array([], dtype=object)
         tm.assert_numpy_array_equal(idx.astype(object).values, exp)
-        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
+        tm.assert_numpy_array_equal(idx._mpl_repr(), idx.asi8)
 
         idx = PeriodIndex(["2011-01", NaT], freq="M")
 
         exp = np.array([Period("2011-01", freq="M"), NaT], dtype=object)
         tm.assert_numpy_array_equal(idx.astype(object).values, exp)
-        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
+        tm.assert_numpy_array_equal(idx._mpl_repr(), idx.asi8)
 
         exp = np.array([Period("2011-01-01", freq="D"), NaT], dtype=object)
         idx = PeriodIndex(["2011-01-01", NaT], freq="D")
         tm.assert_numpy_array_equal(idx.astype(object).values, exp)
-        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
+        tm.assert_numpy_array_equal(idx._mpl_repr(), idx.asi8)
 
     # TODO: de-duplicate this version (from test_ops) with the one above
     # (from test_period)

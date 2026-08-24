@@ -9,9 +9,12 @@ tests.series.test_cumulative
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsTimedelta
+
 from pandas import (
     DataFrame,
     Series,
+    Timedelta,
     Timestamp,
 )
 import pandas._testing as tm
@@ -105,3 +108,22 @@ class TestDataFrameCumulativeOps:
         result = getattr(df, method)(axis=axis, numeric_only=True)
         expected = getattr(df_numeric_only, method)(axis)
         tm.assert_frame_equal(result, expected)
+
+    def test_cummax_pyarrow_float_negative(self):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
+
+        result = df.cummax()
+        expected = DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
+        tm.assert_frame_equal(result, expected)
+
+
+def test_td64_cumsum_overflow():
+    # GH#66551: the check applies per column
+    df = DataFrame(
+        {"a": [Timedelta(1, "D")] * 2, "b": [Timedelta.max] * 2},
+        dtype="m8[ns]",
+    )
+    with pytest.raises(OutOfBoundsTimedelta, match="overflow in timedelta operation"):
+        df.cumsum()

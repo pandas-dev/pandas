@@ -41,6 +41,7 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -188,7 +189,7 @@ class TestCommon:
     def test_immutable(self, offset_types):
         # GH#21341 check that __setattr__ raises
         offset = _create_offset(offset_types)
-        msg = "objects is not writable|DateOffset objects are immutable"
+        msg = "|".join(["objects is not writable", "DateOffset objects are immutable"])
         with pytest.raises(AttributeError, match=msg):
             offset.normalize = True
         with pytest.raises(AttributeError, match=msg):
@@ -573,6 +574,23 @@ class TestCommon:
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
+    @pytest.mark.parametrize(
+        "off",
+        [
+            DateOffset(years=1),
+            DateOffset(months=2),
+            DateOffset(days=3, weeks=1),
+            DateOffset(),
+        ],
+    )
+    def test_pickle_dateoffset_protocol_0(self, off):
+        # GH#45790: protocol 0 is what pytables uses for object attrs;
+        #  RelativeDeltaOffset previously only round-tripped at protocol >= 2
+        import pickle
+
+        res = pickle.loads(pickle.dumps(off, protocol=0))
+        assert off == res
+
     def test_offsets_hashable(self, offset_types):
         # GH: 37267
         off = _create_offset(offset_types)
@@ -657,20 +675,22 @@ class TestDateOffset:
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
-        zip(
-            _ARITHMETIC_DATE_OFFSET,
-            [
-                "2009-01-02",
-                "2008-02-02",
-                "2008-01-09",
-                "2008-01-03",
-                "2008-01-02 01:00:00",
-                "2008-01-02 00:01:00",
-                "2008-01-02 00:00:01",
-                "2008-01-02 00:00:00.001000000",
-                "2008-01-02 00:00:00.000001000",
-            ],
-            strict=True,
+        list(
+            zip(
+                _ARITHMETIC_DATE_OFFSET,
+                [
+                    "2009-01-02",
+                    "2008-02-02",
+                    "2008-01-09",
+                    "2008-01-03",
+                    "2008-01-02 01:00:00",
+                    "2008-01-02 00:01:00",
+                    "2008-01-02 00:00:01",
+                    "2008-01-02 00:00:00.001000000",
+                    "2008-01-02 00:00:00.000001000",
+                ],
+                strict=True,
+            )
         ),
     )
     def test_add(self, arithmatic_offset_type, expected, dt):
@@ -679,20 +699,22 @@ class TestDateOffset:
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
-        zip(
-            _ARITHMETIC_DATE_OFFSET,
-            [
-                "2007-01-02",
-                "2007-12-02",
-                "2007-12-26",
-                "2008-01-01",
-                "2008-01-01 23:00:00",
-                "2008-01-01 23:59:00",
-                "2008-01-01 23:59:59",
-                "2008-01-01 23:59:59.999000000",
-                "2008-01-01 23:59:59.999999000",
-            ],
-            strict=True,
+        list(
+            zip(
+                _ARITHMETIC_DATE_OFFSET,
+                [
+                    "2007-01-02",
+                    "2007-12-02",
+                    "2007-12-26",
+                    "2008-01-01",
+                    "2008-01-01 23:00:00",
+                    "2008-01-01 23:59:00",
+                    "2008-01-01 23:59:59",
+                    "2008-01-01 23:59:59.999000000",
+                    "2008-01-01 23:59:59.999999000",
+                ],
+                strict=True,
+            )
         ),
     )
     def test_sub(self, arithmatic_offset_type, expected, dt):
@@ -702,21 +724,23 @@ class TestDateOffset:
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
-        zip(
-            _ARITHMETIC_DATE_OFFSET,
-            range(1, 10),
-            [
-                "2009-01-02",
-                "2008-03-02",
-                "2008-01-23",
-                "2008-01-06",
-                "2008-01-02 05:00:00",
-                "2008-01-02 00:06:00",
-                "2008-01-02 00:00:07",
-                "2008-01-02 00:00:00.008000000",
-                "2008-01-02 00:00:00.000009000",
-            ],
-            strict=True,
+        list(
+            zip(
+                _ARITHMETIC_DATE_OFFSET,
+                range(1, 10),
+                [
+                    "2009-01-02",
+                    "2008-03-02",
+                    "2008-01-23",
+                    "2008-01-06",
+                    "2008-01-02 05:00:00",
+                    "2008-01-02 00:06:00",
+                    "2008-01-02 00:00:07",
+                    "2008-01-02 00:00:00.008000000",
+                    "2008-01-02 00:00:00.000009000",
+                ],
+                strict=True,
+            )
         ),
     )
     def test_mul_add(self, arithmatic_offset_type, n, expected, dt):
@@ -727,21 +751,23 @@ class TestDateOffset:
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
-        zip(
-            _ARITHMETIC_DATE_OFFSET,
-            range(1, 10),
-            [
-                "2007-01-02",
-                "2007-11-02",
-                "2007-12-12",
-                "2007-12-29",
-                "2008-01-01 19:00:00",
-                "2008-01-01 23:54:00",
-                "2008-01-01 23:59:53",
-                "2008-01-01 23:59:59.992000000",
-                "2008-01-01 23:59:59.999991000",
-            ],
-            strict=True,
+        list(
+            zip(
+                _ARITHMETIC_DATE_OFFSET,
+                range(1, 10),
+                [
+                    "2007-01-02",
+                    "2007-11-02",
+                    "2007-12-12",
+                    "2007-12-29",
+                    "2008-01-01 19:00:00",
+                    "2008-01-01 23:54:00",
+                    "2008-01-01 23:59:53",
+                    "2008-01-01 23:59:59.992000000",
+                    "2008-01-01 23:59:59.999991000",
+                ],
+                strict=True,
+            )
         ),
     )
     def test_mul_sub(self, arithmatic_offset_type, n, expected, dt):
@@ -782,10 +808,89 @@ class TestDateOffset:
 
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "offset_kwargs", [{"milliseconds": 5}, {"months": 1, "milliseconds": 5}]
+    )
+    def test_dateoffset_milliseconds_reso_matches_vectorized(self, offset_kwargs, unit):
+        # GH#64806 scalar Timestamp + DateOffset with a milliseconds component
+        # must preserve the offset's declared resolution (matching the
+        # vectorized DatetimeIndex path) instead of flooring to microseconds.
+        offset = DateOffset(**offset_kwargs)
+        ts = Timestamp("2022-01-01").as_unit(unit)
+
+        result = ts + offset
+        expected = (DatetimeIndex([ts]) + offset)[0]
+
+        assert result == expected
+        assert result.unit == expected.unit
+
     def test_offset_invalid_arguments(self):
         msg = "^Invalid argument/s or bad combination of arguments"
         with pytest.raises(ValueError, match=msg):
             DateOffset(picoseconds=1)
+
+
+def test_isinstance_dateoffset_warns_for_non_dateoffset():
+    # GH#48262
+    bday = BDay()
+    msg = "isinstance.*DateOffset.*is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = isinstance(bday, DateOffset)
+    assert result is True
+
+
+def test_issubclass_dateoffset_warns_for_non_dateoffset():
+    # GH#48262
+    msg = "issubclass.*DateOffset.*is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = issubclass(BDay, DateOffset)
+    assert result is True
+
+
+def test_isinstance_dateoffset_no_warning_for_dateoffset():
+    # GH#48262
+    class MySubclass(DateOffset):
+        pass
+
+    for obj in [DateOffset(days=1), MySubclass(days=1)]:
+        with tm.assert_produces_warning(None):
+            result = isinstance(obj, DateOffset)
+        assert result is True
+
+
+def test_issubclass_dateoffset_no_warning_for_dateoffset():
+    # GH#48262
+    class MySubclass(DateOffset):
+        pass
+
+    for klass in [DateOffset, MySubclass]:
+        with tm.assert_produces_warning(None):
+            result = issubclass(klass, DateOffset)
+        assert result is True
+
+
+@pytest.mark.parametrize("obj", [1, None, "B", object()])
+def test_isinstance_dateoffset_no_warning_for_non_offset(obj):
+    # GH#48262 objects that are not offsets at all are unaffected
+    with tm.assert_produces_warning(None):
+        result = isinstance(obj, DateOffset)
+    assert result is False
+
+
+@pytest.mark.parametrize("klass", [int, str, object])
+def test_issubclass_dateoffset_no_warning_for_non_offset(klass):
+    # GH#48262
+    with tm.assert_produces_warning(None):
+        result = issubclass(klass, DateOffset)
+    assert result is False
+
+
+def test_baseoffset_check_no_warning():
+    # GH#48262 BaseOffset is the non-deprecated alternative
+    bday = BDay()
+    with tm.assert_produces_warning(None):
+        assert isinstance(bday, BaseOffset)
+        assert issubclass(BDay, BaseOffset)
 
 
 class TestOffsetNames:
@@ -1247,13 +1352,105 @@ def test_multiply_dateoffset_typeerror(left, right):
         left * right
 
 
-def test_dateoffset_days_vs_n_near_dst_transition():
-    # GH#61862
-    ts = Timestamp("2022-10-30", tz="Europe/Brussels")
+@pytest.mark.parametrize("n", [1, 2, -1])
+def test_dateoffset_days_vs_n_near_dst_transition(warsaw, n):
+    # GH#61862, GH#61870
+    ts = Timestamp("2022-10-30", tz=warsaw)
 
-    offset_days = ts + offsets.DateOffset(days=1)
-    offset_n = ts + offsets.DateOffset(1)
+    offset_days = ts + offsets.DateOffset(days=n)
+    offset_n = ts + offsets.DateOffset(n)
     assert offset_days == offset_n
+    # the scalar result also agrees with the vectorized one
+    expected = DatetimeIndex([ts]) + offsets.DateOffset(n)
+    assert offset_n == expected[0]
+
+
+@pytest.mark.parametrize("n", [1, 2, -1])
+@pytest.mark.parametrize("start", ["2022-10-30", "2022-03-26 12:00"])
+def test_dateoffset_n_scalar_near_dst_transition(warsaw, start, n):
+    # GH#61870 the scalar path for a bare DateOffset(n) added a plain
+    #  timedelta, which kept pytz's pre-transition DstTzInfo instead of
+    #  re-localizing, so the result was an hour off across a DST boundary
+    ts = Timestamp(start, tz=warsaw)
+
+    result = ts + offsets.DateOffset(n)
+    expected = ts + offsets.DateOffset(days=n)
+    assert result == expected
+    assert result.utcoffset() == expected.utcoffset()
+
+    # the vectorized path is a separate implementation
+    assert (DatetimeIndex([ts]) + offsets.DateOffset(n))[0] == result
+
+
+@pytest.mark.parametrize("n", [1, 2, -1])
+@pytest.mark.parametrize("box", [DatetimeIndex, Series])
+def test_dateoffset_n_vectorized_near_dst_transition(box, n):
+    # GH#61870 bare DateOffset(n) was a no-op on the vectorized (array) path
+    # while the scalar path correctly added n days; results must agree with
+    # both the scalar path and DateOffset(days=n).
+    ts = Timestamp("2021-11-06 12:00", tz="US/Pacific")
+    obj = box([ts])
+
+    result = obj + offsets.DateOffset(n)
+    expected = obj + offsets.DateOffset(days=n)
+    tm.assert_equal(result, expected)
+
+    scalar = ts + offsets.DateOffset(n)
+    assert result[0] == scalar
+
+
+@pytest.mark.parametrize("box", [DatetimeIndex, Series])
+@pytest.mark.parametrize(
+    "offset",
+    [
+        offsets.MonthEnd(2**32),
+        offsets.MonthBegin(2**32),
+        offsets.SemiMonthEnd(2**32),
+        offsets.SemiMonthBegin(2**32),
+        offsets.QuarterEnd(2**32),
+        offsets.QuarterBegin(2**32),
+        offsets.HalfYearEnd(2**32),
+        offsets.YearEnd(2**32),
+        offsets.YearBegin(2**32),
+        offsets.BYearEnd(2**32),
+    ],
+)
+def test_offset_n_above_int32(box, offset):
+    # GH#66549 n was held in a C int, so a multiple of 2**32 silently truncated
+    #  to zero and the shift became a no-op
+    ts = Timestamp("2000-01-03").as_unit("s")
+    obj = box([ts])
+
+    result = box(obj + offset)
+    # 2**32 months is on the order of 3.6e8 years; a truncated n leaves us in 2000
+    assert result[0].year > 10**7
+
+    # the scalar path is a separate implementation, and truncated to zero too
+    assert result[0] == ts + offset
+
+
+def test_month_end_n_above_int32_exact():
+    # GH#66549 MonthEnd(n) shifts by n - 1 whole months when the starting day
+    #  is before the end of the month, then rolls to the end of that month
+    ts = Timestamp("2000-01-03").as_unit("s")
+
+    result = ts + offsets.MonthEnd(2**32)
+
+    months = (result.year - ts.year) * 12 + (result.month - ts.month)
+    assert months == 2**32 - 1
+    assert result.day == 30  # April
+
+
+def test_month_end_year_above_int32():
+    # GH#66549 get_days_in_month truncated the year to 32 bits, so the leap-year
+    #  determination used a wrapped year. 2147483700 is not a leap year, but
+    #  2147483700 - 2**32 is.
+    dti = DatetimeIndex(np.array(["2147483700-02-05"], dtype="M8[s]"))
+
+    assert dti[0].days_in_month == 28
+    expected = DatetimeIndex(np.array(["2147483700-02-28"], dtype="M8[s]"))
+    tm.assert_index_equal(dti + offsets.MonthEnd(1), expected)
+    assert dti[0] + offsets.MonthEnd(1) == expected[0]
 
 
 @pytest.mark.parametrize("n", [1, 2])

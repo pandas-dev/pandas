@@ -10,31 +10,34 @@ Distributed under the terms of the BSD Simplified License.
 
 #include "pandas/parser/pd_parser.h"
 #include "pandas/parser/io.h"
-#include "pandas/portable.h"
 
-static int to_double(char *item, double *p_value, char sci, char decimal,
-                     int *maybe_int) {
+static int to_double(const char *item, const char *end, double *p_value,
+                     char sci, char decimal, int *maybe_int) {
   char *p_end = NULL;
   int error = 0;
 
   /* Switch to precise xstrtod GH 31364 */
-  *p_value =
-      precise_xstrtod(item, &p_end, decimal, sci, '\0', 1, &error, maybe_int);
+  *p_value = precise_xstrtod_with_end(item, &p_end, decimal, sci, '\0', 1,
+                                      &error, maybe_int, end);
 
-  return (error == 0) && (!*p_end);
+  // The value may contain an embedded NUL, so it is fully consumed only when
+  // the parse reached `end`, not when it reached a NUL (GH#66524).
+  return (error == 0) && (p_end == end);
 }
 
 static int floatify(PyObject *str, double *result, int *maybe_int) {
   const char *data;
+  Py_ssize_t length;
   const char sci = 'E';
   const char dec = '.';
 
   if (PyBytes_Check(str)) {
     data = PyBytes_AS_STRING(str);
+    length = PyBytes_GET_SIZE(str);
   } else if (PyUnicode_Check(str)) {
-    // PyUnicode_AsUTF8 returns a pointer to the string's internal UTF-8
+    // PyUnicode_AsUTF8AndSize returns a pointer to the string's internal UTF-8
     // buffer (caching it on the object), avoiding a heap allocation.
-    data = PyUnicode_AsUTF8(str);
+    data = PyUnicode_AsUTF8AndSize(str, &length);
     if (data == NULL) {
       return -1;
     }
@@ -43,54 +46,35 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
     return -1;
   }
 
-  const int status = to_double((char *)data, result, sci, dec, maybe_int);
+  const int status =
+      to_double(data, data + length, result, sci, dec, maybe_int);
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */
-    const size_t len = strlen(data);
-    if (len == 3) {
-      if (0 == strcasecmp(data, "inf")) {
-        *result = HUGE_VAL;
-        *maybe_int = 0;
-      } else {
-        goto parsingerror;
-      }
-    } else if (len == 4) {
-      if (0 == strcasecmp(data, "-inf")) {
-        *result = -HUGE_VAL;
-        *maybe_int = 0;
-      } else if (0 == strcasecmp(data, "+inf")) {
-        *result = HUGE_VAL;
-        *maybe_int = 0;
-      } else {
-        goto parsingerror;
-      }
-    } else if (len == 8) {
-      if (0 == strcasecmp(data, "infinity")) {
-        *result = HUGE_VAL;
-        *maybe_int = 0;
-      } else {
-        goto parsingerror;
-      }
-    } else if (len == 9) {
-      if (0 == strcasecmp(data, "-infinity")) {
-        *result = -HUGE_VAL;
-        *maybe_int = 0;
-      } else if (0 == strcasecmp(data, "+infinity")) {
-        *result = HUGE_VAL;
-        *maybe_int = 0;
-      } else {
-        goto parsingerror;
-      }
-    } else {
+    const int sign = infinity_sign(data, length);
+    if (sign == 0) {
       goto parsingerror;
     }
+    *result = sign > 0 ? HUGE_VAL : -HUGE_VAL;
+    *maybe_int = 0;
   }
 
   return 0;
 
-parsingerror:
-  PyErr_Format(PyExc_ValueError, "Unable to parse string \"%s\"", data);
+parsingerror:;
+  // Report the value through its repr rather than with "%s", which stops at an
+  // embedded NUL and so would name a truncated value that parses fine
+  // (GH#66524). Rebuild an exact str/bytes rather than repr-ing `str` itself,
+  // whose subclasses carry their type into the repr (numpy scalars render as
+  // `np.str_('a')`); this stays lossless for bytes, which no decode would be.
+  PyObject *display = PyBytes_Check(str)
+                          ? PyBytes_FromStringAndSize(data, length)
+                          : PyUnicode_FromStringAndSize(data, length);
+  if (display == NULL) {
+    return -1;
+  }
+  PyErr_Format(PyExc_ValueError, "Unable to parse string %R", display);
+  Py_DECREF(display);
   return -1;
 }
 

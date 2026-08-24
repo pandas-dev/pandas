@@ -371,6 +371,20 @@ def test_zfill(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_zfill_signed(any_string_dtype):
+    s = Series(["-3", "+7", "-", "0"], dtype=any_string_dtype)
+    result = s.str.zfill(5)
+    expected = Series(["-0003", "+0007", "-0000", "00000"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_zfill_all_null(any_string_dtype):
+    s = Series([None, None], dtype=any_string_dtype)
+    result = s.str.zfill(5)
+    expected = Series([None, None], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_wrap(any_string_dtype):
     # test values are: two words less than width, two words equal to width,
     # two words greater than width, one word less than width, one word

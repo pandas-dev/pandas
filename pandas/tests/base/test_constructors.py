@@ -162,7 +162,7 @@ class TestConstruction:
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
-        msg = "Out of bounds|Out of bounds .* present at position 0"
+        msg = "|".join(["Out of bounds", "Out of bounds .* present at position 0"])
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
             constructor(a, dtype="datetime64[ns]")
 

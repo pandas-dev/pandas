@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from hypothesis import given
 import numpy as np
 import pytest
 
@@ -18,7 +17,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -63,9 +61,11 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            msg = (
-                "'>' not supported between instances of 'str' and 'int'"
-                "|Invalid comparison"
+            msg = "|".join(
+                [
+                    "'>' not supported between instances of 'str' and 'int'",
+                    "Invalid comparison",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 df > 0
@@ -130,9 +130,11 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = (
-                "'>' not supported between instances of 'str' and 'int'"
-                "|Invalid comparison"
+            msg = "|".join(
+                [
+                    "'>' not supported between instances of 'str' and 'int'",
+                    "Invalid comparison",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 df > 0
@@ -151,8 +153,6 @@ class TestDataFrameIndexingWhere:
         check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
         _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
-    # Ignore deprecation warning in Python 3.12 for inverting a bool
-    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_where_invalid(self):
         # invalid conditions
         df = DataFrame(
@@ -197,9 +197,11 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = (
-                "'>' not supported between instances of 'str' and 'int'"
-                "|Invalid comparison"
+            msg = "|".join(
+                [
+                    "'>' not supported between instances of 'str' and 'int'",
+                    "Invalid comparison",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 df > 0
@@ -970,13 +972,24 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
-@pytest.mark.slow
-@given(data=OPTIONAL_ONE_OF_ALL)
+@pytest.mark.parametrize(
+    "data",
+    [
+        [1, 2, None],
+        [1.5, None, 3.0],
+        [None, None, None],
+        ["a", None, "c"],
+        [],
+        [{"a": 1}, None, {"b": 2}],
+        [[1, 2], None, [3]],
+    ],
+)
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})
-    df_copy = df.where(pd.notnull(df), None).copy()
-    df.where(pd.notnull(df), None, inplace=True)
+    mask = pd.notnull(df)
+    df_copy = df.where(mask, None).copy()
+    df.where(mask, None, inplace=True)
     tm.assert_equal(df, df_copy)
 
 
@@ -1104,4 +1117,35 @@ def test_where_series_cond_with_axis1():
     expected = DataFrame(
         [[0.0, 0.5, np.nan], [0.1, 0.0, np.nan], [0.2, 0.0, np.nan]],
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["where", "mask"])
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]", "M8[ns, UTC]"])
+def test_where_mask_inplace_2d_ea_other(method, dtype):
+    # GH#64620 inplace where/mask on a multi-column 2D extension block must
+    #  transpose `new` to storage layout (like setitem), otherwise masked cells
+    #  get filled from the wrong column. The bug needs a single block spanning
+    #  >1 column. Building from a 2D ExtensionArray covers tz-aware datetime
+    #  (which never consolidates) alongside tz-naive datetime64 / timedelta64.
+    base = "m8[ns]" if dtype == "m8[ns]" else "M8[ns]"
+
+    def to_frame(start):
+        arr = pd.array(np.arange(start, start + 6).astype(base), dtype=dtype)
+        return DataFrame(arr.reshape(3, 2))
+
+    df = to_frame(0)
+    other = to_frame(100)
+    cond = DataFrame([[True, False], [False, True], [True, False]])
+
+    # the values must share a single multi-column 2D block to hit the bug
+    assert len(df._mgr.blocks) == 1
+    assert df._mgr.blocks[0].values.ndim == 2
+    assert df._mgr.blocks[0].values.shape[0] == 2
+
+    expected = getattr(df, method)(cond, other)
+
+    result = df.copy()
+    getattr(result, method)(cond, other, inplace=True)
+
     tm.assert_frame_equal(result, expected)

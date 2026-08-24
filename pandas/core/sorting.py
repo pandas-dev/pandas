@@ -171,7 +171,7 @@ def get_group_index(
     def maybe_lift(lab: np.ndarray, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+        return (lab + 1, size + 1) if lib.has_sentinel(lab, -1) else (lab, size)
 
     labels = [ensure_int64(x) for x in labels]
     lshape = list(shape)
@@ -289,7 +289,7 @@ def decons_obs_group_ids(
         If nulls are excluded; i.e. -1 labels are passed through.
     """
     if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype=np.intp)
+        lift = np.fromiter((lib.has_sentinel(a, -1) for a in labels), dtype=np.intp)
         arr_shape = np.asarray(shape, dtype=np.intp) + lift
         shape = tuple(arr_shape)
 
@@ -657,7 +657,7 @@ def get_indexer_dict(
         else np.prod(shape, dtype="i8")
     )
 
-    sorter = get_group_index_sorter(group_index, ngroups)
+    sorter = get_group_index_sorter(group_index, ngroups)  # type: ignore[arg-type]
 
     sorted_labels = [lab.take(sorter) for lab in label_list]
     group_index = group_index.take(sorter)
@@ -696,15 +696,15 @@ def get_group_index_sorter(
     np.ndarray[np.intp]
     """
     if ngroups is None:
-        ngroups = 1 + group_index.max()
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))  # type: ignore[operator]
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(
             ensure_platform_int(group_index),
-            ngroups,
+            ngroups,  # type: ignore[arg-type]
         )
         # sorter _should_ already be intp, but mypy is not yet able to verify
     else:

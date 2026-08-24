@@ -378,11 +378,14 @@ void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded) {
   }
 
   if (enc->heap) {
-    enc->start = (char *)enc->realloc(enc->start, newSize);
-    if (!enc->start) {
+    // realloc does not free the original block when it fails, so keep the old
+    // pointer until it succeeds
+    char *newStart = (char *)enc->realloc(enc->start, newSize);
+    if (!newStart) {
       SetError(NULL, enc, "Could not reserve memory block");
       return;
     }
+    enc->start = newStart;
   } else {
     char *oldStart = enc->start;
     enc->heap = 1;
@@ -1196,6 +1199,12 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
 
   Buffer_Reserve(enc, 1);
   if (enc->errorMsg) {
+    if (enc->heap) {
+      // the caller only frees the buffer it passed in, so a buffer we grew
+      // onto the heap has to be released here
+      enc->free(enc->start);
+      enc->start = NULL;
+    }
     return NULL;
   }
   Buffer_AppendCharUnchecked(enc, '\0');
