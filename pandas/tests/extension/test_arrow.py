@@ -3647,6 +3647,7 @@ def test_from_sequence_of_strings_empty_string_with_na():
 
 
 def test_from_sequence_of_strings_empty_string_int():
+    # GH#66834
     strings = ["1", "", "2"]
     dtype = ArrowDtype(pa.int64())
     with pytest.raises(ValueError, match=r"could not convert string to int64"):
@@ -3654,6 +3655,7 @@ def test_from_sequence_of_strings_empty_string_int():
 
 
 def test_from_sequence_of_strings_none_float():
+    # GH#66834
     strings = ["1.5", None, "2.0"]
     dtype = ArrowDtype(pa.float64())
     result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
