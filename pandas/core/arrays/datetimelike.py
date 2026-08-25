@@ -2470,7 +2470,7 @@ def ensure_arraylike_for_datetimelike(
     if isinstance(data, IntegerArray) or (
         isinstance(data, ArrowExtensionArray) and data.dtype.kind in "iu"
     ):
-        data = data.to_numpy("int64", na_value=iNaT)
+        data = data.to_numpy()
         copy = False
     elif isinstance(data, ArrowExtensionArray):
         data = data._maybe_convert_datelike_array()
