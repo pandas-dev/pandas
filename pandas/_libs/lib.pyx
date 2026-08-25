@@ -2261,48 +2261,60 @@ def first_non_numeric(ndarray values):
     numeric reduction was asked for, so nanops rejects these up front rather
     than silently computing a statistic of the wrong thing.
 
+    A ``datetime64``/``timedelta64`` NaT is missing-ness rather than a
+    datetime, so it is reported separately: reductions mask it out the way
+    they mask ``None`` and ``pd.NaT``, but numpy casts it to its ``int64``
+    sentinel rather than to NaN, so the caller has to fill it in first.
+
     Parameters
     ----------
     values : ndarray[object]
 
     Returns
     -------
-    object or None
+    non_numeric : object or None
         The offending element, for use in the error message.
+    has_nat : bool
+        Whether the values hold a ``datetime64``/``timedelta64`` NaT.
 
     Examples
     --------
     >>> arr = np.array([1.0, "2", 3.0], dtype=object)
     >>> first_non_numeric(arr)
-    '2'
-    >>> first_non_numeric(np.array([1.0, 2.0], dtype=object)) is None
-    True
+    ('2', False)
+    >>> first_non_numeric(np.array([1.0, 2.0], dtype=object))
+    (None, False)
+    >>> first_non_numeric(np.array([1.0, np.datetime64("NaT")], dtype=object))
+    (None, True)
     """
     cdef:
         Py_ssize_t _i, n = cnp.PyArray_SIZE(values)
         flatiter it = PyArray_IterNew(values)
         object val
         type val_type, prev_type = None
+        bint prev_temporal = False, prev_rejected = False, has_nat = False
 
     for _i in range(n):
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
 
         val_type = type(val)
-        if val_type is prev_type:
+        if val_type is not prev_type:
             # object arrays are near-always homogeneous, so checking each
             # distinct type once keeps this a pointer comparison per element
-            continue
-        prev_type = val_type
+            prev_type = val_type
+            prev_temporal = (
+                cnp.is_datetime64_object(val) or cnp.is_timedelta64_object(val)
+            )
+            prev_rejected = prev_temporal or issubclass(val_type, (str, bytes))
 
-        if (
-            issubclass(val_type, (str, bytes))
-            or cnp.is_datetime64_object(val)
-            or cnp.is_timedelta64_object(val)
-        ):
-            return val
+        if prev_rejected:
+            # NaT-ness is per-element, so it cannot be cached with the type
+            if not prev_temporal or not checknull(val):
+                return val, has_nat
+            has_nat = True
 
-    return None
+    return None, has_nat
 
 
 @cython.internal

@@ -548,9 +548,20 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
 
     # GH#44008, GH#36703 strings (and datetime64s) convert to a number without
     #  complaint, so reject them before numpy gets the chance
-    non_numeric = lib.first_non_numeric(values)
+    non_numeric, has_nat = lib.first_non_numeric(values)
     if non_numeric is not None:
         raise TypeError(f"Could not convert {non_numeric!r} to numeric")
+
+    if has_nat:
+        # A datetime64/timedelta64 NaT is an NA, but numpy casts it to the
+        #  int64 sentinel rather than to NaN.  Swap in None, which every cast
+        #  below maps to the same NaN it maps pd.NaT to.  Any *non*-NaT
+        #  datetime64 was already rejected above, so every one left is an NA.
+        nat_mask = np.array(
+            [isinstance(val, (np.datetime64, np.timedelta64)) for val in values.ravel()]
+        )
+        values = values.copy()
+        values[nat_mask.reshape(values.shape)] = None
 
     try:
         with warnings.catch_warnings():
@@ -1290,13 +1301,13 @@ def nanvar(
     sqr = (avg - values) ** 2
     if mask is not None:
         np.putmask(sqr, mask, 0)
-    result = sqr.sum(axis=axis, dtype=np.float64) / d
+    result: np.ndarray | np.float64 = sqr.sum(axis=axis, dtype=np.float64) / d
 
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
     # precision as the original values array.
     if dtype.kind == "f":
-        result = cast("np.ndarray", result).astype(dtype, copy=False)
+        result = result.astype(dtype, copy=False)
     return result
 
 

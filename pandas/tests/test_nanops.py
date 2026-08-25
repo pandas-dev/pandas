@@ -946,6 +946,17 @@ def test_object_complex_matches_native(func, scalar):
     assert getattr(nanops, func)(objarr) == expected
 
 
+@pytest.mark.parametrize("nat", [pd.NaT, np.datetime64("NaT"), np.timedelta64("NaT")])
+@pytest.mark.parametrize("func", ["nanmean", "nanmedian", "nanvar", "nanstd", "nansem"])
+def test_object_nat_is_na(func, nat):
+    # GH#34671 a NaT is missing-ness rather than a datetime, so it is masked
+    #  out like any other NA whichever flavour of NaT it is
+    objarr = np.empty(3, dtype=object)
+    objarr[:] = [1.0, nat, 3.0]
+    expected = getattr(nanops, func)(np.array([1.0, np.nan, 3.0]))
+    assert getattr(nanops, func)(objarr) == expected
+
+
 def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     # the imaginary part was silently discarded on builds without bottleneck
     values = np.array([1 + 2j, 3 + 4j, 5j, 1j])
@@ -964,6 +975,10 @@ def test_ensure_numeric_passthrough():
         ([1, 2, 3], np.array([1.0, 2.0, 3.0])),
         ([1.0, None, 3.0], np.array([1.0, np.nan, 3.0])),
         ([1.0, pd.NA, 3.0], np.array([1.0, np.nan, 3.0])),
+        # a NaT is missing-ness, not a datetime, whichever flavour it is
+        ([1.0, pd.NaT, 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, np.datetime64("NaT"), 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, np.timedelta64("NaT"), 3.0], np.array([1.0, np.nan, 3.0])),
         ([Decimal(1), Decimal(2)], np.array([1.0, 2.0])),
         ([True, False], np.array([1.0, 0.0])),
         ([1 + 2j, 3.0], np.array([1 + 2j, 3 + 0j])),
@@ -987,6 +1002,9 @@ def test_ensure_numeric_object(values, expected):
         ([b"1", b"2"], "b'1'"),
         ([np.datetime64("2020-01-01"), np.datetime64("2020-01-02")], "datetime64"),
         ([np.timedelta64(1, "D")], "timedelta64"),
+        # a leading NaT does not let the datetime64 behind it through
+        ([1.0, np.datetime64("NaT"), np.datetime64("2020-01-01")], "datetime64"),
+        ([1.0, np.timedelta64("NaT"), np.timedelta64(1, "D")], "timedelta64"),
         ([Timestamp("2020-01-01")], "Timestamp"),
         # the NA is not the culprit; the message names the element that is
         ([1 + 2j, pd.NA, Timestamp("2020-01-01")], "Timestamp"),
@@ -1022,6 +1040,11 @@ def test_ensure_numeric_raises(values, match):
         ),
         (
             [1 + 2j, pd.NaT, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        ([1 + 2j, np.datetime64("NaT")], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        (
+            [1 + 2j, np.timedelta64("NaT"), np.nan],
             np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
         ),
         # a Decimal NaN is one numpy can cast itself, so it keeps nan+0j even

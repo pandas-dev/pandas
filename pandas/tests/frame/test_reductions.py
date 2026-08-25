@@ -1058,11 +1058,13 @@ class TestDataFrameAnalytics:
         expected = DataFrame(arr).mean().astype("Float64")
         tm.assert_series_equal(result, expected)
 
-    def test_stats_mixed_type(self, float_string_frame):
+    @pytest.mark.parametrize(
+        "meth", ["std", "var", "mean", "median", "sem", "skew", "kurt"]
+    )
+    def test_stats_mixed_type(self, float_string_frame, meth):
         msg = "Could not convert 'bar' to numeric"
-        for meth in ["std", "var", "mean", "median", "sem", "skew", "kurt"]:
-            with pytest.raises(TypeError, match=msg):
-                getattr(float_string_frame, meth)(axis=1)
+        with pytest.raises(TypeError, match=msg):
+            getattr(float_string_frame, meth)(axis=1)
 
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
