@@ -301,6 +301,7 @@ class TestMerge:
         assert result.name is None
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     def test_int64_overflow_how_merge(self, left_right, join_type):
         left, right = left_right
 

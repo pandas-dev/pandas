@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -23,6 +25,7 @@ class TestDataFrameSortValues:
             # No warnings about constructing Index from SparseArray
             df.sort_values(by=df.columns.tolist())
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     def test_sort_values(self):
         frame = DataFrame(
             [[1, 1, 2], [3, 1, 0], [4, 5, 6]], index=[1, 2, 3], columns=list("ABC")
@@ -92,6 +95,7 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(result, expected)
         assert result is not expected
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     def test_sort_values_inplace(self):
         frame = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
@@ -330,6 +334,7 @@ class TestDataFrameSortValues:
         df2 = df.sort_values(by=["C", "B"])
         tm.assert_frame_equal(df1, df2)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_values")
     def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
         s = float_frame["A"]
         float_frame_orig = float_frame.copy()
@@ -535,6 +540,7 @@ class TestDataFrameSortValues:
         with pytest.raises(ValueError, match="invalid na_position: bad_position"):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ignore_index, output_index",
@@ -599,6 +605,7 @@ class TestDataFrameSortValues:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     def test_sort_values_no_by_inplace(self):
         # GH#50643
         df = DataFrame({"a": [1, 2, 3]})
@@ -623,6 +630,7 @@ class TestDataFrameSortValues:
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     def test_sort_values_inplace_key(self, sort_by_key):
         frame = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
@@ -907,3 +915,28 @@ class TestSortValuesLevelAsStr:
         expected = df.loc[df.index[indexer]]
         result = df.sort_values(by="D", ascending=ascending)
         tm.assert_frame_equal(result, expected)
+
+
+def test_sort_values_inplace_depr():
+    msg = "The inplace keyword in DataFrame.sort_values is deprecated"
+
+    df = DataFrame({"a": [3, 1, 2]})
+    df_orig = df.copy()
+    expected = DataFrame({"a": [1, 2, 3]}, index=[1, 2, 0])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.sort_values(by="a")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.sort_values(by="a", inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.sort_values(by="a", inplace=True)
+    tm.assert_frame_equal(df, expected)

@@ -1574,7 +1574,7 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on=["k1", "k2"], sort=True)
-        expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
+        expected = expected.sort_values(["k1", "k2"], kind="mergesort")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
