@@ -926,3 +926,12 @@ class TestTableOrientReader:
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_non_string_column_names(self):
+        # GH#19129
+        df = DataFrame([[1, 2, 3, 4]], columns=[5, 6, 7, 8])
+        out = StringIO(df.to_json(orient="table"))
+
+        msg = r"All column names must be strings when using orient='table'\."
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
