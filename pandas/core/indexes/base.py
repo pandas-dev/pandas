@@ -8210,7 +8210,6 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     Parameters
     ----------
     sequence : 1D sequence
-    names : sequence of str
 
     Returns
     -------

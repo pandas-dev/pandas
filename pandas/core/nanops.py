@@ -127,16 +127,14 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
-            if values.size == 0 and kwds.get("min_count") is None:
-                # We are empty, returning NA for our type
-                # Only applies for the default `min_count` of None
-                # since that affects how empty arrays are handled.
-                # TODO(GH-18976) update all the nanops methods to
-                # correctly handle empty inputs and remove this check.
-                # It *may* just be `var`
-                return _na_for_min_count(values, axis)
-
-            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype, bn_name):
+            # GH#18976 bottleneck's nanmin/nanmax raise on empty input; skip it
+            #  and let each nanops function return the NA for its own dtype.
+            if (
+                _USE_BOTTLENECK
+                and skipna
+                and values.size > 0
+                and _bn_ok_dtype(values.dtype, bn_name)
+            ):
                 if kwds.get("mask", None) is None:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
@@ -430,6 +428,12 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
+            if getattr(result, "dtype", None) == orig_values.dtype:
+                # GH#18976 empty input short-circuits to NA of the original
+                #  dtype; _wrap_results expects an i8 result and would compare
+                #  this against iNaT.
+                return result
+
             result_mask = None
             if not skipna:
                 assert mask is not None  # checked above
@@ -972,6 +976,10 @@ def nanmean(
     >>> nanops.nanmean(s.values)
     np.float64(1.5)
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
@@ -1220,6 +1228,10 @@ def nanstd(
         unit = np.datetime_data(values.dtype)[0]
         values = values.view(f"m8[{unit}]")
 
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
 
@@ -1265,6 +1277,9 @@ def nanvar(
     >>> nanops.nanvar(s.values)
     1.0
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if dtype.kind in "iu":
