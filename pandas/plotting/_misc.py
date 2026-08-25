@@ -242,7 +242,8 @@ def scatter_matrix(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
+        >>> data = np.random.default_rng(42).standard_normal((1000, 4))
+        >>> df = pd.DataFrame(data, columns=["A", "B", "C", "D"])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
         array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
                 <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
@@ -502,7 +503,7 @@ def bootstrap_plot(
     .. plot::
         :context: close-figs
 
-        >>> s = pd.Series(np.random.uniform(size=100))
+        >>> s = pd.Series(np.random.rng(42).uniform(size=100))
         >>> pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
         <Figure size 640x480 with 6 Axes>
     """
@@ -660,8 +661,8 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     .. plot::
         :context: close-figs
 
-        >>> np.random.seed(5)
-        >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
+        >>> rng = np.random.default_rng(42)
+        >>> x = np.cumsum(rng.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
         >>> s.plot()  # doctest: +SKIP
 
@@ -719,7 +720,8 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
         :context: close-figs
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
-        >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
+        >>> rng = np.random.default_rng(42)
+        >>> s = pd.Series(0.7 * rng.standard_normal(1000) + 0.3 * np.sin(spacing))
         >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -748,9 +750,9 @@ class _Options(dict):
     .. plot::
             :context: close-figs
 
-             >>> np.random.seed(42)
+             >>> rng = np.random.default_rng(42)
              >>> df = pd.DataFrame(
-             ...     {"A": np.random.randn(10), "B": np.random.randn(10)},
+             ...     {"A": rng.standard_normal(10), "B": rng.standard_normal(10)},
              ...     index=pd.date_range("1/1/2000", freq="4MS", periods=10),
              ... )
              >>> with pd.plotting.plot_params.use("x_compat", True):
