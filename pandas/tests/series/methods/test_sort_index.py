@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DatetimeIndex,
     IntervalIndex,
@@ -54,6 +56,7 @@ class TestSeriesSortIndex:
         with pytest.raises(ValueError, match=msg):
             random_order.sort_index(level=0, axis=1)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_index")
     def test_sort_index_inplace(self, datetime_series):
         datetime_series.index = datetime_series.index._with_freq(None)
 
@@ -146,6 +149,7 @@ class TestSeriesSortIndex:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_index")
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_list, sorted_list, ascending, ignore_index, output_index",
@@ -335,3 +339,28 @@ class TestSeriesSortIndexKey:
         elif ascending == [False, True]:
             expected = ser.take([2, 3, 0, 1])
         tm.assert_series_equal(result, expected)
+
+
+def test_sort_index_inplace_depr():
+    msg = "The inplace keyword in Series.sort_index is deprecated"
+
+    ser = Series([3, 1, 2], index=[2, 0, 1])
+    ser_orig = ser.copy()
+    expected = Series([1, 2, 3], index=[0, 1, 2])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.sort_index()
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.sort_index(inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.sort_index(inplace=True)
+    tm.assert_series_equal(ser, expected)
