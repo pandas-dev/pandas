@@ -57,7 +57,8 @@ class TestPeriodIndex:
         # shifting the bounds to span two periods instead of the single one
         # get_loc already resolved it to.
         periods = 12 if freq.startswith("Q") else 8
-        pi = period_range("2000Q1" if freq.startswith("Q") else "2000", periods=periods, freq=freq)
+        start = "2000Q1" if freq.startswith("Q") else "2000"
+        pi = period_range(start, periods=periods, freq=freq)
         ser = Series(range(periods), index=pi)
         result = ser.loc[label:label]
         expected = ser.iloc[[pi.get_loc(label)]]
