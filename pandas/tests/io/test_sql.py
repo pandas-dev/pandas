@@ -217,9 +217,8 @@ def create_and_load_iris_view(conn, iris_name: str, iris_view_name: str):
         else:
             from sqlalchemy import text
 
-            stmt = text(stmt)
             with conn.begin() as con:
-                con.execute(stmt)
+                con.execute(text(stmt))
 
 
 def types_table_metadata(dialect: str, types_name: str):
