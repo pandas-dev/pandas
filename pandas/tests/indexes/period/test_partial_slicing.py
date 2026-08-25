@@ -34,6 +34,36 @@ class TestPeriodIndex:
         # Todo: fix these accessors!
         assert ser["05Q4"] == ser.iloc[2]
 
+    @pytest.mark.parametrize(
+        "freq, label",
+        [
+            ("Q-DEC", "2001Q1"),
+            ("Q-JAN", "2001Q1"),
+            ("Q-FEB", "2001Q1"),
+            ("Q-MAR", "2001Q1"),
+            ("Q-APR", "2001Q1"),
+            ("Q-NOV", "2001Q1"),
+            ("Y-DEC", "2002"),
+            ("Y-JUN", "2002"),
+            ("Y-MAR", "2002"),
+        ],
+    )
+    def test_string_slice_matches_freq_resolves_single_anchored_period(
+        self, freq, label
+    ):
+        # GH#66571 partial-string slicing at the same resolution as an
+        # anchored freq (e.g. "2001Q1" on a Q-FEB index) used to resolve the
+        # string via a calendar-freq Period first, discarding the anchor and
+        # shifting the bounds to span two periods instead of the single one
+        # get_loc already resolved it to.
+        periods = 12 if freq.startswith("Q") else 8
+        pi = period_range("2000Q1" if freq.startswith("Q") else "2000", periods=periods, freq=freq)
+        ser = Series(range(periods), index=pi)
+        result = ser.loc[label:label]
+        expected = ser.iloc[[pi.get_loc(label)]]
+        tm.assert_series_equal(result, expected)
+        assert len(result) == 1
+
     def test_pindex_slice_index(self):
         pi = pd.period_range(start="1/1/10", end="12/31/12", freq="M")
         s = pd.Series(np.random.default_rng(2).random(len(pi)), index=pi)
