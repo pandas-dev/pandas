@@ -2200,9 +2200,14 @@ class TestToDatetimeUnit:
     def test_uint64_to_datetime_raise_oob(self):
         # GH#60677 uint64 values > int64 max overflow silently
         uint64_max = np.iinfo(np.uint64).max
-        arr = np.array([uint64_max], dtype=np.uint64)
 
         msg = "cannot convert input with unit 'ns'"
+
+        # arrays via to_datetime
+        arr = np.array([uint64_max], dtype=np.uint64)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="ns", errors="raise")
+        arr = pd.array([uint64_max], dtype="UInt64")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr, unit="ns", errors="raise")
         # scalar via to_datetime
@@ -2216,10 +2221,14 @@ class TestToDatetimeUnit:
     def test_uint64_to_datetime_coerce(self):
         # GH#60677
         uint64_max = np.iinfo(np.uint64).max
-        arr = np.array([uint64_max], dtype=np.uint64)
 
+        arr = np.array([uint64_max], dtype=np.uint64)
         result = to_datetime(arr, unit="ns", errors="coerce")
         expected = DatetimeIndex(["NaT"], dtype="datetime64[ns]")
+        tm.assert_index_equal(result, expected)
+
+        arr = pd.array([uint64_max], dtype="UInt64")
+        result = to_datetime(arr, unit="ns", errors="coerce")
         tm.assert_index_equal(result, expected)
 
         # scalar
@@ -2231,6 +2240,11 @@ class TestToDatetimeUnit:
         arr = np.array([1_000_000, 2_000_000], dtype=np.uint64)
         result = to_datetime(arr, unit="ns")
         expected = to_datetime(arr.astype(np.int64), unit="ns")
+        tm.assert_index_equal(result, expected)
+
+        arr = pd.array([1_000_000, 2_000_000, None], dtype="UInt64")
+        result = to_datetime(arr, unit="ns")
+        expected = expected.append(to_datetime([NaT]))
         tm.assert_index_equal(result, expected)
 
 
