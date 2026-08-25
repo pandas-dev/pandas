@@ -2247,6 +2247,20 @@ class TestToDatetimeUnit:
         expected = expected.append(to_datetime([NaT]))
         tm.assert_index_equal(result, expected)
 
+    def test_nullable_int_to_datetime_no_float_precision_loss(self):
+        # GH#66988 a nullable int array with a value that is not exactly
+        #  representable as float64 should not lose precision by going
+        #  through a float64 intermediate when it contains NA values
+        value = 2**60 + 1
+        arr = pd.array([value, None], dtype="Int64")
+        result = to_datetime(arr, unit="ns")
+        expected = DatetimeIndex([Timestamp(value, unit="ns"), NaT]).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+        uarr = pd.array([value, None], dtype="UInt64")
+        result = to_datetime(uarr, unit="ns")
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetimeDataFrame:
     @pytest.fixture

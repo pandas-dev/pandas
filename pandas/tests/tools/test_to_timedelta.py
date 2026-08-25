@@ -516,6 +516,20 @@ class TestTimedeltas:
         expected = expected.append(to_timedelta([pd.NaT]))
         tm.assert_index_equal(result, expected)
 
+    def test_nullable_int_to_timedelta_no_float_precision_loss(self):
+        # GH#66988 a nullable int array with a value that is not exactly
+        #  representable as float64 should not lose precision by going
+        #  through a float64 intermediate when it contains NA values
+        value = 2**60 + 1
+        arr = pd.array([value, None], dtype="Int64")
+        result = to_timedelta(arr, unit="ns")
+        expected = TimedeltaIndex([pd.Timedelta(value, unit="ns"), pd.NaT])
+        tm.assert_index_equal(result, expected)
+
+        uarr = pd.array([value, None], dtype="UInt64")
+        result = to_timedelta(uarr, unit="ns")
+        tm.assert_index_equal(result, expected)
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425

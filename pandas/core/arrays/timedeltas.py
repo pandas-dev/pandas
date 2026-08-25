@@ -73,6 +73,7 @@ from pandas.core import (
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -1256,6 +1257,19 @@ def sequence_to_td64ns(
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
+    int_mask = None
+    if isinstance(data, IntegerArray):
+        # GH#66988 use the underlying int/uint ndarray + mask directly instead
+        #  of going through to_numpy(), which (for masked data) upcasts to
+        #  float64 and can lose precision for large int64/uint64 magnitudes
+        int_mask = data._mask if data._hasna else None
+        data = data._data
+        if int_mask is not None:
+            # set to 0 to avoid OOB on masked values (setting iNaT only works for int64)
+            # will get converted to NaT later
+            data = data.copy()
+            data[int_mask] = 0
+
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="TimedeltaArray"
     )
@@ -1273,8 +1287,16 @@ def sequence_to_td64ns(
         except OutOfBoundsTimedelta:
             if errors == "raise":
                 raise
-            data = _objects_to_td64ns(data.astype(object), unit=unit, errors=errors)
+            data = data.astype(object)
+            if int_mask is not None:
+                data[int_mask] = None
+            data = _objects_to_td64ns(data, unit=unit, errors=errors)
             copy_made = True
+        else:
+            if int_mask is not None:
+                data[int_mask] = iNaT
+                # copy was already made before calling ensure_arraylike_for_datetimelike
+                copy_made = True
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):

@@ -71,6 +71,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.arrays import (
     DatetimeArray,
+    IntegerArray,
     NumpyExtensionArray,
 )
 from pandas.core.algorithms import unique
@@ -534,9 +535,18 @@ def _to_datetime_with_unit(
     """
     arg = extract_array(arg, extract_numpy=True)
 
-    # GH#30050 pass an ndarray to tslib.array_to_datetime
-    # because it expects an ndarray argument
-    arg = np.asarray(arg)
+    # convert to an ndarray because tslib.array_to_datetime expects an ndarray argument
+    if isinstance(arg, IntegerArray):
+        mask = arg._mask if arg._hasna else None
+        arg = arg._data
+        if mask is not None:
+            # set to 0 to avoid OOB on masked values (setting iNaT only works for int64)
+            # will get converted to NaT later
+            arg = arg.copy()
+            arg[mask] = 0
+    else:
+        mask = None
+        arg = np.asarray(arg)
 
     if arg.dtype.kind in "iu":
         # Note we can't do "f" here because that could induce unwanted
@@ -553,6 +563,8 @@ def _to_datetime_with_unit(
                     )
 
                 arg = arg.astype(object)
+                if mask is not None:
+                    arg[mask] = None
                 return _to_datetime_with_unit(
                     arg, unit, name, utc, errors, dayfirst, yearfirst
                 )
@@ -564,9 +576,13 @@ def _to_datetime_with_unit(
             if errors == "raise":
                 raise
             arg = arg.astype(object)
+            if mask is not None:
+                arg[mask] = None
             return _to_datetime_with_unit(
                 arg, unit, name, utc, errors, dayfirst, yearfirst
             )
+        if mask is not None:
+            arr[mask] = iNaT
         tz_parsed = None
 
     elif arg.dtype.kind == "f":
