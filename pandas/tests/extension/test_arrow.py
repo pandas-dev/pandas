@@ -3629,8 +3629,8 @@ def test_setitem_na_sliced_chunk_if_else(pa_type, extra_chunk):
 @pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
 @pytest.mark.parametrize("chunked", [True, False])
 def test_from_sequence_of_strings_duration_sliced(chunked, pa_type):
-    # GH#64320: the non-ns duration path routes strings through pc.if_else,
-    # which truncated them when they were read through a non-zero offset
+    # GH#64320: the non-ns duration path used to route strings through pc.if_else,
+    # which silently truncated values at a non-zero array offset
     values = ["11", "22", "33", "444444444", None]
     # seconds, not the nanoseconds to_timedelta would infer from a bare integer
     seconds = [11, 22, 33, 444444444, None]

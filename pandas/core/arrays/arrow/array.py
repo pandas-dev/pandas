@@ -3307,7 +3307,7 @@ class ArrowExtensionArray(
             values = values.combine_chunks()
         if pa.types.is_null(values.type):
             # GH#66703 pc.replace_with_mask aborts the process for null dtype
-            # (apache/arrow#47447, fixed in pyarrow 25.0.0). An all-null array
+            # (apache/arrow#47447, fixed in pyarrow 25.0.0). The null type
             # has no non-null values to replace; return it unchanged.
             return values
         try:
