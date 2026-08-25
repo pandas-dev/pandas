@@ -635,11 +635,9 @@ def assert_categorical_equal(
     assert_attr_equal("ordered", left, right, obj=obj)
 
 
-@deprecate_kwarg(Pandas4Warning, "exact", new_arg_name=None)
 def assert_interval_array_equal(
     left: IntervalArray,
     right: IntervalArray,
-    exact: bool | Literal["equiv"] = "equiv",
     obj: str = "IntervalArray",
 ) -> None:
     """
@@ -649,13 +647,6 @@ def assert_interval_array_equal(
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool or {'equiv'}, default 'equiv'
-        Has no effect. It was meaningful only while the ``left`` and ``right``
-        endpoints were stored as :class:`Index` objects, which stopped being
-        the case in pandas 1.2.
-
-        .. deprecated:: 3.1.0
-
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
