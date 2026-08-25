@@ -503,7 +503,7 @@ def bootstrap_plot(
     .. plot::
         :context: close-figs
 
-        >>> s = pd.Series(np.random.rng(42).uniform(size=100))
+        >>> s = pd.Series(np.random.default_rng(42).uniform(size=100))
         >>> pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
         <Figure size 640x480 with 6 Axes>
     """

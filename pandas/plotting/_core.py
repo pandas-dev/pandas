@@ -2377,7 +2377,9 @@ class PlotAccessor(PandasObject):
 
             >>> n = 10000
             >>> rng = np.random.default_rng(42)
-            >>> df = pd.DataFrame({"x": rng.randn(n), "y": rng.randn(n)})
+            >>> df = pd.DataFrame(
+            ...     {"x": rng.standard_normal(n), "y": rng.standard_normal(n)}
+            ... )
             >>> ax = df.plot.hexbin(x="x", y="y", gridsize=20)
 
         The next example uses `C` and `np.sum` as `reduce_C_function`.
