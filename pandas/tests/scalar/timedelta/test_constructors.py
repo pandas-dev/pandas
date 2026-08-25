@@ -250,6 +250,12 @@ class TestTimedeltaConstructorUnitKeyword:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta(10**19, unit="s")
 
+    @pytest.mark.parametrize("typ", [int, np.int64, float])
+    def test_min_int64_to_nat(self, typ):
+        val = typ(-(2**63))
+        assert Timedelta(val) is NaT
+        assert Timedelta(val, unit="s") is NaT
+
 
 def test_construct_from_kwargs_overflow():
     # GH#55503
