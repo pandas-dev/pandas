@@ -1505,7 +1505,7 @@ def searchsorted(
             # If value is a pandas Array with <NA>, cast it int64, (massive value)
             # so we place it at the end of array
             value_arr = value.to_numpy(dtype=object)
-        elif hasattr(value, "-values") and isinstance(value._values, ABCExtensionArray):
+        elif hasattr(value, "_values") and isinstance(value._values, ABCExtensionArray):
             # only sereis and index not all
             value_arr = value._values.to_numpy(dtype=object)
         else:
