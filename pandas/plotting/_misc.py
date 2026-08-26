@@ -503,7 +503,8 @@ def bootstrap_plot(
     .. plot::
         :context: close-figs
 
-        >>> s = pd.Series(np.random.default_rng(42).uniform(size=100))
+        >>> rng = np.random.default_rng(42)
+        >>> s = pd.Series(rng.uniform(size=100))
         >>> pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
         <Figure size 640x480 with 6 Axes>
     """
@@ -721,7 +722,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
         >>> rng = np.random.default_rng(42)
-        >>> s = pd.Series(0.7 * rng.standard_normal(1000) + 0.3 * np.sin(spacing))
+        >>> s = pd.Series(0.7 * rng.random(1000) + 0.3 * np.sin(spacing))
         >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
