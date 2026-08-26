@@ -690,9 +690,6 @@ class TestMerge:
         )[["i1", "i2", "i1_", "i3"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
-    )
     def test_merge_type(self, df, df2):
         class NotADataFrame(DataFrame):
             @property
@@ -1577,7 +1574,7 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on=["k1", "k2"], sort=True)
-        expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
+        expected = expected.sort_values(["k1", "k2"], kind="mergesort")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
