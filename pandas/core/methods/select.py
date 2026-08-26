@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
 )
 
 from pandas.core.dtypes.common import is_list_like
@@ -34,7 +33,7 @@ def _parse_select_args(args: tuple) -> list:
     arguments raises, as do sets, whose iteration order is undefined.
     """
 
-    def is_sequence(arg: Any) -> bool:
+    def is_sequence(arg: object) -> bool:
         if isinstance(arg, (set, frozenset)):
             raise TypeError(
                 "`select` does not support sets, as the resulting column "
@@ -56,7 +55,7 @@ def _parse_select_args(args: tuple) -> list:
 
 
 def select(
-    df: DataFrame, select_args: tuple, select_kwargs: dict[str, Any]
+    df: DataFrame, select_args: tuple, select_kwargs: dict[str, object]
 ) -> DataFrame:
     """
     Implementation of DataFrame.select.
@@ -75,7 +74,7 @@ def select(
             chunks.append(df.take(indexer, axis=1))
             labels.clear()
 
-    def make_chunk(name: Hashable, value: Any) -> DataFrame:
+    def make_chunk(name: Hashable, value: object) -> DataFrame:
         chunk = df.iloc[:, :0]
         chunk[name] = value
         return chunk
