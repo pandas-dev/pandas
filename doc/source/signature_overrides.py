@@ -1,3 +1,5 @@
+"""Define signature overrides for Cython classes used in the documentation."""
+
 from datetime import timedelta
 import inspect
 
@@ -59,7 +61,8 @@ def apply_signature_overrides() -> None:
             parameters=[_OFFSET_PARAMETERS[name] for name in parameter_names]
         )
 
-        for parameter in signature.parameters.values():
-            offset_class(**{parameter.name: parameter.default})
+        assert offset_class() == offset_class(
+            **{name: param.default for name, param in signature.parameters.items()}
+        )
 
         offset_class.__signature__ = signature
