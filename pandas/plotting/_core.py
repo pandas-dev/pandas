@@ -891,6 +891,19 @@ class PlotAccessor(PandasObject):
         plots).
     fontsize : float, default None
         Font size for xticks and yticks.
+    color : str, array-like, or dict, optional
+        The color for each of the DataFrame's columns. Possible values are:
+        - A single color string referred to by name, RGB or RGBA code,
+          e.g. 'red' or '#a98d19'.
+        - A sequence of color strings referred to by name, RGB or RGBA
+          code, which will be used for each column recursively. For
+          instance ['green','yellow'] each column's line will be filled in
+          green or yellow alternatively. If there is only a single column to
+          plot, only the first color from the sequence will be used.
+        - A dict of the form {column name : color}, so that each column will be
+          colored accordingly. For example, if your columns are called `a` and
+          `b`, then passing {'a': 'green', 'b': 'red'} will color lines for
+          column `a` in green and lines for column `b` in red.
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
