@@ -663,6 +663,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         convert_numeric: bool = False,
         convert_bool: bool = False,
         float_only: bool = False,
+        bool_case_insensitive: bool = False,
     ) -> Index | None:
         """
         Try converting string categories to numeric or boolean, mirroring
@@ -684,6 +685,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         float_only : bool, default False
             Whether numeric conversion must produce floats, as with
             ``quoting=csv.QUOTE_NONNUMERIC``.
+        bool_case_insensitive : bool, default False
+            Whether the default True/False spellings match in any case, as
+            they do for the c parser's tokenizer.  `true_values` and
+            `false_values` always match exactly, as they do there too.
 
         Returns
         -------
@@ -728,12 +733,36 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 # to_numeric converts "" to NaN, which cannot be a category
 
         if convert_bool:
+            values = np.asarray(cats)
+            if bool_case_insensitive:
+                # fold only the default spellings, and only where the user has
+                #  not spelled the value out: the tokenizer consults
+                #  true_values and false_values before its case-insensitive
+                #  comparison, so those win over the default spelling
+                spelled_out = (*(true_values or ()), *(false_values or ()))
+                values = np.array(
+                    [
+                        val.lower()
+                        if isinstance(val, str)
+                        and val.lower() in ("true", "false")
+                        and val not in spelled_out
+                        else val
+                        for val in values
+                    ],
+                    dtype=object,
+                )
             inferred_bool, _ = libops.maybe_convert_bool(
-                np.asarray(cats),
+                values,
                 true_values=true_values,
                 false_values=false_values,
             )
             if inferred_bool.dtype.kind == "b":
+                if isinstance(cats.dtype, ArrowDtype):
+                    # keep the backing that to_numeric preserves for the
+                    #  numeric branch; maybe_convert_bool only speaks numpy
+                    import pyarrow as pa
+
+                    return Index(inferred_bool, dtype=ArrowDtype(pa.bool_()))
                 return Index(inferred_bool, copy=False)
 
         return None

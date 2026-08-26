@@ -515,8 +515,8 @@ among the specified categories will raise.
       df["col3"]
 
    Columns whose values do not all parse as numeric or boolean retain string
-   categories, and can be converted using the :func:`to_numeric` function, or
-   as appropriate, another converter such as :func:`to_datetime`.
+   categories, and can be converted with an explicit converter such as
+   :func:`to_datetime`.
 
    Columns read with non-default ``thousands`` or ``decimal`` options also
    retain string categories, because the inference is unaware of those

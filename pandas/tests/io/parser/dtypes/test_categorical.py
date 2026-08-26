@@ -167,6 +167,36 @@ def test_categorical_dtype_boolean_duplicates(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+def test_categorical_dtype_boolean_mixed_case(all_parsers):
+    # GH#56044 the c tokenizer matches the default True/False spellings in any
+    #  case, so its category inference does too; each engine's categories
+    #  follow its own plain read
+    parser = all_parsers
+    data = "a\ntRuE\nfAlSe"
+    plain = parser.read_csv(StringIO(data))["a"]
+    if parser.engine == "c":
+        assert plain.dtype == np.dtype("bool")
+
+    result = parser.read_csv(StringIO(data), dtype="category")
+    expected = DataFrame({"a": Categorical(plain)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_dtype_boolean_mixed_case_custom_values(all_parsers):
+    # GH#56044 true_values and false_values are consulted before the c
+    #  tokenizer's case-insensitive comparison, so a case variant spelled out
+    #  there wins over the meaning the default spellings would give it
+    parser = all_parsers
+    data = "a\ntRuE\nFalse"
+    plain = parser.read_csv(StringIO(data), false_values=["tRuE"])["a"]
+    if parser.engine == "c":
+        assert list(plain) == [False, False]
+
+    result = parser.read_csv(StringIO(data), dtype="category", false_values=["tRuE"])
+    expected = DataFrame({"a": Categorical(plain)})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_categorical_dtype_boolean_custom_values(all_parsers):
     # GH#56044 true_values/false_values are honored when inferring bool
     #  categories
@@ -296,6 +326,24 @@ def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend)
         assert cat_dtype == np.dtype("int64")
 
 
+def test_categorical_dtype_non_default_dtype_backend_bool(all_parsers, dtype_backend):
+    # GH#56044 same divergence as the numeric case above for boolean
+    #  categories, see GH#66382
+    parser = all_parsers
+    data = "a\nTrue\nFalse"
+    result = parser.read_csv(
+        StringIO(data), dtype="category", dtype_backend=dtype_backend
+    )
+    cat_dtype = result["a"].cat.categories.dtype
+    if parser.engine == "pyarrow" and dtype_backend == "numpy_nullable":
+        assert cat_dtype == pd.BooleanDtype()
+    elif dtype_backend == "pyarrow" and parser.engine in ("pyarrow", "python"):
+        pyarrow = pytest.importorskip("pyarrow")
+        assert cat_dtype == pd.ArrowDtype(pyarrow.bool_())
+    else:
+        assert cat_dtype == np.dtype("bool")
+
+
 def test_categorical_dtype_non_default_dtype_backend_str(all_parsers, dtype_backend):
     # GH#56044 same divergence as the numeric case above for columns that keep
     #  string categories, see GH#66382
@@ -314,6 +362,43 @@ def test_categorical_dtype_non_default_dtype_backend_str(all_parsers, dtype_back
         assert cat_dtype == pd.StringDtype(na_value=np.nan)
     else:
         assert cat_dtype == np.dtype("object")
+
+
+@pytest.mark.parametrize("ordered", [True, False])
+def test_categorical_dtype_infer_string_disabled(all_parsers, ordered):
+    # GH#56044 with the string dtype disabled the categories are object dtype,
+    #  including for an ordered dtype, where CategoricalDtype.__eq__ ignores
+    #  the categories' dtype
+    parser = all_parsers
+    data = "a\ny\nx"
+    with pd.option_context("future.infer_string", False):
+        result = parser.read_csv(
+            StringIO(data), dtype={"a": CategoricalDtype(ordered=ordered)}
+        )
+        expected = DataFrame(
+            {"a": Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)}
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_dtype_chunksize_inferred_dtypes_differ(all_parsers):
+    # GH#56044 chunks infer independently, as they do without dtype="category",
+    #  so a value that only appears in a later chunk does not affect the
+    #  earlier ones
+    parser = all_parsers
+    data = "a\n1\n2\n3\nx"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), dtype="category", chunksize=3)
+        return
+
+    with parser.read_csv(StringIO(data), dtype="category", chunksize=3) as chunks:
+        cat_dtypes = [chunk["a"].cat.categories.dtype for chunk in chunks]
+
+    assert cat_dtypes[0] == np.dtype("int64")
+    assert cat_dtypes[1] != np.dtype("int64")
 
 
 @xfail_pyarrow  # ValueError: The 'quoting' option is not supported

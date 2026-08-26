@@ -810,6 +810,20 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_dtype_category_native_cells(self, read_ext, tmp_excel):
+        # GH#56044 as above for cells that are natively typed rather than
+        #  text, which reach the inference as Python ints/floats/bools
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = DataFrame({"a": [1, 2, 1], "b": [3.5, 4.5, 3.5], "c": [True, False, True]})
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+
+        result = pd.read_excel(tmp_excel, sheet_name="test", dtype="category")
+
+        expected = DataFrame({col: Categorical(vals) for col, vals in df.items()})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211

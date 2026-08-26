@@ -1092,7 +1092,8 @@ cdef class TextReader:
             converted = array_type._maybe_convert_categories(
                 cat.categories, true_values=true_values,
                 false_values=false_values, convert_numeric=convert_numeric,
-                convert_bool=True, float_only=float_only)
+                convert_bool=True, float_only=float_only,
+                bool_case_insensitive=True)
             if converted is None:
                 # no conversion applies, but union_categoricals still left the
                 #  categories in chunk order; sorting here is what makes
@@ -1459,7 +1460,7 @@ cdef class TextReader:
                 converted = array_type._maybe_convert_categories(
                     cats, true_values=true_values, false_values=false_values,
                     convert_numeric=convert_numeric, convert_bool=True,
-                    float_only=float_only)
+                    float_only=float_only, bool_case_insensitive=True)
                 cat = array_type._from_converted_categories(
                     cats if converted is None else converted, codes,
                     ordered=dtype.ordered)
