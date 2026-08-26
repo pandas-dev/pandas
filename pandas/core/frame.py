@@ -6031,8 +6031,24 @@ class DataFrame(NDFrame, OpsMixin):
         """
         data = self.copy(deep=False)
 
-        for k, v in kwargs.items():
-            data[k] = com.apply_if_callable(v, data)
+        for name, value in kwargs.items():
+            key: Hashable = name
+            if isinstance(data.columns, MultiIndex) and name not in data.columns:
+                # GH#17024 keyword arguments cannot be tuples, so the generic
+                #  "use a full-length tuple key" advice is useless here.  Warn
+                #  with an actionable hint and pad the key ourselves so that
+                #  __setitem__ does not warn again.
+                key = (name,) + ("",) * (data.columns.nlevels - 1)
+                maybe_warn_multiindex_expansion(
+                    data.columns,
+                    name,
+                    target="column on a DataFrame",
+                    hint=(
+                        "DataFrame.assign cannot take a tuple key; use "
+                        f"df[{key}] = ... instead."
+                    ),
+                )
+            data[key] = com.apply_if_callable(value, data)
         return data
 
     def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
