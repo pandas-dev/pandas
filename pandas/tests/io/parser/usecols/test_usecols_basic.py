@@ -536,3 +536,14 @@ b,2,y
         {"col1": array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecols", [[0, 2], [2, 0]])
+def test_usecols_no_header_keeps_file_positions(all_parsers, usecols):
+    # GH#67008 the labels are the file positions and the columns come back
+    # in file order on every engine, regardless of the order in usecols
+    parser = all_parsers
+    data = "1,2,3\n4,5,6"
+    result = parser.read_csv(StringIO(data), header=None, usecols=usecols)
+    expected = DataFrame({0: [1, 4], 2: [3, 6]})
+    tm.assert_frame_equal(result, expected)
