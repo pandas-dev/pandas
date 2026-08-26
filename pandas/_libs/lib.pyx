@@ -2310,9 +2310,10 @@ def first_non_numeric(ndarray values):
 
         if prev_rejected:
             # NaT-ness is per-element, so it cannot be cached with the type
-            if not prev_temporal or not checknull(val):
+            if prev_temporal and checknull(val):
+                has_nat = True
+            else:
                 return val, has_nat
-            has_nat = True
 
     return None, has_nat
 

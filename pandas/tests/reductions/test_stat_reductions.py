@@ -377,9 +377,9 @@ def test_object_stat_matches_frame_axis(opname):
     tm.assert_series_equal(result, expected, check_dtype=False)
 
 
-def test_object_none_does_not_warn_complex():
+@pytest.mark.parametrize("opname", OBJECT_STATS)
+def test_object_none_does_not_warn_complex(opname):
     # missing values are filled with NaN rather than routed through complex128
     obj = Series([1.0, None, 2.0, 4.0], dtype=object)
-    for opname in OBJECT_STATS:
-        with tm.assert_produces_warning(None):
-            getattr(obj, opname)()
+    with tm.assert_produces_warning(None):
+        getattr(obj, opname)()
