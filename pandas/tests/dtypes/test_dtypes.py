@@ -1285,7 +1285,7 @@ def test_numpy_s3_dtype_on_index():
     assert index.get_loc(b"123") == 1
 
     index = pd.Index([], dtype="S3")
-    index = pd.Index(pd.Series(["abcd", "1234"]), dtype="S3")
+    index = pd.Index(Series(["abcd", "1234"]), dtype="S3")
     assert index.get_loc(b"abc") == 0
 
 
