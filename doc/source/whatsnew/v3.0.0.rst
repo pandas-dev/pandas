@@ -1378,6 +1378,7 @@ I/O
 - Bug in :meth:`read_json` ignoring the given ``dtype`` when ``engine="pyarrow"`` (:issue:`59516`)
 - Bug in :meth:`read_json` not validating the ``typ`` argument to not be exactly ``"frame"`` or ``"series"`` (:issue:`59124`)
 - Bug in :meth:`read_json` where extreme value integers in string format were incorrectly parsed as a different integer number (:issue:`20608`)
+- Bug in :meth:`read_parquet` and :meth:`read_feather` raising ``TypeError`` when reading a file with a nested or parametrized pyarrow dtype, e.g. ``list<item: int64>[pyarrow]`` (:issue:`57411`)
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
@@ -1484,6 +1485,8 @@ ExtensionArray
 - Bug in Arrow-backed duration and timestamp reductions (e.g. ``sum``, ``min``, ``max``, ``median``, ``mean``) incorrectly returning stdlib ``datetime`` objects instead of :class:`Timedelta` and :class:`Timestamp` for resolutions other than nanoseconds (:issue:`63170`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
+- Bug in constructing pandas data structures with a ``dtype`` string describing a nested or parametrized pyarrow type, e.g. ``"list<item: int64>[pyarrow]"`` or ``"decimal128(10, 2)[pyarrow]"``, incorrectly raising (:issue:`57411`)
+- Bug in parsing strings to a pyarrow decimal dtype, e.g. in :func:`read_csv`, raising or losing precision (:issue:`57411`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
 - Fixed flex arithmetic with :class:`.ExtensionArray` operands raising when ``fill_value`` was passed. (:issue:`62467`)
 
