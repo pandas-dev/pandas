@@ -236,8 +236,8 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(result, expected)
 
-        result.sort_values(on_cols, kind="mergesort", inplace=True)
-        expected = left.join(right, on=on_cols, sort=True)
+        result = left.join(right, on=on_cols, sort=True)
+        expected = expected.sort_values(on_cols, kind="mergesort")
 
         tm.assert_frame_equal(result, expected)
 

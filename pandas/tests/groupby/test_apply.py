@@ -486,7 +486,7 @@ def test_apply_no_name_column_conflict():
 
     # it works! #2605
     grouped = df.groupby(["name", "name2"])
-    grouped.apply(lambda x: x.sort_values("value", inplace=True))
+    grouped.apply(lambda x: x.sort_values("value"))
 
 
 def test_apply_typecast_fail():

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -10,6 +12,7 @@ import pandas._testing as tm
 
 
 class TestSeriesSortValues:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_values")
     def test_sort_values(self, datetime_series):
         # check indexes are reordered corresponding with the values
         ser = Series([3, 2, 4, 1], ["A", "B", "C", "D"])
@@ -154,6 +157,7 @@ class TestSeriesSortValues:
         expected = df.iloc[[2, 1, 5, 4, 3, 0]]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_values")
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_list, sorted_list, ignore_index, output_index",
@@ -179,6 +183,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_values")
     def test_sort_values_ignore_index_on_already_sorted(self):
         # GH 65833 - ignore_index had no effect on already sorted Series
         ser = Series([1, 2, 3], index=[2, 3, 4])
@@ -248,3 +253,28 @@ class TestSeriesSortingKey:
         result = series.sort_values(axis=0, key=lambda x: -x, ascending=False)
         expected = series.iloc[[0, 4, 3, 1, 2, 5]]
         tm.assert_series_equal(result, expected)
+
+
+def test_sort_values_inplace_depr():
+    msg = "The inplace keyword in Series.sort_values is deprecated"
+
+    ser = Series([3, 1, 2])
+    ser_orig = ser.copy()
+    expected = Series([1, 2, 3], index=[1, 2, 0])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.sort_values()
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.sort_values(inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.sort_values(inplace=True)
+    tm.assert_series_equal(ser, expected)
