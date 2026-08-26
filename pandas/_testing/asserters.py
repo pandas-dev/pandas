@@ -655,7 +655,6 @@ def assert_categorical_equal(
 def assert_interval_array_equal(
     left: IntervalArray,
     right: IntervalArray,
-    exact: bool | Literal["equiv"] = "equiv",
     obj: str = "IntervalArray",
 ) -> None:
     """
@@ -665,10 +664,6 @@ def assert_interval_array_equal(
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool or {'equiv'}, default 'equiv'
-        Whether to check the Index class, dtype and inferred_type
-        are identical. If 'equiv', then RangeIndex can be substituted for
-        Index with an int64 dtype as well.
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
