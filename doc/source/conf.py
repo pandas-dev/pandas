@@ -1002,12 +1002,12 @@ def linkcode_resolve(domain, info) -> str | None:
     if isinstance(obj, type) and hasattr(obj, "_module_source"):
         obj.__module__, obj._module_source = obj._module_source, obj.__module__
 
-    if "+" in version:
+    if "+" in full_version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
-            f"v{version}/pandas/{fn}{linespec}"
+            f"v{full_version}/pandas/{fn}{linespec}"
         )
 
 
