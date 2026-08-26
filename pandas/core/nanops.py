@@ -1316,13 +1316,13 @@ def nanvar(
     sqr = (avg - values) ** 2
     if mask is not None:
         np.putmask(sqr, mask, 0)
-    result: np.ndarray | np.float64 = sqr.sum(axis=axis, dtype=np.float64) / d
+    result = sqr.sum(axis=axis, dtype=np.float64) / d
 
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
     # precision as the original values array.
     if dtype.kind == "f":
-        result = result.astype(dtype, copy=False)
+        result = cast("np.ndarray", result).astype(dtype, copy=False)
     return result
 
 

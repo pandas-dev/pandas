@@ -2284,7 +2284,7 @@ def first_non_numeric(ndarray values):
     ('2', False)
     >>> first_non_numeric(np.array([1.0, 2.0], dtype=object))
     (None, False)
-    >>> first_non_numeric(np.array([1.0, np.datetime64("NaT")], dtype=object))
+    >>> first_non_numeric(np.array([1.0, np.datetime64("NaT", "ns")], dtype=object))
     (None, True)
     """
     cdef:
