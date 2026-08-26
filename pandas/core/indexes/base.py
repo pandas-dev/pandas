@@ -572,7 +572,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # unlike Series, we default to object dtype:
                 data = np.array(data, dtype=object)
 
-            elif isinstance(data[0], tuple):
+            if len(data) and isinstance(data[0], tuple):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
