@@ -600,12 +600,11 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         pass
 
     if mask.any():
-        # numpy maps None to nan+nanj but refuses NaT/pd.NA outright.  Swap in
-        #  None for only the NAs it refuses, so that every other one still maps
+        # numpy refuses NaT/pd.NA outright, so convert the NAs ourselves into
+        #  the copy already made above.  Each one complex() accepts still maps
         #  to what it would have mapped to on its own, e.g. a float or Decimal
         #  NaN to nan+0j.
-        filled = values.copy()
-        filled[mask] = [val if _complex_castable(val) else None for val in values[mask]]
+        filled[mask] = [_to_complex(val) for val in values[mask]]
 
     try:
         return filled.astype(np.complex128)
@@ -614,6 +613,16 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         raise TypeError(
             f"Could not convert {_first_unconvertible(filled)!r} to numeric"
         ) from err
+
+
+def _to_complex(val: Any) -> complex:
+    """
+    Convert `val` to a complex, mapping an NA numpy refuses to nan+nanj.
+    """
+    try:
+        return complex(val)
+    except (TypeError, ValueError):
+        return complex(np.nan, np.nan)
 
 
 def _complex_castable(val: Any) -> bool:
@@ -632,9 +641,6 @@ def _first_unconvertible(values: np.ndarray) -> object:
     Return the element responsible for a failed `_ensure_numeric` conversion.
     """
     for val in values.ravel():
-        if val is None:
-            # stands in for an NA, so never the reason the cast failed
-            continue
         if not _complex_castable(val):
             return val
     # numpy balked at something complex() accepts; report the values as a whole
