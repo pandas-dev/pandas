@@ -11,10 +11,12 @@ from typing import (
     cast,
 )
 
+import numpy as np
+
 from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import is_list_like
-import numpy as np
+
 if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
@@ -171,7 +173,8 @@ class ListAccessor(ArrowAccessor):
                 lengths = pc.list_value_length(arr)
                 abs_key = abs(key)
                 too_short = pc.and_(
-                    pc.is_valid(lengths), pc.less(lengths, pa.scalar(abs_key, type=lengths.type))
+                    pc.is_valid(lengths),
+                    pc.less(lengths, pa.scalar(abs_key, type=lengths.type)),
                 )
                 if pc.any(too_short).as_py():
                     bad_pos = pc.index(too_short, True).as_py()

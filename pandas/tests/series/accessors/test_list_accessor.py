@@ -126,9 +126,7 @@ def test_list_accessor_non_list_dtype():
 )
 def test_list_getitem_invalid_index(list_dtype):
     ser = Series(
-        [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(list_dtype),
-        name="a"
+        [[1, 2, 3], [4, None, 5], None], dtype=ArrowDtype(list_dtype), name="a"
     )
     result = ser.list[-1]
     expected = Series(
@@ -153,11 +151,7 @@ def test_list_accessor_not_iterable():
 
 
 def test_list_get_negative_index():
-    ser = Series(
-        ["A-B", "C-D"],
-        dtype=ArrowDtype(pa.string()),
-        name="a"
-    )
+    ser = Series(["A-B", "C-D"], dtype=ArrowDtype(pa.string()), name="a")
     result = ser.str.split("-").list[-1]
     expected = Series(
         ["B", "D"],
