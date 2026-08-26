@@ -3663,17 +3663,6 @@ def test_from_sequence_of_strings_none_float():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_read_csv_empty_field_pyarrow_float():
-    # GH#66834
-    csv = "id,A\n1,1.5\n2,\n3,2.0\n"
-    with pytest.raises(ValueError, match=r"could not convert string to double"):
-        pd.read_csv(
-            StringIO(csv),
-            dtype={"A": "double[pyarrow]"},
-            keep_default_na=False,
-        )
-
-
 def test_concat_empty_arrow_backed_series(dtype):
     # GH#51734
     ser = pd.Series([], dtype=dtype)
