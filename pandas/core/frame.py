@@ -5566,6 +5566,20 @@ class DataFrame(NDFrame, OpsMixin):
             klasses: list[type[ExtensionDtype]] = []
             resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
+                if dtype is None:
+                    # GH#28943: a bare include=None means "not specified", but a
+                    # None inside the list-like reaches np.dtype(None) and
+                    # silently selects float64 columns.
+                    warnings.warn(
+                        "Passing None in the include/exclude list to "
+                        "select_dtypes is deprecated and will raise in a "
+                        "future version. None currently selects float64 "
+                        "columns; pass 'float64' explicitly if that is "
+                        "intended.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+
                 if isinstance(dtype, (np.dtype, ExtensionDtype)):
                     # GH#40234: a dtype instance matches only columns with
                     # exactly that dtype, whereas a class or string matches
@@ -8177,7 +8191,7 @@ class DataFrame(NDFrame, OpsMixin):
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
         subset: IndexLabel | AnyArrayLike | None = None,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = False,
     ) -> DataFrame | None:
         """
@@ -8211,6 +8225,14 @@ class DataFrame(NDFrame, OpsMixin):
             these would be a list of columns to include.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
@@ -8287,6 +8309,19 @@ class DataFrame(NDFrame, OpsMixin):
 
         if how is lib.no_default:
             how = "any"
+
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.dropna is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
@@ -8366,7 +8401,7 @@ class DataFrame(NDFrame, OpsMixin):
         subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = ...,
     ) -> DataFrame | None: ...
 
@@ -8375,7 +8410,7 @@ class DataFrame(NDFrame, OpsMixin):
         subset: Hashable | Iterable[Hashable] | None = None,
         *,
         keep: DropKeep = "first",
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = False,
     ) -> DataFrame | None:
         """
@@ -8398,6 +8433,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace : bool, default ``False``
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
@@ -8470,6 +8513,19 @@ class DataFrame(NDFrame, OpsMixin):
         Yum Yum   cup     4.0
         Indomie   cup     3.5
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.drop_duplicates is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         if self.empty:
             return self.copy(deep=False)
 
@@ -8660,7 +8716,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         kind: SortKind = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
@@ -8689,6 +8745,14 @@ class DataFrame(NDFrame, OpsMixin):
              the by.
         inplace : bool, default False
              If True, perform operation in-place.
+
+             .. deprecated:: 3.1.0
+
+                 This keyword is deprecated and will be removed in pandas 4.0.
+                 See `PDEP-8 In-place methods in pandas
+                 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                 for more details.
+
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
              information. The sort order is deterministic for a given input.
@@ -8853,6 +8917,19 @@ class DataFrame(NDFrame, OpsMixin):
         5  128hr  10mins     60
         1  128hr  40mins     20
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.sort_values is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
         ascending = validate_ascending(ascending)
@@ -8970,7 +9047,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
         sort_remaining: bool = ...,
@@ -8984,7 +9061,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
@@ -9009,11 +9086,20 @@ class DataFrame(NDFrame, OpsMixin):
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. `mergesort` and `stable` are the only stable algorithms. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
+            information. The sort order is deterministic for a given input.
+            'mergesort' and 'stable' are the only stable algorithms, which preserve
+            the relative order of equal keys. This option is ignored when sorting on a
+            MultiIndex or when a `level` is specified.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
             Not implemented for MultiIndex.
@@ -9076,6 +9162,19 @@ class DataFrame(NDFrame, OpsMixin):
         C  3
         d  4
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.sort_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().sort_index(
             axis=axis,
             level=level,
@@ -17855,7 +17954,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or scalaer
+        Series or scalar
             Unbiased variance over requested axis.
 
         See Also
@@ -18321,7 +18420,6 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.min : Return the minimum over
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
-        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
@@ -18429,7 +18527,6 @@ class DataFrame(NDFrame, OpsMixin):
             but ignores ``NaN`` values.
         DataFrame.max : Return the maximum over
             DataFrame axis.
-        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
@@ -18540,7 +18637,6 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
-        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
         DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
         Examples
@@ -18643,14 +18739,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        core.window.expanding.Expanding.prod : Similar functionality
-            but ignores ``NaN`` values.
         DataFrame.prod : Return the product over
             DataFrame axis.
         DataFrame.cummax : Return cumulative maximum over DataFrame axis.
         DataFrame.cummin : Return cumulative minimum over DataFrame axis.
         DataFrame.cumsum : Return cumulative sum over DataFrame axis.
-        DataFrame.cumprod : Return cumulative product over DataFrame axis.
 
         Examples
         --------

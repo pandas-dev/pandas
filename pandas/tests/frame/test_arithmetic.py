@@ -1357,7 +1357,6 @@ class TestFrameArithmeticUnsorted:
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
     # TODO: not sure what's correct here.
-    @pytest.mark.filterwarnings("ignore:elementwise:FutureWarning")
     def test_logical_typeerror_with_non_valid(self, op, res, float_frame):
         # we are comparing floats vs a string
         result = getattr(float_frame, op)("foo")
@@ -2290,9 +2289,6 @@ def test_frame_sub_nullable_int(any_int_ea_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
-)
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 

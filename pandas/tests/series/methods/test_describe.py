@@ -158,7 +158,6 @@ class TestSeriesDescribe:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Casting complex values to real discards")
     def test_numeric_result_dtype(self, any_numeric_dtype):
         # GH#48340 - describe should always return float on non-complex numeric input
         if is_extension_array_dtype(any_numeric_dtype):

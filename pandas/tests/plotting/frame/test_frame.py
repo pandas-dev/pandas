@@ -49,15 +49,6 @@ from pandas.io.formats.printing import pprint_thing
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
-    ),
-    pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in scalar multiply:RuntimeWarning"
-    ),
-]
-
 
 class TestDataFramePlots:
     @pytest.mark.slow
@@ -1918,9 +1909,6 @@ class TestDataFramePlots:
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in dot:RuntimeWarning"
-    )
     def test_errorbar_with_partial_columns_dti(self):
         df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
         df_err = DataFrame(
@@ -1941,9 +1929,6 @@ class TestDataFramePlots:
         ax = _check_plot_works(df.plot, yerr=err)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in dot:RuntimeWarning"
-    )
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_timeseries(self, kind):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}

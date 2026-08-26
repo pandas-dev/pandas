@@ -916,6 +916,9 @@ def test_sort_values(obj, kwargs):
     tm.assert_equal(obj, obj_orig)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The inplace keyword in (Series|DataFrame).sort_values"
+)
 @pytest.mark.parametrize(
     "obj, kwargs",
     [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],

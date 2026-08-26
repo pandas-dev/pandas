@@ -326,7 +326,6 @@ def test_transform_and_agg_err_agg(axis, float_frame):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")  # GH53325
 @pytest.mark.parametrize(
     "func, msg",
     [

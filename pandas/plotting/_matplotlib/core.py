@@ -69,6 +69,7 @@ from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
     format_dateaxis,
+    get_period_offset,
     maybe_convert_index,
     prepare_ts_data,
     use_dynamic_x,
@@ -88,6 +89,7 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
 
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         IndexLabel,
         NDFrameT,
@@ -1602,6 +1604,8 @@ class LinePlot(MPLPlot):
         # axis at the end, not once per column (GH#61398).
         ts_axes: list[Axes] = []
         seen_ax_ids: set[int] = set()
+        # Index actually drawn on each ts axes, keyed by id(ax); see _ts_plot.
+        self._ts_index: dict[int, Index] = {}
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1642,8 +1646,9 @@ class LinePlot(MPLPlot):
         if is_ts:
             # TODO: GH28021, should find a way to change view limit on xaxis
             for ax in ts_axes:
+                index = self._ts_index[id(ax)]
                 # TODO #54485
-                format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+                format_dateaxis(ax, ax.freq, index)  # type: ignore[attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
@@ -1683,6 +1688,11 @@ class LinePlot(MPLPlot):
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
         _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
+
+        # prepare_ts_data set ax.freq and returned data re-expressed at that
+        # freq, so these two agree even when the series was re-expressed at
+        # the axes frequency.  The frame-level index would not (GH#64311).
+        self._ts_index[id(ax)] = data.index
 
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
@@ -1920,11 +1930,19 @@ class BarPlot(MPLPlot):
             self.tick_pos = np.array(
                 PeriodConverter.convert_from_freq(
                     self._get_xticks(),
-                    data.index.freq,
+                    self._ts_freq,
                 )
             )
         else:
             self.tick_pos = np.arange(len(data))
+
+    @cache_readonly
+    def _ts_freq(self) -> BaseOffset:
+        freq = get_period_offset(self._get_ax(0), self.data.index)
+        # only evaluated when _is_ts_plot() is True, which resolves the freq
+        # the same way and is False unless it resolves to a period alias
+        assert freq is not None
+        return freq
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
