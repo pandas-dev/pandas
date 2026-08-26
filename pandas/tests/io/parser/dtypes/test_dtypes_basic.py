@@ -983,8 +983,10 @@ def test_dtype_dict_label_keys_with_names(all_parsers):
 
 
 def test_dtype_dict_positional_keys_no_header_usecols(all_parsers):
-    # GH#57666 without names the labels stay file positions, so the
-    # mapping also holds under a usecols selection
+    # GH#57666 without names the labels are the file positions, so the
+    # mapping also holds under a usecols selection. A contiguous selection
+    # is used because the pyarrow engine relabels selected columns
+    # positionally (GH#67008)
     parser = all_parsers
     data = "01,0150,x\n002,0205,y"
     result = parser.read_csv(
