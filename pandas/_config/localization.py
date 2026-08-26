@@ -116,30 +116,21 @@ def _valid_locales(locales: list[str] | str, normalize: bool) -> list[str]:
 # Windows has no "locale -a" to enumerate with.  ``locale.windows_locale``
 #  lists the ~200 names the CRT knows, but it is undocumented and its only
 #  stdlib consumer is ``locale.getdefaultlocale``, which is slated for removal
-#  in 3.15.  The tests that consume get_locales() parametrize over every entry,
-#  so a curated list also keeps that from becoming ~800 cases with no added
-#  coverage.  The names are BCP-47 and carry an encoding suffix: the CRT wants
+#  in 3.15.  The names are BCP-47 and carry an encoding suffix: the CRT wants
 #  "en-US" rather than "en_US", and ``can_set_locale`` calls
 #  ``locale.getlocale``, whose parser raises ValueError on a name without a
 #  ".".  GH#46597
+#
+# The consumers parametrize over every entry, so this holds one name per
+#  behavior a locale can change rather than a broad sample.  day_name and
+#  month_name read ``calendar.day_name`` under ``set_locale`` and then call
+#  ``str.capitalize``, so what varies between locales is the case mapping.
 _WINDOWS_LOCALES = [
-    "ar-SA.UTF-8",
-    "de-DE.UTF-8",
-    "el-GR.UTF-8",
-    "en-GB.UTF-8",
-    "en-US.UTF-8",
-    "es-ES.UTF-8",
-    "fr-FR.UTF-8",
-    "he-IL.UTF-8",
-    "hi-IN.UTF-8",
-    "it-IT.UTF-8",
-    "ja-JP.UTF-8",
-    "ko-KR.UTF-8",
-    "pt-BR.UTF-8",
-    "ru-RU.UTF-8",
-    "th-TH.UTF-8",
-    "tr-TR.UTF-8",
-    "zh-CN.UTF-8",
+    "de-DE.UTF-8",  # Latin with diacritics
+    "el-GR.UTF-8",  # Greek, where capitalize() has to handle final sigma
+    "en-US.UTF-8",  # ASCII baseline
+    "ja-JP.UTF-8",  # caseless script, capitalize() is a no-op
+    "tr-TR.UTF-8",  # dotted and dotless i
 ]
 
 

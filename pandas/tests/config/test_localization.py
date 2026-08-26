@@ -1,6 +1,7 @@
 import codecs
 import locale
 import os
+import platform
 
 import pytest
 
@@ -19,10 +20,8 @@ import pandas as pd
 
 _all_locales = get_locales()
 
-# Only the tests that need a locale from _all_locales are skipped when there
-#  are none available; the rest run everywhere, Windows included. GH#46597
-_skip_if_no_locale = pytest.mark.skipif(not _all_locales, reason="Need locales")
-
+# Only the tests that need a locale out of _all_locales are skipped when there
+#  are too few of them; the rest run everywhere, Windows included. GH#46597
 _skip_if_only_one_locale = pytest.mark.skipif(
     len(_all_locales) <= 1, reason="Need multiple locales for meaningful test"
 )
@@ -104,9 +103,15 @@ def test_can_set_locale_invalid_get(monkeypatch):
         assert not can_set_locale("")
 
 
-@_skip_if_no_locale
+@pytest.mark.skipif(
+    platform.system() not in ("Linux", "Darwin", "Windows"),
+    reason="get_locales does not enumerate on this platform",
+)
 def test_get_locales_at_least_one():
     # see GH#9744
+    # Gated on the platform rather than on _all_locales: where get_locales
+    #  knows how to enumerate, an empty result is the bug, not a reason to
+    #  skip.  Skipping on it is what let Windows return nothing.  GH#46597
     assert len(_all_locales) > 0
 
 
