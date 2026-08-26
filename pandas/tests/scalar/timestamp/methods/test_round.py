@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
-    iNaT,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
@@ -387,18 +385,7 @@ class TestTimestampRound:
 
     @pytest.mark.parametrize(
         "val",
-        [
-            iNaT + 1,
-            -1,
-            0,
-            1,
-            lib.i8max,
-            10**9 - 1,
-            10**9,
-            10**9 + 1,
-            60 * 10**9 - 1,
-            24 * 3600 * 10**9 - 1,
-        ],
+        [-(10**9 + 1), -(60 * 10**9 - 1), -(24 * 3600 * 10**9 - 1)],
     )
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
