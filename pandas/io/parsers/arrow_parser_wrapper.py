@@ -76,10 +76,7 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
     if dtype == object:
         # match the other engines: object dtype holds the raw strings
         return pa.large_string()
-    # pass the scalar type: to_pyarrow_type accepts numpy dtypes and
-    # scalar types but not extension dtype instances like StringDtype
-    # (pa.from_numpy_dtype raises TypeError for those)
-    target_dtype = to_pyarrow_type(dtype.type)
+    target_dtype = to_pyarrow_type(dtype)
     if target_dtype is not None and (
         pa.types.is_string(target_dtype) or pa.types.is_large_string(target_dtype)
     ):
