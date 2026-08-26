@@ -4,11 +4,15 @@ from datetime import (
     datetime,
     timedelta,
 )
+import operator
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    iNaT,
+    timezones,
+)
 from pandas.compat import WASM
 from pandas.errors import (
     OutOfBoundsDatetime,
@@ -779,6 +783,20 @@ class TestAddSubNaTMasking:
         )
         tm.assert_index_equal(result, exp)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_tdi_sub_lands_on_nat_sentinel(self, unit, box_with_array):
+        # GH#66549 the difference fits in int64 but equals iNaT, so the result
+        #  used to come back as NaT instead of being reported as out of bounds
+        tdi = TimedeltaIndex(np.array([iNaT + 1], dtype=f"m8[{unit}]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            tdi - Timedelta(1, unit)
+
+        with pytest.raises(OverflowError, match=msg):
+            tdi + Timedelta(-1, unit)
+
 
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
@@ -1093,7 +1111,9 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdarr - ts
 
-    @pytest.mark.filterwarnings("ignore:.*generic.*unit.*:DeprecationWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+    )
     def test_td64arr_add_datetime64_nat(self, box_with_array):
         # GH#23215
         # The bare np.datetime64("NaT") is load-bearing here: the expected
@@ -1617,12 +1637,25 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_float_overflow_boundary(self, box_with_array):
         # GH#43178: a product landing exactly on 2**63 (= int64.max + 1) must
         #  raise rather than silently saturate on the float -> int64 cast.
+        # GH#66551: 2.0 is integral, so it now takes the same exact int64 path
+        #  as `tdi * 2` and reports the same message.
         tdi = TimedeltaIndex([Timedelta(2**62, "ns"), Timedelta(2**62, "ns")])
         tdi = tm.box_expected(tdi, box_with_array)
 
-        msg = "Overflow in timedelta multiplication"
+        msg = "Overflow in int64 multiplication"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * 2.0
+
+    @pytest.mark.parametrize("op", [operator.mul, operator.truediv, operator.floordiv])
+    def test_td64arr_integral_float_op_is_exact(self, box_with_array, op):
+        # GH#66551 an integral float operand has an exact int equivalent, so it
+        #  takes the int64 path rather than float64, matching both the scalar
+        #  Timedelta and the equivalent int operand
+        tdi = TimedeltaIndex([Timedelta(2**53 + 1, "ns"), Timedelta.min])
+        obj = tm.box_expected(tdi, box_with_array)
+
+        tm.assert_equal(op(obj, 1.0), obj)
+        tm.assert_equal(op(obj, 1.0), op(obj, 1))
 
     def test_td64arr_mul_inf_raises(self, box_with_array):
         # GH#43178: multiplying by inf raises (matching scalar Timedelta)
@@ -1700,8 +1733,9 @@ class TestTimedeltaArraylikeMulDivOps:
             OutOfBoundsTimedelta, match="Overflow in int64 multiplication"
         ):
             tdi * 2
+        # GH#66551: 2.0 is integral, so it takes the same exact int64 path as 2
         with pytest.raises(
-            OutOfBoundsTimedelta, match="Overflow in timedelta multiplication"
+            OutOfBoundsTimedelta, match="Overflow in int64 multiplication"
         ):
             tdi * 2.0
         with pytest.raises(
@@ -2107,7 +2141,6 @@ class TestTimedeltaArraylikeMulDivOps:
             result = np.asarray(left) // right
         tm.assert_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831, GH#19125
         box = box_with_array
@@ -2171,7 +2204,9 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
-        if box_with_array is DataFrame and isinstance(three_days, pd.DateOffset):
+        if box_with_array is DataFrame and isinstance(
+            three_days, pd.tseries.offsets.BaseOffset
+        ):
             # TODO: making expected be object here a result of DataFrame.__divmod__
             #  being defined in a naive way that does not dispatch to the underlying
             #  array's __divmod__

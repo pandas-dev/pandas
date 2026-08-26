@@ -16,10 +16,6 @@ import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 pa = pytest.importorskip("pyarrow")
 
@@ -258,7 +254,7 @@ class TestFeather:
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
         # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
-        # suppress until we migrate the implementation (GH#66169)
+        # suppress until we migrate the implementation (GH#66177)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
