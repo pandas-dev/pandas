@@ -728,9 +728,6 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
         )
 
 
-# TODO: this test isn't about the na_values keyword, it is about the empty entries
-#  being returned with NaN entries, whereas the pyarrow engine returns "nan"
-@xfail_pyarrow  # mismatched shapes
 def test_str_nan_dropped(all_parsers):
     # see gh-21131
     parser = all_parsers
