@@ -26,7 +26,6 @@ def test_int_byteswap(read_offset, number, int_type, should_byteswap):
     _test(number, int_type, read_offset, should_byteswap)
 
 
-@pytest.mark.filterwarnings("ignore:overflow encountered:RuntimeWarning")
 @pytest.mark.parametrize("read_offset", [0, 1, 7, 11])
 @pytest.mark.parametrize(
     "number",
