@@ -9,6 +9,7 @@ from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     MultiIndex,
@@ -574,3 +575,24 @@ def test_datetimeindex_quarterly_slice_still_warns():
     ) as record:
         assert dti.slice_locs("2001Q1", "2001Q3") == (0, 273)
     assert len(record) == 2
+
+
+@pytest.mark.parametrize(
+    "offset, reverse",
+    [(DateOffset(days=1, hours=-2), False), (DateOffset(days=1, hours=2), True)],
+)
+def test_partial_slice_quarter_generic_dateoffset_freq(offset, reverse):
+    # GH#48210 a generic DateOffset has no rule_code, and its repr was being
+    #  passed down to the parser as if it were one; any "-" in that repr then
+    #  got read as a quarter anchor
+    dti = date_range("2022-01-01", periods=60, freq=offset)
+    if reverse:
+        dti = dti[::-1]
+    assert "-" in dti.freqstr
+    ser = Series(np.arange(len(dti)), index=dti)
+
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result = ser["2022Q1"]
+    tm.assert_series_equal(result, ser)
