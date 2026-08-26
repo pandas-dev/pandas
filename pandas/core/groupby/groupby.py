@@ -1314,11 +1314,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        Each group passed to ``func`` has a ``name`` attribute set to the group
-        key (the value of the grouping for that group). This is useful for
-        identifying the current group, for example when grouping by an external
-        grouper rather than by a column of the object.
-
         Examples
         --------
         >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})

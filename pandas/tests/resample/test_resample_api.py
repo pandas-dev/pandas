@@ -1020,3 +1020,24 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
 
     exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
     tm.assert_frame_equal(result, exp)
+
+
+@pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
+def test_resample_group_name_is_deprecated(method):
+    # GH#41090 - the Resampler UDF entry points route through the groupby
+    #  machinery, so they pin the group key too. apply/aggregate only take
+    #  that path for a non-reducing func; a reducing one is an aggregation,
+    #  which never pinned the key.
+    ser = Series(range(6), index=date_range("2020", periods=6, freq="D"), name="ser")
+    seen = []
+
+    def func(group):
+        seen.append(group.name)
+        return group * 2
+
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(ser.resample("2D"), method)(func)
+    # apply/aggregate try the reducing path first, which does not pin, so only
+    #  the trailing calls see the key
+    assert seen[-3:] == list(date_range("2020", periods=3, freq="2D"))

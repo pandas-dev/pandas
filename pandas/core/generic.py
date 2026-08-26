@@ -6313,23 +6313,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self
 
     @final
-    def _pin_deprecated_group_name(self, key) -> None:
+    def _pin_deprecated_group_name(self, key: Hashable) -> None:
         """
         Pin the group key to the 'name' attribute and flag it so that user
         access of the pinned name issues a deprecation warning (GH#41090).
 
-        Known hole: Series.__finalize__ propagates _name (via _metadata) but
-        deliberately not this flag, so objects derived from the group inside
-        the UDF (e.g. ``group.dropna()``) carry the key as their name without
-        warning. Propagating the flag would false-positive whenever
-        __finalize__ copies it but the result's name is not the key (e.g. a
-        binop with mismatched names).
+        Two known holes, both of which mean a UDF that consumes the key
+        indirectly changes behavior at enforcement without warning first:
+
+        1. Only a direct read warns. Handing the group to pandas code that
+           reads the name internally (``group.to_frame()``,
+           ``group.value_counts()``, ``group + 1``, ...) is exempted by
+           _maybe_warn_pinned_group_name's caller-depth check, which cannot
+           tell those apart from pandas' own bookkeeping reads.
+        2. Series.__finalize__ propagates _name (via _metadata) but
+           deliberately not this flag, so objects derived from the group
+           inside the UDF (e.g. ``group.dropna()``) carry the key as their
+           name without warning. Propagating the flag would false-positive
+           whenever __finalize__ copies it but the result's name is not the
+           key (e.g. a binop with mismatched names).
         """
         if self.ndim == 1:
             # Goes through the Series.name property setter; for DataFrame
             #  the key is instead served by __getattr__ so that access can
             #  be intercepted.
             object.__setattr__(self, "name", key)
+        else:
+            # A subclass with "name" in _metadata has one put in the instance
+            #  __dict__ by __finalize__, which would shadow __getattr__ and
+            #  serve the subclass value instead of the key.
+            self.__dict__.pop("name", None)
         object.__setattr__(self, "_groupby_pinned_name", key)
 
     @final
@@ -6350,7 +6363,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "future version of pandas. When you need the key "
             "inside the function, iterate over the groupby object "
             "directly and combine the results, e.g. "
-            "'pd.concat({key: func(group, key) for key, group in gb})'.",
+            "'pd.concat({key: func(group, key) for key, group in gb})' "
+            "(or 'pd.Series(...)' if func returns a scalar).",
             Pandas4Warning,
             stacklevel=level,
         )
@@ -6391,6 +6405,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return object.__setattr__(self, name, value)
         except AttributeError:
             pass
+
+        if name == "name" and self._groupby_pinned_name is not lib.no_default:
+            # GH#41090 - the pinned key is served by __getattr__ rather than
+            #  from the instance __dict__, so without this the assignment
+            #  would fall through to setting a "name" *column*. An
+            #  explicitly-set name is no longer the pinned group key.
+            object.__setattr__(self, "_groupby_pinned_name", lib.no_default)
+            object.__setattr__(self, name, value)
+            return
 
         # if this fails, go on to more involved attribute setting
         # (note that this matches __getattr__, above).

@@ -229,6 +229,23 @@ def test_apply_setting_name_unpins_group_key():
     tm.assert_series_equal(result, expected)
 
 
+def test_apply_setting_name_does_not_write_name_column():
+    # GH#41090 - the pinned key is served by __getattr__ rather than from the
+    #  instance __dict__, so setting it must still set an attribute and not
+    #  fall through to assigning a column that happens to be called "name"
+    df = DataFrame({"a": [1, 1, 2], "name": [3, 4, 5]})
+
+    def func(group):
+        group.name = "zzz"
+        assert group.name == "zzz"
+        return group["name"].tolist()
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("a", group_keys=False).apply(func)
+    expected = Series([[3, 4], [5]], index=Index([1, 2], name="a"))
+    tm.assert_series_equal(result, expected)
+
+
 def test_group_apply_once_per_group2(capsys):
     # GH: 31111
     # groupby-apply need to execute len(set(group_by_columns)) times
