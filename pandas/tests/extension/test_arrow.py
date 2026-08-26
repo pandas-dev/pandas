@@ -5288,7 +5288,7 @@ def test_reduction_axis_out_of_bounds(method, axis):
         (pd.Int64Dtype(), pa.int64()),
         (pd.Float64Dtype(), pa.float64()),
         (pd.BooleanDtype(), pa.bool_()),
-        (pd.ArrowDtype(pa.large_string()), pa.large_string()),
+        (ArrowDtype(pa.large_string()), pa.large_string()),
         (pd.CategoricalDtype(), None),
         (pd.PeriodDtype("D"), None),
         (np.dtype("int64"), pa.int64()),
