@@ -263,9 +263,7 @@ For example, here is how to load the
 import pandas as pd
 
 # Load the IMDB dataset
-df = pd.read_parquet(
-    "hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet"
-)
+df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
 ```
 
 Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
@@ -299,14 +297,10 @@ Example:
 ```python
 import ntv_pandas as npd
 
-jsn = df.npd.to_json(
-    table=False
-)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
-df = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
+jsn = df.npd.to_json(table=False)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
+df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
 
-df.equals(
-    npd.read_json(df.npd.to_json(df))
-)  # `True` in any case, whether `table=True` or not
+df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
 ```
 
 #### [pandas-datareader](https://github.com/pydata/pandas-datareader)
@@ -369,15 +363,11 @@ Bodo also provides a SQL engine that can query distributed pandas dataframes eff
 import pandas as pd
 import bodo
 
-
 @bodo.jit
 def process_data():
     df = pd.read_parquet("my_data.pq")
-    df2 = pd.DataFrame(
-        {"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)}
-    )
+    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
     df2.to_parquet("out.pq")
-
 
 process_data()
 ```
