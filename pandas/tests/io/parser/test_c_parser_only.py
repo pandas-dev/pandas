@@ -17,14 +17,17 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.compat import WASM
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     StringDtype,
     concat,
@@ -860,6 +863,137 @@ def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_non_ascii_eager_wrap_mutable(c_parser_only, kwargs):
+    # GH#66277: the eager wrap that bypasses the ExtensionArray constructor
+    # for non-ASCII columns did not set _cache, so mutating the result raised
+    # AttributeError (reachable with low_memory=False, where the array
+    # reaches the frame without an intermediate concat)
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    result = parser.read_csv(StringIO("a\ncafé\nnaïve\n"), **kwargs)
+    arr = result["a"].array
+    arr[0] = "x"
+    arr.sort()
+    assert list(arr) == ["naïve", "x"]
+
+
+@pytest.mark.parametrize("tail", ["", "café\nnaïve\n" * 4])
+def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
+    # GH#66277: with low_memory=True, deferred string chunks combine into a
+    # single column at the end of the read; all-ASCII chunks take the
+    # zero-copy path while non-ASCII chunks are wrapped eagerly, and either
+    # mix must match a single-chunk read
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    data = "a\n" + "foo\nbar\nNA\nbaz\n" * 8 + tail
+    expected = parser.read_csv(StringIO(data))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv(StringIO(data))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_mutable(kwargs):
+    # GH#66619: the fast path builds its result without going through the
+    # ExtensionArray constructor, so it must set every attribute the
+    # constructor does; omitting _cache made mutating the result raise
+    # AttributeError.  low_memory=False is required, not incidental: the
+    # low-memory path concatenates its chunks, which rebuilds the array and
+    # would hide the omission.
+    pytest.importorskip("pyarrow")
+    # pinned rather than inherited: the default-kwargs case would otherwise get
+    # an object-dtype column, and stop exercising the fast path at all, in the
+    # PANDAS_FUTURE_INFER_STRING=0 build.
+    with option_context("future.infer_string", True):
+        result = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
+    arr = result["a"].array
+    arr[0] = "zzz"
+    arr.sort()
+    assert list(arr) == ["bar", "zzz"]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
+    # GH#66619: the fast path sets the instance attributes itself instead of
+    # calling __init__, so it has to track whatever set the constructor
+    # establishes.  Adding an attribute to ArrowStringArray.__init__ or
+    # ArrowExtensionArray.__init__ without teaching parsers.pyx about it should
+    # fail here rather than silently producing a half-built array.
+    pytest.importorskip("pyarrow")
+    with option_context("future.infer_string", True):
+        result = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
+    arr = result["a"].array
+    expected = type(arr)(arr._pa_array)
+    assert vars(arr).keys() == vars(expected).keys()
+
+
+def test_pyarrow_string_iterator_dtype_stable_across_chunks():
+    # GH#66619: a reader resolves its pyarrow target once, when it converts its
+    # first string column, so every chunk of one read gets the same dtype even
+    # if the options change mid-iteration.  Previously the target was looked up
+    # per chunk and the second chunk here came back object-dtype.
+    pytest.importorskip("pyarrow")
+    with option_context("future.infer_string", True):
+        reader = read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", chunksize=1, iterator=True
+        )
+        first = next(reader)
+    with option_context("future.infer_string", False):
+        second = next(reader)
+    assert first["a"].dtype == StringDtype(na_value=np.nan)
+    assert second["a"].dtype == first["a"].dtype
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
+    # GH#66756: the fast path copies a short token at a compile-time-constant
+    # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
+    # one byte either side of a tier boundary is where a mis-sized copy would
+    # truncate the value or trail the following token's bytes into it.
+    pa = pytest.importorskip("pyarrow")
+    widths = [1, 2, 15, 16, 17, 31, 32, 33, 64]
+    values = [
+        "".join(chr(ord("a") + pos % 26) for pos in range(width)) for width in widths
+    ]
+    data = "a,b\n" + "".join(f"{value},{value.upper()}\n" for value in values)
+    # The fast path requires infer_string *and* pyarrow storage, so pin both;
+    # the dtype check below turns any silent fall-back to the object path
+    # (which would satisfy the value assertions) into a loud failure.
+    with option_context("future.infer_string", True, "mode.string_storage", "pyarrow"):
+        result = read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        ArrowDtype(pa.string()) if kwargs else StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert result["a"].dtype == expected_dtype
+    assert result["a"].tolist() == values
+    assert result["b"].tolist() == [value.upper() for value in values]
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
+    # GH#66756: the fast path sizes its data buffer from the column's leading
+    # tokens and grows it mid-pass when that estimate falls short, re-copying
+    # what it has already written.  A column whose first rows are far narrower
+    # than the rest takes that path repeatedly, where a stale buffer pointer or
+    # an undersized grow would corrupt everything written before it.
+    pa = pytest.importorskip("pyarrow")
+    values = ["ab"] * 20 + [f"{num:x}" * 900 for num in range(1, 200)]
+    data = "a\n" + "".join(f"{value}\n" for value in values)
+    with option_context("future.infer_string", True, "mode.string_storage", "pyarrow"):
+        result = read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        ArrowDtype(pa.string()) if kwargs else StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert result["a"].dtype == expected_dtype
+    assert result["a"].tolist() == values
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("prefix_len", [1, 200])
 def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
     # GH#66415: the pyarrow string fast path computed token lengths with
@@ -1196,3 +1330,75 @@ def test_na_values_leading_nul(c_parser_only):
     assert result["a"].isna().tolist() == [True, False, False]
     assert result["a"][1] == "\x00z"
     assert result["a"][2] == ""
+
+
+def _raise_on_five(value):
+    if value == "5":
+        raise RuntimeError("boom")
+    return value
+
+
+@pytest.mark.parametrize(
+    "data,kwargs,error,match",
+    [
+        (
+            "a,b\n" + "".join(f"{i},{'oops' if i == 5 else i}\n" for i in range(20)),
+            {"dtype": {"b": "int64"}},
+            ValueError,
+            "invalid literal for int",
+        ),
+        (
+            "a,b\n" + "".join(f"{i},{i}\n" for i in range(20)),
+            {"converters": {"b": _raise_on_five}},
+            RuntimeError,
+            "boom",
+        ),
+        (
+            "a,b\n"
+            + "".join(
+                (f"{i},{i},{i}\n" if i == 15 else f"{i},{i}\n") for i in range(20)
+            ),
+            {},
+            ParserError,
+            "Expected 2 fields",
+        ),
+    ],
+)
+def test_read_after_chunk_raised(c_parser_only, data, kwargs, error, match):
+    # GH#66622: a chunk that raised closed the reader, and reading again then
+    # dereferenced the freed tokenizer buffers instead of raising.
+    parser = c_parser_only
+
+    with parser.read_csv(StringIO(data), chunksize=10, **kwargs) as reader:
+        with pytest.raises(error, match=match):
+            for _ in reader:
+                pass
+
+        with pytest.raises(ValueError, match="I/O operation on closed file"):
+            next(reader)
+
+
+def test_read_after_close(c_parser_only):
+    # GH#66622: reading from a closed reader crashed the interpreter.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    with parser.read_csv(StringIO(data), chunksize=10) as reader:
+        assert len(next(reader)) == 10
+
+    with pytest.raises(ValueError, match="I/O operation on closed file"):
+        next(reader)
+
+
+def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
+    # GH#66622: exhausting a reader closes it, but it must keep behaving like a
+    # spent iterator rather than reporting a closed file.
+    parser = c_parser_only
+    data = "a,b\n" + "".join(f"{i},{i}\n" for i in range(20))
+
+    reader = parser.read_csv(StringIO(data), chunksize=10)
+    assert len(list(reader)) == 2
+
+    for _ in range(2):
+        with pytest.raises(StopIteration):
+            next(reader)

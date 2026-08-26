@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -68,6 +69,7 @@ from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
     format_dateaxis,
+    get_period_offset,
     maybe_convert_index,
     prepare_ts_data,
     use_dynamic_x,
@@ -87,6 +89,7 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
 
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         IndexLabel,
         NDFrameT,
@@ -167,9 +170,9 @@ class MPLPlot(ABC):
         include_bool: bool = False,
         column: IndexLabel | None = None,
         *,
-        logx: bool | None | Literal["sym"] = False,
-        logy: bool | None | Literal["sym"] = False,
-        loglog: bool | None | Literal["sym"] = False,
+        logx: bool | Literal["sym"] | None = False,
+        logy: bool | Literal["sym"] | None = False,
+        loglog: bool | Literal["sym"] | None = False,
         mark_right: bool = True,
         stacked: bool = False,
         label: Hashable | None = None,
@@ -326,8 +329,8 @@ class MPLPlot(ABC):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         if (
             value is None
             or isinstance(value, bool)
@@ -531,7 +534,14 @@ class MPLPlot(ABC):
     @staticmethod
     def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
-        return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
+        return (
+            len(ax.lines) != 0
+            or len(ax.artists) != 0
+            or len(ax.containers) != 0
+            # scatter and area plots draw their data into a collection rather
+            # than into lines
+            or len(ax.collections) != 0
+        )
 
     @final
     def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:
@@ -694,7 +704,7 @@ class MPLPlot(ABC):
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data.infer_objects()
-        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+        include_type = [np.number, "datetime", DatetimeTZDtype, "timedelta"]
 
         # GH23719, allow plotting boolean
         if self.include_bool is True:
@@ -1389,8 +1399,11 @@ class ScatterPlot(PlanePlot):
             )
 
         scatter = ax.scatter(
-            x_data._values,
-            data[y]._values,
+            # matplotlib cannot consume ExtensionArrays directly; np.asarray
+            #  gives it either a plain ndarray or objects (e.g. Timestamp,
+            #  Period) that its unit converters understand.
+            np.asarray(x_data._values),
+            np.asarray(data[y]._values),
             c=c_values,
             label=label,
             cmap=cmap,
@@ -1420,7 +1433,12 @@ class ScatterPlot(PlanePlot):
         if len(errors_x) > 0 or len(errors_y) > 0:
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
-            ax.errorbar(data[x]._values, data[y]._values, linestyle="none", **err_kwds)
+            ax.errorbar(
+                np.asarray(data[x]._values),
+                np.asarray(data[y]._values),
+                linestyle="none",
+                **err_kwds,
+            )
 
     def _get_c_values(self, color, color_by_categorical: bool, c_is_column: bool):
         c = self.c
@@ -1526,9 +1544,15 @@ class HexBinPlot(PlanePlot):
         if C is None:
             c_values = None
         else:
-            c_values = data[C]._values
+            c_values = np.asarray(data[C]._values)
 
-        ax.hexbin(data[x]._values, data[y]._values, C=c_values, cmap=cmap, **self.kwds)
+        ax.hexbin(
+            np.asarray(data[x]._values),
+            np.asarray(data[y]._values),
+            C=c_values,
+            cmap=cmap,
+            **self.kwds,
+        )
         if cb:
             self._plot_colorbar(ax, fig=fig)
 
@@ -1580,6 +1604,8 @@ class LinePlot(MPLPlot):
         # axis at the end, not once per column (GH#61398).
         ts_axes: list[Axes] = []
         seen_ax_ids: set[int] = set()
+        # Index actually drawn on each ts axes, keyed by id(ax); see _ts_plot.
+        self._ts_index: dict[int, Index] = {}
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1620,8 +1646,9 @@ class LinePlot(MPLPlot):
         if is_ts:
             # TODO: GH28021, should find a way to change view limit on xaxis
             for ax in ts_axes:
+                index = self._ts_index[id(ax)]
                 # TODO #54485
-                format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+                format_dateaxis(ax, ax.freq, index)  # type: ignore[attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
@@ -1662,10 +1689,17 @@ class LinePlot(MPLPlot):
         # column_num must be in kwds for stacking purpose
         _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
 
+        # prepare_ts_data set ax.freq and returned data re-expressed at that
+        # freq, so these two agree even when the series was re-expressed at
+        # the axes frequency.  The frame-level index would not (GH#64311).
+        self._ts_index[id(ax)] = data.index
+
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
-        lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
+        lines = self._plot(
+            ax, data.index, np.asarray(data._values), style=style, **kwds
+        )
         # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
@@ -1896,11 +1930,19 @@ class BarPlot(MPLPlot):
             self.tick_pos = np.array(
                 PeriodConverter.convert_from_freq(
                     self._get_xticks(),
-                    data.index.freq,
+                    self._ts_freq,
                 )
             )
         else:
             self.tick_pos = np.arange(len(data))
+
+    @cache_readonly
+    def _ts_freq(self) -> BaseOffset:
+        freq = get_period_offset(self._get_ax(0), self.data.index)
+        # only evaluated when _is_ts_plot() is True, which resolves the freq
+        # the same way and is False unless it resolves to a period alias
+        assert freq is not None
+        return freq
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
@@ -2161,8 +2203,8 @@ class PiePlot(MPLPlot):
     def _validate_log_kwd(
         cls,
         kwd: str,
-        value: bool | None | Literal["sym"],
-    ) -> bool | None | Literal["sym"]:
+        value: bool | Literal["sym"] | None,
+    ) -> bool | Literal["sym"] | None:
         super()._validate_log_kwd(kwd=kwd, value=value)
         if value is not False:
             warnings.warn(

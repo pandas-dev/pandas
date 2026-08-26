@@ -20,7 +20,16 @@ See LICENSE for the license
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define STREAM_INIT_SIZE 32
+
+// Every parser error message is a constant or a short format over a few
+// integers, so they live in a fixed buffer inside parser_t rather than being
+// malloc'd on the error path.  Nothing can fail, so nothing needs checking.
+#define ERROR_MSG_SIZE 256
 
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
@@ -92,14 +101,17 @@ typedef struct parser_t {
   uint64_t stream_len;
   uint64_t stream_cap;
 
-  // Store words in (potentially ragged) matrix for now, hmm
-  char **words;
-  int64_t *word_starts; // where we are in the stream
+  // Words live NUL-terminated and tightly packed in the stream; word i is
+  // the bytes [word_ends[i-1] + 1, word_ends[i]) (word 0 starts at offset
+  // 0), with word_ends[i] the offset of its trailing NUL. Storing only the
+  // end offsets (instead of a char* per word plus a start offset) halves
+  // the per-field bookkeeping and means nothing needs rebasing when the
+  // stream buffer reallocs.
+  int64_t *word_ends; // stream offset of each word's trailing NUL
   uint64_t words_len;
   uint64_t words_cap;
   uint64_t max_words_cap; // maximum word cap encountered
 
-  char *pword_start;  // pointer to stream start of current field
   int64_t word_start; // position start of current field
 
   int64_t *line_start;  // position in words for start of line
@@ -155,22 +167,45 @@ typedef struct parser_t {
   // The buffer then never starts with a header row, so the first line gets
   // no special treatment: no BOM strip, no exemption from field-count checks.
   int preloaded;
+
+  // Boolean: 1 once the header (and the first data row, which fixes the table
+  // width) has been tokenized.  The header-row exemptions in end_line key off
+  // buffer slot numbers, which stop identifying header rows as soon as
+  // parser_consume_rows shifts data rows down into those slots.
+  int header_done;
+
+  // Field count of the last line parser_consume_rows dropped, or -1 before the
+  // first chunk boundary.  end_line normally reads the preceding line's count
+  // straight out of line_fields, which the boundary throws away.
+  int64_t prev_line_fields;
+
+  // Message storage, kept last so every other field keeps its offset.
+  // error_msg points into error_buf (or is NULL) and is never freed.  Warnings
+  // get their own buffer so formatting one can never rewrite a pending error
+  // message out from under error_msg.
+  char error_buf[ERROR_MSG_SIZE];
+  char warn_buf[ERROR_MSG_SIZE];
 } parser_t;
 
 typedef struct coliter_t {
-  char **words;
+  const char *stream;
+  const int64_t *word_ends;
   int64_t *line_start;
   int64_t col;
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
+// Word i starts right after word i-1's trailing NUL (word 0 at offset 0).
+static inline const char *coliter_word(const coliter_t *self, int64_t i) {
+  return self->stream + (i == 0 ? 0 : self->word_ends[i - 1] + 1);
+}
+
 // Advance the column iterator and return the next field's token, emitting its
 // resolved index via idx_out so callers needing the token length can compute
-// it as word_starts[idx+1] - word_starts[idx] - 1 (using parser->stream_len
-// for the last token where idx+1 == words_len). A missing field yields "" and
-// idx_out = -1, which callers must treat as length 0 rather than indexing into
-// word_starts.
+// it from adjacent word_ends entries. A missing field yields "" and
+// idx_out = -1, which callers must treat as length 0 rather than indexing
+// into word_ends.
 static inline const char *coliter_next_with_idx(coliter_t *self,
                                                 int64_t *idx_out) {
   const int64_t idx = *self->line_start++ + self->col;
@@ -179,12 +214,7 @@ static inline const char *coliter_next_with_idx(coliter_t *self,
     return "";
   }
   *idx_out = idx;
-  return self->words[idx];
-}
-
-static inline const char *coliter_next(coliter_t *self) {
-  int64_t idx;
-  return coliter_next_with_idx(self, &idx);
+  return coliter_word(self, idx);
 }
 
 parser_t *parser_new(void);
@@ -255,3 +285,7 @@ int to_boolean(const char *item, int64_t length, uint8_t *val);
 // opposite sense from to_boolean above, which returns 0 on a match: the return
 // value here is a sign, not a status.
 int infinity_sign(const char *item, int64_t length);
+
+#ifdef __cplusplus
+}
+#endif

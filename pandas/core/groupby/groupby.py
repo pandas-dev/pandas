@@ -2736,7 +2736,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self._grouper.size()
-        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        dtype_backend: Literal["pyarrow", "numpy_nullable"] | None = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
                 if isinstance(self.obj.array, ArrowStringArray):
@@ -2757,13 +2757,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if dtype_backend is not None:
-            result = result.convert_dtypes(
-                infer_objects=False,
-                convert_string=False,
-                convert_boolean=False,
-                convert_floating=False,
-                dtype_backend=dtype_backend,
-            )
+            result = result.convert_dtypes(dtype_backend=dtype_backend)
 
         if not self.as_index:
             result = result.rename("size").reset_index()
@@ -4499,7 +4493,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-            pass_qs: None | np.ndarray = None
+            pass_qs: np.ndarray | None = None
         else:
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
@@ -5865,14 +5859,6 @@ def get_groupby(
     Parameters
     ----------
     obj : pandas object
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : str
-        Most users should ignore this
 
     Returns
     -------

@@ -714,6 +714,64 @@ def test_partition_index_with_name_expand_false():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["partition", {0: ["abc", "d"], 1: ["", ""], 2: ["", ""]}],
+        ["rpartition", {0: ["", ""], 1: ["", ""], 2: ["abc", "d"]}],
+    ],
+)
+def test_partition_to_dataframe_not_split(any_string_dtype, method, exp):
+    # GH#63602 sep is absent, so two of the three columns are empty strings
+    s = Series(["abc", "d"], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame(exp, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, exp",
+    [
+        ["partition", {0: ["é", "ü"], 1: ["_", "_"], 2: ["ü_é", "é"]}],
+        ["rpartition", {0: ["é_ü", "ü"], 1: ["_", "_"], 2: ["é", "é"]}],
+    ],
+)
+def test_partition_to_dataframe_multibyte(any_string_dtype, method, exp):
+    # GH#63602 splitting must happen on character, not byte, boundaries
+    s = Series(["é_ü_é", "ü_é"], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame(exp, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+@pytest.mark.parametrize("expand", [True, False])
+def test_partition_empty_sep(any_string_dtype, method, expand):
+    # GH#63602 every dtype reports an empty separator the way str.partition does
+    s = Series(["a_b"], dtype=any_string_dtype)
+    with pytest.raises(ValueError, match="empty separator"):
+        getattr(s.str, method)("", expand=expand)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+def test_partition_to_dataframe_empty(any_string_dtype, method):
+    # GH#63602 an empty Series expands to no columns at all
+    s = Series([], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["partition", "rpartition"])
+def test_partition_to_dataframe_all_na(any_string_dtype, method):
+    # GH#63602 with no non-null row to take a width from, expand to one
+    #  all-NA column, as the object-dtype implementation does
+    s = Series([None, None], dtype=any_string_dtype)
+    result = getattr(s.str, method)("_")
+    expected = DataFrame({0: [None, None]}, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("method", ["partition", "rpartition"])
 def test_partition_sep_kwarg(any_string_dtype, method):
     # GH 22676; depr kwarg "pat" in favor of "sep"

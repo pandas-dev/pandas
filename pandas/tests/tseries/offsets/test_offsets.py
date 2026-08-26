@@ -41,6 +41,7 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
+    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -829,6 +830,69 @@ class TestDateOffset:
             DateOffset(picoseconds=1)
 
 
+def test_isinstance_dateoffset_warns_for_non_dateoffset():
+    # GH#48262
+    bday = BDay()
+    msg = "isinstance.*DateOffset.*is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = isinstance(bday, DateOffset)
+    assert result is True
+
+
+def test_issubclass_dateoffset_warns_for_non_dateoffset():
+    # GH#48262
+    msg = "issubclass.*DateOffset.*is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = issubclass(BDay, DateOffset)
+    assert result is True
+
+
+def test_isinstance_dateoffset_no_warning_for_dateoffset():
+    # GH#48262
+    class MySubclass(DateOffset):
+        pass
+
+    for obj in [DateOffset(days=1), MySubclass(days=1)]:
+        with tm.assert_produces_warning(None):
+            result = isinstance(obj, DateOffset)
+        assert result is True
+
+
+def test_issubclass_dateoffset_no_warning_for_dateoffset():
+    # GH#48262
+    class MySubclass(DateOffset):
+        pass
+
+    for klass in [DateOffset, MySubclass]:
+        with tm.assert_produces_warning(None):
+            result = issubclass(klass, DateOffset)
+        assert result is True
+
+
+@pytest.mark.parametrize("obj", [1, None, "B", object()])
+def test_isinstance_dateoffset_no_warning_for_non_offset(obj):
+    # GH#48262 objects that are not offsets at all are unaffected
+    with tm.assert_produces_warning(None):
+        result = isinstance(obj, DateOffset)
+    assert result is False
+
+
+@pytest.mark.parametrize("klass", [int, str, object])
+def test_issubclass_dateoffset_no_warning_for_non_offset(klass):
+    # GH#48262
+    with tm.assert_produces_warning(None):
+        result = issubclass(klass, DateOffset)
+    assert result is False
+
+
+def test_baseoffset_check_no_warning():
+    # GH#48262 BaseOffset is the non-deprecated alternative
+    bday = BDay()
+    with tm.assert_produces_warning(None):
+        assert isinstance(bday, BaseOffset)
+        assert issubclass(BDay, BaseOffset)
+
+
 class TestOffsetNames:
     def test_get_offset_name(self):
         assert BDay().freqstr == "B"
@@ -1288,13 +1352,34 @@ def test_multiply_dateoffset_typeerror(left, right):
         left * right
 
 
-def test_dateoffset_days_vs_n_near_dst_transition():
-    # GH#61862
-    ts = Timestamp("2022-10-30", tz="Europe/Brussels")
+@pytest.mark.parametrize("n", [1, 2, -1])
+def test_dateoffset_days_vs_n_near_dst_transition(warsaw, n):
+    # GH#61862, GH#61870
+    ts = Timestamp("2022-10-30", tz=warsaw)
 
-    offset_days = ts + offsets.DateOffset(days=1)
-    offset_n = ts + offsets.DateOffset(1)
+    offset_days = ts + offsets.DateOffset(days=n)
+    offset_n = ts + offsets.DateOffset(n)
     assert offset_days == offset_n
+    # the scalar result also agrees with the vectorized one
+    expected = DatetimeIndex([ts]) + offsets.DateOffset(n)
+    assert offset_n == expected[0]
+
+
+@pytest.mark.parametrize("n", [1, 2, -1])
+@pytest.mark.parametrize("start", ["2022-10-30", "2022-03-26 12:00"])
+def test_dateoffset_n_scalar_near_dst_transition(warsaw, start, n):
+    # GH#61870 the scalar path for a bare DateOffset(n) added a plain
+    #  timedelta, which kept pytz's pre-transition DstTzInfo instead of
+    #  re-localizing, so the result was an hour off across a DST boundary
+    ts = Timestamp(start, tz=warsaw)
+
+    result = ts + offsets.DateOffset(n)
+    expected = ts + offsets.DateOffset(days=n)
+    assert result == expected
+    assert result.utcoffset() == expected.utcoffset()
+
+    # the vectorized path is a separate implementation
+    assert (DatetimeIndex([ts]) + offsets.DateOffset(n))[0] == result
 
 
 @pytest.mark.parametrize("n", [1, 2, -1])

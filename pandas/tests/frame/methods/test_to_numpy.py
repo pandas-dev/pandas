@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas import (
     DataFrame,
@@ -34,9 +33,6 @@ class TestToNumpy:
         #  and that can be respected because we are already numpy-float
         assert df.to_numpy(copy=False).base is df.values.base
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_to_numpy_mixed_dtype_to_str(self):
         # https://github.com/pandas-dev/pandas/issues/35455
         df = DataFrame([[Timestamp("2020-01-01 00:00:00"), 100.0]])

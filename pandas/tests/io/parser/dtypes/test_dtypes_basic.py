@@ -23,10 +23,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
@@ -653,6 +649,21 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
         StringIO(data), dtype="Int64", dtype_backend="numpy_nullable"
     )
     expected = DataFrame({"a": [1], "b": 2}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
+def test_dtype_string_int_column_with_na(all_parsers, dtype):
+    # GH#57100 the pyarrow engine inferred int64, widened it to float64 to hold
+    # the missing value and then cast to string, yielding "44794724.0"
+    if dtype == "string[pyarrow]":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "var1,var2\n44794724,x\n,y\n"
+
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+
+    expected = DataFrame({"var1": ["44794724", None], "var2": ["x", "y"]}, dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 
