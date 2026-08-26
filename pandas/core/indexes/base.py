@@ -151,6 +151,7 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
+    ensure_s3_converted_to_obj,
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
@@ -529,11 +530,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-                # GH#50127 we must update the `dtype` when we have the numpy
-                # type `S` to `_dtype_to_subclass`, because it would raise a
-                # `NotImplementedError`.
-                if dtype and dtype.kind == "S":
-                    dtype = _dtype_obj
         elif isinstance(data, (ABCSeries, Index)):
             # GH 56244: Avoid potential inference on object types
             pass
@@ -576,12 +572,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
-            elif isinstance(dtype, np.dtype) and dtype.kind == "S":
-                # GH#50127 we update data to a np.array with the correct dtype.
-                data = np.array(data, dtype=dtype)
-                copy = False
-                dtype = _dtype_obj
-
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=bool(copy))
         except ValueError as err:
@@ -591,6 +581,8 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
+
+        arr = ensure_s3_converted_to_obj(arr)  # GH#50127
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
