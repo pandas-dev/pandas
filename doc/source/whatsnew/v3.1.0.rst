@@ -99,6 +99,14 @@ infer numeric and boolean categories under the default ``dtype_backend``
     data = "a\nTrue\nFalse\nTrue"
     pd.read_csv(StringIO(data), dtype="category")["a"].dtype
 
+To keep the old string categories, read the column as ``str`` and convert
+afterwards:
+
+.. ipython:: python
+
+    data = "a\n1\n1\n2"
+    pd.read_csv(StringIO(data), dtype="str").astype("category")["a"].dtype
+
 Some columns keep string categories:
 
 * those whose values do not all parse as numeric or boolean;
@@ -124,22 +132,24 @@ so always comparable. The buffer chunking that ``low_memory=True`` does inside a
 single read adds no such divergence, since it infers once, after those chunks
 are combined.
 
-The same inference now applies to the other readers built on the shared text
-parser, including :func:`read_table`, :func:`read_fwf` and :func:`read_excel`,
-which already inferred numeric and boolean types for these columns without
-``dtype="category"``.
+The same inference now applies to every other reader built on the shared text
+parser, :func:`read_table`, :func:`read_fwf` and :func:`read_excel` included,
+each of which already inferred numeric and boolean types for these columns
+without ``dtype="category"``.
 
 The ``pyarrow`` engine gave nullable ``Int64`` categories for integer columns
 under the default ``dtype_backend``; it now gives numpy ``int64`` like the other
 engines.
 
-Three further inconsistencies in the ``c`` and ``python`` engines are fixed.
-``low_memory=True`` (the default for the ``c`` engine) no longer leaves string
-categories in the order the file's buffer chunks happened to produce them, and
-no longer raises ``TypeError: dtype of categories must be the same`` when one
-of a column's buffer chunks holds only missing values. A
-:class:`CategoricalDtype` that specifies ``ordered=True`` without specifying
-``categories`` no longer discards ``ordered``:
+Three further inconsistencies in the ``c`` and ``python`` engines are fixed:
+
+* ``low_memory=True`` (the default for the ``c`` engine) no longer leaves
+  string categories in the order the file's buffer chunks happened to produce
+  them;
+* it no longer raises ``TypeError: dtype of categories must be the same`` when
+  one of a column's buffer chunks holds only missing values;
+* a :class:`CategoricalDtype` that specifies ``ordered=True`` without
+  specifying ``categories`` no longer discards ``ordered``:
 
 .. ipython:: python
 
