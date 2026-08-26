@@ -12,7 +12,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import parsers as libparsers
-from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -36,20 +35,10 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
         {"a": "category", "b": "category", "c": CategoricalDtype()},
     ],
 )
-def test_categorical_dtype(all_parsers, dtype, request):
+def test_categorical_dtype(all_parsers, dtype):
     # see gh-10153, gh-56044
     # categories should have inferred types (not strings) across all engines
     parser = all_parsers
-    if (
-        parser.engine == "pyarrow"
-        and not isinstance(dtype, dict)
-        and pa_version_under25p0
-    ):
-        # GH#57666 applying a scalar dtype while parsing needs
-        # pyarrow>=25.0 (ConvertOptions.default_column_type)
-        request.applymarker(
-            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
-        )
     data = """a,b,c
 1,a,3.4
 1,a,3.4
@@ -86,15 +75,9 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     tm.assert_frame_equal(actual, expected)
 
 
-def test_categorical_dtype_unsorted(all_parsers, request):
+def test_categorical_dtype_unsorted(all_parsers):
     # see gh-10153, gh-56044
     parser = all_parsers
-    if parser.engine == "pyarrow" and pa_version_under25p0:
-        # GH#57666 applying a scalar dtype while parsing needs
-        # pyarrow>=25.0 (ConvertOptions.default_column_type)
-        request.applymarker(
-            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
-        )
     data = """a,b,c
 1,b,3.4
 1,b,3.4
@@ -110,15 +93,9 @@ def test_categorical_dtype_unsorted(all_parsers, request):
     tm.assert_frame_equal(actual, expected)
 
 
-def test_categorical_dtype_missing(all_parsers, request):
+def test_categorical_dtype_missing(all_parsers):
     # see gh-10153, gh-56044
     parser = all_parsers
-    if parser.engine == "pyarrow" and pa_version_under25p0:
-        # GH#57666 applying a scalar dtype while parsing needs
-        # pyarrow>=25.0 (ConvertOptions.default_column_type)
-        request.applymarker(
-            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
-        )
     data = """a,b,c
 1,b,3.4
 1,nan,3.4
@@ -625,16 +602,10 @@ def test_categorical_dtype_all_na(all_parsers):
 
 
 @pytest.mark.slow
-def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch, request):
+def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     # see gh-18186, gh-56044
     # was an issue with C parser, due to DEFAULT_BUFFER_HEURISTIC
     parser = all_parsers
-    if parser.engine == "pyarrow" and pa_version_under25p0:
-        # GH#57666 applying a scalar dtype while parsing needs
-        # pyarrow>=25.0 (ConvertOptions.default_column_type)
-        request.applymarker(
-            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
-        )
     heuristic = 2**5
     data = np.sort([str(i) for i in range(heuristic + 1)])
     csv_data = "a\n" + "\n".join(data)
@@ -851,12 +822,19 @@ def test_categorical_unexpected_categories(all_parsers):
 
 
 def test_categorical_dtype_leading_zeros(all_parsers):
-    # GH#57666 the categories are the raw strings from the file
+    # GH#56044 the categories are inferred like any other column, so the
+    #  leading zeros are lost just as they are without dtype="category"
     parser = all_parsers
     data = """a,b
 01,x
 002,y"""
     result = parser.read_csv(StringIO(data), dtype={"a": "category"})
+    expected = DataFrame({"a": Categorical([1, 2]), "b": ["x", "y"]})
+    tm.assert_frame_equal(result, expected)
+    # to keep the raw strings, ask for them
+    result = parser.read_csv(StringIO(data), dtype={"a": "str"}).astype(
+        {"a": "category"}
+    )
     expected = DataFrame({"a": Categorical(["01", "002"]), "b": ["x", "y"]})
     tm.assert_frame_equal(result, expected)
 
