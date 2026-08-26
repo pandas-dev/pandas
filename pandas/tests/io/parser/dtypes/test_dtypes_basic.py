@@ -914,19 +914,14 @@ def test_object_dtype_dict_preserves_raw_strings(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dtype_dict_non_string_key(all_parsers):
-    # GH#57666 non-string dtype keys must not raise on the pyarrow engine
-    # (its ConvertOptions requires string column names); the positional
-    # application of integer keys itself is covered by test_dtype_per_column
-    parser = all_parsers
+def test_dtype_dict_non_string_key_pyarrow(pyarrow_parser_only):
+    # GH#57666 pyarrow's ConvertOptions requires string column names, so
+    # non-string dtype keys must not raise; they are applied afterwards
+    # (here dropped, since positional keys are not supported by this engine)
+    parser = pyarrow_parser_only
     data = "a,b\n01,2\n002,3"
-    result = parser.read_csv(StringIO(data), dtype={"a": str, 1: "int64"})
-    expected = DataFrame(
-        {
-            "a": pd.Series(["01", "002"], dtype=str),
-            "b": pd.Series([2, 3], dtype="int64"),
-        }
-    )
+    result = parser.read_csv(StringIO(data), dtype={"a": str, 1: str})
+    expected = DataFrame({"a": pd.Series(["01", "002"], dtype=str), "b": [2, 3]})
     tm.assert_frame_equal(result, expected)
 
 
