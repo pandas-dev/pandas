@@ -113,18 +113,8 @@ def _valid_locales(locales: list[str] | str, normalize: bool) -> list[str]:
     ]
 
 
-# Windows has no "locale -a" to enumerate with.  ``locale.windows_locale``
-#  lists the ~200 names the CRT knows, but it is undocumented and its only
-#  stdlib consumer is ``locale.getdefaultlocale``, which is slated for removal
-#  in 3.15.  The names are BCP-47 and carry an encoding suffix: the CRT wants
-#  "en-US" rather than "en_US", and ``can_set_locale`` calls
-#  ``locale.getlocale``, whose parser raises ValueError on a name without a
-#  ".".  GH#46597
-#
-# The consumers parametrize over every entry, so this holds one name per
-#  behavior a locale can change rather than a broad sample.  day_name and
-#  month_name read ``calendar.day_name`` under ``set_locale`` and then call
-#  ``str.capitalize``, so what varies between locales is the case mapping.
+# Windows has no "locale -a" to enumerate with, so we hardcode a few values.
+#  GH#46597
 _WINDOWS_LOCALES = [
     "de-DE.UTF-8",  # Latin with diacritics
     "el-GR.UTF-8",  # Greek, where capitalize() has to handle final sigma

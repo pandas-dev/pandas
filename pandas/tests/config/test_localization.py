@@ -20,8 +20,6 @@ import pandas as pd
 
 _all_locales = get_locales()
 
-# Only the tests that need a locale out of _all_locales are skipped when there
-#  are too few of them; the rest run everywhere, Windows included. GH#46597
 _skip_if_only_one_locale = pytest.mark.skipif(
     len(_all_locales) <= 1, reason="Need multiple locales for meaningful test"
 )
