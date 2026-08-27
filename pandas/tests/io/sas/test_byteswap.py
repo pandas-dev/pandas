@@ -16,9 +16,15 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "int_type,number",
     [
+        (np.uint16, 0),
         (np.uint16, 4660),
+        (np.uint16, 2**16 - 1),
+        (np.uint32, 0),
         (np.uint32, 3735928559),
+        (np.uint32, 2**32 - 1),
+        (np.uint64, 0),
         (np.uint64, 81985529216486895),
+        (np.uint64, 2**64 - 1),
     ],
 )
 @pytest.mark.parametrize("should_byteswap", [True, False])
