@@ -67,6 +67,17 @@ a,b,c
     tm.assert_frame_equal(result, expected)
 
 
+def test_usecols_name_order_is_ignored(all_parsers):
+    # GH#67010
+    data = "a,b,c\n1,2,3\n4,5,6"
+    parser = all_parsers
+
+    result = parser.read_csv(StringIO(data), usecols=["c", "a"])
+
+    expected = DataFrame({"a": [1, 4], "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_usecols_with_names(all_parsers):
     data = """\
 a,b,c
