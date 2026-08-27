@@ -102,3 +102,17 @@ def test_frame_iat_setitem():
 
     with tm.raises_chained_assignment_error():
         df[0:3].iat[0, 0] = 10
+
+
+def test_setitem_not_through_subscript_syntax():
+    # GH#51315 a setitem call that does not originate from a subscript
+    # assignment in the calling Python frame (e.g. from a function compiled
+    # with Cython) is never chained assignment, even though the refcount of
+    # the object is as low as for actual chained assignment
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+
+    with tm.assert_produces_warning(None):
+        df["a"].__setitem__(0, 100)
+
+    with tm.assert_produces_warning(None):
+        df[["a"]].__setitem__("a", 100)
