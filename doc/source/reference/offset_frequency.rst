@@ -384,13 +384,6 @@ Easter
 
     Easter
 
-Custom properties:
-
-.. autosummary::
-   :toctree: api/
-
-    Easter.method
-
 Ticks
 -----
 
