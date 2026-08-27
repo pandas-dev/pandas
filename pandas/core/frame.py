@@ -10039,7 +10039,7 @@ class DataFrame(NDFrame, OpsMixin):
             ):
                 self_names = set(self.index.names)
                 other_names = set(other.index.names)
-                if self.index.equals(other.index) and not (self_names & other_names):
+                if not (self_names & other_names) and self.index.equals(other.index):
                     # GH#25891
                     warnings.warn(
                         "The silent alignment on arithmetic operations between "
