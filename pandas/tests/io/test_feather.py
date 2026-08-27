@@ -159,11 +159,6 @@ class TestFeather:
 
     @pytest.mark.network
     @pytest.mark.single_cpu
-    # the checked-in fixture is a Feather V1 file, deprecated in pyarrow 25.0;
-    # suppress until we migrate the implementation (GH#66177)
-    @pytest.mark.filterwarnings(
-        "ignore:Feather V1 files are deprecated:DeprecationWarning"
-    )
     def test_http_path(self, feather_file, httpserver):
         # GH 29055
         expected = read_feather(feather_file)

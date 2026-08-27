@@ -227,11 +227,6 @@ class TestS3:
         )
         tm.assert_frame_equal(tips_df, result)
 
-    # the checked-in fixture is a Feather V1 file, deprecated in pyarrow 25.0;
-    # suppress until we migrate the implementation (GH#66177)
-    @pytest.mark.filterwarnings(
-        "ignore:Feather V1 files are deprecated:DeprecationWarning"
-    )
     def test_read_feather_s3_file_path(
         self, s3_bucket_public_with_data, s3so, feather_file
     ):
