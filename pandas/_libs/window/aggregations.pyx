@@ -2225,7 +2225,7 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         const float64_t[:] sub_vals
         const float64_t[:] sub_deltas=None
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=np.float64)
-        float64_t alpha, old_wt_factor, new_wt, weighted, old_wt, cur
+        float64_t alpha, old_wt_factor, new_wt, weighted, old_wt, cur, step_delta
         bint is_observation, use_deltas
 
     if N == 0:
@@ -2256,6 +2256,8 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
 
         with nogil:
             for i in range(1, win_size):
+                # One row-to-row interval. Missing that array means unit steps.
+                step_delta = 1.
                 cur = sub_vals[i]
                 is_observation = cur == cur
                 nobs += is_observation
@@ -2264,18 +2266,19 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                     if is_observation or not ignore_na:
                         if normalize:
                             if use_deltas:
-                                old_wt *= old_wt_factor ** sub_deltas[i - 1]
-                            else:
-                                old_wt *= old_wt_factor
+                                step_delta = sub_deltas[i - 1]
+                            old_wt *= old_wt_factor ** step_delta
                         else:
                             weighted = old_wt_factor * weighted
                         if is_observation:
                             if normalize:
+                                if not adjust:
+                                    # this row-to-row interval only; decay
+                                    # from ignore_na=False NaN rows stays in
+                                    # old_wt (GH#31178, GH#66523)
+                                    new_wt = 1. - old_wt_factor ** step_delta
                                 # avoid numerical errors on constant series
                                 if weighted != cur:
-                                    if not adjust and com == 1:
-                                        # update in case of irregular-interval series
-                                        new_wt = 1. - old_wt
                                     weighted = old_wt * weighted + new_wt * cur
                                     weighted /= (old_wt + new_wt)
                                 if adjust:

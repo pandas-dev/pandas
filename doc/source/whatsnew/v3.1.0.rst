@@ -129,6 +129,27 @@ timezone instead of returning a naive result; it still drops nanoseconds, and
 still raises ``ValueError`` for a ``fold=1`` (DST-ambiguous) timestamp
 (:issue:`31930`, :issue:`45307`).
 
+.. _whatsnew_310.notable_bug_fixes.ewm_nan_adjust_false:
+
+``ewm(adjust=False)`` weights a new observation by the current step only
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Series.ewm` / :meth:`DataFrame.ewm` with ``adjust=False`` and
+``ignore_na=False`` used a convex combination over the *accumulated* decay
+when the decay was ``com=1`` (equivalently ``span=3``, ``alpha=0.5``, or
+``halflife=1``), including whenever ``times`` was supplied. A ``NaN`` gap
+therefore gave the new observation the weight forgotten since the last
+non-null value, so ``Series([1, np.nan, 5]).ewm(com=1, adjust=False).mean()``
+returned ``4.0`` instead of the documented
+:math:`((1-\alpha)^2 \cdot 1 + \alpha \cdot 5) / ((1-\alpha)^2 + \alpha) = 11/3`.
+
+This was a regression in 3.0.0 on the equally spaced (no-``times``) path;
+2.3.x returned ``11/3``. The 3.0.0 ``times`` spelling of the same call
+returned ``4.0`` as well and now matches. Only :meth:`ExponentialMovingWindow.mean`
+is affected. ``adjust=True``, ``ignore_na=True``, irregular ``times``
+without missing values, and ``std`` / ``var`` / ``cov`` / ``corr`` are
+unchanged (:issue:`31178`, :issue:`66523`).
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
 
@@ -839,7 +860,10 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for low-variance windows (:issue:`62946`)
 - Bug in :meth:`.Rolling.sum`, :meth:`.Rolling.mean`, :meth:`.Rolling.median`, :meth:`.Rolling.min`, and :meth:`.Rolling.max` with ``method="table"``, ``engine="numba"``, and ``engine_kwargs={"parallel": True}`` could cause a segfault (:issue:`40454`)
 - Bug in :meth:`.SeriesGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`65140`)
+- Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` with ``adjust=False`` and ``ignore_na=False`` returning a convex combination over a ``NaN`` gap when the decay was ``com=1`` (equivalently ``span=3``, ``alpha=0.5``, or ``halflife=1``), including when equally spaced ``times`` were supplied; the new observation is now weighted by the current step only and the result matches the documented ``ignore_na=False`` recursion (:issue:`31178`, :issue:`66523`)
+- Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` with ``engine="numba"`` raising on a length-1 object because the interval tuple was empty (:issue:`66523`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
+- Bug in :meth:`OnlineExponentialMovingWindow.mean` raising ``IndexError`` on a length-1 :class:`Series` (:issue:`66523`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` with a timezone-naive index where using a ``Day`` frequency (e.g. ``"7D"``) produced different bin edges than the equivalent ``Hour`` frequency (e.g. ``"168h"``), and where ``origin`` and ``offset`` were ignored (:issue:`44996`, :issue:`62200`)
 - Bug in :meth:`DataFrame.resample` dropping the result index name when resampling ``on`` a column with a pyarrow-backed datetime or duration dtype (:issue:`59823`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` where same-frequency resampling with monthly, quarterly, or annual frequencies bypassed aggregation, returning the original values instead of the aggregation result (:issue:`18553`)

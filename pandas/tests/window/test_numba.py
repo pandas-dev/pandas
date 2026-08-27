@@ -337,8 +337,81 @@ class TestEWM:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_nan_adjust_false_com1(self, method, nogil, parallel):
+        # GH#31178 / GH#66523 pin the documented recursion, not "matches cython"
+        df = DataFrame({"B": [1.0, np.nan, 5.0]})
+        ewm = df.ewm(com=1, adjust=False, ignore_na=False, method=method)
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = DataFrame({"B": [1.0, 1.0, 11 / 3]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_times_nan_adjust_false(self, method, nogil, parallel):
+        # GH#66523 equally spaced times + NaN on the numba engines
+        df = DataFrame({"B": [1.0, np.nan, 5.0]})
+        times = to_datetime(["2000-01-01", "2000-01-02", "2000-01-03"])
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        result = df.ewm(
+            halflife="1D",
+            times=times,
+            adjust=False,
+            ignore_na=False,
+            method=method,
+        ).mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = DataFrame({"B": [1.0, 1.0, 11 / 3]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_times_ignore_na_true_is_skipped_row_step(
+        self, method, nogil, parallel
+    ):
+        # GH#66523 ignore_na=True is a skipped row-step (3.0), not dropna (4.0)
+        df = DataFrame({"B": [1.0, np.nan, 5.0]})
+        times = to_datetime(["2000-01-01", "2000-01-02", "2000-01-03"])
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        result = df.ewm(
+            halflife="1D",
+            times=times,
+            adjust=False,
+            ignore_na=True,
+            method=method,
+        ).mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = DataFrame({"B": [1.0, 1.0, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_times_variable_nan_matches_cython(self, method, nogil, parallel):
+        # GH#66523 irregular gap + NaN: numba must use this-step new_wt
+        df = DataFrame({"B": [1.0, np.nan, 5.0]})
+        times = to_datetime(["2000-01-01", "2000-01-02", "2000-01-04"])
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        ewm_kwargs = {
+            "halflife": "1D",
+            "times": times,
+            "adjust": False,
+            "ignore_na": False,
+        }
+        result = df.ewm(**ewm_kwargs, method=method).mean(
+            engine="numba", engine_kwargs=engine_kwargs
+        )
+        expected = df.ewm(**ewm_kwargs).mean(engine="cython")
+        tm.assert_frame_equal(result, expected)
+        tm.assert_almost_equal(result.iloc[2, 0], 31 / 7)
+
+    @pytest.mark.parametrize("method", ["single", "table"])
+    def test_ewm_length_one(self, method, nogil, parallel):
+        # empty deltas tuple used to fail numba typing (GH#66523)
+        df = DataFrame({"B": [1.0]})
+        ewm = df.ewm(com=1, method=method)
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
+        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = DataFrame({"B": [1.0]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("grouper", ["None", "groupby"])
-    def test_cython_vs_numba_times(self, grouper, nogil, parallel, ignore_na):
+    def test_cython_vs_numba_times(self, grouper, nogil, parallel, ignore_na, adjust):
         # GH 40951
 
         df = DataFrame({"B": [0, 0, 1, 1, 2, 2]})
@@ -360,7 +433,7 @@ class TestEWM:
             ]
         )
         ewm = grouper(df).ewm(
-            halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
+            halflife=halflife, adjust=adjust, ignore_na=ignore_na, times=times
         )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel}

@@ -123,6 +123,17 @@ def _calculate_deltas(
     return np.diff(_times) / _halflife
 
 
+def _numba_deltas(deltas: np.ndarray) -> tuple[float, ...]:
+    """Non-empty float tuple so numba can type-index ``deltas``.
+
+    A length-1 object has no pairwise intervals, but the compiled loop
+    still contains ``deltas[i]``. The placeholder is never read.
+    """
+    if len(deltas) == 0:
+        return (1.0,)
+    return tuple(deltas)
+
+
 @set_module("pandas.api.typing")
 class ExponentialMovingWindow(BaseWindow):
     r"""
@@ -601,7 +612,7 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=tuple(self._deltas),
+                deltas=_numba_deltas(self._deltas),
                 normalize=True,
             )
             return self._apply(ewm_func, name="mean")
@@ -609,13 +620,13 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
 
-            deltas = None if self.times is None else self._deltas
+            # ``_deltas`` is all ones when ``times`` is omitted.
             window_func = partial(
                 window_aggregations.ewm,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=deltas,
+                deltas=self._deltas,
                 normalize=True,
             )
             return self._apply(window_func, name="mean", numeric_only=numeric_only)
@@ -692,7 +703,7 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=tuple(self._deltas),
+                deltas=_numba_deltas(self._deltas),
                 normalize=False,
             )
             return self._apply(ewm_func, name="sum")
@@ -700,13 +711,12 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
 
-            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewm,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=deltas,
+                deltas=self._deltas,
                 normalize=False,
             )
             return self._apply(window_func, name="sum", numeric_only=numeric_only)
@@ -1166,9 +1176,6 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         is_frame = self._selected_obj.ndim == 2
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
-        update_deltas = np.ones(
-            max(self._selected_obj.shape[-1] - 1, 0), dtype=np.float64
-        )
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -1191,17 +1198,22 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             else:
                 result_kwargs["name"] = self._selected_obj.name
             np_array = self._selected_obj.astype(np.float64).to_numpy()
+        values = np_array if is_frame else np_array[:, np.newaxis]
+        # Time-axis intervals; unit steps until update_times is implemented.
+        update_deltas = np.ones(max(len(values) - 1, 0), dtype=np.float64)
         ewma_func = generate_online_numba_ewma_func(
             **get_jit_arguments(self.engine_kwargs)
         )
         result = self._mean.run_ewm(
-            np_array if is_frame else np_array[:, np.newaxis],
+            values,
             update_deltas,
             self.min_periods,  # type: ignore[arg-type]
             ewma_func,
         )
         if not is_frame:
-            result = result.squeeze()
+            # Squeeze only the column axis. squeeze() drops a length-1
+            # time axis and the subsequent slice fails (GH#66523).
+            result = result[:, 0]
         result = result[result_from:]
         result = self._selected_obj._constructor(result, **result_kwargs)
         return result
