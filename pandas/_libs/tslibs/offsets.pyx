@@ -5917,6 +5917,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     Attributes
     ----------
+    week
     weekday
 
     Methods

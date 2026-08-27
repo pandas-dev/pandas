@@ -255,6 +255,7 @@ Custom properties:
 .. autosummary::
    :toctree: api/
 
+    LastWeekOfMonth.week
     LastWeekOfMonth.weekday
 
 Quarter offsets
