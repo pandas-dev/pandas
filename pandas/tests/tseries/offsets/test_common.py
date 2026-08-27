@@ -455,7 +455,9 @@ def test_add_offset_raises(_offset):
 @pytest.mark.parametrize("offset", [MonthEnd(), YearEnd(), DateOffset(months=1)])
 def test_add_timedelta_to_anchored_offset_raises(offset, other):
     # GH#36590 anchored offsets have no timedelta behaviour to fall back on
-    msg = "unsupported operand type"
+    # older numpy versions raise a UFuncTypeError (a TypeError subclass) for
+    #  np.timedelta64 instead of deferring to the python message
+    msg = "|".join(["unsupported operand type", "cannot use operands with types"])
     with pytest.raises(TypeError, match=msg):
         offset + other
 
