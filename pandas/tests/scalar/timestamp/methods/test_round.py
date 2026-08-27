@@ -398,17 +398,19 @@ class TestTimestampRound:
             10**9 + 1,
             60 * 10**9 - 1,
             24 * 3600 * 10**9 - 1,
+            -(10**9 + 1),
+            -(60 * 10**9 - 1),
+            -(24 * 3600 * 10**9 - 1),
         ],
     )
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
     def test_round_sanity(self, val, method):
-        cls = Timestamp
         err_cls = OutOfBoundsDatetime
 
         val = np.int64(val)
-        ts = cls(val)
+        ts = Timestamp(val)
 
         def checker(ts, nanos, unit):
             # First check that we do raise in cases where we should
@@ -426,22 +428,22 @@ class TestTimestampRound:
                 if mod == 0:
                     # We should never be raising in this
                     pass
-                elif method is cls.ceil:
-                    if ub > cls.max._value:
+                elif method is Timestamp.ceil:
+                    if ub > Timestamp.max._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                elif method is cls.floor:
-                    if lb < cls.min._value:
+                elif method is Timestamp.floor:
+                    if lb < Timestamp.min._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
                 elif mod >= diff:
-                    if ub > cls.max._value:
+                    if ub > Timestamp.max._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                elif lb < cls.min._value:
+                elif lb < Timestamp.min._value:
                     with pytest.raises(err_cls, match=msg):
                         method(ts, unit)
                     return
@@ -453,11 +455,11 @@ class TestTimestampRound:
             assert diff < nanos
             assert res._value % nanos == 0
 
-            if method is cls.round:
+            if method is Timestamp.round:
                 assert diff <= nanos / 2
-            elif method is cls.floor:
+            elif method is Timestamp.floor:
                 assert res <= ts
-            elif method is cls.ceil:
+            elif method is Timestamp.ceil:
                 assert res >= ts
 
         nanos = 1
