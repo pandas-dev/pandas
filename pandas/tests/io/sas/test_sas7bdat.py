@@ -838,13 +838,13 @@ def _dates_null_with_overrun_data_page(datapath):
     struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2)
     data_page = bytearray(65536)
     struct.pack_into(
-        "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 100, 0
+        "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 60000, 0
     )
     return bytes(data) + bytes(data_page)
 
 
 @pytest.mark.parametrize(
-    "build, expected, match",
+    "build, expected, match, chunksize",
     [
         (
             lambda datapath: _dates_null_with_late_metadata_page(
@@ -852,13 +852,14 @@ def _dates_null_with_overrun_data_page(datapath):
             ),
             ValueError,
             "changes the layout it declared",
+            2,
         ),
-        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read"),
+        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read", 1000),
     ],
     ids=["layout redefined", "page overrun"],
 )
 def test_chunked_read_closes_the_file_it_rejects(
-    datapath, tmp_path, build, expected, match
+    datapath, tmp_path, build, expected, match, chunksize
 ):
     # GH#47339 GH#56127 read_sas closes the file for the caller only when it
     #  reads the whole of it itself, so a chunked reader that gives up on a file
@@ -866,7 +867,7 @@ def test_chunked_read_closes_the_file_it_rejects(
     #  buffer the caller opened is deliberately left to the caller.
     path = tmp_path / "rejected.sas7bdat"
     path.write_bytes(build(datapath))
-    reader = pd.read_sas(path, format="sas7bdat", chunksize=2, encoding=None)
+    reader = pd.read_sas(path, format="sas7bdat", chunksize=chunksize, encoding=None)
     with pytest.raises(expected, match=match):
         while not reader.read().empty:
             pass

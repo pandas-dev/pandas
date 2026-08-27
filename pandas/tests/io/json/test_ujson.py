@@ -596,7 +596,7 @@ class TestUltraJSONTests:
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
         base = "\u00e5".encode()
-        escape_input = base * 1024 * 64
+        escape_input = base * 1024 * 1024 * 2
         ujson.ujson_dumps(escape_input)
 
     def test_decode_big_escape(self):
