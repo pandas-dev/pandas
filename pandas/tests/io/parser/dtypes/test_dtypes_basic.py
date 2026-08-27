@@ -497,6 +497,29 @@ def test_explicit_arrow_numeric_dtype(all_parsers):
         parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
 
 
+@pytest.mark.parametrize("dtype", ["float", "double[pyarrow]"])
+def test_empty_field_invalid_for_float_dtype(all_parsers, dtype):
+    # GH#66834 empty field with keep_default_na=False is not a valid float,
+    # for both numpy and pyarrow-backed float dtypes.
+    if dtype == "double[pyarrow]":
+        pytest.importorskip("pyarrow")
+
+    parser = all_parsers
+    data = "id,A\n1,1.5\n2,\n3,2.0\n"
+
+    if parser.engine == "python" and dtype == "float":
+        msg = "Unable to convert column A to type float64"
+    elif parser.engine == "pyarrow" and dtype == "double[pyarrow]":
+        msg = r"Failed to parse string: '' as a scalar of type double"
+    elif dtype == "double[pyarrow]":
+        msg = r"could not convert string to double"
+    else:
+        msg = r"could not convert string to float"
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": dtype}, keep_default_na=False)
+
+
 def test_explicit_arrow_temporal_dtype(all_parsers):
     # Non-numeric pyarrow-backed dtypes round-trip through read_csv.
     pytest.importorskip("pyarrow")
