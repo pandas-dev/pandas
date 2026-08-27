@@ -532,10 +532,10 @@ html_theme = "pydata_sphinx_theme"
 if ".dev" in full_version or ("rc" in full_version and "+" in full_version):
     switcher_version = "dev"
 elif "rc" in full_version:
-    switcher_version = ".".join(full_version.split(".")[:2]) + " (rc)"
+    switcher_version = version + " (rc)"
 else:
     # only keep major.minor version number to match versions.json
-    switcher_version = ".".join(full_version.split(".")[:2])
+    switcher_version = version
 
 html_theme_options = {
     "external_links": [],
