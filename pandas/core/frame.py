@@ -8055,7 +8055,7 @@ class DataFrame(NDFrame, OpsMixin):
             removed.
 
             * 0, or 'index' : Drop rows which contain missing values.
-            * 1, or 'columns' : Drop columns which contain missing value.
+            * 1, or 'columns' : Drop columns which contain missing values.
 
             Only a single axis is allowed.
 
