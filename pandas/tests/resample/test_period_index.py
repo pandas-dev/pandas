@@ -575,7 +575,9 @@ class TestPeriodIndex:
 
         result = subset.resample("10min").apply(len)
         expected = Series(
-            2, index=date_range(start="1/1/2012", freq="10min", periods=len(result))
+            2,
+            index=date_range(start="1/1/2012", freq="10min", periods=len(result)),
+            dtype=np.intp,
         )
         tm.assert_series_equal(result, expected)
 
