@@ -53,12 +53,12 @@ def _check_plot_data(
 
     from pandas.plotting._matplotlib.converter import pandas_converters
 
-    arr = ser.to_numpy()
-    if munits._is_natively_supported(arr) or is_bool_dtype(arr):
+    if munits._is_natively_supported(ser) or is_bool_dtype(ser.dtype):
         # Convert natively or boolean just to float
-        converted_data = arr.astype(np.float64)
+        converted_data = ser.to_numpy(np.float64, na_value=np.nan)
     else:
         # Need to get registered converter for non-natively
+        arr = ser.to_numpy()
         type_ = ser.dtype.type
         with pandas_converters():
             converter = munits.registry[type_]

@@ -666,9 +666,11 @@ class MPLPlot(ABC):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)) and isinstance(
-            data.dtype, ExtensionDtype
-        ):
+        if (
+            is_integer_dtype(data.dtype)
+            or is_float_dtype(data.dtype)
+            or is_bool_dtype(data.dtype)
+        ) and isinstance(data.dtype, ExtensionDtype):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
