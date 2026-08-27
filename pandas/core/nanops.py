@@ -591,19 +591,10 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
         except (TypeError, ValueError, np.exceptions.ComplexWarning):
             pass
 
-    try:
-        # e.g. complex, which has no __float__.  Cast the *unfilled* values, so
-        #  that NA maps the way it does in any object->complex128 cast: None
-        #  becomes nan+nanj and np.nan becomes nan+0j.
-        return values.astype(np.complex128)
-    except (TypeError, ValueError):
-        pass
-
     if mask.any():
-        # numpy refuses NaT/pd.NA outright, so convert the NAs ourselves into
-        #  the copy already made above.  Each one complex() accepts still maps
-        #  to what it would have mapped to on its own, e.g. a float or Decimal
-        #  NaN to nan+0j.
+        # e.g. complex, which has no __float__.  Convert each NA on its own so
+        #  it lands where an object->complex128 cast would have put it: None
+        #  and the NAs numpy refuses outright on nan+nanj, np.nan on nan+0j.
         filled[mask] = [_to_complex(val) for val in values[mask]]
 
     try:
@@ -617,7 +608,7 @@ def _ensure_numeric(values: np.ndarray) -> np.ndarray:
 
 def _to_complex(val: Any) -> complex:
     """
-    Convert `val` to a complex, mapping an NA numpy refuses to nan+nanj.
+    Convert `val` to a complex, mapping an NA that has no complex() to nan+nanj.
     """
     try:
         return complex(val)

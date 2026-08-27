@@ -2292,28 +2292,34 @@ def first_non_numeric(ndarray values):
         flatiter it = PyArray_IterNew(values)
         object val
         type val_type, prev_type = None
-        bint prev_temporal = False, prev_rejected = False, has_nat = False
+        bint has_nat = False
 
     for _i in range(n):
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
 
         val_type = type(val)
-        if val_type is not prev_type:
-            # object arrays are near-always homogeneous, so checking each
-            # distinct type once keeps this a pointer comparison per element
-            prev_type = val_type
-            prev_temporal = (
-                cnp.is_datetime64_object(val) or cnp.is_timedelta64_object(val)
-            )
-            prev_rejected = prev_temporal or issubclass(val_type, (str, bytes))
+        if val_type is prev_type:
+            continue
 
-        if prev_rejected:
-            # NaT-ness is per-element, so it cannot be cached with the type
-            if prev_temporal and checknull(val):
-                has_nat = True
-            else:
-                return val, has_nat
+        if (
+            cnp.is_datetime64_object(val)
+            and cnp.get_datetime64_value(val) == NPY_NAT
+        ) or (
+            cnp.is_timedelta64_object(val)
+            and cnp.get_timedelta64_value(val) == NPY_NAT
+        ):
+            has_nat = True
+            continue
+
+        if (
+            cnp.is_datetime64_object(val)
+            or cnp.is_timedelta64_object(val)
+            or isinstance(val, (str, bytes))
+        ):
+            return val, has_nat
+
+        prev_type = val_type
 
     return None, has_nat
 
