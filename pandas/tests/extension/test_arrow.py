@@ -1058,10 +1058,10 @@ class TestArrowArray(base.ExtensionTests):
     def test_json_roundtrip(self, data, request):
         # GH 65127
         # All datetime and duration ArrowDtypes with non default resolution of ms fail
-        # on roundtrip. The date32 and date64 dtypes fail already in serialization due
-        # to as_unit not implemented for them. Currently the json serialization relies
-        # on the default 'epoch' format for datetimes, leading to the filtered
-        # Pandas4Warning.
+        # on roundtrip. The date32 and date64 dtypes fail on reading, as the epoch
+        # values cannot be cast to a date type. Currently the json serialization
+        # relies on the default 'epoch' format for datetimes, leading to the
+        # filtered Pandas4Warning.
         if ((data.dtype.kind in "Mm") and ("ms" not in str(data.dtype))) or (
             data.dtype in [ArrowDtype(pa.date32()), ArrowDtype(pa.date64())]
         ):
@@ -1069,11 +1069,11 @@ class TestArrowArray(base.ExtensionTests):
                 super().test_json_roundtrip(data)
             except NotImplementedError as err:
                 # date32/date64
-                if "as_unit not implemented for date" in str(err):
+                if "Unsupported cast from double to date" in str(err):
                     request.applymarker(
                         pytest.mark.xfail(
                             raises=NotImplementedError,
-                            reason="as_unit not implemented for date",
+                            reason="epoch values cannot be cast to date32/date64",
                         )
                     )
                 # timestamp with s unit and US/Pacific or US/Eastern tz

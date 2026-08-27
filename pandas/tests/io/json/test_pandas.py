@@ -16,7 +16,10 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import IS64
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -35,7 +38,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.json import ujson_dumps
+from pandas.io.json._json import _to_json_string
 
 
 def test_literal_json_raises():
@@ -342,7 +345,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "data,msg,orient",
         [
-            ('{"key":b:a:d}', "Expected object or value", "columns"),
+            ('{"key":b:a:d}', "Expecting value", "columns"),
             # too few indices
             (
                 '{"columns":["A","B"],'
@@ -422,20 +425,23 @@ class TestPandasContainer:
 
     @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     @pytest.mark.parametrize(
-        "value,precision,expected_val",
+        "value,expected_val",
         [
-            (0.95, 1, 1.0),
-            (1.95, 1, 2.0),
-            (-1.95, 1, -2.0),
-            (0.995, 2, 1.0),
-            (0.9995, 3, 1.0),
-            (0.99999999999999944, 15, 1.0),
+            (0.95, "0.95"),
+            (0.1 + 0.2, "0.30000000000000004"),
+            (0.99999999999999944, "0.9999999999999994"),
+            (1e16, "1e+16"),
+            (123456789012345678.0, "1.2345678901234568e+17"),
+            (np.float32(0.1), "0.10000000149011612"),
         ],
     )
-    def test_frame_to_json_float_precision(self, value, precision, expected_val):
+    def test_frame_to_json_float_repr(self, value, expected_val):
+        # floats are written with the shortest round-tripping representation
         df = DataFrame([{"a_float": value}])
-        encoded = df.to_json(double_precision=precision)
+        encoded = df.to_json()
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
+        result = read_json(StringIO(encoded))
+        assert result.iloc[0, 0] == float(value)
 
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
@@ -639,15 +645,15 @@ class TestPandasContainer:
         df_printable = DataFrame({"A": [binthing.hexed]})
         assert df_printable.to_json() == f'{{"A":{{"0":"{hexed}"}}}}'
 
-        # check if non-printable content throws appropriate Exception
+        # objects that are not JSON serializable raise
         df_nonprintable = DataFrame({"A": [binthing]})
-        msg = "Unsupported UTF-8 sequence length when encoding string"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Object of type BinaryThing is not JSON serializable"
+        with pytest.raises(TypeError, match=msg):
             df_nonprintable.to_json()
 
         # the same with multiple columns threw segfaults
         df_mixed = DataFrame({"A": [binthing], "B": [1]}, columns=["A", "B"])
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
@@ -772,7 +778,7 @@ class TestPandasContainer:
 
     def test_series_from_json_precise_float(self):
         s = Series([4.56, 4.56, 4.56])
-        result = read_json(StringIO(s.to_json()), typ="series", precise_float=True)
+        result = read_json(StringIO(s.to_json()), typ="series")
         tm.assert_series_equal(result, s, check_index_type=False)
 
     def test_series_with_dtype(self):
@@ -804,7 +810,7 @@ class TestPandasContainer:
 
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        result = read_json(StringIO(df.to_json()), precise_float=True)
+        result = read_json(StringIO(df.to_json()))
         tm.assert_frame_equal(result, df)
 
     def test_typ(self):
@@ -936,7 +942,7 @@ class TestPandasContainer:
         )
         expected[infer_word] = expected[infer_word].astype("M8[ms]")
 
-        result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
+        result = read_json(StringIO(json.dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
     def test_convert_dates_infer_unparseable_kept_as_str(self):
@@ -944,7 +950,7 @@ class TestPandasContainer:
         #  (ends in "_time") but whose values are not parseable dates must be
         #  left untouched rather than raising
         data = [{"id": 1, "event_time": "Thursday, 10:00 p.m."}]
-        result = read_json(StringIO(ujson_dumps(data)))
+        result = read_json(StringIO(json.dumps(data)))
         assert (result["event_time"] == "Thursday, 10:00 p.m.").all()
 
     @pytest.mark.parametrize(
@@ -1228,8 +1234,8 @@ class TestPandasContainer:
         values = DatetimeIndex(["9999-01-01"])
         dtype = "category" if wrapper == "category" else SparseDtype(values.dtype)
 
-        msg = "Datetime value is out of bounds for the requested date_unit"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             with tm.assert_produces_warning(
                 Pandas4Warning, match="'epoch' date format is deprecated"
             ):
@@ -1245,8 +1251,8 @@ class TestPandasContainer:
         labels = pd.CategoricalIndex(DatetimeIndex(["9999-01-01"]))
         df = DataFrame([[1]], **{axis: labels})
 
-        msg = "Datetime value is out of bounds for the requested date_unit"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             with tm.assert_produces_warning(
                 Pandas4Warning, match="'epoch' date format is deprecated"
             ):
@@ -1424,22 +1430,6 @@ class TestPandasContainer:
         expected = '{"42":42}'
         assert result == expected
 
-    @pytest.mark.parametrize("base_typ", [datetime.date, datetime.timedelta])
-    def test_to_json_datetimelike_subclass_missing_creso(self, base_typ):
-        # GH#65904 a datetime.date/timedelta subclass carrying a "_value"
-        # attribute but no "_creso" reached get_long_attr and segfaulted; it
-        # should raise cleanly instead
-        class Fake(base_typ):
-            _value = 5
-
-        obj = Fake(2020, 1, 1) if base_typ is datetime.date else Fake(5)
-        # dtype=object keeps the subclass instance for the timedelta case, which
-        # would otherwise be inferred to timedelta64
-        index = Index([obj], dtype=object)
-        ser = Series([1], index=index)
-        with pytest.raises(AttributeError, match="_creso"):
-            ser.to_json(date_format="iso")
-
     def test_default_handler(self):
         value = object()
         frame = DataFrame({"a": [7, value]})
@@ -1464,9 +1454,10 @@ class TestPandasContainer:
             '[9,[[1,null],["STR",null],[[["mathjs","Complex"],'
             '["re",4.0],["im",-5.0]],"N\\/A"]]]'
         )
-        assert (
-            ujson_dumps(df_list, default_handler=default, orient="values") == expected
+        result = _to_json_string(
+            df_list, default_handler=default, orient="values", date_format="epoch"
         )
+        assert result == expected
 
     def test_default_handler_numpy_unsupported_dtype(self):
         # GH12554 to_json raises 'Unhandled numpy dtype 15'
@@ -1555,17 +1546,17 @@ class TestPandasContainer:
     def test_tz_is_utc(self, ts):
         exp = '"2013-01-10T05:00:00.000Z"'
 
-        assert ujson_dumps(ts, iso_dates=True) == exp
+        assert _to_json_string(ts, orient="values") == exp
         dt = ts.to_pydatetime()
-        assert ujson_dumps(dt, iso_dates=True) == exp
+        assert _to_json_string(dt, orient="values") == exp
 
     def test_tz_is_naive(self):
         ts = Timestamp("2013-01-10 05:00:00")
         exp = '"2013-01-10T05:00:00.000"'
 
-        assert ujson_dumps(ts, iso_dates=True) == exp
+        assert _to_json_string(ts, orient="values") == exp
         dt = ts.to_pydatetime()
-        assert ujson_dumps(dt, iso_dates=True) == exp
+        assert _to_json_string(dt, orient="values") == exp
 
     @pytest.mark.parametrize(
         "tz_range",
@@ -1584,19 +1575,19 @@ class TestPandasContainer:
             '"data":["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]}'
         )
 
-        assert ujson_dumps(tz_range, iso_dates=True) == exp
+        assert _to_json_string(tz_range, orient="values") == exp
         dti = DatetimeIndex(tz_range)
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
-        assert ujson_dumps(dti, iso_dates=True) == exp
-        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
-        assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
+        assert _to_json_string(dti, orient="values") == exp
+        assert _to_json_string(dti, orient="split") == splitexp
+        assert _to_json_string(dti.astype(object), orient="values") == exp
         # Series[dt64tz] must preserve the tz like the DTI case
-        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
+        assert Series(dti).to_json(date_format="iso") == serexp
         df = DataFrame({"DT": dti})
-        result = ujson_dumps(df, iso_dates=True)
+        result = df.to_json(date_format="iso")
         assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
+        assert df.astype({"DT": object}).to_json(date_format="iso") == dfexp
 
     def test_tz_range_is_naive(self):
         dti = date_range("2013-01-01 05:00:00", periods=2, unit="ns")
@@ -1610,14 +1601,14 @@ class TestPandasContainer:
 
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
-        assert ujson_dumps(dti, iso_dates=True) == exp
-        assert ujson_dumps(dti, orient="split", iso_dates=True) == splitexp
-        assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
-        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
+        assert _to_json_string(dti, orient="values") == exp
+        assert _to_json_string(dti, orient="split") == splitexp
+        assert _to_json_string(dti.astype(object), orient="values") == exp
+        assert Series(dti).to_json(date_format="iso") == serexp
         df = DataFrame({"DT": dti})
-        result = ujson_dumps(df, iso_dates=True)
+        result = df.to_json(date_format="iso")
         assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
+        assert df.astype({"DT": object}).to_json(date_format="iso") == dfexp
 
     @pytest.mark.parametrize(
         "orient", ["split", "records", "index", "columns", "values"]
@@ -1750,17 +1741,13 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
-    def test_read_json_large_numbers(self, bigNum):
-        # GH20599, 26068
-        json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = "|".join(["Value is too small", "Value is too big"])
-        with pytest.raises(ValueError, match=msg):
-            read_json(json)
-
+    def test_read_json_large_numbers(self):
+        # GH20599, 26068 integers beyond 64 bits are read as floats
+        bigNum = 2**64
         json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
-        with pytest.raises(ValueError, match=msg):
-            read_json(json)
+        result = read_json(json)
+        expected = DataFrame({0: [float(bigNum)]}, index=["articleId"])
+        tm.assert_frame_equal(result, expected)
 
     def test_read_json_large_numbers2(self):
         # GH18842
@@ -2138,25 +2125,28 @@ class TestPandasContainer:
         result = df.to_json(orient=orient)
         assert result == expected
 
-    @pytest.mark.parametrize("indent", [1, 2, 4])
-    def test_to_json_indent(self, indent):
+    def test_to_json_indent(self):
         # GH 12004
         df = DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
 
-        result = df.to_json(indent=indent)
-        spaces = " " * indent
-        expected = f"""{{
-{spaces}"a":{{
-{spaces}{spaces}"0":"foo",
-{spaces}{spaces}"1":"baz"
-{spaces}}},
-{spaces}"b":{{
-{spaces}{spaces}"0":"bar",
-{spaces}{spaces}"1":"qux"
-{spaces}}}
-}}"""
+        result = df.to_json(indent=2)
+        expected = """{
+  "a": {
+    "0": "foo",
+    "1": "baz"
+  },
+  "b": {
+    "0": "bar",
+    "1": "qux"
+  }
+}"""
 
         assert result == expected
+
+    @pytest.mark.parametrize("indent", [-1, 1, 4])
+    def test_to_json_invalid_indent_raises(self, indent):
+        with pytest.raises(ValueError, match="indent must be 0 or 2"):
+            DataFrame().to_json(indent=indent)
 
     @pytest.mark.skipif(
         using_string_dtype(),
@@ -2169,113 +2159,113 @@ class TestPandasContainer:
             (
                 "split",
                 """{
-    "columns":[
-        "a",
-        "b"
+  "columns": [
+    "a",
+    "b"
+  ],
+  "index": [
+    0,
+    1
+  ],
+  "data": [
+    [
+      "foo",
+      "bar"
     ],
-    "index":[
-        0,
-        1
-    ],
-    "data":[
-        [
-            "foo",
-            "bar"
-        ],
-        [
-            "baz",
-            "qux"
-        ]
+    [
+      "baz",
+      "qux"
     ]
+  ]
 }""",
             ),
             (
                 "records",
                 """[
-    {
-        "a":"foo",
-        "b":"bar"
-    },
-    {
-        "a":"baz",
-        "b":"qux"
-    }
+  {
+    "a": "foo",
+    "b": "bar"
+  },
+  {
+    "a": "baz",
+    "b": "qux"
+  }
 ]""",
             ),
             (
                 "index",
                 """{
-    "0":{
-        "a":"foo",
-        "b":"bar"
-    },
-    "1":{
-        "a":"baz",
-        "b":"qux"
-    }
+  "0": {
+    "a": "foo",
+    "b": "bar"
+  },
+  "1": {
+    "a": "baz",
+    "b": "qux"
+  }
 }""",
             ),
             (
                 "columns",
                 """{
-    "a":{
-        "0":"foo",
-        "1":"baz"
-    },
-    "b":{
-        "0":"bar",
-        "1":"qux"
-    }
+  "a": {
+    "0": "foo",
+    "1": "baz"
+  },
+  "b": {
+    "0": "bar",
+    "1": "qux"
+  }
 }""",
             ),
             (
                 "values",
                 """[
-    [
-        "foo",
-        "bar"
-    ],
-    [
-        "baz",
-        "qux"
-    ]
+  [
+    "foo",
+    "bar"
+  ],
+  [
+    "baz",
+    "qux"
+  ]
 ]""",
             ),
             (
                 "table",
                 """{
-    "schema":{
-        "fields":[
-            {
-                "name":"index",
-                "type":"integer"
-            },
-            {
-                "name":"a",
-                "type":"string"
-            },
-            {
-                "name":"b",
-                "type":"string"
-            }
-        ],
-        "primaryKey":[
-            "index"
-        ],
-        "pandas_version":"1.4.0"
+  "schema": {
+    "fields": [
+      {
+        "name": "index",
+        "type": "integer"
+      },
+      {
+        "name": "a",
+        "type": "string"
+      },
+      {
+        "name": "b",
+        "type": "string"
+      }
+    ],
+    "primaryKey": [
+      "index"
+    ],
+    "pandas_version": "1.4.0"
+  },
+  "data": [
+    {
+      "index": 0,
+      "a": "foo",
+      "b": "bar"
     },
-    "data":[
-        {
-            "index":0,
-            "a":"foo",
-            "b":"bar"
-        },
-        {
-            "index":1,
-            "a":"baz",
-            "b":"qux"
-        }
-    ]
+    {
+      "index": 1,
+      "a": "baz",
+      "b": "qux"
+    }
+  ]
 }""",
             ),
         ],
@@ -2283,12 +2273,8 @@ class TestPandasContainer:
     def test_json_indent_all_orients(self, orient, expected):
         # GH 12004
         df = DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
-        result = df.to_json(orient=orient, indent=4)
+        result = df.to_json(orient=orient, indent=2)
         assert result == expected
-
-    def test_json_negative_indent_raises(self):
-        with pytest.raises(ValueError, match="must be a nonnegative integer"):
-            DataFrame().to_json(indent=-1)
 
     def test_emca_262_nan_inf_support(self):
         # GH 12213
@@ -2378,46 +2364,32 @@ class TestPandasContainer:
             def e(self):
                 return 5
 
-        # JSON keys should be all non-callable non-underscore attributes, see GH-42768
+        # arbitrary objects need a default_handler, see GH-42768
         series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
-        assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
+        with pytest.raises(TypeError, match="_TestObject is not JSON serializable"):
+            series.to_json()
+        result = series.to_json(default_handler=vars)
+        assert json.loads(result) == {"0": {"a": 1, "b": 2, "_c": 3, "d": 4}}
 
     @pytest.mark.parametrize(
         "data,expected",
         [
             (
                 Series({0: -6 + 8j, 1: 0 + 1j, 2: 9 - 5j}),
-                '{"0":{"imag":8.0,"real":-6.0},'
-                '"1":{"imag":1.0,"real":0.0},'
-                '"2":{"imag":-5.0,"real":9.0}}',
-            ),
-            (
-                Series({0: -9.39 + 0.66j, 1: 3.95 + 9.32j, 2: 4.03 - 0.17j}),
-                '{"0":{"imag":0.66,"real":-9.39},'
-                '"1":{"imag":9.32,"real":3.95},'
-                '"2":{"imag":-0.17,"real":4.03}}',
+                '{"0":[-6.0,8.0],"1":[0.0,1.0],"2":[9.0,-5.0]}',
             ),
             (
                 DataFrame([[-2 + 3j, -1 - 0j], [4 - 3j, -0 - 10j]]),
-                '{"0":{"0":{"imag":3.0,"real":-2.0},'
-                '"1":{"imag":-3.0,"real":4.0}},'
-                '"1":{"0":{"imag":0.0,"real":-1.0},'
-                '"1":{"imag":-10.0,"real":0.0}}}',
-            ),
-            (
-                DataFrame(
-                    [[-0.28 + 0.34j, -1.08 - 0.39j], [0.41 - 0.34j, -0.78 - 1.35j]]
-                ),
-                '{"0":{"0":{"imag":0.34,"real":-0.28},'
-                '"1":{"imag":-0.34,"real":0.41}},'
-                '"1":{"0":{"imag":-0.39,"real":-1.08},'
-                '"1":{"imag":-1.35,"real":-0.78}}}',
+                '{"0":{"0":[-2.0,3.0],"1":[4.0,-3.0]},'
+                '"1":{"0":[-1.0,0.0],"1":[0.0,-10.0]}}',
             ),
         ],
     )
     def test_complex_data_tojson(self, data, expected):
-        # GH41174
-        result = data.to_json()
+        # GH41174 complex values need a default_handler
+        with pytest.raises(TypeError, match="complex is not JSON serializable"):
+            data.to_json()
+        result = data.to_json(default_handler=lambda value: [value.real, value.imag])
         assert result == expected
 
     def test_json_uint64(self):
@@ -2640,8 +2612,13 @@ def test_to_json_object_dtype_unsigned_scalar(scalar_type, value):
 def test_to_json_unsupported_object_gh36211():
     # GH#36211
     df = DataFrame({"a": [Path("m1")]})
-    msg = "Unable to serialize object to JSON: encountered an unsupported object type"
-    with pytest.raises(ValueError, match=msg):
+    msg = "|".join(
+        [
+            "Object of type PosixPath",
+            "WindowsPath is not JSON serializable",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
         df.to_json()
 
 

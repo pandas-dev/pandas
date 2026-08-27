@@ -21,7 +21,6 @@ See NUMPY_LICENSE.txt for the license.
 #  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
-#include "pandas/datetime/date_conversions.h"
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
 #include <numpy/ndarraytypes.h>
@@ -33,12 +32,6 @@ extern "C" {
 typedef struct {
   npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT,
                                                  const npy_datetimestruct *);
-  int (*scaleNanosecToUnit)(int64_t *, NPY_DATETIMEUNIT);
-  char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, int,
-                      size_t *);
-  char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
-  npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
-  char *(*int64ToIsoDuration)(int64_t, NPY_DATETIMEUNIT, size_t *);
   void (*pandas_datetime_to_datetimestruct)(npy_datetime, NPY_DATETIMEUNIT,
                                             npy_datetimestruct *);
   void (*pandas_timedelta_to_timedeltastruct)(npy_datetime, NPY_DATETIMEUNIT,
@@ -72,18 +65,6 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
 #  define npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT, npy_datetimestruct) \
     PandasDateTimeAPI->npy_datetimestruct_to_datetime((NPY_DATETIMEUNIT),      \
                                                       (npy_datetimestruct))
-#  define scaleNanosecToUnit(value, unit)                                      \
-    PandasDateTimeAPI->scaleNanosecToUnit((value), (unit))
-#  define int64ToIso(value, valueUnit, base, utc, len)                         \
-    PandasDateTimeAPI->int64ToIso((value), (valueUnit), (base), (utc), (len))
-#  define NpyDateTimeToEpoch(dt, base)                                         \
-    PandasDateTimeAPI->NpyDateTimeToEpoch((dt), (base))
-#  define PyDateTimeToIso(obj, base, len)                                      \
-    PandasDateTimeAPI->PyDateTimeToIso((obj), (base), (len))
-#  define PyDateTimeToEpoch(dt, base)                                          \
-    PandasDateTimeAPI->PyDateTimeToEpoch((dt), (base))
-#  define int64ToIsoDuration(value, valueUnit, len)                            \
-    PandasDateTimeAPI->int64ToIsoDuration((value), (valueUnit), (len))
 #  define pandas_datetime_to_datetimestruct(dt, base, out)                     \
     PandasDateTimeAPI->pandas_datetime_to_datetimestruct((dt), (base), (out))
 #  define pandas_timedelta_to_timedeltastruct(td, base, out)                   \

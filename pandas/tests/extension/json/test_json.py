@@ -418,16 +418,17 @@ class TestJSONArray(base.ExtensionTests):
         super().test_EA_types(engine, data, request)
 
     @pytest.mark.xfail(
-        raises=AssertionError,
-        reason="JSONArray does not support roundtrip via JSON",
+        raises=TypeError, reason="UserDict objects are not JSON serializable"
+    )
+    def test_values_for_json(self, data):
+        # GH 65127
+        super().test_values_for_json(data)
+
+    @pytest.mark.xfail(
+        raises=TypeError, reason="UserDict objects are not JSON serializable"
     )
     def test_json_roundtrip(self, data):
         # GH 65127
-        # JSONArray does not support roundtrip as during JSON serialization each element
-        # of the array is packed into another dictionary ``{"data": element}`` with
-        # element being a dictionary itself, and during deserialization these
-        # dictionaries are not unpacked again, so the JSONArray cannot be reconstructed
-        # with the simple deserialization in the test.
         super().test_json_roundtrip(data)
 
 

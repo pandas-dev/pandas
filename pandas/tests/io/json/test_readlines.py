@@ -27,7 +27,7 @@ def lines_json_df():
     return df.to_json(lines=True, orient="records")
 
 
-@pytest.fixture(params=["ujson", "pyarrow"])
+@pytest.fixture(params=["json", "pyarrow"])
 def engine(request):
     if request.param == "pyarrow":
         pytest.importorskip("pyarrow.json")
@@ -242,7 +242,6 @@ def test_readjson_chunks_closes(chunksize, temp_file):
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=True,
-        precise_float=False,
         date_unit=None,
         encoding=None,
         lines=True,
@@ -629,12 +628,6 @@ def test_pyarrow_engine_date_unit(pyarrow_jsonl):
         read_json(pyarrow_jsonl, lines=True, engine="pyarrow", date_unit="ms")
 
 
-def test_pyarrow_engine_precise_float(pyarrow_jsonl):
-    msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
-    with pytest.raises(ValueError, match=msg):
-        read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=True)
-
-
 @pytest.mark.parametrize("convert_axes", [True, False])
 def test_pyarrow_engine_convert_axes(pyarrow_jsonl, convert_axes):
     # convert_axes defaults to None (resolved to True); any explicit value is
@@ -718,7 +711,6 @@ def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
             typ="frame",
             convert_dates=True,
             keep_default_dates=True,
-            precise_float=False,
             date_unit=None,
             encoding=encoding,
             encoding_errors="strict",
@@ -740,8 +732,8 @@ def test_pyarrow_engine_reads_gzip_with_default_compression(tmp_path):
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
-def test_ujson_engine_allows_pyarrow_rejected_options(temp_file):
-    # The new validation is gated on engine="pyarrow"; the default ujson
+def test_json_engine_allows_pyarrow_rejected_options(temp_file):
+    # The new validation is gated on engine="pyarrow"; the default json
     # engine must keep accepting these options (though the deprecated date
     # kwargs warn; GH#59161).
     Path(temp_file).write_text('{"a": 1}\n{"a": 2}\n', encoding="utf-8")
@@ -750,11 +742,10 @@ def test_ujson_engine_allows_pyarrow_rejected_options(temp_file):
         result = read_json(
             temp_file,
             lines=True,
-            engine="ujson",
+            engine="json",
             convert_dates=False,
             keep_default_dates=False,
             convert_axes=False,
-            precise_float=True,
             date_unit="ms",
             encoding="utf-8",
             encoding_errors="strict",

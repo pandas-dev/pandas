@@ -202,80 +202,6 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   return 0;
 }
 
-// Converts a Python object representing a Date / Datetime to ISO format
-// up to precision `base` e.g. base="s" yields 2020-01-03T00:00:00Z
-// while base="ns" yields "2020-01-01T00:00:00.000000000Z"
-// len is mutated to save the length of the returned string
-static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
-                             size_t *len) {
-  npy_datetimestruct dts;
-  int ret;
-
-  ret = convert_pydatetime_to_datetimestruct(obj, &dts);
-  if (ret != 0) {
-    if (!PyErr_Occurred()) {
-      PyErr_SetString(PyExc_ValueError,
-                      "Could not convert PyDateTime to numpy datetime");
-    }
-    return NULL;
-  }
-
-  *len = (size_t)get_datetime_iso_8601_strlen(0, base);
-  char *result = PyObject_Malloc(*len);
-  // Check to see if PyDateTime has a timezone.
-  // Don't convert to UTC if it doesn't.
-  int is_tz_aware = 0;
-  if (PyObject_HasAttrString(obj, "tzinfo")) {
-    PyObject *offset = extract_utc_offset(obj);
-    if (offset == NULL) {
-      PyObject_Free(result);
-      return NULL;
-    }
-    is_tz_aware = offset != Py_None;
-    Py_DECREF(offset);
-  }
-  ret = make_iso_8601_datetime(&dts, result, *len, is_tz_aware, base);
-
-  if (ret != 0) {
-    PyErr_SetString(PyExc_ValueError,
-                    "Could not convert datetime value to string");
-    PyObject_Free(result);
-    return NULL;
-  }
-
-  // Note that get_datetime_iso_8601_strlen just gives a generic size
-  // for ISO string conversion, not the actual size used
-  *len = strlen(result);
-  return result;
-}
-
-// Convert a Python Date/Datetime to Unix epoch with resolution base
-static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
-  npy_datetimestruct dts;
-  int ret;
-
-  ret = convert_pydatetime_to_datetimestruct(dt, &dts);
-  if (ret != 0) {
-    if (!PyErr_Occurred()) {
-      PyErr_SetString(PyExc_ValueError,
-                      "Could not convert PyDateTime to numpy datetime");
-
-      return -1;
-    }
-  }
-
-  int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
-  if (scaleNanosecToUnit(&npy_dt, base) == -1) {
-    PyErr_Format(PyExc_ValueError,
-                 "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT
-                 " and base %d failed",
-                 npy_dt, base);
-
-    return -1;
-  }
-  return npy_dt;
-}
-
 /* Initializes and exposes a customer datetime C-API from the pandas library
  * by creating a PyCapsule that stores function pointers, which can be accessed
  * later by other C code or Cython code that imports the capsule.
@@ -288,11 +214,6 @@ static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
     return -1;
   }
   capi->npy_datetimestruct_to_datetime = npy_datetimestruct_to_datetime;
-  capi->scaleNanosecToUnit = scaleNanosecToUnit;
-  capi->int64ToIso = int64ToIso;
-  capi->PyDateTimeToIso = PyDateTimeToIso;
-  capi->PyDateTimeToEpoch = PyDateTimeToEpoch;
-  capi->int64ToIsoDuration = int64ToIsoDuration;
   capi->pandas_datetime_to_datetimestruct = pandas_datetime_to_datetimestruct;
   capi->pandas_timedelta_to_timedeltastruct =
       pandas_timedelta_to_timedeltastruct;

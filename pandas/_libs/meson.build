@@ -117,7 +117,6 @@ libs_sources = {
         'sources': [
             'src/vendored/numpy/datetime/np_datetime.c',
             'src/vendored/numpy/datetime/np_datetime_strings.c',
-            'src/datetime/date_conversions.c',
             'src/datetime/pd_datetime.c',
         ],
     },
@@ -134,16 +133,6 @@ libs_sources = {
             'src/parser/io.c',
         ],
         'deps': [tokenizer_dep, _khash_primitive_helper_dep],
-    },
-    '_ujson': {
-        'sources': [
-            'src/vendored/ujson/python/ujson.c',
-            'src/vendored/ujson/python/objToJSON.c',
-            'src/vendored/ujson/python/JSONtoObj.c',
-            'src/vendored/ujson/lib/ultrajsonenc.c',
-            'src/vendored/ujson/lib/ultrajsondec.c',
-        ],
-        'deps': [m_dep],
     },
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
@@ -198,7 +187,6 @@ sources_to_install = [
     'internals.pyi',
     'interval.pyi',
     'join.pyi',
-    '_ujson.pyi',
     'lib.pyi',
     'missing.pyi',
     'ops.pyi',

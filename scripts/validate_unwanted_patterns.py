@@ -49,6 +49,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
     "_trim_zeros_single_float",
     "_safe_fill_null",
+    "_engine",
 }
 
 

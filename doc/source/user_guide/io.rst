@@ -1754,14 +1754,16 @@ with optional parameters:
      ``table``, adhering to the JSON `Table Schema`_
 
 * ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
-* ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
-* ``force_ascii`` : force encoded string to be ASCII, default True.
 * ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 * ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 * ``lines`` : If ``records`` orient, then will write each record per line as json.
+* ``indent`` : ``2`` to pretty-print the output with two spaces of indentation, default ``0``.
 * ``mode`` : string, writer mode when writing to path. 'w' for write, 'a' for append. Default 'w'
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
+Floating point values are written with the shortest representation that round-trips (like Python's ``repr``),
+and non-ASCII characters are written as UTF-8. Serialization uses `orjson <https://github.com/ijl/orjson>`__
+when it is installed and the standard library ``json`` module otherwise.
 
 .. ipython:: python
 
@@ -1954,7 +1956,6 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
      Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
 
 
-* ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
@@ -1962,7 +1963,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
 * ``chunksize`` : when used in combination with ``lines=True``, return a ``pandas.api.typing.JsonReader`` which reads in ``chunksize`` lines per iteration.
-* ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
+* ``engine``: Either ``"json"``, the default parser (`orjson <https://github.com/ijl/orjson>`__ when installed, the standard library ``json`` module otherwise), or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
   The ``"pyarrow"`` is only available when ``lines=True``
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.

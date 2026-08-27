@@ -26,7 +26,6 @@ import warnings
 
 import numpy as np
 
-import pandas._config.config as cf
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
@@ -2391,14 +2390,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Literal["split", "records", "index", "table", "columns", "values"] | None
         ) = None,
         date_format: str | None = None,
-        double_precision: int = 10,
-        force_ascii: bool = True,
         date_unit: TimeUnit = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool = False,
         compression: CompressionOptions = "infer",
         index: bool | None = None,
-        indent: int | None = None,
+        indent: Literal[0, 2] | None = None,
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
     ) -> str | None:
@@ -2457,12 +2454,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 'epoch' date format is deprecated and will be removed in a future
                 version, please use 'iso' instead.
 
-        double_precision : int, default 10
-            The number of decimal places to use when encoding
-            floating point values. The possible maximal value is 15.
-            Passing double_precision greater than 15 will raise a ValueError.
-        force_ascii : bool, default True
-            Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
             precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
@@ -2499,8 +2490,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             `index=False`. The string 'index' as a column name with empty :class:`Index`
             or if it is 'index' will raise a ``ValueError``.
 
-        indent : int, optional
-           Length of whitespace used to indent each record.
+        indent : {0, 2}, optional
+            Pretty-print the output with two spaces of indentation per level.
+            The default (None or 0) writes compact output.
 
         storage_options : dict, optional
             Extra options that make sense for a particular storage connection, e.g.
@@ -2529,10 +2521,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        The behavior of ``indent=0`` varies from the stdlib, which does not
-        indent the output but does insert newlines. Currently, ``indent=0``
-        and the default ``indent=None`` are equivalent in pandas, though this
-        may change in a future release.
+        Floating point values are written with the shortest representation
+        that round-trips (the same as Python's ``repr``), and non-ASCII
+        characters are written as UTF-8. Serialization uses ``orjson`` when it
+        is installed and the standard library ``json`` module otherwise.
 
         ``orient='table'`` contains a 'pandas_version' field under 'schema'.
         This stores the version of `pandas` used in the latest revision of the
@@ -2727,7 +2719,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        cf.is_nonnegative_int(indent)
         indent = indent or 0
 
         return json.to_json(
@@ -2735,8 +2726,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj=self,
             orient=orient,
             date_format=date_format,
-            double_precision=double_precision,
-            force_ascii=force_ascii,
             date_unit=date_unit,
             default_handler=default_handler,
             lines=lines,

@@ -507,23 +507,23 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
+    def test_values_for_json(self, data, request):
+        # GH 65127
+        if data.dtype.numpy_dtype == np.dtype("complex128"):
+            mark = pytest.mark.xfail(
+                raises=TypeError, reason="complex values are not JSON serializable"
+            )
+            request.applymarker(mark)
+        super().test_values_for_json(data)
+
     def test_json_roundtrip(self, data, request):
         # GH 65127
-        # NumpyExtensionArray does not support roundtrip for complex128 dtype as
-        # the Array cannot be created from dictionary created in JSON serialization
         if data.dtype.numpy_dtype == np.dtype("complex128"):
-            try:
-                super().test_json_roundtrip(data)
-            except AssertionError as err:
-                if 'Attribute "dtype" are different' in str(err):
-                    request.applymarker(
-                        pytest.mark.xfail(
-                            raises=AssertionError, reason="Attributes are different"
-                        )
-                    )
-                raise
-        else:
-            super().test_json_roundtrip(data)
+            mark = pytest.mark.xfail(
+                raises=TypeError, reason="complex values are not JSON serializable"
+            )
+            request.applymarker(mark)
+        super().test_json_roundtrip(data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

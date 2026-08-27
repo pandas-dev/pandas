@@ -266,7 +266,7 @@ class TestTableOrient:
             index=Index([1, NA], dtype="Int64"),
         )
         expected = df.copy()
-        data_json = df.to_json(orient="table", indent=4)
+        data_json = df.to_json(orient="table", indent=2)
         result = read_json(StringIO(data_json), orient="table")
         tm.assert_frame_equal(result, expected)
 
@@ -280,7 +280,7 @@ class TestTableOrient:
                         "type":"integer",
                         "extDtype":"Int64"
                     }
-                ],
+                ]
             },
             "data":[
                 {
