@@ -15146,10 +15146,12 @@ class DataFrame(NDFrame, OpsMixin):
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
+        lsuffix: str | lib.NoDefault = lib.no_default,
+        rsuffix: str | lib.NoDefault = lib.no_default,
         sort: bool = False,
         validate: JoinValidate | None = None,
+        *,
+        suffixes: Suffixes | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -15189,8 +15191,14 @@ class DataFrame(NDFrame, OpsMixin):
               index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
+
+            .. deprecated:: 3.1.0
+                Use ``suffixes`` instead.
         rsuffix : str, default ''
             Suffix to use from right frame's overlapping columns.
+
+            .. deprecated:: 3.1.0
+                Use ``suffixes`` instead.
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
@@ -15203,6 +15211,14 @@ class DataFrame(NDFrame, OpsMixin):
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
 
+        suffixes : tuple of (str, str), default ("", "")
+            A length-2 sequence where each element is optionally a string
+            indicating the suffix to add to overlapping column names in
+            the caller and ``other`` respectively. Pass a value of ``None``
+            instead of a string to indicate that the column name from
+            the caller or ``other`` should be left as-is, with no suffix.
+            At least one of the values must not be None.
+
         Returns
         -------
         DataFrame
@@ -15214,7 +15230,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
+        Parameters `on` and `suffixes` are not supported when
         passing a list of `DataFrame` objects.
 
         Examples
@@ -15245,7 +15261,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Join DataFrames using their indexes.
 
-        >>> df.join(other, lsuffix="_caller", rsuffix="_other")
+        >>> df.join(other, suffixes=("_caller", "_other"))
           key_caller   A key_other    B
         0         K0  A0        K0   B0
         1         K1  A1        K1   B1
@@ -15312,6 +15328,27 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
 
+        if lsuffix is not lib.no_default or rsuffix is not lib.no_default:
+            if suffixes is not lib.no_default:
+                raise ValueError(
+                    "Cannot specify both 'suffixes' and 'lsuffix'/'rsuffix'."
+                )
+            warnings.warn(
+                "The 'lsuffix' and 'rsuffix' keywords in DataFrame.join are "
+                "deprecated and will be removed in a future version. "
+                "Use the 'suffixes' keyword instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            resolved_suffixes: Suffixes = (
+                lsuffix if lsuffix is not lib.no_default else "",
+                rsuffix if rsuffix is not lib.no_default else "",
+            )
+        elif suffixes is not lib.no_default:
+            resolved_suffixes = suffixes
+        else:
+            resolved_suffixes = ("", "")
+
         if isinstance(other, Series):
             if other.name is None:
                 raise ValueError("Other Series must have a name")
@@ -15324,7 +15361,7 @@ class DataFrame(NDFrame, OpsMixin):
                     other,
                     how=how,
                     on=on,
-                    suffixes=(lsuffix, rsuffix),
+                    suffixes=resolved_suffixes,
                     sort=sort,
                     validate=validate,
                 )
@@ -15335,7 +15372,7 @@ class DataFrame(NDFrame, OpsMixin):
                 how=how,
                 left_index=on is None,
                 right_index=True,
-                suffixes=(lsuffix, rsuffix),
+                suffixes=resolved_suffixes,
                 sort=sort,
                 validate=validate,
             )
@@ -15345,7 +15382,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "Joining multiple DataFrames only supported for joining on index"
                 )
 
-            if rsuffix or lsuffix:
+            if any(resolved_suffixes):
                 raise ValueError(
                     "Suffixes not supported when joining multiple DataFrames"
                 )
