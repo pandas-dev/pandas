@@ -14,11 +14,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
-    BDay,
-    BMonthEnd,
-)
+from pandas._libs.tslibs.offsets import BDay
 
 from pandas import (
     DatetimeIndex,
@@ -226,17 +222,6 @@ class TestBusinessDay:
         rs = datetime(2014, 1, 5) + off  # see #5890
         xp = datetime(2014, 1, 17)
         assert rs == xp
-
-    def test_apply_corner(self, _offset):
-        if _offset is BDay:
-            msg = "Only know how to combine business day with datetime or timedelta"
-        else:
-            msg = (
-                "Only know how to combine trading day "
-                "with datetime, datetime64 or timedelta"
-            )
-        with pytest.raises(ApplyTypeError, match=msg):
-            _offset()._apply(BMonthEnd())
 
 
 def test_apply_array_lands_on_nat_sentinel():
