@@ -2051,3 +2051,22 @@ def test_method_calls_on_binop():
     result = pd.eval("(x + y).dropna().reset_index(drop=True)")
     expected = (x + y).dropna().reset_index(drop=True)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "python",
+        pytest.param("numexpr", marks=td.skip_if_no("numexpr")),
+    ],
+)
+def test_eval_inplace_cow_alias_corruption(engine):
+    # https://github.com/pandas-dev/pandas/issues/65664
+    df = DataFrame({"old": [1, 2, 3]})
+    df.eval("new = old", inplace=True, engine=engine)
+
+    df.iloc[0, 1] = 99
+
+    expected = Series([1, 2, 3], name="old")
+    result = df["old"]
+    tm.assert_series_equal(result, expected)
