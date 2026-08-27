@@ -438,7 +438,10 @@ plot_formats = [("png", 90)]
 plot_html_show_formats = False
 plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
-import pandas as pd"""
+import pandas as pd
+
+import random
+random.seed(42)"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
