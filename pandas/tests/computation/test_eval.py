@@ -14,6 +14,7 @@ from pandas.compat import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
+    Pandas4Warning,
     PerformanceWarning,
     UndefinedVariableError,
 )
@@ -1232,8 +1233,8 @@ class TestOperations:
         # single assignment - existing variable
         expected = df.copy()
         expected["a"] = expected["a"] + expected["b"]
-        df.eval("a = a + b", inplace=True)
-        tm.assert_frame_equal(df, expected)
+        result = df.eval("a = a + b")
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_single_assign_new(self):
         df = DataFrame(
@@ -1242,20 +1243,19 @@ class TestOperations:
         # single assignment - new variable
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        df.eval("c = a + b", inplace=True)
-        tm.assert_frame_equal(df, expected)
+        result = df.eval("c = a + b")
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_single_assign_local_overlap(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
-        df = df.copy()
-        a = 1  # noqa: F841
-        df.eval("a = 1 + b", inplace=True)
-
         expected = df.copy()
         expected["a"] = 1 + expected["b"]
-        tm.assert_frame_equal(df, expected)
+
+        a = 1  # noqa: F841
+        result = df.eval("a = 1 + b")
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_single_assign_name(self):
         df = DataFrame(
@@ -1264,21 +1264,21 @@ class TestOperations:
 
         a = 1  # noqa: F841
         old_a = df.a.copy()
-        df.eval("a = a + b", inplace=True)
-        result = old_a + df.b
-        tm.assert_series_equal(result, df.a, check_names=False)
-        assert result.name is None
+        result = df.eval("a = a + b")
+        expected = old_a + df.b
+        tm.assert_series_equal(result["a"], expected, check_names=False)
 
     def test_assignment_multiple_raises(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # multiple assignment
-        df.eval("c = a + b", inplace=True)
+        df = df.eval("c = a + b")
         msg = "can only assign a single expression"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("c = a = b")
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_assignment_explicit(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
@@ -1302,8 +1302,7 @@ class TestOperations:
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
 
-        actual = df.eval("c = a + b", inplace=False)
-        assert actual is not None
+        actual = df.eval("c = a + b")
 
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
@@ -1317,25 +1316,21 @@ class TestOperations:
 
         expected["c"] = expected["a"] + expected["b"]
         expected["d"] = expected["c"] + expected["b"]
-        answer = df.eval(
+        result = df.eval(
             """
         c = a + b
         d = c + b""",
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
         expected["a"] = expected["a"] - 1
         expected["e"] = expected["a"] + 2
-        answer = df.eval(
+        result = result.eval(
             """
         a = a - 1
         e = a + 2""",
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
         # multi-line not valid if not all assignments
         msg = "Multi-line expressions are only valid if all expressions contain"
@@ -1344,33 +1339,7 @@ class TestOperations:
                 """
             a = b + 2
             b - 2""",
-                inplace=False,
             )
-
-    def test_multi_line_expression_not_inplace(self):
-        # GH 11149
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        expected = df.copy()
-
-        expected["c"] = expected["a"] + expected["b"]
-        expected["d"] = expected["c"] + expected["b"]
-        df = df.eval(
-            """
-        c = a + b
-        d = c + b""",
-            inplace=False,
-        )
-        tm.assert_frame_equal(expected, df)
-
-        expected["a"] = expected["a"] - 1
-        expected["e"] = expected["a"] + 2
-        df = df.eval(
-            """
-        a = a - 1
-        e = a + 2""",
-            inplace=False,
-        )
-        tm.assert_frame_equal(expected, df)
 
     def test_multi_line_expression_local_variable(self):
         # GH 15342
@@ -1380,15 +1349,13 @@ class TestOperations:
         local_var = 7
         expected["c"] = expected["a"] * local_var
         expected["d"] = expected["c"] + local_var
-        answer = df.eval(
+        result = df.eval(
             """
         c = a * @local_var
         d = c + @local_var
         """,
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
     def test_multi_line_expression_callable_local_variable(self):
         # 26426
@@ -1400,15 +1367,13 @@ class TestOperations:
         expected = df.copy()
         expected["c"] = expected["a"] * local_func(1, 7)
         expected["d"] = expected["c"] + local_func(1, 7)
-        answer = df.eval(
+        result = df.eval(
             """
         c = a * @local_func(1, 7)
         d = c + @local_func(1, 7)
         """,
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
         # 26426
@@ -1420,15 +1385,13 @@ class TestOperations:
         expected = df.copy()
         expected["c"] = expected["a"] * local_func(b=7, a=1)
         expected["d"] = expected["c"] + local_func(b=7, a=1)
-        answer = df.eval(
+        result = df.eval(
             """
         c = a * @local_func(b=7, a=1)
         d = c + @local_func(b=7, a=1)
         """,
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_in_query(self):
         # GH 8664
@@ -1439,6 +1402,8 @@ class TestOperations:
             df.query("a = 1")
         tm.assert_frame_equal(df, df_orig)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.query")
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_query_inplace(self):
         # see gh-11149
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
@@ -1454,6 +1419,7 @@ class TestOperations:
         tm.assert_dict_equal(df, expected)
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2], np.array([]), (1, 3)])
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
@@ -1471,13 +1437,14 @@ class TestOperations:
         expression = "a = 1 + 2"
 
         with pytest.raises(ValueError, match=msg):
-            self.eval(expression, target=invalid_target, inplace=False)
+            self.eval(expression, target=invalid_target)
 
     @pytest.mark.parametrize("target", [1, "cat", [1, 2], np.array([]), (1, 3), {1: 2}])
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_inplace_no_assignment(self, target):
         expression = "1 + 2"
 
-        assert self.eval(expression, target=target, inplace=False) == 3
+        assert self.eval(expression, target=target) == 3
 
         msg = "Cannot operate inplace if there is no assignment"
         with pytest.raises(ValueError, match=msg):
@@ -1677,15 +1644,13 @@ class TestMath:
                 "b": np.random.default_rng(2).standard_normal(10),
             }
         )
-        df.eval(
+        result = df.eval(
             "e = arctan2(sin(a), b)",
             engine=engine,
             parser=parser,
-            inplace=True,
         )
-        got = df.e
-        expect = np.arctan2(np.sin(df.a), df.b).rename("e")
-        tm.assert_series_equal(got, expect)
+        expected = np.arctan2(np.sin(df.a), df.b).rename("e")
+        tm.assert_series_equal(result["e"], expected)
 
     def test_df_arithmetic_subexpression(self, engine, parser):
         df = DataFrame(
@@ -1694,10 +1659,9 @@ class TestMath:
                 "b": np.random.default_rng(2).standard_normal(10),
             }
         )
-        df.eval("e = sin(a + b)", engine=engine, parser=parser, inplace=True)
-        got = df.e
-        expect = np.sin(df.a + df.b).rename("e")
-        tm.assert_series_equal(got, expect)
+        result = df.eval("e = sin(a + b)", engine=engine, parser=parser)
+        expected = np.sin(df.a + df.b).rename("e")
+        tm.assert_series_equal(result["e"], expected)
 
     @pytest.mark.parametrize(
         "dtype, expect_dtype",
@@ -1719,12 +1683,11 @@ class TestMath:
             {"a": np.random.default_rng(2).standard_normal(10).astype(dtype)}
         )
         assert df.a.dtype == dtype
-        df.eval("b = sin(a)", engine=engine, parser=parser, inplace=True)
-        got = df.b
-        expect = np.sin(df.a).rename("b")
-        assert expect.dtype == got.dtype
-        assert expect_dtype == got.dtype
-        tm.assert_series_equal(got, expect)
+        result = df.eval("b = sin(a)", engine=engine, parser=parser)["b"]
+        expected = np.sin(df.a).rename("b")
+        assert expected.dtype == result.dtype
+        assert expect_dtype == result.dtype
+        tm.assert_series_equal(result, expected)
 
     def test_undefined_func(self, engine, parser):
         df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
@@ -2002,6 +1965,7 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
 def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
@@ -2017,6 +1981,9 @@ def test_set_inplace():
     tm.assert_series_equal(result_view["A"], expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The inplace keyword in eval:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
 def test_validate_bool_args(value):
     msg = 'For argument "inplace" expected type bool, received type'
@@ -2051,3 +2018,80 @@ def test_method_calls_on_binop():
     result = pd.eval("(x + y).dropna().reset_index(drop=True)")
     expected = (x + y).dropna().reset_index(drop=True)
     tm.assert_series_equal(result, expected)
+
+
+def test_eval_inplace_depr():
+    msg = "The inplace keyword in DataFrame.eval is deprecated"
+
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    expected = df.copy()
+    expected["b"] = expected["a"] + 1
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.eval("b = a + 1")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.eval("b = a + 1", inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.eval("b = a + 1", inplace=True)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_query_inplace_depr():
+    msg = "The inplace keyword in DataFrame.query is deprecated"
+
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    expected = df[df["a"] > 1]
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.query("a > 1")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.query("a > 1", inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.query("a > 1", inplace=True)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_eval_top_level_inplace_depr():
+    msg = "The inplace keyword in eval is deprecated"
+
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    expected = df.copy()
+    expected["b"] = expected["a"] + 1
+
+    # does not use keyword, no warning, target not mutated
+    with tm.assert_produces_warning(False):
+        result = pd.eval("b = df.a + 1", target=df)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning, target not mutated
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.eval("b = df.a + 1", target=df, inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning, target mutated
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.eval("b = df.a + 1", target=df, inplace=True)
+    tm.assert_frame_equal(df, expected)
