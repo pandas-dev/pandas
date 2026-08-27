@@ -41,7 +41,7 @@ _ANCHORS = [
 
 
 @pytest.fixture(
-    params=[klass(n, **kwargs) for klass, kwargs in _ANCHORS for n in (-2, -1, 1, 2)],
+    params=[klass(n, **kwargs) for klass, kwargs in _ANCHORS for n in (-2, -1, 1, 2)],  # type: ignore[arg-type]
     ids=lambda off: off.freqstr,
 )
 def offset_cases(request):
