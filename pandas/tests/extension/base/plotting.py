@@ -8,7 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Literal,
 )
-import warnings
 
 if TYPE_CHECKING:
     from matplotlib import (
@@ -30,7 +29,6 @@ from pandas.api.types import (
     is_datetime64_any_dtype,
 )
 from pandas.tests.plotting.common import _check_plot_works
-from pandas.util.version import Version
 
 
 def _check_plot_data(
@@ -125,43 +123,16 @@ class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
 
     @pytest.fixture(params=[True, False], ids=["skipna", "no_skipna"])
-    def plot_data(self, data: ExtensionArray, request) -> pd.DataFrame:
+    def plot_data(self, data: ExtensionArray, request, mpl_cleanup) -> pd.DataFrame:
         df = pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))})
         if request.param:
             df = df.dropna()
         return df
 
-    def skip_if_no_matplotlib(self):
-        """Skips a test if matplotlib dependency not fulfilled.
-
-        Also adds a filter for warnings raised by pyparsing in minimum-version CI for
-        pyparsing>=3.3.0 and matplotlib<3.11,
-        see https://github.com/matplotlib/matplotlib/pull/29745
-        """
-        pyparsing = pytest.importorskip(
-            "pyparsing", reason="matplotlib requires pyparsing"
-        )
-
-        if Version(pyparsing.__version__) >= Version("3.3.0"):
-            from pyparsing.warnings import PyparsingDeprecationWarning
-
-            warnings.filterwarnings(
-                "ignore",
-                message=(
-                    "'enablePackrat|oneOf|parseString|resetCache' deprecated - "
-                    "use 'enable_packrat|one_of|parse_string|reset_cache'"
-                ),
-                category=PyparsingDeprecationWarning,
-                module=r"matplotlib.*",
-            )
-        pytest.importorskip("matplotlib", reason="test requires matplotlib")
-
     def test_plot_on_x_axis(self, plot_data):
         """Test that EA data can be plotted on the x-axis."""
-        self.skip_if_no_matplotlib()
         _plot(plot_data, x="Data", y="Numeric")
 
     def test_plot_on_y_axis(self, plot_data, **kwargs):
         """Test that EA data can be plotted on the y-axis."""
-        self.skip_if_no_matplotlib()
         _plot(plot_data, x="Numeric", y="Data", **kwargs)
