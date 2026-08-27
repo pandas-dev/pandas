@@ -177,11 +177,7 @@ seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
 sphinx-design = "*"
 sphinx-copybutton = "*"
-
-[feature.documentation.pypi-dependencies]
-# temporary installed with pip with custom patch until released
-# https://github.com/pydata/pydata-sphinx-theme/issues/2176
-pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+pydata-sphinx-theme = "==0.20.0"
 
 [feature.website.dependencies]
 feedparser = "*"
