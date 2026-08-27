@@ -5919,9 +5919,9 @@ class DataFrame(NDFrame, OpsMixin):
         Select a subset of columns from the DataFrame.
 
         Return a new DataFrame containing the specified columns.
-        Columns can be existing column labels as well as
-        computed columns, expressed via :func:`pandas.col` expressions, or
-        callables passed as keyword arguments.
+        Columns can be existing column labels as well as computed columns,
+        expressed via :func:`pandas.col` expressions, or callables passed as
+        keyword arguments.
 
         .. versionadded:: 3.1.0
 
