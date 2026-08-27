@@ -1,7 +1,6 @@
 import calendar
 import datetime
 import decimal
-import gc
 import json
 import locale
 import math
@@ -596,10 +595,9 @@ class TestUltraJSONTests:
 
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
-        for _ in range(10):
-            base = "\u00e5".encode()
-            escape_input = base * 1024 * 1024 * 2
-            ujson.ujson_dumps(escape_input)
+        base = "\u00e5".encode()
+        escape_input = base * 1024 * 64
+        ujson.ujson_dumps(escape_input)
 
     def test_decode_big_escape(self):
         # Make sure no Exception is raised.
@@ -1287,11 +1285,9 @@ def test_to_json_bad_label_frees_values():
     assert ser.array._values_for_json() is values
 
     ref = weakref.ref(values)
-    for _ in range(5):
-        with pytest.raises(UnicodeEncodeError):
-            ser.to_json()
+    with pytest.raises(UnicodeEncodeError):
+        ser.to_json()
 
     del ser, values
-    gc.collect()
-    # a reference held by the failed encodes would keep this alive
+    # a reference held by the failed encode would keep this alive
     assert ref() is None

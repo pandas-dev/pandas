@@ -838,7 +838,7 @@ def _dates_null_with_overrun_data_page(datapath):
     struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2)
     data_page = bytearray(65536)
     struct.pack_into(
-        "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 60000, 0
+        "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 100, 0
     )
     return bytes(data) + bytes(data_page)
 

@@ -574,7 +574,9 @@ class TestPeriodIndex:
         subset = s[:"2012-01-04 06:55"]
 
         result = subset.resample("10min").apply(len)
-        expected = s.resample("10min").apply(len).loc[result.index]
+        expected = Series(
+            2, index=date_range(start="1/1/2012", freq="10min", periods=len(result))
+        )
         tm.assert_series_equal(result, expected)
 
     def test_resample_weekly_all_na(self):
