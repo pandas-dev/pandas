@@ -892,3 +892,63 @@ def test_split_arrow_dtype_regex_false_multichar():
     )
     expected.columns = RangeIndex(3)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["split", "rsplit", "partition", "rpartition"])
+def test_split_category_returns_list_not_string(any_string_dtype, method):
+    # GH#66341
+    ser = Series(
+        [
+            "this is a regular sentence",
+            "https://docs.python.org/3/tutorial/index.html",
+            np.nan,
+        ],
+        dtype=any_string_dtype,
+    ).astype("category")
+
+    if method in ("split", "rsplit"):
+        result = getattr(ser.str, method)()
+        expected = Series(
+            [
+                ["this", "is", "a", "regular", "sentence"],
+                ["https://docs.python.org/3/tutorial/index.html"],
+                np.nan,
+            ]
+        )
+    elif method == "partition":
+        result = ser.str.partition(expand=False)
+        expected = Series(
+            [
+                ("this", " ", "is a regular sentence"),
+                ("https://docs.python.org/3/tutorial/index.html", "", ""),
+                np.nan,
+            ]
+        )
+    else:
+        result = ser.str.rpartition(expand=False)
+        expected = Series(
+            [
+                ("this is a regular", " ", "sentence"),
+                ("", "", "https://docs.python.org/3/tutorial/index.html"),
+                np.nan,
+            ]
+        )
+
+    assert result.dtype == object
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["split", "rsplit", "partition", "rpartition"])
+def test_split_category_expand(any_string_dtype, method):
+    # GH#66341 - expand=True on categorical should return string columns
+    ser = Series(
+        ["a b", "c d"],
+        dtype=any_string_dtype,
+    ).astype("category")
+
+    result = getattr(ser.str, method)(expand=True)
+
+    expected_dtype = ser.dtype.categories.dtype
+    assert isinstance(result, DataFrame)
+    for col_dtype in result.dtypes:
+        assert col_dtype == expected_dtype
