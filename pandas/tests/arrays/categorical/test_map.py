@@ -69,12 +69,12 @@ def test_map(na_action):
     (
         ([1, 1, np.nan], pd.isna, Index([False, False, True])),
         ([1, 2, np.nan], pd.isna, Index([False, False, True])),
-        ([1, 1, np.nan], {1: False}, Categorical([False, False, np.nan])),
+        ([1, 1, np.nan], {1: False}, Index([False, False, np.nan])),
         ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
         (
             [1, 1, np.nan],
             Series([False, False]),
-            Categorical([False, False, np.nan]),
+            Index([False, False, np.nan]),
         ),
         (
             [1, 2, np.nan],
@@ -95,14 +95,14 @@ def test_map_with_nan_none(data, f, expected):  # GH 24241
 @pytest.mark.parametrize(
     ("data", "f", "expected"),
     (
-        ([1, 1, np.nan], pd.isna, Categorical([False, False, np.nan])),
+        ([1, 1, np.nan], pd.isna, Index([False, False, np.nan])),
         ([1, 2, np.nan], pd.isna, Index([False, False, np.nan])),
-        ([1, 1, np.nan], {1: False}, Categorical([False, False, np.nan])),
+        ([1, 1, np.nan], {1: False}, Index([False, False, np.nan])),
         ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
         (
             [1, 1, np.nan],
             Series([False, False]),
-            Categorical([False, False, np.nan]),
+            Index([False, False, np.nan]),
         ),
         (
             [1, 2, np.nan],
@@ -114,7 +114,7 @@ def test_map_with_nan_none(data, f, expected):  # GH 24241
 def test_map_with_nan_ignore(data, f, expected):  # GH 24241
     values = Categorical(data)
     result = values.map(f, na_action="ignore")
-    if data[1] == 1:
+    if isinstance(expected, Categorical):
         tm.assert_categorical_equal(result, expected)
     else:
         tm.assert_index_equal(result, expected)
@@ -180,3 +180,42 @@ def test_map_to_multi_element_tuples(na_action):
     result = cat.map(mapper, na_action=na_action)
     expected = Index([("x", 1), ("y", 2)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
+
+
+def test_map_single_category_bool_result():
+    # GH#61719 - mapping a single-category Categorical to bool should
+    # return bool dtype, not category dtype
+    cat = Categorical(["a", "a"])
+    result = cat.map(lambda x: x == "c")
+    expected = Index([False, False])
+    tm.assert_index_equal(result, expected)
+    assert result.dtype == np.dtype("bool")
+
+
+def test_map_multiple_category_bool_result():
+    # GH#61719 - ensure multi-category case also returns bool dtype
+    cat = Categorical(["a", "b"])
+    result = cat.map(lambda x: x == "c")
+    expected = Index([False, False])
+    tm.assert_index_equal(result, expected)
+    assert result.dtype == np.dtype("bool")
+
+
+def test_map_bool_category_preserves_categorical():
+    # GH#61719 - mapping a bool-dtype Categorical should still preserve
+    # categorical when the mapping is one-to-one
+    cat = Categorical([True, False, True])
+    result = cat.map(lambda x: not x)
+    expected = Categorical(
+        [False, True, False], categories=[True, False], ordered=False
+    )
+    tm.assert_categorical_equal(result, expected)
+
+
+def test_map_ordered_categorical_to_bool_preserves_ordered():
+    # GH#61719 - mapping an ordered non-bool Categorical to bool with
+    # multiple unique categories should preserve Categorical and ordered
+    cat = Categorical(["a", "b"], ordered=True)
+    result = cat.map({"a": True, "b": False})
+    expected = Categorical([True, False], categories=[True, False], ordered=True)
+    tm.assert_categorical_equal(result, expected)
