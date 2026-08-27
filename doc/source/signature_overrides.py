@@ -1,4 +1,11 @@
-"""Define signature overrides for Cython classes used in the documentation."""
+"""
+Define signature overrides for Cython classes used in the documentation.
+
+Cython classes do not expose the signature for documentation
+building. We must overwrite the signature manually for it to
+appear in the docs. See
+https://github.com/cython/cython/issues/3873
+"""
 
 from datetime import timedelta
 import inspect
