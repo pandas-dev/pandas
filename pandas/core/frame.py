@@ -5911,14 +5911,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        All expressions and callables are evaluated against the original
-        DataFrame, so they cannot refer to other columns computed in the same
-        ``select`` call. Unlike :meth:`DataFrame.assign`, ``select`` never
-        overwrites: requesting the same output name twice returns duplicate
-        columns.
+        Items are resolved in order, and computed columns are made available
+        to later items under their name, as in :meth:`DataFrame.assign`. A
+        computed column with the same name as an existing column replaces it
+        for later items, but does not replace a column already selected: a name
+        requested more than once is returned more than once.
 
         When the columns are a ``MultiIndex``, computed columns must have
-        full-length tuple names so only positional argument are allowed.
+        full-length tuple names so only positional arguments are allowed.
         Rename expressions with ``.rename(...)`` when needed.
 
         Examples
@@ -5973,6 +5973,18 @@ class DataFrame(NDFrame, OpsMixin):
         0       John   61         732
         1      Alice   22         264
         2        Bob   35         420
+
+        Later items can refer to columns computed earlier in the same call:
+
+        >>> df.select(
+        ...     "first_name",
+        ...     age_months=pd.col("age") * 12,
+        ...     age_days=pd.col("age_months") * 30,
+        ... )
+          first_name  age_months  age_days
+        0       John         732     21960
+        1      Alice         264      7920
+        2        Bob         420     12600
 
         The ``select`` method also works when the columns are a
         ``MultiIndex``:

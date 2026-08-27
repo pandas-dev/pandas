@@ -65,24 +65,31 @@ def select(
     items = _parse_select_args(select_args)
     nlevels = df.columns.nlevels
 
+    # Items are resolved in order against ``data``. Computed columns are
+    # written into ``data`` by name, as in DataFrame.assign, so later
+    # items can refer to them. The result is built from ``chunks`` so
+    # that a name requested more than once is returned more than once.
+    data = df.copy(deep=False)
     chunks: list[DataFrame] = []
     labels: list[Hashable] = []
 
     def flush_labels() -> None:
         if labels:
-            indexer = df.columns._get_indexer_strict(labels, "columns")[1]
-            chunks.append(df.take(indexer, axis=1))
+            indexer = data.columns._get_indexer_strict(labels, "columns")[1]
+            chunks.append(data.take(indexer, axis=1))
             labels.clear()
 
-    def make_chunk(name: Hashable, value: object) -> DataFrame:
-        chunk = df.iloc[:, :0]
-        chunk[name] = value
-        return chunk
+    def set_column(name: Hashable, value: object) -> None:
+        data[name] = value
+        loc = data.columns.get_loc(name)
+        if isinstance(loc, int):
+            loc = slice(loc, loc + 1)
+        chunks.append(data.iloc[:, loc])
 
     for item in items:
         if isinstance(item, Expression):
             flush_labels()
-            result = item._eval_expression(df)
+            result = item._eval_expression(data)
             if isinstance(result, ABCSeries):
                 if result.name is None:
                     raise TypeError(
@@ -99,7 +106,7 @@ def select(
                         f"columns have {nlevels} levels; use "
                         f".rename(...) with a tuple of length {nlevels}"
                     )
-                chunks.append(make_chunk(result.name, result))
+                set_column(result.name, result)
             elif isinstance(result, ABCDataFrame):
                 if result.columns.nlevels != nlevels:
                     raise TypeError(
@@ -108,7 +115,8 @@ def select(
                         f"levels, but the DataFrame's columns have "
                         f"{nlevels} levels"
                     )
-                chunks.append(result.reindex(df.index))
+                for i, name in enumerate(result.columns):
+                    set_column(name, result.iloc[:, i])
             else:
                 raise TypeError(
                     f"expression {item!r} evaluated to an object of type "
@@ -135,7 +143,7 @@ def select(
                 f"column names must be tuples of length {nlevels}; pass "
                 "a positional expression with .rename(...) instead"
             )
-        chunks.append(make_chunk(key, com.apply_if_callable(value, df)))
+        set_column(key, com.apply_if_callable(value, data))
 
     if not chunks:
         return df.iloc[:, :0]

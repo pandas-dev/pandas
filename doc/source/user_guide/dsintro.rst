@@ -626,8 +626,15 @@ underlying column, while a keyword argument names the resulting column:
 
    dfa.select("A", pd.col("B") * 2, C=pd.col("A") + pd.col("B"))
 
-Unlike :meth:`~pandas.DataFrame.assign`, all expressions are evaluated against
-the original DataFrame, and the result contains only the requested columns.
+As with :meth:`~pandas.DataFrame.assign`, later arguments can refer to
+columns computed earlier in the same call, but the result contains only the
+requested columns:
+
+.. ipython:: python
+
+   dfa.select("A", C=pd.col("A") + pd.col("B"), D=pd.col("C") * 2)
+
+See :ref:`indexing.select` for more.
 
 
 Indexing / selection

@@ -385,21 +385,82 @@ def test_select_kwargs_wrong_length_raises(df):
         df.select("a", extra=[1, 2])
 
 
-def test_select_kwargs_evaluated_on_original(df):
+def test_select_kwargs_sequential(df):
     # https://github.com/pandas-dev/pandas/issues/61522
-    # unlike assign, kwargs cannot refer to columns computed in the
-    # same select call
-    msg = re.escape(
-        "Column 'double' not found in given DataFrame.\n\n"
-        "Hint: did you mean one of ['a', 'b', 'c'] instead?"
+    # like assign, later kwargs can refer to columns computed earlier
+    result = df.select(double=pd.col("a") * 2, quadruple=pd.col("double") * 2)
+    expected = pd.DataFrame({"double": [2, 4, 6], "quadruple": [4, 8, 12]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_kwargs_sequential_callable(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    result = df.select(double=lambda x: x["a"] * 2, quadruple=lambda x: x["double"] * 2)
+    expected = pd.DataFrame({"double": [2, 4, 6], "quadruple": [4, 8, 12]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_kwargs_see_positional_expression(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    result = df.select(pd.col("a") * 2, b=pd.col("a") + 1)
+    expected = pd.DataFrame({"a": [2, 4, 6], "b": [3, 5, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_label_after_computed_column(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    # a label refers to the column as it is at that point in the call
+    result = df.select("a", pd.col("a") * 2, "a")
+    expected = pd.DataFrame([[1, 2, 2], [2, 4, 4], [3, 6, 6]], columns=["a", "a", "a"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_replaced_column_seen_by_later_kwarg(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    result = df.select(a=pd.col("a") * 2, c=pd.col("a") + 1)
+    expected = pd.DataFrame({"a": [2, 4, 6], "c": [3, 5, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_swap_uses_replaced_column(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    # like assign, the second kwarg sees the already replaced column
+    result = df.select(a=pd.col("b"), b=pd.col("a"))
+    expected = pd.DataFrame({"a": [4.0, 5.0, 6.0], "b": [4.0, 5.0, 6.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_frame_result_seen_by_later_kwarg(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    result = df.select(pd.col("c").str.get_dummies(), total=pd.col("x") + pd.col("y"))
+    expected = df["c"].str.get_dummies().assign(total=lambda d: d["x"] + d["y"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_expression_multiindex_sequential(mi_df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    result = mi_df.select(
+        (pd.col(("one", "a")) * 2).rename(("three", "a")),
+        (pd.col(("three", "a")) + 1).rename(("three", "b")),
     )
-    with pytest.raises(ValueError, match=msg):
-        df.select(double=pd.col("a") * 2, quadruple=pd.col("double") * 2)
+    expected = pd.DataFrame(
+        [[2, 3], [8, 9]],
+        columns=pd.MultiIndex.from_tuples([("three", "a"), ("three", "b")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_does_not_modify_original(df):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    expected = df.copy()
+    df.select(a=pd.col("a") * 2, d=pd.col("a"))
+    tm.assert_frame_equal(df, expected)
 
 
 def test_select_duplicate_output_names(df):
     # https://github.com/pandas-dev/pandas/issues/61522
-    # select never overwrites; duplicate names yield duplicate columns
+    # a computed column does not replace an already selected column
+    # in the result; both are returned
     result = df.select("a", a=pd.col("b"))
     expected = df[["a", "b"]].set_axis(["a", "a"], axis=1)
     tm.assert_frame_equal(result, expected)
