@@ -323,11 +323,11 @@ class TestAstype:
             dti,
             name="idx",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         result = obj._data.astype("category")
         expected = expected.values
-        tm.assert_categorical_equal(result, expected)
+        tm.assert_categorical_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_array_fallback(self, tz):

@@ -17,10 +17,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
     "of all strings, all unicode, all "
@@ -36,10 +32,6 @@ _msg_pyarrow_requires_names = (
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame is deprecated:DeprecationWarning"
-)
 
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
@@ -133,8 +125,6 @@ def test_usecols_relative_to_names2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# regex mismatch: "Length mismatch: Expected axis has 1 elements"
-@xfail_pyarrow
 def test_usecols_name_length_conflict(all_parsers):
     data = """\
 1,2,3
@@ -292,7 +282,6 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected, reques
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # mismatched shape
 def test_empty_usecols(all_parsers):
     data = "a,b,c\n1,2,3\n4,5,6"
     expected = DataFrame(columns=Index([]))
@@ -470,11 +459,13 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, reques
 
     if parser.engine == "pyarrow":
         if isinstance(usecols[0], int):
-            with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
-                parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
-            return
-        # "pyarrow.lib.ArrowKeyError: Column 'A' in include_columns does not exist"
-        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
+            msg = _msg_pyarrow_requires_names
+        else:
+            # GH#65862
+            msg = "'usecols' together with 'names' when 'header' is an integer"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
+        return
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})

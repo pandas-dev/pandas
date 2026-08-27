@@ -1,9 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport (
-    fabs,
-    signbit,
-)
+from libc.math cimport fabs
+from libcpp.cmath cimport signbit
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map
@@ -39,7 +37,6 @@ cdef extern from "pandas/skiplist.h":
         double value
         int is_nil
         int levels
-        int ref_count
 
     ctypedef struct skiplist_t:
         node_t *head
@@ -50,10 +47,11 @@ cdef extern from "pandas/skiplist.h":
 
     skiplist_t* skiplist_init(int) nogil
     void skiplist_destroy(skiplist_t*) nogil
+    void skiplist_reset(skiplist_t*) nogil
     double skiplist_get(skiplist_t*, int, int*) nogil
+    int skiplist_get_pair(skiplist_t*, int, double*, double*) nogil
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
-    int skiplist_rank(skiplist_t*, double) nogil
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
@@ -70,6 +68,11 @@ cdef:
     # it will only have up to 3 significant digits in base 10 remaining.
     # https://en.wikipedia.org/wiki/Condition_number
     float64_t InvCondTol = EpsF64 * 1e3
+
+    # GH#65739 largest magnitude the cov/corr accumulators will re-anchor on.
+    # Subtracting an origin this size can never overflow, and beyond it the
+    # squared deviations would overflow anyway, so there is nothing to gain.
+    float64_t MaxOriginMagnitude = np.sqrt(np.finfo(np.float64).max)
 
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
@@ -750,32 +753,117 @@ cdef float64_t calc_cov(
     return ssqdm_xy / (nobs - <float64_t>ddof)
 
 
+cdef inline void track_peak_dev(
+    float64_t val_x,
+    float64_t val_y,
+    float64_t mean_x,
+    float64_t mean_y,
+    float64_t *peak_dev_x,
+    float64_t *peak_dev_y,
+) noexcept nogil:
+    """
+    Record the largest deviation from the mean either accumulator has absorbed.
+
+    GH#65739 the running means are updated incrementally too, so once a value far
+    from the rest of the data leaves the window they keep an absolute error on
+    the order of ``eps * dev``. That polluted mean then feeds every later
+    ``(val_x - mean_x) * dy``, which is why watching the ``ssqdm`` accumulators
+    alone cannot see the resulting garbage: ``peak_dev_x * peak_dev_y`` bounds
+    both that error and the plain round-off in ``ssqdm_xy``.
+
+    Callers pass values already shifted by the accumulators' origin, so these are
+    deviations within the window rather than absolute magnitudes.
+    """
+    cdef float64_t dev_x = fabs(val_x - mean_x)
+    cdef float64_t dev_y = fabs(val_y - mean_y)
+
+    if dev_x > peak_dev_x[0]:
+        peak_dev_x[0] = dev_x
+    if dev_y > peak_dev_y[0]:
+        peak_dev_y[0] = dev_y
+
+
+cdef inline bint cancellation_suspected(
+    float64_t ssqdm_xy,
+    float64_t ssqdm_x,
+    float64_t ssqdm_y,
+    float64_t peak_dev_x,
+    float64_t peak_dev_y,
+) noexcept nogil:
+    """
+    Whether an accumulator has shrunk far enough to be mostly round-off.
+
+    The ssqdm_x/ssqdm_y tests are the sensitive ones: a sum of squares collapses
+    to ~``eps * peak_dev ** 2`` of garbage as soon as the value that dominated it
+    leaves the window, which is 1e3 times below the threshold here, whereas
+    ssqdm_xy can stay well above it while already carrying a relative error near
+    the tolerance. cov therefore accumulates ssqdm_x/ssqdm_y purely to feed this
+    test, even though calc_cov never reads them.
+
+    The non-abs comparisons for ssqdm_x/ssqdm_y also catch a negative result from
+    cancellation, which would otherwise reach the square root in calc_corr and
+    silently produce NaN.
+    """
+    if ssqdm_xy != ssqdm_xy or ssqdm_x != ssqdm_x or ssqdm_y != ssqdm_y:
+        # NaN, e.g. inf - inf; comparisons below would all be False and the
+        # accumulators could never recover on their own
+        return True
+
+    return (
+        peak_dev_x * peak_dev_y * InvCondTol > fabs(ssqdm_xy)
+        or peak_dev_x * peak_dev_x * InvCondTol > ssqdm_x
+        or peak_dev_y * peak_dev_y * InvCondTol > ssqdm_y
+    )
+
+
 cdef void add_cov(
     float64_t val_x,
     float64_t val_y,
     float64_t *nobs,
     float64_t *mean_x,
     float64_t *mean_y,
+    float64_t *origin_x,
+    float64_t *origin_y,
     float64_t *ssqdm_xy,
+    float64_t *ssqdm_x,
+    float64_t *ssqdm_y,
+    float64_t *peak_dev_x,
+    float64_t *peak_dev_y,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ add a value from the cov calc """
     cdef:
-        float64_t dx, dy, old_ssqdm_xy
+        float64_t dx, dy, shifted_x, shifted_y
 
     if val_x != val_x or val_y != val_y:
         return
 
     nobs[0] += 1
-    old_ssqdm_xy = ssqdm_xy[0]
+    if nobs[0] == 1:
+        # GH#65739 anchor the accumulators to the first value in the window, so
+        # that an offset shared by the whole series cancels exactly instead of
+        # costing precision in every deviation taken against a huge mean.
+        # Declining to anchor on a huge value keeps `val - origin` from
+        # overflowing to +/-inf, which would poison the accumulators with NaN.
+        origin_x[0] = val_x if fabs(val_x) < MaxOriginMagnitude else 0
+        origin_y[0] = val_y if fabs(val_y) < MaxOriginMagnitude else 0
 
-    dx = val_x - mean_x[0]
-    dy = val_y - mean_y[0]
+    shifted_x = val_x - origin_x[0]
+    shifted_y = val_y - origin_y[0]
+
+    dx = shifted_x - mean_x[0]
+    dy = shifted_y - mean_y[0]
     mean_x[0] += dx / nobs[0]
     mean_y[0] += dy / nobs[0]
-    ssqdm_xy[0] += (val_x - mean_x[0]) * dy
+    ssqdm_xy[0] += (shifted_x - mean_x[0]) * dy
+    ssqdm_x[0] += (shifted_x - mean_x[0]) * dx
+    ssqdm_y[0] += (shifted_y - mean_y[0]) * dy
 
-    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+    track_peak_dev(shifted_x, shifted_y, mean_x[0], mean_y[0],
+                   peak_dev_x, peak_dev_y)
+
+    if cancellation_suspected(ssqdm_xy[0], ssqdm_x[0], ssqdm_y[0],
+                              peak_dev_x[0], peak_dev_y[0]):
         # possible catastrophic cancellation
         numerically_unstable[0] = True
 
@@ -786,34 +874,62 @@ cdef void remove_cov(
     float64_t *nobs,
     float64_t *mean_x,
     float64_t *mean_y,
+    float64_t *origin_x,
+    float64_t *origin_y,
     float64_t *ssqdm_xy,
+    float64_t *ssqdm_x,
+    float64_t *ssqdm_y,
+    float64_t *peak_dev_x,
+    float64_t *peak_dev_y,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ remove a value from the cov calc """
     cdef:
-        float64_t dx, dy, old_ssqdm_xy
+        float64_t dx, dy, shifted_x, shifted_y
 
     if val_x != val_x or val_y != val_y:
         return
 
-    old_ssqdm_xy = ssqdm_xy[0]
-    dx = val_x - mean_x[0]
-    dy = val_y - mean_y[0]
+    shifted_x = val_x - origin_x[0]
+    shifted_y = val_y - origin_y[0]
+
+    dx = shifted_x - mean_x[0]
+    dy = shifted_y - mean_y[0]
 
     nobs[0] -= 1
-    mean_x[0] -= dx / nobs[0]
-    mean_y[0] -= dy / nobs[0]
-    ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
+    if nobs[0]:
+        mean_x[0] -= dx / nobs[0]
+        mean_y[0] -= dy / nobs[0]
+        ssqdm_xy[0] -= (shifted_x - mean_x[0]) * dy
+        ssqdm_x[0] -= (shifted_x - mean_x[0]) * dx
+        ssqdm_y[0] -= (shifted_y - mean_y[0]) * dy
 
-    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
-        # possible catastrophic cancellation
-        numerically_unstable[0] = True
+        track_peak_dev(shifted_x, shifted_y, mean_x[0], mean_y[0],
+                       peak_dev_x, peak_dev_y)
+
+        if cancellation_suspected(ssqdm_xy[0], ssqdm_x[0], ssqdm_y[0],
+                                  peak_dev_x[0], peak_dev_y[0]):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+    else:
+        # GH#65739 avoid 0/0 -> NaN poisoning subsequent windows
+        mean_x[0] = 0
+        mean_y[0] = 0
+        origin_x[0] = 0
+        origin_y[0] = 0
+        ssqdm_xy[0] = 0
+        ssqdm_x[0] = 0
+        ssqdm_y[0] = 0
+        peak_dev_x[0] = 0
+        peak_dev_y[0] = 0
+        numerically_unstable[0] = False
 
 
 def roll_cov(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp, int ddof=1) -> np.ndarray:
     cdef:
-        float64_t mean_x, mean_y, ssqdm_xy, nobs
+        float64_t mean_x, mean_y, ssqdm_xy, ssqdm_x, ssqdm_y, nobs
+        float64_t origin_x, origin_y, peak_dev_x, peak_dev_y
         int64_t s, e
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
@@ -841,26 +957,31 @@ def roll_cov(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,
             if not requires_recompute:
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
-                               &numerically_unstable)
+                    remove_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &origin_x,
+                               &origin_y, &ssqdm_xy, &ssqdm_x, &ssqdm_y,
+                               &peak_dev_x, &peak_dev_y, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
-                            &numerically_unstable)
+                    add_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &origin_x,
+                            &origin_y, &ssqdm_xy, &ssqdm_x, &ssqdm_y,
+                            &peak_dev_x, &peak_dev_y, &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
-                mean_x = mean_y = ssqdm_xy = nobs = 0
+                mean_x = mean_y = ssqdm_xy = ssqdm_x = ssqdm_y = nobs = 0
+                origin_x = origin_y = peak_dev_x = peak_dev_y = 0
                 for j in range(s, e):
-                    add_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
-                            &numerically_unstable)
+                    add_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &origin_x,
+                            &origin_y, &ssqdm_xy, &ssqdm_x, &ssqdm_y,
+                            &peak_dev_x, &peak_dev_y, &numerically_unstable)
                 numerically_unstable = False
 
             output[i] = NaN if nobs < minp else calc_cov(nobs, ddof, ssqdm_xy)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
-                mean_x = mean_y = ssqdm_xy = 0.0
+                mean_x = mean_y = ssqdm_xy = ssqdm_x = ssqdm_y = 0.0
+                origin_x = origin_y = peak_dev_x = peak_dev_y = 0.0
 
     return output
 
@@ -895,30 +1016,48 @@ cdef void add_corr(
     float64_t *nobs,
     float64_t *mean_x,
     float64_t *mean_y,
+    float64_t *origin_x,
+    float64_t *origin_y,
     float64_t *ssqdm_xy,
     float64_t *ssqdm_x,
     float64_t *ssqdm_y,
+    float64_t *peak_dev_x,
+    float64_t *peak_dev_y,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ add a value from the corr calc """
     cdef:
-        float64_t dx, dy, old_ssqdm_xy
+        float64_t dx, dy, shifted_x, shifted_y
 
     if val_x != val_x or val_y != val_y:
         return
 
     nobs[0] += 1
-    old_ssqdm_xy = ssqdm_xy[0]
+    if nobs[0] == 1:
+        # GH#65739 anchor the accumulators to the first value in the window, so
+        # that an offset shared by the whole series cancels exactly instead of
+        # costing precision in every deviation taken against a huge mean.
+        # Declining to anchor on a huge value keeps `val - origin` from
+        # overflowing to +/-inf, which would poison the accumulators with NaN.
+        origin_x[0] = val_x if fabs(val_x) < MaxOriginMagnitude else 0
+        origin_y[0] = val_y if fabs(val_y) < MaxOriginMagnitude else 0
 
-    dx = val_x - mean_x[0]
-    dy = val_y - mean_y[0]
+    shifted_x = val_x - origin_x[0]
+    shifted_y = val_y - origin_y[0]
+
+    dx = shifted_x - mean_x[0]
+    dy = shifted_y - mean_y[0]
     mean_x[0] += dx / nobs[0]
     mean_y[0] += dy / nobs[0]
-    ssqdm_xy[0] += (val_x - mean_x[0]) * dy
-    ssqdm_x[0] += (val_x - mean_x[0]) * dx
-    ssqdm_y[0] += (val_y - mean_y[0]) * dy
+    ssqdm_xy[0] += (shifted_x - mean_x[0]) * dy
+    ssqdm_x[0] += (shifted_x - mean_x[0]) * dx
+    ssqdm_y[0] += (shifted_y - mean_y[0]) * dy
 
-    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+    track_peak_dev(shifted_x, shifted_y, mean_x[0], mean_y[0],
+                   peak_dev_x, peak_dev_y)
+
+    if cancellation_suspected(ssqdm_xy[0], ssqdm_x[0], ssqdm_y[0],
+                              peak_dev_x[0], peak_dev_y[0]):
         # possible catastrophic cancellation
         numerically_unstable[0] = True
 
@@ -929,38 +1068,62 @@ cdef void remove_corr(
     float64_t *nobs,
     float64_t *mean_x,
     float64_t *mean_y,
+    float64_t *origin_x,
+    float64_t *origin_y,
     float64_t *ssqdm_xy,
     float64_t *ssqdm_x,
     float64_t *ssqdm_y,
+    float64_t *peak_dev_x,
+    float64_t *peak_dev_y,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ remove a value from the corr calc """
     cdef:
-        float64_t dx, dy, old_ssqdm_xy
+        float64_t dx, dy, shifted_x, shifted_y
 
     if val_x != val_x or val_y != val_y:
         return
 
-    old_ssqdm_xy = ssqdm_xy[0]
-    dx = val_x - mean_x[0]
-    dy = val_y - mean_y[0]
+    shifted_x = val_x - origin_x[0]
+    shifted_y = val_y - origin_y[0]
+
+    dx = shifted_x - mean_x[0]
+    dy = shifted_y - mean_y[0]
 
     nobs[0] -= 1
-    mean_x[0] -= dx / nobs[0]
-    mean_y[0] -= dy / nobs[0]
-    ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
-    ssqdm_x[0] -= (val_x - mean_x[0]) * dx
-    ssqdm_y[0] -= (val_y - mean_y[0]) * dy
+    if nobs[0]:
+        mean_x[0] -= dx / nobs[0]
+        mean_y[0] -= dy / nobs[0]
+        ssqdm_xy[0] -= (shifted_x - mean_x[0]) * dy
+        ssqdm_x[0] -= (shifted_x - mean_x[0]) * dx
+        ssqdm_y[0] -= (shifted_y - mean_y[0]) * dy
 
-    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
-        # possible catastrophic cancellation
-        numerically_unstable[0] = True
+        track_peak_dev(shifted_x, shifted_y, mean_x[0], mean_y[0],
+                       peak_dev_x, peak_dev_y)
+
+        if cancellation_suspected(ssqdm_xy[0], ssqdm_x[0], ssqdm_y[0],
+                                  peak_dev_x[0], peak_dev_y[0]):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+    else:
+        # GH#65739 avoid 0/0 -> NaN poisoning subsequent windows
+        mean_x[0] = 0
+        mean_y[0] = 0
+        origin_x[0] = 0
+        origin_y[0] = 0
+        ssqdm_xy[0] = 0
+        ssqdm_x[0] = 0
+        ssqdm_y[0] = 0
+        peak_dev_x[0] = 0
+        peak_dev_y[0] = 0
+        numerically_unstable[0] = False
 
 
 def roll_corr(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         float64_t mean_x, mean_y, ssqdm_xy, ssqdm_x, ssqdm_y, nobs
+        float64_t origin_x, origin_y, peak_dev_x, peak_dev_y
         int64_t s, e
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
@@ -988,19 +1151,23 @@ def roll_corr(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start
             if not requires_recompute:
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
-                                &ssqdm_x, &ssqdm_y, &numerically_unstable)
+                    remove_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &origin_x,
+                                &origin_y, &ssqdm_xy, &ssqdm_x, &ssqdm_y,
+                                &peak_dev_x, &peak_dev_y, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
-                             &ssqdm_x, &ssqdm_y, &numerically_unstable)
+                    add_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &origin_x,
+                             &origin_y, &ssqdm_xy, &ssqdm_x, &ssqdm_y,
+                             &peak_dev_x, &peak_dev_y, &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
                 mean_x = mean_y = ssqdm_xy = ssqdm_x = ssqdm_y = nobs = 0
+                origin_x = origin_y = peak_dev_x = peak_dev_y = 0
                 for j in range(s, e):
-                    add_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
-                             &ssqdm_x, &ssqdm_y, &numerically_unstable)
+                    add_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &origin_x,
+                             &origin_y, &ssqdm_xy, &ssqdm_x, &ssqdm_y,
+                             &peak_dev_x, &peak_dev_y, &numerically_unstable)
                 numerically_unstable = False
 
             output[i] = (
@@ -1011,6 +1178,7 @@ def roll_corr(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
                 mean_x = mean_y = ssqdm_xy = ssqdm_x = ssqdm_y = 0.0
+                origin_x = origin_y = peak_dev_x = peak_dev_y = 0.0
 
     return output
 
@@ -1026,7 +1194,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
         int64_t nobs = 0, N = len(start), s, e, win
-        float64_t val, res
+        float64_t val, res, vlow, vhigh
         skiplist_t *sl
         ndarray[float64_t] output
 
@@ -1055,8 +1223,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
                 if i != 0:
-                    skiplist_destroy(sl)
-                    sl = skiplist_init(<int>win)
+                    skiplist_reset(sl)
                     nobs = 0
                 # setup
                 for j in range(s, e):
@@ -1089,8 +1256,8 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                 if nobs % 2:
                     res = skiplist_get(sl, midpoint, &ret)
                 else:
-                    res = (skiplist_get(sl, midpoint, &ret) +
-                           skiplist_get(sl, (midpoint - 1), &ret)) / 2
+                    ret = skiplist_get_pair(sl, midpoint - 1, &vlow, &vhigh)
+                    res = (vlow + vhigh) / 2
                 if ret == 0:
                     res = NaN
             else:
@@ -1100,8 +1267,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
-                skiplist_destroy(sl)
-                sl = skiplist_init(<int>win)
+                skiplist_reset(sl)
 
     skiplist_destroy(sl)
     if err:
@@ -1436,8 +1602,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
                 if i != 0:
                     nobs = 0
-                    skiplist_destroy(skiplist)
-                    skiplist = skiplist_init(<int>win)
+                    skiplist_reset(skiplist)
 
                 # setup
                 for j in range(s, e):
@@ -1474,8 +1639,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                         continue
 
                     if interpolation_type == LINEAR:
-                        vlow = skiplist_get(skiplist, idx, &ret)
-                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        ret = skiplist_get_pair(skiplist, idx, &vlow, &vhigh)
                         output[i] = (vlow + (vhigh - vlow) *
                                      (idx_with_fraction - idx))
                     elif interpolation_type == LOWER:
@@ -1495,8 +1659,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                         else:
                             output[i] = skiplist_get(skiplist, idx + 1, &ret)
                     elif interpolation_type == MIDPOINT:
-                        vlow = skiplist_get(skiplist, idx, &ret)
-                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        ret = skiplist_get_pair(skiplist, idx, &vlow, &vhigh)
                         output[i] = <float64_t>(vlow + vhigh) / 2
 
                     if ret == 0:
@@ -1561,8 +1724,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
                 if i != 0:
                     nobs = 0
-                    skiplist_destroy(skiplist)
-                    skiplist = skiplist_init(<int>win)
+                    skiplist_reset(skiplist)
 
                 # setup
                 for j in range(s, e):

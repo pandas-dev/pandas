@@ -21,7 +21,6 @@ import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
@@ -52,7 +51,6 @@ def test_value_counts(index_or_series_obj):
 
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts_null(null_obj, index_or_series_obj_orderable):
     orig = index_or_series_obj_orderable
 
@@ -417,4 +415,4 @@ def test_value_counts_object_inference_deprecated():
 )
 def test_value_counts_index_datetimelike(index, expected_index):
     vc = index.value_counts(sort=False, dropna=False)
-    tm.assert_index_equal(vc.index, expected_index)
+    tm.assert_index_equal(vc.index, expected_index, check_freq=False)

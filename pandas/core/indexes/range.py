@@ -66,10 +66,13 @@ if TYPE_CHECKING:
         JoinHow,
         NaPosition,
         NumpySorter,
+        NumpyValueArrayLike,
+        ScalarLike_co,
         npt,
     )
 
     from pandas import Series
+    from pandas.core.arrays import ExtensionArray
 
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
@@ -417,8 +420,12 @@ class RangeIndex(Index):
         Return the number of bytes in the underlying data.
         """
         rng = self._range
-        return getsizeof(rng) + sum(
-            getsizeof(getattr(rng, attr_name))
+        # passing a default to getsizeof avoids a TypeError on PyPy, where
+        # sys.getsizeof always raises TypeError unless a default is provided
+        # (GH#46176)
+        objsize = 24
+        return getsizeof(rng, objsize) + sum(
+            getsizeof(getattr(rng, attr_name), objsize)
             for attr_name in ["start", "stop", "step"]
         )
 
@@ -555,6 +562,22 @@ class RangeIndex(Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
+        if target_array.dtype.kind in "iu":
+            # GH#64148: ``target_array - start`` overflows int64 for extreme
+            # targets and for ranges spanning more than INT64_MAX. Establish
+            # membership with exact comparisons first; an in-window offset then
+            # fits in uint64, so the modular arithmetic below is exact.
+            valid = (target_array >= start) & (target_array < stop)
+            start_uint = np.uint64(start % 2**64)
+            step_uint = np.uint64(step)
+            locs_uint = target_array.astype(np.uint64, copy=False) - start_uint
+            valid &= locs_uint % step_uint == 0
+            locs = np.where(valid, (locs_uint // step_uint).astype(np.int64), -1)
+            if step != self.step:
+                # We reversed this range: transform to original locs
+                locs = np.where(valid, len(self) - 1 - locs, -1)
+            return ensure_platform_int(locs)
+
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
         locs[~valid] = -1
@@ -1620,25 +1643,25 @@ class RangeIndex(Index):
             data = data / len(self)
         return Series(data, index=self.copy(), name=name)
 
-    @overload  # type: ignore[override]
-    def searchsorted(  # pyright: ignore[reportOverlappingOverload]
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]  # pyright: ignore[reportOverlappingOverload]
         self,
-        value: int | np.integer,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
-        sorter: NumpySorter | None = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp: ...
 
     @overload
     def searchsorted(
         self,
-        value: npt.ArrayLike,
+        value: npt.ArrayLike | ExtensionArray,
         side: Literal["left", "right"] = ...,
-        sorter: NumpySorter | None = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]: ...
 
     def searchsorted(
         self,
-        value: int | np.integer | npt.ArrayLike,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:

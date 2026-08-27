@@ -231,6 +231,7 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
     # Offset .base properties
+    r"pandas\.tseries\.offsets\.BaseOffset\.base$",
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
     r"pandas\.tseries\.offsets\.BusinessDay\.base$",
     r"pandas\.tseries\.offsets\.BusinessHour\.base$",
@@ -608,6 +609,10 @@ html_favicon = "../../web/pandas/static/img/favicon.ico"
 
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
+
+# Our html theme does not have "show source" button in the sidebar, so also
+# don't copy source files to the html output to save space.
+html_copy_source = False
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

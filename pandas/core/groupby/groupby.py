@@ -29,7 +29,6 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
-    Union,
     cast,
     final,
     overload,
@@ -165,18 +164,24 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self):
+        def f(self, key):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+
+        return self._groupby._python_apply_plot(f)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
-            def f(self):
-                return getattr(self.plot, name)(*args, **kwargs)
+            def f(self, key):
+                local_kwargs = kwargs.copy()
 
-            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+                if name == "scatter" and kwargs.get("legend"):
+                    local_kwargs.setdefault("label", key)
+
+                return getattr(self.plot, name)(*args, **local_kwargs)
+
+            return self._groupby._python_apply_plot(f)
 
         return attr
 
@@ -870,7 +875,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
 
-        def curried(x):
+        def curried(x, key=None):
             return f(x, *args, **kwargs)
 
         # preserve the name so we can detect it when calling plot methods,
@@ -880,7 +885,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self._python_apply_general(curried, self._selected_obj)
+            return self._python_apply_plot(curried)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -999,9 +1004,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         n_groupings = len(self._grouper.groupings)
 
+        def full_key(name: Hashable) -> Hashable:
+            # GH#17024 expanding MultiIndex columns with a partial key is
+            #  deprecated; pad the key to full length ourselves
+            if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
+                return (name,) + ("",) * (result.columns.nlevels - 1)
+            return name
+
         if qs is not None:
             result.insert(
-                0, f"level_{n_groupings}", np.tile(qs, len(result) // len(qs))
+                0, full_key(f"level_{n_groupings}"), np.tile(qs, len(result) // len(qs))
             )
 
         # zip in reverse so we can always insert at loc 0
@@ -1025,9 +1037,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if name not in result.columns:
                 # if in_axis:
                 if qs is None:
-                    result.insert(0, name, lev)
+                    result.insert(0, full_key(name), lev)
                 else:
-                    result.insert(0, name, Index(np.repeat(lev, len(qs)), copy=False))
+                    result.insert(
+                        0, full_key(name), Index(np.repeat(lev, len(qs)), copy=False)
+                    )
 
         return result
 
@@ -1299,6 +1313,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
+        Each group passed to ``func`` has a ``name`` attribute set to the group
+        key (the value of the grouping for that group). This is useful for
+        identifying the current group, for example when grouping by an external
+        grouper rather than by a column of the object.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
@@ -1440,6 +1459,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             not_indexed_same,
             is_transform,
         )
+
+    @final
+    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+        """
+        Apply a plotting function f group-wise.
+
+        Each Series group gets its group key as the name, which plotting
+        methods use for legend labels. Unlike the general apply path, this
+        labels the group explicitly rather than relying on the name attribute
+        being pinned to the group key as a side effect (GH#41090).
+        """
+        data = self._selected_obj
+        values = []
+        for key, group in self._grouper.get_iterator(data):
+            if group.ndim == 1:
+                group.name = key
+            values.append(f(group, key))
+        # plotting functions return matplotlib objects, never something
+        #  indexed like the group, so this is always not_indexed_same
+        return self._wrap_applied_output(data, values, not_indexed_same=True)
 
     @final
     def _agg_general(
@@ -2697,7 +2736,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self._grouper.size()
-        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        dtype_backend: Literal["pyarrow", "numpy_nullable"] | None = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
                 if isinstance(self.obj.array, ArrowStringArray):
@@ -2718,13 +2757,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if dtype_backend is not None:
-            result = result.convert_dtypes(
-                infer_objects=False,
-                convert_string=False,
-                convert_boolean=False,
-                convert_floating=False,
-                dtype_backend=dtype_backend,
-            )
+            result = result.convert_dtypes(dtype_backend=dtype_backend)
 
         if not self.as_index:
             result = result.rename("size").reset_index()
@@ -2837,6 +2870,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def sum_compat(obj: NDFrameT):
+                # GH#18588: see min_compat below
+                return obj.sum(skipna=skipna)
+
             # If we are grouping on categoricals we want unobserved categories to
             # return zero, rather than the default of NaN which the reindexing in
             # _agg_general() returns. GH #31422
@@ -2845,7 +2883,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     numeric_only=numeric_only,
                     min_count=min_count,
                     alias="sum",
-                    npfunc=np.sum,
+                    npfunc=sum_compat,
                     skipna=skipna,
                 )
 
@@ -2926,12 +2964,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+
+        def prod_compat(obj: NDFrameT):
+            # GH#18588: see min_compat below
+            return obj.prod(skipna=skipna)
+
         return self._agg_general(
             numeric_only=numeric_only,
             min_count=min_count,
             skipna=skipna,
             alias="prod",
-            npfunc=np.prod,
+            npfunc=prod_compat,
         )
 
     @final
@@ -3043,12 +3086,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def min_compat(obj: NDFrameT):
+                # GH#18588: object/string dtypes have no cython group_min_max
+                # and reduce through this alt instead, so it has to apply
+                # skipna itself; np.min would always skip.
+                return obj.min(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="min",
-                npfunc=np.min,
+                npfunc=min_compat,
             )
 
     @final
@@ -3160,12 +3210,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def max_compat(obj: NDFrameT):
+                # GH#18588: see min_compat above
+                return obj.max(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="max",
-                npfunc=np.max,
+                npfunc=max_compat,
             )
 
     @final
@@ -3663,6 +3718,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
             the time-period. This is only valid for datetimelike indexes.
+            The offset must correspond to a fixed frequency (for example, ``'2D'``
+            or ``'1h'``); non-fixed frequencies such as ``'B'`` (business day) or
+            ``'ME'`` (month end) are not supported and raise ``ValueError``.
             To learn more about the offsets & frequency strings, please see
             :ref:`this link<timeseries.offset_aliases>`.
 
@@ -4435,7 +4493,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-            pass_qs: None | np.ndarray = None
+            pass_qs: np.ndarray | None = None
         else:
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
@@ -5256,7 +5314,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )
-            shifted_dataframes.append(cast("Union[Series, DataFrame]", shifted))
+            shifted_dataframes.append(cast("Series | DataFrame", shifted))
 
         return (
             shifted_dataframes[0]
@@ -5448,11 +5506,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        if fill_method is None:  # GH30463
-            op = "ffill"
-        else:
-            op = fill_method
-        filled = getattr(self, op)(limit=0)
+        # fill_method is None (validated above); GH30463
+        filled = self.ffill(limit=0)
         fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
@@ -5804,14 +5859,6 @@ def get_groupby(
     Parameters
     ----------
     obj : pandas object
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : str
-        Most users should ignore this
 
     Returns
     -------

@@ -588,6 +588,12 @@ def register_option(
     if not isinstance(cursor, dict):
         raise OptionError(msg.format(option=".".join(path[:-1])))
 
+    # a namespace already lives here, i.e. `key` is a path prefix to one or
+    # more already-registered options; registering it would clobber them
+    # (GH#29242)
+    if isinstance(cursor.get(path[-1]), dict):
+        raise OptionError(f"Option '{key}' is a prefix of an already-registered option")
+
     cursor[path[-1]] = defval  # initialize
 
     # save the option metadata

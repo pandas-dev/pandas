@@ -56,7 +56,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
-    get_compressed_ids,
     get_group_index,
     get_group_index_sorter,
 )
@@ -181,81 +180,90 @@ class _Unstacker:
         self._make_selectors()
 
     @cache_readonly
-    def _indexer_and_to_sort(
-        self,
-    ) -> tuple[
-        npt.NDArray[np.intp],
-        list[np.ndarray],  # each has _some_ signed integer dtype
-    ]:
-        v = self.level
+    def _comp_index_and_ngroups(self) -> tuple[npt.NDArray[np.intp], int]:
+        """
+        For each entry of self.index, the row of the result it belongs to.
 
-        codes = list(self.index.codes)
-        if not self.sort:
-            # Create new codes considering that labels are already sorted
-            codes = [factorize(code)[0] for code in codes]
-        levs = list(self.index.levels)
-        to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
-        sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
+        With sort=True the rows are numbered lexicographically; with sort=False
+        they are numbered by first appearance. Either way the number is the
+        position the row occupies in the result, which the rest of the class
+        relies on: the values land in row `comp_index` (see _make_selectors) and
+        `compressor` reads the labels back out in that same order.
+        """
+        level_num = self.level
+        levs = self.index.levels
+        codes = self.index.codes
+        remaining_labels = list(codes[:level_num] + codes[level_num + 1 :])
+        remaining_levels = levs[:level_num] + levs[level_num + 1 :]
+        sizes = tuple(len(lev) for lev in remaining_levels)
 
-        comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
-        ngroups = len(obs_ids)
-
-        indexer = get_group_index_sorter(comp_index, ngroups)
-        return indexer, to_sort
+        ids = get_group_index(remaining_labels, sizes, sort=True, xnull=False)
+        comp_index, obs_ids = compress_group_index(ids, sort=self.sort)
+        return ensure_platform_int(comp_index), len(obs_ids)
 
     @cache_readonly
-    def sorted_labels(self) -> list[np.ndarray]:
-        indexer, to_sort = self._indexer_and_to_sort
+    def _unstacked_level_codes(self) -> np.ndarray:
+        """
+        For each entry of self.index, the column of the result it belongs to.
+
+        Note this is not a position within self.removed_level: with sort=False
+        NaN gets a column of its own but is absent from removed_level.
+        """
+        level_codes = self.index.codes[self.level]
         if self.sort:
-            return [line.take(indexer) for line in to_sort]
-        return to_sort
+            # -1 for NaN; self.lift shifts those into position 0.
+            return level_codes
+        # removed_level is in order of first appearance, and so is this, with
+        #  NaN numbered wherever it first appeared (see unique_nan_index).
+        return factorize(level_codes)[0]
+
+    @cache_readonly
+    def _indexer(self) -> npt.NDArray[np.intp]:
+        # libreshape.unstack walks the values in the order they occupy in the
+        #  result, so sort the rows by (result row, result column).
+        comp_index, ngroups = self._comp_index_and_ngroups
+        stride = self.index.levshape[self.level] + self.has_nan
+        keys = [comp_index, self._unstacked_level_codes]
+
+        # xnull=False shifts a -1 code to 0, which is where _make_selectors puts
+        #  it too via self.lift, so the two orderings stay in step.
+        ids = get_group_index(keys, (ngroups, stride), sort=True, xnull=False)
+        comp_ids, obs_ids = compress_group_index(ids, sort=True)
+        return get_group_index_sorter(ensure_platform_int(comp_ids), len(obs_ids))
 
     @cache_readonly
     def _indexer_is_identity(self) -> bool:
-        # Fast check for the common case: sorted MI unstacking the last level
-        if (
-            self.sort
-            and self.level == self.index.nlevels - 1
-            and self.index.is_monotonic_increasing
-        ):
-            return True
-        indexer, _ = self._indexer_and_to_sort
-        return lib.is_range_indexer(indexer, len(self.index))
+        # Note: index.is_monotonic_increasing would be wrong here: it reflects
+        #  tuple values, which can be monotonic while the codes are not (GH#65107).
+        return lib.is_range_indexer(self._indexer, len(self.index))
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         if self._indexer_is_identity:
             return values
-        indexer, _ = self._indexer_and_to_sort
-        sorted_values = algos.take_nd(values, indexer, axis=0, allow_fill=False)
+        sorted_values = algos.take_nd(values, self._indexer, axis=0, allow_fill=False)
         return sorted_values
 
     def _make_selectors(self) -> None:
-        new_levels = self.new_index_levels
+        comp_index, ngroups = self._comp_index_and_ngroups
 
-        # make the mask
-        remaining_labels = self.sorted_labels[:-1]
-        level_sizes = tuple(len(x) for x in new_levels)
-
-        comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
-        ngroups = len(obs_ids)
-
-        comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.has_nan
         self.full_shape = ngroups, stride
 
-        selector = self.sorted_labels[-1] + stride * comp_index + self.lift
+        # make the mask
+        selector = self._unstacked_level_codes + stride * comp_index + self.lift
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
             raise ValueError("Index contains duplicate entries, cannot reshape")
 
-        self.group_index = comp_index
         self.mask = mask
-        if self.sort:
-            self.compressor = comp_index.searchsorted(np.arange(ngroups))
-        else:
-            self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
+        # For each row of the result, the position of an entry of self.index
+        #  belonging to it. All such entries agree on the remaining levels, so
+        #  which one we keep does not matter.
+        compressor = np.empty(ngroups, dtype=np.intp)
+        compressor[comp_index] = np.arange(len(comp_index))
+        self.compressor = compressor
 
     @cache_readonly
     def mask_all(self) -> bool:
@@ -310,9 +318,9 @@ class _Unstacker:
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
             # sorted_values matches values when _indexer_is_identity,
-            #  i.e. when the MI is already sorted and we're unstacking
-            #  the last level.  _make_sorted_values short-circuits that
-            #  case and returns values directly.
+            #  i.e. when the codes-based sort indexer is a no-op.
+            #  _make_sorted_values short-circuits that case and returns
+            #  values directly.
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)
@@ -448,18 +456,15 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
-        if self.sort:
-            labels = self.sorted_labels[:-1]
-        else:
-            v = self.level
-            codes = list(self.index.codes)
-            labels = codes[:v] + codes[v + 1 :]
+        level_num = self.level
+        codes = self.index.codes
+        labels = codes[:level_num] + codes[level_num + 1 :]
         result_codes = [lab.take(self.compressor) for lab in labels]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
             level, level_codes = self.new_index_levels[0], result_codes[0]
-            if (level_codes == -1).any():
+            if lib.has_sentinel(level_codes, -1):
                 level = level.insert(len(level), level._na_value)
             return level.take(level_codes).rename(self.new_index_names[0])
 
@@ -987,6 +992,10 @@ def _reorder_for_extension_array_stack(
 def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if frame.columns.nunique() != len(frame.columns):
         raise ValueError("Columns with duplicate values are not supported in stack")
+    if len(set(level)) != len(level):
+        raise ValueError(
+            f"level should not contain duplicate values, got level numbers {level}"
+        )
     if not len(level):
         return frame
     set_levels = set(level)

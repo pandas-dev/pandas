@@ -17,10 +17,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -440,17 +436,23 @@ def test_na_values_na_filter_override(
     request, all_parsers, na_filter, row_data, using_infer_string
 ):
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        # mismatched dtypes in both cases, FutureWarning in the True case
-        if not (using_infer_string and na_filter):
-            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
-            request.applymarker(mark)
     data = """\
 A,B
 1,A
 nan,B
 3,C
 """
+    if parser.engine == "pyarrow":
+        if na_filter is False:
+            msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
+            return
+        if not using_infer_string:
+            # mismatched dtypes, FutureWarning
+            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+            request.applymarker(mark)
+
     result = parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
 
     expected = DataFrame(row_data, columns=["A", "B"])
@@ -636,7 +638,7 @@ def test_empty_na_values_no_default_with_index(all_parsers):
 @pytest.mark.parametrize(
     "na_filter,index_data", [(False, ["", "5"]), (True, [np.nan, 5.0])]
 )
-def test_no_na_filter_on_index(all_parsers, na_filter, index_data, request):
+def test_no_na_filter_on_index(all_parsers, na_filter, index_data):
     # see gh-5239
     #
     # Don't parse NA-values in index unless na_filter=True
@@ -644,8 +646,10 @@ def test_no_na_filter_on_index(all_parsers, na_filter, index_data, request):
     data = "a,b,c\n1,,3\n4,5,6"
 
     if parser.engine == "pyarrow" and na_filter is False:
-        mark = pytest.mark.xfail(reason="mismatched index result")
-        request.applymarker(mark)
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), index_col=[1], na_filter=na_filter)
+        return
 
     expected = DataFrame({"a": [1, 4], "c": [3, 6]}, index=Index(index_data, name="b"))
     result = parser.read_csv(StringIO(data), index_col=[1], na_filter=na_filter)
@@ -671,11 +675,17 @@ def test_na_values_with_dtype_str_and_na_filter(
 ):
     # see gh-20377
     parser = all_parsers
-    if parser.engine == "pyarrow" and (na_filter is False or not using_infer_string):
-        mark = pytest.mark.xfail(reason="mismatched shape")
-        request.applymarker(mark)
-
     data = "a,b,c\n1,,3\n4,5,6"
+
+    if parser.engine == "pyarrow":
+        if na_filter is False:
+            msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), na_filter=na_filter, dtype=str)
+            return
+        if not using_infer_string:
+            mark = pytest.mark.xfail(reason="mismatched shape")
+            request.applymarker(mark)
 
     # na_filter=True --> missing value becomes NaN.
     # na_filter=False --> missing value remains empty string.
@@ -826,7 +836,6 @@ False
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize(
     "na_values",
     [[-99.0, -99], [-99, -99.0]],
@@ -839,6 +848,61 @@ def test_na_values_dict_without_dtype(all_parsers, na_values):
 -99.0
 -99.0"""
 
+    if parser.engine == "pyarrow":
+        msg = "The 'pyarrow' engine requires all na_values to be strings"
+        with pytest.raises(TypeError, match=msg):
+            parser.read_csv(StringIO(data), na_values=na_values)
+        return
+
     result = parser.read_csv(StringIO(data), na_values=na_values)
     expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_int64_min_with_na_upcasts(all_parsers):
+    # GH#66855 a column mixing int64 min with a genuine NA upcasts to float,
+    # and only the NA row becomes NaN
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("A\n-9223372036854775808\n\n1\n"), skip_blank_lines=False
+    )
+    expected = DataFrame({"A": [float(-(2**63)), np.nan, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_filter", [True, False])
+def test_int64_min_not_read_as_na_nullable(all_parsers, na_filter):
+    # GH#66855
+    parser = all_parsers
+    if parser.engine == "pyarrow" and not na_filter:
+        pytest.skip("pyarrow engine does not support na_filter=False")
+    result = parser.read_csv(
+        StringIO("A\n-9223372036854775808\n1\n"),
+        na_filter=na_filter,
+        dtype_backend="numpy_nullable",
+    )
+    expected = DataFrame({"A": [-9223372036854775808, 1]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # the pyarrow engine reads uint64 max as a float
+def test_uint64_max_not_read_as_na_nullable(all_parsers):
+    # GH#66855 the uint64 NA sentinel is uint64 max
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("A\n18446744073709551615\n1\n"), dtype_backend="numpy_nullable"
+    )
+    expected = DataFrame({"A": [18446744073709551615, 1]}, dtype="UInt64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_int64_min_with_na_explicit_nullable_dtype(all_parsers):
+    # GH#66855 an explicitly requested nullable dtype parses through
+    # _parse_numeric_natural, which used to rescan the tokens to rebuild the NA
+    # mask; the mask now comes from the parse itself
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("A\n-9223372036854775808\nNA\n1\n"), dtype="Int64"
+    )
+    expected = DataFrame({"A": [-9223372036854775808, None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)

@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+import pandas.core.arrays.string_ as string_module
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
 )
@@ -353,7 +354,6 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
@@ -379,7 +379,6 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_from_string(using_infer_string):
     # not roundtrip,  but starting with pyarrow table without pandas metadata
     pa = pytest.importorskip("pyarrow")
@@ -401,7 +400,6 @@ def test_arrow_from_string(using_infer_string):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
@@ -479,6 +477,19 @@ def test_memory_usage(dtype):
     series = pd.Series(["a", "b", "c"], dtype=dtype)
 
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+
+
+def test_memory_usage_pypy_compat(dtype, monkeypatch):
+    # GH#46176 deep introspection uses sys.getsizeof, which always raises
+    # TypeError on PyPy; deep=True should fall back to the shallow result
+    if dtype.storage == "pyarrow":
+        pytest.skip(f"not applicable for {dtype.storage}")
+
+    series = pd.Series(["a", "b", "c"], dtype=dtype)
+
+    monkeypatch.setattr(string_module, "PYPY", True)
+    result = series.memory_usage(index=False, deep=True)
+    assert result == series.memory_usage(index=False)
 
 
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])

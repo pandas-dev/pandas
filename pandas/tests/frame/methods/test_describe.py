@@ -53,6 +53,17 @@ class TestDataFrameDescribe:
         result = df.iloc[:0].describe()
         tm.assert_frame_equal(result, expected)
 
+    def test_describe_no_columns_raises(self):
+        # GH#58517 the guard against describing a column-less DataFrame was
+        #  uncovered; describing one is not supported, with or without rows
+        msg = "Cannot describe a DataFrame without columns"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame().describe()
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(index=range(3)).describe()
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": [1, 2]}).drop(columns="a").describe()
+
     def test_describe_bool_frame(self):
         # GH#13891
         df = DataFrame(
@@ -137,6 +148,20 @@ class TestDataFrameDescribe:
         # ensure NaN, not None
         assert np.isnan(result.iloc[2, 0])
         assert np.isnan(result.iloc[3, 0])
+
+    def test_describe_categorical_object_tie_is_deterministic(self):
+        # GH#32528 when every value is unique, "top" must be deterministic
+        # (first occurrence) rather than depend on hashtable iteration order
+        df = DataFrame(
+            {
+                "categorical": Categorical(["d", "e", "f"]),
+                "numeric": [1, 2, 3],
+                "object": ["a", "b", "c"],
+            }
+        )
+        result = df.describe(include="all")
+        assert result.loc["top", "categorical"] == "d"
+        assert result.loc["top", "object"] == "a"
 
     def test_describe_categorical_columns(self):
         # GH#11558

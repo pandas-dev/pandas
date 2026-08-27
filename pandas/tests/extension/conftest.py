@@ -212,3 +212,30 @@ def invalid_scalar(data):
     If the array can hold any item (i.e. object dtype), then use pytest.skip.
     """
     return object.__new__(object)
+
+
+@pytest.fixture(
+    params=[
+        # numeric reductions
+        "count",
+        "sum",
+        "max",
+        "min",
+        "mean",
+        "prod",
+        "std",
+        "var",
+        "median",
+        "kurt",
+        "skew",
+        "sem",
+        # boolean reductions
+        "all",
+        "any",
+    ]
+)
+def all_reductions(request):
+    """
+    Fixture for all (boolean + numeric) reduction names.
+    """
+    return request.param

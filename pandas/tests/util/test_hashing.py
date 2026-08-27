@@ -1,6 +1,12 @@
+import os
+import subprocess
+import sys
+import textwrap
+
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -55,8 +61,36 @@ def test_consistency():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
+@pytest.mark.single_cpu
+def test_interval_array_hash_stable_across_processes():
+    # GH#64605 IntervalArray hashing must not depend on the per-process-salted
+    # builtin hash() of the "closed" string, otherwise hashes differ across
+    # processes (e.g. breaking dask shuffles on interval data).
+    code = textwrap.dedent(
+        """\
+        import pandas as pd
+        from pandas.util import hash_array
+        for closed in ["left", "right", "both", "neither"]:
+            ia = pd.arrays.IntervalArray.from_breaks(range(6), closed=closed)
+            print(",".join(str(val) for val in hash_array(ia)))
+        """
+    )
+    out0 = subprocess.check_output(
+        [sys.executable, "-c", code],
+        env={**os.environ, "PYTHONHASHSEED": "0"},
+        encoding="utf-8",
+    )
+    out1 = subprocess.check_output(
+        [sys.executable, "-c", code],
+        env={**os.environ, "PYTHONHASHSEED": "1"},
+        encoding="utf-8",
+    )
+    assert out0 == out1
+
+
 def test_hash_array(series):
-    arr = series.values
+    arr = series._values
     tm.assert_numpy_array_equal(hash_array(arr), hash_array(arr))
 
 
@@ -487,3 +521,43 @@ class TestHashArrow:
         # Duplicate values across chunks should hash the same
         assert result.iloc[0] == result.iloc[2]
         assert len(result) == 4
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+def test_hash_nan_bit_patterns(dtype):
+    # GH#28363 all NaNs hash alike, whatever their sign/payload
+    nan = np.array([np.nan], dtype=dtype)
+    uint_dtype = f"u{nan.dtype.itemsize}"
+    other_payload = (nan.view(uint_dtype) + 1).view(dtype)
+    arr = np.concatenate([nan, -nan, other_payload, -other_payload])
+
+    result = hash_array(arr)
+    assert (result == result[0]).all()
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+def test_hash_negative_zero(dtype):
+    # GH#28363 -0.0 == 0.0, so the two hash alike
+    arr = np.array([0.0, -0.0], dtype=dtype)
+
+    result = hash_array(arr)
+    assert result[0] == result[1]
+
+
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+def test_hash_complex_nan_bit_patterns(dtype):
+    # GH#28363
+    nan = np.float64(np.nan)
+    arr = np.array([complex(nan, -0.0), complex(-nan, 0.0)], dtype=dtype)
+
+    result = hash_array(arr)
+    assert result[0] == result[1]
+
+
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+def test_hash_complex_negative_zero(dtype):
+    # GH#28363
+    arr = np.array([complex(0.0, 0.0), complex(-0.0, -0.0)], dtype=dtype)
+
+    result = hash_array(arr)
+    assert result[0] == result[1]

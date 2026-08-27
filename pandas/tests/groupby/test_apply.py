@@ -486,7 +486,7 @@ def test_apply_no_name_column_conflict():
 
     # it works! #2605
     grouped = df.groupby(["name", "name2"])
-    grouped.apply(lambda x: x.sort_values("value", inplace=True))
+    grouped.apply(lambda x: x.sort_values("value"))
 
 
 def test_apply_typecast_fail():
@@ -1541,6 +1541,21 @@ def test_groupby_apply_store_copy():
 
     tm.assert_frame_equal(store[0], expected_out_0)
     tm.assert_frame_equal(store[1], expected_out_1)
+
+
+def test_groupby_apply_return_object_holding_index():
+    # GH#41477 when the UDF returns an arbitrary object that holds a reference
+    #  to the group's Index, each result must keep its own group's Index
+    #  rather than all sharing a single one.
+    class Wrapper:
+        def __init__(self, value):
+            self.value = value
+
+    df = DataFrame({"key": ["a", "b"]}, index=["foo", "bar"])
+    result = df.groupby("key").apply(lambda group: Wrapper(group.index))
+
+    tm.assert_index_equal(result.loc["a"].value, Index(["foo"]))
+    tm.assert_index_equal(result.loc["b"].value, Index(["bar"]))
 
 
 @pytest.mark.parametrize("test_empty", [False, True])

@@ -153,7 +153,6 @@ class TestDataFrameCorr:
         rs = df.corr(meth)
         assert isna(rs.values).all()
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_int_and_boolean(self, meth):
         # when dtypes of pandas series are different
@@ -253,14 +252,15 @@ class TestDataFrameCorr:
                 df.corr(meth, numeric_only=numeric_only)
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
-    def test_rank_corr_with_duplicates(self, method):
+    @pytest.mark.parametrize("size", [20, 65, 129])
+    def test_rank_corr_with_duplicates(self, method, size):
         # GH#43401
         st = pytest.importorskip("scipy.stats")
         rng = np.random.default_rng(2)
 
         data = {
-            "A": rng.integers(0, 5, 20),
-            "B": rng.integers(0, 5, 20),
+            "A": rng.integers(0, 5, size),
+            "B": rng.integers(0, 5, size),
         }
         df = DataFrame(data)
         result = df.corr(method=method)

@@ -551,6 +551,18 @@ class TestDataFrameDrop:
         ).set_index(idx)
         tm.assert_frame_equal(result, expected)
 
+    def test_drop_index_arrow_binary_dtype_na(self):
+        # GH#63304
+        pytest.importorskip("pyarrow")
+
+        idx = Index([None, b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
+        df = DataFrame(index=idx)
+
+        result = df.drop(index=[pd.NA])
+        idx = Index([b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
+        expected = DataFrame(index=idx)
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_parse_strings_datetime_index(self):
         # GH #5355
         df = DataFrame(
@@ -561,7 +573,6 @@ class TestDataFrameDrop:
         expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_inplace_depr(self):
         # GH 63207
         df = DataFrame(
