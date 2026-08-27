@@ -613,7 +613,6 @@ def test_array_equivalent_nested(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
-@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested2(strict_nan):
     # more than one level of nesting

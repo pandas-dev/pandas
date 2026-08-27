@@ -20,7 +20,6 @@ from pandas.compat.numpy import (
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:.*'generic' unit:DeprecationWarning")
 def test_is_unitless():
     dtype = np.dtype("M8[ns]")
     assert not is_unitless(dtype)
