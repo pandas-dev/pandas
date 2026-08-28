@@ -6845,7 +6845,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        new_values = self._map_values(mapper, na_action=na_action)  # type: ignore[no-untyped-call]
+        new_values = self._map_values(mapper, na_action=na_action)
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
