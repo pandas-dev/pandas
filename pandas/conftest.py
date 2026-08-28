@@ -2065,6 +2065,7 @@ def mpl_cleanup():
     with mpl_cleanup_context():
         yield
 
+
 @contextlib.contextmanager
 def mpl_cleanup_context():
     """

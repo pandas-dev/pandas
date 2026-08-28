@@ -1,4 +1,3 @@
-import gc
 import operator
 
 import pytest
