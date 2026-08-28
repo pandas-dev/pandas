@@ -23,6 +23,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     NaT,
+    Series,
     Timestamp,
     date_range,
     offsets,
@@ -481,3 +482,65 @@ def test_against_scalar_parametric(freq, dt, n):
     result = list(d.is_year_start)
     expected = [x.is_year_start for x in d]
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.iinfo(np.int64).max,  # year 292277026596
+        2**32 * 86400 * 365,
+        -(2**31) * 86400 * 400,
+        np.iinfo(np.int64).min + 1,
+    ],
+)
+def test_day_of_week_year_beyond_int32(value):
+    # GH#66549 the year was passed to ccalendar.dayofweek as a C int, so
+    #  second-resolution dates beyond year 2**31 got a truncated year
+    dti = DatetimeIndex(np.array([value], dtype="M8[s]"))
+    # 1970-01-01 was a Thursday, i.e. day_of_week 3
+    expected = (value // 86400 + 3) % 7
+
+    assert dti.day_of_week[0] == expected
+    assert dti[0].day_of_week == expected
+    assert dti[0].weekday() == expected
+    assert Series(dti).dt.day_of_week[0] == expected
+    # scalar day_name goes through the same ccalendar helper
+    assert dti[0].day_name() == calendar.day_name[expected]
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.iinfo(np.int64).max, 292277026596),
+        (2**32 * 86400 * 365, 4292117654),
+        (np.iinfo(np.int64).min + 1, -292277022657),
+    ],
+)
+def test_year_beyond_int32_raises(value, expected):
+    # GH#66549 the vectorized year is int32, and used to come back truncated,
+    #  e.g. 219250468 for year 292277026596
+    dti = DatetimeIndex(np.array([value], dtype="M8[s]"))
+    assert dti[0].year == expected
+
+    msg = f"year {expected} is out of range for the int32 result"
+    with pytest.raises(ValueError, match=msg):
+        dti.year
+    with pytest.raises(ValueError, match=msg):
+        Series(dti).dt.year
+    with pytest.raises(ValueError, match=f"ISO year {expected}"):
+        dti.isocalendar()
+
+
+def test_day_of_year_and_is_leap_year_beyond_int32():
+    # GH#66549 ccalendar.get_day_of_year took the year as a C int, so both the
+    #  scalar and the array path read the leap status off a truncated year.
+    #  10143198492 is a leap year, its int32 truncation 1553263900 is not.
+    dti = DatetimeIndex(np.array(["10143198492-12-29"], dtype="M8[s]"))
+
+    assert dti[0].day_of_year == 364
+    assert dti.day_of_year[0] == 364
+    assert Series(dti).dt.day_of_year[0] == 364
+
+    assert dti[0].is_leap_year
+    assert dti.is_leap_year[0]
+    assert Series(dti).dt.is_leap_year[0]

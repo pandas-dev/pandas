@@ -638,7 +638,7 @@ def test_resample_reresample(unit):
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
     assert len(result) == 25
-    assert isinstance(result.index.freq, offsets.DateOffset)
+    assert isinstance(result.index.freq, offsets.BaseOffset)
     assert result.index.freq == offsets.Hour(8)
 
 
@@ -713,7 +713,7 @@ def test_resample_anchored_ticks(freq, unit):
     # than starting from the first timestamp which might start in the
     # middle of a desired interval
 
-    rng = date_range("1/1/2000 04:00:00", periods=86400, freq="s").as_unit(unit)
+    rng = date_range("1/1/2000 04:00:00", periods=8640, freq="10s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     ts[:2] = np.nan  # so results are the same
     result = ts[2:].resample(freq, closed="left", label="left").mean()
@@ -913,7 +913,7 @@ def test_resample_origin_with_day_freq_on_dst(unit):
         return Series(
             values,
             index=DatetimeIndex(
-                [Timestamp(t, tz=tz) for t in timestamps], freq=freq, ambiguous=True
+                [Timestamp(t, tz=tz) for t in timestamps], freq=freq
             ).as_unit(unit),
         )
 

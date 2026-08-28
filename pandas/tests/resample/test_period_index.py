@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 import re
 import warnings
@@ -387,13 +387,9 @@ class TestPeriodIndex:
         # see gh-5430
         local_timezone = tz
 
-        start = datetime(
-            year=2013, month=11, day=1, hour=0, minute=0, tzinfo=timezone.utc
-        )
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=UTC)
         # 1 day later
-        end = datetime(
-            year=2013, month=11, day=2, hour=0, minute=0, tzinfo=timezone.utc
-        )
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=UTC)
 
         index = date_range(start, end, freq="h", name="idx")
 
@@ -529,7 +525,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_resample_fill_missing(self):
-        rng = PeriodIndex([2000, 2005, 2007, 2009], freq="Y")
+        rng = PeriodIndex(["2000", "2005", "2007", "2009"], freq="Y")
 
         s = Series(np.random.default_rng(2).standard_normal(4), index=rng)
 
@@ -539,7 +535,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(filled, expected)
 
     def test_cant_fill_missing_dups(self):
-        rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq="Y")
+        rng = PeriodIndex(["2000", "2005", "2005", "2007", "2007"], freq="Y")
         s = Series(np.random.default_rng(2).standard_normal(5), index=rng)
         msg = "Reindexing only valid with uniquely valued Index objects"
         with pytest.raises(InvalidIndexError, match=msg):
@@ -578,7 +574,11 @@ class TestPeriodIndex:
         subset = s[:"2012-01-04 06:55"]
 
         result = subset.resample("10min").apply(len)
-        expected = s.resample("10min").apply(len).loc[result.index]
+        expected = Series(
+            2,
+            index=date_range(start="1/1/2012", freq="10min", periods=474),
+            dtype=np.intp,
+        )
         tm.assert_series_equal(result, expected)
 
     def test_resample_weekly_all_na(self):

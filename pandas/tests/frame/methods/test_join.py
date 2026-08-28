@@ -110,11 +110,11 @@ def test_suffix_on_list_join():
     # check proper errors are raised
     msg = "Suffixes not supported when joining multiple DataFrames"
     with pytest.raises(ValueError, match=msg):
-        first.join([second], lsuffix="y")
+        first.join([second], suffixes=("y", ""))
     with pytest.raises(ValueError, match=msg):
-        first.join([second, third], rsuffix="x")
+        first.join([second, third], suffixes=("", "x"))
     with pytest.raises(ValueError, match=msg):
-        first.join([second, third], lsuffix="y", rsuffix="x")
+        first.join([second, third], suffixes=("y", "x"))
     with pytest.raises(ValueError, match="Indexes have overlapping values"):
         first.join([second, third])
 
@@ -122,6 +122,28 @@ def test_suffix_on_list_join():
     arr_joined = first.join([third])
     norm_joined = first.join(third)
     tm.assert_frame_equal(arr_joined, norm_joined)
+
+
+def test_join_lsuffix_rsuffix_deprecated():
+    # GH#46046, GH#22231
+    df1 = DataFrame({"a": [1, 2], "b": [3, 4]})
+    df2 = DataFrame({"b": [5, 6], "c": [7, 8]})
+
+    msg = "The 'lsuffix' and 'rsuffix' keywords in DataFrame.join are deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        result = df1.join(df2, lsuffix="_left", rsuffix="_right")
+    expected = df1.join(df2, suffixes=("_left", "_right"))
+    tm.assert_frame_equal(result, expected)
+
+    # only lsuffix
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        result = df1.join(df2, lsuffix="_left")
+    expected = df1.join(df2, suffixes=("_left", ""))
+    tm.assert_frame_equal(result, expected)
+
+    # Cannot specify both
+    with pytest.raises(ValueError, match="Cannot specify both"):
+        df1.join(df2, lsuffix="_left", suffixes=("_left", "_right"))
 
 
 def test_join_invalid_validate(left_no_dup, right_no_dup):
@@ -335,7 +357,7 @@ def test_join_overlap(float_frame):
     df1 = float_frame.loc[:, ["A", "B", "C"]]
     df2 = float_frame.loc[:, ["B", "C", "D"]]
 
-    joined = df1.join(df2, lsuffix="_df1", rsuffix="_df2")
+    joined = df1.join(df2, suffixes=("_df1", "_df2"))
     df1_suf = df1.loc[:, ["B", "C"]].add_suffix("_df1")
     df2_suf = df2.loc[:, ["B", "C"]].add_suffix("_df2")
 

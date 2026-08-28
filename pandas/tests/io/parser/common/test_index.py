@@ -5,7 +5,6 @@ specific classification into the other test modules.
 
 from datetime import datetime
 from io import StringIO
-import os
 
 import pytest
 
@@ -15,10 +14,6 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -251,9 +246,9 @@ bar,12,13,14,15
 
 
 @skip_pyarrow
-def test_read_csv_no_index_name(all_parsers, csv_dir_path):
+def test_read_csv_no_index_name(all_parsers, datapath):
     parser = all_parsers
-    csv2 = os.path.join(csv_dir_path, "test2.csv")
+    csv2 = datapath("io", "parser", "data", "test2.csv")
     result = parser.read_csv(csv2, index_col=0, parse_dates=True)
 
     expected = DataFrame(

@@ -1,4 +1,5 @@
 from datetime import (
+    date,
     datetime,
     timedelta,
 )
@@ -6,8 +7,6 @@ from decimal import Decimal
 
 import numpy as np
 import pytest
-
-from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 from pandas import (
@@ -23,6 +22,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    concat,
     date_range,
     isna,
     period_range,
@@ -55,9 +55,6 @@ def get_objs():
 
 
 class TestReductions:
-    @pytest.mark.filterwarnings(
-        "ignore:Period with BDay freq is deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize("obj", get_objs())
     def test_ops(self, opname, obj):
@@ -137,11 +134,7 @@ class TestReductions:
         # GH#64266
         klass = index_or_series
         obj = klass([1, 2, 4], dtype=object)
-        if klass is Index and not np_version_gt2:
-            # np.any/np.all return an element for object dtype (numpy#4352)
-            expected_bool = int
-        else:
-            expected_bool = bool if using_python_scalars else np.bool_
+        expected_bool = bool if using_python_scalars else np.bool_
         result = obj.any()
         assert type(result) is expected_bool
         assert result
@@ -770,12 +763,12 @@ class TestSeriesReductions:
         tm.assert_almost_equal(result, 1)
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
-    @pytest.mark.parametrize("dtype", ["int32", "int64"])
-    def test_sum_overflow_int(self, use_bottleneck, dtype):
+    @pytest.mark.parametrize("dtype, size", [("int32", 70_000), ("int64", 100_000)])
+    def test_sum_overflow_int(self, use_bottleneck, dtype, size):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
-            v = np.arange(5000000, dtype=dtype)
+            v = np.arange(size, dtype=dtype)
             s = Series(v)
 
             result = s.sum(skipna=False)
@@ -1230,7 +1223,20 @@ class TestSeriesReductions:
         [
             (["a", "b", np.nan], "a", "b"),
             (["a", "b", None], "a", "b"),
+            # GH#4147
+            (["alpha", np.nan, "charlie", "delta"], "alpha", "delta"),
             ([(1, 3), (2, 2), np.nan], (1, 3), (2, 2)),
+            # GH#24109, including the NaT sentinel left behind by .dt.date
+            (
+                [date(2018, 1, 1), None, date(2018, 1, 3)],
+                date(2018, 1, 1),
+                date(2018, 1, 3),
+            ),
+            (
+                [date(2018, 1, 1), NaT, date(2018, 1, 3)],
+                date(2018, 1, 1),
+                date(2018, 1, 3),
+            ),
         ],
     )
     def test_minmax_object_with_na(self, data, exp_min, exp_max):
@@ -1249,13 +1255,142 @@ class TestSeriesReductions:
         assert ser.max() == ts1
         assert ser.min() == ts2
 
+    def test_minmax_object_tzaware_with_nat(self):
+        # GH#58707: concatenating tz-aware with tz-naive NaT gives object dtype
+        ts = Timestamp("2024-05-13 12:00:00", tz="America/New_York")
+        ser = concat([Series([ts]), Series([NaT])])
+        assert ser.dtype == object
+        assert ser.max() == ts
+        assert ser.min() == ts
+
     def test_minmax_object_all_na(self):
         # GH#65500
         ser = Series([np.nan, np.nan], dtype=object)
         assert isna(ser.min())
         assert isna(ser.max())
 
-    def test_idxminmax_object_dtype(self, using_infer_string):
+    @pytest.mark.parametrize(
+        "data",
+        [
+            ["a", None, "d"],
+            # pre-3.1 this silently returned 1.0/3.0 rather than propagating
+            [1.0, np.nan, 3.0],
+            [date(2018, 1, 1), None, date(2018, 1, 3)],
+            [Timestamp("2024-05-13", tz="America/New_York"), NaT],
+            [np.nan, np.nan],
+        ],
+    )
+    def test_minmax_object_with_na_skipna_false(self, data):
+        # GH#4147: object dtype used to compare NAs as-is under skipna=False,
+        # raising or returning a wrong answer instead of propagating the NA
+        ser = Series(data, dtype=object)
+        assert isna(ser.min(skipna=False))
+        assert isna(ser.max(skipna=False))
+
+    @pytest.mark.parametrize(
+        "data, exp_argmin, exp_argmax",
+        [
+            (["a", None, "d"], 0, 2),
+            ([(1, 3), np.nan, (2, 2)], 0, 2),
+            ([date(2018, 1, 1), None, date(2018, 1, 3)], 0, 2),
+            ([date(2018, 1, 1), NaT, date(2018, 1, 3)], 0, 2),
+            ([np.nan, Timestamp("2024-05-13", tz="America/New_York")], 1, 1),
+        ],
+    )
+    def test_idxminmax_object_with_na(self, data, exp_argmin, exp_argmax):
+        # GH#4147: the +/-inf fill for NA entries is not comparable with
+        # strings/tuples/dates, so idxmin/idxmax raised TypeError
+        ser = Series(data, dtype=object)
+        assert ser.idxmin() == exp_argmin
+        assert ser.idxmax() == exp_argmax
+
+    @pytest.mark.parametrize("data", [["a", None, "b"], [None, "a", "b"]])
+    def test_minmax_argminmax_object_index_with_na(self, data):
+        # GH#4147: Index reductions go through the same nanops code, but
+        # Index.min/max short-circuit on hasnans before reaching it
+        idx = Index(data, dtype=object)
+        assert idx.min() == "a"
+        assert idx.max() == "b"
+        assert isna(idx.min(skipna=False))
+        assert isna(idx.max(skipna=False))
+
+        assert idx.argmin() == data.index("a")
+        assert idx.argmax() == data.index("b")
+        msg = "Encountered an NA value with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            idx.argmin(skipna=False)
+        with pytest.raises(ValueError, match=msg):
+            idx.argmax(skipna=False)
+
+    def test_minmax_object_incomparable_skipna_false(self):
+        # GH#4147: the slice is nulled out anyway, so values that cannot be
+        # compared with each other must not be compared
+        ser = Series([1, "a", np.nan], dtype=object)
+        assert isna(ser.min(skipna=False))
+        assert isna(ser.max(skipna=False))
+
+        # idxmin/idxmax raise on the NA rather than on the comparison
+        msg = "Encountered an NA value with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            ser.idxmin(skipna=False)
+        with pytest.raises(ValueError, match=msg):
+            ser.idxmax(skipna=False)
+
+        # without an NA there is nothing to null out, so this still raises
+        msg = "not supported between instances of"
+        with pytest.raises(TypeError, match=msg):
+            Series([1, "a"], dtype=object).min(skipna=False)
+        with pytest.raises(TypeError, match=msg):
+            Series([1, "a"], dtype=object).idxmin(skipna=False)
+
+    @pytest.mark.parametrize("how", ["sum", "prod"])
+    @pytest.mark.parametrize(
+        "na_value, expected",
+        [
+            (pd.NA, pd.NA),
+            (Decimal("NaN"), Decimal("NaN")),
+            (np.nan, np.nan),
+        ],
+    )
+    def test_sum_prod_object_skipna_false_keeps_na_type(self, how, na_value, expected):
+        # GH#4147: an object NA that supports the operation propagates on its
+        # own and says more than a bare nan would, so it must not be replaced
+        result = getattr(Series([1, na_value, 3], dtype=object), how)(skipna=False)
+        assert result is expected or (isna(result) and isna(expected))
+        assert type(result) is type(expected)
+
+    @pytest.mark.parametrize("how, exp_no_na", [("sum", 5), ("prod", 6)])
+    def test_sum_prod_object_with_na_skipna_false(self, how, exp_no_na):
+        # GH#4147: an object NA raises rather than propagating through the
+        # arithmetic, so sum/prod raised TypeError instead of returning NA
+        assert isna(getattr(Series([2, None], dtype=object), how)(skipna=False))
+
+        # the slice is nulled out anyway, so values that do not support the
+        # operation with each other must not be combined
+        assert isna(getattr(Series([1, "a", None], dtype=object), how)(skipna=False))
+
+        # without an NA there is nothing to null out
+        ser = Series([2, 3], dtype=object)
+        assert getattr(ser, how)(skipna=False) == exp_no_na
+        # ... and an explicit larger min_count is still honoured
+        assert isna(getattr(ser, how)(skipna=False, min_count=5))
+
+    def test_idxminmax_object_all_na(self):
+        # GH#4147: matches the float64 message rather than raising TypeError
+        ser = Series([np.nan, None], dtype=object)
+        with pytest.raises(ValueError, match="Encountered all NA values"):
+            ser.idxmin()
+        with pytest.raises(ValueError, match="Encountered all NA values"):
+            ser.idxmax()
+
+    @pytest.mark.parametrize("data", [["a", "d"], [(1, 3), (2, 2)]])
+    def test_minmax_object_skipna_false_no_na(self, data):
+        # GH#4147: without NAs, skipna=False still reduces normally
+        ser = Series(data, dtype=object)
+        assert ser.min(skipna=False) == data[0]
+        assert ser.max(skipna=False) == data[1]
+
+    def test_idxminmax_object_dtype(self):
         # pre-2.1 object-dtype was disallowed for argmin/max
         ser = Series(["foo", "bar", "baz"])
         assert ser.idxmax() == 0
@@ -1269,19 +1404,17 @@ class TestSeriesReductions:
         assert ser2.idxmin() == 0
         assert ser2.idxmin(skipna=False) == 0
 
-        if not using_infer_string:
-            # attempting to compare np.nan with string raises
-            ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
-            msg = "'>' not supported between instances of 'float' and 'str'"
-            with pytest.raises(TypeError, match=msg):
-                ser3.idxmax()
-            with pytest.raises(TypeError, match=msg):
-                ser3.idxmax(skipna=False)
-            msg = "'<' not supported between instances of 'float' and 'str'"
-            with pytest.raises(TypeError, match=msg):
-                ser3.idxmin()
-            with pytest.raises(TypeError, match=msg):
-                ser3.idxmin(skipna=False)
+        # GH#4147: NA entries used to be compared against the string values and
+        # raise TypeError; they are skipped now, and skipna=False raises the
+        # same ValueError as it does for other dtypes
+        ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"], dtype=object)
+        assert ser3.idxmax() == 0
+        assert ser3.idxmin() == 2
+        msg = "Encountered an NA value with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            ser3.idxmax(skipna=False)
+        with pytest.raises(ValueError, match=msg):
+            ser3.idxmin(skipna=False)
 
     def test_idxminmax_object_frame(self):
         # GH#4279

@@ -16,7 +16,6 @@
     "include":
       [
         "pandas",
-        "typings"
       ],
     "exclude":
       [

@@ -15,7 +15,6 @@ from pandas._libs import (
     lib,
 )
 from pandas.compat import HAS_PYARROW
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     IntCastingNaNError,
     Pandas4Warning,
@@ -781,17 +780,37 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        if np_version_gt2:
-            msg = "The elements provided in the data cannot all be casted to the dtype"
-            err = OverflowError
-        else:
-            msg = "Values are too large to be losslessly converted"
-            err = ValueError
-        with pytest.raises(err, match=msg):
+        msg = "The elements provided in the data cannot all be casted to the dtype"
+        with pytest.raises(OverflowError, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
-        with pytest.raises(err, match=msg):
+        with pytest.raises(OverflowError, match=msg):
             Series([1, 200, 923442], dtype="uint8")
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_constructor_int_above_float64_range(self, reverse):
+        # GH#66519 an int too big for any numeric dtype infers object dtype
+        #  wherever it sits. A list is inferred with convert_numeric=True and
+        #  used to raise OverflowError in either order; an object array stops at
+        #  the first integer, so it only raised with the big value first.
+        huge = 10**400
+        data = [1, huge] if reverse else [huge, 1]
+        arr = np.array(data, dtype=object)
+
+        assert Series(data).dtype == object
+        assert Index(data).dtype == object
+        assert Series(arr).dtype == object
+        assert Index(arr).dtype == object
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_constructor_uint64_int64_conflict_after_none(self, reverse):
+        # GH#66519 a None before either value used to hide the conflict,
+        #  giving a float64 that rounds 2**64 - 1 up to 2**64
+        data = [-1, 2**64 - 1] if reverse else [2**64 - 1, -1]
+
+        result = Series([None, *data])
+        assert result.dtype == object
+        assert result[1] == data[0]
 
     @pytest.mark.parametrize(
         "values",
@@ -814,13 +833,10 @@ class TestSeriesConstructors:
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
-        if np_version_gt2:
-            msg = (
-                f"The elements provided in the data cannot "
-                f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
-            )
-        else:
-            msg = "Trying to coerce negative values to unsigned integers"
+        msg = (
+            f"The elements provided in the data cannot "
+            f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
+        )
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
@@ -1293,7 +1309,11 @@ class TestSeriesConstructors:
         assert result.dtype == "Period[D]"
 
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
-        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+        # GH#64158 the integers are read as calendar years, so they have to be
+        #  years Period(int, freq) accepts
+        msg = "Passing integer data"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            series = Series([1000, 2000, 3000, pd._libs.iNaT], dtype="period[D]")
 
         val = series[3]
         assert isna(val)
@@ -1445,7 +1465,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
-    @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self, using_infer_string):
         data = {"a": 0, "b": 1, "c": 2, "d": 3}
 
@@ -1950,15 +1969,7 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        if not np_version_gt2:
-            raises = pytest.raises(
-                ValueError, match="string values cannot be losslessly cast to int8"
-            )
-        else:
-            raises = pytest.raises(
-                OverflowError, match="The elements provided in the data"
-            )
-        with raises:
+        with pytest.raises(OverflowError, match="The elements provided in the data"):
             Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
@@ -1986,9 +1997,6 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:elementwise comparison failed:DeprecationWarning"
-    )
     @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
     def test_constructor_mismatched_null_nullable_dtype(
         self, func, any_numeric_ea_dtype
@@ -2168,9 +2176,6 @@ class TestSeriesConstructorIndexCoercion:
         assert isinstance(multi.index, MultiIndex)
 
     # TODO: make this not cast to object in pandas 3.0
-    @pytest.mark.skipif(
-        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
-    )
     @pytest.mark.parametrize(
         "data",
         [

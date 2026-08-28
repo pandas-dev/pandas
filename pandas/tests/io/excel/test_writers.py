@@ -38,6 +38,12 @@ from pandas.io.excel import (
 )
 from pandas.io.excel._util import _writers
 
+# Roundtrip tests read xlsx/xlsm back with the default engine; the pending
+# calamine-default change (GH#56542) is not what these tests exercise.
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
+
 
 def get_exp_unit(path: str) -> str:
     return "us"
@@ -798,9 +804,6 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_to_excel_interval_no_labels(self, tmp_excel, using_infer_string):
         # see gh-19242
         #

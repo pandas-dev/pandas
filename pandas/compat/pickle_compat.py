@@ -5,6 +5,7 @@ Pickle compatibility to pandas version 1.0
 from __future__ import annotations
 
 import contextlib
+import datetime
 import io
 import pickle
 from typing import (
@@ -15,7 +16,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Timestamp,
+)
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -75,6 +79,22 @@ class Unpickler(pickle._Unpickler):
         stack = self.stack  # type: ignore[attr-defined]
         args = stack.pop()
         func = stack[-1]
+
+        if (
+            func is Timestamp
+            and len(args) == 3
+            and (args[1] is None or isinstance(args[1], (str, BaseOffset)))
+            and (args[2] is None or isinstance(args[2], datetime.tzinfo))
+        ):
+            # GH#61792 pandas <= 1.2 pickled Timestamp as (value, freq, tz).
+            #  `freq` is gone, so those slots now mean year/month and passing
+            #  args positionally silently drops the tz. The isinstance checks
+            #  keep a genuine by-component reduce, e.g. (Timestamp, (2020, 1, 2)),
+            #  out of this branch.
+            value, _freq, tz = args
+            # An explicit tz=None rejects a tz-aware value, so only pass it when set.
+            stack[-1] = Timestamp(value) if tz is None else Timestamp(value, tz=tz)
+            return
 
         try:
             stack[-1] = func(*args)

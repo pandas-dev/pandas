@@ -370,7 +370,6 @@ class TestDataFrameToCSV:
         "r_idx_type, c_idx_type", [("i", "i"), ("s", "s"), ("s", "dt"), ("p", "p")]
     )
     @pytest.mark.parametrize("ncols", [1, 2, 3, 4])
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_csv_idx_types(self, nrows, r_idx_type, c_idx_type, ncols, temp_file):
         axes = {
             "i": lambda n: Index(np.arange(n), dtype=np.int64),

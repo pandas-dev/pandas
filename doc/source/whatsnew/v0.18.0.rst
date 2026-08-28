@@ -953,6 +953,7 @@ in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    df.eval('c = a + b', inplace=True)
 
@@ -975,6 +976,7 @@ In version 0.18.0, a new ``inplace`` keyword was added to choose whether the
 assignment should be done inplace or return a copy.
 
 .. ipython:: python
+   :okwarning:
 
    df
    df.eval('d = c - b', inplace=False)
@@ -991,6 +993,7 @@ assignment should be done inplace or return a copy.
 The ``inplace`` keyword parameter was also added the ``query`` method.
 
 .. ipython:: python
+   :okwarning:
 
    df.query('a > 5')
    df.query('a > 5', inplace=True)
@@ -1006,6 +1009,7 @@ assignments.  These expressions will be evaluated one at a time in order.  Only
 assignments are valid for multi-line expressions.
 
 .. ipython:: python
+   :okwarning:
 
    df
    df.eval("""

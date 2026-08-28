@@ -900,6 +900,18 @@ def test_nunique_ints(index_or_series_or_array):
     assert result == expected
 
 
+def _isin_target_array(values, dtype):
+    """Targets as an ndarray for a NumPy dtype, masked array for a pandas one."""
+    if dtype[0].isupper():
+        return pd.array(values, dtype=dtype)
+    return np.array(values, dtype=dtype)
+
+
+def _isin_result_dtype(comps_dtype):
+    """isin over a masked caller gives "boolean", over a NumPy one gives bool."""
+    return "boolean" if comps_dtype[0].isupper() else bool
+
+
 class TestIsin:
     def test_invalid(self):
         msg = (
@@ -1268,6 +1280,132 @@ class TestIsin:
         # ... while an out-of-range target still forces the object path.
         ser.isin([2**53 + 1])
         assert len(called) == 1
+
+    @pytest.mark.parametrize(
+        "comps_dtype, values_dtype",
+        [
+            ("uint64", "int64"),
+            ("uint64", "Int64"),
+            ("UInt64", "int64"),
+            ("UInt64", "Int64"),
+            ("int64", "uint64"),
+            ("int64", "UInt64"),
+            ("Int64", "uint64"),
+            ("Int64", "UInt64"),
+        ],
+    )
+    def test_isin_uint64_vs_int64_no_precision_loss(self, comps_dtype, values_dtype):
+        # GH#59609: uint64 and int64 have float64 as their common dtype, so
+        # above 2**53 two distinct values can share a float64 and collide.
+        ser = Series([635554097106142143], dtype=comps_dtype)
+        values = _isin_target_array([635554097106142079], values_dtype)
+
+        result = ser.isin(values)
+
+        expected = Series([False], dtype=_isin_result_dtype(comps_dtype))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "comps_dtype, values_dtype", [("uint64", "int64"), ("int64", "uint64")]
+    )
+    def test_isin_uint64_vs_int64_still_matches(self, comps_dtype, values_dtype):
+        # GH#59609: the mixed-signedness handling must not lose true matches.
+        ser = Series([635554097106142143], dtype=comps_dtype)
+        values = _isin_target_array([635554097106142143], values_dtype)
+
+        result = ser.isin(values)
+
+        tm.assert_series_equal(result, Series([True]))
+
+    def test_isin_int64_vs_uint64_scalar_targets(self):
+        # GH#61676: the same collision reached through a list of numpy scalars,
+        # which _ensure_arraylike renders as a uint64 array.
+        ser = Series([1378774140726870442], dtype="int64")
+
+        result = ser.isin([np.uint64(1378774140726870528)])
+
+        tm.assert_series_equal(result, Series([False]))
+
+    def test_isin_uint64_vs_negative_int64_targets(self):
+        # GH#59609: a negative target cannot match any uint64, and must not be
+        # wrapped into a huge uint64 that matches one.
+        ser = Series([2**64 - 1, 1], dtype="uint64")
+
+        result = ser.isin(np.array([-1, 1], dtype="int64"))
+
+        tm.assert_series_equal(result, Series([False, True]))
+
+    def test_isin_int64_vs_out_of_range_uint64_targets(self):
+        # GH#59609: the symmetric case -- a target above int64's max cannot
+        # match any int64, and must not be wrapped into a negative one.
+        ser = Series([-1, 1], dtype="int64")
+
+        result = ser.isin(np.array([2**64 - 1, 1], dtype="uint64"))
+
+        tm.assert_series_equal(result, Series([False, True]))
+
+    @pytest.mark.parametrize("comps_dtype", ["float64", "complex128"])
+    @pytest.mark.parametrize("values_dtype", ["int64", "uint64"])
+    def test_isin_float_comps_vs_int64_ndarray_targets(self, comps_dtype, values_dtype):
+        # GH#59609: the GH#46485 protection only covered targets passed as a
+        # list; an ndarray of targets reached the lossy float64 common dtype.
+        ser = Series([2.0**53], dtype=comps_dtype)
+
+        result = ser.isin(np.array([2**53 + 1], dtype=values_dtype))
+
+        tm.assert_series_equal(result, Series([False]))
+
+    @pytest.mark.parametrize("comps_dtype", ["int64", "uint64"])
+    def test_isin_int64_comps_vs_float64_ndarray_targets(self, comps_dtype):
+        # GH#59609: the symmetric case -- an integer caller above 2**53 must
+        # not match a float target it merely rounds to.
+        ser = Series([2**53 + 1], dtype=comps_dtype)
+
+        result = ser.isin(np.array([2.0**53], dtype="float64"))
+
+        tm.assert_series_equal(result, Series([False]))
+
+    @pytest.mark.parametrize(
+        "targets", [[635554097106142079, 1.5], [2**63 + 1, 635554097106142079]]
+    )
+    def test_isin_signed_comps_vs_float64_target_list(self, targets):
+        # GH#59609: a targets list that _ensure_arraylike renders as float64
+        # -- because a value falls outside int64 range, or because a float is
+        # mixed in -- rounds the targets before isin sees them. The GH#46485
+        # guard skipped that check whenever comps was a signed integer.
+        ser = Series([635554097106142143], dtype="int64")
+
+        result = ser.isin(targets)
+
+        tm.assert_series_equal(result, Series([False]))
+
+    def test_isin_uint64_vs_int64_keeps_numeric_path(self, monkeypatch):
+        # GH#59609: dropping the unrepresentable targets leaves both sides
+        # uint64, so the fix must not push this onto the object hashtable.
+        seen = []
+        real_ismember = ht.ismember
+        monkeypatch.setattr(
+            algos.htable,
+            "ismember",
+            lambda comps, values: (
+                seen.append(comps.dtype) or real_ismember(comps, values)
+            ),
+        )
+        ser = Series([635554097106142143], dtype="uint64")
+
+        ser.isin(np.array([635554097106142079], dtype="int64"))
+
+        assert seen == [np.dtype("uint64")]
+
+    def test_isin_uint64_vs_int64_agrees_across_size_branch(self, monkeypatch):
+        # GH#59609: comps longer than _MINIMUM_COMP_ARR_LEN go to np.isin
+        # instead of the hashtable, so both branches need the same answer.
+        monkeypatch.setattr(algos, "_MINIMUM_COMP_ARR_LEN", 0)
+        ser = Series([635554097106142143, 635554097106142079], dtype="uint64")
+
+        result = ser.isin(np.array([635554097106142079], dtype="int64"))
+
+        tm.assert_series_equal(result, Series([False, True]))
 
 
 class TestValueCounts:

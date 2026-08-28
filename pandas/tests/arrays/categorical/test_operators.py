@@ -209,7 +209,6 @@ class TestCategoricalOps:
         result = cat != (0, 1)
         tm.assert_numpy_array_equal(result, ~expected)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
     ):
@@ -224,7 +223,6 @@ class TestCategoricalOps:
         actual = getattr(cat, compare_operators_no_eq_ne)(scalar)
         tm.assert_numpy_array_equal(actual, expected)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_comparison_of_ordered_categorical_with_nan_to_listlike(
         self, compare_operators_no_eq_ne
     ):

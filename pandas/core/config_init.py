@@ -461,10 +461,11 @@ with cf.config_prefix("mode"):
 max_threads_doc = """
 : int or None
     Maximum number of worker threads for parallel operations (e.g. ``read_csv``
-    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``.
-    Set to ``1`` to disable parallel execution, or to a fixed number to raise the
-    cap or to limit thread usage when pandas is embedded in a larger parallel
-    workflow.
+    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``,
+    further limited to the CPUs available to the process (CPU affinity and cgroup
+    limits).  Set to ``1`` to disable parallel execution, or to a fixed number to
+    raise the cap or to limit thread usage when pandas is embedded in a larger
+    parallel workflow.  Ignored on Emscripten/Pyodide, which cannot spawn threads.
 """
 
 
@@ -735,26 +736,41 @@ styler_max_columns = """
 styler_precision = """
 : int
     The precision for floats and complex numbers.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_decimal = """
 : str
     The character representation for the decimal separator for floats and complex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_thousands = """
 : str, optional
     The character representation for thousands separator for floats, int and complex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_na_rep = """
 : str, optional
     The string representation for values identified as missing.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_escape = """
 : str, optional
     Whether to escape certain characters according to the given context; html or latex.
+    This option affects only ``Styler`` rendering (e.g. ``DataFrame.style``), not
+    the default Series/DataFrame repr, which is controlled by the ``display.*``
+    options.
 """
 
 styler_formatter = """
@@ -899,11 +915,73 @@ with cf.config_prefix("styler"):
     )
 
 
+# Used by CI to run the test suite with every enrolled future
+# option set to its old ("legacy") or future ("upcoming") value.
+_FUTURE_MODE = os.environ.get("PANDAS_FUTURE", "default")
+if _FUTURE_MODE not in ("legacy", "default", "upcoming"):
+    raise ValueError(
+        "PANDAS_FUTURE environment variable must be one of 'legacy', "
+        f"'default', or 'upcoming', got {_FUTURE_MODE!r}"
+    )
+
+_future_option_behaviors: dict[str, dict[str, Any]] = {}
+
+
+def _register_future_option(
+    name: str,
+    *,
+    legacy: Any,
+    default: Any,
+    upcoming: Any,
+    doc: str,
+    validator: Callable[[object], Any],
+    enrolled: bool = True,
+) -> None:
+    """
+    Register an option under the "future" prefix.
+
+    The option's value is determined by, in order of precedence:
+
+    1. The PANDAS_FUTURE_<NAME> environment variable, if set: "0" means
+       False and "1" means True; any other value raises.
+    2. The PANDAS_FUTURE environment variable ("legacy", "default", or
+       "upcoming"), if the option is enrolled.
+    3. The ``default`` value.
+
+    ``enrolled=False`` registers the option but exempts it from
+    PANDAS_FUTURE, for options whose non-default values do not yet pass the
+    test suite.
+    """
+    env_override = os.environ.get(f"PANDAS_FUTURE_{name.upper()}")
+    if env_override is not None:
+        if env_override not in ("0", "1"):
+            raise ValueError(
+                f"PANDAS_FUTURE_{name.upper()} environment variable must be "
+                f"'0' or '1', got {env_override!r}"
+            )
+        value = env_override == "1"
+    elif enrolled:
+        value = {"legacy": legacy, "default": default, "upcoming": upcoming}[
+            _FUTURE_MODE
+        ]
+    else:
+        value = default
+    _future_option_behaviors[name] = {
+        "legacy": legacy,
+        "default": default,
+        "upcoming": upcoming,
+        "enrolled": enrolled,
+    }
+    cf.register_option(name, value, doc, validator=validator)
+
+
 with cf.config_prefix("future"):
-    cf.register_option(
+    _register_future_option(
         "infer_string",
-        False if os.environ.get("PANDAS_FUTURE_INFER_STRING", "1") == "0" else True,
-        "Whether to infer sequence of str objects as pyarrow string "
+        legacy=False,
+        default=True,
+        upcoming=True,
+        doc="Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",
         validator=is_one_of_factory([True, False]),
@@ -917,10 +995,14 @@ with cf.config_prefix("future"):
         validator=is_one_of_factory([True, False]),
     )
 
-    cf.register_option(
+    _register_future_option(
         "distinguish_nan_and_na",
-        os.environ.get("PANDAS_FUTURE_DISTINGUISH_NAN_AND_NA", "0") == "1",
-        "Whether to treat NaN entries as distinct from pd.NA in "
+        legacy=False,
+        default=False,
+        upcoming=True,
+        # the test suite does not yet pass with the upcoming value
+        enrolled=False,
+        doc="Whether to treat NaN entries as distinct from pd.NA in "
         "numpy-nullable and pyarrow float dtypes. By default treats both "
         "interchangeable as missing values (NaN will be coerced to NA). "
         "See discussion in "
@@ -928,20 +1010,27 @@ with cf.config_prefix("future"):
         validator=is_one_of_factory([True, False]),
     )
 
-    cf.register_option(
+    _register_future_option(
         "python_scalars",
-        False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
-        "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        legacy=False,
+        default=False,
+        upcoming=True,
+        doc="Whether to return Python scalars instead of NumPy or PyArrow "
+        "scalars. "
         "Values from object dtype data where the operation coerces them to NumPy "
         "floats remain NumPy scalars. "
         "Currently experimental, setting to True is not recommended for end users.",
         validator=is_one_of_factory([True, False]),
     )
 
-    cf.register_option(
+    _register_future_option(
         "infer_freq_returns_offset",
-        None,
-        "Whether pd.infer_freq and .inferred_freq return a BaseOffset object "
+        legacy=False,
+        default=None,
+        upcoming=True,
+        # the test suite does not yet pass with the legacy or upcoming values
+        enrolled=False,
+        doc="Whether pd.infer_freq and .inferred_freq return a BaseOffset object "
         "instead of a string, which will be the default in a future version of "
         "pandas. Set to True to opt in to the future behavior, or False to "
         "keep the old behavior and silence the warning.",

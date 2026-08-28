@@ -28,21 +28,17 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.network
 @pytest.mark.single_cpu
-def test_url(all_parsers, csv_dir_path, httpserver):
+def test_url(all_parsers, datapath, httpserver):
     parser = all_parsers
     kwargs = {"sep": "\t"}
 
-    local_path = os.path.join(csv_dir_path, "salaries.csv")
+    local_path = datapath("io", "parser", "data", "salaries.csv")
     with open(local_path, encoding="utf-8") as f:
         httpserver.serve_content(content=f.read())
 
@@ -53,11 +49,11 @@ def test_url(all_parsers, csv_dir_path, httpserver):
 
 
 @pytest.mark.slow
-def test_local_file(all_parsers, csv_dir_path):
+def test_local_file(all_parsers, datapath):
     parser = all_parsers
     kwargs = {"sep": "\t"}
 
-    local_path = os.path.join(csv_dir_path, "salaries.csv")
+    local_path = datapath("io", "parser", "data", "salaries.csv")
     local_result = parser.read_csv(local_path, **kwargs)
     url = "file://localhost/" + local_path
 
@@ -451,8 +447,8 @@ def test_file_descriptor_leak(all_parsers, temp_file):
         parser.read_csv(path)
 
 
-def test_memory_map(all_parsers, csv_dir_path):
-    mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
+def test_memory_map(all_parsers, datapath):
+    mmap_file = datapath("io", "parser", "data", "test_mmap.csv")
     parser = all_parsers
 
     expected = DataFrame(

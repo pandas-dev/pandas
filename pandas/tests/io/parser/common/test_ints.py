@@ -14,10 +14,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -195,7 +191,19 @@ def test_int64_uint64_range(all_parsers, val):
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
-    "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
+    "val",
+    [
+        np.iinfo(np.uint64).max + 1,
+        np.iinfo(np.int64).min - 1,
+        # 20-digit values that exceed uint64 by more than 2**64, so a parser
+        # accumulating into a 64-bit register wraps back into the range of
+        # valid 20-digit values and can miss the overflow (GH#66457)
+        30000000000000000000,
+        47386862472818278521,
+        # 5 * 2**64 - 10, whose residue is 10 below uint64 max and so looks
+        # maximally plausible (GH#66238)
+        92233720368547758070,
+    ],
 )
 def test_outside_int64_uint64_range(all_parsers, val, request):
     # These numbers fall just outside the int64-uint64
@@ -242,3 +250,19 @@ def test_integer_precision(all_parsers):
     result = parser.read_csv(StringIO(s), header=None)[4]
     expected = Series([4321583677327450765, 4321113141090630389], name=4)
     tm.assert_series_equal(result, expected)
+
+
+def test_thousands_digit_char(all_parsers):
+    # GH#66487: a digit thousands separator is degenerate but accepted, and
+    # gets stripped like any other separator; the C engine's all-digits
+    # integer fast path must not swallow it
+    parser = all_parsers
+    data = "a\n1000\n"
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), thousands="0")
+        return
+    result = parser.read_csv(StringIO(data), thousands="0")
+    expected = DataFrame({"a": [1]})
+    tm.assert_frame_equal(result, expected)

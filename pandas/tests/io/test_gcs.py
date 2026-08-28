@@ -22,10 +22,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture
 def gcs_buffer():
@@ -54,6 +50,9 @@ def gcs_buffer():
 
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
 def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
     """

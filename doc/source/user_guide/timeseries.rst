@@ -854,6 +854,40 @@ Here, ``side="right"`` returns the position just past ``"2000-01-02"``, and
 ``side="left"`` returns the position of ``"2000-01-04"`` itself. Since ``.iloc``
 uses standard Python half-open slicing, the result excludes both endpoints.
 
+.. _timeseries.at_time:
+
+Selecting a time of day
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Like :ref:`partial string indexing <timeseries.partialindexing>`, the methods
+:meth:`~DataFrame.at_time` and :meth:`~DataFrame.between_time` operate on the
+object's index, selecting rows by their time of day regardless of the date.
+:meth:`~DataFrame.at_time` selects all timestamps at a particular time:
+
+.. ipython:: python
+
+   rng_time = pd.date_range("2018-01-01", periods=10, freq="6h")
+   ts_time = pd.Series(range(10), index=rng_time)
+   ts_time
+   ts_time.at_time("12:00")
+
+:meth:`~DataFrame.between_time` selects the rows whose time of day falls
+between two times, including both endpoints by default; the ``inclusive``
+argument controls whether each endpoint is included:
+
+.. ipython:: python
+
+   ts_time.between_time("00:00", "12:00")
+   ts_time.between_time("00:00", "12:00", inclusive="left")
+
+Both methods also accept ``datetime.time`` objects:
+
+.. ipython:: python
+
+   import datetime
+
+   ts_time.at_time(datetime.time(12, 0))
+
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1467,30 +1501,54 @@ For some frequencies you can specify an anchoring suffix:
     "W\-THU", "weekly frequency, week ends on Thursday"
     "W\-FRI", "weekly frequency, week ends on Friday"
     "W\-SAT", "weekly frequency, week ends on Saturday"
-    "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
-    "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
-    "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
-    "(B)Q(E)(S)\-MAR", "quarterly frequency, year ends in March"
-    "(B)Q(E)(S)\-APR", "quarterly frequency, year ends in April"
-    "(B)Q(E)(S)\-MAY", "quarterly frequency, year ends in May"
-    "(B)Q(E)(S)\-JUN", "quarterly frequency, year ends in June"
-    "(B)Q(E)(S)\-JUL", "quarterly frequency, year ends in July"
-    "(B)Q(E)(S)\-AUG", "quarterly frequency, year ends in August"
-    "(B)Q(E)(S)\-SEP", "quarterly frequency, year ends in September"
-    "(B)Q(E)(S)\-OCT", "quarterly frequency, year ends in October"
-    "(B)Q(E)(S)\-NOV", "quarterly frequency, year ends in November"
-    "(B)Y(E)(S)\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
-    "(B)Y(E)(S)\-JAN", "annual frequency, anchored end of January"
-    "(B)Y(E)(S)\-FEB", "annual frequency, anchored end of February"
-    "(B)Y(E)(S)\-MAR", "annual frequency, anchored end of March"
-    "(B)Y(E)(S)\-APR", "annual frequency, anchored end of April"
-    "(B)Y(E)(S)\-MAY", "annual frequency, anchored end of May"
-    "(B)Y(E)(S)\-JUN", "annual frequency, anchored end of June"
-    "(B)Y(E)(S)\-JUL", "annual frequency, anchored end of July"
-    "(B)Y(E)(S)\-AUG", "annual frequency, anchored end of August"
-    "(B)Y(E)(S)\-SEP", "annual frequency, anchored end of September"
-    "(B)Y(E)(S)\-OCT", "annual frequency, anchored end of October"
-    "(B)Y(E)(S)\-NOV", "annual frequency, anchored end of November"
+    "(B)QE\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
+    "(B)QE\-JAN", "quarterly frequency, year ends in January"
+    "(B)QE\-FEB", "quarterly frequency, year ends in February"
+    "(B)QE\-MAR", "quarterly frequency, year ends in March"
+    "(B)QE\-APR", "quarterly frequency, year ends in April"
+    "(B)QE\-MAY", "quarterly frequency, year ends in May"
+    "(B)QE\-JUN", "quarterly frequency, year ends in June"
+    "(B)QE\-JUL", "quarterly frequency, year ends in July"
+    "(B)QE\-AUG", "quarterly frequency, year ends in August"
+    "(B)QE\-SEP", "quarterly frequency, year ends in September"
+    "(B)QE\-OCT", "quarterly frequency, year ends in October"
+    "(B)QE\-NOV", "quarterly frequency, year ends in November"
+    "(B)QS\-JAN", "quarterly frequency, year starts in January. Same as 'QS'"
+    "(B)QS\-FEB", "quarterly frequency, year starts in February"
+    "(B)QS\-MAR", "quarterly frequency, year starts in March"
+    "(B)QS\-APR", "quarterly frequency, year starts in April"
+    "(B)QS\-MAY", "quarterly frequency, year starts in May"
+    "(B)QS\-JUN", "quarterly frequency, year starts in June"
+    "(B)QS\-JUL", "quarterly frequency, year starts in July"
+    "(B)QS\-AUG", "quarterly frequency, year starts in August"
+    "(B)QS\-SEP", "quarterly frequency, year starts in September"
+    "(B)QS\-OCT", "quarterly frequency, year starts in October"
+    "(B)QS\-NOV", "quarterly frequency, year starts in November"
+    "(B)QS\-DEC", "quarterly frequency, year starts in December"
+    "(B)YE\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
+    "(B)YE\-JAN", "annual frequency, anchored end of January"
+    "(B)YE\-FEB", "annual frequency, anchored end of February"
+    "(B)YE\-MAR", "annual frequency, anchored end of March"
+    "(B)YE\-APR", "annual frequency, anchored end of April"
+    "(B)YE\-MAY", "annual frequency, anchored end of May"
+    "(B)YE\-JUN", "annual frequency, anchored end of June"
+    "(B)YE\-JUL", "annual frequency, anchored end of July"
+    "(B)YE\-AUG", "annual frequency, anchored end of August"
+    "(B)YE\-SEP", "annual frequency, anchored end of September"
+    "(B)YE\-OCT", "annual frequency, anchored end of October"
+    "(B)YE\-NOV", "annual frequency, anchored end of November"
+    "(B)YS\-JAN", "annual frequency, anchored start of January. Same as 'YS'"
+    "(B)YS\-FEB", "annual frequency, anchored start of February"
+    "(B)YS\-MAR", "annual frequency, anchored start of March"
+    "(B)YS\-APR", "annual frequency, anchored start of April"
+    "(B)YS\-MAY", "annual frequency, anchored start of May"
+    "(B)YS\-JUN", "annual frequency, anchored start of June"
+    "(B)YS\-JUL", "annual frequency, anchored start of July"
+    "(B)YS\-AUG", "annual frequency, anchored start of August"
+    "(B)YS\-SEP", "annual frequency, anchored start of September"
+    "(B)YS\-OCT", "annual frequency, anchored start of October"
+    "(B)YS\-NOV", "annual frequency, anchored start of November"
+    "(B)YS\-DEC", "annual frequency, anchored start of December"
 
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
@@ -1566,8 +1624,8 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
-    "next_workday", "move Saturday and Sunday to Monday"
-    "previous_workday", "move Saturday and Sunday to Friday"
+    "next_workday", "move to the next weekday, always advancing by at least one day"
+    "previous_workday", "move to the previous weekday, always moving back by at least one day"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
     "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
     "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"

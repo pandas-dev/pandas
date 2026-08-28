@@ -20,6 +20,20 @@ cdef int64_t tz_localize_to_utc_single(
 ) except? -1
 
 
+cdef enum BoundaryStatus:
+    BS_OK
+    BS_UNDERFLOW
+    BS_OVERFLOW
+
+
+cdef void raise_out_of_bounds(
+    int64_t val,
+    BoundaryStatus err,
+    NPY_DATETIMEUNIT creso,
+    tzinfo to_tz=*,
+) except *
+
+
 cdef class Localizer:
     cdef:
         tzinfo tz

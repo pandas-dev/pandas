@@ -116,7 +116,7 @@ of the index is up to you:
 
 We've "sparsified" the higher levels of the indexes to make the console output a
 bit easier on the eyes. Note that how the index is displayed can be controlled using the
-``multi_sparse`` option in ``pandas.set_options()``:
+``multi_sparse`` option in ``pandas.set_option()``:
 
 .. ipython:: python
 
@@ -165,8 +165,32 @@ completely analogous way to selecting a column in a regular DataFrame:
    df["bar"]["one"]
    s["qux"]
 
+For a ``Series``, ``[]`` selects on the index, so ``s["qux"]`` above performs
+partial selection on the row labels. For a ``DataFrame``, however, ``[]``
+selects *columns*: ``df["bar"]`` works above only because this ``df`` has a
+``MultiIndex`` on its columns. If the ``MultiIndex`` is on the rows instead,
+selecting a partial label with ``[]`` raises a ``KeyError`` — use ``.loc``
+for partial selection on the rows:
+
+.. ipython:: python
+   :okexcept:
+
+   df.T["bar"]
+
+.. ipython:: python
+
+   df.T.loc["bar"]
+
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
+
+.. note::
+
+   Empty strings in a ``MultiIndex`` on the columns are treated as missing
+   level values when selecting with ``[]``. For example, with columns
+   ``pd.MultiIndex.from_tuples([("a", ""), ("b", "c")])``, selecting
+   ``df["a"]`` drops the empty level and returns a ``Series`` rather than a
+   ``DataFrame`` with a single column labeled ``""``.
 
 .. _advanced.shown_levels:
 

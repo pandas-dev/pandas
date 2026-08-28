@@ -7,23 +7,22 @@ from io import (
     BytesIO,
     TextIOWrapper,
 )
-import os
+import sys
 import tempfile
 
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    ParserWarning,
+)
 
 from pandas import (
     DataFrame,
     read_csv,
 )
 import pandas._testing as tm
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -74,15 +73,15 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
-def test_utf16_example(all_parsers, csv_dir_path):
-    path = os.path.join(csv_dir_path, "utf16_ex.txt")
+def test_utf16_example(all_parsers, datapath):
+    path = datapath("io", "parser", "data", "utf16_ex.txt")
     parser = all_parsers
     result = parser.read_csv(path, encoding="utf-16", sep="\t")
     assert len(result) == 50
 
 
-def test_unicode_encoding(all_parsers, csv_dir_path):
-    path = os.path.join(csv_dir_path, "unicode_series.csv")
+def test_unicode_encoding(all_parsers, datapath):
+    path = datapath("io", "parser", "data", "unicode_series.csv")
     parser = all_parsers
 
     result = parser.read_csv(path, header=None, encoding="latin-1")
@@ -365,3 +364,34 @@ def test_not_readable(all_parsers, mode):
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])
     tm.assert_frame_equal(df, expected)
+
+
+def test_sep_encodeable_check_ignores_filesystem_encoding(monkeypatch, temp_file):
+    # GH#46456 whether the "c" engine can handle the separator depends on utf-8,
+    # not on the platform's filesystem encoding
+    monkeypatch.setattr(sys, "getfilesystemencoding", lambda: "latin-1")
+    temp_file.write_text(
+        "key\u00a5value\ntables\u00a5rectangular\n", encoding="latin-1"
+    )
+
+    with tm.assert_produces_warning(
+        ParserWarning, match="encoded in utf-8", check_stacklevel=False
+    ):
+        result = read_csv(temp_file, sep="\u00a5", encoding="latin-1")
+    expected = DataFrame([["tables", "rectangular"]], columns=["key", "value"])
+    tm.assert_frame_equal(result, expected)
+
+    with pytest.raises(ValueError, match="encoded in utf-8"):
+        read_csv(temp_file, sep="\u00a5", encoding="latin-1", engine="c")
+
+
+def test_sep_unencodeable_falls_back(temp_file):
+    # GH#46456 a separator that cannot be encoded at all falls back instead of raising
+    temp_file.write_text("a,b\n1,2\n", encoding="utf-8")
+
+    with tm.assert_produces_warning(
+        ParserWarning, match="encoded in utf-8", check_stacklevel=False
+    ):
+        result = read_csv(temp_file, sep="\udcff")
+    expected = DataFrame({"a,b": ["1,2"]})
+    tm.assert_frame_equal(result, expected)
