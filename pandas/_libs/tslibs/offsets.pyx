@@ -959,7 +959,7 @@ cdef class BaseOffset:
         # will implicitly assume day_opt = "business_end", see get_day_of_month.
         cdef:
             npy_datetimestruct dts
-        pydate_to_dtstruct(other, &dts)
+        _dt_to_dtstruct(other, &dts)
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3772,7 +3772,7 @@ cdef class YearOffset(SingleConstructorOffset):
         # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
-        pydate_to_dtstruct(other, &dts)
+        _dt_to_dtstruct(other, &dts)
         dts.month = self._month
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
@@ -8099,6 +8099,19 @@ def shift_months(
     return out
 
 
+cdef void _dt_to_dtstruct(datetime stamp, npy_datetimestruct *dts) noexcept:
+    """
+    Fill `dts` from a datetime or Timestamp.
+
+    Unlike pydate_to_dtstruct, this gets the year right for a Timestamp outside
+    the range representable by datetime.datetime, whose C-level year field
+    holds a placeholder (GH#53125).
+    """
+    pydate_to_dtstruct(stamp, dts)
+    if isinstance(stamp, _Timestamp):
+        dts.year = (<_Timestamp>stamp)._year
+
+
 def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
@@ -8132,13 +8145,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
         int64_t year, dy
         npy_datetimestruct dts
 
-    if isinstance(stamp, _Timestamp):
-        creso = (<_Timestamp>stamp)._creso
-        val = (<_Timestamp>stamp)._value
-        pandas_datetime_to_datetimestruct(val, creso, &dts)
-    else:
-        # Plain datetime/date
-        pydate_to_dtstruct(stamp, &dts)
+    _dt_to_dtstruct(stamp, &dts)
 
     dy = (dts.month + months) // 12
     month = (dts.month + months) % 12
@@ -8253,7 +8260,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
         npy_datetimestruct dts
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
-    pydate_to_dtstruct(other, &dts)
+    _dt_to_dtstruct(other, &dts)
 
     if modby == 12:
         # We care about the month-of-year, not month-of-quarter, so skip mod
