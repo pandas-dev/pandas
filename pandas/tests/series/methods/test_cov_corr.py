@@ -184,3 +184,28 @@ class TestSeriesCorr:
         df = pd.DataFrame([s1, s2])
         expected = pd.DataFrame([{0: 1.0, 1: 0}, {0: 0, 1: 1.0}])
         tm.assert_almost_equal(df.transpose().corr(method=my_corr), expected)
+
+
+class TestCorrConstantSeries:
+    # GH#67023
+    @pytest.mark.parametrize("n", [1448, 1372])
+    def test_corr_constant_series_returns_nan(self, n):
+        # Pearson correlation is undefined for constant data
+        x = np.repeat(np.float64(1.810), n)
+        y = np.repeat(np.float64(0.576), n)
+        s1 = Series(x)
+        s2 = Series(y)
+        assert np.isnan(s1.corr(s2))
+
+    def test_corr_one_constant_one_varying(self):
+        # If only one side is constant, should still be NaN
+        s1 = Series([1.0, 1.0, 1.0, 1.0])
+        s2 = Series([1.0, 2.0, 3.0, 4.0])
+        assert np.isnan(s1.corr(s2))
+        assert np.isnan(s2.corr(s1))
+
+    def test_corr_non_constant_still_works(self):
+        # Make sure we didn't break normal correlation
+        s1 = Series([1.0, 2.0, 3.0])
+        s2 = Series([1.0, 2.0, 3.0])
+        assert s1.corr(s2) == pytest.approx(1.0)

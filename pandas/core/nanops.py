@@ -1930,6 +1930,10 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     a = a.astype(np.float64, copy=False)
     b = b.astype(np.float64, copy=False)
 
+    # GH#67023 - if either input is constant, correlation is undefined
+    if np.ptp(a) == 0 or np.ptp(b) == 0:
+        return np.nan
+
     a = a - a.mean()
     b = b - b.mean()
     a_scale = np.max(np.abs(a))
