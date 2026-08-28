@@ -153,7 +153,9 @@ class TestFeather:
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        self.check_round_trip(df, temp_file, write_kwargs={"version": 1})
+        self.check_round_trip(
+            df, temp_file, write_kwargs={"compression": "uncompressed"}
+        )
 
     @pytest.mark.network
     @pytest.mark.single_cpu

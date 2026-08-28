@@ -1,3 +1,5 @@
+import numpy as np
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -16,8 +18,7 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
         [[2013, 52, 7], [2014, 1, 1], [2014, 1, 2]],
         columns=["year", "week", "day"],
         index=dates,
-        dtype="UInt32",
-    )
+    ).astype({"year": "Int32", "week": "UInt32", "day": "UInt32"})
     tm.assert_frame_equal(result, expected_data_frame)
 
 
@@ -26,3 +27,16 @@ def test_dti_timestamp_isocalendar_fields():
     expected = tuple(idx.isocalendar().iloc[-1].to_list())
     result = idx[-1].isocalendar()
     assert result == expected
+
+
+def test_isocalendar_year_before_year_one():
+    # GH#66549 the year column was unsigned, so BC years wrapped, e.g. year -100
+    #  came out as 4294967196
+    dti = DatetimeIndex(np.array(["-0100-03-05", "0001-01-01"], dtype="M8[s]"))
+    result = dti.isocalendar()
+    expected = DataFrame(
+        [[-100, 10, 1], [1, 1, 1]],
+        columns=["year", "week", "day"],
+        index=dti,
+    ).astype({"year": "Int32", "week": "UInt32", "day": "UInt32"})
+    tm.assert_frame_equal(result, expected)

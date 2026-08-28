@@ -114,6 +114,7 @@ sys.setrecursionlimit(5000)
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath("../sphinxext"))
 sys.path.extend(
     [
@@ -121,6 +122,7 @@ sys.path.extend(
         os.path.join(os.path.dirname(__file__), "..", "../..", "sphinxext")
     ]
 )
+from signature_overrides import apply_signature_overrides
 
 # -- General configuration -----------------------------------------------
 
@@ -1038,20 +1040,28 @@ def process_class_docstrings(app, what, name, obj, options, lines) -> None:
         joined = "\n".join(lines)
 
         templates = [
-            """.. rubric:: Attributes
-
-.. autosummary::
-   :toctree:
-
-   None
-""",
-            """.. rubric:: Methods
-
-.. autosummary::
-   :toctree:
-
-   None
-""",
+            "\n".join(  # noqa: FLY002
+                [
+                    ".. rubric:: Attributes",
+                    "",
+                    "",
+                    "",
+                    "========  ==========",
+                    "**None**    ",
+                    "========  ==========",
+                ]
+            ),
+            "\n".join(  # noqa: FLY002
+                [
+                    ".. rubric:: Methods",
+                    "",
+                    "",
+                    "",
+                    "========  ==========",
+                    "**None**    ",
+                    "========  ==========",
+                ]
+            ),
         ]
 
         for template in templates:
@@ -1071,6 +1081,8 @@ _BUSINED_ALIASES = [
         "CBMonthBegin",
     ]
 ]
+
+apply_signature_overrides()
 
 
 def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
