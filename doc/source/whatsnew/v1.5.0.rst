@@ -347,6 +347,7 @@ Without copy on write, the parent :class:`DataFrame` is updated when updating a 
 With copy on write enabled, df won't be updated anymore:
 
 .. ipython:: python
+   :okwarning:
 
     with pd.option_context("mode.copy_on_write", True):
         df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
