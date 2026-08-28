@@ -1741,6 +1741,7 @@ def scalar_skew(
     const float64_t[::1] values,
     bint skipna,
     const uint8_t[::1] mask,
+    bint bias,
 ) -> float:
     cdef:
         int64_t nobs = 0
@@ -1749,7 +1750,7 @@ def scalar_skew(
     with nogil:
         accumulate_moments_scalar(values, skipna, mask, &nobs, &mean, &m2, &m3, NULL, 3)
 
-    return calc_skew(nobs, m2, m3)
+    return calc_skew(nobs, m2, m3, bias)
 
 
 @cython.boundscheck(False)
@@ -1758,6 +1759,7 @@ def scalar_kurt(
     const float64_t[::1] values,
     bint skipna,
     const uint8_t[::1] mask,
+    bint bias,
 ) -> float:
     cdef:
         int64_t nobs = 0
@@ -1766,7 +1768,7 @@ def scalar_kurt(
     with nogil:
         accumulate_moments_scalar(values, skipna, mask, &nobs, &mean, &m2, &m3, &m4, 4)
 
-    return calc_kurt(nobs, m2, m4)
+    return calc_kurt(nobs, m2, m4, bias)
 
 
 @cython.boundscheck(False)
@@ -1776,6 +1778,7 @@ def axis_skew(
     int axis,
     bint skipna,
     const uint8_t[:, :] mask,
+    bint bias,
 ) -> ndarray:
     cdef:
         Py_ssize_t i
@@ -1790,7 +1793,7 @@ def axis_skew(
     with nogil:
         accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, None, axis, 3)
         for i in range(nouter):
-            result[i] = calc_skew(nobs[i], m2[i], m3[i])
+            result[i] = calc_skew(nobs[i], m2[i], m3[i], bias)
 
     return result_arr
 
@@ -1802,6 +1805,7 @@ def axis_kurt(
     int axis,
     bint skipna,
     const uint8_t[:, :] mask,
+    bint bias,
 ) -> ndarray:
     cdef:
         Py_ssize_t i
@@ -1817,7 +1821,7 @@ def axis_kurt(
     with nogil:
         accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, m4, axis, 4)
         for i in range(nouter):
-            result[i] = calc_kurt(nobs[i], m2[i], m4[i])
+            result[i] = calc_kurt(nobs[i], m2[i], m4[i], bias)
 
     return result_arr
 

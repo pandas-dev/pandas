@@ -1198,6 +1198,7 @@ class TestNanvarFixedValues:
         return np.random.default_rng(2)
 
 
+@pytest.mark.parametrize("bias", [False, True])
 class TestNanskewFixedValues:
     # xref GH 11974
     # Test data + skewness value (computed with scipy.stats.skew)
@@ -1207,42 +1208,43 @@ class TestNanskewFixedValues:
 
     @pytest.fixture
     def actual_skew(self):
-        return -0.1875895205961754
+        # skewness of ``samples``, keyed by the ``bias`` the test asks for
+        return {False: -0.1875895205961754, True: -0.18617965780524853}
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
-    def test_constant_series(self, val):
+    def test_constant_series(self, val, bias):
         # xref GH 11974, 62864
         data = val * np.ones(300)
-        skew = nanops.nanskew(data)
+        skew = nanops.nanskew(data, bias=bias)
         assert np.isnan(skew)
 
-    def test_all_finite(self):
+    def test_all_finite(self, bias):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nanskew(left_tailed) < 0
+        assert nanops.nanskew(left_tailed, bias=bias) < 0
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nanskew(right_tailed) > 0
+        assert nanops.nanskew(right_tailed, bias=bias) > 0
 
-    def test_ground_truth(self, samples, actual_skew):
-        skew = nanops.nanskew(samples)
-        tm.assert_almost_equal(skew, actual_skew)
+    def test_ground_truth(self, samples, bias, actual_skew):
+        skew = nanops.nanskew(samples, bias=bias)
+        tm.assert_almost_equal(skew, actual_skew[bias])
 
-    def test_axis(self, samples, actual_skew):
+    def test_axis(self, samples, bias, actual_skew):
         samples = np.vstack([samples, np.nan * np.ones(len(samples))])
-        skew = nanops.nanskew(samples, axis=1)
-        tm.assert_almost_equal(skew, np.array([actual_skew, np.nan]))
+        skew = nanops.nanskew(samples, axis=1, bias=bias)
+        tm.assert_almost_equal(skew, np.array([actual_skew[bias], np.nan]))
 
-    def test_nans(self, samples):
+    def test_nans(self, samples, bias):
         samples = np.hstack([samples, np.nan])
-        skew = nanops.nanskew(samples, skipna=False)
+        skew = nanops.nanskew(samples, skipna=False, bias=bias)
         assert np.isnan(skew)
 
-    def test_nans_skipna(self, samples, actual_skew):
+    def test_nans_skipna(self, samples, bias, actual_skew):
         samples = np.hstack([samples, np.nan])
-        skew = nanops.nanskew(samples, skipna=True)
-        tm.assert_almost_equal(skew, actual_skew)
+        skew = nanops.nanskew(samples, skipna=True, bias=bias)
+        tm.assert_almost_equal(skew, actual_skew[bias])
 
     @pytest.mark.parametrize(
         "initial_data, nobs",
@@ -1253,12 +1255,12 @@ class TestNanskewFixedValues:
             ([-2.05191341e-10, -4.10391103e-10], 10_000),
         ],
     )
-    def test_low_variance(self, initial_data, nobs):
+    def test_low_variance(self, initial_data, nobs, bias):
         st = pytest.importorskip("scipy.stats")
         data = np.zeros((nobs,), dtype=np.float64)
         data[: len(initial_data)] = initial_data
-        skew = nanops.nanskew(data)
-        expected = st.skew(data, bias=False)
+        skew = nanops.nanskew(data, bias=bias)
+        expected = st.skew(data, bias=bias)
         tm.assert_almost_equal(skew, expected)
 
     @property
@@ -1266,6 +1268,7 @@ class TestNanskewFixedValues:
         return np.random.default_rng(2)
 
 
+@pytest.mark.parametrize("bias", [False, True])
 class TestNankurtFixedValues:
     # xref GH 11974
     # Test data + kurtosis value (computed with scipy.stats.kurtosis)
@@ -1275,42 +1278,43 @@ class TestNankurtFixedValues:
 
     @pytest.fixture
     def actual_kurt(self):
-        return -1.2058303433799713
+        # kurtosis of ``samples``, keyed by the ``bias`` the test asks for
+        return {False: -1.2058303433799713, True: -1.2057456029870537}
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
-    def test_constant_series(self, val):
+    def test_constant_series(self, val, bias):
         # xref GH 11974, 62864
         data = val * np.ones(300)
-        kurt = nanops.nankurt(data)
+        kurt = nanops.nankurt(data, bias=bias)
         tm.assert_equal(kurt, np.nan)
 
-    def test_all_finite(self):
+    def test_all_finite(self, bias):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nankurt(left_tailed) < 2
+        assert nanops.nankurt(left_tailed, bias=bias) < 2
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nankurt(right_tailed) < 0
+        assert nanops.nankurt(right_tailed, bias=bias) < 0
 
-    def test_ground_truth(self, samples, actual_kurt):
-        kurt = nanops.nankurt(samples)
-        tm.assert_almost_equal(kurt, actual_kurt)
+    def test_ground_truth(self, samples, bias, actual_kurt):
+        kurt = nanops.nankurt(samples, bias=bias)
+        tm.assert_almost_equal(kurt, actual_kurt[bias])
 
-    def test_axis(self, samples, actual_kurt):
+    def test_axis(self, samples, bias, actual_kurt):
         samples = np.vstack([samples, np.nan * np.ones(len(samples))])
-        kurt = nanops.nankurt(samples, axis=1)
-        tm.assert_almost_equal(kurt, np.array([actual_kurt, np.nan]))
+        kurt = nanops.nankurt(samples, axis=1, bias=bias)
+        tm.assert_almost_equal(kurt, np.array([actual_kurt[bias], np.nan]))
 
-    def test_nans(self, samples):
+    def test_nans(self, samples, bias):
         samples = np.hstack([samples, np.nan])
-        kurt = nanops.nankurt(samples, skipna=False)
+        kurt = nanops.nankurt(samples, skipna=False, bias=bias)
         assert np.isnan(kurt)
 
-    def test_nans_skipna(self, samples, actual_kurt):
+    def test_nans_skipna(self, samples, bias, actual_kurt):
         samples = np.hstack([samples, np.nan])
-        kurt = nanops.nankurt(samples, skipna=True)
-        tm.assert_almost_equal(kurt, actual_kurt)
+        kurt = nanops.nankurt(samples, skipna=True, bias=bias)
+        tm.assert_almost_equal(kurt, actual_kurt[bias])
 
     @pytest.mark.parametrize(
         "initial_data, nobs",
@@ -1321,13 +1325,13 @@ class TestNankurtFixedValues:
             ([-2.05191341e-10, -4.10391103e-10], 10_000),
         ],
     )
-    def test_low_variance(self, initial_data, nobs):
+    def test_low_variance(self, initial_data, nobs, bias):
         # GH#57972
         st = pytest.importorskip("scipy.stats")
         data = np.zeros((nobs,), dtype=np.float64)
         data[: len(initial_data)] = initial_data
-        kurt = nanops.nankurt(data)
-        expected = st.kurtosis(data, bias=False)
+        kurt = nanops.nankurt(data, bias=bias)
+        expected = st.kurtosis(data, bias=bias)
         tm.assert_almost_equal(kurt, expected)
 
     @property

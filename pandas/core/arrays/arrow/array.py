@@ -2618,8 +2618,13 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
-        elif name in ["skew", "kurt"] and "biased" not in kwargs:
-            kwargs["biased"] = False
+        elif name in ["skew", "kurt"]:
+            # pandas' `bias` kwarg maps to pyarrow's `biased` kwarg; both
+            # use the same semantics (True = population/biased statistic).
+            if "bias" in kwargs:
+                kwargs["biased"] = kwargs.pop("bias")
+            elif "biased" not in kwargs:
+                kwargs["biased"] = False
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -2786,20 +2791,22 @@ class ArrowExtensionArray(
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        bias: bool = False,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
-        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("skew", skipna=skipna, axis=axis, bias=bias, **kwargs)
 
     def kurt(
         self,
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        bias: bool = False,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="kurt")
-        return self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("kurt", skipna=skipna, axis=axis, bias=bias, **kwargs)
 
     def median(
         self,
