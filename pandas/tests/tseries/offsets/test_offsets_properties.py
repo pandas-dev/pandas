@@ -62,15 +62,11 @@ def test_on_offset_implementations(dt, offset_cases, request):
         not IS64
         and dt.tzinfo is not None
         and offset_cases.is_on_offset(dt)
-        and pd.Timestamp(dt).utcoffset() != dt.utcoffset()
+        and pd.Timestamp(dt).tz_localize(None) != pd.Timestamp(dt.replace(tzinfo=None))
     ):
         request.applymarker(
             pytest.mark.xfail(
-                reason=(
-                    "ZoneInfo.utcoffset resolves pre-1901 US/Eastern to LMT rather "
-                    "than EST on 32-bit platforms, since the 1883 transition is "
-                    "below the signed 32-bit time_t floor"
-                )
+                reason="https://github.com/pandas-dev/pandas/issues/67066"
             )
         )
 
