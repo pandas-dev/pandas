@@ -1552,6 +1552,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         self,
         mapper,
         na_action: Literal["ignore"] | None = None,
+        convert: bool = True,
     ):
         """
         Map categories using an input mapping or function.
@@ -1572,6 +1573,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+        convert : bool, default True
+            Accepted for signature compatibility with
+            :meth:`ExtensionArray.map`; has no effect since categories are
+            mapped via :meth:`Index.map`, which always infers dtype.
 
         Returns
         -------

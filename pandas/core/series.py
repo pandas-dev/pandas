@@ -4966,6 +4966,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         func: Callable | Mapping | Series | None = None,
         na_action: Literal["ignore"] | None = None,
         engine: Callable | None = None,
+        convert_dtype: bool = True,
         **kwargs,
     ) -> Series:
         """
@@ -5000,6 +5001,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             NumPy APIs are supported. Check the engine documentation for limitations.
 
             .. versionadded:: 3.0.0
+
+        convert_dtype : bool, default True
+            Try to find better dtype for elementwise function results. If
+            False, the values returned by ``func`` are kept as-is in an
+            object-dtype result instead of being passed through dtype
+            inference. This matters when ``func`` can return ``None``, since
+            dtype inference otherwise coerces a returned ``None`` back to
+            ``NaN``.
+
+            .. versionadded:: 3.1.0
 
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
@@ -5116,6 +5127,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
             if not hasattr(engine, "__pandas_udf__"):
                 raise ValueError(f"Not a valid engine: {engine!r}")
+            if not convert_dtype:
+                raise ValueError(
+                    "convert_dtype=False is not supported when engine is specified"
+                )
             result = engine.__pandas_udf__.map(  # type: ignore[attr-defined]
                 data=self,
                 func=func,
@@ -5130,7 +5145,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if callable(func):
             func = functools.partial(func, **kwargs)
-        new_values = self._map_values(func, na_action=na_action)
+        new_values = self._map_values(func, na_action=na_action, convert=convert_dtype)
         return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
         )
