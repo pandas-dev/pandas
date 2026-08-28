@@ -1,0 +1,53 @@
+.. _whatsnew_320:
+
+What's new in 3.2.0 (Month XX, 2026)
+------------------------------------
+
+These are the changes in pandas 3.2.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_320.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+I/O
+^^^
+- Fixed bug in :func:`read_csv` where passing a ``dtype`` dict with integer keys that are out of range as positional column indices (e.g. all-negative keys like ``{-10: "float64"}``) raised ``IndexError`` instead of treating the keys as column names (:issue:`57944`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.contributors:
+
+Contributors
+~~~~~~~~~~~~

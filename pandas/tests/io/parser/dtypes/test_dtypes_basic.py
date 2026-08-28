@@ -971,3 +971,23 @@ GH,100102040,202,0205"""
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_negative_int_keys_no_index_error(all_parsers):
+    # GH#57944 read_csv raises IndexError when the dtype dict uses integer
+    # keys of the same sign (e.g. all negative) that fall outside the valid
+    # positional range of orig_names.
+    parser = all_parsers
+    data = "-10,-9,-8,-7,-6\n1.0,2.0,3.0,4.0,5.0\n6.0,7.0,8.0,9.0,10.0\n"
+    dtype_spec = {-10: "float64", -9: "float64", -8: "float64"}
+    result = parser.read_csv(StringIO(data), dtype=dtype_spec)
+    expected = DataFrame(
+        {
+            "-10": [1.0, 6.0],
+            "-9": [2.0, 7.0],
+            "-8": [3.0, 8.0],
+            "-7": [4.0, 9.0],
+            "-6": [5.0, 10.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
