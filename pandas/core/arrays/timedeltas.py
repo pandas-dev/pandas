@@ -1260,8 +1260,8 @@ def sequence_to_td64ns(
     int_mask = None
     if isinstance(data, IntegerArray):
         # GH#66988 use the underlying int/uint ndarray + mask directly instead
-        #  of going through to_numpy(), which (for masked data) upcasts to
-        #  float64 and can lose precision for large int64/uint64 magnitudes
+        #  of going through to_numpy() to convert to int64 (could overflow)
+        #  or float64 (could loose precision large large int64/uint64 data)
         int_mask = data._mask if data._hasna else None
         data = data._data
         if int_mask is not None:
