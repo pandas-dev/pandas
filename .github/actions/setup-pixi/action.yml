@@ -4,10 +4,6 @@ inputs:
   environment:
     description: Pixi environment name in pyproject.toml to use.
     required: true
-  run-install:
-    description: Whether to install the pandas workspace or only install pixi
-    required: false
-    default: true
 runs:
   using: composite
   steps:
@@ -20,7 +16,7 @@ runs:
         environments: ${{ inputs.environment }}
         cache: true
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-      if: ${{ inputs.run-install }}
+      if: ${{ inputs.environment != 'pyarrow-nightly' }}
 
     - name: Install ${{ inputs.environment }}
       uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
@@ -30,4 +26,10 @@ runs:
         manifest-path: pixi.toml
         run-install: false
         cache: false
-      if: ${{ not inputs.run-install }}
+      if: ${{ inputs.environment == 'pyarrow-nightly' }}
+
+    - name: Install PyArrow Nightly
+      if: ${{ inputs.environment == 'pyarrow-nightly' }}
+      run: |
+        pixi update -e pyarrow-nightly pyarrow
+        pixi install -e pyarrow-nightly
