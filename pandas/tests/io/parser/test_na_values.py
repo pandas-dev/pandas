@@ -11,6 +11,7 @@ import pytest
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import (
+    get_option,
     DataFrame,
     Index,
     MultiIndex,
@@ -728,9 +729,16 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
         )
 
 
-def test_str_nan_dropped(all_parsers):
+def test_str_nan_dropped(all_parsers, request):
     # see gh-21131
     parser = all_parsers
+    if parser.engine == "pyarrow" and not get_option("future.infer_string"):
+        # GH#21131, GH#57666 the columns parse correctly (missing values and
+        # leading zeros preserved), but with future.infer_string disabled the
+        # post-read astype(str) turns the missing values into "nan" strings
+        request.applymarker(
+            pytest.mark.xfail(reason="astype(str) stringifies NaN without infer_string")
+        )
 
     data = """File: small.csv,,
 10010010233,0123,654

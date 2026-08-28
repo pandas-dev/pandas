@@ -876,6 +876,13 @@ def test_leading_zeros_with_missing_values_dtype_str(all_parsers, request):
         request.applymarker(
             pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
         )
+    if parser.engine == "pyarrow" and not pd.get_option("future.infer_string"):
+        # GH#21131, GH#57666 the columns parse correctly (missing values and
+        # leading zeros preserved), but with future.infer_string disabled the
+        # post-read astype(str) turns the missing values into "nan" strings
+        request.applymarker(
+            pytest.mark.xfail(reason="astype(str) stringifies NaN without infer_string")
+        )
     data = "a,b\n01,\n,002"
     result = parser.read_csv(StringIO(data), dtype=str)
     expected = DataFrame({"a": ["01", np.nan], "b": [np.nan, "002"]}, dtype=str)
