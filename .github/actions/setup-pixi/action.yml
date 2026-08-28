@@ -17,7 +17,17 @@ runs:
         pixi-version: v0.76.2
         log-level: vv
         manifest-path: pixi.toml
-        run-install: ${{ inputs.run-install }}
         environments: ${{ inputs.environment }}
-        cache: ${{ inputs.run-install }}
+        cache: true
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+      if: ${{ inputs.run-install }}
+
+    - name: Install ${{ inputs.environment }}
+      uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+      with:
+        pixi-version: v0.76.2
+        log-level: vv
+        manifest-path: pixi.toml
+        run-install: false
+        cache: false
+      if: ${{ not inputs.run-install }}
