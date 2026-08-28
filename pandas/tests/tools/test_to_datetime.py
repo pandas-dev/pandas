@@ -1421,7 +1421,7 @@ class TestToDatetime:
     def test_datetime_bool_arrays_mixed(self, cache):
         msg = f"{type(cache)} is not convertible to datetime"
         with pytest.raises(TypeError, match=msg):
-            to_datetime([False, datetime.today()], cache=cache)
+            to_datetime([False, datetime(2011, 1, 1)], cache=cache)
         with pytest.raises(
             ValueError,
             match=(

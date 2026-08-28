@@ -384,9 +384,9 @@ class TestPeriodConstruction:
     def test_invalid_arguments(self):
         msg = "Must supply freq for datetime value"
         with pytest.raises(ValueError, match=msg):
-            Period(datetime.now())
+            Period(datetime(2011, 1, 1))
         with pytest.raises(ValueError, match=msg):
-            Period(datetime.now().date())
+            Period(date(2011, 1, 1))
 
         msg = "Value must be Period, string, integer, or datetime"
         with pytest.raises(ValueError, match=msg):

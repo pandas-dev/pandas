@@ -194,7 +194,7 @@ def test_annual_ambiguous():
 
 @pytest.mark.parametrize("count", range(1, 5))
 def test_infer_freq_delta(base_delta_code_pair, count):
-    b = Timestamp(datetime.now())
+    b = Timestamp(datetime(2011, 1, 1))
     base_delta, code = base_delta_code_pair
 
     inc = base_delta * count
@@ -216,7 +216,7 @@ def test_infer_freq_delta(base_delta_code_pair, count):
     ],
 )
 def test_infer_freq_custom(base_delta_code_pair, constructor):
-    b = Timestamp(datetime.now())
+    b = Timestamp(datetime(2011, 1, 1))
     base_delta, _ = base_delta_code_pair
 
     index = constructor(b, base_delta)

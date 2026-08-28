@@ -431,8 +431,8 @@ class TestDataFrameIndexing:
         df["A"] = "beginning"
         df["E"] = "foo"
         df["D"] = "bar"
-        df[datetime.now()] = "date"
-        df[datetime.now()] = 5.0
+        df[datetime(2011, 1, 1)] = "date"
+        df[datetime(2011, 1, 2)] = 5.0
 
         # what to do when empty frame with index
         dm = DataFrame(index=float_frame.index)

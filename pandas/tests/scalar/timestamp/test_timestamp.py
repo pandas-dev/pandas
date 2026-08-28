@@ -533,7 +533,7 @@ class TestTimestampConversion:
 
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
-        ts = Timestamp(datetime.now())
+        ts = Timestamp(datetime(2011, 1, 1))
         assert ts.to_datetime64() == ts.to_numpy()
 
         # GH#44460
