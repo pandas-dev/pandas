@@ -1812,7 +1812,15 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     tc->type = JT_UTF8;
     return;
   } else if (object_is_extension_dtype(obj)) {
-    PyErr_SetString(PyExc_OverflowError, "Maximum recursion level reached");
+    if (enc->defaultHandler) {
+      Object_invokeDefaultHandler(obj, enc);
+      goto INVALID;
+    }
+    PyErr_SetString(PyExc_TypeError,
+                    "ExtensionDtype is not supported for serialization");
+    goto INVALID;
+  } else if (PyArray_DescrCheck(obj) && enc->defaultHandler) {
+    Object_invokeDefaultHandler(obj, enc);
     goto INVALID;
   } else if (PyArray_DescrCheck(obj)) {
     pc->PyTypeToUTF8 = PyArrayDescrToUTF8Callback;

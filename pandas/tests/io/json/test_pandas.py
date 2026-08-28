@@ -2449,8 +2449,8 @@ class TestPandasContainer:
     )
     def test_extension_dtype_to_json_overflow(self, dtype):
         # GH#61170
-        msg = "Maximum recursion level reached"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "ExtensionDtype is not supported for serialization"
+        with pytest.raises(TypeError, match=msg):
             ujson_dumps(dtype)
 
     @pytest.mark.parametrize(

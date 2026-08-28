@@ -328,6 +328,14 @@ class Writer(ABC):
                 "unsupported object type; convert the column to a supported "
                 "type (e.g. str) before calling to_json."
             ) from err
+        except TypeError as err:
+            if "ExtensionDtype is not supported for serialization" not in str(err):
+                raise
+            raise ValueError(
+                "Unable to serialize object to JSON: encountered an "
+                "unsupported object type; convert the column to a supported "
+                "type (e.g. str) before calling to_json."
+            ) from err
 
     @property
     @abstractmethod
