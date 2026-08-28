@@ -1313,7 +1313,11 @@ def nanvar(
     sqr = (avg - values) ** 2
     if mask is not None:
         np.putmask(sqr, mask, 0)
-    result: np.ndarray | np.float64 = sqr.sum(axis=axis, dtype=np.float64) / d
+    # numpy's stubs allow the division to produce a plain float, which it never
+    #  does here; d is an ndarray or an np.float64 and so is the sum
+    result: np.ndarray | np.float64 = cast(
+        "np.ndarray | np.float64", sqr.sum(axis=axis, dtype=np.float64) / d
+    )
 
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
