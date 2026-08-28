@@ -26,6 +26,7 @@ from pandas._libs.tslibs import (
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.computation import (
@@ -266,7 +267,7 @@ class BinOp(ops.BinOp):
             if conv_val not in metadata:
                 # GH#22977 value is not a category; use -2 as a code that
                 # matches no row, unlike -1 which is the code for NaN values.
-                result = -2
+                result = -1 if isna(conv_val) else -2
             else:
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
