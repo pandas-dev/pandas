@@ -14,7 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-
+- Bug in :meth:`Series.str.split`, :meth:`Series.str.rsplit`, :meth:`Series.str.partition`, and :meth:`Series.str.rpartition` on :class:`CategoricalDtype` Series with ``expand=False`` returning stringified lists/tuples instead of actual lists/tuples (:issue:`66341`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.bug_fixes:
