@@ -1125,9 +1125,7 @@ class TestArrowArray(base.ExtensionTests):
             elif (
                 pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
             ) or pa.types.is_decimal(pa_dtype):
-                from matplotlib.units import ConversionError
-
-                err_cls = ConversionError
+                err_cls = TypeError
                 err_msg = re.escape("Failed to convert value(s) to axis units: array(")
 
         # Call test, errors should only be raised for unsupported dtypes set above
@@ -1166,9 +1164,7 @@ class TestArrowArray(base.ExtensionTests):
                 wrn_cls = UserWarning
                 wrn_msg = "Warning: converting a masked element to nan."
             elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-                from matplotlib.units import ConversionError
-
-                err_cls = ConversionError
+                err_cls = TypeError
                 err_msg = re.escape(
                     "Failed to convert value(s) to axis units: masked_array(data="
                 )
