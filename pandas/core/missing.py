@@ -4,7 +4,10 @@ Routines for filling missing data.
 
 from __future__ import annotations
 
-from functools import wraps
+from functools import (
+    cache,
+    wraps,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -412,12 +415,6 @@ def interpolate_2d_inplace(
 
     indices = _index_to_interp_indices(index, method)
 
-    if method in SP_METHODS:
-        # Check once here rather than once per 1-d slice below.
-        import_optional_dependency(
-            "scipy", extra=f"{method} interpolation requires SciPy."
-        )
-
     def func(yvalues: np.ndarray) -> None:
         # process 1-d slices in the axis direction
 
@@ -636,6 +633,20 @@ def _interpolate_1d(
     return
 
 
+@cache
+def _scipy_interpolate(method: str):
+    """
+    Get scipy.interpolate, raising the message we want if SciPy is missing.
+
+    Cached because _interpolate_scipy_wrapper runs once per 1-d slice, and the
+    version check in import_optional_dependency is not free (GH#48236).
+    """
+    import_optional_dependency("scipy", extra=f"{method} interpolation requires SciPy.")
+    from scipy import interpolate
+
+    return interpolate
+
+
 def _interpolate_scipy_wrapper(
     x: np.ndarray,
     y: np.ndarray,
@@ -651,7 +662,7 @@ def _interpolate_scipy_wrapper(
     Returns an array interpolated at new_x.  Add any new methods to
     the list in _clean_interp_method.
     """
-    from scipy import interpolate
+    interpolate = _scipy_interpolate(method)
 
     new_x = np.asarray(new_x)
 
