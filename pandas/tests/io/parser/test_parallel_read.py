@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import io
+import itertools
 import mmap
 import os
 from typing import TYPE_CHECKING
@@ -602,9 +603,9 @@ class TestReadCsvParallel:
 
         n_targets = []
 
-        def spy(filepath, n_chunks, data_start):
+        def spy(filepath, n_chunks, data_start, *args):
             n_targets.append(n_chunks)
-            return _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+            return _find_chunk_byte_offsets(filepath, n_chunks, data_start, *args)
 
         monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
         kwds = self._base_kwds(path)
@@ -1071,8 +1072,8 @@ def test_parallel_long_line_keeps_the_split(tmp_path, monkeypatch):
 
     chunk_counts = []
 
-    def spy(filepath, n_chunks, data_start):
-        offsets = _find_chunk_byte_offsets(filepath, n_chunks, data_start)
+    def spy(filepath, n_chunks, data_start, *args):
+        offsets = _find_chunk_byte_offsets(filepath, n_chunks, data_start, *args)
         chunk_counts.append(len(offsets) - 1)
         return offsets
 
@@ -1380,7 +1381,10 @@ def _write_with_line_at_chunk_start(path, replacement: bytes, monkeypatch) -> in
     # uses 4 workers, so this yields the 4 * 3 oversubscription.
     monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_MIN_CHUNK_ROWS", 1)
     data_start = _find_data_start_offset(str(path), 0, 0)
-    offsets = _find_chunk_byte_offsets(str(path), 12, data_start)
+    # The same four workers the read uses, so this reproduces the split it
+    # plans: the chunk sizes taper towards the end of the file, so a boundary
+    # computed without them would sit somewhere the read never splits.
+    offsets = _find_chunk_byte_offsets(str(path), 12, data_start, 4)
     boundary = offsets[1]
     raw = path.read_bytes()
     line_end = raw.index(b"\n", boundary)
@@ -1396,8 +1400,8 @@ def _spy_on_chunk_offsets(monkeypatch) -> list:
     seen: list = []
     real = _find_chunk_byte_offsets
 
-    def spy(filepath, n_chunks, data_start):
-        offsets = real(filepath, n_chunks, data_start)
+    def spy(filepath, n_chunks, data_start, *args):
+        offsets = real(filepath, n_chunks, data_start, *args)
         seen.append(offsets)
         return offsets
 
@@ -1825,8 +1829,8 @@ def _planned_chunk_count(
     seen = []
     original = _readers._find_chunk_byte_offsets
 
-    def spy(filepath, n_chunks, data_start):
-        offsets = original(filepath, n_chunks, data_start)
+    def spy(filepath, n_chunks, data_start, *args):
+        offsets = original(filepath, n_chunks, data_start, *args)
         seen.append(len(offsets) - 1)
         return offsets
 
@@ -1889,7 +1893,55 @@ def test_parallel_chunk_count_bounded_by_column_pieces(tmp_path, monkeypatch):
     # The wide frame has the most bytes of the two, so only the piece budget
     # can be what held its split down.
     assert wide.stat().st_size > narrow.stat().st_size
-    assert wide_n == _readers._PARALLEL_MAX_COLUMN_PIECES // 100
+    # The budget itself, rounded up to a whole round of the four workers.
+    budget = _readers._PARALLEL_MAX_COLUMN_PIECES // 100
+    assert wide_n == -(-budget // 4) * 4
+
+
+def test_parallel_chunk_sizes_taper_towards_the_end_of_the_file(tmp_path):
+    # A read finishes when the last chunk a worker picked up does, so the file
+    # ends in small chunks rather than full ones: a worker that comes free late
+    # then has something short left to take (GH#66152).
+    path = tmp_path / "grid.csv"
+    _write_grid(path, 20_000, 4)
+    data_start = _find_data_start_offset(str(path), header=0, skiprows=0)
+
+    offsets = _find_chunk_byte_offsets(str(path), 16, data_start, 4)
+    sizes = [end - start for start, end in itertools.pairwise(offsets)]
+
+    assert sizes[-1] < sizes[0] / 2
+    assert sum(sizes[-8:]) < sum(sizes[:8])
+    # The chunks still cover the data exactly once, tapered or not.
+    assert offsets[0] == data_start
+    assert offsets[-1] == path.stat().st_size
+
+    # Given no worker count the split is the equal one it has always been, so
+    # the taper above is the argument's doing rather than the fixture's.
+    equal = _find_chunk_byte_offsets(str(path), 16, data_start)
+    equal_sizes = [end - start for start, end in itertools.pairwise(equal)]
+    assert max(equal_sizes) < min(equal_sizes) * 1.05
+
+
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+@pytest.mark.parametrize("n_workers", [4, 5, 6, 7])
+def test_parallel_chunk_count_is_a_whole_number_of_rounds(
+    tmp_path, monkeypatch, n_workers
+):
+    # The workers drain the chunks in whole rounds, so a size-driven count that
+    # is not a multiple of the worker count leaves the last round mostly idle:
+    # 31 chunks over 6 workers is 5.17 rounds' work that takes 6 (GH#66152).
+    path = tmp_path / "grid.csv"
+    _write_grid(path, 30_000, 4)
+
+    n_chunks = _planned_chunk_count(
+        path, monkeypatch, chunk_bytes=4096, n_workers=n_workers, min_chunk_rows=1
+    )
+
+    assert n_chunks % n_workers == 0
+    # ... and the size term is what set that count.  The worker-derived floor is
+    # a whole number of rounds by construction, so a count resting on it would
+    # satisfy the assertion above whether or not the rounding existed.
+    assert n_chunks > n_workers * 3
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
