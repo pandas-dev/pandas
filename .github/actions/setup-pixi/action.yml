@@ -19,5 +19,5 @@ runs:
         manifest-path: pixi.toml
         run-install: ${{ inputs.run-install }}
         environments: ${{ inputs.environment }}
-        cache: true
+        cache: ${{ inputs.run-install }}
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
