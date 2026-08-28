@@ -46,6 +46,7 @@ Other enhancements
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
 - Added ``union_categories`` parameter to :func:`concat` to preserve categorical dtype by unioning categories when concatenating categoricals with different categories (:issue:`14177`)
 - Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` gained an ``engine`` parameter to optionally use pyarrow to serialize CSV data, which is generally faster than the existing python engine. ``engine="auto"``, the new default, uses pyarrow when it is installed and the data/options are fully supported, and otherwise transparently falls back to the python engine; ``engine="python"`` and ``engine="pyarrow"`` force one or the other (:issue:`53618`)
 - Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
@@ -226,6 +227,7 @@ Other API changes
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
 - The ``year`` column of :meth:`DatetimeIndex.isocalendar` and :meth:`Series.dt.isocalendar` is now ``Int32`` instead of ``UInt32``, so that years before year 1 are representable (:issue:`66549`)
+- The default ``engine`` used by :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` is now ``"auto"`` instead of ``"python"``. When pyarrow is installed, this changes the exact text written for most calls: string, categorical, and object-dtype columns (and the header row) are now always quoted. The values themselves are unchanged and round-trip the same way through :func:`read_csv` (columns whose rendering would otherwise differ, e.g. bool, timedelta64, timezone-aware datetime64, or a whole-number float column, are still written by the python engine). Pass ``engine="python"`` to keep the previous output exactly (:issue:`53618`)
 -
 
 .. _whatsnew_310.api_breaking.build:
