@@ -579,6 +579,7 @@ static const char *PyArrayDescrToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
   PyObject *str = PyObject_Str(obj);
 
   if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
     return NULL;
   }
 
@@ -587,6 +588,8 @@ static const char *PyArrayDescrToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
   Py_ssize_t str_len;
   const char *outValue = PyUnicode_AsUTF8AndSize(str, &str_len);
   if (outValue == NULL) {
+    *len = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
     return NULL;
   }
 
