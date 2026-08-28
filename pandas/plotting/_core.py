@@ -1127,7 +1127,11 @@ class PlotAccessor(PandasObject):
         *args
             Positional arguments to pass to the plotting backend.
         **kwargs
-            Keyword arguments to pass to the plotting backend.
+            Keyword arguments to pass to the plotting backend. For
+            the matplotlib backend, they are forwarded to the
+            matplotlib function that draws the plot for the chosen
+            ``kind``; see the individual methods for the exact
+            function.
 
         Attributes
         ----------
@@ -1469,6 +1473,8 @@ class PlotAccessor(PandasObject):
             matplotlib tick locators and formatters. See
             :ref:`Suppressing tick resolution adjustment
             <plotting.x_compat>` for more.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.plot`.
 
         Returns
         -------
@@ -1580,6 +1586,8 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.bar`.
 
         Returns
         -------
@@ -1725,6 +1733,8 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.barh`.
 
         Returns
         -------
@@ -1849,6 +1859,8 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.boxplot`.
 
         Returns
         -------
@@ -1905,6 +1917,8 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.hist`.
 
         Returns
         -------
@@ -1978,6 +1992,9 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, the density is estimated
+            with :class:`scipy.stats.gaussian_kde` and they are passed to
+            :meth:`matplotlib.axes.Axes.plot`.
 
         Returns
         -------
@@ -2089,6 +2106,8 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.plot`.
 
         Returns
         -------
@@ -2166,6 +2185,8 @@ class PlotAccessor(PandasObject):
             If not provided, ``subplots=True`` argument must be passed.
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.pie`.
 
         Returns
         -------
@@ -2260,6 +2281,8 @@ class PlotAccessor(PandasObject):
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.scatter`.
 
         Returns
         -------
@@ -2350,6 +2373,8 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
+            For the default matplotlib backend, they are passed to
+            :meth:`matplotlib.axes.Axes.hexbin`.
 
         Returns
         -------
