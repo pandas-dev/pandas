@@ -110,7 +110,7 @@ class UuidExtensionArray(ExtensionArray):
             dtype = UuidDtype()
         return cls(scalars, copy=copy)
 
-    def __getitem__(self, index: ScalarIndexer | slice) -> UUID:  # type: ignore[override]
+    def __getitem__(self, index: ScalarIndexer | slice) -> UUID | Self:  # type: ignore[override]
         if isinstance(index, slice):
             return type(self)(self._data[index])
         assert isinstance(index, int | np.integer)
@@ -132,7 +132,7 @@ def test_construct() -> None:
     from uuid import uuid4
 
     a = UuidExtensionArray([UUID(int=0), u := uuid4()])
-    assert a[0].int == 0
+    assert a[0].int == 0  # type: ignore[union-attr]
     assert a[1] == u
 
 
