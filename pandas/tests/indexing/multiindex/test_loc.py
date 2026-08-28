@@ -59,8 +59,7 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
-        return_value = df.sort_index(inplace=True)
-        assert return_value is None
+        df = df.sort_index()
         res = df.loc[key]
 
         # col has float dtype, result should be float64 Index
