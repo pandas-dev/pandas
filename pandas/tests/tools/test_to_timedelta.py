@@ -491,13 +491,14 @@ class TestTimedeltas:
         # GH#60677
         uint64_max = np.iinfo(np.uint64).max
 
-        arr = np.array([uint64_max], dtype=np.uint64)
+        arr = np.array([0, uint64_max], dtype=np.uint64)
         result = to_timedelta(arr, unit="ns", errors="coerce")
-        expected = TimedeltaIndex([pd.NaT], dtype="m8[ns]")
+        expected = TimedeltaIndex([pd.Timedelta(0), pd.NaT], dtype="m8[ns]")
         tm.assert_index_equal(result, expected)
 
-        arr = pd.array([uint64_max], dtype="UInt64")
+        arr = pd.array([0, uint64_max, None], dtype="UInt64")
         result = to_timedelta(arr, unit="ns", errors="coerce")
+        expected = TimedeltaIndex([pd.Timedelta(0), pd.NaT, pd.NaT], dtype="m8[ns]")
         tm.assert_index_equal(result, expected)
 
         # scalar

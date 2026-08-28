@@ -2207,7 +2207,7 @@ class TestToDatetimeUnit:
         arr = np.array([uint64_max], dtype=np.uint64)
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr, unit="ns", errors="raise")
-        arr = pd.array([uint64_max], dtype="UInt64")
+        arr = pd.array([uint64_max, None], dtype="UInt64")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr, unit="ns", errors="raise")
         # scalar via to_datetime
@@ -2227,7 +2227,8 @@ class TestToDatetimeUnit:
         expected = DatetimeIndex(["NaT"], dtype="datetime64[ns]")
         tm.assert_index_equal(result, expected)
 
-        arr = pd.array([uint64_max], dtype="UInt64")
+        arr = pd.array([uint64_max, None], dtype="UInt64")
+        expected = DatetimeIndex(["NaT", "NaT"], dtype="datetime64[ns]")
         result = to_datetime(arr, unit="ns", errors="coerce")
         tm.assert_index_equal(result, expected)
 
@@ -2260,6 +2261,46 @@ class TestToDatetimeUnit:
         uarr = pd.array([value, None], dtype="UInt64")
         result = to_datetime(uarr, unit="ns")
         tm.assert_index_equal(result, expected)
+
+    def test_int64_oob_raise(self):
+        # GH#66988 an int64 can be out of bounds when the unit is not supported
+        # and we have to cast
+        value = 2**60 - 1
+
+        # arrays via to_datetime
+        arr = np.array([value], dtype=np.int64)
+        msg = "Out of bounds second timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="D", errors="raise")
+        arr = pd.array([value, None], dtype="Int64")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="D", errors="raise")
+        # scalar via to_datetime
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(value, unit="D", errors="raise")
+        # scalar via Timestamp constructor
+        msg = "cannot convert input"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(value, unit="D")
+
+    def test_int64_oob_coerce(self):
+        # GH#66988 an int64 can be out of bounds when the unit is not supported
+        # and we have to cast
+        value = 2**60 - 1
+
+        arr = np.array([value], dtype=np.int64)
+        result = to_datetime(arr, unit="D", errors="coerce")
+        expected = DatetimeIndex(["NaT"], dtype="datetime64[s]")
+        tm.assert_index_equal(result, expected)
+
+        arr = pd.array([value, None], dtype="Int64")
+        expected = DatetimeIndex(["NaT", "NaT"], dtype="datetime64[s]")
+        result = to_datetime(arr, unit="D", errors="coerce")
+        tm.assert_index_equal(result, expected)
+
+        # scalar
+        result = to_datetime(value, unit="D", errors="coerce")
+        assert result is NaT
 
 
 class TestToDatetimeDataFrame:
