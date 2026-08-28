@@ -1579,6 +1579,7 @@ def test_eval():
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
 def test_eval_inplace():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()

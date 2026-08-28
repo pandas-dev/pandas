@@ -513,8 +513,10 @@ class ArrowExtensionArray(
                 scalars = strings.cast(pa_type)
             else:
                 mask = isna(strings)
-                if mask is not None:
-                    scalars = pa.array(scalars, mask=mask, type=pa_type)
+                # GH#66834: to_numeric coerces "" to NaN instead of raising
+                if (isna(scalars) & ~mask).any():
+                    raise ValueError(f"could not convert string to {pa_type}: ''")
+                scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
             raise NotImplementedError(

@@ -1999,7 +1999,7 @@ int to_boolean(const char *item, int64_t length, uint8_t *val) {
   return -1;
 }
 
-int infinity_sign(const char *item, int64_t length) {
+int parse_special_float(const char *item, int64_t length, double *out) {
   int sign = 1;
 
   if (length > 0 && (*item == '+' || *item == '-')) {
@@ -2010,10 +2010,11 @@ int infinity_sign(const char *item, int64_t length) {
 
   if ((length == 3 && strncasecmp(item, "inf", 3) == 0) ||
       (length == 8 && strncasecmp(item, "infinity", 8) == 0)) {
-    return sign;
+    *out = sign > 0 ? HUGE_VAL : -HUGE_VAL;
+    return 0;
   }
 
-  return 0;
+  return -1;
 }
 
 // ---------------------------------------------------------------------------
