@@ -25,6 +25,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.internals import BlockValuesRefs
 from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -257,7 +258,12 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
-        result._references = None
+        return result
+
+    @cache_readonly
+    def _references(self) -> BlockValuesRefs:  # type: ignore[override]
+        result = BlockValuesRefs()
+        result.add_index_reference(self)
         return result
 
     @classmethod
@@ -654,6 +660,7 @@ class RangeIndex(Index):
     def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
+        self._references.add_index_reference(result)
         return result
 
     def _wrap_reindex_result(
