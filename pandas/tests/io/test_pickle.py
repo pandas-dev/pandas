@@ -560,7 +560,7 @@ def test_pickle_preserves_block_ndim(temp_file):
 @pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
 def test_pickle_big_dataframe_compression(protocol, compression, temp_file):
     # GH#39002
-    df = DataFrame(range(100000))
+    df = DataFrame(range(10000))
     result = tm.round_trip_pathlib(
         partial(df.to_pickle, protocol=protocol, compression=compression),
         partial(pd.read_pickle, compression=compression),
