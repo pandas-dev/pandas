@@ -30,6 +30,7 @@ runs:
 
     - name: Install PyArrow Nightly
       if: ${{ inputs.environment == 'pyarrow-nightly' }}
+      shell: bash -euox pipefail {0}
       run: |
         pixi update -e pyarrow-nightly pyarrow
         pixi install -e pyarrow-nightly
