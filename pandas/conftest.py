@@ -21,6 +21,7 @@ Instead of splitting it was decided to define sections here:
 from __future__ import annotations
 
 from collections import abc
+import contextlib
 from datetime import (
     UTC,
     date,
@@ -2060,6 +2061,12 @@ def ip():
 
 @pytest.fixture
 def mpl_cleanup():
+    """Uses mpl_cleanup_context to ensure matplotlib is cleaned up around a test."""
+    with mpl_cleanup_context():
+        yield
+
+@contextlib.contextmanager
+def mpl_cleanup_context():
     """
     Ensure Matplotlib is cleaned up around a test.
 

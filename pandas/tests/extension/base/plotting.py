@@ -28,6 +28,7 @@ from pandas.api.types import (
     is_bool_dtype,
     is_datetime64_any_dtype,
 )
+from pandas.conftest import mpl_cleanup_context
 from pandas.tests.plotting.common import _check_plot_works
 
 
@@ -123,7 +124,7 @@ class BasePlottingTests:
     # Note: these are ONLY for ExtensionArray subclasses that support plotting.
 
     @pytest.fixture(params=[True, False], ids=["skipna", "no_skipna"])
-    def plot_data(self, data: ExtensionArray, request, mpl_cleanup) -> pd.DataFrame:
+    def plot_data(self, data: ExtensionArray, request) -> pd.DataFrame:
         df = pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))})
         if request.param:
             df = df.dropna()
@@ -131,8 +132,10 @@ class BasePlottingTests:
 
     def test_plot_on_x_axis(self, plot_data):
         """Test that EA data can be plotted on the x-axis."""
-        _plot(plot_data, x="Data", y="Numeric")
+        with mpl_cleanup_context():
+            _plot(plot_data, x="Data", y="Numeric")
 
     def test_plot_on_y_axis(self, plot_data, **kwargs):
         """Test that EA data can be plotted on the y-axis."""
-        _plot(plot_data, x="Numeric", y="Data", **kwargs)
+        with mpl_cleanup_context():
+            _plot(plot_data, x="Numeric", y="Data", **kwargs)
