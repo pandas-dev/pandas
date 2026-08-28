@@ -61,7 +61,6 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
-    pytest.mark.single_cpu,
 ]
 
 
@@ -621,16 +620,45 @@ def skip_if_no_db(name: str, connect) -> None:
         )
 
 
+def _worker_database(base_name: str) -> str:
+    """
+    Name of the database this pytest-xdist worker should use.
+
+    Every worker talks to the same mysql/postgres server, so on one shared
+    database they would also share a single table namespace.  That is not just a
+    matter of colliding table names: the connectable fixtures below tear down by
+    dropping *every* table and view in the database, which would pull tables out
+    from under a test still running on another worker.  A database per worker
+    isolates them; within a worker tests still run one at a time, so reusing
+    table names there stays fine.  Serial runs use ``base_name`` unchanged.
+
+    GH#60378
+    """
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    return base_name if worker is None else f"{base_name}_{worker}"
+
+
 @pytest.fixture(scope="module")
 def _mysql_pymysql_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
+    connect_args = {"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS}
+    server_url = "mysql+pymysql://root@localhost:3306"
+    database = _worker_database("pandas")
+
+    server = sqlalchemy.create_engine(
+        server_url, connect_args=connect_args, poolclass=sqlalchemy.pool.NullPool
+    )
+    skip_if_no_db("mysql", server.connect)
+    with server.begin() as con:
+        con.exec_driver_sql(f"CREATE DATABASE IF NOT EXISTS {database}")
+    server.dispose()
+
     engine = sqlalchemy.create_engine(
-        "mysql+pymysql://root@localhost:3306/pandas",
-        connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+        f"{server_url}/{database}",
+        connect_args=connect_args,
         poolclass=sqlalchemy.pool.NullPool,
     )
-    skip_if_no_db("mysql", engine.connect)
     yield engine
     engine.dispose()
 
@@ -679,11 +707,28 @@ def mysql_pymysql_conn_types(mysql_pymysql_engine_types):
 def _postgresql_psycopg2_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
-    engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+    server_url = "postgresql+psycopg2://postgres:postgres@localhost:5432"
+    database = _worker_database("pandas")
+
+    # CREATE DATABASE runs neither inside a transaction nor from a connection to
+    # the database being created, so go through "postgres" with autocommit.
+    server = sqlalchemy.create_engine(
+        f"{server_url}/postgres",
         poolclass=sqlalchemy.pool.NullPool,
+        isolation_level="AUTOCOMMIT",
     )
-    skip_if_no_db("postgresql", engine.connect)
+    skip_if_no_db("postgresql", server.connect)
+    with server.begin() as con:
+        exists = con.exec_driver_sql(
+            f"SELECT 1 FROM pg_database WHERE datname = '{database}'"
+        ).scalar()
+        if exists is None:
+            con.exec_driver_sql(f"CREATE DATABASE {database}")
+    server.dispose()
+
+    engine = sqlalchemy.create_engine(
+        f"{server_url}/{database}", poolclass=sqlalchemy.pool.NullPool
+    )
     yield engine
     engine.dispose()
 
@@ -722,9 +767,16 @@ def _postgresql_adbc_uri():
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
-    uri = "postgresql://postgres:postgres@localhost:5432/pandas"
-    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
-    return uri
+    server_uri = "postgresql://postgres:postgres@localhost:5432"
+    database = _worker_database("pandas")
+
+    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(f"{server_uri}/postgres"))
+    with dbapi.connect(f"{server_uri}/postgres", autocommit=True) as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT 1 FROM pg_database WHERE datname = '{database}'")
+            if cur.fetchone() is None:
+                cur.execute(f"CREATE DATABASE {database}")
+    return f"{server_uri}/{database}"
 
 
 @pytest.fixture
