@@ -25,8 +25,6 @@ from pandas.tseries.offsets import (
     YearEnd,
 )
 
-_US_EASTERN = ZoneInfo("US/Eastern")
-
 _ANCHORS = [
     *((klass, {}) for klass in (MonthBegin, MonthEnd, BMonthBegin, BMonthEnd)),
     *(
@@ -55,7 +53,7 @@ def offset_cases(request):
     [
         datetime(1900, 1, 1),
         datetime(1900, 1, 1, tzinfo=UTC),
-        datetime(1900, 1, 1, tzinfo=_US_EASTERN),
+        datetime(1900, 1, 1, tzinfo=ZoneInfo("US/Eastern")),
         datetime(1900, 1, 1, tzinfo=ZoneInfo("Africa/Kinshasa")),
     ],
 )
