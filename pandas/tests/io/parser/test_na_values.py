@@ -11,10 +11,10 @@ import pytest
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import (
-    get_option,
     DataFrame,
     Index,
     MultiIndex,
+    get_option,
 )
 import pandas._testing as tm
 
