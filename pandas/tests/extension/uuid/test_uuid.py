@@ -57,7 +57,7 @@ class UuidDtype(ExtensionDtype):
     def _get_plot_converter(cls):
         from matplotlib.category import StrCategoryConverter
 
-        class UuidCategoryConverter(StrCategoryConverter):
+        class UuidConverter(StrCategoryConverter):
             @staticmethod
             def convert(value, unit, axis):
                 if isinstance(value, UUID):
@@ -78,7 +78,7 @@ class UuidDtype(ExtensionDtype):
                     )
                 return StrCategoryConverter.default_units(data, axis)
 
-        return [(cls.type, UuidCategoryConverter)]
+        return [(cls.type, UuidConverter)]
 
 
 class UuidExtensionArray(ExtensionArray):
