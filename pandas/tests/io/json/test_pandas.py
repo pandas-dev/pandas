@@ -2440,6 +2440,20 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.Int64Dtype(),
+            pd.CategoricalDtype(["a"]),
+            pd.DatetimeTZDtype("ns", "UTC"),
+        ],
+    )
+    def test_extension_dtype_to_json_overflow(self, dtype):
+        # GH#61170
+        msg = "Maximum recursion level reached"
+        with pytest.raises(OverflowError, match=msg):
+            ujson_dumps(dtype)
+
+    @pytest.mark.parametrize(
         "data,expected",
         [
             (

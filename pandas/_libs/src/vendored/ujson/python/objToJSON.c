@@ -60,6 +60,7 @@ typedef const char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
 
 int object_is_decimal_type(PyObject *obj);
 int object_is_datetimetz_dtype(PyObject *dtype);
+int object_is_extension_dtype(PyObject *dtype);
 int object_is_dataframe_type(PyObject *obj);
 int object_is_series_type(PyObject *obj);
 int object_is_index_type(PyObject *obj);
@@ -1810,6 +1811,9 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     pc->PyTypeToUTF8 = PyUnicodeToUTF8;
     tc->type = JT_UTF8;
     return;
+  } else if (object_is_extension_dtype(obj)) {
+    PyErr_SetString(PyExc_OverflowError, "Maximum recursion level reached");
+    goto INVALID;
   } else if (PyArray_DescrCheck(obj)) {
     pc->PyTypeToUTF8 = PyArrayDescrToUTF8Callback;
     tc->type = JT_UTF8;
