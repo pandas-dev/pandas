@@ -1644,8 +1644,8 @@ default 'raise'
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
-        iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="UInt32"
+        iso_calendar_df = DataFrame(sarray, columns=["year", "week", "day"]).astype(
+            {"year": "Int32", "week": "UInt32", "day": "UInt32"}
         )
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
