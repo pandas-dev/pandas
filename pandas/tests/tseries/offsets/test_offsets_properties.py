@@ -25,6 +25,8 @@ from pandas.tseries.offsets import (
     YearEnd,
 )
 
+_US_EASTERN = ZoneInfo("US/Eastern")
+
 _ANCHORS = [
     *((klass, {}) for klass in (MonthBegin, MonthEnd, BMonthBegin, BMonthEnd)),
     *(
@@ -53,20 +55,27 @@ def offset_cases(request):
     [
         datetime(1900, 1, 1),
         datetime(1900, 1, 1, tzinfo=UTC),
-        pytest.param(
-            datetime(1900, 1, 1, tzinfo=ZoneInfo("US/Eastern")),
-            marks=pytest.mark.skipif(
-                not IS64,
-                reason=(
-                    "stdlib datetime.fromtimestamp fails on 32-bit platforms with "
-                    "overflow"
-                ),
-            ),
-        ),
+        datetime(1900, 1, 1, tzinfo=_US_EASTERN),
         datetime(1900, 1, 1, tzinfo=ZoneInfo("Africa/Kinshasa")),
     ],
 )
-def test_on_offset_implementations(dt, offset_cases):
+def test_on_offset_implementations(dt, offset_cases, request):
+    if (
+        not IS64
+        and dt.tzinfo is not None
+        and offset_cases.is_on_offset(dt)
+        and pd.Timestamp(dt).utcoffset() != dt.utcoffset()
+    ):
+        request.applymarker(
+            pytest.mark.xfail(
+                reason=(
+                    "ZoneInfo.utcoffset resolves pre-1901 US/Eastern to LMT rather "
+                    "than EST on 32-bit platforms, since the 1883 transition is "
+                    "below the signed 32-bit time_t floor"
+                )
+            )
+        )
+
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
