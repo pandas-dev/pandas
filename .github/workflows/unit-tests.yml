@@ -150,6 +150,13 @@ jobs:
       uses: ./.github/actions/setup-pixi
       with:
         environment: ${{ matrix.environment }}
+        run-install: ${{ matrix.environment == 'pyarrow-nightly' && 'false' || 'true' }}
+
+    - name: Install PyArrow Nightly
+      if: ${{ matrix.environment == 'pyarrow-nightly' }}
+      run: |
+        pixi update -e pyarrow-nightly pyarrow
+        pixi install -e pyarrow-nightly
 
     - name: Build pandas
       id: build

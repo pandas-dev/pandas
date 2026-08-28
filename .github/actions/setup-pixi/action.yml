@@ -4,6 +4,10 @@ inputs:
   environment:
     description: Pixi environment name in pyproject.toml to use.
     required: true
+  run-install:
+    description: Whether to install the pandas workspace or only install pixi
+    required: false
+    default: true
 runs:
   using: composite
   steps:
@@ -13,6 +17,7 @@ runs:
         pixi-version: v0.76.2
         log-level: vv
         manifest-path: pixi.toml
+        run-install: ${{ inputs.run-install }}
         environments: ${{ inputs.environment }}
         cache: true
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
