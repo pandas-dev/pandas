@@ -288,7 +288,9 @@ class RangeIndex(Index):
 
         The constructed array is saved in ``_cache``.
         """
-        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
+        data = np.arange(self.start, self.stop, self.step, dtype=np.int64)
+        data.flags.writeable = False
+        return data
 
     def _get_data_as_items(self) -> list[tuple[str, int]]:
         """return a list of tuples of start, stop, step"""

@@ -948,3 +948,17 @@ def test_searchsorted(side, value):
         assert result == expected
     else:
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_rangeindex_data_is_immutable():
+    # GH#67055 - RangeIndex._data should not be modifiable from outside
+    idx = RangeIndex(3)
+    data = idx._data
+
+    with pytest.raises(ValueError, match="read-only"):
+        data[0] = 99
+
+    # Also verify that Series created from a RangeIndex cannot corrupt it
+    ser = pd.Series(idx)
+    ser.iloc[0] = 99
+    tm.assert_index_equal(idx, RangeIndex(3))
