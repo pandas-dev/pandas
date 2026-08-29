@@ -23,12 +23,14 @@ def ser():
     ],
 )
 def test_filter_mask(ser, mask):
+    # GH#61317
     result = ser.filter(mask)
     expected = ser.iloc[1:]
     tm.assert_series_equal(result, expected)
 
 
 def test_filter_mask_series_aligns(ser):
+    # GH#61317
     mask = Series([True, True, False], index=["z", "y", "x"])
     result = ser.filter(mask)
     expected = ser.iloc[1:]
@@ -36,18 +38,21 @@ def test_filter_mask_series_aligns(ser):
 
 
 def test_filter_expression_raises(ser):
+    # GH#61317
     msg = "Expressions such as pd.col\\(...\\) are only supported by DataFrame.filter"
     with pytest.raises(TypeError, match=msg):
         ser.filter(pd.col("a") > 1)
 
 
 def test_filter_callable_must_return_mask(ser):
+    # GH#61317
     msg = "The callable passed to Series.filter must evaluate to a boolean mask"
     with pytest.raises(TypeError, match=msg):
         ser.filter(lambda ser: ["x"])
 
 
 def test_filter_mask_2d_raises(ser):
+    # GH#61317
     msg = "The mask passed to Series.filter must be one-dimensional"
     with pytest.raises(ValueError, match=msg):
         ser.filter(ser.to_frame() > 1)
@@ -61,6 +66,7 @@ def test_filter_mask_2d_raises(ser):
     ],
 )
 def test_filter_mask_na(ser, mask):
+    # GH#61317
     result = ser.filter(mask)
     expected = ser.iloc[[0]]
     tm.assert_series_equal(result, expected)
@@ -78,6 +84,7 @@ def test_filter_mask_na(ser, mask):
 
 
 def test_filter_bool_labels_deprecated():
+    # GH#61317
     ser = Series([1, 2, 3], index=[True, False, "c"])
     msg = (
         "Series.filter with boolean values currently selects the labels True "
@@ -110,6 +117,7 @@ def test_filter_bool_labels_deprecated():
     ],
 )
 def test_filter_labels_deprecated(ser, kwargs, hint):
+    # GH#61317
     msg = (
         "Passing labels, `like`, or `regex` to Series.filter is deprecated and "
         "will be removed in a future version; filter will only accept a boolean "

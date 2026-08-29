@@ -201,12 +201,14 @@ def df():
     ],
 )
 def test_filter_mask_rows(df, mask):
+    # GH#61317
     result = df.filter(mask)
     expected = df.iloc[1:]
     tm.assert_frame_equal(result, expected)
 
 
 def test_filter_mask_series_aligns(df):
+    # GH#61317
     mask = pd.Series([True, True, False], index=["z", "y", "x"])
     result = df.filter(mask)
     expected = df.iloc[1:]
@@ -214,6 +216,7 @@ def test_filter_mask_series_aligns(df):
 
 
 def test_filter_mask_series_unalignable(df):
+    # GH#61317
     mask = pd.Series([True, True, False], index=["z", "y", "w"])
     msg = (
         "Unalignable boolean Series provided as indexer \\(index of the boolean "
@@ -224,6 +227,7 @@ def test_filter_mask_series_unalignable(df):
 
 
 def test_filter_mask_wrong_length(df):
+    # GH#61317
     msg = "Boolean index has wrong length: 2 instead of 3"
     with pytest.raises(IndexError, match=msg):
         df.filter(np.array([True, False]))
@@ -231,24 +235,28 @@ def test_filter_mask_wrong_length(df):
 
 @pytest.mark.parametrize("axis", [1, "columns"])
 def test_filter_mask_columns(df, axis):
+    # GH#61317
     result = df.filter([False, True], axis=axis)
     expected = df[["b"]]
     tm.assert_frame_equal(result, expected)
 
 
 def test_filter_mask_2d_raises(df):
+    # GH#61317
     msg = "The mask passed to DataFrame.filter must be one-dimensional"
     with pytest.raises(ValueError, match=msg):
         df.filter(df > 1)
 
 
 def test_filter_callable_must_return_mask(df):
+    # GH#61317
     msg = "The callable passed to DataFrame.filter must evaluate to a boolean mask"
     with pytest.raises(TypeError, match=msg):
         df.filter(lambda df: ["a"])
 
 
 def test_filter_expression_must_return_mask(df):
+    # GH#61317
     msg = "The expression passed to DataFrame.filter must evaluate to a boolean mask"
     with pytest.raises(TypeError, match=msg):
         df.filter(pd.col("a"))
@@ -264,6 +272,7 @@ def test_filter_expression_must_return_mask(df):
     ],
 )
 def test_filter_mask_na(df, mask):
+    # GH#61317
     # missing values are treated as False by default, matching df[mask]
     result = df.filter(mask)
     expected = df.iloc[[0]]
@@ -282,6 +291,7 @@ def test_filter_mask_na(df, mask):
 
 
 def test_filter_mask_pyarrow_na(df):
+    # GH#61317
     pytest.importorskip("pyarrow")
     mask = pd.array([True, None, False], dtype="bool[pyarrow]")
     msg = "The mask contains missing values"
@@ -296,6 +306,7 @@ def test_filter_mask_pyarrow_na(df):
 
 
 def test_filter_invalid_na(df):
+    # GH#61317
     msg = "na must be 'raise', True, or False, got 'ignore'"
     with pytest.raises(ValueError, match=msg):
         df.filter([True, False, True], na="ignore")
@@ -311,6 +322,7 @@ def test_filter_invalid_na(df):
     ],
 )
 def test_filter_bool_labels_deprecated(mask):
+    # GH#61317
     # Boolean values on an axis with boolean labels keep selecting
     # labels until the deprecation is enforced.
     df = DataFrame({True: [1], False: [2], "c": [3]})
@@ -337,6 +349,7 @@ def test_filter_bool_labels_deprecated(mask):
 
 
 def test_filter_bool_list_int_labels_is_mask():
+    # GH#61317
     # int labels are not boolean labels, even though True == 1
     df = DataFrame({0: [1], 1: [2]})
     result = df.filter([True, False], axis=1)
@@ -375,6 +388,7 @@ def test_filter_bool_list_int_labels_is_mask():
     ],
 )
 def test_filter_labels_deprecated(df, kwargs, hint):
+    # GH#61317
     msg = (
         "Passing labels, `like`, or `regex` to DataFrame.filter is deprecated and "
         "will be removed in a future version; filter will only accept a boolean "
@@ -390,6 +404,7 @@ def test_filter_labels_deprecated(df, kwargs, hint):
 
 
 def test_filter_mask_default_axis_is_index(df):
+    # GH#61317
     # unlike the deprecated label-based usage, a mask defaults to the index
     result = df.filter([True, False, True])
     expected = df.iloc[[0, 2]]
