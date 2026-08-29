@@ -317,6 +317,68 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
+    def tz_convert(self, tz) -> Series:
+        """
+        Convert tz-aware Series from one time zone to another.
+
+        This method converts each timestamp in a Series to the target time zone
+        while preserving the underlying UTC time. The Series must already be
+        timezone-aware.
+
+        Parameters
+        ----------
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+            Time zone for time. Corresponding timestamps would be converted
+            to this time zone. A `tz` of None will convert to UTC and remove
+            the timezone information.
+
+        Returns
+        -------
+        Series
+            Series with target `tz`.
+
+        Raises
+        ------
+        TypeError
+            If the Series is tz-naive.
+
+        See Also
+        --------
+        Series.dt.tz : Return the timezone.
+        Series.dt.tz_localize : Localize tz-naive values to a time zone, or
+            remove the time zone from tz-aware values.
+
+        Examples
+        --------
+        >>> s = pd.Series(
+        ...     pd.date_range(
+        ...         start="2014-08-01 09:00",
+        ...         freq="h",
+        ...         periods=3,
+        ...         tz="Europe/Berlin",
+        ...     )
+        ... )
+        >>> s
+        0   2014-08-01 09:00:00+02:00
+        1   2014-08-01 10:00:00+02:00
+        2   2014-08-01 11:00:00+02:00
+        dtype: datetime64[us, Europe/Berlin]
+
+        >>> s.dt.tz_convert("US/Central")
+        0   2014-08-01 02:00:00-05:00
+        1   2014-08-01 03:00:00-05:00
+        2   2014-08-01 04:00:00-05:00
+        dtype: datetime64[us, US/Central]
+
+        With ``tz=None``, the timezone is removed after converting to UTC:
+
+        >>> s.dt.tz_convert(None)
+        0   2014-08-01 07:00:00
+        1   2014-08-01 08:00:00
+        2   2014-08-01 09:00:00
+        dtype: datetime64[us]
+        """  # noqa: E501
+        return self._delegate_method("tz_convert", tz)
     def to_pydatetime(self) -> Series:
         """
         Return the data as a Series of :class:`datetime.datetime` objects.
