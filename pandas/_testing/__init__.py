@@ -8,7 +8,7 @@ from sys import byteorder
 import threading
 from typing import (
     TYPE_CHECKING,
-    ContextManager,
+    Any,
 )
 
 import numpy as np
@@ -83,12 +83,19 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import (
+        Callable,
+        Iterable,
+        Sequence,
+    )
+    from contextlib import AbstractContextManager
 
     from pandas._typing import (
         Dtype,
         NpDtype,
     )
+
+    from pandas.core.arrays import ExtensionArray
 
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
@@ -271,7 +278,7 @@ comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "
 # Comparators
 
 
-def box_expected(expected, box_cls, transpose: bool = True):
+def box_expected(expected: Any, box_cls: Any, transpose: bool = True) -> Any:
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -312,7 +319,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
     return expected
 
 
-def to_array(obj):
+def to_array(obj: Any) -> ExtensionArray | np.ndarray:
     """
     Similar to pd.array, but does not cast numpy dtypes to nullable dtypes.
     """
@@ -329,7 +336,7 @@ class SubclassedSeries(Series):
     _metadata = ["testattr", "name"]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable:  # type: ignore[override]
         # For testing, those properties return a generic callable, and not
         # the actual class. In this case that is equivalent, but it is to
         # ensure we don't rely on the property returning a class
@@ -338,7 +345,7 @@ class SubclassedSeries(Series):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
-    def _constructor_expanddim(self):
+    def _constructor_expanddim(self) -> Callable:
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
 
@@ -346,12 +353,12 @@ class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):  # type: ignore[override]
+    def _constructor_sliced(self) -> Callable:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -375,7 +382,9 @@ def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
     return sep.join(rows_list) + sep
 
 
-def external_error_raised(expected_exception: type[Exception]) -> ContextManager:
+def external_error_raised(
+    expected_exception: type[Exception],
+) -> AbstractContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -394,7 +403,10 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-def get_cython_table_params(ndframe, func_names_and_expected):
+def get_cython_table_params(
+    ndframe: DataFrame | Series,
+    func_names_and_expected: Iterable[Sequence[Any]],
+) -> list[tuple[DataFrame | Series, str, Any]]:
     """
     Combine frame, functions from com._cython_table
     keys and expected result.
@@ -446,27 +458,27 @@ def get_op_from_name(op_name: str) -> Callable:
 # Indexing test helpers
 
 
-def getitem(x):
+def getitem(x: Any) -> Any:
     return x
 
 
-def setitem(x):
+def setitem(x: Any) -> Any:
     return x
 
 
-def loc(x):
+def loc(x: Any) -> Any:
     return x.loc
 
 
-def iloc(x):
+def iloc(x: Any) -> Any:
     return x.iloc
 
 
-def at(x):
+def at(x: Any) -> Any:
     return x.at
 
 
-def iat(x):
+def iat(x: Any) -> Any:
     return x.iat
 
 
@@ -484,7 +496,22 @@ def get_finest_unit(left: str, right: str) -> str:
     return right
 
 
-def shares_memory(left, right) -> bool:
+def _pa_buffer_addresses(pa_data: pa.ChunkedArray) -> set[int]:
+    """
+    Addresses of the non-empty buffers backing a pyarrow ChunkedArray.
+
+    Zero-length buffers are excluded because distinct empty arrays can be
+    handed out the same address, which would look like sharing.
+    """
+    return {
+        buf.address
+        for chunk in pa_data.iterchunks()
+        for buf in chunk.buffers()
+        if buf is not None and buf.size > 0
+    }
+
+
+def shares_memory(left: Any, right: Any) -> bool:
     """
     Pandas-compat for np.shares_memory.
     """
@@ -497,7 +524,7 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, RangeIndex):
         return False
     if isinstance(left, MultiIndex):
-        return shares_memory(left._codes, right)
+        return any(shares_memory(codes, right) for codes in left._codes)
     if isinstance(left, (Index, Series)):
         if isinstance(right, (Index, Series)):
             return shares_memory(left._values, right._values)
@@ -513,22 +540,22 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, ArrowExtensionArray):
         if isinstance(right, ArrowExtensionArray):
             # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-            left_pa_data = left._pa_array
-            right_pa_data = right._pa_array
-            left_buf1 = left_pa_data.chunk(0).buffers()[1]
-            right_buf1 = right_pa_data.chunk(0).buffers()[1]
-            return left_buf1.address == right_buf1.address
+            left_addrs = _pa_buffer_addresses(left._pa_array)
+            right_addrs = _pa_buffer_addresses(right._pa_array)
+            return not left_addrs.isdisjoint(right_addrs)
         else:
             # if we have one ArrowExtensionArray and one other array, assume
             # they can only share memory if they share the same numpy buffer
             return np.shares_memory(left, right)
 
-    if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
+    if isinstance(left, BaseMaskedArray):
         # By convention, we'll say these share memory if they share *either*
         #  the _data or the _mask
-        return np.shares_memory(left._data, right._data) or np.shares_memory(
-            left._mask, right._mask
-        )
+        if isinstance(right, BaseMaskedArray):
+            return shares_memory(left._data, right._data) or shares_memory(
+                left._mask, right._mask
+            )
+        return shares_memory(left._data, right) or shares_memory(left._mask, right)
 
     if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
         arr = left._mgr.blocks[0].values
@@ -537,7 +564,12 @@ def shares_memory(left, right) -> bool:
     raise NotImplementedError(type(left), type(right))
 
 
-def run_multithreaded(closure, max_workers, arguments=None, pass_barrier=False):
+def run_multithreaded(
+    closure: Callable,
+    max_workers: int,
+    arguments: Iterable | None = None,
+    pass_barrier: bool = False,
+) -> None:
     with ThreadPoolExecutor(max_workers=max_workers) as tpe:
         if arguments is None:
             arguments = []

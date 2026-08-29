@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeGuard,
     TypeVar,
     overload,
 )
@@ -184,7 +185,7 @@ def maybe_convert_usecols(usecols: None) -> None: ...
 
 def maybe_convert_usecols(
     usecols: str | list[int] | list[str] | usecols_func | None,
-) -> None | list[int] | list[str] | usecols_func:
+) -> list[int] | list[str] | usecols_func | None:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -213,15 +214,9 @@ def maybe_convert_usecols(
     return usecols
 
 
-@overload
-def validate_freeze_panes(freeze_panes: tuple[int, int]) -> Literal[True]: ...
-
-
-@overload
-def validate_freeze_panes(freeze_panes: None) -> Literal[False]: ...
-
-
-def validate_freeze_panes(freeze_panes: tuple[int, int] | None) -> bool:
+def validate_freeze_panes(
+    freeze_panes: tuple[int, int] | None,
+) -> TypeGuard[tuple[int, int]]:
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes
@@ -285,6 +280,7 @@ def pop_header_name(
         The data row to parse for the header name.
     index_col : int, list
         The index columns for our data. Assumed to be non-null.
+        If a list is passed, the maximum ``index_col`` value is used.
 
     Returns
     -------

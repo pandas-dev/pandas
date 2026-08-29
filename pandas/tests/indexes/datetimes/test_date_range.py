@@ -197,7 +197,7 @@ class TestDateRanges:
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
-        # GH#???
+        # GH#24124
         freq = Timedelta(1)
 
         with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):
@@ -291,7 +291,7 @@ class TestDateRanges:
             [snap + i * offset for i in range(n)], dtype="M8[us]", freq=offset
         )
 
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, check_freq=False)
 
         rng = date_range("1/1/2000 08:15", periods=n, normalize=False, freq="B")
         the_time = time(8, 15)
@@ -388,14 +388,14 @@ class TestDateRanges:
         # GH 20983
         result = date_range(start, end, periods=3, tz=result_tz)
         expected = date_range("20180101", periods=3, freq="D", tz="US/Eastern")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_date_range_timedelta(self):
         start = "2020-01-01"
         end = "2020-01-11"
         rng1 = date_range(start, end, freq="3D")
         rng2 = date_range(start, end, freq=timedelta(days=3))
-        tm.assert_index_equal(rng1, rng2)
+        tm.assert_index_equal(rng1, rng2, check_freq=False)
 
     def test_range_misspecified(self):
         # GH #1095
@@ -479,6 +479,23 @@ class TestDateRanges:
         msg = r"Offset <0 \* MonthEnds> did not increment date"
         with pytest.raises(ValueError, match=msg):
             date_range("1/1/2000", "1/1/2001", freq=MonthEnd(0))
+
+    @pytest.mark.parametrize(
+        "freq, periods, expected",
+        [
+            ("W-SUN", 3, ["2019-12-29", "2020-01-05", "2020-01-12"]),
+            ("W-MON", 3, ["2019-12-30", "2020-01-06", "2020-01-13"]),
+            ("ME", 2, ["2019-11-30", "2019-12-31"]),
+            ("MS", 2, ["2019-12-01", "2020-01-01"]),
+            ("QS", 2, ["2019-10-01", "2020-01-01"]),
+        ],
+    )
+    def test_date_range_end_off_offset_periods(self, freq, periods, expected):
+        # GH#64834 with end not on the offset, deriving start from
+        # (end, periods) dropped a period for anchored offsets
+        result = date_range(end="2020-01-15", periods=periods, freq=freq)
+        expected = DatetimeIndex(expected, freq=freq)
+        tm.assert_index_equal(result, expected)
 
     def test_range_bug(self, unit):
         # GH #770
@@ -728,7 +745,7 @@ class TestDateRanges:
         tm.assert_index_equal(result, expected)
 
     def test_range_where_start_equal_end(self, inclusive_endpoints_fixture):
-        # GH 43394
+        # GH#43394, GH#55293
         start = "2021-09-02"
         end = "2021-09-02"
         result = date_range(
@@ -736,11 +753,30 @@ class TestDateRanges:
         )
 
         both_range = date_range(start=start, end=end, freq="D", inclusive="both")
-        if inclusive_endpoints_fixture == "neither":
-            expected = both_range[1:-1]
-        elif inclusive_endpoints_fixture in ("left", "right", "both"):
+        if inclusive_endpoints_fixture == "both":
             expected = both_range[:]
+        else:
+            # (a, a], [a, a), and (a, a) are all empty
+            expected = both_range[1:-1]
 
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2021-09-02"]),
+            ("left", []),
+            ("right", []),
+            ("neither", []),
+        ],
+    )
+    def test_start_equal_end_inclusive(self, inclusive, expected_values):
+        # GH#55293 - when start == end, only inclusive="both" should
+        # return the singleton; left, right, and neither should all be empty
+        result = date_range(
+            start="2021-09-02", end="2021-09-02", freq="D", inclusive=inclusive
+        )
+        expected = DatetimeIndex(expected_values, dtype="datetime64[us]", freq="D")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -794,7 +830,7 @@ class TestDateRanges:
             ],
             name="a",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize("freq", ["2T", "2L", "1l", "1U", "2N", "2n"])
     def test_frequency_H_T_S_L_U_N_raises(self, freq):
@@ -907,7 +943,7 @@ class TestDateRangeTZ:
         tm.assert_index_equal(rng, rng2)
 
         rng3 = date_range("3/11/2012 05:00:00+07:00", "6/11/2012 05:00:00+07:00")
-        assert (rng.values == rng3.values).all()
+        assert (rng._values == rng3._values).all()
 
     def test_date_range_with_fixedoffset_noname(self):
         off = fixed_off_no_name
@@ -1055,6 +1091,37 @@ class TestGenRangeGeneration:
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            offsets.LastWeekOfMonth(1),
+            offsets.FY5253(1),
+        ],
+    )
+    def test_generate_range_periods1_no_n0_error(self, freq):
+        # GH#41563 - offsets that disallow n=0 should not raise
+        # when periods=1 (which computes 0 * offset internally)
+        result = date_range("2018-04-01", periods=1, freq=freq)
+        assert len(result) == 1
+
+    @pytest.mark.parametrize(
+        "freq",
+        ["MS", "QS", "W-SUN", "ME", offsets.LastWeekOfMonth(1), offsets.FY5253(1)],
+    )
+    @pytest.mark.parametrize("periods", [1, 2, 3])
+    def test_generate_range_end_off_offset(self, freq, periods):
+        # GH#64834/GH#65011 with only end + periods, an off-offset end is rolled
+        # onto the grid (like start), so the result has the requested length and
+        # stays a valid index; previously periods=1 gave an off-grid Timestamp
+        # with freq still pinned (an invalid index) and periods>1 gave the wrong
+        # count.
+        end = Timestamp("2018-04-17")  # a Tuesday: off every freq above
+        result = date_range(end=end, periods=periods, freq=freq)
+
+        assert len(result) == periods
+        # round-trip re-pins the freq; raises if any value is off-grid
+        tm.assert_index_equal(DatetimeIndex(list(result), freq=freq), result)
+
     dt1, dt2 = "2017-01-01", "2017-01-01"
     tz1, tz2 = "US/Eastern", "Europe/London"
 
@@ -1122,7 +1189,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        assert rng2._data.freq == BDay()
+        assert rng2.freq == BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -1136,7 +1203,7 @@ class TestBusinessDateRange:
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
         expected = date_range(bday_start, bday_end, freq="D")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
         # Note: we do _not_ expect the freqs to match here
 
     def test_bday_near_overflow(self):
@@ -1153,8 +1220,89 @@ class TestBusinessDateRange:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(start, periods=2, freq="B", unit="ns")
 
+    def test_bdate_range_end_weekend_periods(self):
+        # GH#64834
+        result = bdate_range(end="2026-03-21", periods=3)
+        expected = DatetimeIndex(["2026-03-18", "2026-03-19", "2026-03-20"])
+        tm.assert_index_equal(result, expected, check_freq=False)
+
+        result = bdate_range(end="2026-03-22", periods=3)
+        tm.assert_index_equal(result, expected, check_freq=False)
+
+    @pytest.mark.parametrize("end", ["2026-03-20", "2026-03-21", "2026-03-22"])
+    def test_bdate_range_end_periods_multiple_n(self, end):
+        # GH#64648 (post-merge): with end+periods and freq="nB" (n>=2),
+        # the on-offset stride must be anchored at the end (last business
+        # day <= end), not at the start of the internal buffer.
+        result = bdate_range(end=end, periods=3, freq="2B")
+        expected = DatetimeIndex(["2026-03-16", "2026-03-18", "2026-03-20"])
+        tm.assert_index_equal(result, expected, check_freq=False)
+
+        result = bdate_range(end=end, periods=3, freq="3B")
+        expected = DatetimeIndex(["2026-03-12", "2026-03-17", "2026-03-20"])
+        tm.assert_index_equal(result, expected, check_freq=False)
+
+    @pytest.mark.parametrize("freq", ["B", "C", "2B", "2C"])
+    def test_date_range_business_freq_start_end_time_of_day(self, freq):
+        # GH#64648 (post-merge): the business-day fast path must apply the
+        # GH#35342/GH#64790 time-of-day fix -- when end's time-of-day is
+        # earlier than start's, the last on-offset date must not be excluded.
+        result = date_range("2024-01-01 09:00", "2024-01-09 08:00", freq=freq)
+        # identical to giving end the same time-of-day as start (no boundary lost)
+        expected = date_range("2024-01-01 09:00", "2024-01-09 09:00", freq=freq)
+        tm.assert_index_equal(result, expected)
+        assert result[-1] == Timestamp("2024-01-09 09:00")
+
+    def test_date_range_business_start_end_near_timestamp_max(self):
+        # GH#64648 (post-merge): the GH#64790 time-of-day fix must not raise
+        # OutOfBoundsDatetime when start is a business day with time-of-day
+        # within one offset step of Timestamp.max (2262-04-11 is a Friday)
+        start = Timestamp("2262-04-11 10:00").as_unit("ns")
+        end = Timestamp("2262-04-11 15:00").as_unit("ns")
+        result = date_range(start, end, freq="B")
+        expected = DatetimeIndex([start], freq="B")
+        tm.assert_index_equal(result, expected)
+
+        # aligning end to start's time-of-day would exceed Timestamp.max; the
+        # unrepresentable boundary element is excluded, not raised on
+        start = Timestamp("2262-04-10 23:59:59.999999").as_unit("ns")
+        end = Timestamp("2262-04-11 01:00").as_unit("ns")
+        result = date_range(start, end, freq="B")
+        expected = DatetimeIndex([start], freq="B")
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDateRange:
+    def test_cdate_range_periods_holidays_starve_buffer(self):
+        # GH#64648 (post-merge): with periods and a CustomBusinessDay whose
+        # holidays blank out whole weeks, the fast path must still return
+        # exactly `periods` business days -- previously a fixed calendar-day
+        # buffer held too few on-offset days and the result was silently short.
+        holidays = list(date_range("2024-01-01", "2024-02-29"))
+        cday = CDay(holidays=holidays)
+
+        result = date_range(start="2024-01-01", periods=6, freq=cday)
+        expected = DatetimeIndex(
+            [
+                "2024-03-01",
+                "2024-03-04",
+                "2024-03-05",
+                "2024-03-06",
+                "2024-03-07",
+                "2024-03-08",
+            ],
+            freq=cday,
+        )
+        tm.assert_index_equal(result, expected)
+
+        holidays = list(date_range("2024-01-15", "2024-03-13"))
+        cday = CDay(holidays=holidays)
+        result = bdate_range(end="2024-03-15", periods=4, freq=cday)
+        expected = DatetimeIndex(
+            ["2024-01-11", "2024-01-12", "2024-03-14", "2024-03-15"], freq=cday
+        )
+        tm.assert_index_equal(result, expected)
+
     def test_constructor(self):
         bdate_range(START, END, freq=CDay())
         bdate_range(START, periods=20, freq=CDay())
@@ -1180,7 +1328,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        assert rng2._data.freq == CDay()
+        assert rng2.freq == CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -1308,7 +1456,7 @@ class TestCustomDateRange:
     def test_range_with_timezone_and_custombusinessday(self, start, period, expected):
         # GH49441
         result = date_range(start=start, periods=period, freq="C")
-        expected = DatetimeIndex(expected).as_unit("us")
+        expected = DatetimeIndex(expected, freq="C").as_unit("us")
         tm.assert_index_equal(result, expected)
 
     def test_data_range_custombusinessday_partial_time(self, unit):
@@ -1326,6 +1474,7 @@ class TestCustomDateRange:
                 "2024-02-13 23:00:00",
             ],
             dtype=f"M8[{unit}]",
+            freq=offset,
         )
         tm.assert_index_equal(result, expected)
 
@@ -1352,7 +1501,7 @@ class TestCustomDateRange:
             dtype="datetime64[us]",
             freq="cbh",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_cdaterange_deprecated_error_CBH(self):
         # GH#62849
@@ -1422,7 +1571,7 @@ class TestDateRangeNonNano:
 
         exp = np.arange(
             start.astype("M8[s]").view("i8"),
-            (end + 1).astype("M8[s]").view("i8"),
+            (end + np.timedelta64(1, "D")).astype("M8[s]").view("i8"),
             24 * 3600,
         ).view("M8[s]")
 
@@ -1846,7 +1995,7 @@ class TestDateRangeNonTickFreq:
         expected = date_range(
             "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
         ).tz_localize(tz, nonexistent="shift_forward")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize(
         "freq, start, end, expected_dates",

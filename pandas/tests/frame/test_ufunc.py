@@ -97,6 +97,21 @@ def test_ufunc_passes_args(func, arg, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_binary_ufunc_out_pandas_object():
+    # GH#43190 passing a DataFrame as the ufunc `out` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of writing the result.
+    a = pd.DataFrame([[1, 2]])
+    b = pd.DataFrame([[3, 4]])
+    out = pd.DataFrame([[0, 0]])
+
+    result = np.fmin(a, b, out=out)
+
+    expected = pd.DataFrame([[1, 2]])
+    tm.assert_frame_equal(result, expected)
+    # the result is also written into `out` in place
+    tm.assert_frame_equal(out, expected)
+
+
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):

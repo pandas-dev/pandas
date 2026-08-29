@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword:pandas.errors.Pandas4Warning")
 @pytest.mark.parametrize(
     "func",
     [

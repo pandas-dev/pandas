@@ -1,7 +1,3 @@
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -89,6 +85,107 @@ class TestTimestampRound:
         stamp = Timestamp("2000-01-05 05:09:15.13")
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             stamp.round("foo")
+
+    @pytest.mark.parametrize(
+        "timestamp,frequency,expected_ceil,expected_round,expected_floor",
+        [
+            (
+                Timestamp("20130101 09:10:11"),
+                Timedelta("1 day"),
+                Timestamp("20130102"),
+                Timestamp("20130101"),
+                Timestamp("20130101"),
+            ),
+            (
+                Timestamp("20130101 19:10:11"),
+                Timedelta("1 day"),
+                Timestamp("20130102"),
+                Timestamp("20130102"),
+                Timestamp("20130101"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 day"),
+                Timestamp("2000-01-06 00:00:00"),
+                Timestamp("2000-01-05 00:00:00"),
+                Timestamp("2000-01-05 00:00:00"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 hour"),
+                Timestamp("2000-01-05 06:00:00"),
+                Timestamp("2000-01-05 05:00:00"),
+                Timestamp("2000-01-05 05:00:00"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 second"),
+                Timestamp("2000-01-05 05:09:16"),
+                Timestamp("2000-01-05 05:09:15"),
+                Timestamp("2000-01-05 05:09:15"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 hour 30 min"),
+                Timestamp("2000-01-05 06:00:00"),
+                Timestamp("2000-01-05 04:30:00"),
+                Timestamp("2000-01-05 04:30:00"),
+            ),
+            # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
+            (
+                Timestamp("2117-01-01 00:00:45"),
+                Timedelta("15s"),
+                Timestamp("2117-01-01 00:00:45"),
+                Timestamp("2117-01-01 00:00:45"),
+                Timestamp("2117-01-01 00:00:45"),
+            ),
+            (
+                Timestamp("2117-01-01 00:00:45.000000012"),
+                Timedelta("10ns"),
+                Timestamp("2117-01-01 00:00:45.000000020"),
+                Timestamp("2117-01-01 00:00:45.000000010"),
+                Timestamp("2117-01-01 00:00:45.000000010"),
+            ),
+            (
+                Timestamp("1823-01-01 00:00:01"),
+                Timedelta("1s"),
+                Timestamp("1823-01-01 00:00:01"),
+                Timestamp("1823-01-01 00:00:01"),
+                Timestamp("1823-01-01 00:00:01"),
+            ),
+            (
+                Timestamp("1823-01-01 00:00:01.000000012"),
+                Timedelta("10ns"),
+                Timestamp("1823-01-01 00:00:01.000000020"),
+                Timestamp("1823-01-01 00:00:01.000000010"),
+                Timestamp("1823-01-01 00:00:01.000000010"),
+            ),
+        ],
+    )
+    def test_rounding_with_timedelta_freq(
+        self, timestamp, frequency, expected_ceil, expected_round, expected_floor
+    ):
+        # GH#63687 - Timestamp rounding methods accept Timedelta arguments
+        assert timestamp.ceil(frequency) == expected_ceil
+        assert timestamp.round(frequency) == expected_round
+        assert timestamp.floor(frequency) == expected_floor
+
+    def test_rounding_nat_frequency(self):
+        ts = Timestamp("2000-01-05 05:09:15.13")
+
+        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+            ts.ceil(NaT)
+        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+            ts.floor(NaT)
+        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+            ts.round(NaT)
+
+    def test_rounding_nat_timestamp(self):
+        freq = Timedelta("1s")
+
+        assert NaT.ceil(freq) is NaT
+        assert NaT.floor(freq) is NaT
+        assert NaT.round(freq) is NaT
 
     @pytest.mark.parametrize(
         "test_input, rounder, freq, expected",
@@ -288,17 +385,32 @@ class TestTimestampRound:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.round("s")
 
-    @pytest.mark.slow
-    @given(val=st.integers(iNaT + 1, lib.i8max))
+    @pytest.mark.parametrize(
+        "val",
+        [
+            iNaT + 1,
+            -1,
+            0,
+            1,
+            lib.i8max,
+            10**9 - 1,
+            10**9,
+            10**9 + 1,
+            60 * 10**9 - 1,
+            24 * 3600 * 10**9 - 1,
+            -(10**9 + 1),
+            -(60 * 10**9 - 1),
+            -(24 * 3600 * 10**9 - 1),
+        ],
+    )
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
     def test_round_sanity(self, val, method):
-        cls = Timestamp
         err_cls = OutOfBoundsDatetime
 
         val = np.int64(val)
-        ts = cls(val)
+        ts = Timestamp(val)
 
         def checker(ts, nanos, unit):
             # First check that we do raise in cases where we should
@@ -316,22 +428,22 @@ class TestTimestampRound:
                 if mod == 0:
                     # We should never be raising in this
                     pass
-                elif method is cls.ceil:
-                    if ub > cls.max._value:
+                elif method is Timestamp.ceil:
+                    if ub > Timestamp.max._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                elif method is cls.floor:
-                    if lb < cls.min._value:
+                elif method is Timestamp.floor:
+                    if lb < Timestamp.min._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
                 elif mod >= diff:
-                    if ub > cls.max._value:
+                    if ub > Timestamp.max._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                elif lb < cls.min._value:
+                elif lb < Timestamp.min._value:
                     with pytest.raises(err_cls, match=msg):
                         method(ts, unit)
                     return
@@ -343,11 +455,11 @@ class TestTimestampRound:
             assert diff < nanos
             assert res._value % nanos == 0
 
-            if method is cls.round:
+            if method is Timestamp.round:
                 assert diff <= nanos / 2
-            elif method is cls.floor:
+            elif method is Timestamp.floor:
                 assert res <= ts
-            elif method is cls.ceil:
+            elif method is Timestamp.ceil:
                 assert res >= ts
 
         nanos = 1

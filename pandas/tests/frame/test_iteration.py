@@ -144,7 +144,7 @@ class TestIteration:
 
     @pytest.mark.parametrize("limit", [254, 255, 1024])
     @pytest.mark.parametrize("index", [True, False])
-    def test_itertuples_py2_3_field_limit_namedtuple(self, limit, index):
+    def test_itertuples_field_limit_namedtuple(self, limit, index):
         # GH#28282
         df = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(limit)}])
         result = next(df.itertuples(index=index))

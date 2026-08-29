@@ -1,7 +1,9 @@
 DAYS: list[str]
+DAYS_FULL: list[str]
 MONTH_ALIASES: dict[int, str]
 MONTH_NUMBERS: dict[str, int]
 MONTHS: list[str]
+MONTHS_FULL: list[str]
 int_to_weekday: dict[int, str]
 
 def get_firstbday(year: int, month: int) -> int: ...

@@ -201,14 +201,14 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     result : ndarray (dtype=np.bool_)
     """
     cdef:
-        Py_ssize_t i, n = arr.size
+        Py_ssize_t _, n = arr.size
         object val
         bint is_null
         ndarray result = np.empty((<object>arr).shape, dtype=np.uint8)
         flatiter it = cnp.PyArray_IterNew(arr)
         flatiter it2 = cnp.PyArray_IterNew(result)
 
-    for i in range(n):
+    for _ in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
@@ -216,6 +216,53 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
         is_null = checknull(val)
         # Dereference pointer (set value)
         (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
+        cnp.PyArray_ITER_NEXT(it2)
+    return result.view(np.bool_)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def isna_string(ndarray[object] arr) -> np.ndarray:
+    """
+    Return boolean mask denoting which elements of a 1-D array are na-like,
+    assuming the array only contains pd.NA or strings (guaranteed by the
+    StringDtype).
+
+    This is a special case version of `isnaobj` above, specialized a subset
+    of possible values.
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray (dtype=np.bool_)
+    """
+    cdef:
+        Py_ssize_t _, n = arr.size
+        object val
+        ndarray result = np.zeros((<object>arr).shape, dtype=np.uint8)
+        flatiter it = cnp.PyArray_IterNew(arr)
+        flatiter it2 = cnp.PyArray_IterNew(result)
+
+    for _ in range(n):
+        # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+        #  equivalents to `val = values[i]`
+        val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
+        cnp.PyArray_ITER_NEXT(it)
+        if val is C_NA:
+            # Dereference pointer (set value)
+            (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = 1
+        elif util.is_nan(val):
+            # 'str' dtype with NaN as its sentinel
+            (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = 1
+        elif not isinstance(val, str):
+            # this should never be reached, but for safety
+            # (and doesn't give much overhead)
+            raise ValueError(
+                f"Array should only contain strings or pd.NA, got {type(val)}"
+            )
         cnp.PyArray_ITER_NEXT(it2)
     return result.view(np.bool_)
 

@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -116,6 +117,23 @@ def test_count_end_of_string(any_string_dtype):
     ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
     result = ser.str.count(r"bar\\Z")
     expected = Series([1, 0, 0, 0], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_count_compiled_pattern_with_flags(any_string_dtype):
+    # GH#63705 flags on a compiled pattern must not be dropped
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = Series(["Apple pie apple", "apple", "APPLE"], dtype=any_string_dtype)
+    result = ser.str.count(re.compile("apple", re.IGNORECASE))
+    expected = Series([2, 1, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series(["a\nb", "ab", "axb"], dtype=any_string_dtype)
+    result = ser.str.count(re.compile("a.b", re.DOTALL))
+    expected = Series([1, 0, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -677,7 +695,8 @@ def test_encode_errors_kwarg(any_string_dtype):
 
     result = ser.str.encode("cp1252", "ignore")
     expected = ser.map(lambda x: x.encode("cp1252", "ignore"))
-    tm.assert_series_equal(result, expected)
+    # GH#62164 map may retain dtype backend (e.g. binary[pyarrow])
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 def test_decode_errors_kwarg():
@@ -734,6 +753,18 @@ def test_normalize(form, expected, any_string_dtype):
     )
     expected = Series(expected, index=["a", "b", "c", "d", "e"], dtype=any_string_dtype)
     result = ser.str.normalize(form)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, args", [("normalize", ("NFC",)), ("normalize", ("NFKC",)), ("zfill", (5,))]
+)
+def test_str_empty_filter_elementwise_fallback(method, args, any_string_dtype):
+    # GH#64359 an all-False filter leaves an arrow-backed array with zero chunks,
+    #  which the elementwise fallbacks used to rebuild without a type
+    ser = Series(["Café", "éclair"], dtype=any_string_dtype)
+    expected = ser[ser == "zzz"]
+    result = getattr(expected.str, method)(*args)
     tm.assert_series_equal(result, expected)
 
 

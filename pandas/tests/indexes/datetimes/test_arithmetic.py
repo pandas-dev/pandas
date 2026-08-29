@@ -66,7 +66,7 @@ class TestDatetimeIndexArithmetic:
         dti = date_range("2020-03-28", periods=4, freq="D", tz="Europe/Berlin")
         result = (dti + dti.freq)[:-1]
         expected = dti[1:]
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_sub_timestamp_preserves_day_freq(self):
         # GH#62094

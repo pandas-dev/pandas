@@ -1,11 +1,16 @@
 from datetime import timedelta
 from itertools import product
+import re
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas import (
@@ -222,15 +227,89 @@ class TestTimedeltaConstructorUnitKeyword:
         assert td.unit == "ns"
         assert td == Timedelta(45_500, unit="ms")
 
+    @pytest.mark.parametrize("val", [np.inf, -np.inf])
+    def test_float_inf_raises(self, val):
+        # GH#66247 non-finite floats used to raise a bare OverflowError from
+        #  int(item); they should raise OutOfBoundsTimedelta (a ValueError)
+        #  so that errors="coerce" can catch them.
+        msg = "without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta(val)
+
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_timedelta(val)
+
+        assert to_timedelta(val, errors="coerce") is NaT
+
+    def test_round_float_overflow_unit(self):
+        # GH#66247 a round float whose value overflows int64 at the requested
+        #  unit should raise OutOfBoundsTimedelta, not a bare OverflowError
+        #  (the round float is routed through the integer path).
+        msg = "without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta(1e19, unit="s")
+
+        # matching integer behavior
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            Timedelta(10**19, unit="s")
+
 
 def test_construct_from_kwargs_overflow():
     # GH#55503
-    msg = "seconds=86400000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(days=10**6)
-    msg = "seconds=60000000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(minutes=10**9)
+    # Truly out of bounds even at second resolution
+    with pytest.raises(OutOfBoundsTimedelta):
+        Timedelta(days=10**15)
+
+
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        "weeks",
+        "days",
+        "hours",
+        "minutes",
+        "seconds",
+        "milliseconds",
+        "microseconds",
+        "nanoseconds",
+    ],
+)
+@pytest.mark.parametrize("val", [np.inf, -np.inf])
+def test_construct_from_kwargs_inf(kwarg, val):
+    # GH#66823 int() of a non-finite float raised a bare OverflowError, unlike
+    #  the positional path, which gives OutOfBoundsTimedelta
+    with pytest.raises(OutOfBoundsTimedelta, match="Cannot construct Timedelta"):
+        Timedelta(**{kwarg: val})
+
+
+def test_construct_from_kwargs_non_nano():
+    # GH#46587 - kwargs that overflow nanosecond resolution should
+    # fall back to coarser resolutions instead of raising
+    td = Timedelta(days=365 * 1000)
+    assert td.unit == "s"
+    assert td.days == 365_000
+
+    td = Timedelta(days=10**6)
+    assert td.unit == "s"
+    assert td.days == 10**6
+
+    td = Timedelta(minutes=10**9)
+    assert td.unit == "s"
+    assert td.days == 694444
+    assert td.components.hours == 10
+    assert td.components.minutes == 40
+
+    # microseconds kwarg -> us resolution
+    td = Timedelta(days=365 * 1000, microseconds=1)
+    assert td.unit == "us"
+
+    # milliseconds kwarg -> ms resolution
+    td = Timedelta(days=365 * 1000, milliseconds=1)
+    assert td.unit == "ms"
+
+    # nanoseconds kwarg -> ns when it fits
+    td = Timedelta(seconds=1, nanoseconds=1)
+    assert td.unit == "ns"
 
 
 def test_construct_with_weeks_unit_overflow():
@@ -527,7 +606,12 @@ def test_construction_out_of_bounds_td64ns(val, unit):
 
     # Timedelta.max is just under 106752 days
     td64 = np.timedelta64(val, unit)
-    assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
+    if is_numpy_dev or np_version_gt2_5:
+        # numpy now raises instead of silently overflowing
+        with pytest.raises(OverflowError, match="Overflow"):
+            td64.astype("m8[ns]")
+    else:
+        assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
     td = Timedelta(td64)
     if unit != "M":
@@ -540,10 +624,15 @@ def test_construction_out_of_bounds_td64ns(val, unit):
         td.as_unit("ns")
 
     # But just back in bounds and we are OK
-    assert Timedelta(td64 - 1) == td64 - 1
+    one = np.timedelta64(1, unit)
+    assert Timedelta(td64 - one) == td64 - one
 
-    td64 *= -1
-    assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
+    td64 = np.timedelta64(-val, unit)
+    if is_numpy_dev or np_version_gt2_5:
+        with pytest.raises(OverflowError, match="Overflow"):
+            td64.astype("m8[ns]")
+    else:
+        assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
     td2 = Timedelta(td64)
     msg = r"Cannot cast -1067\d\d days .* to unit='ns' without overflow"
@@ -551,7 +640,7 @@ def test_construction_out_of_bounds_td64ns(val, unit):
         td2.as_unit("ns")
 
     # But just back in bounds and we are OK
-    assert Timedelta(td64 + 1) == td64 + 1
+    assert Timedelta(td64 + one) == td64 + one
 
 
 @pytest.mark.parametrize(
@@ -569,7 +658,8 @@ def test_construction_out_of_bounds_td64s(val, unit):
         Timedelta(td64)
 
     # But just back in bounds and we are OK
-    assert Timedelta(td64 - 10**9) == td64 - 10**9
+    offset = np.timedelta64(10**9, unit)
+    assert Timedelta(td64 - offset) == td64 - offset
 
 
 @pytest.mark.parametrize(
@@ -784,3 +874,29 @@ def test_timedelta_resolution_consistent_arg_styles():
     td_keyword = Timedelta(seconds=1 / 128)
     assert td_positional == td_keyword
     assert td_positional.unit == td_keyword.unit
+
+
+@pytest.mark.parametrize(
+    "value, leftover",
+    [
+        ("3:25:00 AM", "AM"),
+        ("3:25:00 pm", "pm"),
+        ("1 days 12:30:00 PM", "PM"),
+        ("3:25:00.5 AM", "AM"),
+        ("3:25:00 foo", "foo"),
+        ("3:25:00xyz", "xyz"),
+        ("3:25:00 A", "A"),
+    ],
+)
+def test_construction_trailing_characters_raises(value, leftover):
+    # GH#18793 trailing characters after hh:mm:ss used to be silently dropped,
+    #  so that "3:25:00 PM" parsed the same as "3:25:00"
+    msg = f"unexpected characters, {leftover}, after hh:mm:ss format, received: {value}"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        Timedelta(value)
+
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        to_timedelta([value])
+
+    result = to_timedelta([value], errors="coerce")
+    tm.assert_index_equal(result, TimedeltaIndex([NaT]))

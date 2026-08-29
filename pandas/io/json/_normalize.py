@@ -10,7 +10,6 @@ import copy
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     overload,
 )
 
@@ -328,11 +327,9 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        String to prefix records with dotted path, e.g. foo.bar.field if
-        meta is ['foo', 'bar'].
+        If not None, prefix meta fields with this string.
     record_prefix : str, default None
-        String to prefix records with dotted path, e.g. foo.bar.field if
-        path to records is ['foo', 'bar'].
+        If not None, prefix record fields with this string.
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
 
@@ -469,6 +466,25 @@ def json_normalize(
     1          2
 
     Returns normalized data with columns prefixed with the given string.
+
+    >>> data = [
+    ...     {
+    ...         "state": "Florida",
+    ...         "shortname": "FL",
+    ...         "info": {"governor": "Rick Scott"},
+    ...         "counties": [{"name": "Dade", "population": 12345}],
+    ...     },
+    ... ]
+    >>> pd.json_normalize(
+    ...     data,
+    ...     "counties",
+    ...     ["state", "shortname", ["info", "governor"]],
+    ...     meta_prefix="meta.",
+    ... )
+       name  population meta.state meta.shortname meta.info.governor
+    0  Dade       12345    Florida             FL         Rick Scott
+
+    Meta fields are prefixed with the given string.
     """
     _validate_meta(meta)
 
@@ -589,7 +605,7 @@ def json_normalize(
     records: list = []
     lengths = []
 
-    meta_vals: DefaultDict = defaultdict(list)
+    meta_vals = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:

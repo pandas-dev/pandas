@@ -35,7 +35,10 @@ from pandas.core.computation import (
 )
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import is_term
+from pandas.core.computation.ops import (
+    ARITH_OPS_SYMS,
+    is_term,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 
@@ -126,6 +129,17 @@ class BinOp(ops.BinOp):
         pass
 
     def prune(self, klass):
+        if self.op in ARITH_OPS_SYMS:
+            # GH#41100: arithmetic in a where-clause is not supported. PyTables
+            # support is in maintenance mode, so rather than grow the query
+            # grammar we raise with a pointer to a working alternative.
+            raise NotImplementedError(
+                "arithmetic operations are not supported inside an HDFStore "
+                "'where' filter; instead store a precomputed column as a "
+                "data_column and query that, or read the data and apply the "
+                "filter in pandas (e.g. df[df['A'] % 3 == 0])."
+            )
+
         def pr(left, right):
             """create and return a new specialized BinOp from myself"""
             if left is None:
@@ -250,7 +264,9 @@ class BinOp(ops.BinOp):
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
-                result = -1
+                # GH#22977 value is not a category; use -2 as a code that
+                # matches no row, unlike -1 which is the code for NaN values.
+                result = -2
             else:
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
@@ -658,8 +674,6 @@ class TermValue:
                 return str(self.converted)
             return f'"{self.converted}"'
         elif self.kind == "float":
-            # python 2 str(float) is not always
-            # round-trippable so use repr()
             return repr(self.converted)
         return str(self.converted)
 

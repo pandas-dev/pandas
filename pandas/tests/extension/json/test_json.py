@@ -91,28 +91,6 @@ class TestJSONArray(base.ExtensionTests):
         # construct from our dtype & string dtype
         super().test_from_dtype(data)
 
-    @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_no_data_with_index(self, dtype, na_value):
-        # RecursionError: maximum recursion depth exceeded in comparison
-        rec_limit = sys.getrecursionlimit()
-        try:
-            # Limit to avoid stack overflow on Windows CI
-            sys.setrecursionlimit(100)
-            super().test_series_constructor_no_data_with_index(dtype, na_value)
-        finally:
-            sys.setrecursionlimit(rec_limit)
-
-    @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
-        # RecursionError: maximum recursion depth exceeded in comparison
-        rec_limit = sys.getrecursionlimit()
-        try:
-            # Limit to avoid stack overflow on Windows CI
-            sys.setrecursionlimit(100)
-            super().test_series_constructor_scalar_na_with_index(dtype, na_value)
-        finally:
-            sys.setrecursionlimit(rec_limit)
-
     @pytest.mark.xfail(reason="collection as scalar, GH-33901")
     def test_series_constructor_scalar_with_index(self, data, dtype):
         # TypeError: All values must be of type <class 'collections.abc.Mapping'>
@@ -138,6 +116,16 @@ class TestJSONArray(base.ExtensionTests):
         # The base test has NaN for the expected NA value.
         # this matches otherwise
         return super().test_unstack(data, index)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_scalar(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_scalar(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_readonly(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_readonly(data_missing)
 
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
@@ -212,14 +200,6 @@ class TestJSONArray(base.ExtensionTests):
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
         super().test_where_series(data, na_value)
-
-    @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_is_monotonic_increasing(self, data_for_sorting):
-        super().test_is_monotonic_increasing(data_for_sorting)
-
-    @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_is_monotonic_decreasing(self, data_for_sorting):
-        super().test_is_monotonic_decreasing(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
@@ -391,12 +371,6 @@ class TestJSONArray(base.ExtensionTests):
     def test_setitem_scalar_key_sequence_raise(self, data):
         super().test_setitem_scalar_key_sequence_raise(data)
 
-    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer, request):
-        if "full_slice" in request.node.name:
-            mark = pytest.mark.xfail(reason="slice is not iterable")
-            request.applymarker(mark)
-        super().test_setitem_with_expansion_dataframe_column(data, full_indexer)
-
     @pytest.mark.xfail(reason="slice is not iterable")
     def test_setitem_frame_2d_values(self, data):
         super().test_setitem_frame_2d_values(data)
@@ -408,10 +382,12 @@ class TestJSONArray(base.ExtensionTests):
     def test_setitem_mask_broadcast(self, data, setter):
         super().test_setitem_mask_broadcast(data, setter)
 
-    @pytest.mark.xfail(
-        reason="cannot set using a slice indexer with a different length"
-    )
-    def test_setitem_slice(self, data, box_in_series):
+    def test_setitem_slice(self, data, box_in_series, request):
+        if box_in_series:
+            mark = pytest.mark.xfail(
+                reason="cannot set using a slice indexer with a different length"
+            )
+            request.applymarker(mark)
         super().test_setitem_slice(data, box_in_series)
 
     @pytest.mark.xfail(reason="slice object is not iterable")
@@ -421,10 +397,6 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="slice object is not iterable")
     def test_setitem_slice_mismatch_length_raises(self, data):
         super().test_setitem_slice_mismatch_length_raises(data)
-
-    @pytest.mark.xfail(reason="slice object is not iterable")
-    def test_setitem_slice_array(self, data):
-        super().test_setitem_slice_array(data)
 
     @pytest.mark.xfail(reason="Fail to raise")
     def test_setitem_invalid(self, data, invalid_scalar):
@@ -444,6 +416,19 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
+
+    @pytest.mark.xfail(
+        raises=AssertionError,
+        reason="JSONArray does not support roundtrip via JSON",
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # JSONArray does not support roundtrip as during JSON serialization each element
+        # of the array is packed into another dictionary ``{"data": element}`` with
+        # element being a dictionary itself, and during deserialization these
+        # dictionaries are not unpacked again, so the JSONArray cannot be reconstructed
+        # with the simple deserialization in the test.
+        super().test_json_roundtrip(data)
 
 
 def custom_assert_series_equal(left, right, *args, **kwargs):

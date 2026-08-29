@@ -45,10 +45,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    maybe_upcast_numeric_to_64bit,
-)
+from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -116,6 +113,10 @@ if TYPE_CHECKING:
 
 IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
 IntervalOrNA: TypeAlias = Interval | float
+
+# Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
+# the result is deterministic across processes (unlike the builtin str hash).
+_CLOSED_HASH_VALUES = {"left": 0, "right": 1, "both": 2, "neither": 3}
 
 
 @set_module("pandas.arrays")
@@ -283,10 +284,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         from pandas.core.indexes.base import ensure_index
 
         left = ensure_index(left, copy=copy)
-        left = maybe_upcast_numeric_to_64bit(left)
 
         right = ensure_index(right, copy=copy)
-        right = maybe_upcast_numeric_to_64bit(right)
 
         if closed is None and isinstance(dtype, IntervalDtype):
             closed = dtype.closed
@@ -322,8 +321,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"right [{type(right).__name__}] types"
             )
             raise ValueError(msg)
-        if isinstance(left.dtype, CategoricalDtype) or is_string_dtype(left.dtype):
-            # GH 19016
+        if (
+            isinstance(left.dtype, CategoricalDtype)
+            or is_string_dtype(left.dtype)
+            or is_string_dtype(right.dtype)
+        ):
+            # GH 19016, GH 66518: reject unsupported right-side dtypes too.
             msg = (
                 "category, object, and string subtypes are not supported "
                 "for IntervalArray"
@@ -692,8 +695,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
 
-        value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
+        value_left, value_right = self._validate_setitem_value(value)
 
         self._left[key] = value_left
         self._right[key] = value_right
@@ -892,10 +895,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         if copy is False:
             raise NotImplementedError
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
         if limit is not None:
             raise ValueError("limit must be None")
 
-        value_left, value_right = self._validate_scalar(value)
+        value_left, value_right = self._validate_setitem_value(value)
 
         left = self.left.fillna(value=value_left)
         right = self.right.fillna(value=value_right)
@@ -1024,8 +1032,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right_hash = hash_array(
             self._right, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
-        # Include closed in the hash
-        closed_val = np.uint64(hash(self.closed) % (2**63))
+        # Use a fixed mapping rather than hash(self.closed): the builtin str
+        # hash is salted per process (PYTHONHASHSEED), which would make the
+        # result nondeterministic across processes. GH#64605
+        closed_val = np.uint64(_CLOSED_HASH_VALUES[self.closed])
         closed_hash = hash_array(
             np.full(len(self), closed_val, dtype=np.uint64),
             encoding=encoding,
@@ -1164,7 +1174,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
-            # TODO: check subdtype match like _validate_setitem_value?
+            self.left._validate_fill_value(left)
+            self.left._validate_fill_value(right)
         elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = self.left._na_value
@@ -1175,27 +1186,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
+        if is_list_like(value):
+            return self._validate_listlike(value)
+
+        left, right = self._validate_scalar(value)
+
         if is_valid_na_for_dtype(value, self.left.dtype):
-            # na value: need special casing to set directly on numpy arrays
-            value = self.left._na_value
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 # GH#45484 TypeError, not ValueError, matches what we get with
                 #  non-NA un-holdable value.
                 raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
-            value_left, value_right = value, value
 
-        elif isinstance(value, Interval):
-            # scalar interval
-            self._check_closed_matches(value, name="value")
-            value_left, value_right = value.left, value.right
-            self.left._validate_fill_value(value_left)
-            self.left._validate_fill_value(value_right)
-
-        else:
-            return self._validate_listlike(value)
-
-        return value_left, value_right
+        return left, right
 
     # ---------------------------------------------------------------------
     # Rendering Methods
@@ -1689,6 +1692,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         value_left, value_right = self._validate_setitem_value(value)
 
         if isinstance(self._left, np.ndarray):
@@ -1896,6 +1901,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 def _maybe_convert_platform_interval(values) -> ArrayLike:
     """
     Try to do platform conversion, with special casing for IntervalArray.
+
     For example, empty lists return with integer dtype instead of object dtype,
     which is prohibited for IntervalArray.
 
@@ -1913,7 +1919,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
-        # This will raise later, but we avoid passing to maybe_convert_platform
+        # This will raise later
         return values
     elif isinstance(getattr(values, "dtype", None), CategoricalDtype):
         values = np.asarray(values)

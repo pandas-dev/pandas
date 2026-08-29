@@ -125,16 +125,18 @@ class OptionError(AttributeError, KeyError):
 # User API
 
 
-def _get_single_key(pat: str) -> str:
+def _get_single_key(pat: str, warn: bool = True, extra_stacklevel: int = 0) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
-        _warn_if_deprecated(pat)
+        if warn:
+            _warn_if_deprecated(pat, extra_stacklevel=extra_stacklevel)
         raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
 
-    _warn_if_deprecated(key)
+    if warn:
+        _warn_if_deprecated(key, extra_stacklevel=extra_stacklevel)
 
     key = _translate_key(key)
 
@@ -185,14 +187,44 @@ def get_option(pat: str) -> Any:
     >>> pd.get_option("display.max_columns")  # doctest: +SKIP
     4
     """
-    key = _get_single_key(pat)
+    return _get_option_impl(pat)
+
+
+def _get_option_impl(pat: str, warn: bool = True) -> Any:
+    key = _get_single_key(pat, warn=warn)
 
     # walk the nested dict
     root, k = _get_root(key)
     return root[k]
 
 
-def set_option(*args) -> None:
+def _set_option_impl(*args: Any, warn: bool = True, extra_stacklevel: int = 0) -> None:
+    # GH#63235: `warn` and `extra_stacklevel` let option_context warn exactly
+    # once, aimed at the caller rather than at contextlib.
+    # Handle dictionary input
+    if len(args) == 1 and isinstance(args[0], dict):
+        args = tuple(kv for item in args[0].items() for kv in item)
+
+    nargs = len(args)
+    if not nargs or nargs % 2 != 0:
+        raise ValueError("Must provide an even number of non-keyword arguments")
+
+    for k, v in zip(args[::2], args[1::2], strict=True):
+        key = _get_single_key(k, warn=warn, extra_stacklevel=extra_stacklevel)
+
+        opt = _get_registered_option(key)
+        if opt and opt.validator:
+            opt.validator(v)
+
+        # walk the nested dict
+        root, k_root = _get_root(key)
+        root[k_root] = v
+
+        if opt is not None and opt.cb:
+            opt.cb(key)
+
+
+def set_option(*args: Any) -> None:
     """
     Set the value of the specified option or options.
 
@@ -266,27 +298,7 @@ def set_option(*args) -> None:
     >>> pd.reset_option("display.max_columns")
     >>> pd.reset_option("display.precision")
     """
-    # Handle dictionary input
-    if len(args) == 1 and isinstance(args[0], dict):
-        args = tuple(kv for item in args[0].items() for kv in item)
-
-    nargs = len(args)
-    if not nargs or nargs % 2 != 0:
-        raise ValueError("Must provide an even number of non-keyword arguments")
-
-    for k, v in zip(args[::2], args[1::2], strict=True):
-        key = _get_single_key(k)
-
-        opt = _get_registered_option(key)
-        if opt and opt.validator:
-            opt.validator(v)
-
-        # walk the nested dict
-        root, k_root = _get_root(key)
-        root[k_root] = v
-
-        if opt.cb:
-            opt.cb(key)
+    _set_option_impl(*args)
 
 
 def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
@@ -399,9 +411,11 @@ def reset_option(pat: str) -> None:
         set_option(k, _registered_options[k].defval)
 
 
-def get_default_val(pat: str):
+def get_default_val(pat: str) -> Any:
     key = _get_single_key(pat)
-    return _get_registered_option(key).defval
+    opt = _get_registered_option(key)
+    assert opt is not None
+    return opt.defval
 
 
 class DictWrapper:
@@ -425,7 +439,7 @@ class DictWrapper:
         else:
             raise OptionError("You can only set the value of existing options")
 
-    def __getattr__(self, key: str):
+    def __getattr__(self, key: str) -> Any:
         prefix = object.__getattribute__(self, "prefix")
         if prefix:
             prefix += "."
@@ -452,7 +466,7 @@ object.__setattr__(options, "__module__", "pandas")
 
 
 @contextmanager
-def option_context(*args) -> Generator[None]:
+def option_context(*args: Any) -> Generator[None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
 
@@ -510,13 +524,17 @@ def option_context(*args) -> Generator[None]:
     ops = tuple(zip(args[::2], args[1::2], strict=True))
     undo: tuple[tuple[Any, Any], ...] = ()
     try:
-        undo = tuple((pat, get_option(pat)) for pat, val in ops)
+        # GH#63235: a deprecated option must warn exactly once per option_context,
+        # so only the entry below warns; reading the old value and restoring it are
+        # bookkeeping the user did not ask for. extra_stacklevel=1 skips the
+        # contextlib.__enter__ frame so the warning lands on the ``with`` statement.
+        undo = tuple((pat, _get_option_impl(pat, warn=False)) for pat, val in ops)
         for pat, val in ops:
-            set_option(pat, val)
+            _set_option_impl(pat, val, extra_stacklevel=1)
         yield
     finally:
         for pat, val in undo:
-            set_option(pat, val)
+            _set_option_impl(pat, val, warn=False)
 
 
 def register_option(
@@ -585,6 +603,12 @@ def register_option(
 
     if not isinstance(cursor, dict):
         raise OptionError(msg.format(option=".".join(path[:-1])))
+
+    # a namespace already lives here, i.e. `key` is a path prefix to one or
+    # more already-registered options; registering it would clobber them
+    # (GH#29242)
+    if isinstance(cursor.get(path[-1]), dict):
+        raise OptionError(f"Option '{key}' is a prefix of an already-registered option")
 
     cursor[path[-1]] = defval  # initialize
 
@@ -674,7 +698,7 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
     return cursor, path[-1]
 
 
-def _get_deprecated_option(key: str):
+def _get_deprecated_option(key: str) -> DeprecatedOption | None:
     """
     Retrieves the metadata for a deprecated option, if `key` is deprecated.
 
@@ -690,7 +714,7 @@ def _get_deprecated_option(key: str):
         return d
 
 
-def _get_registered_option(key: str):
+def _get_registered_option(key: str) -> RegisteredOption | None:
     """
     Retrieves the option metadata if `key` is a registered option.
 
@@ -713,7 +737,7 @@ def _translate_key(key: str) -> str:
         return key
 
 
-def _warn_if_deprecated(key: str) -> bool:
+def _warn_if_deprecated(key: str, extra_stacklevel: int = 0) -> bool:
     """
     Checks if `key` is a deprecated option and if so, prints a warning.
 
@@ -723,11 +747,12 @@ def _warn_if_deprecated(key: str) -> bool:
     """
     d = _get_deprecated_option(key)
     if d:
+        stacklevel = find_stack_level() + extra_stacklevel
         if d.msg:
             warnings.warn(
                 d.msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         else:
             msg = f"'{key}' is deprecated"
@@ -741,7 +766,7 @@ def _warn_if_deprecated(key: str) -> bool:
             warnings.warn(
                 msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         return True
     return False
@@ -751,6 +776,7 @@ def _build_option_description(k: str) -> str:
     """Builds a formatted description of a registered option and prints it"""
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
+    assert o is not None
 
     s = f"{k} "
 
@@ -808,7 +834,7 @@ def config_prefix(prefix: str) -> Generator[None]:
     global register_option, get_option, set_option
 
     def wrap(func: F) -> F:
-        def inner(key: str, *args, **kwds):
+        def inner(key: str, *args: object, **kwds: object) -> object:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
@@ -846,7 +872,7 @@ def is_type_factory(_type: type[Any]) -> Callable[[Any], None]:
 
     """
 
-    def inner(x) -> None:
+    def inner(x: object) -> None:
         if type(x) != _type:
             raise ValueError(f"Value must have type '{_type}'")
 
@@ -871,7 +897,7 @@ def is_instance_factory(_type: type | tuple[type, ...]) -> Callable[[Any], None]
     else:
         type_repr = f"'{_type}'"
 
-    def inner(x) -> None:
+    def inner(x: object) -> None:
         if not isinstance(x, _type):
             raise ValueError(f"Value must be an instance of {type_repr}")
 
@@ -882,7 +908,7 @@ def is_one_of_factory(legal_values: Sequence) -> Callable[[Any], None]:
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
-    def inner(x) -> None:
+    def inner(x: object) -> None:
         if x not in legal_values:
             if not any(c(x) for c in callables):
                 uvals = [str(lval) for lval in legal_values]

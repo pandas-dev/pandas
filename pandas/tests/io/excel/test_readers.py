@@ -30,6 +30,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.excel._base as _excel_base
+
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
     # Add any engines to test here
@@ -58,7 +60,7 @@ engine_params = [
                 "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
             ),
             pytest.mark.filterwarnings(
-                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+                "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
             ),
         ],
     ),
@@ -172,6 +174,29 @@ def xfail_datetimes_with_pyxlsb(engine, request):
         )
 
 
+@td.skip_if_no("openpyxl")
+@td.skip_if_no("python_calamine")
+@pytest.mark.parametrize("ext", ["xlsx", "xlsm"])
+def test_read_excel_default_engine_deprecated(datapath, ext):
+    # GH#56542 - the default xlsx/xlsm reader engine will change to calamine.
+    # xlsm files are format-sniffed as xlsx, so both get the 'xlsx' warning.
+    path = datapath("io", "data", "excel", f"test1.{ext}")
+
+    msg = "The default engine for reading 'xlsx' files will change"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.read_excel(path)
+
+    # passing an explicit engine silences the warning
+    for engine in ("openpyxl", "calamine"):
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path, engine=engine)
+
+    # setting the io.excel.xlsx.reader option silences the warning
+    with pd.option_context("io.excel.xlsx.reader", "openpyxl"):
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path)
+
+
 class TestReaders:
     @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
     def test_read_excel_type_check(self, col, tmp_excel, read_ext):
@@ -223,7 +248,7 @@ class TestReaders:
         # GH 58159
         f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
 
-        with pd.ExcelFile(f_path) as excel:
+        with pd.ExcelFile(f_path, engine="openpyxl") as excel:
             parsed = pd.read_excel(
                 excel,
                 sheet_name="Sheet1",
@@ -248,7 +273,6 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
-    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
     def test_engine_used(self, read_ext, engine):
         # GH 38884
         expected_defaults = {
@@ -869,7 +893,6 @@ class TestReaders:
         with pytest.raises(ZeroDivisionError, match=r" \(sheet: Sheet1\)$"):
             pd.read_excel("test1" + read_ext, usecols=lambda x: 1 / 0, sheet_name=None)
 
-    @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         xfail_datetimes_with_pyxlsb(engine, request)
@@ -932,7 +955,9 @@ class TestReaders:
     )
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
-        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        msg = "|".join(
+            ["Worksheet index 3 is invalid", "Worksheet named 'Sheet4' not found"]
+        )
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("blank" + read_ext, sheet_name=sheet_name)
 
@@ -1372,9 +1397,11 @@ class TestReaders:
         expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
-    def test_read_excel_skiprows_callable_all(self, read_ext):
+    def test_read_excel_skiprows_callable_all(self, read_ext, monkeypatch):
         # GH 64027
-        actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
+        with monkeypatch.context() as m:
+            m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
+            actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
         expected = DataFrame()
         tm.assert_frame_equal(actual, expected)
 
@@ -1678,7 +1705,9 @@ class TestExcelFileRead:
     )
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
-        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        msg = "|".join(
+            ["Worksheet index 3 is invalid", "Worksheet named 'Sheet4' not found"]
+        )
         depr_msg = "ExcelFile.parse is deprecated"
         with pytest.raises(ValueError, match=msg):
             with pd.ExcelFile("blank" + read_ext) as excel:
@@ -1728,12 +1757,18 @@ class TestExcelFileRead:
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
     def test_read_excel_header_index_out_of_range(self, engine):
         # GH#43143
         with open("df_header_oob.xlsx", "rb") as f:
             with pytest.raises(ValueError, match="exceeds maximum"):
                 pd.read_excel(f, header=[0, 1])
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):
         # GH 33476

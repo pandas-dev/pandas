@@ -242,7 +242,8 @@ def scatter_matrix(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
+        >>> data = np.random.default_rng(42).standard_normal((1000, 4))
+        >>> df = pd.DataFrame(data, columns=["A", "B", "C", "D"])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
         array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
                 <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
@@ -417,10 +418,26 @@ def andrews_curves(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.read_csv(
-        ...     "https://raw.githubusercontent.com/pandas-dev/"
-        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "SepalLength": [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
+        ...         "SepalWidth": [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
+        ...         "PetalLength": [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
+        ...         "PetalWidth": [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
+        ...         "Name": [
+        ...             "virginica",
+        ...             "virginica",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "virginica",
+        ...             "versicolor",
+        ...             "versicolor",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "setosa",
+        ...         ],
+        ...     }
+        ... )
         >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -486,7 +503,8 @@ def bootstrap_plot(
     .. plot::
         :context: close-figs
 
-        >>> s = pd.Series(np.random.uniform(size=100))
+        >>> rng = np.random.default_rng(42)
+        >>> s = pd.Series(rng.uniform(size=100))
         >>> pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
         <Figure size 640x480 with 6 Axes>
     """
@@ -563,10 +581,26 @@ def parallel_coordinates(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.read_csv(
-        ...     "https://raw.githubusercontent.com/pandas-dev/"
-        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "SepalLength": [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
+        ...         "SepalWidth": [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
+        ...         "PetalLength": [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
+        ...         "PetalWidth": [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
+        ...         "Name": [
+        ...             "virginica",
+        ...             "virginica",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "virginica",
+        ...             "versicolor",
+        ...             "versicolor",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "setosa",
+        ...         ],
+        ...     }
+        ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP
@@ -628,8 +662,8 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     .. plot::
         :context: close-figs
 
-        >>> np.random.seed(5)
-        >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
+        >>> rng = np.random.default_rng(42)
+        >>> x = np.cumsum(rng.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
         >>> s.plot()  # doctest: +SKIP
 
@@ -687,7 +721,8 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
         :context: close-figs
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
-        >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
+        >>> rng = np.random.default_rng(42)
+        >>> s = pd.Series(0.7 * rng.random(1000) + 0.3 * np.sin(spacing))
         >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -716,9 +751,9 @@ class _Options(dict):
     .. plot::
             :context: close-figs
 
-             >>> np.random.seed(42)
+             >>> rng = np.random.default_rng(42)
              >>> df = pd.DataFrame(
-             ...     {"A": np.random.randn(10), "B": np.random.randn(10)},
+             ...     {"A": rng.standard_normal(10), "B": rng.standard_normal(10)},
              ...     index=pd.date_range("1/1/2000", freq="4MS", periods=10),
              ... )
              >>> with pd.plotting.plot_params.use("x_compat", True):

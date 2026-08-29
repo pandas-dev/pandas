@@ -34,6 +34,10 @@ from pandas.io.stata import (
     StataWriter,
     StataWriterUTF8,
     ValueLabelTypeMismatch,
+    _datetime_to_stata_elapsed_vec,
+    _new_format_versions,
+    _old_format_versions,
+    _version_error,
     read_stata,
 )
 
@@ -211,16 +215,7 @@ class TestStata:
             parsed_115 = self.read_dta(path2)
         with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_117 = self.read_dta(path3)
-            # FIXME: don't leave commented-out
-            # 113 is buggy due to limits of date format support in Stata
-            # parsed_113 = self.read_dta(
-            # datapath("io", "data", "stata", "stata2_113.dta")
-            # )
 
-        # FIXME: don't leave commented-out
-        # buggy test because of the NaT comparison on certain platforms
-        # Format 113 test fails since it does not support tc and tC formats
-        # tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)
         tm.assert_frame_equal(parsed_117, expected)
@@ -1966,7 +1961,7 @@ The repeated labels are:\n-+\nwolof
             "'ascii' codec can't decode byte 0xef in position 14: "
             r"ordinal not in range\(128\)"
         )
-        with pytest.raises(UnicodeEncodeError, match=f"{msg1}|{msg2}"):
+        with pytest.raises(UnicodeEncodeError, match="|".join([msg1, msg2])):
             df.to_stata(temp_file)
 
     def test_strl_latin1(self, temp_file):
@@ -2654,3 +2649,77 @@ def test_stata_v117_prefix_with_unsupported_version_raises_version_error():
         match=r"either not a valid Stata dataset.*\(detected:\s*999\)",
     ):
         read_stata(buf)
+
+
+def test_version_error_lists_every_supported_version():
+    # GH#63082 the message dropped the four oldest formats that are still read;
+    #  derive from the readers' own lists so the two cannot drift again
+    msg = _version_error.format(version=999)
+    for version in _old_format_versions + _new_format_versions:
+        assert str(version) in msg
+
+
+object_date_depr_msg = (
+    "Converting object-dtype columns of datetimes to datetime64 "
+    "when writing to stata is deprecated"
+)
+
+
+@pytest.mark.parametrize(
+    "fmt, expected, roundtrip",
+    [
+        ("tm", [720, 737], ["2020-01-01", "2021-06-01"]),
+        ("tq", [240, 245], ["2020-01-01", "2021-04-01"]),
+        ("th", [120, 122], ["2020-01-01", "2021-01-01"]),
+        ("ty", [2020, 2021], ["2020-01-01", "2021-01-01"]),
+    ],
+)
+def test_to_stata_object_dates_heterogeneous_tz(temp_file, fmt, expected, roundtrip):
+    # GH#64556 year/month came from DatetimeIndex(dates), which rejects an
+    #  object array whose entries do not share a single tzinfo
+    tz = dt.timezone(dt.timedelta(hours=-5))
+    ser = Series(
+        [datetime(2020, 1, 1, tzinfo=dt.UTC), datetime(2021, 6, 15, tzinfo=tz)],
+        dtype=object,
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match=object_date_depr_msg):
+        result = _datetime_to_stata_elapsed_vec(ser, fmt)
+    # "ty" carries through the "year" name of the intermediate frame column
+    tm.assert_series_equal(
+        result, Series(expected, dtype=np.float64), check_names=False
+    )
+
+    df = DataFrame({"d": ser})
+    with tm.assert_produces_warning(Pandas4Warning, match=object_date_depr_msg):
+        df.to_stata(temp_file, convert_dates={"d": fmt}, write_index=False)
+    written_and_read_again = read_stata(temp_file)
+    tm.assert_frame_equal(
+        written_and_read_again, DataFrame({"d": Series(roundtrip, dtype="M8[s]")})
+    )
+
+
+def test_to_stata_object_dates_naive_and_aware_with_nat(temp_file):
+    # GH#64556 a naive/aware mix, with or without NaT, likewise has no single
+    #  tzinfo and so takes the same fallback
+    tz = dt.timezone(dt.timedelta(hours=-5))
+    ser = Series(
+        [datetime(2020, 1, 1), None, datetime(2021, 6, 15, tzinfo=tz)], dtype=object
+    )
+    df = DataFrame({"d": ser})
+    with tm.assert_produces_warning(Pandas4Warning, match=object_date_depr_msg):
+        df.to_stata(temp_file, convert_dates={"d": "tm"}, write_index=False)
+    written_and_read_again = read_stata(temp_file)
+    expected = DataFrame(
+        {"d": Series(["2020-01-01", None, "2021-06-01"], dtype="M8[s]")}
+    )
+    tm.assert_frame_equal(written_and_read_again, expected)
+
+
+def test_read_stata_far_future_dates(datapath):
+    # GH#36096 day-format column with values ~20.5M (year ~58330) used to
+    # raise OverflowError via dateutil; non-nano datetime64[s] handles it.
+    path = datapath("io", "data", "stata", "stata-date-overflow-36096.dta")
+    result = read_stata(path)
+    assert result.shape == (10, 1)
+    assert result["tiempo_gen"].dtype == np.dtype("M8[s]")
+    assert result["tiempo_gen"].min().year == 58330

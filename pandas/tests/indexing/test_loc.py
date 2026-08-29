@@ -15,7 +15,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -24,6 +27,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     IndexSlice,
@@ -71,6 +75,19 @@ def test_loc_dtype(key):
 
 
 class TestLoc:
+    def test_loc_dateoffset_columns(self):
+        # GH#20948 - .loc with DateOffset columns
+        offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+        df = DataFrame(index=[0, 1], columns=Index(offsets))
+
+        # read access
+        result = df.loc[0, offsets[0]]
+        assert result is np.nan
+
+        # write access
+        df.loc[0, offsets[0]] = 1
+        assert df.loc[0, offsets[0]] == 1
+
     def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
         df = DataFrame(["1", "2", None], columns=["a"], dtype=object)
@@ -291,19 +308,22 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize(
         "msg, key",
         [
-            (r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
-            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
-            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
+            (
+                r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'",
+                (Period("2019"), "foo", "bar"),
+            ),
+            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period("2019"), "y1", "bar")),
+            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period("2019"), "foo", "z1")),
             (
                 r"Period\('2018', 'Y-DEC'\), Period\('2016', 'Y-DEC'\), 'bar'",
-                (Period(2018), Period(2016), "bar"),
+                (Period("2018"), Period("2016"), "bar"),
             ),
-            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
+            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period("2018"), "foo", "y1")),
             (
                 r"Period\('2017', 'Y-DEC'\), 'foo', Period\('2015', 'Y-DEC'\)",
-                (Period(2017), "foo", Period(2015)),
+                (Period("2017"), "foo", Period("2015")),
             ),
-            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
+            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period("2017"), "z1", "bar")),
         ],
     )
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
@@ -317,9 +337,9 @@ class TestLocBaseIndependent:
         """
         df = DataFrame(
             {
-                "A": [Period(2019), "x1", "x2"],
-                "B": [Period(2018), Period(2016), "y1"],
-                "C": [Period(2017), "z1", Period(2015)],
+                "A": [Period("2019"), "x1", "x2"],
+                "B": [Period("2018"), Period("2016"), "y1"],
+                "C": [Period("2017"), "z1", Period("2015")],
                 "V1": [1, 2, 3],
                 "V2": [10, 20, 30],
             }
@@ -362,6 +382,30 @@ class TestLocBaseIndependent:
 
         result = df.loc[1]
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_nonunique_string_index(self):
+        # GH#22500 - .loc setitem with non-unique string index should behave
+        # consistently with non-unique numeric index
+        idx = Index(["a", "b", "a"], name="idx")
+        df = DataFrame({"val": 1.0}, index=idx)
+        df_10 = DataFrame({"val": 10.0}, index=idx)
+        expected = DataFrame({"val": [10.0, 1.0, 10.0]}, index=idx)
+
+        # scalar string key
+        result = df.copy()
+        result.loc["a", "val"] = df_10.loc["a", "val"]
+        tm.assert_frame_equal(result, expected)
+
+        # single-element tuple
+        result = df.copy()
+        result.loc[("a",), "val"] = df_10.loc[("a",), "val"]
+        tm.assert_frame_equal(result, expected)
+
+        # boolean mask cross-assignment
+        result = df.copy()
+        mask = result.index == "a"
+        result.loc[mask, "val"] = df_10.loc[mask, "val"]
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_dups(self):
         # GH 6541
@@ -435,6 +479,47 @@ class TestLocBaseIndependent:
             }
         )  # id is inferred as object
 
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_preserves_other_columns_dtype(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, "B"] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9, 10, 11, 12],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_preserves_large_int_values(self):
+        # GH#66105
+        df = DataFrame({"A": [2**53 + 1, 2**53 + 3, 2**53 + 5], "B": [1, 2, 3]})
+        df.loc[df.index > 0, "B"] = Series([99], index=[1])
+
+        expected = DataFrame(
+            {
+                "A": [2**53 + 1, 2**53 + 3, 2**53 + 5],
+                "B": [1.0, 99.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_multiple_columns(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, ["B", "C"]] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9.0, np.nan, 99.0, np.nan],
+            }
+        )
         tm.assert_frame_equal(df, expected)
 
     def test_getitem_label_list_with_missing(self):
@@ -537,7 +622,7 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        msg = "None of [RangeIndex(start=3, stop=4, step=1)] are in the [index]"
+        msg = f"None of [Index([3], dtype='{np.dtype(int)}')] are in the [index]"
         with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
@@ -852,6 +937,17 @@ class TestLocBaseIndependent:
         expected = DataFrame({1: [5, 2], 2: [6, 4], "a": ["a", "b"]})
         df.loc[0, [1, 2]] = [5, 6]
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_getitem_single_row_mixed_dtype_subset(self):
+        # GH#37346 selecting a single row with a list of same-dtype columns
+        #  from a mixed-dtype frame preserves the column dtype rather than
+        #  upcasting to the frame's interleaved dtype
+        df = DataFrame({"a": [1], "b": [0.1]})
+
+        result = df.loc[0, ["a"]]
+        expected = Series([1], index=Index(["a"]), dtype="int64", name=0)
+        tm.assert_series_equal(result, expected)
+        assert result.values.dtype == np.int64
 
     def test_loc_setitem_frame_multiples(self):
         # multiple setting
@@ -1277,7 +1373,7 @@ class TestLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         # assigning the entire column using __setitem__ swaps in the new array
-        # GH#???
+        # GH#38896
         result["A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
@@ -1703,7 +1799,6 @@ class TestLocWithEllipsis:
         result = indexer(obj)[...]
         tm.assert_equal(result, obj)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
@@ -1836,9 +1931,23 @@ class TestLocWithMultiIndex:
 
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_multiindex_boolean_mask(self):
+        # GH#22500 - boolean mask assignment with MultiIndex
+        midx = MultiIndex.from_tuples(
+            [(1, "a"), (1, "b"), (2, "a"), (2, "b")], names=["num", "let"]
+        )
+        df = DataFrame({"val": 1.0}, index=midx)
+        df_10 = DataFrame({"val": 10.0}, index=midx)
+        expected = DataFrame({"val": [10.0, 1.0, 1.0, 1.0]}, index=midx)
+
+        result = df.copy()
+        mask = result.index == (1, "a")
+        result.loc[mask, "val"] = df_10.loc[mask, "val"]
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
-        times = date_range("2000-01-01", freq="10min", periods=100000)
-        ser = Series(range(100000), times)
+        times = date_range("2000-01-01", freq="10min", periods=10)
+        ser = Series(range(10), times)
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
 
@@ -1892,7 +2001,9 @@ class TestLocWithMultiIndex:
     def test_additional_element_to_categorical_series_loc(self):
         # GH#47677
         result = Series(["a", "b", "c"], dtype="category")
-        result.loc[3] = 0
+        # 0 is not among the categories, so the dtype changes (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            result.loc[3] = 0
         expected = Series(["a", "b", "c", 0], dtype="object")
         tm.assert_series_equal(result, expected)
 
@@ -2010,6 +2121,20 @@ class TestLocSetitemWithExpansion:
         ser = df["A"].iloc[:-1]
         ser.loc[item] = 1
         tm.assert_index_equal(ser.index, exp_index)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+    def test_loc_setitem_with_expansion_fractional_not_truncated(self, dtype):
+        # Assigning a fractional float to an integer EA column should
+        # promote to float, not silently truncate.
+        if dtype == "int64[pyarrow]":
+            pytest.importorskip("pyarrow")
+        df = DataFrame({"A": pd.array([1, 2, 3], dtype=dtype)})
+        # the promotion warns since 2.5 cannot be held by the integer
+        #  dtype (GH#62369)
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            df.loc[len(df)] = [2.5]
+        assert df["A"].dtype.kind == "f"
+        assert df.loc[len(df) - 1, "A"] == 2.5
 
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
@@ -2148,7 +2273,6 @@ class TestLocSetitemWithExpansion:
         expected = Index([0, 1, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_with_expansion_nonunique_index(self, index, has_ref):
         # GH#40096
@@ -2174,18 +2298,25 @@ class TestLocSetitemWithExpansion:
         exp_data = np.arange(N + 1).astype(np.int64)
         expected = DataFrame(exp_data, index=exp_index)
 
+        is_mi = isinstance(index, MultiIndex)
+        warn = Pandas4Warning if is_mi else None
+        mi_msg = "Setting a new row on a DataFrame with a MultiIndex"
+        ser_mi_msg = "Setting a new value on a Series with a MultiIndex"
+
         # Add new row, but no new columns
         df = orig.copy()
         if has_ref:
             view = df[:]
-        df.loc[key, 0] = N
+        with tm.assert_produces_warning(warn, match=mi_msg):
+            df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
         # add new row on a Series
         ser = orig.copy()[0]
         if has_ref:
             view = ser[:]
-        ser.loc[key] = N
+        with tm.assert_produces_warning(warn, match=ser_mi_msg):
+            ser.loc[key] = N
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
         tm.assert_series_equal(ser, expected)
@@ -2194,7 +2325,8 @@ class TestLocSetitemWithExpansion:
         df = orig.copy()
         if has_ref:
             view = df[:]  # noqa: F841
-        df.loc[key, 1] = N
+        with tm.assert_produces_warning(warn, match=mi_msg):
+            df.loc[key, 1] = N
         expected = DataFrame(
             {0: [*list(arr), np.nan], 1: [np.nan] * N + [float(N)]},
             index=exp_index,
@@ -2217,6 +2349,38 @@ class TestLocSetitemWithExpansion:
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df, check_column_type=False)
 
+    def test_loc_setitem_with_expansion_str_list_partial(self):
+        # GH#42099 — partial assignment of a list of strings used to fill
+        #  unselected rows with the literal string "n" (truncated "nan").
+        df = DataFrame(index=range(4))
+        df.loc[[0, 1, 2], "data"] = ["a", "b", "c"]
+        expected = DataFrame({"data": ["a", "b", "c", np.nan]}, index=range(4))
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+    def test_loc_setitem_with_expansion_bool_list_partial(self):
+        # GH#42099 — partial assignment of a list of bools used to raise
+        #  TypeError because the column was initialized as float64.
+        df = DataFrame(index=range(4))
+        df.loc[[0, 1, 2], "data"] = [True, False, True]
+        expected = DataFrame(
+            {"data": [True, False, True, np.nan]}, index=range(4), dtype=object
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_dict_partial(self):
+        # GH#65418 — partial assignment of a dict used to write the dict keys
+        #  positionally instead of aligning its values by key.
+        df = DataFrame({"a": [10, 20, 30, 40]})
+        df.loc[[0, 1, 2], "data"] = {0: "x", 1: "y", 2: "z"}
+        expected = DataFrame({"a": [10, 20, 30, 40], "data": ["x", "y", "z", np.nan]})
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+        # a dict aligns by key, so it matches the equivalent Series and the
+        #  non-expansion (existing-column / null-slice) paths
+        alt = DataFrame({"a": [10, 20, 30, 40]})
+        alt.loc[[0, 1, 2], "data"] = Series({0: "x", 1: "y", 2: "z"})
+        tm.assert_frame_equal(df, alt, check_column_type=False)
+
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime
         # should not be interpreted as a row indexer
@@ -2224,6 +2388,15 @@ class TestLocSetitemWithExpansion:
         df = DataFrame(index=index)
         df.loc[:, "110735"] = 0
         expected = DataFrame({"110735": [0, 0]}, index=index)
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_datetimeindex_str_column_name_in_index(self):
+        # GH#15815 - string column name that parses to a date which *is*
+        # present in the DatetimeIndex must still be a new column, not a row key
+        index = date_range("2016-11-01", "2016-12-01", freq="h")
+        df = DataFrame(index=index, columns=Index([], name="Id"))
+        df.loc[:, "111916"] = Series(2.0, index=index)
+        expected = DataFrame(2.0, index=index, columns=Index(["111916"], name="Id"))
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_ea_not_full_column(self):
@@ -2348,6 +2521,57 @@ class TestLocSetitemWithExpansion:
         expected = Series([ts1, ts2], dtype="date32[pyarrow]")
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    @pytest.mark.parametrize(
+        "values, item",
+        [
+            (
+                to_datetime(["2020-01-01", "2020-01-02"]),
+                Timestamp("2020-01-03"),
+            ),
+            (to_timedelta([1, 2], unit="D"), Timedelta(days=3)),
+        ],
+    )
+    def test_loc_setitem_with_expansion_datetimelike_retains_dtype(
+        self, values, item, unit
+    ):
+        # GH#62523 naive datetime64/timedelta64 setitem-with-expansion used to
+        #  raise AttributeError instead of retaining dtype
+        # GH#66402 a coarser-than-us unit used to be widened to us, since the
+        #  scalar is constructed at us and inference re-derives the unit from it
+        values = values.as_unit(unit)
+        ser = Series(values)
+        ser.loc[2] = item
+        expected = Series([*values, item], dtype=values.dtype)
+        tm.assert_series_equal(ser, expected)
+
+        # a missing (NaT) value should behave the same way
+        ser2 = Series(values)
+        ser2.loc[2] = pd.NaT
+        expected2 = Series([*values, pd.NaT], dtype=values.dtype)
+        tm.assert_series_equal(ser2, expected2)
+
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_pyarrow_finer_resolution(self):
+        # GH#62523 expanding with a finer-resolution value that cannot be cast
+        #  down to the original coarser unit should keep the finer unit rather
+        #  than raising ArrowInvalid.  The unit change warns since the second
+        #  resolution cannot hold the value (GH#62369).
+        ser = Series(
+            to_datetime(["2020-01-01", "2020-01-02"]), dtype="timestamp[s][pyarrow]"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = Timestamp("2020-01-03 00:00:00.123456")
+        expected = Series(
+            [
+                Timestamp("2020-01-01"),
+                Timestamp("2020-01-02"),
+                Timestamp("2020-01-03 00:00:00.123456"),
+            ],
+            dtype="timestamp[us][pyarrow]",
+        )
+        tm.assert_series_equal(ser, expected)
+
     def test_loc_setitem_with_expansion_multiindex_retains_dtypes(self):
         # GH#17026
         mi = MultiIndex.from_tuples([("a", "c"), ("b", "c"), ("c", "d")])
@@ -2370,6 +2594,28 @@ class TestLocSetitemWithExpansion:
                 "D": [np.nan, np.nan, np.nan, 91.0],
             },
             index=Index([0, 1, 2, "x"]),
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_duplicate_columns(self):
+        # GH#58317
+        df = DataFrame(
+            [[1, 2, 3, 4], [4, 5, 6, 7], [7, 8, 9, 10]],
+            columns=["D", "B", "C", "A"],
+        )
+        item = DataFrame(
+            [[1, 2, 3, 4], [4, 5, 6, 7], [7, 8, 9, 10]],
+            columns=["A", "B", "C", "X"],
+            index=[3, 2, 1],
+        )
+        df.loc[[True, False, True], ["B", "E", "B"]] = item
+        expected = DataFrame(
+            [
+                [1, np.nan, np.nan, 3, 4, np.nan],
+                [4, 5.0, 5.0, 6, 7, np.nan],
+                [7, 5.0, 5.0, 9, 10, np.nan],
+            ],
+            columns=["D", "B", "B", "C", "A", "E"],
         )
         tm.assert_frame_equal(df, expected)
 
@@ -2958,16 +3204,104 @@ class TestLocListlike:
             ser.loc[keys]
 
     def test_loc_named_index(self):
-        # GH 42790
+        # GH#17110 - loc should preserve the original index name,
+        # not adopt the key's index name
         df = DataFrame(
             [[1, 2], [4, 5], [7, 8]],
             index=["cobra", "viper", "sidewinder"],
             columns=["max_speed", "shield"],
         )
         expected = df.iloc[:2]
-        expected.index.name = "foo"
         result = df.loc[Index(["cobra", "viper"], name="foo")]
         tm.assert_frame_equal(result, expected)
+        assert result.index.name is None
+
+    def test_loc_setitem_single_column_listlike_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = ["one"]
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_single_column_ea_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = pd.array(["one"], dtype="string")
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_multi_column_listlike_value(self):
+        # GH#44103 - multi-column assignment with a list-like value on a
+        # single-block DataFrame (EA dtype)
+        df = DataFrame(
+            {"a": [None, "two"], "b": ["1", "2"]}, index=[0, 1], dtype="string"
+        )
+        df.loc[0, ["a", "b"]] = ["new_a", "new_b"]
+        expected = DataFrame(
+            {"a": ["new_a", "two"], "b": ["new_b", "2"]},
+            index=[0, 1],
+            dtype="string",
+        )
+        tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "indexer_name, col_key",
+    [
+        ("loc", ["a", "b"]),
+        ("iloc", [0, 1]),
+        ("loc", [True, True]),
+        ("loc", slice("a", "b")),
+        ("iloc", slice(0, 2)),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        [[1, 2], [3, 4]],
+        [(1, 2), (3, 4)],
+        [[1, 2], [3, 4, 5]],
+        ([1, 2], [3, 4]),
+        ([1, 2], [3, 4, 5]),
+    ],
+)
+def test_setitem_int_row_listlike_cols_nested_value(indexer_name, col_key, value):
+    # GH#65241 the GH#44103 fix forced the split path for a scalar row plus
+    #  list-like columns on any single-block frame; on non-extension blocks
+    #  that transposed nested values and raised on ragged ones
+    df = DataFrame({"a": [1, "x"], "b": [2, "y"]}, dtype=object)
+    assert df._mgr.is_single_block and not df._mgr.blocks[0].is_extension
+
+    getattr(df, indexer_name)[0, col_key] = value
+
+    expected = DataFrame({"a": [value[0], "x"], "b": [value[1], "y"]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("indexer_name, col_key", [("loc", ["a"]), ("iloc", [0])])
+def test_setitem_int_row_single_col_nested_value(indexer_name, col_key):
+    # GH#65241 the split path raised ValueError for a length-1 list of lists
+    df = DataFrame({"a": [1, "x"], "b": [2, "y"]}, dtype=object)
+
+    getattr(df, indexer_name)[0, col_key] = [[1, 2]]
+
+    expected = DataFrame({"a": [[1, 2], "x"], "b": [2, "y"]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_int_row_length_mismatch_message():
+    # GH#65241 a numpy-dtype single-block frame takes the non-split path, where
+    #  numpy raises; frames that take the split path get pandas' message
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    assert df._mgr.is_single_block
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        df.loc[0, ["a", "b"]] = [7, 8, 9]
+
+    df2 = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["u", "v"]})
+    assert not df2._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df2.loc[0, ["a", "b"]] = [7, 8, 9]
 
 
 @pytest.mark.parametrize(
@@ -3131,12 +3465,15 @@ def test_loc_getitem_multiindex_tuple_level():
     #  of labels
     result = df.loc[:, (lev1[0], lev2[0], lev3[0])]
 
-    # TODO: i think this actually should drop levels
-    expected = df.iloc[:, :1]
-    tm.assert_frame_equal(result, expected)
+    # GH#18631 all three levels are scalar-indexed so all are dropped;
+    # the tuple (0, 1) is a scalar label in level y, not a sequence of labels.
+    # df.loc[:, full_key] should match df[full_key]
+    expected_loc = df[(lev1[0], lev2[0], lev3[0])]
+    tm.assert_series_equal(result, expected_loc)
 
+    expected_xs = df.iloc[:, :1]
     alt = df.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=1)
-    tm.assert_frame_equal(alt, expected)
+    tm.assert_frame_equal(alt, expected_xs)
 
     # same thing on a Series
     ser = df.iloc[0]
@@ -3620,3 +3957,119 @@ def test_loc_setitem_extension_array_into_object_series():
     ser.loc[:] = arr
     expected = Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+def test_loc_setitem_expansion_incompatible_dtype_warns():
+    # GH#62369 silent dtype change during setitem-with-expansion
+    df = DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
+    # GH#62369 an explicitly-typed empty column is a meaningful dtype, so a
+    #  zero-row frame warns on an incompatible expansion just like a Series
+    df = DataFrame({"a": Series([], dtype=np.float64)})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = "x"
+    expected_dtype = "str" if using_infer_string else object
+    assert df["a"].dtype == expected_dtype
+
+
+def test_loc_setitem_expansion_ea_column_warns():
+    # GH#62369 EA-dtyped columns participate in the expansion deprecation
+    df = DataFrame({"a": Series([1, 2], dtype="Int64"), "b": [1.5, 2.5]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_placeholder_column_no_warning():
+    # GH#62369 a column materialized during indexer preprocessing carries a
+    #  np.void NA-proxy placeholder dtype, which is not meaningful to retain,
+    #  so creating it via expansion does not warn
+    df = DataFrame()
+    with tm.assert_produces_warning(None):
+        df.loc[0, "a"] = 5
+    assert df["a"].dtype == np.float64
+
+
+def test_loc_getitem_list_integer_columns_preserves_order():
+    # GH#15824 selecting integer-labeled columns with a list must keep the
+    # requested order even when an extra (non-integer) column is present, so
+    # that the integer labels are not treated positionally
+    df = DataFrame([[3, 4], [2, 3]], index=["a", "c"], columns=[1, 0])
+    df["odds"] = df[1] / df[0]
+    result = df.loc[["a", "c"], [1, 0]]
+    expected = DataFrame(
+        [[3, 4], [2, 3]], index=["a", "c"], columns=Index([1, 0], dtype=object)
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # the maintainer's canonical MRE uses an integer row index too (integer
+    # labels on both axes -- the case most prone to positional confusion)
+    df_int = DataFrame(
+        np.arange(9).reshape(3, 3), columns=Index([1, 0, "str"], dtype=object)
+    )
+    tm.assert_index_equal(
+        df_int.loc[[0, 1], [1, 0]].columns, Index([1, 0], dtype=object)
+    )
+
+
+@pytest.mark.parametrize("indexer", ["loc", "at"])
+@pytest.mark.parametrize("cast_bar", [False, True])
+def test_setitem_list_into_cell_independent_of_other_column_dtype(indexer, cast_bar):
+    # GH#25806 assigning a list into a single cell stores the list itself, and
+    # the result must not depend on an unrelated column's dtype
+    df = DataFrame([{"foo": None, "bar": None}], index=["a"])
+    if cast_bar:
+        df["bar"] = df["bar"].astype(float)
+    getattr(df, indexer)["a", "foo"] = ["123"]
+    assert df.loc["a", "foo"] == ["123"]
+
+
+def test_at_setitem_list_into_cell_categorical_index():
+    # GH#25806 scenario 4: with .at the bug only surfaced once the index was
+    # categorical (with an object index .at already worked)
+    df = DataFrame([{"foo": None, "bar": None}], index=["a"])
+    df["bar"] = df["bar"].astype(float)
+    df.index = df.index.astype("category")
+    df.at["a", "foo"] = ["123"]
+    assert df.loc["a", "foo"] == ["123"]
+
+
+def test_loc_setitem_multi_element_list_into_cell():
+    # GH#25806 a multi-element list into a single cell used to raise
+    # ValueError ("Must have equal len keys and value"); it must store the list
+    df = DataFrame([{"foo": None, "bar": None}], index=["a"])
+    df.loc["a", "foo"] = ["123", "456"]
+    assert df.loc["a", "foo"] == ["123", "456"]
+
+
+@td.skip_if_no("pyarrow")
+def test_loc_setitem_row_expansion_int_ea_float_value():
+    # GH#65094 row expansion casts each column back to its original dtype; an
+    #  integral float above 2**53 used to raise ArrowInvalid for ArrowDtype and
+    #  saturate to the dtype's max for masked dtypes
+    df = DataFrame(
+        {
+            "arrow": pd.array([1, 2], dtype="int64[pyarrow]"),
+            "masked": pd.array([1, 2], dtype="Int64"),
+            "numpy": [1, 2],
+        }
+    )
+
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = [1.7e18, 2.0**63, 3.0]
+
+    expected = DataFrame(
+        {
+            "arrow": pd.array([1, 2, 1700000000000000000], dtype="int64[pyarrow]"),
+            "masked": pd.array([1.0, 2.0, 2.0**63], dtype="Float64"),
+            "numpy": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(df, expected)

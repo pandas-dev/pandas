@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import dateutil.tz
@@ -14,6 +14,19 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+
+
+def test_get_values_for_csv_sub_minute_utc_offset():
+    # GH#66547 array formatting routes through Timestamp.isoformat, so a UTC
+    #  offset carrying seconds used to have the fraction spliced into it
+    dti = DatetimeIndex(["1800-01-01 00:00:00.000000001"], tz="UTC").tz_convert(
+        "Asia/Tokyo"
+    )
+    expected = np.array(["1800-01-01 09:18:59.000000001+09:18:59"], dtype=object)
+
+    tm.assert_numpy_array_equal(dti._get_values_for_csv(), expected)
+    tm.assert_numpy_array_equal(Series(dti).astype(str).to_numpy(), expected)
+    assert expected[0] in repr(dti)
 
 
 def test_get_values_for_csv():
@@ -108,8 +121,9 @@ class TestDatetimeIndexRendering:
             (
                 ["2012-01-01 00:00:00", "2012-01-01 01:00:00"],
                 "60min",
-                "DatetimeIndex(['2012-01-01 00:00:00', '2012-01-01 01:00:00'], "
-                "dtype='datetime64[ns]', freq='60min')",
+                "DatetimeIndex(['2012-01-01 00:00:00', "
+                "'2012-01-01 01:00:00'],\n"
+                "              dtype='datetime64[ns]', freq='60min')",
             ),
             (
                 ["2012-01-01"],
@@ -123,6 +137,16 @@ class TestDatetimeIndexRendering:
         dti = DatetimeIndex(dates, freq).as_unit(unit)
         actual_repr = repr(dti)
         assert actual_repr == expected_repr.replace("[ns]", f"[{unit}]")
+
+    def test_dti_repr_wraps_at_display_width(self):
+        # GH#11552
+        dti = pd.date_range("2011-01-01", periods=3, freq="D", name="dates")
+        result = repr(dti)
+        expected = (
+            "DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],\n"
+            "              dtype='datetime64[us]', name='dates', freq='D')"
+        )
+        assert result == expected
 
     def test_dti_representation(self, unit):
         idxs = []
@@ -272,7 +296,7 @@ class TestDatetimeIndexRendering:
             result = idx._summary()
             assert result == expected
 
-    @pytest.mark.parametrize("tz", [None, timezone.utc, dateutil.tz.tzutc()])
+    @pytest.mark.parametrize("tz", [None, UTC, dateutil.tz.tzutc()])
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_repr_etc_smoke(self, tz, freq):
         # only really care that it works

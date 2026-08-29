@@ -148,12 +148,19 @@ def test_getitem(test_frame):
     r = test_frame.resample("h")["B"]
     assert r._selected_obj.name == test_frame.columns[1]
 
-    # technically this is allowed
-    r = test_frame.resample("h")["A", "B"]
-    tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
+    # tuple keys are deprecated but should preserve the current behavior
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="Passing a tuple to __getitem__ is deprecated",
+    ):
+        r = test_frame.resample("h")[("A", "B")]
 
-    r = test_frame.resample("h")["A", "B"]
-    tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
+    expected = test_frame[["A", "B"]]
+
+    tm.assert_index_equal(
+        r._selected_obj.columns,
+        expected.columns,
+    )
 
 
 @pytest.mark.parametrize("key", [["D"], ["A", "D"]])
@@ -981,13 +988,14 @@ def test_resample_empty():
         )
     )
     expected = DataFrame(
-        index=pd.to_datetime(
+        index=pd.DatetimeIndex(
             [
                 "2018-01-01 00:00:00",
                 "2018-01-01 08:00:00",
                 "2018-01-01 16:00:00",
                 "2018-01-02 00:00:00",
-            ]
+            ],
+            freq="8h",
         )
     )
     result = df.resample("8h").mean()

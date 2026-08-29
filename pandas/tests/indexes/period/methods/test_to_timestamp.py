@@ -27,8 +27,7 @@ class TestToTimestamp:
 
         result = pi._data[::2].to_timestamp()
         expected = dti._data[::2].as_unit("us")
-        # TODO: can we get the freq to round-trip?
-        tm.assert_datetime_array_equal(result, expected, check_freq=False)
+        tm.assert_datetime_array_equal(result, expected)
 
         result = pi[::-1].to_timestamp()
         expected = dti[::-1].as_unit("us")
@@ -36,7 +35,7 @@ class TestToTimestamp:
 
         result = pi._data[::-1].to_timestamp()
         expected = dti._data[::-1].as_unit("us")
-        tm.assert_datetime_array_equal(result, expected, check_freq=False)
+        tm.assert_datetime_array_equal(result, expected)
 
         result = pi[::2][::-1].to_timestamp()
         expected = dti[::2][::-1].as_unit("us")
@@ -44,7 +43,7 @@ class TestToTimestamp:
 
         result = pi._data[::2][::-1].to_timestamp()
         expected = dti._data[::2][::-1].as_unit("us")
-        tm.assert_datetime_array_equal(result, expected, check_freq=False)
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_to_timestamp_freq(self):
         idx = period_range("2017", periods=12, freq="Y-DEC")
@@ -147,3 +146,60 @@ def test_ms_to_timestamp_error_message():
     ix = period_range("2000", periods=3, freq="M")
     with pytest.raises(ValueError, match="for Period, please use 'M' instead of 'MS'"):
         ix.to_timestamp("MS")
+
+
+@pytest.mark.parametrize("freq", ["ns", "1ns"])
+def test_to_timestamp_nanosecond_target(freq):
+    # GH#63760 a target freq that normalizes to nanoseconds must give a
+    #  nanosecond-unit result rather than misinterpreting the ordinal
+    pi = period_range("2020-01-01", periods=3, freq="D")
+    result = pi.to_timestamp(freq)
+    expected = date_range("2020-01-01", periods=3, freq="D", unit="ns")
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["D", "s", "us"])
+def test_to_timestamp_from_nanosecond_period(freq):
+    # GH#63760 converting a nanosecond PeriodIndex with a coarser target must
+    #  yield a microsecond DatetimeIndex, not reinterpret the value as ns
+    pi = period_range("2020-01-01", periods=3, freq="ns")
+    result = pi.to_timestamp(freq)
+    expected = DatetimeIndex(["2020-01-01"] * 3, dtype="M8[us]")
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["ns", "1ns"])
+def test_to_timestamp_end_nanosecond_target(freq):
+    # GH#63760 how="end" keeps nanosecond precision for a target freq that
+    #  normalizes to nanoseconds
+    pi = period_range("2020-01-01", periods=2, freq="D")
+    result = pi.to_timestamp(freq, how="E")
+    expected = DatetimeIndex(
+        ["2020-01-01 23:59:59.999999999", "2020-01-02 23:59:59.999999999"],
+        dtype="M8[ns]",
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_timestamp_end_from_nanosecond_period():
+    # GH#63760 nanosecond periods keep their nanosecond end bounds with a
+    #  coarser target freq
+    pi = period_range("2020-01-01", periods=2, freq="ns")
+    result = pi.to_timestamp("D", how="E")
+    expected = DatetimeIndex(
+        ["2020-01-01 00:00:00", "2020-01-01 00:00:00.000000001"], dtype="M8[ns]"
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_timestamp_end_bday_nanosecond_target():
+    # GH#63760 the B roll-forward path keeps nanosecond precision too
+    msg = "Period with BDay freq is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        pi = period_range("2020-01-02", periods=2, freq="B")
+        result = pi.to_timestamp("ns", how="E")
+    expected = DatetimeIndex(
+        ["2020-01-02 23:59:59.999999999", "2020-01-03 23:59:59.999999999"],
+        dtype="M8[ns]",
+    )
+    tm.assert_index_equal(result, expected)

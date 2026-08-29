@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 
 import numpy as np
 import pytest
@@ -28,17 +28,17 @@ class TestDataFrameAlign:
         # frame with frame
         df1_central = df1.tz_convert("US/Central")
         new1, new2 = df1.align(df1_central)
-        assert new1.index.tz is timezone.utc
-        assert new2.index.tz is timezone.utc
+        assert new1.index.tz is UTC
+        assert new2.index.tz is UTC
 
         # frame with Series
         new1, new2 = df1.align(df1_central[0], axis=0)
-        assert new1.index.tz is timezone.utc
-        assert new2.index.tz is timezone.utc
+        assert new1.index.tz is UTC
+        assert new2.index.tz is UTC
 
         df1[0].align(df1_central, axis=0)
-        assert new1.index.tz is timezone.utc
-        assert new2.index.tz is timezone.utc
+        assert new1.index.tz is UTC
+        assert new2.index.tz is UTC
 
     def test_align_float(self, float_frame):
         af, bf = float_frame.align(float_frame)
@@ -309,7 +309,7 @@ class TestDataFrameAlign:
             df.align(series)
 
     def test_align_series_check_copy(self):
-        # GH#
+        # GH#49473
         df = DataFrame({0: [1, 2]})
         ser = Series([1], name=0)
         expected = ser.copy()

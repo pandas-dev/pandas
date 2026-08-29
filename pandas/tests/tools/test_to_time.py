@@ -1,20 +1,13 @@
 from datetime import time
-import locale
 
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import Series
 import pandas._testing as tm
 from pandas.core.tools.times import to_time
-
-# The tests marked with this are locale-dependent.
-# They pass, except when the machine locale is zh_CN or it_IT.
-fails_on_non_english = pytest.mark.xfail(
-    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-    strict=False,
-)
 
 
 class TestToTime:
@@ -23,18 +16,30 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            pytest.param("2:15pm", marks=fails_on_non_english),
-            pytest.param("0215pm", marks=fails_on_non_english),
+            pytest.param("2:15pm", marks=td.skip_if_not_us_locale),
+            pytest.param("0215pm", marks=td.skip_if_not_us_locale),
             "14:15:00",
             "141500",
-            pytest.param("2:15:00pm", marks=fails_on_non_english),
-            pytest.param("021500pm", marks=fails_on_non_english),
+            pytest.param("2:15:00pm", marks=td.skip_if_not_us_locale),
+            pytest.param("021500pm", marks=td.skip_if_not_us_locale),
+            pytest.param("2:15 pm", marks=td.skip_if_not_us_locale),
+            pytest.param("0215 pm", marks=td.skip_if_not_us_locale),
+            pytest.param("2:15:00 pm", marks=td.skip_if_not_us_locale),
+            pytest.param("021500 pm", marks=td.skip_if_not_us_locale),
             time(14, 15),
         ],
     )
     def test_parsers_time(self, time_string):
         # GH#11818
         assert to_time(time_string) == time(14, 15)
+
+    @td.skip_if_not_us_locale
+    def test_parsers_time_space_before_meridiem(self):
+        # GH#18793 the space before AM/PM used to make these unparsable
+        arg = ["3:25:00 AM", "3:25:00 PM", "12:30:00 AM", "12:30:00 PM"]
+        expected = [time(3, 25), time(15, 25), time(0, 30), time(12, 30)]
+        assert to_time(arg) == expected
+        assert to_time(arg, infer_time_format=True) == expected
 
     def test_odd_format(self):
         new_string = "14.15"

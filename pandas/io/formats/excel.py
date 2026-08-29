@@ -802,8 +802,7 @@ class ExcelFormatter:
                 ):
                     values = levels.take(
                         level_codes,
-                        allow_fill=levels._can_hold_na,
-                        fill_value=levels._na_value,
+                        allow_fill=True,
                     )
                     # GH#60099
                     if isinstance(values[0], Period):

@@ -114,6 +114,13 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
+Unary operator functions
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.__invert__
+
 Function application, GroupBy & window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::

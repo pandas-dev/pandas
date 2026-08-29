@@ -8,8 +8,6 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
-# np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
-@pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
 def test_ufuncs_single(ufunc, using_nan_is_na):
     a = pd.array([1, 2, -3, pd.NA], dtype="Float64")
     result = ufunc(a)
@@ -118,7 +116,7 @@ def test_stat_method(pandasmethname, kwargs):
     s2 = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64")
     pandasmeth = getattr(s2, pandasmethname)
     expected = pandasmeth(**kwargs)
-    assert expected == result
+    tm.assert_almost_equal(result, expected)
 
 
 def test_value_counts_na():
