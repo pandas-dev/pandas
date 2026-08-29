@@ -231,7 +231,6 @@ Other API changes
   - Floating point values are written with the shortest representation that round-trips (like Python's ``repr``) instead of being rounded to ten decimal places; the ``double_precision`` keyword has been removed. Round the data before calling ``to_json`` to limit the number of digits.
   - Non-ASCII characters are written as UTF-8; the ``force_ascii`` keyword has been removed.
   - ``indent`` only accepts ``0`` and ``2``, and indented output separates keys and values with ``": "``, like ``json.dumps(indent=2)``.
-  - Timedelta values with ``date_format="iso"`` are written with :meth:`Timedelta.isoformat`, which does not pad the fractional seconds (``"P0DT0H0M1.5S"`` instead of ``"P0DT0H0M1.500S"``).
   - Floats are always parsed with full precision by :func:`read_json`; the ``precise_float`` keyword has been removed. Integers that do not fit in 64 bits are now read instead of raising.
   - The default engine of :func:`read_json` is now called ``"json"`` instead of ``"ujson"``, and syntax errors are reported with the messages of the underlying parser.
   - The ``pandas.io.json.ujson_dumps`` and ``pandas.io.json.ujson_loads`` functions have been removed.

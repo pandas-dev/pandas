@@ -398,6 +398,24 @@ def _encode_datetimelike_bytes(
     )
 
 
+def _iso_duration(td: Timedelta) -> str:
+    """
+    ISO 8601 duration with the fractional seconds in groups of three digits
+    down to the smallest non-zero unit (the format of
+    ``writers.timedelta64_to_json``).
+    """
+    c = td.components
+    if c.nanoseconds:
+        frac = f".{c.milliseconds:03d}{c.microseconds:03d}{c.nanoseconds:03d}"
+    elif c.microseconds:
+        frac = f".{c.milliseconds:03d}{c.microseconds:03d}"
+    elif c.milliseconds:
+        frac = f".{c.milliseconds:03d}"
+    else:
+        frac = ""
+    return f"P{c.days}DT{c.hours}H{c.minutes}M{c.seconds}{frac}S"
+
+
 def _encode_datetimelike(
     values: np.ndarray, is_utc: bool, options: EncodeOptions
 ) -> list:
@@ -408,7 +426,7 @@ def _encode_datetimelike(
     kind = values.dtype.kind
     if options.iso_dates and kind == "m":
         tda = TimedeltaArray._simple_new(values, dtype=values.dtype)
-        return [None if td is NaT else td.isoformat() for td in tda]
+        return [None if td is NaT else _iso_duration(td) for td in tda]
 
     values = _cast_datetimelike(values, options)
     mask = values.view("i8") == iNaT

@@ -335,8 +335,10 @@ cdef int _write_iso_duration(
     char* buf, int64_t value, NPY_DATETIMEUNIT unit
 ) noexcept nogil:
     """
-    Write ``value`` as an ISO 8601 duration to ``buf`` (the format of
-    ``Timedelta.isoformat``); return its length.
+    Write ``value`` as an ISO 8601 duration to ``buf``; return its length.
+
+    The fractional seconds are written in groups of three digits down to the
+    smallest non-zero unit.
     """
     cdef:
         pandas_timedeltastruct tds
@@ -346,10 +348,12 @@ cdef int _write_iso_duration(
     n = snprintf(
         buf, 48, "P%lldDT%dH%dM%d", <long long>tds.days, tds.hrs, tds.min, tds.sec
     )
-    if tds.ms or tds.us or tds.ns:
+    if tds.ns:
         n += snprintf(buf + n, 12, ".%03d%03d%03d", tds.ms, tds.us, tds.ns)
-        while buf[n - 1] == b"0":
-            n -= 1
+    elif tds.us:
+        n += snprintf(buf + n, 12, ".%03d%03d", tds.ms, tds.us)
+    elif tds.ms:
+        n += snprintf(buf + n, 12, ".%03d", tds.ms)
     buf[n] = b"S"
     return n + 1
 
