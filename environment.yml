@@ -33,7 +33,6 @@ dependencies:
   - fastparquet>=2024.11.0
   - fsspec>=2025.7.0
   - html5lib>=1.1
-  - hypothesis>=6.116.0
   - gcsfs>=2025.7.0
   - jinja2>=3.1.6
   - lxml>=6.0.0
@@ -88,8 +87,7 @@ dependencies:
   - natsort  # DataFrame.sort_values doctest
   - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
   - numpydoc
-  # temporary installed with pip with custom patch until released
-  # - pydata-sphinx-theme=0.16
+  - pydata-sphinx-theme=0.20.0
   - pytest-cython>=0.4.0  # doctest
   - sphinx
   - sphinx-design
@@ -128,4 +126,3 @@ dependencies:
 
   - pip:
       - tzdata>=2023.3
-      - https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip

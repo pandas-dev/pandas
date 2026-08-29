@@ -22,7 +22,6 @@ bottleneck>=1.5.0
 fastparquet>=2024.11.0
 fsspec>=2025.7.0
 html5lib>=1.1
-hypothesis>=6.116.0
 gcsfs>=2025.7.0
 jinja2>=3.1.6
 lxml>=6.0.0
@@ -62,6 +61,7 @@ gitpython
 natsort
 pickleshare
 numpydoc
+pydata-sphinx-theme==0.20.0
 pytest-cython>=0.4.0
 sphinx
 sphinx-design
@@ -86,4 +86,3 @@ pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
 tzdata>=2023.3
-https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip

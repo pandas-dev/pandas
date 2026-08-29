@@ -85,7 +85,7 @@ funding = 'https://opencollective.com/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
+test = ['pytest>=8.3.4', 'pytest-xdist>=3.6.1']
 pyarrow = ['pyarrow>=16.0.0']
 performance = ['bottleneck>=1.5.0', 'numba>=0.61.2', 'numexpr>=2.11.0', 'orjson>=3.10.0']
 computation = ['scipy>=1.16.1', 'xarray>=2025.7.1']
@@ -116,7 +116,6 @@ all = ['adbc-driver-postgresql>=1.7.0',
        'fsspec>=2025.7.0',
        'gcsfs>=2025.7.0',
        'html5lib>=1.1',
-       'hypothesis>=6.116.0',
        'jinja2>=3.1.6',
        'lxml>=6.0.0',
        'matplotlib>=3.10.5',
@@ -455,8 +454,6 @@ filterwarnings = [
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "error::pytest.PytestWarning",
-  # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
-  "ignore::pytest.PytestAssertRewriteWarning",
   "ignore::pytest.PytestCacheWarning",
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified:EncodingWarning",
