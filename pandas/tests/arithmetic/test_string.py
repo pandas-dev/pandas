@@ -536,3 +536,33 @@ def test_comparison_methods_list(comparison_op, any_string_dtype, box, request):
             # if GH#62766 is addressed this check can be removed
             expected = tm.box_expected(expected, box)
         tm.assert_equal(result, expected)
+
+
+def test_add_length_zero_keeps_dtype(any_string_dtype):
+    # GH#40624 a length-zero operand should give the same result dtype as the
+    #  length-zero slice of a full-length operation
+    ser = Series(["a", "b"], dtype=any_string_dtype)
+    empty = ser.iloc[:0]
+
+    tm.assert_series_equal(empty + "x", (ser + "x").iloc[:0])
+    tm.assert_series_equal(empty + empty, (ser + ser).iloc[:0])
+    tm.assert_series_equal(empty * 2, (ser * 2).iloc[:0])
+
+
+def test_add_length_zero_mixed_storage(any_string_dtype, any_string_dtype2):
+    # GH#40624 the length-zero result should keep the dtype the full-length
+    #  operation resolves to rather than raising
+    left = Series(["a", "b"], dtype=any_string_dtype)
+    right = Series(["c", "d"], dtype=any_string_dtype2)
+
+    result = left.iloc[:0] + right.iloc[:0]
+    tm.assert_series_equal(result, (left + right).iloc[:0])
+
+
+@td.skip_if_no("pyarrow")
+def test_add_length_zero_object_ndarray():
+    # GH#40624 a length-zero object-dtype ndarray boxes to the pyarrow null
+    #  type, which has no binary_join kernel
+    arr = pd.array(["a", "b"], dtype="str")
+    result = arr[:0] + np.array([], dtype=object)
+    tm.assert_extension_array_equal(result, arr[:0])

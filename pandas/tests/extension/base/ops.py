@@ -87,9 +87,23 @@ class BaseOpsUtil:
             expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
             tm.assert_equal(result, expected)
+
+            self._check_length_zero(ser, op, other, expected)
         else:
             with pytest.raises(exc):
                 op(ser, other)
+
+    # see comment on check_opname
+    @final
+    def _check_length_zero(self, obj, op, other, expected) -> None:
+        # GH#40624 the operation on a length-zero object should match the
+        #  length-zero slice of the operation on the full-length object.
+        empty = obj.iloc[:0]
+        if isinstance(other, (pd.Series, pd.DataFrame)) and len(other) == len(obj):
+            other = other.iloc[:0]
+
+        result = op(empty, other)
+        tm.assert_equal(result, expected.iloc[:0])
 
     # see comment on check_opname
     @final
@@ -218,6 +232,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
             tm.assert_series_equal(result, expected)
 
+            self._check_length_zero(ser, op, other, expected)
+
         else:
             exc = None
             try:
@@ -232,6 +248,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
                     op.__name__, ser, other, expected
                 )
                 tm.assert_series_equal(result, expected)
+
+                self._check_length_zero(ser, op, other, expected)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, op)
