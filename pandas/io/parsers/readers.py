@@ -1293,6 +1293,9 @@ def read_csv(
         * ``'infer'`` (default): equivalent to ``header=0`` when no
           ``names`` are passed, otherwise equivalent to ``header=None``.
 
+        Column labels read from a header row are always strings. To use column
+        labels of another type, pass them explicitly with ``names``.
+
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
         ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
@@ -1892,6 +1895,9 @@ def read_table(
           ``names``, pass ``header=0`` instead.
         * ``'infer'`` (default): equivalent to ``header=0`` when no
           ``names`` are passed, otherwise equivalent to ``header=None``.
+
+        Column labels read from a header row are always strings. To use column
+        labels of another type, pass them explicitly with ``names``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
