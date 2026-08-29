@@ -645,15 +645,14 @@ class TestPandasContainer:
         df_printable = DataFrame({"A": [binthing.hexed]})
         assert df_printable.to_json() == f'{{"A":{{"0":"{hexed}"}}}}'
 
-        # objects that are not JSON serializable raise
+        # check if non-printable content throws appropriate Exception
         df_nonprintable = DataFrame({"A": [binthing]})
-        msg = "Object of type BinaryThing is not JSON serializable"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(UnicodeDecodeError, match="invalid start byte"):
             df_nonprintable.to_json()
 
         # the same with multiple columns threw segfaults
         df_mixed = DataFrame({"A": [binthing], "B": [1]}, columns=["A", "B"])
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(UnicodeDecodeError, match="invalid start byte"):
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
@@ -2364,32 +2363,46 @@ class TestPandasContainer:
             def e(self):
                 return 5
 
-        # arbitrary objects need a default_handler, see GH-42768
+        # JSON keys should be all non-callable non-underscore attributes, see GH-42768
         series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
-        with pytest.raises(TypeError, match="_TestObject is not JSON serializable"):
-            series.to_json()
-        result = series.to_json(default_handler=vars)
-        assert json.loads(result) == {"0": {"a": 1, "b": 2, "_c": 3, "d": 4}}
+        assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
 
     @pytest.mark.parametrize(
         "data,expected",
         [
             (
                 Series({0: -6 + 8j, 1: 0 + 1j, 2: 9 - 5j}),
-                '{"0":[-6.0,8.0],"1":[0.0,1.0],"2":[9.0,-5.0]}',
+                '{"0":{"imag":8.0,"real":-6.0},'
+                '"1":{"imag":1.0,"real":0.0},'
+                '"2":{"imag":-5.0,"real":9.0}}',
+            ),
+            (
+                Series({0: -9.39 + 0.66j, 1: 3.95 + 9.32j, 2: 4.03 - 0.17j}),
+                '{"0":{"imag":0.66,"real":-9.39},'
+                '"1":{"imag":9.32,"real":3.95},'
+                '"2":{"imag":-0.17,"real":4.03}}',
             ),
             (
                 DataFrame([[-2 + 3j, -1 - 0j], [4 - 3j, -0 - 10j]]),
-                '{"0":{"0":[-2.0,3.0],"1":[4.0,-3.0]},'
-                '"1":{"0":[-1.0,0.0],"1":[0.0,-10.0]}}',
+                '{"0":{"0":{"imag":3.0,"real":-2.0},'
+                '"1":{"imag":-3.0,"real":4.0}},'
+                '"1":{"0":{"imag":0.0,"real":-1.0},'
+                '"1":{"imag":-10.0,"real":0.0}}}',
+            ),
+            (
+                DataFrame(
+                    [[-0.28 + 0.34j, -1.08 - 0.39j], [0.41 - 0.34j, -0.78 - 1.35j]]
+                ),
+                '{"0":{"0":{"imag":0.34,"real":-0.28},'
+                '"1":{"imag":-0.34,"real":0.41}},'
+                '"1":{"0":{"imag":-0.39,"real":-1.08},'
+                '"1":{"imag":-1.35,"real":-0.78}}}',
             ),
         ],
     )
     def test_complex_data_tojson(self, data, expected):
-        # GH41174 complex values need a default_handler
-        with pytest.raises(TypeError, match="complex is not JSON serializable"):
-            data.to_json()
-        result = data.to_json(default_handler=lambda value: [value.real, value.imag])
+        # GH41174
+        result = data.to_json()
         assert result == expected
 
     def test_json_uint64(self):
@@ -2612,13 +2625,8 @@ def test_to_json_object_dtype_unsigned_scalar(scalar_type, value):
 def test_to_json_unsupported_object_gh36211():
     # GH#36211
     df = DataFrame({"a": [Path("m1")]})
-    msg = "|".join(
-        [
-            "Object of type PosixPath",
-            "WindowsPath is not JSON serializable",
-        ]
-    )
-    with pytest.raises(TypeError, match=msg):
+    msg = "Unable to serialize object to JSON: encountered an unsupported object type"
+    with pytest.raises(ValueError, match=msg):
         df.to_json()
 
 

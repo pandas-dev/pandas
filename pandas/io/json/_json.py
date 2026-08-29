@@ -247,7 +247,16 @@ def _to_json_string(
         index=index,
         fragments=indent == 0 and native_fragments(),
     )
-    encoded = encode(obj, orient, options)
+    try:
+        encoded = encode(obj, orient, options)
+    except RecursionError as err:
+        # GH#36211 objects of unknown type are written as the mapping of
+        # their attributes, which recurses without bound for some types
+        raise ValueError(
+            "Unable to serialize object to JSON: encountered an "
+            "unsupported object type; convert the column to a supported "
+            "type (e.g. str) before calling to_json."
+        ) from err
     text = dumps(encoded, indent=indent)
     # forward slashes have always been escaped in the output
     return text.replace("/", "\\/")

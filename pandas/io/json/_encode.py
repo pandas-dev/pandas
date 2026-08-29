@@ -501,7 +501,23 @@ def _encode_scalar(value: Any, orient: str, options: EncodeOptions) -> Any:
         return format(value, "f")
     if options.default_handler is not None:
         return _encode_scalar(options.default_handler(value), orient, options)
-    raise TypeError(
-        f"Object of type {type(value).__name__} is not JSON serializable; "
-        "pass a default_handler to convert it"
-    )
+    return _encode_attributes(value, orient, options)
+
+
+def _encode_attributes(value: Any, orient: str, options: EncodeOptions) -> dict:
+    """
+    Encode an object of unknown type as the mapping of its public,
+    non-callable attributes.
+    """
+    result = {}
+    for name in dir(value):
+        if name.startswith("_"):
+            continue
+        try:
+            attr = getattr(value, name)
+        except Exception:
+            continue
+        if callable(attr):
+            continue
+        result[name] = _encode_scalar(attr, orient, options)
+    return result
