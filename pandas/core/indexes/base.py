@@ -1486,7 +1486,11 @@ class Index(IndexOpsMixin, PandasObject):
                     line_len += len(sep) + attr_len
 
         prepr = "".join(parts)
-        if prepr.startswith("\n"):
+        if not prepr:
+            # No attrs to follow the data, so drop the separator that
+            # _format_data appends in anticipation of one (GH#66374)
+            data = data.rstrip().removesuffix(",")
+        elif prepr.startswith("\n"):
             # First attr wrapped to a new line; strip trailing whitespace
             # from the data portion (e.g. trailing ", " separator)
             data = data.rstrip()
