@@ -55,9 +55,6 @@ def get_objs():
 
 
 class TestReductions:
-    @pytest.mark.filterwarnings(
-        "ignore:Period with BDay freq is deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize("obj", get_objs())
     def test_ops(self, opname, obj):
@@ -766,12 +763,12 @@ class TestSeriesReductions:
         tm.assert_almost_equal(result, 1)
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
-    @pytest.mark.parametrize("dtype", ["int32", "int64"])
-    def test_sum_overflow_int(self, use_bottleneck, dtype):
+    @pytest.mark.parametrize("dtype, size", [("int32", 70_000), ("int64", 100_000)])
+    def test_sum_overflow_int(self, use_bottleneck, dtype, size):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
-            v = np.arange(5000000, dtype=dtype)
+            v = np.arange(size, dtype=dtype)
             s = Series(v)
 
             result = s.sum(skipna=False)

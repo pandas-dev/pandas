@@ -34,7 +34,7 @@ ENV_PATH = BASE_PATH / "environment.yml"
 EXCLUDE_DEPS = {"blosc", "tzdata", "pyqt", "pyqt5"}
 ADDITIONAL_PIXI_OPTIONAL_DEPENDENCIES = {
     ("feature", "pyarrow", "dependencies"): None,
-    ("feature", "test-base", "dependencies"): {"hypothesis", "pytest"},
+    ("feature", "test-base", "dependencies"): {"pytest"},
     ("feature", "test-clipboard", "dependencies"): {"qtpy"},
 }
 # pandas package is not available

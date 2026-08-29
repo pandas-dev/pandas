@@ -1007,7 +1007,8 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
@@ -1498,7 +1499,8 @@ class TestDatetime64DateOffsetArithmetic:
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
@@ -1507,7 +1509,7 @@ class TestDatetime64DateOffsetArithmetic:
         if box_with_array is pd.array and op is roperator.radd:
             # We expect a NumpyExtensionArray, not ndarray[object] here
             expected = pd.array(expected, dtype=object)
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
@@ -2534,7 +2536,8 @@ class TestDatetimeIndexArithmetic:
 
         xbox = get_upcast_box(dti, other)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = op(dti, other)
 
         expected = DatetimeIndex(
@@ -2557,14 +2560,15 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = dtarr - other
         tm.assert_equal(result, expected)
 
@@ -2599,14 +2603,15 @@ def test_dt64arr_addsub_object_dtype_2d(performance_warning):
     other = np.array([[pd.offsets.Day(n)] for n in range(4)])
     assert other.shape == dta.shape
 
-    with tm.assert_produces_warning(performance_warning):
+    msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         result = dta + other
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(performance_warning, match=msg):
         expected = (dta[:, 0] + other[:, 0]).reshape(-1, 1)
 
     tm.assert_numpy_array_equal(result, expected)
 
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(performance_warning, match=msg):
         # Case where we expect to get a TimedeltaArray back
         result2 = dta - dta.astype(object)
 

@@ -529,25 +529,26 @@ class TestCommon:
         # stacklevel checking is slow, and we have ~800 of variants of this
         #  test, so let's only check the stacklevel in a subset of them
         check_stacklevel = tz_naive_fixture is None
+        msg = "Non-vectorized DateOffset being applied to Series or DatetimeIndex"
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = dta + offset_s
         tm.assert_equal(result, dta)
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = offset_s + dta
         tm.assert_equal(result, dta)
@@ -1290,7 +1291,8 @@ def test_dateoffset_operations_on_dataframes(performance_warning):
         }
     )
     expecteddate = Timestamp("2021-06-30")
-    with tm.assert_produces_warning(performance_warning):
+    msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         frameresult2 = df2["T"] + 26 * df2["D"]
 
     assert frameresult1[0] == expecteddate
@@ -1439,6 +1441,37 @@ def test_month_end_n_above_int32_exact():
     months = (result.year - ts.year) * 12 + (result.month - ts.month)
     assert months == 2**32 - 1
     assert result.day == 30  # April
+
+
+@pytest.mark.parametrize(
+    "start, off, expected",
+    [
+        ("-19999-02-01", offsets.BMonthBegin(), "-19999-03-01"),
+        ("-19999-02-27", offsets.BQuarterEnd(startingMonth=2), "-19999-02-28"),
+        ("-19999-02-01", offsets.BYearBegin(month=2), "-19998-02-01"),
+    ],
+)
+def test_business_offset_out_of_pydatetime_range(start, off, expected):
+    # GH#53125 the business-day rules need the real year to get the weekday
+    #  right; a Timestamp outside datetime.datetime's range keeps a placeholder
+    #  year in its C-level fields.
+    dti = DatetimeIndex(np.array([start], dtype="M8[s]"))
+    expected = DatetimeIndex(np.array([expected], dtype="M8[s]"))
+
+    tm.assert_index_equal(dti + off, expected)
+    assert dti[0] + off == expected[0]
+
+
+def test_shift_month_tzaware():
+    # GH#53125 shift_month used the UTC fields of a tz-aware Timestamp.
+    #  No public path reaches this today (apply_wraps strips the tz before
+    #  calling _apply), so this guards the helper against a future caller.
+    ts = Timestamp("2011-02-01 05:00", tz="Asia/Tokyo")
+    assert ts.tz_convert("UTC").month == 1
+
+    assert liboffsets.shift_month(ts, 0, "end") == Timestamp(
+        "2011-02-28 05:00", tz="Asia/Tokyo"
+    )
 
 
 def test_month_end_year_above_int32():
