@@ -1443,6 +1443,37 @@ def test_month_end_n_above_int32_exact():
     assert result.day == 30  # April
 
 
+@pytest.mark.parametrize(
+    "start, off, expected",
+    [
+        ("-19999-02-01", offsets.BMonthBegin(), "-19999-03-01"),
+        ("-19999-02-27", offsets.BQuarterEnd(startingMonth=2), "-19999-02-28"),
+        ("-19999-02-01", offsets.BYearBegin(month=2), "-19998-02-01"),
+    ],
+)
+def test_business_offset_out_of_pydatetime_range(start, off, expected):
+    # GH#53125 the business-day rules need the real year to get the weekday
+    #  right; a Timestamp outside datetime.datetime's range keeps a placeholder
+    #  year in its C-level fields.
+    dti = DatetimeIndex(np.array([start], dtype="M8[s]"))
+    expected = DatetimeIndex(np.array([expected], dtype="M8[s]"))
+
+    tm.assert_index_equal(dti + off, expected)
+    assert dti[0] + off == expected[0]
+
+
+def test_shift_month_tzaware():
+    # GH#53125 shift_month used the UTC fields of a tz-aware Timestamp.
+    #  No public path reaches this today (apply_wraps strips the tz before
+    #  calling _apply), so this guards the helper against a future caller.
+    ts = Timestamp("2011-02-01 05:00", tz="Asia/Tokyo")
+    assert ts.tz_convert("UTC").month == 1
+
+    assert liboffsets.shift_month(ts, 0, "end") == Timestamp(
+        "2011-02-28 05:00", tz="Asia/Tokyo"
+    )
+
+
 def test_month_end_year_above_int32():
     # GH#66549 get_days_in_month truncated the year to 32 bits, so the leap-year
     #  determination used a wrapped year. 2147483700 is not a leap year, but
