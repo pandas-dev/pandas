@@ -231,6 +231,33 @@ class TestConvertDtypes:
         assert result["a"].dtype == pd.ArrowDtype(pa.list_(pa.int64()))
         assert result["b"].dtype == pd.ArrowDtype(pa.struct([("x", pa.int64())]))
 
+    def test_convert_dtypes_pyarrow_object_inference_scope(self):
+        # GH#65034 pyarrow inference applies only to object columns of
+        # lists/dicts; other object values and extension dtypes keep the
+        # previous behavior
+        pytest.importorskip("pyarrow")
+
+        ser = pd.Series(pd.period_range("2020", periods=3, freq="D"))
+        assert ser.convert_dtypes(dtype_backend="pyarrow").dtype == ser.dtype
+
+        ser = pd.Series(pd.interval_range(0, 3))
+        assert ser.convert_dtypes(dtype_backend="pyarrow").dtype == ser.dtype
+
+        vals = np.empty(2, dtype=object)
+        vals[:] = [
+            pd.Timestamp("2020-01-01", tz="UTC"),
+            pd.Timestamp("2020-01-01", tz="US/Eastern"),
+        ]
+        ser = pd.Series(vals, dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
+        vals = np.empty(2, dtype=object)
+        vals[:] = [2**70, 2**71]
+        ser = pd.Series(vals, dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
     def test_convert_dtype_pyarrow_timezone_preserve(self):
         # GH 60237
         pytest.importorskip("pyarrow")
