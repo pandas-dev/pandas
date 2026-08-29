@@ -6,7 +6,6 @@
 #     4. invalid result shape/type
 # If your test does not fit into one of these categories, add to this list.
 
-from itertools import chain
 import re
 
 import numpy as np
@@ -211,11 +210,9 @@ def test_apply_modify_traceback():
 
 @pytest.mark.parametrize(
     "df, func, expected",
-    tm.get_cython_table_params(
-        DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
-    ),
+    [(DataFrame([["a", "b"], ["b", "a"]]), "cumprod", TypeError)],
 )
-def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_string):
+def test_agg_raises_frame(df, func, expected, axis, using_infer_string):
     # GH 21224
     if using_infer_string:
         expected = (expected, NotImplementedError)
@@ -229,36 +226,27 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_str
             "operation 'cumprod' not supported for dtype 'str'",
         ]
     )
-    warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
-        with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
-            df.agg(func, axis=axis)
+        df.agg(func, axis=axis)
 
 
 @pytest.mark.parametrize(
     "series, func, expected",
-    list(
-        chain(
-            tm.get_cython_table_params(
-                Series("a b c".split()),
-                [
-                    ("mean", TypeError),  # mean raises TypeError
-                    ("prod", TypeError),
-                    ("std", TypeError),
-                    ("var", TypeError),
-                    ("median", TypeError),
-                    ("cumprod", TypeError),
-                ],
-            )
-        )
-    ),
+    [
+        (Series("a b c".split()), "mean", TypeError),  # mean raises TypeError
+        (Series("a b c".split()), "prod", TypeError),
+        (Series("a b c".split()), "std", TypeError),
+        (Series("a b c".split()), "var", TypeError),
+        (Series("a b c".split()), "median", TypeError),
+        (Series("a b c".split()), "cumprod", TypeError),
+    ],
 )
-def test_agg_cython_table_raises_series(series, func, expected, using_infer_string):
+def test_agg_raises_series(series, func, expected, using_infer_string):
     # GH21224
     msg = "|".join(
         ["[Cc]ould not convert", "can't multiply sequence by non-int of type"]
     )
-    if func == "median" or func is np.nanmedian or func is np.median:
+    if func == "median":
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
 
     if using_infer_string and func == "cumprod":
@@ -274,12 +262,9 @@ def test_agg_cython_table_raises_series(series, func, expected, using_infer_stri
             "operation",
         ]
     )
-    warn = None if isinstance(func, str) else FutureWarning
-
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
-        with tm.assert_produces_warning(warn, match="is currently using Series.*"):
-            series.agg(func)
+        series.agg(func)
 
 
 def test_agg_none_to_type():
