@@ -110,8 +110,11 @@ nan 2
 """
     # fallback casting, but not castable
     if not WASM:  # no fp exception support in wasm
+        warn_msg = "invalid value encountered in cast"
         with pytest.raises(ValueError, match="cannot safely convert"):
-            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(
+                RuntimeWarning, check_stacklevel=False, match=warn_msg
+            ):
                 parser.read_csv(
                     StringIO(data),
                     sep=r"\s+",

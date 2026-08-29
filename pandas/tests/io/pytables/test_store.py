@@ -215,7 +215,10 @@ def test_contains(temp_hdfstore):
     assert "bar" not in store
 
     # gh-2694: tables.NaturalNameWarning
-    with tm.assert_produces_warning(tables.NaturalNameWarning, check_stacklevel=False):
+    msg = "object name is not a valid Python identifier"
+    with tm.assert_produces_warning(
+        tables.NaturalNameWarning, check_stacklevel=False, match=msg
+    ):
         store["node())"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
