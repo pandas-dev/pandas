@@ -379,6 +379,7 @@ class DatetimeProperties(Properties):
         dtype: datetime64[us]
         """  # noqa: E501
         return self._delegate_method("tz_convert", tz)
+
     def to_pydatetime(self) -> Series:
         """
         Return the data as a Series of :class:`datetime.datetime` objects.
