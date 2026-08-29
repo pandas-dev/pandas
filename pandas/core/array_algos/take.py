@@ -247,6 +247,12 @@ def take_2d_multi(
         if func is not None:
             func = _convert_wrapper(func, out.dtype)
 
+    # datetime64/timedelta64 of any resolution use int64 storage
+    if func is None and arr.dtype.kind in "mM" and arr.dtype == out.dtype:
+        func = _view_wrapper(
+            libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+        )
+
     if mask_info is not None:
         _, (row_needs, col_needs) = mask_info
         needs_fill = row_needs or col_needs
@@ -299,6 +305,18 @@ def _get_take_nd_function_cached(
         func = _convert_wrapper(func, out_dtype)
         return func
 
+    # datetime64/timedelta64 of any resolution use int64 storage;
+    # the dispatch dicts only have entries for ns resolution, so handle
+    # other resolutions here.
+    if arr_dtype.kind in "mM" and arr_dtype == out_dtype:
+        if ndim == 1:
+            base_func = libalgos.take_1d_int64_int64
+        elif axis == 0:
+            base_func = libalgos.take_2d_axis0_int64_int64
+        else:
+            base_func = libalgos.take_2d_axis1_int64_int64
+        return _view_wrapper(base_func, np.int64, np.int64, fill_wrap=np.int64)
+
     return None
 
 
@@ -342,13 +360,7 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
         if out_dtype is not None:
             out = out.view(out_dtype)
         if fill_wrap is not None:
-            # FIXME: if we get here with dt64/td64 we need to be sure we have
-            #  matching resos
-            if fill_value.dtype.kind == "m":
-                fill_value = fill_value.astype("m8[ns]")
-            else:
-                fill_value = fill_value.astype("M8[ns]")
-            fill_value = fill_wrap(fill_value)
+            fill_value = fill_value.view("i8")
 
         f(arr, indexer, out, fill_value=fill_value, allow_fill=allow_fill)
 

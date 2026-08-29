@@ -83,6 +83,9 @@ def data_for_grouping():
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max", "count"]
 
@@ -103,19 +106,9 @@ class TestIntervalArray(base.ExtensionTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    @pytest.mark.xfail(reason="copy=False is not Implemented")
-    def test_fillna_readonly(self, data_missing):
-        super().test_fillna_readonly(data_missing)
-
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_hash_pandas_object(self, data):
         super().test_hash_pandas_object(data)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_hash_pandas_object_works(self, data, as_frame):
         super().test_hash_pandas_object_works(data, as_frame)
 
@@ -126,9 +119,6 @@ class TestIntervalArray(base.ExtensionTests):
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_astype_str(self, data):
         super().test_astype_str(data)
 
@@ -138,3 +128,14 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data):
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+    @pytest.mark.xfail(
+        raises=AssertionError,
+        reason="IntervalArray does not support roundtrip as Interval cannot be created "
+        "from dictionary created in JSON serialization",
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # IntervalArray does not support roundtrip as Interval cannot be created from
+        # dictionary created in JSON serialization
+        super().test_json_roundtrip(data)

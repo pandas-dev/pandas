@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -153,7 +155,8 @@ def test_tuple_string_column_names():
     # GH#50372
     mi = MultiIndex.from_tuples([("a", "aa"), ("a", "ab"), ("b", "ba"), ("b", "bb")])
     df = DataFrame([range(4), range(1, 5), range(2, 6)], columns=mi)
-    df["single_index"] = 0
+    with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+        df["single_index"] = 0
 
     df_flat = df.copy()
     df_flat.columns = df_flat.columns.to_flat_index()
@@ -352,14 +355,12 @@ def dataframe_with_duplicate_index():
     "indexer", [lambda df: df[("A", "A1")], lambda df: df.loc[:, ("A", "A1")]]
 )
 def test_frame_mi_access(dataframe_with_duplicate_index, indexer):
-    # GH 4145
+    # GH#4145, GH#42102
     df = dataframe_with_duplicate_index
-    index = Index(["h1", "h3", "h5"])
-    columns = MultiIndex.from_tuples([("A", "A1")], names=["main", "sub"])
-    expected = DataFrame([["a", 1, 1]], index=columns, columns=index).T
+    expected = Series(["a", 1, 1], index=Index(["h1", "h3", "h5"]), name=("A", "A1"))
 
     result = indexer(df)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_frame_mi_access_returns_series(dataframe_with_duplicate_index):

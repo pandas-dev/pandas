@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import (
     Callable,
+    Mapping,
     Sequence,
 )
 from functools import partial
@@ -11,7 +12,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     TypeAlias,
     TypedDict,
 )
@@ -19,7 +19,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -51,7 +51,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter: TypeAlias = str | Callable
-ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+ExtFormatter: TypeAlias = BaseFormatter | Mapping[Any, BaseFormatter | None]
 CSSPair: TypeAlias = tuple[str, str | float]
 CSSList: TypeAlias = list[CSSPair]
 CSSProperties: TypeAlias = str | CSSList
@@ -130,30 +130,28 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
-        self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
-        self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
-        self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
+        self.ctx: defaultdict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_index: defaultdict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_columns: defaultdict[tuple[int, int], CSSList] = defaultdict(list)
+        self.cell_context: defaultdict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
         precision = (
-            _global_config["styler"]["format"]["precision"]
-            if precision is None
-            else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
-        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
+        self._display_funcs: defaultdict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
+        self._display_funcs_index: defaultdict[  # maps (row, level) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_index_names: DefaultDict[  # maps index level -> format func
+        self._display_funcs_index_names: defaultdict[  # maps index level -> format func
             int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
+        self._display_funcs_columns: defaultdict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_column_names: DefaultDict[  # maps col level -> format func
+        self._display_funcs_column_names: defaultdict[  # maps col level -> format func
             int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
@@ -331,13 +329,9 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        max_elements = _global_config["styler"]["render"]["max_elements"]
-        max_rows = (
-            max_rows if max_rows else _global_config["styler"]["render"]["max_rows"]
-        )
-        max_cols = (
-            max_cols if max_cols else _global_config["styler"]["render"]["max_columns"]
-        )
+        max_elements = config["styler"]["render"]["max_elements"]
+        max_rows = max_rows if max_rows else config["styler"]["render"]["max_rows"]
+        max_cols = max_cols if max_cols else config["styler"]["render"]["max_columns"]
         max_rows, max_cols = _get_trimming_maximums(
             len(self.data.index),
             len(self.data.columns),
@@ -346,7 +340,7 @@ class StylerRenderer:
             max_cols,
         )
 
-        self.cellstyle_map_columns: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+        self.cellstyle_map_columns: defaultdict[tuple[CSSPair, ...], list[str]] = (
             defaultdict(list)
         )
         head = self._translate_header(sparse_cols, max_cols)
@@ -358,10 +352,10 @@ class StylerRenderer:
         )
         d.update({"index_lengths": idx_lengths})
 
-        self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
+        self.cellstyle_map: defaultdict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        self.cellstyle_map_index: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+        self.cellstyle_map_index: defaultdict[tuple[CSSPair, ...], list[str]] = (
             defaultdict(list)
         )
         body: list = self._translate_body(idx_lengths, max_rows, max_cols)
@@ -387,7 +381,7 @@ class StylerRenderer:
             )
 
         table_attr = self.table_attributes
-        if not _global_config["styler"]["html"]["mathjax"]:
+        if not config["styler"]["html"]["mathjax"]:
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace(
@@ -641,11 +635,6 @@ class StylerRenderer:
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
         <style></style> block
-
-        Parameters
-        ----------
-        sparsify_index : bool
-            Whether index_headers section will add rowspan attributes (>1) to elements.
 
         Returns
         -------
@@ -1226,7 +1215,7 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(data.columns, formatter)
 
         cis = self.columns.get_indexer_for(data.columns)
@@ -1416,7 +1405,7 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
@@ -1717,7 +1706,7 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
@@ -2012,9 +2001,7 @@ def _maybe_wrap_formatter(
         func_0 = formatter
     elif formatter is None:
         precision = (
-            _global_config["styler"]["format"]["precision"]
-            if precision is None
-            else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
@@ -2274,10 +2261,8 @@ class Tooltips:
 
         Parameters
         ----------
-        styler_data : DataFrame
-            Underlying ``Styler`` DataFrame used for reindexing.
-        uuid : str
-            The underlying ``Styler`` uuid for CSS id.
+        styler : StylerRenderer
+            The renderer whose ``data`` the tooltips are reindexed against.
         d : dict
             The dictionary prior to final render
 

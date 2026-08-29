@@ -6,7 +6,6 @@ the interface tests.
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -171,7 +170,14 @@ def test_to_numpy_readonly():
     assert result.flags.writeable
 
 
-@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
+def test_sort_readonly():
+    arr = NumpyExtensionArray(np.array([3, 1, 2]))
+    arr._readonly = True
+    with pytest.raises(ValueError, match="Cannot modify read-only array"):
+        arr.sort()
+    tm.assert_extension_array_equal(arr, NumpyExtensionArray(np.array([3, 1, 2])))
+
+
 @pytest.mark.parametrize("dtype", [None, "int64"])
 def test_asarray_readonly(dtype):
     arr = NumpyExtensionArray(np.array([1, 2, 3], dtype="int64"))
@@ -298,14 +304,13 @@ def test_setitem_object_typecode(dtype):
 
 def test_setitem_no_coercion():
     # https://github.com/pandas-dev/pandas/issues/28150
+    # GH#51044
     arr = NumpyExtensionArray(np.array([1, 2, 3]))
-    with pytest.raises(ValueError, match="int"):
+    with pytest.raises(TypeError, match="int"):
         arr[0] = "a"
 
-    # With a value that we do coerce, check that we coerce the value
-    #  and not the underlying array.
-    arr[0] = 2.5
-    assert isinstance(arr[0], (int, np.integer)), type(arr[0])
+    with pytest.raises(TypeError, match="int"):
+        arr[0] = 2.5
 
 
 def test_setitem_preserves_views():
@@ -320,7 +325,7 @@ def test_setitem_preserves_views():
     assert view2[0] == 9
     assert view3[0] == 9
 
-    arr[-1] = 2.5
+    arr[-1] = 5
     view1[-1] = 5
     assert arr[-1] == 5
 

@@ -11,6 +11,8 @@ from typing import (
 )
 import warnings
 
+from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -185,7 +187,7 @@ def eval(
     resolvers=(),
     level: int = 0,
     target=None,
-    inplace: bool = False,
+    inplace: bool | lib.NoDefault = lib.no_default,
 ) -> Any:
     """
     Evaluate a Python expression as a string using various backends.
@@ -275,6 +277,13 @@ def eval(
         to modify `target` inplace. Otherwise, return a copy of `target` with
         the mutation.
 
+        .. deprecated:: 3.1.0
+
+            This keyword is deprecated and will be removed in pandas 4.0.
+            See `PDEP-8 In-place methods in pandas
+            <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+            for more details.
+
     Returns
     -------
     ndarray, numeric scalar, DataFrame, Series, or None
@@ -330,12 +339,28 @@ def eval(
     0    dog   10          20
     1    pig   20          40
     """
+    if inplace is not lib.no_default:
+        # GH#63207
+        warnings.warn(
+            "The inplace keyword in eval is deprecated and will be removed "
+            "in a future version. See PDEP-8 for more details:"
+            "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        inplace = False
+
     inplace = validate_bool_kwarg(inplace, "inplace")
 
     exprs: list[str | BinOp]
     if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
+    elif isinstance(expr, NDFrame):
+        # GH#16289 a Series/DataFrame would otherwise be converted to its
+        #  (possibly truncated) repr and parsed, producing a confusing error
+        raise ValueError(f"expr must be a string to be evaluated, {type(expr)} given")
     else:
         # ops.BinOp; for internal compat, not intended to be passed by users
         exprs = [expr]

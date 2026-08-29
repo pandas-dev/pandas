@@ -28,12 +28,8 @@ class TestGetIndexer:
     def test_get_indexer_strings_raises(self):
         index = Index(["b", "c"], dtype=object)
 
-        msg = "|".join(
-            [
-                "operation 'sub' not supported for dtype 'str'",
-                r"unsupported operand type\(s\) for -: 'str' and 'str'",
-            ]
-        )
+        # object-dtype string subtraction goes through the Python operator
+        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
         with pytest.raises(TypeError, match=msg):
             index.get_indexer(["a", "b", "c", "d"], method="nearest")
 
@@ -109,7 +105,6 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)
 
-    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_get_indexer_non_unique_np_nats(self, np_nat_fixture, np_nat_fixture2):
         expected_missing = np.array([], dtype=np.intp)
         # matching-but-not-identical nats

@@ -1,0 +1,20 @@
+# Entries are matched as a substring of the source path UBSan reports, which is
+# the Cython-generated C file inside meson's private build directory. Meson does
+# not guarantee the layout of that directory (1.12.0 stopped mirroring the source
+# tree inside it), so match on the file name only.
+function:_cyutility.c
+function:/algos.pyx.c
+function:/hashtable.pyx.c
+function:/index.pyx.c
+function:/internals.pyx.c
+function:/interval.pyx.c
+function:/lib.pyx.c
+function:/missing.pyx.c
+function:/ops.pyx.c
+function:/sparse.pyx.c
+function:/np_datetime.pyx.c
+function:/offsets.pyx.c
+function:/period.pyx.c
+function:/timedeltas.pyx.c
+function:/timezones.pyx.c
+function:/vectorized.pyx.c

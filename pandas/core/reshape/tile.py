@@ -152,13 +152,15 @@ def cut(
 
     Notes
     -----
-    Any NA values will be NA in the result. Out of bounds values will be NA in
-    the resulting Series or Categorical object.
+    Any NA values will be NA in the result. Values that fall outside the range
+    of `bins` (or, when `bins` is a non-contiguous IntervalIndex, between two
+    bins) are not assigned to any bin and will be NA in the resulting Series or
+    Categorical object.
 
     ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
     to some predefined methods.
 
-    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+    See :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
     Examples
     --------
@@ -343,7 +345,8 @@ def qcut(
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
+    See :ref:`the user guide <reshaping.tile>` for more examples.
 
     Examples
     --------

@@ -139,10 +139,10 @@ def test_memory_usage_components_narrow_series(any_real_numpy_dtype):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_searchsorted(request, index_or_series_obj):
+def test_searchsorted(request, index_or_series_obj_orderable):
     # numpy.searchsorted calls obj.searchsorted under the hood.
     # See gh-12238
-    obj = index_or_series_obj
+    obj = index_or_series_obj_orderable
 
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833

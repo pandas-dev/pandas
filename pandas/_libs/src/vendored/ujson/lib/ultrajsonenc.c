@@ -95,7 +95,8 @@ static const char g_escapeChars[] = "0123456789\\b\\t\\n\\f\\r\\\"\\\\\\/";
 /*
 FIXME: While this is fine dandy and working it's a magic value mess which
 probably only the author understands.
-Needs a cleanup and more documentation */
+Needs a cleanup and more documentation
+(comment also present in upstream ultrajson) */
 
 /*
 Table for pure ascii output escaping all characters above 127 to \uXXXX */
@@ -365,7 +366,8 @@ static void SetError(JSOBJ obj, JSONObjectEncoder *enc, const char *message) {
 /*
 FIXME: Keep track of how big these get across several encoder calls and try to
 make an estimate
-That way we won't run our head into the wall each call */
+That way we won't run our head into the wall each call
+(comment also present in upstream ultrajson) */
 void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded) {
   size_t curSize = enc->end - enc->start;
   size_t newSize = curSize * 2;
@@ -376,11 +378,14 @@ void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded) {
   }
 
   if (enc->heap) {
-    enc->start = (char *)enc->realloc(enc->start, newSize);
-    if (!enc->start) {
+    // realloc does not free the original block when it fails, so keep the old
+    // pointer until it succeeds
+    char *newStart = (char *)enc->realloc(enc->start, newSize);
+    if (!newStart) {
       SetError(NULL, enc, "Could not reserve memory block");
       return;
     }
+    enc->start = newStart;
   } else {
     char *oldStart = enc->start;
     enc->heap = 1;
@@ -911,11 +916,8 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
 
 /*
 FIXME:
-Handle integration functions returning NULL here */
-
-/*
-FIXME:
-Perhaps implement recursion detection */
+Handle integration functions returning NULL here
+(comment also present in upstream ultrajson) */
 
 void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             size_t cbName) {
@@ -1197,6 +1199,12 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
 
   Buffer_Reserve(enc, 1);
   if (enc->errorMsg) {
+    if (enc->heap) {
+      // the caller only frees the buffer it passed in, so a buffer we grew
+      // onto the heap has to be released here
+      enc->free(enc->start);
+      enc->start = NULL;
+    }
     return NULL;
   }
   Buffer_AppendCharUnchecked(enc, '\0');

@@ -64,6 +64,20 @@ class TestDataFrameToStringFormatters:
         )
         assert result == expected
 
+    def test_to_string_object_dtype_with_formatter(self):
+        # GH#39850 formatter applied to floats stored in an object-dtype column
+        df = DataFrame([0.123456789, 1.123456789, 2.123456789], columns=["value"])
+        df = df.astype({"value": "object"})
+        result = df.to_string(formatters=["{:.2f}".format])
+        expected = dedent(
+            """\
+              value
+            0  0.12
+            1  1.12
+            2  2.12"""
+        )
+        assert result == expected
+
     def test_to_string_with_formatters(self):
         df = DataFrame(
             {
@@ -767,6 +781,22 @@ class TestDataFrameToString:
         )
         assert result == expected
 
+    def test_to_string_na_rep_datetime_and_timedelta(self):
+        # GH#55426
+        df = DataFrame(
+            {
+                "dt": to_datetime(["2021-01-01", NaT, "2021-01-03"]),
+                "td": timedelta_range("1 day", periods=3),
+                "dt_tz": to_datetime(["2021-01-01", NaT, "2021-01-03"]).tz_localize(
+                    "US/Eastern"
+                ),
+            }
+        )
+        df.loc[1, "td"] = NaT
+        result = df.to_string(na_rep="MISSING")
+        assert "NaT" not in result
+        assert result.count("MISSING") == 3
+
     def test_to_string_string_dtype(self):
         # GH#50099
         pytest.importorskip("pyarrow")
@@ -841,10 +871,7 @@ class TestDataFrameToString:
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()
         assert (np.abs(recons["A"].dropna() - biggie["A"].dropna()) < 0.1).all()
-
-        # FIXME: don't leave commented-out
-        # expected = ['B', 'A']
-        # assert header == expected
+        assert header == ["B", "A"]
 
         result = biggie.to_string(columns=["A"], col_space=17)
         header = result.split("\n")[0].strip().split()

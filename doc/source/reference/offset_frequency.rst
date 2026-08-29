@@ -7,6 +7,41 @@ Date offsets
 ============
 .. currentmodule:: pandas.tseries.offsets
 
+BaseOffset
+----------
+.. autosummary::
+   :toctree: api/
+
+    BaseOffset
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BaseOffset.freqstr
+    BaseOffset.kwds
+    BaseOffset.nanos
+    BaseOffset.normalize
+    BaseOffset.rule_code
+    BaseOffset.n
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BaseOffset.copy
+    BaseOffset.is_on_offset
+    BaseOffset.is_month_start
+    BaseOffset.is_month_end
+    BaseOffset.is_quarter_start
+    BaseOffset.is_quarter_end
+    BaseOffset.is_year_start
+    BaseOffset.is_year_end
+    BaseOffset.rollback
+    BaseOffset.rollforward
+
 DateOffset
 ----------
 .. autosummary::
@@ -1461,3 +1496,67 @@ Frequencies
    :toctree: api/
 
    to_offset
+
+.. _api.holiday:
+
+==================
+Holiday calendars
+==================
+.. currentmodule:: pandas.tseries.holiday
+
+Holiday
+-------
+.. autosummary::
+   :toctree: api/
+
+   Holiday
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   Holiday.dates
+
+Calendars
+---------
+.. autosummary::
+   :toctree: api/
+
+   AbstractHolidayCalendar
+   USFederalHolidayCalendar
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   AbstractHolidayCalendar.holidays
+   AbstractHolidayCalendar.merge
+   AbstractHolidayCalendar.merge_class
+   AbstractHolidayCalendar.rule_from_name
+
+Observance rules
+----------------
+.. autosummary::
+   :toctree: api/
+
+   after_nearest_workday
+   before_nearest_workday
+   nearest_workday
+   next_monday
+   next_monday_or_tuesday
+   next_workday
+   previous_friday
+   previous_workday
+   sunday_to_monday
+   weekend_to_monday
+
+Calendar utilities
+------------------
+.. autosummary::
+   :toctree: api/
+
+   HolidayCalendarFactory
+   get_calendar
+   register

@@ -27,7 +27,6 @@ from typing import (
     AnyStr,
     Final,
     Self,
-    cast,
 )
 import warnings
 
@@ -88,6 +87,12 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+# The format versions each header reader accepts. _version_error enumerates
+#  both, so keep them in sync -- GH#63082 dropped four of these from the
+#  message while the readers went on accepting them.
+_old_format_versions: Final = [102, 103, 104, 105, 108, 110, 111, 113, 114, 115]
+_new_format_versions: Final = [117, 118, 119]
+
 # Error shown when a version number was parsed but is not supported.
 # Wording intentionally mentions “either not a valid Stata dataset or
 # an unsupported version” to avoid confusing users when input is not a
@@ -95,9 +100,10 @@ if TYPE_CHECKING:
 _version_error = (
     "This is either not a valid Stata dataset or a Stata dataset from a "
     "version pandas does not support (detected: {version}). pandas "
-    "supports importing versions 105, 108, 111 (Stata 7SE), 113 (Stata "
-    "8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata "
-    "14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
+    "supports importing versions 102, 103, 104, 105, 108, 110 (Stata 7), "
+    "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), "
+    "117 (Stata 13), 118 (Stata 14/15/16), and 119 (Stata 15/16, over "
+    "32,767 variables)."
 )
 
 
@@ -213,7 +219,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         year = stata_epoch.year + dates // 52
         days = (dates % 52) * 7
         per_y = (year - 1970).array.view("Period[Y]")
-        per_d = per_y.asfreq("D", how="S")
+        per_d = per_y.asfreq("D", how="S")  # type: ignore[union-attr]
         per_d_shifted = per_d + days._values
         per_s = per_d_shifted.asfreq("s", how="S")
         conv_dates_arr = per_s.view("M8[s]")
@@ -282,9 +288,16 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 v = np.vectorize(f)
                 d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
-                date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year
-                d["month"] = date_index.month
+                try:
+                    date_index = DatetimeIndex(dates)
+                except ValueError:
+                    # GH#64556 entries not sharing a single tzinfo cannot be
+                    #  cast to datetime64, but we only need each object's fields
+                    d["year"] = [date.year for date in dates]
+                    d["month"] = [date.month for date in dates]
+                else:
+                    d["year"] = date_index.year
+                    d["month"] = date_index.month
             if days:
 
                 def g(x: datetime) -> int:
@@ -1190,7 +1203,7 @@ class StataReader(StataParser, abc.Iterator):
         # The first part of the header is common to 117 - 119.
         self._path_or_buf.read(27)  # stata_dta><header><release>
         self._format_version = int(self._path_or_buf.read(3))
-        if self._format_version not in [117, 118, 119]:
+        if self._format_version not in _new_format_versions:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
         self._path_or_buf.read(21)  # </release><byteorder>
@@ -1351,18 +1364,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
-        if self._format_version not in [
-            102,
-            103,
-            104,
-            105,
-            108,
-            110,
-            111,
-            113,
-            114,
-            115,
-        ]:
+        if self._format_version not in _old_format_versions:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
         # Note 102 format will have a zero in this header position, so support
@@ -1390,9 +1392,9 @@ class StataReader(StataParser, abc.Iterator):
             typlist = []
             for tp in typlistb:
                 if tp in self.OLD_TYPE_MAPPING:
-                    typlist.append(self.OLD_TYPE_MAPPING[tp])
+                    typlist.append(self.OLD_TYPE_MAPPING[tp])  # type: ignore[index]
                 else:
-                    typlist.append(tp - 127)  # bytes
+                    typlist.append(tp - 127)  # type: ignore[arg-type]
 
         try:
             self._typlist = [self.TYPE_MAP[typ] for typ in typlist]
@@ -1448,7 +1450,6 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self._typlist):
             if typ in self.NUMPY_TYPE_MAP:
-                typ = cast("str", typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append((f"s{i}", f"{self._byteorder}{self.NUMPY_TYPE_MAP[typ]}"))
             else:
                 dtypes.append((f"s{i}", f"S{typ}"))
@@ -1808,13 +1809,11 @@ the string values returned are correct."""
                 if fmt not in self.OLD_VALID_RANGE:
                     continue
 
-                fmt = cast("str", fmt)  # only strs in OLD_VALID_RANGE
                 nmin, nmax = self.OLD_VALID_RANGE[fmt]
             else:
                 if fmt not in self.VALID_RANGE:
                     continue
 
-                fmt = cast("str", fmt)  # only strs in VALID_RANGE
                 nmin, nmax = self.VALID_RANGE[fmt]
             series = data.iloc[:, i]
 

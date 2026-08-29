@@ -5,10 +5,13 @@ requires = [
     "meson-python>=0.19.0,<1",
     "meson>=1.2.3,<2",
     "wheel",
-    "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
-    # Force numpy higher than 2.0, so that built wheels are compatible
-    # with both numpy 1 and 2
-    "numpy>=2.0.0",
+    # "<4", not "<4.0.0a0": a pre-release in the bound makes pip eligible to
+    # install Cython pre-releases (that pulled the 3.3.0a1 alpha into 3.0.4).
+    "Cython>3.1.0,<4",  # Note: sync with environment.yml and asv.conf.json
+    # numpy >= 2.0 keeps wheels compatible with numpy 1 and 2. Exclude 2.5.0:
+    # wheels built against it segfault on older numpy (GH#66086; numpy GH#31804,
+    # fixed in 2.5.1).
+    "numpy>=2.0.0,!=2.5.0",
     "versioneer[toml]"
 ]
 
@@ -37,17 +40,19 @@ license-files = [
   "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
   "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
+  "LICENSES/STATSBASE_JL_LICENSE", # MIT
   "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
+  "LICENSES/XSIMD_LICENSE", # BSD-3-Clause
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
   "subprojects/fast_float-*/LICENSE-BOOST", # BSL
   "subprojects/fast_float-*/LICENSE-MIT", # MIT
 ]
 requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.26.0; python_version < '3.14'",
+  "numpy>=2.0.2; python_version < '3.14'",
   # Earlier versions of NumPy are fundamentally broken on 3.14
   "numpy>=2.3.3; python_version >= '3.14'",
-  "python-dateutil>=2.8.2",
+  "python-dateutil>=2.9.0",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
   "tzdata; sys_platform == 'emscripten'",
@@ -65,6 +70,7 @@ classifiers = [
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3.14',
+    'Programming Language :: Python :: 3.15',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -80,65 +86,64 @@ funding = 'https://opencollective.com/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
-pyarrow = ['pyarrow>=13.0.0']
-performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
-computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
-fss = ['fsspec>=2024.10.0']
-aws = ['s3fs>=2024.10.0']
-gcp = ['gcsfs>=2024.10.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.3.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.2.0']
+test = ['pytest>=8.3.4', 'pytest-xdist>=3.6.1']
+pyarrow = ['pyarrow>=16.0.0']
+performance = ['bottleneck>=1.5.0', 'numba>=0.61.2', 'numexpr>=2.11.0']
+computation = ['scipy>=1.16.1', 'xarray>=2025.7.1']
+fss = ['fsspec>=2025.7.0']
+aws = ['s3fs>=2025.7.0']
+gcp = ['gcsfs>=2025.7.0']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.4.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.2', 'xlsxwriter>=3.2.5']
 parquet = ['pyarrow>=13.0.0']
 feather = ['pyarrow>=13.0.0']
-iceberg = ['pyiceberg>=0.8.1']
-hdf5 = ['tables>=3.10.1']
-spss = ['pyreadstat>=1.2.8']
-postgresql = ['SQLAlchemy>=2.0.36', 'psycopg2>=2.9.10', 'adbc-driver-postgresql>=1.2.0']
-mysql = ['SQLAlchemy>=2.0.36', 'pymysql>=1.1.1']
-sql-other = ['SQLAlchemy>=2.0.36', 'adbc-driver-postgresql>=1.2.0', 'adbc-driver-sqlite>=1.2.0']
-html = ['beautifulsoup4>=4.12.3', 'html5lib>=1.1', 'lxml>=5.3.0']
-xml = ['lxml>=5.3.0']
-plot = ['matplotlib>=3.9.3']
-output-formatting = ['jinja2>=3.1.5', 'tabulate>=0.9.0']
-clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.4.2']
+iceberg = ['pyiceberg>=0.9.1']
+hdf5 = ['tables>=3.10.2']
+spss = ['pyreadstat>=1.3.0']
+postgresql = ['SQLAlchemy>=2.0.42', 'psycopg2>=2.9.10', 'adbc-driver-postgresql>=1.7.0']
+mysql = ['SQLAlchemy>=2.0.42', 'pymysql>=1.1.1']
+sql-other = ['SQLAlchemy>=2.0.42', 'adbc-driver-postgresql>=1.7.0', 'adbc-driver-sqlite>=1.7.0']
+html = ['beautifulsoup4>=4.13.4', 'html5lib>=1.1', 'lxml>=6.0.0']
+xml = ['lxml>=6.0.0']
+plot = ['matplotlib>=3.10.5']
+output-formatting = ['jinja2>=3.1.6', 'tabulate>=0.9.0']
+clipboard = ['PyQt5>=5.15.11', 'qtpy>=2.4.3']
 compression = ['zstandard>=0.23.0']
-timezone = ['pytz>=2024.2']
-all = ['adbc-driver-postgresql>=1.2.0',
-       'adbc-driver-sqlite>=1.2.0',
-       'beautifulsoup4>=4.12.3',
-       'bottleneck>=1.4.2',
+timezone = ['pytz>=2020.1']
+all = ['adbc-driver-postgresql>=1.7.0',
+       'adbc-driver-sqlite>=1.7.0',
+       'beautifulsoup4>=4.13.4',
+       'bottleneck>=1.5.0',
        'fastparquet>=2024.11.0',
-       'fsspec>=2024.10.0',
-       'gcsfs>=2024.10.0',
+       'fsspec>=2025.7.0',
+       'gcsfs>=2025.7.0',
        'html5lib>=1.1',
-       'hypothesis>=6.116.0',
-       'jinja2>=3.1.5',
-       'lxml>=5.3.0',
-       'matplotlib>=3.9.3',
-       'numba>=0.60.0',
-       'numexpr>=2.10.2',
+       'jinja2>=3.1.6',
+       'lxml>=6.0.0',
+       'matplotlib>=3.10.5',
+       'numba>=0.61.2',
+       'numexpr>=2.11.0',
        'odfpy>=1.4.1',
        'openpyxl>=3.1.5',
        'psycopg2>=2.9.10',
-       'pyarrow>=13.0.0',
-       'pyiceberg>=0.8.1',
+       'pyarrow>=16.0.0',
+       'pyiceberg>=0.9.1',
        'pymysql>=1.1.1',
-       'PyQt5>=5.15.9',
-       'pyreadstat>=1.2.8',
+       'PyQt5>=5.15.11',
+       'pyreadstat>=1.3.0',
        'pytest>=8.3.4',
        'pytest-xdist>=3.6.1',
-       'python-calamine>=0.3.0',
-       'pytz>=2024.2',
+       'python-calamine>=0.4.0',
+       'pytz>=2020.1',
        'pyxlsb>=1.0.10',
-       'qtpy>=2.4.2',
-       'scipy>=1.14.1',
-       's3fs>=2024.10.0',
-       'SQLAlchemy>=2.0.36',
-       'tables>=3.10.1',
+       'qtpy>=2.4.3',
+       'scipy>=1.16.1',
+       's3fs>=2025.7.0',
+       'SQLAlchemy>=2.0.42',
+       'tables>=3.10.2',
        'tabulate>=0.9.0',
-       'xarray>=2024.10.0',
-       'xlrd>=2.0.1',
-       'xlsxwriter>=3.2.0',
+       'xarray>=2025.7.1',
+       'xlrd>=2.0.2',
+       'xlsxwriter>=3.2.5',
        'zstandard>=0.23.0']
 
 # See the docstring in versioneer.py for instructions. Note that you must
@@ -153,12 +158,13 @@ tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
-setup = ['--vsenv'] # For Windows
+dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
-build-verbosity = 3
-build-frontend = "pip"
+enable = ["pyodide-eol"]
+build-verbosity = 1
+config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
@@ -166,18 +172,16 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-enable = ["cpython-freethreading"]
 
 [tool.cibuildwheel.windows]
+config-settings = { setup-args = ["--vsenv"] }
 environment = {}
-before-build = "python -m pip install delvewheel"
 # powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
@@ -189,16 +193,12 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-# Pyodide repairs wheels on its own, using auditwheel-emscripten
-repair-wheel-command = ""
-# https://github.com/pyodide/pyodide/issues/5805
-build-verbosity = 1
-build-frontend = "build"
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
+# nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p no:cacheprovider"]);' \
   """
 
 [tool.ruff]
@@ -262,7 +262,9 @@ select = [
   # flake8-slots
   "SLOT",
   # flake8-raise
-  "RSE"
+  "RSE",
+  # pyupgrade
+  "UP",
 ]
 
 ignore = [
@@ -385,6 +387,8 @@ ignore = [
   "RUF059",
   # pytest-raises-ambiguous-pattern
   "RUF043",
+  # implicit-string-concatenation-in-collection-litera
+  "ISC004",
 ]
 
 exclude = [
@@ -450,8 +454,6 @@ filterwarnings = [
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "error::pytest.PytestWarning",
-  # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
-  "ignore::pytest.PytestAssertRewriteWarning",
   "ignore::pytest.PytestCacheWarning",
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified:EncodingWarning",
@@ -468,24 +470,14 @@ filterwarnings = [
   "ignore:Plugin file tracers",
   # Raised by coverage in freethreading
   "ignore:Couldn't import C tracer",
-  # Remove 2 below when pyarrow version > ??
-  "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
-  "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  # NumPy 2.5 DeprecationWarning in fastparquet
+  "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
 ]
 junit_family = "xunit2"
-markers = [
-  "single_cpu: tests that should run on a single cpu only",
-  "slow: mark a test as slow",
-  "network: mark a test as network",
-  "db: tests requiring a database (mysql or postgres)",
-  "clipboard: mark a pd.read_clipboard test",
-  "arm_slow: mark a test as slow for arm64 architecture",
-]
 
 [tool.mypy]
 # Import discovery
-mypy_path = "typings"
-files = ["pandas", "typings"]
+files = ["pandas"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
@@ -494,7 +486,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.11"
+python_version = "3.13"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -534,20 +526,38 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._config.config", # TODO
-  "pandas._libs.*",
-  "pandas._testing.*", # TODO
-  "pandas.compat.numpy.function", # TODO
-  "pandas.core._numba.executor", # TODO
+  "pandas._libs.arrays",
+  "pandas._libs.hashtable",
+  "pandas._libs.index",
+  "pandas._libs.internals",
+  "pandas._libs.lib",
+  "pandas._libs.missing",
+  "pandas._libs.ops_dispatch",
+  "pandas._libs.properties",
+  "pandas._libs.sparse",
+  "pandas._libs.testing",
+  "pandas._libs.tslibs.fields",
+  "pandas._libs.tslibs.nattype",
+  "pandas._libs.tslibs.np_datetime",
+  "pandas._libs.tslibs.offsets",
+  "pandas._libs.tslibs.parsing",
+  "pandas._libs.tslibs.period",
+  "pandas._libs.tslibs.timedeltas",
+  "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
   "pandas.core.arrays.*", # TODO
-  "pandas.core.computation.*", # TODO
+  "pandas.core.computation.align", # TODO
+  "pandas.core.computation.engines", # TODO
+  "pandas.core.computation.eval", # TODO
+  "pandas.core.computation.expr", # TODO
+  "pandas.core.computation.expressions", # TODO
+  "pandas.core.computation.ops", # TODO
+  "pandas.core.computation.pytables", # TODO
+  "pandas.core.computation.scope", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.dtypes", # TODO
-  "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
@@ -555,7 +565,6 @@ module = [
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.accessors", # TODO
   "pandas.core.indexes.api", # TODO
-  "pandas.core.indexes.category", # TODO
   "pandas.core.indexes.datetimelike", # TODO
   "pandas.core.indexes.datetimes", # TODO
   "pandas.core.indexes.extension", # TODO
@@ -567,7 +576,6 @@ module = [
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
   "pandas.core.internals", # TODO
-  "pandas.core.internals.api", # TODO
   "pandas.core.internals.blocks", # TODO
   "pandas.core.internals.concat", # TODO
   "pandas.core.internals.construction", # TODO
@@ -582,7 +590,6 @@ module = [
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
-  "pandas.core.window.online", # TODO
   "pandas.core.window.rolling", # TODO
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
@@ -596,15 +603,11 @@ module = [
   "pandas.core.missing", # TODO
   "pandas.core.nanops", # TODO
   "pandas.core.resample", # TODO
-  "pandas.core.roperator", # TODO
-  "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
-  "pandas.core.sorting", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
   "pandas.io.excel._openpyxl", # TODO
-  "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
   "pandas.io.formats.excel", # TODO
@@ -625,10 +628,6 @@ module = [
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
   "pandas.tseries.holiday", # TODO
-  "pandas.util._decorators", # TODO
-  "pandas.util._doctools", # TODO
-  "pandas.util._validators", # TODO
-  "pandas.util", # TODO
   "pandas.conftest",
   "pandas"
 ]
@@ -661,7 +660,7 @@ skip = "pandas/__init__.py"
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
 useLibraryCodeForTypes = false
-include = ["pandas", "typings"]
+include = ["pandas"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version", "pandas/core/_numba/extensions.py"]
 # enable subset of "strict"
 reportDuplicateImport = true

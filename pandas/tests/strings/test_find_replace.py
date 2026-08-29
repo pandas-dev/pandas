@@ -414,6 +414,38 @@ def test_contains_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_contains_end_of_string_not_at_end_of_pattern(any_string_dtype):
+    # GH#63705 `\Z` is an end-of-string assertion wherever it appears in the
+    # pattern, not only when it is the last thing in it
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["foo", "bar", "foobar"], dtype=any_string_dtype)
+
+    result = ser.str.contains(r"foo\Z|bar")
+    expected = Series([True, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.contains(r"(?:foo\Z)")
+    expected = Series([True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_contains_end_of_string_not_regex(any_string_dtype):
+    # GH#63705 with regex=False the pattern is matched literally, so `\Z` must
+    # not be rewritten to `\z`
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["foo", r"bar\Z", r"bar\z", "baz"], dtype=any_string_dtype)
+
+    result = ser.str.contains(r"bar\Z", regex=False)
+    expected = Series([False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
@@ -1029,6 +1061,24 @@ def test_replace_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_replace_empty_pattern(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/64941
+    ser = Series(["abcd"], dtype=any_string_dtype)
+
+    result = ser.str.replace("", "")
+    expected = Series(["abcd"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("", "X")
+    expected = Series(["XaXbXcXdX"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series([], dtype=any_string_dtype)
+    result = ser.str.replace("", "X")
+    expected = Series([], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------
@@ -1070,6 +1120,21 @@ def test_match(any_string_dtype):
 
     result = values.str.match("\\^BAD[_]+.*BAD")
     expected = Series([False, True, na_value, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat",
+    [r"^foo|bar", r"^bar|foo", r"^foo|bar$", r"^(foo)|bar"],
+)
+def test_match_anchored_alternation(any_string_dtype, pat):
+    # GH#66069
+    ser = Series(["xbar", "bar", "foo", "xfoo"], dtype=any_string_dtype)
+    result = ser.str.match(pat)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([False, True, True, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1161,6 +1226,146 @@ def test_match_compiled_regex(any_string_dtype):
 
     # But if the flags match you're OK
     values.str.match(re.compile("ab", flags=re.IGNORECASE), flags=re.IGNORECASE)
+
+
+@pytest.mark.parametrize("flag", [re.MULTILINE, re.DOTALL, re.VERBOSE, re.ASCII])
+def test_match_non_ignorecase_flags(any_string_dtype, flag):
+    # GH#63108 flags other than IGNORECASE must not raise, whether passed via
+    #  `flags` or already baked into a compiled pat
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["ab", "cd"], dtype=any_string_dtype)
+    expected = Series([True, False], dtype=expected_dtype)
+
+    result = values.str.match("^ab", flags=flag)
+    tm.assert_series_equal(result, expected)
+
+    result = values.str.match(re.compile("^ab", flag))
+    tm.assert_series_equal(result, expected)
+
+
+def test_match_non_ignorecase_flags_applied(any_string_dtype):
+    # GH#63108 the flag must actually take effect, not just avoid raising
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["a\nc", "ac"], dtype=any_string_dtype)
+
+    result = values.str.match("a.c", flags=re.DOTALL)
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    # same via a compiled pat, which for arrow-backed dtypes takes the object
+    #  fallback rather than the pyarrow kernel
+    result = values.str.match(re.compile("a.c", re.DOTALL))
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    result = values.str.match("a.c")
+    tm.assert_series_equal(result, Series([False, False], dtype=expected_dtype))
+
+
+@pytest.mark.parametrize(
+    "method, pat", [["match", r"\w+"], ["fullmatch", r"\w+"], ["contains", r"^\w+$"]]
+)
+def test_ascii_flag_applied(any_string_dtype, method, pat):
+    # GH#66348 re.ASCII and re.UNICODE are mutually exclusive, so re.UNICODE must
+    #  not be added on the user's behalf
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["abc", "éxy"], dtype=any_string_dtype)
+    expected = Series([True, False], dtype=expected_dtype)
+
+    result = getattr(values.str, method)(pat, flags=re.ASCII)
+    tm.assert_series_equal(result, expected)
+
+    result = getattr(values.str, method)(re.compile(pat, re.ASCII))
+    tm.assert_series_equal(result, expected)
+
+
+def test_match_non_ignorecase_flags_with_case(any_string_dtype):
+    # GH#63108 a string pat combined with both `flags` and `case` must not be
+    #  mistaken for a user-passed compiled regexp
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["AB", "cd"], dtype=any_string_dtype)
+
+    result = values.str.match("^ab", flags=re.MULTILINE, case=False)
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    result = values.str.match("^ab", flags=re.MULTILINE, case=True)
+    tm.assert_series_equal(result, Series([False, False], dtype=expected_dtype))
+
+    result = values.str.match(re.compile("^ab", re.MULTILINE | re.IGNORECASE))
+    tm.assert_series_equal(result, Series([True, False], dtype=expected_dtype))
+
+    msg = "Cannot both specify case=True and pass 'flags' containing re.IGNORECASE"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        values.str.match("ab", flags=re.IGNORECASE, case=True)
+
+
+def test_match_inline_flags_survive(any_string_dtype):
+    # GH#63108 an inline "(?i)" belongs to the pattern; passing `flags` must
+    #  not make it look like a case-sensitivity conflict
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = Series(["AB", "cd"], dtype=any_string_dtype)
+    expected = Series([True, False], dtype=expected_dtype)
+
+    tm.assert_series_equal(values.str.match("(?i)ab"), expected)
+    tm.assert_series_equal(values.str.match("(?i)ab", flags=0), expected)
+    tm.assert_series_equal(values.str.match("(?i)ab", flags=re.MULTILINE), expected)
+
+
+def test_match_inline_ascii_flag():
+    # GH#63108 an inline "(?a)" must not collide with the implicit re.U
+    values = Series(["ab", "1b"], dtype=object)
+    expected = Series([True, True], dtype=np.bool_)
+
+    tm.assert_series_equal(values.str.match(r"(?a)\wb"), expected)
+    tm.assert_series_equal(values.str.match(r"(?a)\wb", flags=0), expected)
+    tm.assert_series_equal(values.str.match(r"(?a)\wb", flags=re.MULTILINE), expected)
+
+
+def test_match_re2_pattern_flags_zero():
+    # GH#63108 flags=0 is the documented default, so it must not route the
+    #  pattern through `re`, which rejects RE2 syntax pyarrow accepts
+    pytest.importorskip("pyarrow")
+    values = Series(["ab", "cd"], dtype="string[pyarrow]")
+    expected = Series([True, False], dtype="boolean")
+
+    tm.assert_series_equal(values.str.match(r"\p{L}b"), expected)
+    tm.assert_series_equal(values.str.match(r"\p{L}b", flags=0), expected)
+
+
+def test_match_arrow_dtype_flags():
+    # GH#63108 the accessor pre-compiles pat whenever `flags` is passed, which
+    #  ArrowDtype's _str_match must unwrap rather than choke on
+    pa = pytest.importorskip("pyarrow")
+    values = Series(["ab", "AB", "cd"], dtype=pd.ArrowDtype(pa.string()))
+
+    result = values.str.match("ab", flags=0)
+    tm.assert_series_equal(result, Series([True, False, False], dtype="bool[pyarrow]"))
+
+    result = values.str.match(re.compile("ab"))
+    tm.assert_series_equal(result, Series([True, False, False], dtype="bool[pyarrow]"))
+
+    result = values.str.match("ab", flags=re.IGNORECASE)
+    tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
+
+    # IGNORECASE carried by the pat itself must be folded into `case`, which is
+    #  the only form pyarrow understands
+    result = values.str.match(re.compile("ab", re.IGNORECASE))
+    tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
+
+    # GH#66348 flags pyarrow cannot honor are evaluated with `re` instead
+    result = values.str.match("^ab", flags=re.MULTILINE)
+    tm.assert_series_equal(result, Series([True, False, False], dtype="bool[pyarrow]"))
+
+    result = values.str.fullmatch("ab", flags=re.IGNORECASE)
+    tm.assert_series_equal(result, Series([True, True, False], dtype="bool[pyarrow]"))
 
 
 @pytest.mark.parametrize(
@@ -1630,6 +1835,76 @@ def test_find_multibyte_chars(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     result = ser.str.find("a", start=1)
+    tm.assert_series_equal(result, expected)
+
+
+def test_find_multibyte_chars_all_na_chunk(any_string_dtype):
+    # GH#64123 - the non-ascii fallback must keep an integer result type even
+    #  when a chunk holds nothing but nulls
+    ser = pd.concat(
+        [
+            Series([None, None], dtype=any_string_dtype),
+            Series(["永a", "ba"], dtype=any_string_dtype),
+        ],
+        ignore_index=True,
+    )
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = pd.NA
+
+    result = ser.str.find("a")
+    expected = Series([item, item, 1, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_find_all_na(any_string_dtype):
+    # GH#64123
+    ser = Series([None, None], dtype=any_string_dtype)
+    if any_string_dtype == object:
+        # an all-NA object result is never inferred to a numeric dtype
+        expected_dtype = object
+        item = None
+    elif is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = pd.NA
+
+    result = ser.str.find("a")
+    expected = Series([item, item], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.find("", 1, 2)
+    tm.assert_series_equal(result, expected)
+
+
+def test_find_empty(any_string_dtype):
+    # GH#64123
+    ser = Series([], dtype=any_string_dtype)
+    expected_dtype = (
+        np.int64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    result = ser.str.find("a")
+    expected = Series([], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_find_all_na_arrow_dtype(pa_type):
+    # GH#64123 - the result stayed null-typed instead of becoming integer
+    import pyarrow as pa
+
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    ser = Series([None, None], dtype=dtype)
+
+    result = ser.str.find("a")
+    expected = Series([None, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 

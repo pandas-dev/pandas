@@ -61,3 +61,29 @@ class TestCombine:
         result = df.combine(other, combiner)
         expected = other.astype("float64")
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("value", [2**63, 2**64, -(2**64), 2.0**64, np.inf])
+def test_combine_object_result_not_castable_to_int(value):
+    # GH#66394 a func result that doesn't fit the common dtype must be left
+    #  alone rather than raising OverflowError out of maybe_downcast_numeric
+    df1 = pd.DataFrame({"a": [1, 2]})
+    df2 = pd.DataFrame({"a": [3, 4]})
+
+    result = df1.combine(
+        df2, lambda ser1, ser2: pd.Series([value, value], dtype=object)
+    )
+
+    expected = pd.DataFrame({"a": pd.Series([value, value], dtype=object)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_combine_object_result_castable_to_int():
+    # GH#66394 in-range results still downcast to the common dtype
+    df1 = pd.DataFrame({"a": [1, 2]})
+    df2 = pd.DataFrame({"a": [3, 4]})
+
+    result = df1.combine(df2, lambda ser1, ser2: pd.Series([5, 6], dtype=object))
+
+    expected = pd.DataFrame({"a": [5, 6]})
+    tm.assert_frame_equal(result, expected)

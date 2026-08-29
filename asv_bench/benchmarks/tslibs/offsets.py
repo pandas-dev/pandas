@@ -3,11 +3,16 @@ offsets benchmarks that rely only on tslibs.  See benchmarks.offset for
 offsets benchmarks that rely on other parts of pandas.
 """
 
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 
 from pandas import offsets
+
+from pandas.tseries.frequencies import to_offset
 
 try:
     import pandas.tseries.holiday
@@ -84,3 +89,38 @@ class OffestDatetimeArithmetic:
 
     def time_subtract_10(self, offset):
         self.date - (10 * offset)
+
+
+class ToOffset:
+    params = [
+        "h",
+        "5min",
+        "D",
+        "3D",
+        "ME",
+        "YE",
+        "W",
+        "B",
+        "1D1h",
+        "5h30min",
+        "2.5min",
+    ]
+    param_names = ["freq"]
+
+    def time_to_offset_str(self, freq):
+        to_offset(freq)
+
+
+class ToOffsetPassthrough:
+    def setup(self):
+        self.offset = offsets.Hour(5)
+        self.timedelta = timedelta(hours=5)
+
+    def time_to_offset_baseoffset(self):
+        to_offset(self.offset)
+
+    def time_to_offset_none(self):
+        to_offset(None)
+
+    def time_to_offset_timedelta(self):
+        to_offset(self.timedelta)

@@ -1,6 +1,7 @@
 """test feather-format compat"""
 
 from datetime import datetime
+import warnings
 import zoneinfo
 
 import numpy as np
@@ -8,17 +9,12 @@ import pytest
 
 from pandas.compat.pyarrow import (
     pa_version_under18p0,
-    pa_version_under19p0,
 )
 
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 
 pa = pytest.importorskip("pyarrow")
@@ -65,6 +61,9 @@ class TestFeather:
         ]:
             self.check_error_on_write(obj, ValueError, msg, temp_file)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic(self, temp_file):
         tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
@@ -154,7 +153,9 @@ class TestFeather:
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        self.check_round_trip(df, temp_file, write_kwargs={"version": 1})
+        self.check_round_trip(
+            df, temp_file, write_kwargs={"compression": "uncompressed"}
+        )
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -239,26 +240,12 @@ class TestFeather:
         with pytest.raises(ValueError, match=msg):
             read_feather(temp_file, dtype_backend="numpy")
 
-    def test_string_inference(self, temp_file, using_infer_string):
+    def test_string_inference(self, temp_file):
         # GH#54431
         df = pd.DataFrame(data={"a": ["x", "y"]})
         df.to_feather(temp_file)
-        with pd.option_context("future.infer_string", True):
-            result = read_feather(temp_file)
-        dtype = pd.StringDtype(na_value=np.nan)
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
-        )
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]},
-            dtype=dtype,
-            columns=pd.Index(
-                ["a"],
-                dtype=object
-                if pa_version_under19p0 and not using_infer_string
-                else dtype,
-            ),
-        )
+        result = read_feather(temp_file)
+        expected = df
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
@@ -268,14 +255,19 @@ class TestFeather:
         from pyarrow import feather
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
-        feather.write_feather(table, temp_file)
-
-        with pd.option_context("future.infer_string", True):
-            result = read_feather(temp_file)
-
-            expected = pd.DataFrame(
-                data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)
+        # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66177)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.write_feather is deprecated",
+                FutureWarning,
             )
+            feather.write_feather(table, temp_file)
+
+        result = read_feather(temp_file)
+
+        expected = pd.DataFrame({"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
     def test_out_of_bounds_datetime_to_feather(self, temp_file):

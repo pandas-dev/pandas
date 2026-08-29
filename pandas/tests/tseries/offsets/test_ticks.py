@@ -7,11 +7,6 @@ from datetime import (
     timedelta,
 )
 
-from hypothesis import (
-    assume,
-    example,
-    given,
-)
 import numpy as np
 import pytest
 
@@ -22,7 +17,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import INT_NEG_999_TO_POS_999
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
@@ -61,12 +55,20 @@ def test_delta_to_tick():
     assert tick == Nano(5)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("cls", tick_classes)
-@example(n=2, m=3)
-@example(n=800, m=300)
-@example(n=1000, m=5)
-@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
+@pytest.mark.parametrize(
+    "n,m",
+    [
+        (2, 3),
+        (800, 300),
+        (1000, 5),
+        (0, 0),
+        (1, -1),
+        (-999, 999),
+        (999, -999),
+        (-5, 0),
+    ],
+)
 def test_tick_add_sub(cls, n, m):
     # For all Tick subclasses and all integers n, m, we should have
     # tick(n) + tick(m) == tick(n+m)
@@ -81,13 +83,21 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
-@pytest.mark.slow
-@pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
-@example(n=2, m=3)
-@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
+@pytest.mark.parametrize(
+    "n,m",
+    [
+        (2, 3),
+        (800, 300),
+        (1000, 5),
+        (0, 1),
+        (1, -1),
+        (-999, 999),
+        (999, -999),
+        (-5, 0),
+    ],
+)
 def test_tick_equality(cls, n, m):
-    assume(m != n)
     # tick == tock iff tick.n == tock.n
     left = cls(n)
     right = cls(m)
@@ -291,7 +301,8 @@ def test_tick_rdiv(cls):
     td64 = delta.to_timedelta64()
     instance__type = ".".join([cls.__module__, cls.__name__])
     msg = (
-        f"unsupported operand type\\(s\\) for \\/: 'int'|'float' and '{instance__type}'"
+        f"unsupported operand type\\(s\\) for \\/: "
+        f"('int'|'float') and '{instance__type}'"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -354,8 +365,8 @@ def test_compare_ticks_to_strs(cls):
 
     instance_type = ".".join([cls.__module__, cls.__name__])
     msg = (
-        "'<'|'<='|'>'|'>=' not supported between instances of "
-        f"'str' and '{instance_type}'|'{instance_type}' and 'str'"
+        "('<'|'<='|'>'|'>=') not supported between instances of "
+        f"('str' and '{instance_type}'|'{instance_type}' and 'str')"
     )
 
     for left, right in [("infer", off), (off, "infer")]:

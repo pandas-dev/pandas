@@ -53,8 +53,7 @@ class TestIndexConstructor:
         tm.assert_index_equal(ser, expected)
 
         expected = Index(["a", 1], dtype="object")
-        with pd.option_context("future.infer_string", True):
-            ser = Index(["a", 1])
+        ser = Index(["a", 1])
         tm.assert_index_equal(ser, expected)
 
     @pytest.mark.parametrize("klass", [Series, Index])

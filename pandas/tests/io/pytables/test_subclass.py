@@ -28,7 +28,7 @@ class TestHDFStoreSubclass:
         tm.assert_frame_equal(result, expected)
 
         with HDFStore(temp_h5_path) as store:
-            store.put("df", sdf)
+            store.put("df", sdf, track_times=False)
         result = read_hdf(temp_h5_path, "df")
         tm.assert_frame_equal(result, expected)
 
@@ -43,6 +43,6 @@ class TestHDFStoreSubclass:
         tm.assert_series_equal(result, expected)
 
         with HDFStore(temp_h5_path) as store:
-            store.put("ser", sser)
+            store.put("ser", sser, track_times=False)
         result = read_hdf(temp_h5_path, "ser")
         tm.assert_series_equal(result, expected)

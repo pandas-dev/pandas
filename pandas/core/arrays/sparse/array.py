@@ -19,7 +19,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 import pandas._libs.sparse as splib
@@ -28,7 +28,11 @@ from pandas._libs.sparse import (
     IntIndex,
     SparseIndex,
 )
-from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     Pandas4Warning,
@@ -44,8 +48,10 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
     find_common_type,
     maybe_box_datetimelike,
+    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -126,6 +132,7 @@ if TYPE_CHECKING:
         Scalar,
         ScalarIndexer,
         SequenceIndexer,
+        SortKind,
         npt,
     )
 
@@ -593,7 +600,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # a datetime64 with pandas NaT.
                 if fill_value is NaT:
                     # Can't put pd.NaT in a datetime64[ns]
-                    fill_value = np.datetime64("NaT")
+                    unit = np.datetime_data(self.sp_values.dtype)[0]
+                    fill_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
@@ -612,6 +620,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        raise NotImplementedError("SparseArray does not support in-place sort")
+
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
@@ -623,7 +640,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return cls(values, dtype=original.dtype)
 
     def _cast_pointwise_result(self, values):
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_non_numeric=True)
         if result.dtype.kind == self.dtype.kind:
             try:
@@ -841,6 +859,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
         if limit is not None:
             raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
@@ -1183,6 +1206,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif self.sp_index.npoints == 0:
             # Use the old fill_value unless we took for an index of -1
             _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            if self.dtype.subtype.kind == "b" and _dtype.kind != "b":
+                # GH#32119 numpy bool can't hold a non-bool (e.g. NA) fill;
+                #  match the dense reindex behavior and upcast to object
+                _dtype = np.dtype(object)
             taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
             taken[old_fill_indices] = self.fill_value
         else:
@@ -1205,6 +1232,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             if m1.any():
                 result_type = np.result_type(result_type, type(fill_value))
+                if taken.dtype.kind == "b" and result_type.kind != "b":
+                    # GH#32119 numpy bool can't hold a non-bool (e.g. NA)
+                    #  fill; match the dense reindex behavior (bool -> object)
+                    result_type = np.dtype(object)
                 taken = taken.astype(result_type)
                 taken[new_fill_indices] = fill_value
 
@@ -1239,7 +1270,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        if _global_config["mode"]["performance_warnings"]:
+        if config["mode"]["performance_warnings"]:
             msg = "searchsorted requires high memory usage."
             warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         v = np.asarray(v)
@@ -1366,19 +1397,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             values = ensure_wrapped_if_datetimelike(values)
             return astype_array(values, dtype=future_dtype, copy=False)
 
-        # GH#49631: save whether the original arg was a string (e.g.
-        # "Sparse[int64]") vs an explicit SparseDtype object, since
-        # update_dtype will overwrite dtype below.
-        dtype_from_string = not isinstance(dtype, SparseDtype)
         dtype = self.dtype.update_dtype(dtype)
 
-        # When dtype came from a string, update_dtype returns it with the
-        # default fill_value (e.g. 0 for int64) rather than converting the
-        # source fill_value (e.g. NaT -> iNaT). Fix that here.
+        # GH#49631: update_dtype resolves the target to the subtype's default
+        # fill_value (e.g. 0 for int64) rather than converting the source
+        # fill_value. For a datetimelike source with an NA (NaT) fill, casting to
+        # int is a view, so match the dense .astype and map NaT -> iNaT instead of
+        # silently using 0. Only fire when the target fill is the subtype default,
+        # so an explicitly-requested non-default fill_value is respected. Skip
+        # when fully dense, since the fill_value is unused.
         if (
-            dtype_from_string
-            and self.dtype._is_na_fill_value
+            self.dtype._is_na_fill_value
             and not dtype._is_na_fill_value
+            and self.dtype.subtype.kind in "mM"
+            and dtype.fill_value == na_value_for_dtype(dtype.subtype)
+            and self.sp_index.npoints != len(self)
         ):
             fv_arr = np.atleast_1d(np.array(self.fill_value))
             fv_arr = ensure_wrapped_if_datetimelike(fv_arr)
@@ -1469,14 +1502,43 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 skipna=kwargs.get("skipna", True),
             )
 
+        # Densify, keeping the dense dtype the subtype would have.  self.to_dense()
+        #  is no good here because it casts the fill_value to the subtype, turning
+        #  the NaNs of a Sparse[int64, nan] into 0s; np.asarray is no good either
+        #  because it promotes on type(fill_value) and so widens e.g.
+        #  Sparse[uint64] to float64.
+        if self.sp_index.ngaps == 0:
+            npvalues = self.sp_values
+        else:
+            npdtype = self.sp_values.dtype
+            fill_value = self.fill_value
+            if isna(fill_value):
+                # SparseDtype._check_fill_value guarantees that a non-NA
+                #  fill_value fits in the subtype, so only an NA needs promoting.
+                npdtype, fill_value = maybe_promote(npdtype, fill_value)
+            elif isinstance(fill_value, (Timestamp, Timedelta)):
+                # np.full would route these through the stdlib datetime protocol
+                #  and so truncate to microseconds
+                fill_value = fill_value.asm8
+            npvalues = np.full(self.shape, fill_value, dtype=npdtype)
+            npvalues[self.sp_index.indices] = self.sp_values
+
+        if npvalues.dtype.kind in "mM":
+            # Defer to DatetimeArray/TimedeltaArray, which reject the
+            #  operations that are invalid for their dtype.
+            return ensure_wrapped_if_datetimelike(npvalues)._groupby_op(
+                how=how,
+                has_dropped_na=has_dropped_na,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                **kwargs,
+            )
+
         from pandas.core.groupby.ops import WrappedCythonOp
 
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
-
-        # Convert to dense for the cython operation.
-        # The cython code handles NaN detection on dense float arrays natively.
-        npvalues = self.to_dense()
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -1542,12 +1604,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if method is None:
             raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-        if skipna:
-            arr = self
+        if name in ("mean", "sum", "min", "max"):
+            # these methods handle skipna themselves; dropping NAs beforehand
+            # would hide the NA from their skipna=False short-circuit
+            result = method(skipna=skipna, **kwargs)
         else:
-            arr = self.dropna()
-
-        result = getattr(arr, name)(**kwargs)
+            if skipna:
+                arr = self
+            else:
+                arr = self.dropna()
+            result = getattr(arr, name)(**kwargs)
 
         if keepdims:
             return type(self)([result], dtype=self.dtype)
@@ -1615,6 +1681,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             The required number of valid values to perform the summation. If fewer
             than ``min_count`` valid values are present, the result will be the missing
             value indicator for subarray type.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         *args, **kwargs
             Not Used. NumPy compatibility.
 
@@ -1623,11 +1691,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         scalar
         """
         nv.validate_sum(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
-        has_na = self.sp_index.ngaps > 0 and not self._null_fill_value
 
-        if has_na and not skipna:
+        if not skipna and self._hasna:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
         if self._null_fill_value:
@@ -1672,24 +1740,42 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis: Axis = 0, *args, **kwargs):
+    def mean(self, axis: Axis = 0, *args, skipna: bool = True, **kwargs):
         """
-        Mean of non-NA/null values
+        Mean of non-NA/null values.
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------
         mean : float
         """
         nv.validate_mean(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         ct = len(valid_vals)
 
+        # Compute the reduction before the skipna=False NA short-circuit so
+        # unsupported dtypes still raise during the operation validation.
+
         if self._null_fill_value:
-            return sp_sum / ct
+            mean = sp_sum / ct
         else:
             nsparse = self.sp_index.ngaps
-            return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+            mean = (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+
+        if not skipna and self._hasna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+        return mean
 
     def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
@@ -1746,17 +1832,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(valid_vals) > 0:
             sp_min_max = getattr(valid_vals, kind)()
 
+            if not skipna and self._hasna:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
+
             # If a non-null fill value is currently present, it might be the min/max
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
                 return func(sp_min_max, self.fill_value)
-            elif skipna:
-                return sp_min_max
-            elif self.sp_index.ngaps == 0:
-                # No NAs present
-                return sp_min_max
-            else:
-                return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+            # A present NA with skipna=False is handled above, so the min/max of
+            # the valid sparse values is the result.
+            return sp_min_max
+        elif not skipna and self._hasna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
         elif has_nonnull_fill_vals:
             return self.fill_value
         else:
@@ -1963,7 +2051,37 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype=np.bool_,
             )
 
-    _logical_method = _cmp_method
+    def _logical_method(self, other, op) -> SparseArray:
+        # GH#32119 the sparse fast path (see _sparse_array_op / splib) only
+        #  implements and/or/xor for boolean and integer subtypes. When
+        #  alignment upcasts an operand to object/float -- e.g. NA introduced
+        #  by reindexing a boolean SparseArray to a longer index -- fall back
+        #  to a dense computation so the result matches the non-sparse path.
+        if not self._logical_needs_dense(other):
+            return self._cmp_method(other, op)
+
+        from pandas.core.ops.array_ops import logical_op
+
+        lvalues = np.asarray(self)
+        rvalues = other if is_scalar(other) else np.asarray(other)
+        result = logical_op(lvalues, rvalues, op)
+        return type(self)(result)
+
+    def _logical_needs_dense(self, other) -> bool:
+        # The and/or/xor sparse kernels only support boolean/integer subtypes;
+        #  everything else (object/float produced by NA upcasting) must be
+        #  computed densely. Inspect dtypes without materializing so the fast
+        #  path still receives the original operand (and its warnings).
+        if self.dtype.subtype.kind not in "biu":
+            return True
+        other_dtype = getattr(other, "dtype", None)
+        if other_dtype is None:
+            # scalar or a dtype-less sequence (e.g. list); the fast path
+            #  handles these, including raising on length mismatch
+            return False
+        if isinstance(other_dtype, SparseDtype):
+            return other_dtype.subtype.kind not in "biu"
+        return other_dtype.kind not in "biu"
 
     def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
@@ -2016,7 +2134,6 @@ def _make_sparse(
     kind : {'block', 'integer'}
     fill_value : NaN or another value
     dtype : np.dtype, optional
-    copy : bool, default False
 
     Returns
     -------

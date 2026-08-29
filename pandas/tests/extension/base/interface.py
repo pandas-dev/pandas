@@ -1,14 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.extensions import ExtensionArray
 
 
 class BaseInterfaceTests:
@@ -92,10 +91,6 @@ class BaseInterfaceTests:
         result_copy2 = np.array(data, copy=True)
         assert not np.may_share_memory(result_copy1, result_copy2)
 
-        if not np_version_gt2:
-            # copy=False semantics are only supported in NumPy>=2.
-            return
-
         try:
             result_nocopy1 = np.array(data, copy=False)
         except ValueError:
@@ -170,3 +165,34 @@ class BaseInterfaceTests:
         expected = list(data)
         assert isinstance(result, list)
         assert result == expected
+
+    def test_cast_pointwise_result_robust_any_input(self, data):
+        # the _cast_pointwise_result method should be robust to any input,
+        # and if it receives input it cannot handle for its own dtype (family),
+        # always fall back to return a generic array instead of raising an error
+        values = [
+            1,
+            "a",
+            (1, 2),
+            [1, 2],
+            {"x": 1},
+            pd.NA,
+            None,
+            np.nan,
+            pd.Timestamp("2020-01-01"),
+            pd.Timedelta("1D"),
+            True,
+        ]
+
+        result = data._cast_pointwise_result(values)
+        assert len(result) == len(values)
+        assert isinstance(result, (ExtensionArray, np.ndarray))
+
+        for val in values:
+            result = data._cast_pointwise_result([val])
+            assert len(result) == 1
+            assert isinstance(result, (ExtensionArray, np.ndarray))
+
+            result = data._cast_pointwise_result([val, val, val])
+            assert len(result) == 3
+            assert isinstance(result, (ExtensionArray, np.ndarray))

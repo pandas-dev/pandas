@@ -2,8 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.io.generate_legacy_storage_files import create_dataframe_all_types
@@ -86,12 +84,9 @@ _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
 @pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
 def test_legacy_files(datapath, legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
-    legacy_file = datapath(legacy_file)
-
-    if not np_version_gt2 and legacy_file.endswith("fixed.h5"):
-        # Files created for versions 2.0-3.0 used a numpy version >= 2.0, and
-        # unpickling the object dtype column fails with older numpy
-        pytest.skip("Fixed format pickle objects don't deserialize with numpy < 2.0")
+    legacy_file = datapath(
+        "io", "data", "legacy_hdf", legacy_file.parent.name, legacy_file.name
+    )
 
     result = pd.read_hdf(legacy_file)
 
