@@ -1740,13 +1740,17 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    def test_read_json_large_numbers(self):
-        # GH20599, 26068 integers beyond 64 bits are read as floats
-        bigNum = 2**64
+    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
+    def test_read_json_large_numbers(self, bigNum):
+        # GH20599, 26068
+        json = StringIO('{"articleId":' + str(bigNum) + "}")
+        msg = "|".join(["Value is too small", "Value is too big"])
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
+
         json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
-        result = read_json(json)
-        expected = DataFrame({0: [float(bigNum)]}, index=["articleId"])
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
     def test_read_json_large_numbers2(self):
         # GH18842

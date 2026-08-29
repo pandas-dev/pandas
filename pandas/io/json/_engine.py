@@ -16,6 +16,7 @@ from typing import Any
 
 import numpy as np
 
+from pandas._libs import writers
 from pandas.compat._optional import import_optional_dependency
 
 orjson = import_optional_dependency("orjson", errors="ignore")
@@ -132,14 +133,27 @@ def _parse_constant(name: str) -> float | None:
     return float(name)
 
 
+def _check_integer_range(text: bytes) -> None:
+    """
+    Raise for integers outside of ``[-2**63, 2**64 - 1]``, which the decoders
+    would otherwise read as floats or as Python ints.
+    """
+    pos, sign = writers.json_wide_integer(text)
+    if sign > 0:
+        raise ValueError(f"Value is too big! at position {pos}")
+    if sign < 0:
+        raise ValueError(f"Value is too small at position {pos}")
+
+
 def loads(text: str | bytes) -> Any:
     """
     Deserialize JSON text.
 
     Beyond strict JSON this accepts the ``NaN``, ``Infinity`` and
     ``-Infinity`` literals, which the stdlib decoder handles. Integers beyond
-    64 bits are read as floats by orjson and as ints by the stdlib decoder.
+    64 bits raise ``ValueError``.
     """
+    _check_integer_range(text.encode("utf-8") if isinstance(text, str) else text)
     if orjson is not None:
         try:
             return orjson.loads(text)

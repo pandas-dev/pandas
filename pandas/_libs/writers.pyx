@@ -37,6 +37,7 @@ from libc.stdint cimport INT64_MAX
 from libc.stdio cimport snprintf
 from libc.string cimport (
     memchr,
+    memcmp,
     memcpy,
 )
 from numpy cimport (
@@ -427,6 +428,84 @@ def timedelta64_to_json(
             pos += 1
     buf[pos] = b"]"
     return _finish_bytes(raw, pos + 1)
+
+
+cdef Py_ssize_t _scan_wide_integer(
+    const unsigned char* s, Py_ssize_t n, int* sign
+) noexcept nogil:
+    """
+    Position of the first integer token outside of ``[-2**63, 2**64 - 1]``
+    in JSON text ``s``, or -1; ``sign`` is set to 1 for too big and -1 for
+    too small. String literals are skipped and floats are never reported.
+    """
+    cdef:
+        Py_ssize_t i = 0, start, dstart, ndig
+        unsigned char c
+        bint neg
+
+    while i < n:
+        c = s[i]
+        if c == b'"':
+            i += 1
+            while i < n:
+                if s[i] == b"\\":
+                    i += 2
+                    continue
+                if s[i] == b'"':
+                    break
+                i += 1
+            i += 1
+            continue
+        if c == b"-" or (c >= b"0" and c <= b"9"):
+            start = i
+            neg = c == b"-"
+            if neg:
+                i += 1
+            dstart = i
+            while i < n and s[i] >= b"0" and s[i] <= b"9":
+                i += 1
+            ndig = i - dstart
+            if ndig >= 19 and not (
+                i < n and (s[i] == b"." or s[i] == b"e" or s[i] == b"E")
+            ):
+                if neg:
+                    if ndig > 19 or memcmp(s + dstart, b"9223372036854775808", 19) > 0:
+                        sign[0] = -1
+                        return start
+                elif ndig > 20 or (
+                    ndig == 20
+                    and memcmp(s + dstart, b"18446744073709551615", 20) > 0
+                ):
+                    sign[0] = 1
+                    return start
+            # the remainder of a float token
+            while i < n and (
+                (s[i] >= b"0" and s[i] <= b"9")
+                or s[i] == b"." or s[i] == b"e" or s[i] == b"E"
+                or s[i] == b"+" or s[i] == b"-"
+            ):
+                i += 1
+            continue
+        i += 1
+    return -1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def json_wide_integer(const unsigned char[::1] text) -> tuple[Py_ssize_t, int]:
+    """
+    ``(position, sign)`` of the first integer in JSON ``text`` outside of the
+    64-bit range (sign 1 for too big, -1 for too small), or ``(-1, 0)``.
+    """
+    cdef:
+        int sign = 0
+        Py_ssize_t pos
+
+    if text.shape[0] == 0:
+        return -1, 0
+    with nogil:
+        pos = _scan_wide_integer(&text[0], text.shape[0], &sign)
+    return pos, sign
 
 
 @cython.boundscheck(False)

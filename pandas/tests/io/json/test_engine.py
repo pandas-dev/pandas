@@ -3,6 +3,7 @@ Tests for the JSON engine adapter: orjson when installed, stdlib otherwise.
 """
 
 from io import StringIO
+import re
 
 import numpy as np
 import pytest
@@ -64,11 +65,37 @@ class TestLoads:
         with pytest.raises(ValueError, match=msg):
             loads(text)
 
-    def test_read_json_big_int(self, engine):
-        # integers beyond 64 bits are read as floats
-        result = read_json(StringIO(f'{{"a":[{2**64},1]}}'))
-        expected = DataFrame({"a": [float(2**64), 1.0]})
+    def test_read_json_int_in_range(self, engine):
+        text = (
+            f'{{"a":[{2**64 - 1}],"b":[{-(2**63)}],"c":["{2**64}"],'
+            '"d":[1577836800000000000],"e":[0.1234567890123456789],'
+            '"f":[1234567890123456789e1],"g":[-1.5e-19]}'
+        )
+        result = read_json(StringIO(text))
+        expected = DataFrame(
+            {
+                "a": np.array([2**64 - 1], dtype="uint64"),
+                "b": [-(2**63)],
+                "c": [float(2**64)],
+                "d": [1577836800000000000],
+                "e": [0.1234567890123456789],
+                "f": [1234567890123456789e1],
+                "g": [-1.5e-19],
+            }
+        )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "text, msg",
+        [
+            (f'{{"a":[1,{2**64}]}}', "Value is too big! at position 8"),
+            (f'{{"a":[{-(2**63) - 1}]}}', "Value is too small at position 6"),
+            (f'{{"a":["{2**64}",{2**64}]}}', "Value is too big! at position 29"),
+        ],
+    )
+    def test_read_json_int_out_of_range(self, engine, text, msg):
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            read_json(StringIO(text))
 
     def test_read_json_nan_inf(self, engine):
         data = StringIO('{"a":[NaN,Infinity,-Infinity,1.5],"b":["x",null,NaN,"y"]}')
