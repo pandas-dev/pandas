@@ -5,11 +5,15 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     NaT,
     Series,
+    Timestamp,
     date_range,
+    to_timedelta,
 )
 import pandas._testing as tm
+from pandas.core import missing
 
 
 class TestDataFrameInterpolate:
@@ -501,8 +505,9 @@ class TestDataFrameInterpolate:
 @pytest.mark.parametrize("limit_direction", ["forward", "backward", "both"])
 @pytest.mark.parametrize("limit_area", [None, "inside", "outside"])
 @pytest.mark.parametrize("index_values", [None, [0.0, 1.5, 2.0, 6.0, 6.5, 9.0, 20.0]])
+@pytest.mark.parametrize("dtype", ["float64", "float32"])
 def test_interpolate_frame_matches_series(
-    method, limit_direction, limit_area, index_values
+    method, limit_direction, limit_area, index_values, dtype
 ):
     # GH#48236 a frame interpolates every 1-d slice at once for these methods;
     #  a Series takes the slice-at-a-time path, so the two must agree
@@ -514,8 +519,11 @@ def test_interpolate_frame_matches_series(
         "one_valid": [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, np.nan],
         "edges_nan": [np.nan, 1.0, np.nan, np.nan, 5.0, np.nan, np.nan],
         "interior": [0.0, np.nan, 2.0, np.nan, np.nan, 5.0, 6.0],
+        # the arithmetic must not round in a narrower dtype than np.interp
+        "uneven": [-1.1140672, -0.011521468, -0.44358122, np.nan, 0.65, 0.1, -2.3],
+        "non_finite": [np.inf, np.nan, -np.inf, np.nan, 3e38, np.nan, -3e38],
     }
-    df = DataFrame(data, index=index_values)
+    df = DataFrame(data, index=index_values, dtype=dtype)
     kwargs = {
         "method": method,
         "limit_direction": limit_direction,
@@ -530,3 +538,142 @@ def test_interpolate_frame_matches_series(
     # and the axis=1 spelling gives the transposed result
     result = df.T.interpolate(axis=1, **kwargs)
     tm.assert_frame_equal(result, expected.T)
+
+
+@pytest.mark.parametrize("method", ["time", "index", "nearest"])
+@pytest.mark.parametrize("unit", ["ns", "us", "s"])
+def test_interpolate_frame_datetime_index_matches_series(method, unit):
+    # GH#48236 i8 nanosecond timestamps do not survive the cast to float64
+    #  that the whole-block path interpolates in
+    if method != "index":
+        pytest.importorskip("scipy")
+    index = DatetimeIndex(
+        Timestamp("2020-01-01") + to_timedelta([0, 1, 2, 3, 4, 5, 100], unit=unit)
+    )
+    data = {
+        "interior": [1.0, np.nan, np.nan, np.nan, np.nan, 2.0, 3.0],
+        "edges_nan": [np.nan, 1.0, np.nan, np.nan, 5.0, np.nan, np.nan],
+    }
+    df = DataFrame(data, index=index)
+    result = df.interpolate(method=method)
+    expected = DataFrame(
+        {name: df[name].interpolate(method=method) for name in data}, index=index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_interpolate_frame_no_nans_without_scipy(monkeypatch):
+    # GH#48236 a frame whose slices are all valid or all NaN never reached
+    #  SciPy on the per-slice path, and must not start requiring it
+    real_import = missing.import_optional_dependency
+
+    def no_scipy(name, *args, **kwargs):
+        if name == "scipy":
+            raise ImportError("Missing optional dependency 'scipy'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(missing, "import_optional_dependency", no_scipy)
+    df = DataFrame({"a": [1.0, 2.0, 3.0], "b": [np.nan, np.nan, np.nan]})
+    tm.assert_frame_equal(df.interpolate(method="nearest"), df)
+
+
+@pytest.mark.parametrize("method", ["linear", "index", "nearest", "zero"])
+@pytest.mark.parametrize(
+    "index_values",
+    [None, [1.0, 2.0, np.inf], [-1.5e308, 0.0, 1.5e308], [-1.7e308, 1.7e308, np.inf]],
+)
+def test_interpolate_frame_no_runtime_warning(method, index_values):
+    # GH#48236 np.interp does not set the FP error state, so neither may the
+    #  whole-block path that replaced it -- for extreme values in the index
+    #  just as much as in the data
+    if method != "linear":
+        pytest.importorskip("scipy")
+    df = DataFrame(
+        {"a": [np.inf, np.nan, np.inf], "b": [-1e308, np.nan, 1e308]},
+        index=index_values,
+    )
+    with tm.assert_produces_warning(None):
+        df.interpolate(method=method)
+
+
+@pytest.mark.parametrize(
+    "index_values", [[0.1, 0.2, 0.3], [0.0, 1.0, 2.0], [1.0, 2.0, 4.0]]
+)
+def test_interpolate_frame_nearest_ties(index_values):
+    # GH#48236 interp1d rounds against the halfway point in one step; comparing
+    #  the gap either side rounds twice and disagrees around the midpoint
+    pytest.importorskip("scipy")
+    df = DataFrame({"a": [1.0, np.nan, 2.0]}, index=index_values)
+    result = df.interpolate(method="nearest")
+    expected = df["a"].interpolate(method="nearest").to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs, index_values, used",
+    [
+        ({"method": "linear"}, None, True),
+        ({"method": "nearest"}, None, True),
+        # a limit needs the per-slice path
+        ({"method": "linear", "limit": 1}, None, False),
+        # so does an index that does not strictly increase
+        ({"method": "index"}, [0.0, 1.0, 1.0], False),
+    ],
+)
+def test_interpolate_frame_uses_whole_block_path(
+    kwargs, index_values, used, monkeypatch
+):
+    # GH#48236 pin which inputs take the whole-block path; every other test
+    #  here asserts equivalence, so a gate that stopped matching anything
+    #  would drop the optimization with the suite still green
+    if kwargs["method"] == "nearest":
+        pytest.importorskip("scipy")
+    calls = []
+    real = missing._interpolate_2d_neighbors
+
+    def spy(*args, **kwargs_):
+        calls.append(1)
+        return real(*args, **kwargs_)
+
+    monkeypatch.setattr(missing, "_interpolate_2d_neighbors", spy)
+    df = DataFrame({"a": [1.0, np.nan, 3.0]}, index=index_values)
+    df.interpolate(**kwargs)
+    assert bool(calls) is used
+
+
+@pytest.mark.parametrize("method", ["linear", "nearest", "zero"])
+def test_interpolate_frame_multiple_chunks(method, monkeypatch):
+    # GH#48236 the whole-block path works a bounded number of values at a time;
+    #  a block spanning several passes must come out the same as one pass
+    if method != "linear":
+        pytest.importorskip("scipy")
+    rng = np.random.default_rng(0)
+    values = rng.normal(size=(20, 9))
+    values[rng.random(values.shape) < 0.4] = np.nan
+    values[3] = np.nan
+    df = DataFrame(values.T)
+    expected = df.interpolate(method=method)
+    monkeypatch.setattr(missing, "_NEIGHBOR_CHUNK_SIZE", 9)
+    result = df.interpolate(method=method)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_interpolate_frame_multiple_chunks_without_scipy(monkeypatch):
+    # GH#48236 the lazy SciPy import has to raise before any chunk is written
+    #  to, or a failed interpolate would leave the block half filled
+    real_import = missing.import_optional_dependency
+
+    def no_scipy(name, *args, **kwargs):
+        if name == "scipy":
+            raise ImportError("Missing optional dependency 'scipy'")
+        return real_import(name, *args, **kwargs)
+
+    # the first chunks need no SciPy, the last one does; interpolate inplace
+    #  so that a premature write would be visible in df
+    df = DataFrame({"a": [1.0, 2.0], "b": [np.nan, np.nan], "c": [np.nan, 1.0]})
+    orig = df.copy()
+    monkeypatch.setattr(missing, "_NEIGHBOR_CHUNK_SIZE", 2)
+    monkeypatch.setattr(missing, "import_optional_dependency", no_scipy)
+    with pytest.raises(ImportError, match="scipy"):
+        df.interpolate(method="nearest", limit_direction="both", inplace=True)
+    tm.assert_frame_equal(df, orig)
