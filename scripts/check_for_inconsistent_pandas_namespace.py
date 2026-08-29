@@ -57,7 +57,7 @@ class Visitor(ast.NodeVisitor):
         if node.module is not None and "pandas" in node.module:
             self.imported_from_pandas.update(
                 name.name for name in node.names if name.asname is None
-                )
+            )
         self.generic_visit(node)
 
 
@@ -130,7 +130,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         print("Current path: ", path)
         with open(path, encoding="utf-8") as fd:
             content = fd.read()
-        print ("File content:")
+        print("File content:")
         print(content)
         new_content = check_for_inconsistent_pandas_namespace(
             content, path, replace=args.replace
