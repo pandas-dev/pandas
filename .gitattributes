@@ -76,10 +76,7 @@ codecov.yml export-ignore
 environment.yml export-ignore
 
 
-# GH 39321
-# csv_dir_path fixture checks the existence of the directory
-# exclude the whole directory to avoid running related tests in sdist
-pandas/tests/io/parser/data export-ignore
-
-# Include cibw script in sdist since it's needed for building wheels
-scripts/cibw_before_build.sh -export-ignore
+# GH#54907
+# The extension-based rules above would otherwise strip the test data files,
+# leaving the test suite unrunnable from the sdist.
+pandas/tests/**/data/** -export-ignore
