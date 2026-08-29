@@ -1077,7 +1077,7 @@ def convert_dtypes(
                 else:
                     try:
                         pa_type = pa.array(non_na).type
-                    except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError):
+                    except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError, OverflowError):
                         pa_type = to_pyarrow_type(base_dtype)
             else:
                 pa_type = to_pyarrow_type(base_dtype)
