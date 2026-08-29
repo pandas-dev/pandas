@@ -1666,6 +1666,33 @@ class TestPandasContainer:
         )
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "date_format, expected",
+        [
+            ("epoch", '{"0":86400000,"1":1500000,"2":1577836800000}'),
+            (
+                "iso",
+                '{"0":"P1DT0H0M0S","1":"P0DT0H25M0S","2":"2020-01-01T00:00:00.000"}',
+            ),
+        ],
+    )
+    def test_numpy_scalars_object_dtype_units(self, date_format, expected):
+        # GH#??? numpy scalars with a unit outside s/ms/us/ns in object data
+        ser = Series(
+            [
+                np.timedelta64(1, "D"),
+                np.timedelta64(25, "m"),
+                np.datetime64("2020-01-01"),
+            ],
+            dtype=object,
+        )
+        warn = Pandas4Warning if date_format == "epoch" else None
+        with tm.assert_produces_warning(
+            warn, match="'epoch' date format is deprecated"
+        ):
+            result = ser.to_json(date_format=date_format)
+        assert result == expected
+
     def test_read_inline_jsonl(self):
         # GH9180
 

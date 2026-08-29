@@ -424,6 +424,9 @@ def _encode_datetimelike(
     integers in ``options.date_unit``; NaT becomes None.
     """
     kind = values.dtype.kind
+    if np.datetime_data(values.dtype)[0] not in _UNIT_ORDER:
+        # e.g. "D" from a numpy scalar; bring it into the supported range
+        values = astype_overflowsafe(values, np.dtype(f"{kind}8[s]"), copy=False)
     if options.iso_dates and kind == "m":
         tda = TimedeltaArray._simple_new(values, dtype=values.dtype)
         return [None if td is NaT else _iso_duration(td) for td in tda]
