@@ -36,7 +36,6 @@ def test_mutability(index):
         index[0] = index[0]
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_map_identity_mapping(index, request, using_infer_string):
     # GH#12766
     if (

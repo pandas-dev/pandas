@@ -76,7 +76,6 @@ class TestCustomBusinessDay:
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
 
-    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)

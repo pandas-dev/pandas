@@ -496,7 +496,6 @@ class TestnanopsDataFrame:
             nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanmedian(self, skipna):
         self.check_funs(
             nanops.nanmedian,
@@ -547,7 +546,6 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanmin, np.min), (nanops.nanmax, np.max)]
     )
@@ -566,12 +564,10 @@ class TestnanopsDataFrame:
             res = -1
         return res
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmax(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmax)
         self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmin(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmin)
         self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
@@ -1350,12 +1346,7 @@ def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     ],
 )
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_nanops_reductions_dont_skip_nan_with_mask(
-    nanops_operation, skipna, axis, request
-):
-    if not skipna and axis in {0, 1} and nanops_operation == "nansem":
-        mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
-        request.applymarker(mark)
+def test_nanops_reductions_dont_skip_nan_with_mask(nanops_operation, skipna, axis):
     if axis is None:
         expected = np.nan
     else:
@@ -1381,6 +1372,19 @@ def test_nanops_reductions_dont_skip_nan_with_mask(
     operation = getattr(nanops, nanops_operation)
     result = operation(values, mask=mask, skipna=skipna, axis=axis)
     tm.assert_equal(result, expected)
+
+
+def test_nansem_partial_mask_no_skipna_is_per_slice():
+    # GH#65373 masked entries propagate NaN only into the slices containing them
+    values = np.arange(25, dtype=np.float64).reshape(5, 5)
+    mask = np.zeros((5, 5), dtype=bool)
+    mask[0, 0] = True
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
+    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=0)
+    tm.assert_numpy_array_equal(np.isnan(result), np.isnan(expected))
+    assert np.isnan(result[0])
+    assert not np.isnan(result[1:]).any()
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
@@ -1573,3 +1577,86 @@ def test_mask_memory_layout_mismatch(
     result = func(arr, axis=axis, mask=mask)
 
     tm.assert_almost_equal(result, expected)
+
+
+class TestNanopsEmptyInput:
+    # GH#18976 - each nanops function should handle empty inputs on its own.
+
+    FUNCS_NAN_FOR_EMPTY = [
+        nanops.nanmean,
+        nanops.nanmedian,
+        nanops.nanvar,
+        nanops.nanstd,
+        nanops.nansem,
+        nanops.nanmin,
+        nanops.nanmax,
+        nanops.nanskew,
+        nanops.nankurt,
+    ]
+    EMPTY_DTYPES = ["f8", "M8[ns]", "m8[ns]"]
+
+    @pytest.fixture(params=[True, False], name="bottleneck_context")
+    def _bottleneck_context(self, request, monkeypatch):
+        """Test with and without Bottleneck to catch regressions."""
+        with monkeypatch.context() as m:
+            m.setattr(nanops, "_USE_BOTTLENECK", request.param)
+            yield
+
+    @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
+    @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
+    def test_empty_1d_returns_na(self, func, dtype, bottleneck_context):
+        arr = np.array([], dtype=dtype)
+        if dtype in ["M8[ns]", "m8[ns]"] and func.__name__ in [
+            "nanvar",
+            "nansem",
+            "nanskew",
+            "nankurt",
+        ]:
+            op_name = func.__name__.replace("nan", "")
+            msg = f"reduction operation '{op_name}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg):
+                func(arr)
+            return
+
+        result = func(arr)
+        assert isna(result)
+
+    @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
+    @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    def test_empty_2d_returns_na(self, func, dtype, axis, bottleneck_context):
+        shape = (0, 3) if axis == 0 else ((3, 0) if axis == 1 else (0, 3))
+        arr = np.empty(shape, dtype=dtype)
+
+        if dtype in ["M8[ns]", "m8[ns]"] and func.__name__ in [
+            "nanvar",
+            "nansem",
+            "nanskew",
+            "nankurt",
+        ]:
+            op_name = func.__name__.replace("nan", "")
+            msg = f"reduction operation '{op_name}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg):
+                func(arr, axis=axis)
+            return
+
+        result = func(arr, axis=axis)
+
+        if axis is not None:
+            assert result.shape == (3,)
+            assert isna(result).all()
+        else:
+            assert isna(result)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_nanstd_empty_datetime64_returns_timedelta(unit):
+    # GH#18976 std of datetimes is a timedelta, empty input included
+    dtype = f"M8[{unit}]"
+    result = nanops.nanstd(np.array([], dtype=dtype))
+    assert result.dtype == np.dtype(f"m8[{unit}]")
+    assert isna(result)
+
+    result = nanops.nanstd(np.empty((0, 3), dtype=dtype), axis=0)
+    assert result.dtype == np.dtype(f"m8[{unit}]")
+    assert isna(result).all()

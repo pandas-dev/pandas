@@ -52,12 +52,9 @@ from pandas._libs.dtypes cimport (
     numeric_t,
 )
 from pandas._libs.missing cimport checknull
+from pandas._libs.portable cimport checked_add
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
-
-
-cdef extern from "pandas/portable.h":
-    int checked_add(int64_t a, int64_t b, int64_t *res) noexcept nogil
 
 
 cdef int64_t NPY_NAT = util.get_nat()

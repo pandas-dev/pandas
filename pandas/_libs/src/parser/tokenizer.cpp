@@ -22,6 +22,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -107,6 +108,26 @@ static void free_if_not_null(void **ptr) {
   }
 }
 
+// Point error_msg at the parser's own fixed buffer.  There is no allocation on
+// any error path, so there is no failure to handle: the NULL-dereference these
+// sites used to risk on a failed malloc cannot occur.  Overwriting a previous
+// message is likewise free, where the old code leaked it.
+static void parser_set_error_msg(parser_t *self, const char *msg) {
+  snprintf(self->error_buf, ERROR_MSG_SIZE, "%s", msg);
+  self->error_msg = self->error_buf;
+}
+
+#if defined(__GNUC__)
+__attribute__((format(printf, 2, 3)))
+#endif
+static void parser_set_error_msgf(parser_t *self, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(self->error_buf, ERROR_MSG_SIZE, fmt, args);
+  va_end(args);
+  self->error_msg = self->error_buf;
+}
+
 /*
 
   Parser / tokenizer
@@ -171,6 +192,8 @@ void parser_set_default_options(parser_t *self) {
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
   self->preloaded = 0;
+  self->header_done = 0;
+  self->prev_line_fields = -1;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -197,8 +220,8 @@ static void parser_cleanup(parser_t *self) {
     return;
   }
 
-  // XXX where to put this
-  free_if_not_null((void **)&self->error_msg);
+  // error_msg points into self->error_buf, so there is nothing to free.
+  self->error_msg = NULL;
   free_if_not_null((void **)&self->warn_msg);
 
   if (self->skipset != NULL) {
@@ -354,10 +377,9 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
 
 static int push_char(parser_t *self, char c) {
   if (self->stream_len >= self->stream_cap) {
-    const size_t bufsize = 100;
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    parser_set_error_msg(self,
+                         "Buffer overflow caught - possible malformed input "
+                         "file.\n");
     return PARSER_OUT_OF_MEMORY;
   }
   self->stream[self->stream_len++] = c;
@@ -367,10 +389,9 @@ static int push_char(parser_t *self, char c) {
 static inline int end_field(parser_t *self) {
   // XXX cruft
   if (self->words_len >= self->words_cap) {
-    const size_t bufsize = 100;
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "Buffer overflow caught - possible malformed input file.\n");
+    parser_set_error_msg(self,
+                         "Buffer overflow caught - possible malformed input "
+                         "file.\n");
     return PARSER_OUT_OF_MEMORY;
   }
 
@@ -399,7 +420,9 @@ static void append_warning(parser_t *self, const char *msg) {
 
   if (self->warn_msg == NULL) {
     self->warn_msg = (char *)malloc(length + 1);
-    snprintf(self->warn_msg, length + 1, "%s", msg);
+    if (self->warn_msg != NULL) {
+      snprintf(self->warn_msg, length + 1, "%s", msg);
+    }
   } else {
     const int64_t ex_length = strlen(self->warn_msg);
     char *newptr = (char *)realloc(self->warn_msg, ex_length + length + 1);
@@ -410,18 +433,33 @@ static void append_warning(parser_t *self, const char *msg) {
   }
 }
 
+// Format a warning into the parser's own warn_buf and hand it to
+// append_warning, which copies the text out.  Keeping this a call rather than
+// an inlined snprintf matters: end_line runs once per row, and inlining a
+// varargs format into it costs ~5% on the quoted/escaped-quote paths.
+#if defined(__GNUC__)
+__attribute__((format(printf, 2, 3)))
+#endif
+static void parser_append_warningf(parser_t *self, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(self->warn_buf, ERROR_MSG_SIZE, fmt, args);
+  va_end(args);
+  append_warning(self, self->warn_buf);
+}
+
 // remaining_input is the number of bytes of the current read buffer that the
 // caller has not consumed yet; see the short-row padding below.
 static int end_line(parser_t *self, int64_t remaining_input) {
   int64_t ex_fields = self->expected_fields;
   int64_t fields = self->line_fields[self->lines];
 
-  if (self->lines > 0) {
-    if (self->expected_fields >= 0) {
-      ex_fields = self->expected_fields;
-    } else {
-      ex_fields = self->line_fields[self->lines - 1];
-    }
+  if (self->expected_fields < 0) {
+    // Width of the preceding line.  Slot 0 has no predecessor left in the
+    // buffer once parser_consume_rows has shifted the chunk down, so fall back
+    // to the count carried over from before the boundary.
+    ex_fields = self->lines > 0 ? self->line_fields[self->lines - 1]
+                                : self->prev_line_fields;
   }
 
   if (self->state == START_FIELD_IN_SKIP_LINE ||
@@ -439,12 +477,18 @@ static int end_line(parser_t *self, int64_t remaining_input) {
     return 0;
   }
 
-  /* The first line is normally exempt from the field-count check: it is the
-   * header, or it defines the table width (implicit-index inference).  In
-   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
-   * the first line is plain data, so the exemption must not apply. */
-  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
-      (fields > ex_fields) && !(self->usecols)) {
+  /* The first lines are normally exempt from the field-count check: they are
+   * the header, plus the line after it that defines the table width
+   * (implicit-index inference).  Those slots only hold header rows while the
+   * header is being read: once header_done is set the buffer holds nothing but
+   * data rows, and parser_consume_rows keeps shifting them down into slot 0.
+   * In preloaded mode (TextReader.load_buffer) the width was fixed up front
+   * and the first line is plain data, so the exemption never applies. */
+  const int in_header = !self->header_done && !self->preloaded &&
+                        self->lines <= self->header_end + 1;
+
+  if (!in_header && (ex_fields >= 0) && (fields > ex_fields) &&
+      !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -456,30 +500,24 @@ static int end_line(parser_t *self, int64_t remaining_input) {
 
     // file_lines is now the actual file line number (starting at 1)
     if (self->on_bad_lines == BLHM_ERROR) {
-      const size_t bufsize = 100;
-      self->error_msg = (char *)malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Expected %" PRId64 " fields in line %" PRIu64 ", saw %" PRId64
-               "\n",
-               ex_fields, self->file_lines, fields);
+      parser_set_error_msgf(self,
+                            "Expected %" PRId64 " fields in line %" PRIu64
+                            ", saw %" PRId64 "\n",
+                            ex_fields, self->file_lines, fields);
       return -1;
     } else {
       // simply skip bad lines
       if (self->on_bad_lines == BLHM_WARN) {
-        // pass up error message
-        const size_t bufsize = 100;
-        char *msg = (char *)malloc(bufsize);
-        snprintf(msg, bufsize,
-                 "Skipping line %" PRIu64 ": expected %" PRId64
-                 " fields, saw %" PRId64 "\n",
-                 self->file_lines, ex_fields, fields);
-        append_warning(self, msg);
-        free(msg);
+        parser_append_warningf(self,
+                               "Skipping line %" PRIu64 ": expected %" PRId64
+                               " fields, saw %" PRId64 "\n",
+                               self->file_lines, ex_fields, fields);
       }
     }
   } else {
     // missing trailing delimiters
-    if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
+    if ((self->header_done || self->lines >= self->header_end + 1) &&
+        fields < ex_fields) {
       // The synthetic terminators take stream and word space but consume no
       // input, so reserving only for them would eat into tokenize_bytes'
       // up-front reservation for the input still waiting to be tokenized.
@@ -492,16 +530,12 @@ static int end_line(parser_t *self, int64_t remaining_input) {
       // wrap in make_stream_space's size_t, silently skip the growth, and put
       // the unchecked bulk copies back on a stale reservation.
       if (reserve < 0) {
-        const size_t bufsize = 100;
-        self->error_msg = (char *)malloc(bufsize);
-        snprintf(self->error_msg, bufsize,
-                 "internal error: negative token stream reservation\n");
+        parser_set_error_msg(self, "internal error: negative token stream "
+                                   "reservation\n");
         return -1;
       }
       if (make_stream_space(self, (size_t)reserve) < 0) {
-        const size_t bufsize = 100;
-        self->error_msg = (char *)malloc(bufsize);
-        snprintf(self->error_msg, bufsize, "out of memory");
+        parser_set_error_msg(self, "out of memory");
         return -1;
       }
 
@@ -519,11 +553,8 @@ static int end_line(parser_t *self, int64_t remaining_input) {
 
     // good line, set new start point
     if (self->lines >= self->lines_cap) {
-      const size_t bufsize = 100;
-      self->error_msg = (char *)malloc(bufsize);
-      snprintf(self->error_msg, bufsize,
-               "Buffer overflow caught - "
-               "possible malformed input file.\n");
+      parser_set_error_msg(self, "Buffer overflow caught - "
+                                 "possible malformed input file.\n");
       return PARSER_OUT_OF_MEMORY;
     }
     self->line_start[self->lines] =
@@ -571,15 +602,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
   self->datalen = bytes_read;
 
   if (status != REACHED_EOF && self->data == NULL) {
-    const size_t bufsize = 200;
-    self->error_msg = (char *)malloc(bufsize);
-
     if (status == CALLING_READ_FAILED) {
-      snprintf(self->error_msg, bufsize,
-               "Calling read(nbytes) on source failed. "
-               "Try engine='python'.");
+      parser_set_error_msg(self, "Calling read(nbytes) on source failed. "
+                                 "Try engine='python'.");
     } else {
-      snprintf(self->error_msg, bufsize, "Unknown error in IO callback");
+      parser_set_error_msg(self, "Unknown error in IO callback");
     }
     return -1;
   }
@@ -594,10 +621,9 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define PUSH_CHAR(c)                                                           \
   if (slen >= self->stream_cap) {                                              \
-    const size_t bufsize = 100;                                                \
-    self->error_msg = (char *)malloc(bufsize);                                 \
-    snprintf(self->error_msg, bufsize,                                         \
-             "Buffer overflow caught - possible malformed input file.\n");     \
+    parser_set_error_msg(self,                                                 \
+                         "Buffer overflow caught - possible malformed input "  \
+                         "file.\n");                                           \
     return PARSER_OUT_OF_MEMORY;                                               \
   }                                                                            \
   *stream++ = c;                                                               \
@@ -1236,9 +1262,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   // re-reserves what it spends. PUSH_CHAR/END_FIELD do check capacity, but
   // they can only fail the parse, not restore the reservation.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-    const size_t bufsize = 100;
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "out of memory");
+    parser_set_error_msg(self, "out of memory");
     return -1;
   }
 
@@ -1745,8 +1769,6 @@ linelimit:
 }
 
 static int parser_handle_eof(parser_t *self) {
-  const size_t bufsize = 100;
-
   if (self->datalen != 0)
     return -1;
 
@@ -1759,14 +1781,12 @@ static int parser_handle_eof(parser_t *self) {
 
   case ESCAPE_IN_QUOTED_FIELD:
   case IN_QUOTED_FIELD:
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize,
-             "EOF inside string starting at row %" PRIu64, self->file_lines);
+    parser_set_error_msgf(self, "EOF inside string starting at row %" PRIu64,
+                          self->file_lines);
     return -1;
 
   case ESCAPED_CHAR:
-    self->error_msg = (char *)malloc(bufsize);
-    snprintf(self->error_msg, bufsize, "EOF following escape character");
+    parser_set_error_msg(self, "EOF following escape character");
     return -1;
 
   case IN_FIELD:
@@ -1798,6 +1818,11 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   /* cannot guarantee that nrows + 1 has been observed */
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
+
+  /* The last line going away is the one end_line will want to compare the
+   * next line against, once the shift below has left it with no predecessor
+   * in the buffer. */
+  self->prev_line_fields = self->line_fields[nrows - 1];
 
   uint64_t char_count;
   if (word_deletions < 1) {
@@ -1875,11 +1900,13 @@ int parser_trim_buffers(parser_t *self) {
   /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
-    self->word_ends =
-        (int64_t *)realloc(self->word_ends, new_cap * sizeof(int64_t));
-    if (self->word_ends == NULL) {
+    // Assigning realloc's result straight to word_ends would leak the old
+    // buffer (and leave the parser with a NULL one) if the shrink fails.
+    void *newptr = realloc(self->word_ends, new_cap * sizeof(int64_t));
+    if (newptr == NULL) {
       return PARSER_OUT_OF_MEMORY;
     }
+    self->word_ends = (int64_t *)newptr;
     self->words_cap = new_cap;
   }
 
@@ -2004,7 +2031,7 @@ int to_boolean(const char *item, int64_t length, uint8_t *val) {
   return -1;
 }
 
-int infinity_sign(const char *item, int64_t length) {
+int parse_special_float(const char *item, int64_t length, double *out) {
   int sign = 1;
 
   if (length > 0 && (*item == '+' || *item == '-')) {
@@ -2015,10 +2042,11 @@ int infinity_sign(const char *item, int64_t length) {
 
   if ((length == 3 && strncasecmp(item, "inf", 3) == 0) ||
       (length == 8 && strncasecmp(item, "infinity", 8) == 0)) {
-    return sign;
+    *out = sign > 0 ? HUGE_VAL : -HUGE_VAL;
+    return 0;
   }
 
-  return 0;
+  return -1;
 }
 
 // ---------------------------------------------------------------------------

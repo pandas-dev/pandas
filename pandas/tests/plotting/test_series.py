@@ -40,15 +40,6 @@ plt = pytest.importorskip("matplotlib.pyplot")
 from pandas.plotting._matplotlib.converter import DatetimeConverter
 from pandas.plotting._matplotlib.style import get_standard_colors
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
-    ),
-    pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in scalar multiply:RuntimeWarning"
-    ),
-]
-
 
 @pytest.fixture
 def ts():
@@ -128,7 +119,7 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("kwargs", [{}, {"layout": (-1, 1)}, {"layout": (1, -1)}])
     def test_plot_6951(self, ts, kwargs):
         # GH 6951
-        ax = _check_plot_works(ts.plot, subplots=True, **kwargs)
+        ax = _check_plot_works(ts.plot, default_axes=True, subplots=True, **kwargs)
         _check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
     def test_plot_figsize_and_title(self, series):
@@ -493,6 +484,18 @@ class TestSeriesPlots:
         assert ax.get_yaxis().get_visible()
         assert ax.right_ax.get_yaxis().get_visible()
 
+    def test_df_scatter_series_secondary_y_axis_visible(self):
+        # GH#66789 the scatter's data is a collection, which used to read as
+        # nothing having been plotted, hiding the primary y-axis
+        df = DataFrame({"x": np.arange(10.0), "y": np.arange(10.0)})
+        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
+
+        _, ax = mpl.pyplot.subplots()
+        df.plot.scatter(x="x", y="y", ax=ax)
+        s.plot(secondary_y=True, ax=ax)
+        assert ax.get_yaxis().get_visible()
+        assert ax.right_ax.get_yaxis().get_visible()
+
     def test_df_series_secondary_legend_both(self):
         # GH 9779
         df = DataFrame(
@@ -711,9 +714,6 @@ class TestSeriesPlots:
         _check_has_errorbars(ax, xerr=1, yerr=0)
 
     @pytest.mark.slow
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in dot:RuntimeWarning"
-    )
     @pytest.mark.parametrize(
         "yerr",
         [

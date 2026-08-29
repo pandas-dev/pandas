@@ -439,7 +439,7 @@ def test_guess_datetime_format_f(input):
     assert result == expected
 
 
-def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+def _helper_delimited_date(call, date_string, **kwargs):
     msg, result = None, None
     try:
         result = call(date_string, **kwargs)
@@ -452,11 +452,11 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 @pytest.mark.parametrize("dayfirst", [True, False])
 def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
     with option_context("display.date_dayfirst", dayfirst):
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        except_out_dateutil, result = _helper_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
 
-        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        except_in_dateutil, expected = _helper_delimited_date(
             du_parse,
             input,
             default=datetime(1, 1, 1),
@@ -471,10 +471,10 @@ def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
 @pytest.mark.parametrize("yearfirst", [True, False])
 def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
     with option_context("display.date_yearfirst", yearfirst):
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        except_out_dateutil, result = _helper_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
-        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        except_in_dateutil, expected = _helper_delimited_date(
             du_parse,
             input,
             default=datetime(1, 1, 1),

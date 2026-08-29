@@ -51,7 +51,6 @@ import pandas.plotting._matplotlib.converter as conv
 
 
 class TestTSPlot:
-    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture
@@ -65,6 +64,34 @@ class TestTSPlot:
         last = Period(ordinal=int(xdata[-1]), freq=ax.freq)
         assert (first.hour, first.minute) == (0, 0)
         assert (last.hour, last.minute) == (1, 0)
+
+    def test_ts_plot_tz_aware_values(self):
+        # GH#64613 the ts path read Series.values, which both raised the
+        #  lossy-.values deprecation from inside pandas and plotted tz-aware
+        #  values one utc offset away from where the non-ts path puts them
+        values = date_range("2020-01-01", periods=10, tz="US/Pacific")
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(2)
+        with tm.assert_produces_warning(None):
+            Series(values, index=date_range("2021-01-01", periods=10)).plot(ax=ax1)
+        Series(values).plot(ax=ax2)
+
+        tm.assert_numpy_array_equal(ax1.get_yticks(), ax2.get_yticks())
+
+    def test_replot_tz_aware_values(self):
+        # GH#64613 replotting onto an axes that already holds a coarser-freq
+        #  series goes through _replot_ax, which dropped the timezone
+        values = date_range("2020-01-01", periods=3, tz="US/Pacific")
+        _, ax = mpl.pyplot.subplots()
+
+        with tm.assert_produces_warning(None):
+            ser = Series(values, index=date_range("2020-01-31", periods=3, freq="ME"))
+            ser.plot(ax=ax)
+            other = Series(np.arange(6.0), index=date_range("2020-01-01", periods=6))
+            other.plot(ax=ax)
+
+        ydata = ax.get_lines()[0].get_ydata()
+        tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
@@ -972,6 +999,70 @@ class TestTSPlot:
         expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
         tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
 
+    @pytest.mark.parametrize("freq", ["D", "h", "min", "s"])
+    def test_mixed_freq_bday_onto_finer_axis(self, freq):
+        # GH#64311, GH#66222 business-day data plotted onto an axis that
+        # already holds a daily-or-finer series raised TypeError("index type
+        # not supported"): the axis was formatted with the unresampled
+        # business-day ordinal index while ax.freq was the finer alias.
+        ser = Series(
+            np.arange(30, dtype=np.float64),
+            index=date_range("2020-01-01", periods=30, freq=freq),
+        )
+        bidx = bdate_range("2020-01-01", periods=10)
+        bser = Series(np.arange(10, dtype=np.float64), index=bidx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        bser.plot(ax=ax)
+        assert ax.freq == freq
+        # the business-day line lands on the ordinals of its own timestamps
+        expected = PeriodIndex(bidx, freq=freq).asi8
+        tm.assert_numpy_array_equal(ax.get_lines()[1].get_xdata(), expected)
+
+    def test_mixed_freq_bday_frame_onto_finer_axis(self):
+        # GH#65278 format_dateaxis runs once per axes, so it must use the index
+        # actually drawn on that axes rather than the frame-level index.
+        ser = Series(
+            np.arange(30, dtype=np.float64),
+            index=date_range("2020-01-01", periods=30, freq="D"),
+        )
+        bidx = bdate_range("2020-01-01", periods=10)
+        df = DataFrame(
+            np.arange(20, dtype=np.float64).reshape(10, 2),
+            index=bidx,
+            columns=["a", "b"],
+        )
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        df.plot(ax=ax)
+        assert ax.freq == "D"
+        expected = PeriodIndex(bidx, freq="D").asi8
+        for line in ax.get_lines()[1:]:
+            tm.assert_numpy_array_equal(line.get_xdata(), expected)
+
+    def test_mixed_freq_bday_onto_weekly_axis(self):
+        # GH#66222 business-day data plotted onto a weekly axis raised
+        # TypeError from resampling the int64 business-day ordinal index.
+        weekly_ser = Series(
+            np.arange(8, dtype=np.float64),
+            index=date_range("2020-01-05", periods=8, freq="W-SUN"),
+        )
+        bser = Series(
+            np.arange(30, dtype=np.float64),
+            index=bdate_range("2020-01-01", periods=30),
+        )
+        _, ax = mpl.pyplot.subplots()
+        weekly_ser.plot(ax=ax)
+        bser.plot(ax=ax)
+        assert ax.freq == "W-SUN"
+        # the business-day data is aggregated onto the weekly axis
+        expected = bser.resample("W-SUN").last().dropna()
+        line_b = ax.get_lines()[1]
+        tm.assert_numpy_array_equal(
+            line_b.get_xdata(), PeriodIndex(expected.index, freq="W-SUN").asi8
+        )
+        tm.assert_numpy_array_equal(line_b.get_ydata(), expected.to_numpy())
+
     def test_plain_int_index_onto_ts_axis_raises(self):
         # GH#64311 an integer index only means business-day ordinals when it
         # came from the BDay conversion; a genuine int-index series overlaid
@@ -1839,19 +1930,15 @@ class TestTSPlot:
         s2.plot(ax=ax)
         s1.plot(ax=ax)
 
-    @pytest.mark.xfail(reason="GH9053 matplotlib does not use ax.xaxis.converter")
     def test_add_matplotlib_datetime64(self):
-        # GH9053 - ensure that a plot with PeriodConverter still understands
-        # datetime64 data. This still fails because matplotlib overrides the
-        # ax.xaxis.converter with a DatetimeConverter
+        # GH#9053 - ensure that a plot with PeriodConverter still understands
+        # datetime64 data
         s = Series(
             np.random.default_rng(2).standard_normal(10),
             index=date_range("1970-01-02", periods=10),
         )
         ax = s.plot()
-        with tm.assert_produces_warning(DeprecationWarning):
-            # multi-dimensional indexing
-            ax.plot(s.index, s.values, color="g")
+        ax.plot(s.index, s.values, color="g")
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
 
@@ -1919,6 +2006,51 @@ class TestTSPlot:
         df.plot(ax=ax)
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_datetime_index_inferred_freq(self, kind):
+        # GH#66771 - the index freq attribute is unset but inferable, so the
+        # bar plot must resolve the freq instead of raising AttributeError
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        assert idx.freq is None
+        df = DataFrame({"A": [1, 2, 3]}, index=idx)
+
+        ax = df.plot(kind=kind)
+
+        ax.get_figure().canvas.draw()
+        axis = ax.get_yaxis() if kind == "barh" else ax.get_xaxis()
+        labels = [t.get_text() for t in axis.get_ticklabels()]
+        assert labels == [
+            "2020-01-01 00:00:00",
+            "2020-01-02 00:00:00",
+            "2020-01-03 00:00:00",
+        ]
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_datetime_index_freq_from_axes(self, kind):
+        # GH#66771 - the index carries no freq of its own, but the axes was
+        # already decorated by a line plot; that freq is stored as a period
+        # alias string, so it has to be normalized to an offset before it
+        # reaches the converter
+        _, ax = plt.subplots()
+        Series(
+            np.arange(10.0), index=date_range("2020-01-01", periods=10, freq="D")
+        ).plot(ax=ax)
+
+        idx = DatetimeIndex(["2020-01-02", "2020-01-05"])
+        assert idx.freq is None
+        assert idx.inferred_freq is None
+        Series([1.0, 2.0], index=idx).plot(kind=kind, ax=ax)
+
+        # the bars are centered on the same daily ordinals as the line
+        if kind == "bar":
+            centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        else:
+            centers = [p.get_y() + p.get_height() / 2 for p in ax.patches]
+        assert centers == [
+            Period("2020-01-02", freq="D").ordinal,
+            Period("2020-01-05", freq="D").ordinal,
+        ]
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

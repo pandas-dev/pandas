@@ -78,7 +78,7 @@ jobs:
     needs: build_sdist
     permissions:
       contents: read
-    name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+    name: Build wheel for ${{ matrix.python }}-${{ matrix.buildplat[1] }}
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
@@ -99,27 +99,12 @@ jobs:
           - [macos-15, macosx_arm64]
           - [windows-2025, win_amd64]
           - [windows-11-arm, win_arm64]
-        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
+        python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
-            python: ["cp312", "3.12"]
-        exclude:
-          # BackendUnavailable: Cannot import 'mesonpy'
-          - buildplat: [windows-11-arm, win_arm64]
-            python: ["cp313t", "3.13"]
+            python: cp312
 
     steps:
-      - name: Checkout pandas
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 1
-
-      - name: Set up MSVC environment for Windows ARM64
-        if: matrix.buildplat[1] == 'win_arm64'
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
-        with:
-          arch: arm64
-
       - name: Download sdist
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -130,12 +115,10 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@4726cd35bb13f7bde50cf2761f2499ac7b3aa32c # v4.1.1
+        uses: pypa/cibuildwheel@1828c10ab37f080699c7b81cea34097c684a7074 # v4.2.0
         with:
           package-dir: ./dist/${{ env.sdist_name }}
-        env:
-          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || 'auto' }}
+          only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
 
       - name: Set up Python for validation
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -143,15 +126,14 @@ jobs:
           python-version: '3.14'
 
       - name: Install wheel
-        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
-        run: python -m pip install wheel cryptography==46.0.3
+        run: python -m pip install wheel
 
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
   upload_nightly:

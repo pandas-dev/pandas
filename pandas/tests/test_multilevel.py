@@ -322,7 +322,6 @@ class TestMultiLevel:
         expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_multiindex_with_pyarrow_categorical(self):
         # GH#53051
         pa = pytest.importorskip("pyarrow")

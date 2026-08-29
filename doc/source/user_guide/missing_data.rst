@@ -238,6 +238,26 @@ described above.
 A similar situation occurs when using :class:`Series` or :class:`DataFrame` objects in ``if``
 statements, see :ref:`gotchas.truth`.
 
+Converting a nullable array to NumPy keeps :class:`NA` in the resulting
+object-dtype array, so NumPy operations that must produce a boolean result hit
+the same ``TypeError``. Elementwise comparison is the common case: NumPy
+compares each pair of elements, gets :class:`NA` back for the missing entries,
+and then fails when casting the result to bool dtype.
+
+.. ipython:: python
+   :okexcept:
+
+   arr = pd.array(["a", "b", None], dtype="string")
+   np.asarray(arr)
+   np.asarray(arr) == np.array(["a", "z"])[:, None]
+
+Pass an explicit ``na_value`` to :meth:`~api.extensions.ExtensionArray.to_numpy`
+to substitute a value NumPy can compare, such as ``None`` or ``np.nan``:
+
+.. ipython:: python
+
+   arr.to_numpy(dtype=object, na_value=None) == np.array(["a", "z"])[:, None]
+
 NumPy ufuncs
 ------------
 
@@ -608,6 +628,12 @@ filled since the last valid observation
    ser
    ser.interpolate()
    ser.interpolate(limit=1)
+
+Note that ``limit`` caps how many consecutive ``NaN`` values are filled within
+each gap; it does not skip gaps that are longer than the limit. A gap with more
+consecutive ``NaN`` values than ``limit`` is filled *partially*, as with the
+three ``NaN`` values between ``5`` and ``13`` above. To leave such gaps
+untouched entirely, mask them out afterwards.
 
 By default, ``NaN`` values are filled in a ``forward`` direction. Use
 ``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.

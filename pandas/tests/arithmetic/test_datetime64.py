@@ -18,6 +18,7 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas import (
@@ -1006,7 +1007,8 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
@@ -1497,7 +1499,8 @@ class TestDatetime64DateOffsetArithmetic:
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
@@ -1506,7 +1509,7 @@ class TestDatetime64DateOffsetArithmetic:
         if box_with_array is pd.array and op is roperator.radd:
             # We expect a NumpyExtensionArray, not ndarray[object] here
             expected = pd.array(expected, dtype=object)
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
@@ -1813,6 +1816,114 @@ class TestDatetime64OverflowHandling:
         t2 = tmax + Timedelta.min - Timedelta("1us")
         with pytest.raises(OverflowError, match=msg):
             tmax - t2
+
+    # DateOffset(days=...) goes through the relativedelta branch of
+    #  RelativeDeltaOffset._apply_array, DateOffset(nanoseconds=...) through
+    #  the timedelta branch and, when tz-aware, through the UTC fast path in
+    #  DatetimeArray._add_offset. All three used to add with a raw numpy add.
+    @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_lands_on_nat_sentinel(
+        self, kwds, tz, box_with_array
+    ):
+        # GH#66552 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        delta = Timedelta(**kwds)
+        dti = DatetimeIndex(np.array([iNaT + delta._value], dtype="M8[ns]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + DateOffset(**{key: -val for key, val in kwds.items()})
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - DateOffset(**kwds)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_reso_promotion_out_of_bounds(
+        self, tz, box_with_array
+    ):
+        # GH#66552 promoting the second-resolution values to the offset's
+        #  nanosecond resolution used to wrap to an unrelated date, where
+        #  adding the equivalent Timedelta already raised
+        dti = DatetimeIndex(np.array(["2500-01-01"], dtype="M8[s]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Out of bounds nanosecond timestamp: 2500-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            obj + DateOffset(nanoseconds=1)
+
+    @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_dateoffset_nat_still_propagates(
+        self, kwds, tz, box_with_array
+    ):
+        # GH#66552 a missing operand is still missing, not an overflow
+        dti = DatetimeIndex([NaT, Timestamp("2000-01-01")]).as_unit("ns")
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        result = obj + DateOffset(**kwds)
+        expected = tm.box_expected(dti + Timedelta(**kwds), box_with_array)
+        tm.assert_equal(result, expected)
+
+    # tz-aware data is the only way to reach Day._apply_array; tz-naive Day
+    #  addition is routed through _add_timedeltalike_scalar. tz is
+    #  parametrized anyway so the two stay in agreement.
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_day_lands_on_nat_sentinel(self, unit, tz, box_with_array):
+        # GH#66552 the sum fits in int64 but equals iNaT, so the result used to
+        #  come back as NaT instead of being reported as out of bounds
+        per_day = 86400 if unit == "s" else 86400 * 10**9
+        dti = DatetimeIndex(np.array([iNaT + per_day], dtype=f"M8[{unit}]"))
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        msg = "Overflow in int64 addition"
+        with pytest.raises(OverflowError, match=msg):
+            obj + pd.offsets.Day(-1)
+
+        with pytest.raises(OverflowError, match=msg):
+            obj - pd.offsets.Day(1)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_dt64arr_add_day_out_of_bounds(self, tz, box_with_array):
+        # GH#66552 the tz-aware path wrapped to an unrelated date
+        dti = DatetimeIndex([Timestamp.max])
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        obj = tm.box_expected(dti, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj + pd.offsets.Day(1)
+
+    def test_dt64arr_add_day_large_n(self, box_with_array):
+        # GH#66552 n days converted to the array's unit overflows int64 before
+        #  the addition even happens
+        dti = DatetimeIndex(np.array([0], dtype="M8[s]")).tz_localize("UTC")
+        obj = tm.box_expected(dti, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            obj + pd.offsets.Day(2**60)
+
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    def test_dt64arr_add_day_tzaware_matches_naive(self, unit, box_with_array):
+        # GH#66552 in-bounds results are unchanged and NaT still propagates
+        dti = DatetimeIndex([NaT, Timestamp("2000-01-01")]).as_unit(unit)
+        obj = tm.box_expected(dti.tz_localize("UTC"), box_with_array)
+
+        result = obj + pd.offsets.Day(3)
+        expected = tm.box_expected(
+            (dti + pd.offsets.Day(3)).tz_localize("UTC"), box_with_array
+        )
+        tm.assert_equal(result, expected)
 
 
 class TestTimestampSeriesArithmetic:
@@ -2425,7 +2536,8 @@ class TestDatetimeIndexArithmetic:
 
         xbox = get_upcast_box(dti, other)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = op(dti, other)
 
         expected = DatetimeIndex(
@@ -2448,14 +2560,15 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = dtarr - other
         tm.assert_equal(result, expected)
 
@@ -2490,14 +2603,15 @@ def test_dt64arr_addsub_object_dtype_2d(performance_warning):
     other = np.array([[pd.offsets.Day(n)] for n in range(4)])
     assert other.shape == dta.shape
 
-    with tm.assert_produces_warning(performance_warning):
+    msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         result = dta + other
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(performance_warning, match=msg):
         expected = (dta[:, 0] + other[:, 0]).reshape(-1, 1)
 
     tm.assert_numpy_array_equal(result, expected)
 
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(performance_warning, match=msg):
         # Case where we expect to get a TimedeltaArray back
         result2 = dta - dta.astype(object)
 

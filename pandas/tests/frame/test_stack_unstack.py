@@ -1440,6 +1440,114 @@ def test_unstack_sort_false_unsorted_with_gaps():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("frame", [False, True])
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
+def test_unstack_sort_false_multiple_remaining_levels(frame, dtype):
+    # GH#62816 With two or more levels left over, the result rows
+    #  follow first appearance, but the values were laid out in lexicographic
+    #  order of the remaining codes, so they landed under the wrong labels.
+    #  The extension dtypes go through BlockManager.unstack instead of
+    #  _Unstacker.get_result, which consumes the same machinery differently.
+    if dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    index = MultiIndex.from_tuples(
+        [(2, "a", 9), (1, "c", 9), (2, "c", 9)], names=["x", "y", "z"]
+    )
+    obj = Series([10, 20, 30], index=index, dtype=dtype)
+    expected_index = MultiIndex.from_tuples(
+        [(2, "a"), (1, "c"), (2, "c")], names=["x", "y"]
+    )
+    if frame:
+        obj = obj.to_frame("val")
+        expected_columns = MultiIndex.from_tuples([("val", 9)], names=[None, "z"])
+    else:
+        expected_columns = Index([9], name="z")
+
+    result = obj.unstack(level=2, sort=False)
+
+    expected = DataFrame(
+        [[10], [20], [30]],
+        index=expected_index,
+        columns=expected_columns,
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_multiple_remaining_levels_with_gaps():
+    # GH#62816 As above, but with missing combinations so the values go through
+    #  the masked fill path rather than the plain reshape.
+    index = MultiIndex.from_tuples(
+        [(2, "a", 9), (1, "c", 8), (2, "c", 9), (1, "c", 9)], names=["x", "y", "z"]
+    )
+    ser = Series([10.0, 20.0, 30.0, 40.0], index=index)
+
+    result = ser.unstack(level=2, sort=False)
+
+    expected = DataFrame(
+        [[10.0, np.nan], [40.0, 20.0], [30.0, np.nan]],
+        index=MultiIndex.from_tuples([(2, "a"), (1, "c"), (2, "c")], names=["x", "y"]),
+        columns=Index([9, 8], name="z"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_nan_in_unstacked_level_one_remaining_level():
+    # GH#62816 A single remaining level is enough to misplace values once the
+    #  unstacked level holds NaN: the sort indexer sized that level from its
+    #  length while renumbering its codes, so the NaN column collided with the
+    #  next row. Distinct mechanism from the >=2-remaining-levels case.
+    index = MultiIndex.from_tuples(
+        [("r0", np.nan), ("r1", np.nan), ("r0", "u0")], names=["r", "u"]
+    )
+    ser = Series([1.0, 2.0, 3.0], index=index)
+
+    result = ser.unstack(sort=False)
+
+    expected = DataFrame(
+        [[1.0, 3.0], [2.0, np.nan]],
+        index=Index(["r0", "r1"], name="r"),
+        columns=Index([np.nan, "u0"], name="u"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_does_not_collapse_rows():
+    # GH#62816 Distinct index combinations were merged into a single result
+    #  row, silently dropping data rather than only mislabelling it.
+    index = MultiIndex.from_tuples([(np.nan, np.nan, np.nan), ("a0", "b0", np.nan)])
+    ser = Series([1.0, 2.0], index=index)
+
+    result = ser.unstack(0, sort=False)
+
+    expected = DataFrame(
+        [[1.0, np.nan], [np.nan, 2.0]],
+        index=MultiIndex.from_tuples([(np.nan, np.nan), ("b0", np.nan)]),
+        columns=Index([np.nan, "a0"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_multiple_sort_false_multiple_remaining_levels():
+    # GH#62816 _unstack_multiple routes through the same _Unstacker, so
+    #  unstacking several levels at once and leaving two or more behind hit
+    #  the same misplacement.
+    index = MultiIndex.from_tuples(
+        [(2, "a", 9, "p"), (1, "c", 9, "p"), (2, "c", 9, "p")],
+        names=["x", "y", "z", "w"],
+    )
+    ser = Series([10.0, 20.0, 30.0], index=index)
+
+    result = ser.unstack(["z", "w"], sort=False)
+
+    expected = DataFrame(
+        [[10.0], [20.0], [30.0]],
+        index=MultiIndex.from_tuples([(2, "a"), (1, "c"), (2, "c")], names=["x", "y"]),
+        columns=MultiIndex.from_tuples([(9, "p")], names=["z", "w"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unstack_monotonic_values_unsorted_codes():
     # GH#65107 An MI whose tuple *values* are monotonic but whose codes are
     #  unsorted (here level 0 has unsorted levels ['b', 'a']) must still be

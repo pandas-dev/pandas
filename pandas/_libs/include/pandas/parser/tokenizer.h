@@ -26,6 +26,11 @@ extern "C" {
 
 #define STREAM_INIT_SIZE 32
 
+// Every parser error message is a constant or a short format over a few
+// integers, so they live in a fixed buffer inside parser_t rather than being
+// malloc'd on the error path.  Nothing can fail, so nothing needs checking.
+#define ERROR_MSG_SIZE 256
+
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
@@ -162,6 +167,24 @@ typedef struct parser_t {
   // The buffer then never starts with a header row, so the first line gets
   // no special treatment: no BOM strip, no exemption from field-count checks.
   int preloaded;
+
+  // Boolean: 1 once the header (and the first data row, which fixes the table
+  // width) has been tokenized.  The header-row exemptions in end_line key off
+  // buffer slot numbers, which stop identifying header rows as soon as
+  // parser_consume_rows shifts data rows down into those slots.
+  int header_done;
+
+  // Field count of the last line parser_consume_rows dropped, or -1 before the
+  // first chunk boundary.  end_line normally reads the preceding line's count
+  // straight out of line_fields, which the boundary throws away.
+  int64_t prev_line_fields;
+
+  // Message storage, kept last so every other field keeps its offset.
+  // error_msg points into error_buf (or is NULL) and is never freed.  Warnings
+  // get their own buffer so formatting one can never rewrite a pending error
+  // message out from under error_msg.
+  char error_buf[ERROR_MSG_SIZE];
+  char warn_buf[ERROR_MSG_SIZE];
 } parser_t;
 
 typedef struct coliter_t {
@@ -192,11 +215,6 @@ static inline const char *coliter_next_with_idx(coliter_t *self,
   }
   *idx_out = idx;
   return coliter_word(self, idx);
-}
-
-static inline const char *coliter_next(coliter_t *self) {
-  int64_t idx;
-  return coliter_next_with_idx(self, &idx);
 }
 
 parser_t *parser_new(void);
@@ -256,17 +274,17 @@ int try_parse_plain_double(const char *start, const char *end, char decimal,
                            double *out);
 int to_boolean(const char *item, int64_t length, uint8_t *val);
 // Recognize the infinity spellings pandas accepts outside the numeric
-// converters, for both read_csv and lib.maybe_convert_numeric.
+// converters -- "inf"/"infinity", optionally signed, case-insensitively -- and
+// produce their value. Shared by read_csv and lib.maybe_convert_numeric, which
+// reach it only once their numeric converter has failed on the token.
 //
 // item  : the token; exactly `length` bytes are examined, so it need not be
 //         NUL-terminated and may contain an embedded NUL
 // length: byte length of item
 //
-// Returns 1 for "inf"/"+inf"/"infinity"/"+infinity", -1 for the negative
-// spellings and 0 for anything else, all case-insensitively. Note this is the
-// opposite sense from to_boolean above, which returns 0 on a match: the return
-// value here is a sign, not a status.
-int infinity_sign(const char *item, int64_t length);
+// Like to_boolean above, returns 0 on a match and leaves *out unmodified
+// otherwise.
+int parse_special_float(const char *item, int64_t length, double *out);
 
 #ifdef __cplusplus
 }

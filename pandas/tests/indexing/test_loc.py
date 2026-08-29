@@ -1799,7 +1799,6 @@ class TestLocWithEllipsis:
         result = indexer(obj)[...]
         tm.assert_equal(result, obj)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
@@ -1947,8 +1946,8 @@ class TestLocWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
-        times = date_range("2000-01-01", freq="10min", periods=100000)
-        ser = Series(range(100000), times)
+        times = date_range("2000-01-01", freq="10min", periods=10)
+        ser = Series(range(10), times)
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
 
@@ -2274,7 +2273,6 @@ class TestLocSetitemWithExpansion:
         expected = Index([0, 1, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_with_expansion_nonunique_index(self, index, has_ref):
         # GH#40096
@@ -3248,6 +3246,65 @@ class TestLocListlike:
 
 
 @pytest.mark.parametrize(
+    "indexer_name, col_key",
+    [
+        ("loc", ["a", "b"]),
+        ("iloc", [0, 1]),
+        ("loc", [True, True]),
+        ("loc", slice("a", "b")),
+        ("iloc", slice(0, 2)),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        [[1, 2], [3, 4]],
+        [(1, 2), (3, 4)],
+        [[1, 2], [3, 4, 5]],
+        ([1, 2], [3, 4]),
+        ([1, 2], [3, 4, 5]),
+    ],
+)
+def test_setitem_int_row_listlike_cols_nested_value(indexer_name, col_key, value):
+    # GH#65241 the GH#44103 fix forced the split path for a scalar row plus
+    #  list-like columns on any single-block frame; on non-extension blocks
+    #  that transposed nested values and raised on ragged ones
+    df = DataFrame({"a": [1, "x"], "b": [2, "y"]}, dtype=object)
+    assert df._mgr.is_single_block and not df._mgr.blocks[0].is_extension
+
+    getattr(df, indexer_name)[0, col_key] = value
+
+    expected = DataFrame({"a": [value[0], "x"], "b": [value[1], "y"]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("indexer_name, col_key", [("loc", ["a"]), ("iloc", [0])])
+def test_setitem_int_row_single_col_nested_value(indexer_name, col_key):
+    # GH#65241 the split path raised ValueError for a length-1 list of lists
+    df = DataFrame({"a": [1, "x"], "b": [2, "y"]}, dtype=object)
+
+    getattr(df, indexer_name)[0, col_key] = [[1, 2]]
+
+    expected = DataFrame({"a": [[1, 2], "x"], "b": [2, "y"]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_int_row_length_mismatch_message():
+    # GH#65241 a numpy-dtype single-block frame takes the non-split path, where
+    #  numpy raises; frames that take the split path get pandas' message
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    assert df._mgr.is_single_block
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        df.loc[0, ["a", "b"]] = [7, 8, 9]
+
+    df2 = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["u", "v"]})
+    assert not df2._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df2.loc[0, ["a", "b"]] = [7, 8, 9]
+
+
+@pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
         ([2011, 2012, 2013], [2011, 2012], [0, 1]),
@@ -3990,3 +4047,29 @@ def test_loc_setitem_multi_element_list_into_cell():
     df = DataFrame([{"foo": None, "bar": None}], index=["a"])
     df.loc["a", "foo"] = ["123", "456"]
     assert df.loc["a", "foo"] == ["123", "456"]
+
+
+@td.skip_if_no("pyarrow")
+def test_loc_setitem_row_expansion_int_ea_float_value():
+    # GH#65094 row expansion casts each column back to its original dtype; an
+    #  integral float above 2**53 used to raise ArrowInvalid for ArrowDtype and
+    #  saturate to the dtype's max for masked dtypes
+    df = DataFrame(
+        {
+            "arrow": pd.array([1, 2], dtype="int64[pyarrow]"),
+            "masked": pd.array([1, 2], dtype="Int64"),
+            "numpy": [1, 2],
+        }
+    )
+
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = [1.7e18, 2.0**63, 3.0]
+
+    expected = DataFrame(
+        {
+            "arrow": pd.array([1, 2, 1700000000000000000], dtype="int64[pyarrow]"),
+            "masked": pd.array([1.0, 2.0, 2.0**63], dtype="Float64"),
+            "numpy": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(df, expected)

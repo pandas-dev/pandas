@@ -33,7 +33,6 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
-    pa_version_under14p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -319,6 +318,22 @@ def to_pyarrow_type(
     return None
 
 
+def _is_varbinary_type(pa_type: pa.DataType) -> bool:
+    """
+    Whether this is one of string, large_string, binary and large_binary.
+
+    pc.if_else misreads a non-zero offset for exactly these four, silently
+    truncating values (GH#64320, https://github.com/apache/arrow/issues/49410).
+    Other offset-carrying layouts such as list and map are unaffected.
+    """
+    return (
+        pa.types.is_string(pa_type)
+        or pa.types.is_large_string(pa_type)
+        or pa.types.is_binary(pa_type)
+        or pa.types.is_large_binary(pa_type)
+    )
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -453,7 +468,16 @@ class ArrowExtensionArray(
                 mask = isna(scalars)
                 if not is_pa_array:
                     strings = pa.array(strings, type=pa.string(), mask=mask)
-                strings = pc.if_else(mask, None, strings)
+                if _is_varbinary_type(strings.type):
+                    # GH#64320: replace_with_mask rather than if_else, which
+                    # truncates values read through a non-zero offset. Only for
+                    # the affected types; replace_with_mask has no kernel for
+                    # several of the others and falls back to a lossy numpy path
+                    strings = cls._replace_with_mask(
+                        strings, mask, pa.scalar(None, type=strings.type)
+                    )
+                else:
+                    strings = pc.if_else(mask, None, strings)
                 try:
                     scalars = strings.cast(pa.int64())
                 except pa.ArrowInvalid:
@@ -489,8 +513,10 @@ class ArrowExtensionArray(
                 scalars = strings.cast(pa_type)
             else:
                 mask = isna(strings)
-                if mask is not None:
-                    scalars = pa.array(scalars, mask=mask, type=pa_type)
+                # GH#66834: to_numeric coerces "" to NaN instead of raising
+                if (isna(scalars) & ~mask).any():
+                    raise ValueError(f"could not convert string to {pa_type}: ''")
+                scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
             raise NotImplementedError(
@@ -1926,10 +1952,6 @@ class ArrowExtensionArray(
             # contract.
             return super().round(decimals, *args, **kwargs)
         result = pc.round(self._pa_array, ndigits=decimals)
-        if pa_version_under14p0:
-            # pyarrow < 14 upcasts integer inputs to double; cast back so the
-            # output dtype matches the input.
-            result = result.cast(self._pa_array.type)
         return self._from_pyarrow_array(result)
 
     def searchsorted(
@@ -3213,11 +3235,9 @@ class ArrowExtensionArray(
 
         # TODO: Remove this part when pa.if_else is fixed (GH#64320)
         def _maybe_combine(arr):
-            if not isinstance(arr, pa.ChunkedArray) or not (
-                pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type)
-            ):
+            if not isinstance(arr, pa.ChunkedArray) or not _is_varbinary_type(arr.type):
                 return arr
-            if not any(c.offset != 0 for c in arr.chunks):
+            if not any(chunk.offset != 0 for chunk in arr.chunks):
                 return arr
             try:
                 return arr.combine_chunks()
@@ -3619,10 +3639,132 @@ class ArrowExtensionArray(
     def _convert_rank_result(self, result):
         return self._from_pyarrow_array(result)
 
-    def _str_count(self, pat: str, flags: int = 0) -> Self:
+    @staticmethod
+    def _compile_re_fallback(
+        pat: str | re.Pattern, case: bool = True, flags: int = 0
+    ) -> re.Pattern:
+        # GH#66348 pyarrow's regex kernels honor no flags beyond the IGNORECASE
+        #  that `case` stands in for, so anything left over is evaluated with `re`
+        if not case:
+            flags |= re.IGNORECASE
+        # as in ObjectStringArrayMixin, an already-compiled `pat` combined with
+        #  `flags` raises out of re.compile
+        return re.compile(pat, flags=flags)
+
+    def _apply_re_fallback(self, func: Callable, pa_type: pa.DataType):
+        return pa.chunked_array(self._apply_elementwise(func), type=pa_type)
+
+    def _str_contains(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+        regex: bool = True,
+    ):
+        if regex:
+            pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
         if flags:
-            raise NotImplementedError(f"count not implemented with {flags=}")
-        return self._from_pyarrow_array(pc.count_substring_regex(self._pa_array, pat))
+            if regex:
+                compiled = self._compile_re_fallback(pat, case, flags)
+                func = lambda val: compiled.search(val) is not None
+            elif case:
+                func = lambda val: pat in val
+            else:
+                upper_pat = pat.upper()  # type: ignore[union-attr]
+                func = lambda val: upper_pat in val.upper()
+            result = self._apply_re_fallback(func, pa.bool_())
+            return self._convert_bool_result(result, na=na, method_name="contains")
+
+        return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
+
+    def _str_match(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
+        if flags:
+            compiled = self._compile_re_fallback(pat, case, flags)
+            func = lambda val: compiled.match(val) is not None
+            result = self._apply_re_fallback(func, pa.bool_())
+            return self._convert_bool_result(result, na=na, method_name="match")
+
+        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+
+    def _str_fullmatch(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+
+        if flags:
+            # anchoring the pattern and deferring to _str_match would not do:
+            #  under re.MULTILINE the added "^"/"$" match at line boundaries
+            compiled = self._compile_re_fallback(pat, case, flags)
+            func = lambda val: compiled.fullmatch(val) is not None
+            result = self._apply_re_fallback(func, pa.bool_())
+            return self._convert_bool_result(result, na=na, method_name="fullmatch")
+
+        return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
+
+    def _str_count(self, pat: str | re.Pattern, flags: int = 0) -> Self:
+        pat, case, flags = self._unwrap_re_pattern(pat, True, flags)
+
+        if flags:
+            compiled = self._compile_re_fallback(pat, case, flags)
+            func = lambda val: len(compiled.findall(val))
+            # match the width pyarrow's kernel reports for this storage type
+            pa_type = (
+                pa.int64()
+                if pa.types.is_large_string(self._pa_array.type)
+                or pa.types.is_large_binary(self._pa_array.type)
+                else pa.int32()
+            )
+            return self._convert_int_result(self._apply_re_fallback(func, pa_type))
+
+        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
+        return self._convert_int_result(result)
+
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ) -> Self:
+        if (
+            isinstance(pat, re.Pattern)
+            or callable(repl)
+            or not case
+            or flags
+            or (isinstance(repl, str) and r"\g<" in repl)
+        ):
+            # None of these are expressible with pc.replace_substring_regex; mirror
+            #  ObjectStringArrayMixin._str_replace instead, which leaves the flags
+            #  of an already-compiled `pat` alone. GH#66348
+            if not isinstance(pat, re.Pattern):
+                if not regex:
+                    pat = re.escape(pat)
+                pat = self._compile_re_fallback(pat, case, flags)
+            count = n if n >= 0 else 0
+            func = lambda val: pat.sub(repl=repl, string=val, count=count)
+            return self._from_pyarrow_array(
+                self._apply_re_fallback(func, self._pa_array.type)
+            )
+
+        return ArrowStringArrayMixin._str_replace(
+            self, pat, repl, n, case, flags, regex
+        )
 
     def _str_repeat(self, repeats: int | Sequence[int]) -> Self:
         if not isinstance(repeats, int):
@@ -3632,41 +3774,74 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pc.binary_repeat(self._pa_array, repeats))
 
     def _str_join(self, sep: str) -> Self:
-        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
-            self._pa_array.type
-        ):
+        pa_type = self._pa_array.type
+        if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
             result = self._apply_elementwise(list)
-            result = pa.chunked_array(result, type=pa.list_(pa.string()))
-        else:
-            result = self._pa_array
-        return self._from_pyarrow_array(pc.binary_join(result, sep))
+            # pc.binary_join has no kernel for large_string values, so join as
+            #  string and restore the input's own type afterwards
+            listed = pa.chunked_array(result, type=pa.list_(pa.string()))
+            return self._from_pyarrow_array(pc.binary_join(listed, sep).cast(pa_type))
+        return self._from_pyarrow_array(pc.binary_join(self._pa_array, sep))
 
-    def _str_partition(self, sep: str, expand: bool) -> Self:
+    def _str_partition(self, sep: str, expand: bool):
+        if expand:
+            # rows of three strings, so a list array rather than Self
+            return ArrowExtensionArray(
+                ArrowStringArrayMixin._str_partition_expand(self, sep)
+            )
         predicate = lambda val: val.partition(sep)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+        )
 
     def _str_rpartition(self, sep: str, expand: bool) -> Self:
         predicate = lambda val: val.rpartition(sep)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+        )
 
     def _str_casefold(self) -> Self:
         predicate = lambda val: val.casefold()
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _str_encode(self, encoding: str, errors: str = "strict") -> Self:
         predicate = lambda val: val.encode(encoding, errors)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        if pa.types.is_large_string(self._pa_array.type):
+            pa_type = pa.large_binary()
+        else:
+            pa_type = pa.binary()
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa_type))
 
-    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        if flags:
-            raise NotImplementedError("Only flags=0 is implemented.")
-        groups = re.compile(pat).groupindex.keys()
+    def _str_extract(self, pat: str | re.Pattern, flags: int = 0, expand: bool = True):
+        compiled = self._compile_re_fallback(pat, flags=flags)
+        groups = compiled.groupindex.keys()
         if len(groups) == 0:
             raise ValueError(f"{pat=} must contain a symbolic group name.")
+
+        if flags or isinstance(pat, re.Pattern):
+            # pc.extract_regex has no `ignore_case`, so unlike elsewhere not even
+            #  IGNORECASE can be honored by the kernel
+            matches = self._apply_elementwise(compiled.search)
+
+            def extract_group(name: str):
+                chunks = [
+                    [None if match is None else match.group(name) for match in chunk]
+                    for chunk in matches
+                ]
+                return self._from_pyarrow_array(
+                    pa.chunked_array(chunks, type=self._pa_array.type)
+                )
+
+            if not expand:
+                return extract_group(next(iter(groups)))
+            return {col: extract_group(col) for col in groups}
+
         result = pc.extract_regex(self._pa_array, pat)
         if expand:
             return {
@@ -3680,7 +3855,9 @@ class ArrowExtensionArray(
         regex = re.compile(pat, flags=flags)
         predicate = lambda val: regex.findall(val)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+        )
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
@@ -3709,17 +3886,17 @@ class ArrowExtensionArray(
     def _str_index(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.index(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_rindex(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.rindex(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pa.chunked_array(result, type=pa.int64()))
 
     def _str_split(
         self,
@@ -3760,14 +3937,18 @@ class ArrowExtensionArray(
     def _str_translate(self, table: dict[int, str]) -> Self:
         predicate = lambda val: val.translate(table)
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _str_wrap(self, width: int, **kwargs) -> Self:
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=self._pa_array.type)
+        )
 
     def _dt_zero_or_null_int32(self) -> Self:
         """
