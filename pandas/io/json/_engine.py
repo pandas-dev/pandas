@@ -133,30 +133,28 @@ def _parse_constant(name: str) -> float | None:
     return float(name)
 
 
-def _check_integer_range(text: bytes) -> None:
-    """
-    Raise for integers outside of ``[-2**63, 2**64 - 1]``, which the decoders
-    would otherwise read as floats or as Python ints.
-    """
-    pos, sign = writers.json_wide_integer(text)
-    if sign > 0:
-        raise ValueError(f"Value is too big! at position {pos}")
-    if sign < 0:
-        raise ValueError(f"Value is too small at position {pos}")
-
-
 def loads(text: str | bytes) -> Any:
     """
     Deserialize JSON text.
 
     Beyond strict JSON this accepts the ``NaN``, ``Infinity`` and
-    ``-Infinity`` literals, which the stdlib decoder handles. Integers beyond
-    64 bits raise ``ValueError``.
+    ``-Infinity`` literals. ``NaN`` is read as ``None``; it is rewritten to
+    ``null`` ahead of orjson, which rejects it. ``Infinity`` and floats that
+    overflow are read by the stdlib decoder, since orjson cannot produce
+    infinity. Integers beyond 64 bits raise ``ValueError``.
     """
-    _check_integer_range(text.encode("utf-8") if isinstance(text, str) else text)
-    if orjson is not None:
+    data = text.encode("utf-8") if isinstance(text, str) else text
+    pos, sign, nan_count, needs_stdlib = writers.json_scan(data)
+    if sign > 0:
+        raise ValueError(f"Value is too big! at position {pos}")
+    if sign < 0:
+        raise ValueError(f"Value is too small at position {pos}")
+    if orjson is not None and not needs_stdlib:
+        if nan_count:
+            data = writers.json_nan_to_null(data, nan_count)
         try:
-            return orjson.loads(text)
+            return orjson.loads(data)
         except orjson.JSONDecodeError:
+            # e.g. lone surrogate escapes, which the stdlib decoder accepts
             pass
-    return json.loads(text, parse_constant=_parse_constant)
+    return json.loads(data, parse_constant=_parse_constant)

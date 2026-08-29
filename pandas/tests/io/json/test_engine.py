@@ -105,6 +105,56 @@ class TestLoads:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_read_json_nan_in_strings(self, engine):
+        # only the bare literal is a missing value
+        data = StringIO('{"a":["NaN","x\\"NaN","Infinity"],"b":[NaN,1.5,2.5]}')
+        result = read_json(data, dtype=False)
+        expected = DataFrame({"a": ["NaN", 'x"NaN', "Infinity"], "b": [None, 1.5, 2.5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_loads_nan_uses_orjson(self, monkeypatch):
+        # NaN is rewritten to null so that orjson reads the text; the stdlib
+        # decoder is only used for Infinity, which orjson cannot produce
+        pytest.importorskip("orjson")
+        calls = []
+        stdlib_loads = _engine.json.loads
+
+        def spy(*args, **kwargs):
+            calls.append(args[0])
+            return stdlib_loads(*args, **kwargs)
+
+        monkeypatch.setattr(_engine.json, "loads", spy)
+        assert loads('{"a":[NaN,1],"b":"NaN"}') == {"a": [None, 1], "b": "NaN"}
+        assert calls == []
+        assert loads("[Infinity,NaN]") == [np.inf, None]
+        assert loads("[1e400]") == [np.inf]
+        assert len(calls) == 2
+
+    @pytest.mark.parametrize(
+        "text, expected",
+        [
+            (b"[]", (-1, 0, 0, False)),
+            (b'[NaN,"NaN",NaN,-Infinity]', (-1, 0, 2, True)),
+            (b"[9.9e307,99e306,1e-400,1.5]", (-1, 0, 0, False)),
+            # 1e308 and 1.8e308 look alike to the scanner; only the second
+            # overflows, so both go to the stdlib decoder
+            (b"[1e308]", (-1, 0, 0, True)),
+            (b"[1.8e308]", (-1, 0, 0, True)),
+            (b"[123456789e300]", (-1, 0, 0, True)),
+            (b"[18446744073709551615,-9223372036854775808]", (-1, 0, 0, False)),
+            (b'{"NaN":18446744073709551616}', (7, 1, 0, False)),
+            (b"[NaN,-9223372036854775809]", (5, -1, 1, False)),
+        ],
+    )
+    def test_json_scan(self, text, expected):
+        assert writers.json_scan(text) == expected
+
+    def test_json_nan_to_null(self):
+        text = b'{"NaN":[NaN,"x\\"NaN",NaN,1]}'
+        result = writers.json_nan_to_null(text, 2)
+        assert result == b'{"NaN":[null,"x\\"NaN",null,1]}'
+        assert writers.json_nan_to_null(b"", 0) == b""
+
 
 class TestDumps:
     def test_dumps_basic(self, engine):

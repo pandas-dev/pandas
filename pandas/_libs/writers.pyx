@@ -430,31 +430,42 @@ def timedelta64_to_json(
     return _finish_bytes(raw, pos + 1)
 
 
-cdef Py_ssize_t _scan_wide_integer(
-    const unsigned char* s, Py_ssize_t n, int* sign
+cdef Py_ssize_t _scan_json(
+    const unsigned char* s, Py_ssize_t n, int* sign, Py_ssize_t* nan_count,
+    bint* needs_stdlib,
 ) noexcept nogil:
     """
-    Position of the first integer token outside of ``[-2**63, 2**64 - 1]``
-    in JSON text ``s``, or -1; ``sign`` is set to 1 for too big and -1 for
-    too small. String literals are skipped and floats are never reported.
+    Scan JSON text ``s`` outside of its string literals.
+
+    Returns the position of the first integer outside of
+    ``[-2**63, 2**64 - 1]`` with ``sign`` 1 (too big) or -1 (too small), or
+    -1. ``nan_count`` receives the number of ``NaN`` literals; ``needs_stdlib``
+    is set when the text holds ``Infinity`` or a float that may overflow,
+    which only the stdlib decoder reads.
     """
     cdef:
-        Py_ssize_t i = 0, start, dstart, ndig
+        Py_ssize_t i = 0, start, dstart, ndig, exp
         unsigned char c
-        bint neg
+        bint neg, is_float
 
     while i < n:
         c = s[i]
         if c == b'"':
-            i += 1
-            while i < n:
-                if s[i] == b"\\":
-                    i += 2
-                    continue
-                if s[i] == b'"':
-                    break
+            i = _skip_json_string(s, i, n)
+            continue
+        if c == b"N":
+            if i + 3 <= n and memcmp(s + i, b"NaN", 3) == 0:
+                nan_count[0] += 1
+                i += 3
+            else:
                 i += 1
-            i += 1
+            continue
+        if c == b"I":
+            if i + 8 <= n and memcmp(s + i, b"Infinity", 8) == 0:
+                needs_stdlib[0] = True
+                i += 8
+            else:
+                i += 1
             continue
         if c == b"-" or (c >= b"0" and c <= b"9"):
             start = i
@@ -465,9 +476,8 @@ cdef Py_ssize_t _scan_wide_integer(
             while i < n and s[i] >= b"0" and s[i] <= b"9":
                 i += 1
             ndig = i - dstart
-            if ndig >= 19 and not (
-                i < n and (s[i] == b"." or s[i] == b"e" or s[i] == b"E")
-            ):
+            is_float = i < n and (s[i] == b"." or s[i] == b"e" or s[i] == b"E")
+            if ndig >= 19 and not is_float:
                 if neg:
                     if ndig > 19 or memcmp(s + dstart, b"9223372036854775808", 19) > 0:
                         sign[0] = -1
@@ -478,13 +488,26 @@ cdef Py_ssize_t _scan_wide_integer(
                 ):
                     sign[0] = 1
                     return start
-            # the remainder of a float token
-            while i < n and (
-                (s[i] >= b"0" and s[i] <= b"9")
-                or s[i] == b"." or s[i] == b"e" or s[i] == b"E"
-                or s[i] == b"+" or s[i] == b"-"
-            ):
-                i += 1
+            if is_float:
+                if s[i] == b".":
+                    i += 1
+                    while i < n and s[i] >= b"0" and s[i] <= b"9":
+                        i += 1
+                exp = 0
+                if i < n and (s[i] == b"e" or s[i] == b"E"):
+                    i += 1
+                    if i < n and s[i] == b"+":
+                        i += 1
+                    elif i < n and s[i] == b"-":
+                        # a negative exponent cannot overflow
+                        i += 1
+                        exp = -100000
+                    while i < n and s[i] >= b"0" and s[i] <= b"9":
+                        if exp < 1000:
+                            exp = exp * 10 + (s[i] - 48)
+                        i += 1
+                if exp >= 0 and ndig + exp >= 309:
+                    needs_stdlib[0] = True
             continue
         i += 1
     return -1
@@ -492,20 +515,62 @@ cdef Py_ssize_t _scan_wide_integer(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def json_wide_integer(const unsigned char[::1] text) -> tuple[Py_ssize_t, int]:
+def json_scan(
+    const unsigned char[::1] text
+) -> tuple[Py_ssize_t, int, Py_ssize_t, bool]:
     """
-    ``(position, sign)`` of the first integer in JSON ``text`` outside of the
-    64-bit range (sign 1 for too big, -1 for too small), or ``(-1, 0)``.
+    ``(position, sign, nan_count, needs_stdlib)`` for JSON ``text``: the
+    first integer outside of the 64-bit range (sign 1 for too big, -1 for
+    too small, position -1 if none), the number of bare ``NaN`` literals, and
+    whether the text needs the stdlib decoder (``Infinity`` or a float that
+    may overflow).
     """
     cdef:
         int sign = 0
-        Py_ssize_t pos
+        Py_ssize_t pos, nan_count = 0
+        bint needs_stdlib = False
 
     if text.shape[0] == 0:
-        return -1, 0
+        return -1, 0, 0, False
     with nogil:
-        pos = _scan_wide_integer(&text[0], text.shape[0], &sign)
-    return pos, sign
+        pos = _scan_json(&text[0], text.shape[0], &sign, &nan_count, &needs_stdlib)
+    return pos, sign, nan_count, needs_stdlib
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def json_nan_to_null(const unsigned char[::1] text, Py_ssize_t nan_count) -> bytes:
+    """
+    A copy of JSON ``text`` with its ``nan_count`` bare ``NaN`` literals
+    replaced by ``null``.
+    """
+    cdef:
+        Py_ssize_t i = 0, pos = 0, n = text.shape[0], j
+        const unsigned char* s
+        PyObject* raw
+        char* buf
+
+    if n == 0:
+        return b""
+    s = &text[0]
+    raw = _new_bytes(n + nan_count, &buf)
+    with nogil:
+        while i < n:
+            if s[i] == b'"':
+                j = _skip_json_string(s, i, n)
+                memcpy(buf + pos, s + i, j - i)
+                pos += j - i
+                i = j
+                continue
+            if s[i] == b"N" and i + 3 <= n and memcmp(s + i, b"NaN", 3) == 0:
+                memcpy(buf + pos, b"null", 4)
+                pos += 4
+                i += 3
+                continue
+            buf[pos] = s[i]
+            pos += 1
+            i += 1
+    return _finish_bytes(raw, pos)
 
 
 @cython.boundscheck(False)
