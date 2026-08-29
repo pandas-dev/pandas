@@ -86,7 +86,6 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
         [feature.test-base.dependencies]
         pytest = ">=8.3.4"
         pytest-xdist = ">=3.6.1"
-        hypothesis = ">=6.116.0"
 
         [feature.test-network.dependencies]
         boto3 = "==1.40.46"
@@ -117,7 +116,6 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
     }
     assert optional == {
         "beautifulsoup4": "4.12.3",
-        "hypothesis": "6.116.0",
         "pyarrow": "16.0.0",
         "pytest": "8.3.4",
         "pytables": "3.10.1",
