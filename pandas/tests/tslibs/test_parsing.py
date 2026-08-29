@@ -289,8 +289,9 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
+    msg = r"when dayfirst=False \(the default\) was specified"
     with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
+        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
     ):
         result = parsing.guess_datetime_format(string)
     assert result == fmt

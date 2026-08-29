@@ -2137,8 +2137,9 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
 
+        msg = "invalid value encountered in floor_divide"
         with tm.maybe_produces_warning(
-            RuntimeWarning, box is pd.array, check_stacklevel=False
+            RuntimeWarning, box is pd.array, check_stacklevel=False, match=msg
         ):
             result = left // right
 
@@ -2146,7 +2147,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         # case that goes through __rfloordiv__ with arraylike
         with tm.maybe_produces_warning(
-            RuntimeWarning, box is pd.array, check_stacklevel=False
+            RuntimeWarning, box is pd.array, check_stacklevel=False, match=msg
         ):
             result = np.asarray(left) // right
         tm.assert_equal(result, expected)
