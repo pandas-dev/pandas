@@ -1294,7 +1294,8 @@ def read_csv(
           ``names`` are passed, otherwise equivalent to ``header=None``.
 
         Column labels read from a header row are always strings. To use column
-        labels of another type, pass them explicitly with ``names``.
+        labels of another type, pass them explicitly with ``names`` and set
+        ``header=0`` when the file contains a header row.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
@@ -1897,7 +1898,8 @@ def read_table(
           ``names`` are passed, otherwise equivalent to ``header=None``.
 
         Column labels read from a header row are always strings. To use column
-        labels of another type, pass them explicitly with ``names``.
+        labels of another type, pass them explicitly with ``names`` and set
+        ``header=0`` when the file contains a header row.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
