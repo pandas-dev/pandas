@@ -1574,7 +1574,8 @@ def test_groupby_multiindex_not_lexsorted(performance_warning):
     assert not not_lexsorted_df.columns._is_lexsorted()
 
     expected = lexsorted_df.groupby("a").mean()
-    with tm.assert_produces_warning(performance_warning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         result = not_lexsorted_df.groupby("a").mean()
     tm.assert_frame_equal(expected, result)
 
