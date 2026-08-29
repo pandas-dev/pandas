@@ -529,25 +529,26 @@ class TestCommon:
         # stacklevel checking is slow, and we have ~800 of variants of this
         #  test, so let's only check the stacklevel in a subset of them
         check_stacklevel = tz_naive_fixture is None
+        msg = "Non-vectorized DateOffset being applied to Series or DatetimeIndex"
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = dta + offset_s
         tm.assert_equal(result, dta)
         with tm.assert_produces_warning(
-            performance_warning, check_stacklevel=check_stacklevel
+            performance_warning, check_stacklevel=check_stacklevel, match=msg
         ):
             result = offset_s + dta
         tm.assert_equal(result, dta)
@@ -1290,7 +1291,8 @@ def test_dateoffset_operations_on_dataframes(performance_warning):
         }
     )
     expecteddate = Timestamp("2021-06-30")
-    with tm.assert_produces_warning(performance_warning):
+    msg = "Adding/subtracting object-dtype array to DatetimeArray not vectorized"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         frameresult2 = df2["T"] + 26 * df2["D"]
 
     assert frameresult1[0] == expecteddate

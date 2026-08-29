@@ -333,8 +333,9 @@ class TestDataFrameBlockInternals:
         df[0] = np.nan
         wasCol = {}
 
+        msg = "DataFrame is highly fragmented"
         with tm.assert_produces_warning(
-            performance_warning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False, match=msg
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):
