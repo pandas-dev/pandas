@@ -847,17 +847,99 @@ def test_block_lane_quoted_specials_mid_block(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
+def test_block_lane_nrows_short_row(c_parser_only):
     # GH#66274: the lane must honor nrows when the row hitting the limit is
-    # a short row (synthetic trailing fields) landing where the token stream
-    # is nearly full.  Each 2-byte row emits 5 stream bytes, outrunning the
-    # 2x up-front reservation so the capacity wall falls inside the lane;
-    # the over-wide final row raises only if the reader ignores nrows.
+    # a short row (synthetic trailing fields); the over-wide final row raises
+    # only if the reader ignores nrows.
+    # This was originally tuned so that the short rows outran the stream
+    # reservation and the lane's capacity guard fired mid-parse.  GH#66657
+    # made the padding restore that reservation, so the guard can no longer
+    # trip here -- the nrows/short-row path is what this still covers.
     parser = c_parser_only
     data = "a,b,c,d\n" + "2222\n" + "1\n" * 55_000 + "1,2,3,4,5,6,7,8,9,10\n"
     for nrows in range(52_415, 52_431):
         result = parser.read_csv(StringIO(data), nrows=nrows)
         assert len(result) == nrows
+
+
+def test_block_lane_nrows_checked_before_deferring(c_parser_only):
+    # GH#66274: block_after_line must test the line limit before any of its
+    # bails, because end_line has already counted the line and the state
+    # machine's ==-based limit check would never match again -- so a deferral
+    # taken first makes the reader overshoot nrows.  Reaches the deferral via
+    # the whitespace-line probe (the leading blank on row 5); the sibling bail
+    # for a full token stream can no longer coincide with a limit hit now that
+    # GH#66657 keeps slack ahead of the unconsumed input.
+    # nrows is pinned: 4 stops exactly on the whitespace row, which is the
+    # only value that both reaches the probe and stays clear of the over-wide
+    # final row (that row legitimately raises for nrows > 5).
+    parser = c_parser_only
+    over_wide = ",".join(str(k) for k in range(12))
+    data = "a,b,c,d\n" + "1,2,3,4\n" * 4 + " 9,9,9\n" + over_wide + "\n"
+    result = parser.read_csv(StringIO(data), nrows=4)
+    expected = DataFrame(
+        [[1, 2, 3, 4]] * 4, columns=["a", "b", "c", "d"], dtype="int64"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_short_rows_before_wide_field(c_parser_only):
+    # GH#66657: closing the missing fields of a short row takes token stream
+    # space without consuming input, so a run of short rows used to eat into
+    # the reservation the unchecked bulk copies rely on.  The wide field then
+    # overran the stream buffer and came back truncated.
+    parser = c_parser_only
+    wide = "X" * 100_000
+    data = "a\n" * 40 + wide + "\n"
+    names = [f"c{i}" for i in range(5000)]
+    result = parser.read_csv(StringIO(data), header=None, names=names)
+    assert result.shape == (41, 5000)
+    # length first: the truncation is off-by-one, and a bare inequality on a
+    # 100k-char field reports nothing useful
+    assert len(result.iloc[40, 0]) == len(wide)
+    assert result.iloc[40, 0] == wide
+
+
+@pytest.mark.parametrize("terminator", ["\n", "\r\n", "\r"])
+@pytest.mark.parametrize("n_cols", range(5, 12))
+@pytest.mark.parametrize("n_short", [5, 8, 20])
+def test_short_rows_do_not_exhaust_token_reservation(
+    c_parser_only, n_cols, n_short, terminator
+):
+    # GH#66657: the padding also consumes one word per closed field, so short
+    # rows ate the word-vector reservation the same way they ate the stream's,
+    # and end_field has no growth path -- it just reports "Buffer overflow
+    # caught - possible malformed input file" on ordinary ragged input.
+    # Swept rather than pinned to the handful of shapes that reproduced: which
+    # ones do depends on where the buffers' power-of-two growth lands, so a
+    # pinned pair would quietly stop covering this if that sizing changed.
+    # Each terminator reaches end_line through a call site with its own
+    # expression for the unconsumed input, so an off-by-one in one of them
+    # survives testing the others.
+    parser = c_parser_only
+    header = ",".join(f"c{i}" for i in range(n_cols))
+    row = ",".join("1" for _ in range(n_cols))
+    body = header + "{0}" + "1{0}" * n_short + row + "{0}"
+    result = parser.read_csv(StringIO(body.format(terminator)))
+    # the terminator must not change the values; a lone \r is not readable
+    # through StringIO by the python engine, so oracle on the \n spelling
+    expected = read_csv(StringIO(body.format("\n")), engine="python")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_short_rows_block_lane_tail_recopy_defer(c_parser_only):
+    # Not a GH#66657 reproducer -- this passes without that fix.  It pins the
+    # one shape that reaches the block lane's tail-re-copy deferral, which
+    # GH#66657 turned from a rare capacity bail into the routine path: the
+    # lane hands the rest of the block back to the state machine mid-block,
+    # and that handoff carries a resume position, so getting it wrong
+    # duplicates or drops rows rather than raising.  The sweep above never
+    # reaches the branch.
+    parser = c_parser_only
+    data = "c0,c1,c2,c3\n" + "1\n" * 9
+    result = parser.read_csv(StringIO(data))
+    expected = read_csv(StringIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
