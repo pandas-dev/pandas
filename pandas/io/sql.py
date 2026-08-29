@@ -360,8 +360,8 @@ def read_sql_table(
 
     See Also
     --------
+    read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
-    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
