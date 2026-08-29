@@ -263,6 +263,12 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pipe_alternation_in_message"
         types: [python]
         files: ^pandas/tests/
+    -   id: unwanted-patterns-bare-assert-produces-warning
+        name: Check that assert_produces_warning also checks the warning message
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_assert_produces_warning"
+        types: [python]
+        files: ^pandas/tests/
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep

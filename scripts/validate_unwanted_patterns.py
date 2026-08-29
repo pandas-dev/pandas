@@ -498,6 +498,83 @@ def bare_pipe_alternation_in_message(file_obj: IO[str]) -> Iterable[tuple[int, s
                 yield (value.lineno, BARE_PIPE_MESSAGE)
 
 
+WARNING_ASSERTION_HELPERS = frozenset(
+    {"assert_produces_warning", "maybe_produces_warning"}
+)
+
+BARE_WARNING_MATCH_MESSAGE = (
+    "{name} without a match argument; pass match=... so the warning message is "
+    "checked and not just its class. Use match=None (or "
+    "`# pdlint: ignore[bare_warning_match]`) if the message genuinely cannot be "
+    "asserted here."
+)
+
+
+def bare_assert_produces_warning(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
+    """
+    Check that warning assertions also assert the warning message.
+
+    ``tm.assert_produces_warning(SomeWarning)`` only pins down the class, so a
+    deprecation message can be reworded -- or stop being emitted for the reason
+    the test cares about -- without any test noticing. Passing ``match=``
+    checks what users actually see.
+
+    Calls that expect no warning at all (``assert_produces_warning(None)`` and
+    ``assert_produces_warning(False)``) are exempt, as is an explicit
+    ``match=None``.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of the offending call.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    lines = contents.split("\n")
+    tree = ast.parse(contents)
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+
+        func = node.func
+        if isinstance(func, ast.Attribute):
+            name = func.attr
+        elif isinstance(func, ast.Name):
+            name = func.id
+        else:
+            continue
+        if name not in WARNING_ASSERTION_HELPERS:
+            continue
+
+        if any(keyword.arg == "match" for keyword in node.keywords):
+            continue
+
+        expected = node.args[0] if node.args else None
+        if expected is None:
+            for keyword in node.keywords:
+                if keyword.arg == "expected_warning":
+                    expected = keyword.value
+        # `assert_produces_warning(None)` / `(False)` assert that nothing is
+        # raised, so there is no message to match.
+        if isinstance(expected, ast.Constant) and not expected.value:
+            continue
+
+        if any(
+            "# pdlint: ignore[bare_warning_match]" in lines[k]
+            for k in range(node.lineno - 1, min(node.end_lineno + 1, len(lines)))
+        ):
+            continue
+
+        yield (node.lineno, BARE_WARNING_MATCH_MESSAGE.format(name=name))
+
+
 def main(
     function: Callable[[IO[str]], Iterable[tuple[int, str]]],
     source_path: str,
@@ -548,6 +625,7 @@ if __name__ == "__main__":
         "nodefault_used_not_only_for_typing",
         "doesnt_use_pandas_warnings",
         "bare_pipe_alternation_in_message",
+        "bare_assert_produces_warning",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
