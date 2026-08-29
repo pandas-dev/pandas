@@ -108,6 +108,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
+from pandas.core.col import Expression
 from pandas.core.construction import extract_array
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
@@ -120,6 +121,11 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import BlockManager
 from pandas.core.methods.describe import describe_ndframe
+from pandas.core.methods.filter import (
+    filter_mask,
+    has_bool_labels,
+    is_mask,
+)
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
@@ -5713,73 +5719,116 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         like: str | None = None,
         regex: str | None = None,
         axis: Axis | None = None,
+        *,
+        na: Literal["raise"] | bool = False,
     ) -> Self:
         """
-        Subset the DataFrame or Series according to the specified index labels.
+        Subset the rows or columns according to a boolean mask.
 
-        For DataFrame, filter rows or columns depending on ``axis`` argument.
-        Note that this routine does not filter based on content.
-        The filter is applied to the labels of the index.
+        The mask is aligned with the labels of the filtered axis when it is a
+        :class:`Series`; otherwise it must have the same length as that axis.
 
         Parameters
         ----------
-        items : list-like
-            Keep labels from axis which are in items.
+        items : boolean array-like, callable, or :class:`Expression`
+            The boolean mask selecting the entries to keep. A callable is
+            called with the object and must return a boolean mask. An
+            expression such as ``pd.col("a") > 1`` is evaluated against the
+            DataFrame.
+
+            .. deprecated:: 3.1.0
+                Passing a list-like of labels to keep is deprecated. Use
+                ``obj.loc[:, obj.columns.intersection(labels)]`` (or the
+                equivalent for the index) instead.
         like : str
             Keep labels from axis for which "like in label == True".
+
+            .. deprecated:: 3.1.0
+                Use ``obj.filter(obj.columns.str.contains(like, regex=False),
+                axis=1)`` instead.
         regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
+
+            .. deprecated:: 3.1.0
+                Use ``obj.filter(obj.columns.str.contains(regex), axis=1)``
+                instead.
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
-            or axis name (str). By default this is the info axis, 'columns' for
-            ``DataFrame``. For ``Series`` this parameter is unused and defaults to
-            ``None``.
+            or axis name (str). When ``items`` is a boolean mask this
+            defaults to the index. For ``Series`` this parameter is unused
+            and defaults to ``None``.
+
+            .. deprecated:: 3.1.0
+                When ``like``, ``regex``, or a list-like of labels is
+                passed, this defaults to 'columns' for ``DataFrame``. This
+                usage is deprecated.
+        na : {"raise", True, False}, default False
+            How to treat missing values in the mask. ``True`` or ``False``
+            treats missing values as that value, matching ``obj[mask]``;
+            ``"raise"`` raises a ``ValueError``.
 
         Returns
         -------
         Same type as caller
             The filtered subset of the DataFrame or Series.
 
+        Raises
+        ------
+        ValueError
+            If the mask contains missing values and ``na="raise"``, or if
+            the mask is not one-dimensional.
+        IndexError
+            If a mask that is not a Series has a different length than the
+            filtered axis.
+        IndexingError
+            If a Series mask cannot be aligned with the filtered axis.
+
         See Also
         --------
         DataFrame.loc : Access a group of rows and columns
             by label(s) or a boolean array.
-
-        Notes
-        -----
-        The ``items``, ``like``, and ``regex`` parameters are
-        enforced to be mutually exclusive.
-
-        ``axis`` defaults to the info axis that is used when indexing
-        with ``[]``.
+        DataFrame.where : Replace values where the condition is False.
 
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     np.array(([1, 2, 3], [4, 5, 6])),
+        ...     {"one": [1, 4], "two": [2, 5], "three": [3, 6]},
         ...     index=["mouse", "rabbit"],
-        ...     columns=["one", "two", "three"],
         ... )
         >>> df
                 one  two  three
         mouse     1    2      3
         rabbit    4    5      6
 
-        >>> # select columns by name
-        >>> df.filter(items=["one", "three"])
-                 one  three
+        Filter rows with a boolean Series.
+
+        >>> df.filter(df["two"] > 2)
+                one  two  three
+        rabbit    4    5      6
+
+        The same using an expression, which is convenient in method chains.
+
+        >>> df.filter(pd.col("two") > 2)
+                one  two  three
+        rabbit    4    5      6
+
+        Filter columns with a boolean array.
+
+        >>> df.filter(df.columns.str.endswith("e"), axis=1)
+                one  three
         mouse     1      3
         rabbit    4      6
 
-        >>> # select columns by regular expression
-        >>> df.filter(regex="e$", axis=1)
-                 one  three
-        mouse     1      3
-        rabbit    4      6
+        Missing values in the mask are treated as False by default; pass
+        ``na="raise"`` to raise instead, or ``na=True`` to keep them.
 
-        >>> # select rows containing 'bbi'
-        >>> df.filter(like="bbi", axis=0)
-                 one  two  three
+        >>> mask = pd.array([True, None], dtype="boolean")
+        >>> df.filter(mask)
+               one  two  three
+        mouse    1    2      3
+        >>> df.filter(mask, na=True)
+                one  two  three
+        mouse     1    2      3
         rabbit    4    5      6
         """
         nkw = common.count_not_none(items, like, regex)
@@ -5788,17 +5837,86 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Keyword arguments `items`, `like`, or `regex` are mutually exclusive"
             )
 
+        if na is not True and na is not False and na != "raise":
+            raise ValueError(f"na must be 'raise', True, or False, got {na!r}")
+
+        items_msg: str | None = None
+        if items is not None and like is None and regex is None:
+            if axis is None:
+                mask_axis = 0
+            else:
+                mask_axis = self._get_axis_number(axis)
+            if isinstance(items, Expression) and self.ndim != 2:
+                raise TypeError(
+                    "Expressions such as pd.col(...) are only supported by "
+                    "DataFrame.filter"
+                )
+            if callable(items):
+                # Expression defines __call__, so it enters here too
+                mask = common.apply_if_callable(items, self)
+                if not is_mask(mask):
+                    kind = "expression" if isinstance(items, Expression) else "callable"
+                    raise TypeError(
+                        f"The {kind} passed to {type(self).__name__}.filter "
+                        "must evaluate to a boolean mask"
+                    )
+                return filter_mask(self, mask, mask_axis, na)
+            if is_mask(items):
+                legacy_axis = self._info_axis_name if axis is None else axis
+                if has_bool_labels(self._get_axis(legacy_axis)):
+                    items_msg = (
+                        f"{type(self).__name__}.filter with boolean values "
+                        "currently selects the labels True and False when "
+                        "the axis contains boolean labels. In a future "
+                        "version the values will be treated as a boolean mask. "
+                        "Use obj.loc with obj.columns.isin(items) (or "
+                        "obj.index.isin(items)) to select these labels instead."
+                    )
+                else:
+                    return filter_mask(self, items, mask_axis, na)
+
         if axis is None:
             axis = self._info_axis_name
         labels = self._get_axis(axis)
+        axis_name = self._get_axis_name(axis)
+
+        if items is None and not like and not regex:
+            raise TypeError(
+                f"{type(self).__name__}.filter requires a boolean mask (or the "
+                "deprecated `items`, `like`, or `regex`)"
+            )
+
+        if items_msg is not None:
+            msg = items_msg
+        else:
+            if items is not None:
+                hint = (
+                    f"obj.loc(axis={axis_name!r})[obj.{axis_name}.intersection(items)]"
+                )
+            elif like:
+                hint = (
+                    f"obj.filter(obj.{axis_name}.str.contains(like, regex=False), "
+                    f"axis={axis_name!r})"
+                )
+            else:
+                hint = (
+                    f"obj.filter(obj.{axis_name}.str.contains(regex), "
+                    f"axis={axis_name!r})"
+                )
+            msg = (
+                f"Passing labels, `like`, or `regex` to "
+                f"{type(self).__name__}.filter is deprecated and will be removed "
+                "in a future version; filter will only accept a boolean mask. "
+                f"Use {hint} instead."
+            )
+        warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
         if items is not None:
-            name = self._get_axis_name(axis)
             items = Index(items).intersection(labels)
             if len(items) == 0:
                 # Keep the dtype of labels when we are empty
                 items = items.astype(labels.dtype)
-            return self.reindex(**{name: items})
+            return self.reindex(**{axis_name: items})
         elif like:
 
             def f(x) -> bool:
@@ -5807,7 +5925,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             values = labels.map(f)
             return self.loc(axis=axis)[values]
-        elif regex:
+        else:
+            assert regex is not None  # needed for mypy
 
             def f(x) -> bool:
                 return matcher.search(ensure_str(x)) is not None
@@ -5815,8 +5934,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             matcher = re.compile(regex)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
-        else:
-            raise TypeError("Must pass either `items`, `like`, or `regex`")
 
     @final
     def head(self, n: int = 5) -> Self:
