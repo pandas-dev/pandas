@@ -104,5 +104,5 @@ if __name__ == "__main__":
 
     ev, qu = bench(verbose=True)  # only this one
 
-    plot_perf(ev, engines, "DataFrame.eval()", filename=join("eval-perf.png"))
+    plot_perf(ev, engines, "see)", filename=join("eval-perf.png"))
     plot_perf(qu, engines, "DataFrame.query()", filename=join("query-perf.png"))
