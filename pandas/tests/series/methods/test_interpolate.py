@@ -891,3 +891,14 @@ class TestSeriesInterpolateData:
         result = ser.interpolate(method="linear")
         expected = Series([1.0, 2.0, 3.0], dtype="Float64")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["nearest", "zero", "slinear", "quadratic"])
+    def test_interpolate_scipy_single_valid_value(self, method):
+        # GH#46230 scipy's interpolators raise "x and y arrays must have at
+        # least 2 entries" when asked to interpolate from a single valid
+        # point; pandas should leave the missing values as NaN instead of
+        # propagating that error.
+        pytest.importorskip("scipy")
+        ser = Series([np.nan, 1])
+        result = ser.interpolate(method=method)
+        tm.assert_series_equal(result, ser)

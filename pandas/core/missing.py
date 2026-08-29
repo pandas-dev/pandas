@@ -541,6 +541,14 @@ def _interpolate_1d(
     if valid.all():
         return
 
+    if method not in NP_METHODS and valid.sum() < 2:
+        # GH#46230 SciPy's interpolators (e.g. "nearest") raise
+        # "ValueError: x and y arrays must have at least 2 entries" when
+        # asked to interpolate from a single valid value. There is nothing
+        # sensible to interpolate from in that case, so leave everything
+        # untouched, the same as when there are no valid values at all.
+        return
+
     # These index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = np.flatnonzero(invalid)
 

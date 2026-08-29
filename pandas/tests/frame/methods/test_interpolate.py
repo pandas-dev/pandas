@@ -228,6 +228,16 @@ class TestDataFrameInterpolate:
         expected.loc[13, "A"] = 5.76923077
         tm.assert_frame_equal(result, expected)
 
+    def test_interp_scipy_single_valid_value(self):
+        # GH#46230 scipy's interpolators raise "x and y arrays must have at
+        # least 2 entries" when there is only a single non-NaN value to
+        # interpolate from; pandas should leave the NaN in place instead of
+        # propagating that error.
+        pytest.importorskip("scipy")
+        df = DataFrame({"a": [np.nan, 1]})
+        result = df.interpolate(method="nearest")
+        tm.assert_frame_equal(result, df)
+
         result = df.interpolate(method="zero")
         expected.loc[3, "A"] = 2.0
         expected.loc[13, "A"] = 5
