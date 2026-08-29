@@ -2484,7 +2484,7 @@ class ADBCDatabase(PandasSQL):
                 if not schema_record:
                     continue
 
-                for table_record in schema_record["db_schema_tables"]:
+                for table_record in schema_record["db_schema_tables"] or []:
                     if table_record["table_name"] == name:
                         return True
 
