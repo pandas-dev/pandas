@@ -5,11 +5,6 @@ What's new in 0.23.0 (May 15, 2018)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
@@ -102,31 +97,41 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
 
 Please note that the string ``index`` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   df = pd.DataFrame(
-       {
-           'foo': [1, 2, 3, 4],
-           'bar': ['a', 'b', 'c', 'd'],
-           'baz': pd.date_range('2018-01-01', freq='d', periods=4),
-           'qux': pd.Categorical(['a', 'b', 'c', 'c'])
-       },
-       index=pd.Index(range(4), name='idx')
-   )
-
-   df.index.name = 'index'
-
-   df.to_json('test.json', orient='table')
-   new_df = pd.read_json('test.json', orient='table')
-   new_df
-   new_df.dtypes
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('test.json')
+   >>> df = pd.DataFrame({'foo': [1, 2, 3, 4],
+   ...      'bar': ['a', 'b', 'c', 'd'],
+   ...      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+   ...      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
+   ...      }, index=pd.Index(range(4), name='idx'))
+   >>> df
+        foo bar        baz qux
+   idx
+   0      1   a 2018-01-01   a
+   1      2   b 2018-01-02   b
+   2      3   c 2018-01-03   c
+   3      4   d 2018-01-04   c
+   >>> df.dtypes
+   foo             int64
+   bar            object
+   baz    datetime64[ns]
+   qux          category
+   dtype: object
+   >>> df.to_json('test.json', orient='table')
+   >>> new_df = pd.read_json('test.json', orient='table')
+   >>> new_df
+        foo bar        baz qux
+   idx
+   0      1   a 2018-01-01   a
+   1      2   b 2018-01-02   b
+   2      3   c 2018-01-03   c
+   3      4   d 2018-01-04   c
+   >>> new_df.dtypes
+   foo             int64
+   bar            object
+   baz    datetime64[ns]
+   qux          category
+   dtype: object
 
 
 .. _whatsnew_0230.enhancements.assign_dependent:
@@ -139,11 +144,19 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 <https://www.python.org/dev/peps/pep-0468/>`_). Later keyword arguments may now refer to earlier ones if the argument is a callable. See the
 :ref:`documentation here <dsintro.chained_assignment>` (:issue:`14207`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'A': [1, 2, 3]})
-    df
-    df.assign(B=df.A, C=lambda x: x['A'] + x['B'])
+   >>> df = pd.DataFrame({'A': [1, 2, 3]})
+   >>> df
+      A
+   0  1
+   1  2
+   2  3
+   >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+      A  B  C
+   0  1  1  2
+   1  2  2  4
+   2  3  3  6
 
 .. warning::
 
@@ -166,9 +179,13 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-      df.assign(A=df.A + 1, C=lambda df: df.A * -1)
+     >>> df.assign(A=df.A+1, C= lambda df: df.A* -1)
+        A  C
+     0  2 -2
+     1  3 -3
+     2  4 -4
 
 
 
@@ -184,23 +201,28 @@ and columns without resetting indexes. See the :ref:`Merge on columns and
 levels <merging.merge_on_columns_and_levels>` documentation section.
 (:issue:`14355`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
+   >>> left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
 
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                        'B': ['B0', 'B1', 'B2', 'B3'],
-                        'key2': ['K0', 'K1', 'K0', 'K1']},
-                       index=left_index)
+   >>> left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+   ...                      'B': ['B0', 'B1', 'B2', 'B3'],
+   ...                      'key2': ['K0', 'K1', 'K0', 'K1']},
+   ...                     index=left_index)
 
-   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
+   >>> right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
 
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3'],
-                         'key2': ['K0', 'K0', 'K0', 'K1']},
-                        index=right_index)
+   >>> right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+   ...                       'D': ['D0', 'D1', 'D2', 'D3'],
+   ...                       'key2': ['K0', 'K0', 'K0', 'K1']},
+   ...                      index=right_index)
 
-   left.merge(right, on=['key1', 'key2'])
+   >>> left.merge(right, on=['key1', 'key2'])
+          A   B key2   C   D
+   key1
+   K0    A0  B0   K0  C0  D0
+   K1    A2  B2   K0  C1  D1
+   K2    A3  B3   K1  C3  D3
 
 .. _whatsnew_0230.enhancements.sort_by_columns_and_levels:
 
@@ -214,20 +236,36 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
 <basics.sort_indexes_and_values>` documentation section.
 (:issue:`14353`)
 
-.. ipython:: python
+.. code-block:: pycon
 
    # Build MultiIndex
-   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
-                                    ('b', 2), ('b', 1), ('b', 1)])
-   idx.names = ['first', 'second']
+   >>> idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+   ...                                  ('b', 2), ('b', 1), ('b', 1)])
+   >>> idx.names = ['first', 'second']
 
    # Build DataFrame
-   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
-                           index=idx)
-   df_multi
+   >>> df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+   ...                         index=idx)
+   >>> df_multi
+                 A
+   first second
+   a     1       6
+         2       5
+         2       4
+   b     2       3
+         1       2
+         1       1
 
    # Sort by 'second' (index) and 'A' (column)
-   df_multi.sort_values(by=['second', 'A'])
+   >>> df_multi.sort_values(by=['second', 'A'])
+                 A
+   first second
+   b     1       1
+         1       2
+   a     1       6
+   b     2       3
+   a     2       4
+         2       5
 
 
 .. _whatsnew_023.enhancements.extension:
@@ -298,39 +336,74 @@ categories, including combinations where there are no observations, which can re
 number of groups. We have added a keyword ``observed`` to control this behavior, it defaults to
 ``observed=False`` for backward-compatibility. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   cat1 = pd.Categorical(["a", "a", "b", "b"],
-                         categories=["a", "b", "z"], ordered=True)
-   cat2 = pd.Categorical(["c", "d", "c", "d"],
-                         categories=["c", "d", "y"], ordered=True)
-   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-   df['C'] = ['foo', 'bar'] * 2
-   df
+   >>> cat1 = pd.Categorical(["a", "a", "b", "b"],
+   ...                       categories=["a", "b", "z"], ordered=True)
+   >>> cat2 = pd.Categorical(["c", "d", "c", "d"],
+   ...                       categories=["c", "d", "y"], ordered=True)
+   >>> df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   >>> df['C'] = ['foo', 'bar'] * 2
+   >>> df
+      A  B  values    C
+   0  a  c       1  foo
+   1  a  d       2  bar
+   2  b  c       3  foo
+   3  b  d       4  bar
 
 To show all values, the previous behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby(['A', 'B', 'C'], observed=False).count()
+   >>> df.groupby(['A', 'B', 'C'], observed=False).count()
+            values
+   A B C
+   a c bar     NaN
+       foo     1.0
+     d bar     1.0
+       foo     NaN
+     y bar     NaN
+       foo     NaN
+   b c bar     NaN
+   ...         ...
+     y foo     NaN
+   z c bar     NaN
+       foo     NaN
+     d bar     NaN
+       foo     NaN
+     y bar     NaN
+       foo     NaN
+
+   [18 rows x 1 columns]
 
 
 To show only observed values:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby(['A', 'B', 'C'], observed=True).count()
+   >>> df.groupby(['A', 'B', 'C'], observed=True).count()
+            values
+   A B C
+   a c foo       1
+     d bar       1
+   b c foo       1
+     d bar       1
 
 For pivoting operations, this behavior is *already* controlled by the ``dropna`` keyword:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   cat1 = pd.Categorical(["a", "a", "b", "b"],
-                         categories=["a", "b", "z"], ordered=True)
-   cat2 = pd.Categorical(["c", "d", "c", "d"],
-                         categories=["c", "d", "y"], ordered=True)
-   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-   df
+   >>> cat1 = pd.Categorical(["a", "a", "b", "b"],
+   ...                       categories=["a", "b", "z"], ordered=True)
+   >>> cat2 = pd.Categorical(["c", "d", "c", "d"],
+   ...                       categories=["c", "d", "y"], ordered=True)
+   >>> df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   >>> df
+      A  B  values
+   0  a  c       1
+   1  a  d       2
+   2  b  c       3
+   3  b  d       4
 
 
 .. code-block:: ipython
@@ -372,22 +445,40 @@ This is similar to :func:`DataFame.apply`. This parameter, if ``True`` allows on
 default is ``None``, which preserves backward compatibility, so this will default to ``True``, sending an ``np.ndarray``.
 In a future version the default will be changed to ``False``, sending a ``Series``. (:issue:`5071`, :issue:`20584`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(np.arange(5), np.arange(5) + 1)
-   s
+   >>> s = pd.Series(np.arange(5), np.arange(5) + 1)
+   >>> s
+   1    0
+   2    1
+   3    2
+   4    3
+   5    4
+   dtype: int64
 
 Pass a ``Series``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.rolling(2, min_periods=1).apply(lambda x: x.iloc[-1], raw=False)
+   >>> s.rolling(2, min_periods=1).apply(lambda x: x.iloc[-1], raw=False)
+   1    0.0
+   2    1.0
+   3    2.0
+   4    3.0
+   5    4.0
+   dtype: float64
 
 Mimic the original behavior of passing a ndarray:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.rolling(2, min_periods=1).apply(lambda x: x[-1], raw=True)
+   >>> s.rolling(2, min_periods=1).apply(lambda x: x[-1], raw=True)
+   1    0.0
+   2    1.0
+   3    2.0
+   4    3.0
+   5    4.0
+   dtype: float64
 
 
 .. _whatsnew_0210.enhancements.limit_area:
@@ -400,29 +491,68 @@ Use ``limit_area='inside'`` to fill only NaNs surrounded by valid values or use 
 outside the existing valid values while preserving those inside.  (:issue:`16284`) See the :ref:`full documentation here <missing_data.interp_limits>`.
 
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
-                    np.nan, 13, np.nan, np.nan])
-   ser
+   >>> ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   >>> ser
+   0     NaN
+   1     NaN
+   2     5.0
+   3     NaN
+   4     NaN
+   5     NaN
+   6    13.0
+   7     NaN
+   8     NaN
+   dtype: float64
 
 Fill one consecutive inside value in both directions
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+   >>> ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+   0     NaN
+   1     NaN
+   2     5.0
+   3     7.0
+   4     NaN
+   5    11.0
+   6    13.0
+   7     NaN
+   8     NaN
+   dtype: float64
 
 Fill all consecutive outside values backward
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser.interpolate(limit_direction='backward', limit_area='outside')
+   >>> ser.interpolate(limit_direction='backward', limit_area='outside')
+   0     5.0
+   1     5.0
+   2     5.0
+   3     NaN
+   4     NaN
+   5     NaN
+   6    13.0
+   7     NaN
+   8     NaN
+   dtype: float64
 
 Fill all consecutive outside values in both directions
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser.interpolate(limit_direction='both', limit_area='outside')
+   >>> ser.interpolate(limit_direction='both', limit_area='outside')
+   0     5.0
+   1     5.0
+   2     5.0
+   3     NaN
+   4     NaN
+   5     NaN
+   6    13.0
+   7    13.0
+   8    13.0
+   dtype: float64
 
 .. _whatsnew_0210.enhancements.get_dummies_dtype:
 
@@ -431,11 +561,21 @@ Function ``get_dummies`` now supports ``dtype`` argument
 
 The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
-   pd.get_dummies(df, columns=['c']).dtypes
-   pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
+   >>> df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+   >>> pd.get_dummies(df, columns=['c']).dtypes
+   a      int64
+   b      int64
+   c_5    uint8
+   c_6    uint8
+   dtype: object
+   >>> pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
+   a      int64
+   b      int64
+   c_5     bool
+   c_6     bool
+   dtype: object
 
 
 .. _whatsnew_0230.enhancements.timedelta_mod:
@@ -447,10 +587,11 @@ Timedelta mod method
 when operating with either timedelta-like or with numeric arguments.
 See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    td = pd.Timedelta(hours=37)
-    td % pd.Timedelta(minutes=45)
+   >>> td = pd.Timedelta(hours=37)
+   >>> td % pd.Timedelta(minutes=45)
+   Timedelta('0 days 00:15:00')
 
 .. _whatsnew_0230.enhancements.ran_inf:
 
@@ -459,10 +600,16 @@ Method ``.rank()`` handles ``inf`` values when ``NaN`` are present
 
 In previous versions, ``.rank()`` would assign ``inf`` elements ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
-    s
+   >>> s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
+   >>> s
+   0        -inf
+   1    0.000000
+   2    1.000000
+   3         NaN
+   4         inf
+   dtype: float64
 
 Previous behavior:
 
@@ -479,16 +626,27 @@ Previous behavior:
 
 Current behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s.rank()
+   >>> s.rank()
+   0    1.0
+   1    2.0
+   2    3.0
+   3    NaN
+   4    4.0
+   dtype: float64
 
 Furthermore, previously if you rank ``inf`` or ``-inf`` values together with ``NaN`` values, the calculation won't distinguish ``NaN`` from infinity when using 'top' or 'bottom' argument.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
-    s
+   >>> s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
+   >>> s
+   0    NaN
+   1    NaN
+   2   -inf
+   3   -inf
+   dtype: float64
 
 Previous behavior:
 
@@ -504,9 +662,14 @@ Previous behavior:
 
 Current behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s.rank(na_option='top')
+   >>> s.rank(na_option='top')
+   0    1.5
+   1    1.5
+   2    3.5
+   3    3.5
+   dtype: float64
 
 These bugs were squashed:
 
@@ -525,13 +688,22 @@ The method has now gained a keyword ``join`` to control the manner of alignment,
 
 In v.0.23 ``join`` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-    s = pd.Series(['a', 'b', 'c', 'd'])
-    t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
-    s.str.cat(t)
-    s.str.cat(t, join='left', na_rep='-')
+   >>> s = pd.Series(['a', 'b', 'c', 'd'])
+   >>> t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
+   >>> s.str.cat(t)
+   0    ab
+   1    bd
+   2    ce
+   3    dc
+   dtype: object
+   >>> s.str.cat(t, join='left', na_rep='-')
+   0    a-
+   1    bb
+   2    cc
+   3    dd
+   dtype: object
 
 Furthermore, :meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
@@ -546,24 +718,28 @@ a :class:`~pandas.api.types.CategoricalDtype`. Previously, attempting this would
 
 Supplying the string ``'category'`` performs column-wise conversion, with only labels appearing in a given column set as categories:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
-    df = df.astype('category')
-    df['A'].dtype
-    df['B'].dtype
+   >>> df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+   >>> df = df.astype('category')
+   >>> df['A'].dtype
+   CategoricalDtype(categories=['a', 'b', 'c'], ordered=False)
+   >>> df['B'].dtype
+   CategoricalDtype(categories=['b', 'c', 'd'], ordered=False)
 
 
 Supplying a ``CategoricalDtype`` will make the categories in each column consistent with the supplied dtype:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    from pandas.api.types import CategoricalDtype
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
-    cdt = CategoricalDtype(categories=list('abcd'), ordered=True)
-    df = df.astype(cdt)
-    df['A'].dtype
-    df['B'].dtype
+   >>> from pandas.api.types import CategoricalDtype
+   >>> df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+   >>> cdt = CategoricalDtype(categories=list('abcd'), ordered=True)
+   >>> df = df.astype(cdt)
+   >>> df['A'].dtype
+   CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
+   >>> df['B'].dtype
+   CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
 
 
 .. _whatsnew_0230.enhancements.other:
@@ -682,12 +858,17 @@ Note the Series above is ordered alphabetically by the index values.
 
 New behavior (for Python >= 3.6):
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.Series({'Income': 2000,
-               'Expenses': -1500,
-               'Taxes': -200,
-               'Net result': 300})
+   >>> pd.Series({'Income': 2000,
+   ...            'Expenses': -1500,
+   ...            'Taxes': -200,
+   ...            'Net result': 300})
+   Income        2000
+   Expenses     -1500
+   Taxes         -200
+   Net result     300
+   dtype: int64
 
 Notice that the Series is now ordered by insertion order. This new behavior is
 used for all relevant pandas types (``Series``, ``DataFrame``, ``SparseSeries``
@@ -696,12 +877,17 @@ and ``SparseDataFrame``).
 If you wish to retain the old behavior while using Python >= 3.6, you can use
 ``.sort_index()``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.Series({'Income': 2000,
-               'Expenses': -1500,
-               'Taxes': -200,
-               'Net result': 300}).sort_index()
+   >>> pd.Series({'Income': 2000,
+   ...            'Expenses': -1500,
+   ...            'Taxes': -200,
+   ...            'Net result': 300}).sort_index()
+   Expenses     -1500
+   Income        2000
+   Net result     300
+   Taxes         -200
+   dtype: int64
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 
@@ -798,11 +984,17 @@ are resolved. If the applied function returns a Series, then pandas will return 
 where a list-like (e.g. ``tuple`` or ``list`` is returned) (:issue:`16353`, :issue:`17437`, :issue:`17970`, :issue:`17348`, :issue:`17892`, :issue:`18573`,
 :issue:`17602`, :issue:`18775`, :issue:`18901`, :issue:`18919`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
-                      columns=['A', 'B', 'C'])
-    df
+   >>> df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1, columns=['A', 'B', 'C'])
+   >>> df
+      A  B  C
+   0  1  2  3
+   1  1  2  3
+   2  1  2  3
+   3  1  2  3
+   4  1  2  3
+   5  1  2  3
 
 Previous behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
 If the return shape did not match, a ``Series`` with lists was returned.
@@ -832,30 +1024,65 @@ If the return shape did not match, a ``Series`` with lists was returned.
 
 New behavior: When the applied function returns a list-like, this will now *always* return a ``Series``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.apply(lambda x: [1, 2, 3], axis=1)
-    df.apply(lambda x: [1, 2], axis=1)
+   >>> df.apply(lambda x: [1, 2, 3], axis=1)
+   0    [1, 2, 3]
+   1    [1, 2, 3]
+   2    [1, 2, 3]
+   3    [1, 2, 3]
+   4    [1, 2, 3]
+   5    [1, 2, 3]
+   dtype: object
+   >>> df.apply(lambda x: [1, 2], axis=1)
+   0    [1, 2]
+   1    [1, 2]
+   2    [1, 2]
+   3    [1, 2]
+   4    [1, 2]
+   5    [1, 2]
+   dtype: object
 
 To have expanded columns, you can use ``result_type='expand'``
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
+   >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
+      0  1  2
+   0  1  2  3
+   1  1  2  3
+   2  1  2  3
+   3  1  2  3
+   4  1  2  3
+   5  1  2  3
 
 To broadcast the result across the original columns (the old behaviour for
 list-likes of the correct length), you can use ``result_type='broadcast'``.
 The shape must match the original columns.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+   >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+      A  B  C
+   0  1  2  3
+   1  1  2  3
+   2  1  2  3
+   3  1  2  3
+   4  1  2  3
+   5  1  2  3
 
 Returning a ``Series`` allows one to control the exact return structure and column names:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.apply(lambda x: pd.Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+   >>> df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+      D  E  F
+   0  1  2  3
+   1  1  2  3
+   2  1  2  3
+   3  1  2  3
+   4  1  2  3
+   5  1  2  3
 
 .. _whatsnew_0230.api_breaking.concat:
 
@@ -865,19 +1092,28 @@ Concatenation will no longer sort
 In a future version of pandas :func:`pandas.concat` will no longer sort the non-concatenation axis when it is not already aligned.
 The current behavior is the same as the previous (sorting), but now a warning is issued when ``sort`` is not specified and the non-concatenation axis is not aligned (:issue:`4588`).
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
-   df2 = pd.DataFrame({"a": [4, 5]})
+   >>> df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
+   >>> df2 = pd.DataFrame({"a": [4, 5]})
 
-   pd.concat([df1, df2])
+   >>> pd.concat([df1, df2])
+      a    b
+   0  1  1.0
+   1  2  2.0
+   0  4  NaN
+   1  5  NaN
 
 To keep the previous behavior (sorting) and silence the warning, pass ``sort=True``
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.concat([df1, df2], sort=True)
+   >>> pd.concat([df1, df2], sort=True)
+      a    b
+   0  1  1.0
+   1  2  2.0
+   0  4  NaN
+   1  5  NaN
 
 To accept the future behavior (no sorting), pass ``sort=False``
 
@@ -974,21 +1210,29 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s = pd.Series(['number 10', '12 eggs'])
-    extracted = s.str.extract(r'.*(\d\d).*')
-    extracted
-    type(extracted)
+   >>> s = pd.Series(['number 10', '12 eggs'])
+   >>> extracted = s.str.extract('.*(\d\d).*')
+   >>> extracted
+       0
+   0  10
+   1  12
+   >>> type(extracted)
+   <class 'pandas.core.frame.DataFrame'>
 
 To restore previous behavior, simply set ``expand`` to ``False``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s = pd.Series(['number 10', '12 eggs'])
-    extracted = s.str.extract(r'.*(\d\d).*', expand=False)
-    extracted
-    type(extracted)
+   >>> s = pd.Series(['number 10', '12 eggs'])
+   >>> extracted = s.str.extract('.*(\d\d).*', expand=False)
+   >>> extracted
+   0    10
+   1    12
+   dtype: object
+   >>> type(extracted)
+   <class 'pandas.core.series.Series'>
 
 .. _whatsnew_0230.api_breaking.cdt_ordered:
 
