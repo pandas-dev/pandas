@@ -55,7 +55,9 @@ class Visitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module is not None and "pandas" in node.module:
-            self.imported_from_pandas.update(name.name for name in node.names if name.asname is None)
+            self.imported_from_pandas.update(
+                name.name for name in node.names if name.asname is None
+                )
         self.generic_visit(node)
 
 
