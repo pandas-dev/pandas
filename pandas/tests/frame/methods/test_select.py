@@ -108,6 +108,28 @@ def test_select_duplicate_columns():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("columns", [["a", "a", "b"], ["a", "b", "a"]])
+def test_select_kwarg_duplicate_label(columns):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    # a keyword argument defines a single output column even when its
+    # name is duplicated in the DataFrame's columns
+    df = pd.DataFrame([[1, 2, 3]], columns=columns)
+    result = df.select("b", a=99)
+    expected = pd.DataFrame({"b": df["b"], "a": [99]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("columns", [["b", "b", "a"], ["b", "a", "b"]])
+def test_select_expression_duplicate_label(columns):
+    # https://github.com/pandas-dev/pandas/issues/61522
+    # a renamed expression defines a single output column even when its
+    # name is duplicated in the DataFrame's columns
+    df = pd.DataFrame([[1, 2, 3]], columns=columns)
+    result = df.select(pd.col("a").rename("b"))
+    expected = pd.DataFrame({"b": df["a"]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_select_missing_raises(df):
     # https://github.com/pandas-dev/pandas/issues/61522
     with pytest.raises(KeyError, match=r"\['nope'\] not in index"):

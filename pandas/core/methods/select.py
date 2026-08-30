@@ -82,9 +82,14 @@ def select(
     def set_column(name: Hashable, value: object) -> None:
         data[name] = value
         loc = data.columns.get_loc(name)
-        if isinstance(loc, int):
-            loc = slice(loc, loc + 1)
-        chunks.append(data.iloc[:, loc])
+        if isinstance(loc, slice):
+            # a duplicated label; every occurrence now holds ``value``,
+            # and a computed column contributes one column to the result
+            loc = loc.start
+        elif not isinstance(loc, int):
+            # boolean mask for a non-contiguous duplicated label
+            loc = int(loc.argmax())
+        chunks.append(data.iloc[:, loc : loc + 1])
 
     for item in items:
         if isinstance(item, Expression):
