@@ -75,7 +75,7 @@ def find_short_refs(content: str) -> Iterator[tuple[int, int, str, str]]:
     """
     for lineno, line in enumerate(content.splitlines(), start=1):
         for match in SHORT_REF.finditer(line):
-            yield lineno, match.start(), match.group(0), match.group(1)
+            yield lineno, match.start() + 1, match.group(0), match.group(1)
 
 
 def main(content: str, file: str, baseline: dict[str, set[str]]) -> int:

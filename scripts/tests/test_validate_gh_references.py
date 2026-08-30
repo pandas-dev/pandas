@@ -67,7 +67,7 @@ def test_baseline_is_per_file(capsys):
     ret = main("# GH#1234\n", "t.py", {"other.py": {"1234"}})
     out, _ = capsys.readouterr()
     assert ret == 1
-    assert out == (f"t.py:1:2 found 'GH#1234'; reference issues as {MSG}\n")
+    assert out == (f"t.py:1:3 found 'GH#1234'; reference issues as {MSG}\n")
 
 
 def test_baseline_is_per_issue_number(capsys):
