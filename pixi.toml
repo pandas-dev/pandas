@@ -14,7 +14,7 @@ meson-python = ">=0.19.0,<1"
 pip = ">=26"
 
 # Required dependencies
-python-dateutil = ">=2.8.2"
+python-dateutil = ">=2.9.0"
 
 [feature.default-compiler.dependencies]
 c-compiler = "*"
@@ -22,8 +22,17 @@ cxx-compiler = "*"
 
 [feature.mingw-compiler]
 platforms = ["win-64"]
-dependencies = { gcc = "*", gxx = "*" }
 activation = { env = { CC = "gcc", CXX = "g++" } }
+
+[feature.mingw-compiler.dependencies]
+# Pinned due to https://github.com/conda-forge/m2w64-sysroot-feedstock/issues/23
+gcc = { version = "==16.1.0", build = "hb5e953d_1" }
+gxx = { version = "==16.1.0", build = "h1f05005_1" }
+libwinpthread = { version = "==12.0.0.r4.gg4f2fc60ca", build = "h57928b3_10" }
+m2w64-sysroot_win-64 = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-crt-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-headers-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-winpthreads-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
 
 [feature.sanitizers]
 platforms = ["linux-64"]
@@ -32,7 +41,7 @@ activation = { env = { CC = "clang", CXX = "clang++" } }
 
 # test latest 4 releases + nightly of numpy across the 4 tested Python versions
 [feature.numpy.dependencies]
-numpy = ">=1.26.0,<3"
+numpy = ">=2.0.2,<3"
 
 [feature.numpy22.dependencies]
 numpy = "2.2.*"
@@ -67,7 +76,6 @@ python-freethreading = "3.13.*"
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
-hypothesis = ">=6.116.0"
 pytest-cov = ">=7.0.0"
 
 [feature.test-network.dependencies]
@@ -76,12 +84,12 @@ boto3 = ">=1.40.46"
 
 [feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"
-pyqt = ">=5.15.9"
-qtpy = ">=2.4.2"
+pyqt = ">=5.15.11"
+qtpy = ">=2.4.3"
 
 # test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
-pyarrow = ">=13.0.0"
+pyarrow = ">=16.0.0"
 
 [feature.pyarrow22.dependencies]
 pyarrow = "22.*"
@@ -100,37 +108,37 @@ pyarrow = "25.*"
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
 [feature.optional-dependencies.dependencies]
-adbc-driver-postgresql = ">=1.2.0"
-adbc-driver-sqlite = ">=1.2.0"
-beautifulsoup4 = ">=4.12.3"
+adbc-driver-postgresql = ">=1.7.0"
+adbc-driver-sqlite = ">=1.7.0"
+beautifulsoup4 = ">=4.13.4"
 blosc = ">=1.21.3"
-bottleneck = ">=1.4.2"
+bottleneck = ">=1.5.0"
 fastparquet = ">=2024.11.0"
-fsspec = ">=2024.10.0"
+fsspec = ">=2025.7.0"
 html5lib = ">=1.1"
-gcsfs = ">=2024.10.0"
-jinja2 = ">=3.1.5"
-lxml = ">=5.3.0"
-matplotlib = ">=3.9.3"
-numba = ">=0.60.0"
-numexpr = ">=2.10.2"
+gcsfs = ">=2025.7.0"
+jinja2 = ">=3.1.6"
+lxml = ">=6.0.0"
+matplotlib = ">=3.10.5"
+numba = ">=0.61.2"
+numexpr = ">=2.11.0"
 odfpy = ">=1.4.1"
 openpyxl = ">=3.1.5"
 psycopg2 = ">=2.9.10"
-pyiceberg = ">=0.8.1"
+pyiceberg = ">=0.9.1"
 pymysql = ">=1.1.1"
-pyreadstat = ">=1.2.8"
-pytables = ">=3.10.1"
-python-calamine = ">=0.3.0"
+pyreadstat = ">=1.3.0"
+pytables = ">=3.10.2"
+python-calamine = ">=0.4.0"
 pytz = ">=2020.1"
 pyxlsb = ">=1.0.10"
-s3fs = ">=2024.10.0"
-scipy = ">=1.14.1"
-sqlalchemy = ">=2.0.36"
+s3fs = ">=2025.7.0"
+scipy = ">=1.16.1"
+sqlalchemy = ">=2.0.42"
 tabulate = ">=0.9.0"
-xarray = ">=2024.10.0"
-xlrd = ">=2.0.1"
-xlsxwriter = ">=3.2.0"
+xarray = ">=2025.7.1"
+xlrd = ">=2.0.2"
+xlsxwriter = ">=3.2.5"
 zstandard = ">=0.23.0"
 
 [feature.minimum-versions]
@@ -149,7 +157,7 @@ scikit-learn = "*"
 statsmodels = "*"
 pandas-datareader = "*"
 pyyaml = "*"
-xarray = ">=2024.10.0"
+xarray = ">=2025.7.1"
 
 [feature.benchmarks.dependencies]
 asv = ">=0.6.6"
@@ -168,11 +176,7 @@ seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
 sphinx-design = "*"
 sphinx-copybutton = "*"
-
-[feature.documentation.pypi-dependencies]
-# temporary installed with pip with custom patch until released
-# https://github.com/pydata/pydata-sphinx-theme/issues/2176
-pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+pydata-sphinx-theme = "==0.20.0"
 
 [feature.website.dependencies]
 feedparser = "*"
@@ -288,6 +292,7 @@ cmd = [
   "manual",
   "--all-files",
 ]
+default-environment = "typing"
 
 [tasks.ci-scripts-tests]
 cmd = [
@@ -323,6 +328,7 @@ cmd = [
   "--python=same",
   "--show-stderr",
 ]
+default-environment = "asv"
 
 [tasks.ci-test-single-page-doc]
 args = [
@@ -340,6 +346,7 @@ cmd = [
   "doc/make.py",
   "clean",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-nbconvert-doc-notebooks]
 args = [
@@ -357,6 +364,7 @@ cmd = [
   "--stdout",
   ">/dev/null",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-documentation]
 args = [
@@ -368,6 +376,7 @@ cmd = [
   "--warnings-are-errors",
   "{{ doc_type }}",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-website]
 cmd = [
@@ -376,6 +385,7 @@ cmd = [
   "pytest",
   "web",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-website]
 cmd = [
@@ -384,6 +394,7 @@ cmd = [
   "web/pandas",
   "--target-path=web/build",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-interactive_terminal]
 cmd = [
@@ -393,3 +404,5 @@ cmd = [
   "lite",
   "build",
 ]
+cwd = "web/interactive_terminal/"
+default-environment = "docs-and-web"

@@ -24,7 +24,6 @@ from pandas.tests.plotting.common import (
     _check_ticks_props,
     _check_visible,
 )
-from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -38,15 +37,9 @@ def _check_ax_limits(col, ax):
     assert y_max >= col.max()
 
 
-if Version(mpl.__version__) < Version("3.10"):
-    verts: list[dict[str, bool | str]] = [{"vert": False}, {"vert": True}]
-else:
-    verts = [{"orientation": "horizontal"}, {"orientation": "vertical"}]
-
-
-@pytest.fixture(params=verts)
+@pytest.fixture(params=["horizontal", "vertical"])
 def vert(request):
-    return request.param
+    return {"orientation": request.param}
 
 
 class TestDataFramePlots:
@@ -93,7 +86,8 @@ class TestDataFramePlots:
         df["indic2"] = ["foo", "bar", "foo"] * 2
 
         # _check_plot_works can add an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(warn, check_stacklevel=False, match=msg):
             _check_plot_works(df.boxplot, **kwargs)
 
     def test_boxplot_legacy1_series(self):
@@ -106,7 +100,8 @@ class TestDataFramePlots:
         )
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(df.boxplot, by="X")
 
     def test_boxplot_legacy2_with_ax(self):
@@ -384,14 +379,13 @@ class TestDataFramePlots:
             assert subplot.get_xlabel() == xlabel
             assert subplot.get_ylabel() == ylabel
 
-    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_no_xlabel_ylabel(self, vert, request):
-        if Version(mpl.__version__) >= Version("3.10") and vert == {
-            "orientation": "horizontal"
-        }:
-            request.applymarker(
-                pytest.mark.xfail(reason=f"{vert} fails starting with matplotlib 3.10")
+        request.applymarker(
+            pytest.mark.xfail(
+                vert == {"orientation": "horizontal"},
+                reason=f"{vert} fails starting with matplotlib 3.10",
             )
+        )
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
@@ -412,13 +406,16 @@ class TestDataFramePlots:
 class TestDataFrameGroupByPlots:
     def test_boxplot_legacy1(self, hist_df):
         grouped = hist_df.groupby(by="gender")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         _check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
 
     def test_boxplot_legacy1_return_type(self, hist_df):
         grouped = hist_df.groupby(by="gender")
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
+        axes = _check_plot_works(
+            grouped.boxplot, default_axes=True, subplots=False, return_type="axes"
+        )
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @pytest.mark.slow
@@ -429,7 +426,8 @@ class TestDataFrameGroupByPlots:
             index=MultiIndex.from_tuples(tuples),
         )
         grouped = df.groupby(level=1)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         _check_axes_shape(list(axes.values), axes_num=10, layout=(4, 3))
 
@@ -441,7 +439,9 @@ class TestDataFrameGroupByPlots:
             index=MultiIndex.from_tuples(tuples),
         )
         grouped = df.groupby(level=1)
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
+        axes = _check_plot_works(
+            grouped.boxplot, default_axes=True, subplots=False, return_type="axes"
+        )
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     def test_grouped_plot_fignums(self):
@@ -553,7 +553,8 @@ class TestDataFrameGroupByPlots:
     ):
         df = hist_df
         # _check_plot_works adds an ax so catch warning. see GH #13188 GH 6769
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(
                 df.groupby(gb_key).boxplot, column="height", return_type="dict"
             )
@@ -586,7 +587,8 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.parametrize("cols", [2, -1])
     def test_grouped_box_layout_works(self, hist_df, cols):
         df = hist_df
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(
                 df.groupby("category").boxplot,
                 column="height",
@@ -724,7 +726,11 @@ class TestDataFrameGroupByPlots:
         grouped = df.groupby("cat")
 
         axes = _check_plot_works(
-            grouped.boxplot, subplots=False, column=col, return_type="axes"
+            grouped.boxplot,
+            default_axes=True,
+            subplots=False,
+            column=col,
+            return_type="axes",
         )
 
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
@@ -761,7 +767,7 @@ class TestDataFrameGroupByPlots:
         grouped = df.groupby("gender")
         msg = "boxplot method requires numerical columns, nothing to plot"
         with pytest.raises(ValueError, match=msg):
-            _check_plot_works(grouped.boxplot, subplots=False)
+            _check_plot_works(grouped.boxplot, default_axes=True, subplots=False)
 
     def test_boxplot_multiindex_column(self):
         # GH 16748

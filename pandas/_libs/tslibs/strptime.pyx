@@ -49,6 +49,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.portable cimport checked_sub
 from pandas._libs.tslibs.conversion cimport (
     get_datetime64_nanos,
     parse_pydatetime,
@@ -76,10 +77,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 import_pandas_datetime()
-
-
-cdef extern from "pandas/portable.h":
-    int checked_sub(int64_t a, int64_t b, int64_t *res)
 
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
@@ -471,10 +468,14 @@ def array_strptime(
                     creso = state.creso
                 iresult[i] = get_datetime64_nanos(val, creso)
                 continue
-            elif (
-                    (is_integer_object(val) or is_float_object(val))
-                    and (val != val or val == NPY_NAT)
-            ):
+            elif is_float_object(val) and (val != val or float(val) == NPY_NAT):
+                # GH#56996 widen before the sentinel comparison: a np.float16
+                #  would otherwise cast NPY_NAT down to float16 and warn about
+                #  the overflow. `val` itself must stay un-widened, since the
+                #  numeric branch below stringifies it.
+                iresult[i] = NPY_NAT
+                continue
+            elif is_integer_object(val) and val == NPY_NAT:
                 iresult[i] = NPY_NAT
                 continue
             elif is_integer_object(val) or is_float_object(val):

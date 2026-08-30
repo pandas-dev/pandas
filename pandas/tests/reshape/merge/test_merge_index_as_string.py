@@ -172,15 +172,13 @@ def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
     # Result
     expected = (
         left_df.reset_index()
-        .join(
-            right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
-        )
+        .join(right_df, on=["outer", "inner"], how=join_type, suffixes=("_x", "_y"))
         .set_index(left_index)
     )
 
     # Perform join
     result = left_df.join(
-        right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
+        right_df, on=["outer", "inner"], how=join_type, suffixes=("_x", "_y")
     )
 
     tm.assert_frame_equal(result, expected, check_like=True)

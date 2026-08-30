@@ -42,6 +42,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._cpu import available_cpu_count
 from pandas.errors import (
     AbstractMethodError,
+    EmptyDataError,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -58,6 +59,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
@@ -121,10 +123,10 @@ if TYPE_CHECKING:
     class _read_shared(TypedDict, Generic[HashableT], total=False):
         # annotations shared between read_csv/fwf/table's overloads
         # NOTE: Keep in sync with the annotations of the implementation
-        sep: str | None | lib.NoDefault
-        delimiter: str | None | lib.NoDefault
-        header: int | Sequence[int] | None | Literal["infer"]
-        names: Sequence[Hashable] | None | lib.NoDefault
+        sep: str | lib.NoDefault | None
+        delimiter: str | lib.NoDefault | None
+        header: int | Sequence[int] | Literal["infer"] | None
+        names: Sequence[Hashable] | lib.NoDefault | None
         index_col: IndexLabel | Literal[False] | None
         usecols: UsecolsArgType
         dtype: DtypeArg | None
@@ -360,11 +362,14 @@ def _read(
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
             try:
                 result = _read_csv_parallel(_filepath, kwds, _n_workers)
-            except (ParserError, UnicodeDecodeError):
+            except (ParserError, UnicodeDecodeError, OverflowError):
                 # e.g. a chunk boundary landed inside a quoted field containing
-                # an embedded newline.  The serial path below handles anything
-                # the parallel path cannot.  Other exceptions propagate: they
-                # signal a parallel-path bug, not ineligible input.
+                # an embedded newline, or a chunk of only huge ints converted
+                # where the mixed whole-file column would have stayed a string
+                # (GH#66259).  The serial path below handles anything the
+                # parallel path cannot -- and raises in turn if it too fails.
+                # Other exceptions propagate: they signal a parallel-path bug,
+                # not ineligible input.
                 result = None
             if result is not None:
                 return result
@@ -384,10 +389,9 @@ def _default_n_workers() -> int:
     Default worker count for a parallel ``read_csv``.
 
     ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
-    cannot spawn threads at all).  Otherwise parallel reading is off by default
-    on Windows, and elsewhere is the smallest of the machine's logical CPU
-    count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available to the
-    process (CPU affinity / cgroup limits) -- so that an embedded or
+    cannot spawn threads at all).  Otherwise it is the smallest of the machine's
+    logical CPU count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available
+    to the process (CPU affinity / cgroup limits) -- so that an embedded or
     containerised pandas does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
@@ -396,14 +400,6 @@ def _default_n_workers() -> int:
         return 1
     if max_threads is not None:
         return max_threads
-    if sys.platform == "win32":
-        # Parallel CSV reading does not currently speed up on Windows: even
-        # with the file warm in the OS cache, using more than one thread is
-        # no faster (and slower at two threads).  Default to serial there;
-        # users can still opt in explicitly via mode.max_threads.  See the
-        # benchmark numbers in the GH#64347 discussion:
-        # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
-        return 1
     n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
     # os.cpu_count() counts the machine's CPUs, not the ones this process may
     # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
@@ -435,8 +431,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       name propagated to non-first chunks.
     * ``usecols`` is ``None`` - column selection changes the mapping between raw
       column positions and names in non-first chunks.
-    * The separator is a single character or ``r"\\s+"`` - anything else forces
-      the python engine inside ``TextFileReader``.
+    * The separator is a single ASCII character or ``r"\\s+"``, and ``quotechar``
+      is a single ASCII character - anything else forces the python engine
+      inside ``TextFileReader``.
     * The encoding is ``utf-8`` / ``utf-8-sig`` - chunk workers feed raw file
       bytes to the C tokenizer, which decodes words as UTF-8.  ``ascii`` is
       excluded so a non-ASCII byte still raises rather than being masked.
@@ -447,8 +444,8 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       literal newline would be split mid-field.
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
-    * ``low_memory`` is not ``False`` - ``low_memory=False`` guarantees
-      whole-file type inference, which per-chunk parallel reading cannot honour
+    * ``low_memory`` is truthy - a falsy ``low_memory`` guarantees whole-file
+      type inference, which per-chunk parallel reading cannot honour
       (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
@@ -530,6 +527,17 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
         return False
 
+    # A separator or quotechar wider than one byte forces the python engine
+    # too, and warns on the way.  The eligibility check has to catch these
+    # here: by the time the name-inference read reports the python engine, it
+    # has already raised that warning, which the serial read then raises
+    # again.  GH#66259
+    if len(delimiter) == 1 and ord(delimiter) > 127:
+        return False
+    quotechar = kwds.get("quotechar")
+    if isinstance(quotechar, str) and len(quotechar) == 1 and ord(quotechar) > 127:
+        return False
+
     # Full-line comments before/inside the preamble shift the header location
     # in ways _find_data_start_offset cannot see.
     if kwds.get("comment") is not None:
@@ -551,9 +559,12 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if kwds.get("parse_dates"):
         return False
 
-    # low_memory=False guarantees whole-file type inference, which per-chunk
-    # parallel reading cannot honour (GH#64347).
-    if kwds.get("low_memory") is False:
+    # A falsy low_memory guarantees whole-file type inference, which per-chunk
+    # parallel reading cannot honour (GH#64347).  Test truthiness, not identity:
+    # low_memory is not coerced to bool, and the serial path in
+    # CParserWrapper.read also branches on truthiness, so low_memory=0 /
+    # np.False_ must take the serial path too (GH#66327).
+    if not kwds.get("low_memory", True):
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
@@ -680,6 +691,12 @@ def _find_chunk_byte_offsets(
     return offsets
 
 
+def _raise_collected(warning_sink: list[tuple[str, type[Warning]]]) -> None:
+    """Raise each distinct warning the parallel read's parsers collected."""
+    for warn_msg, warn_category in dict.fromkeys(warning_sink):
+        warnings.warn(warn_msg, warn_category, stacklevel=find_stack_level())
+
+
 def _read_csv_parallel(
     filepath: str,
     kwds: dict,
@@ -687,6 +704,14 @@ def _read_csv_parallel(
 ) -> DataFrame | None:
     """
     Read a large CSV file in parallel using *n_workers* threads.
+
+    Every read this makes - the one-line name inference and each chunk - raises
+    its own copy of the same ``ParserWarning``, and a worker raising one lands
+    the stacklevel walk in threading internals.  So the reads collect their
+    warnings into a sink (see :attr:`TextReader.warning_sink`) and each distinct
+    one is raised once here, from the caller's frame - except when the caller
+    goes on to read the file serially, since that read raises them itself.
+    GH#66259
 
     The file's data section (everything after the header / skiprows preamble)
     is split into up to *n_workers* byte-range chunks aligned to newline
@@ -701,11 +726,40 @@ def _read_csv_parallel(
 
     Returns ``None`` when parallel reading turns out not to be applicable
     after all (the data section cannot be split, the engine falls back to
-    python, or per-chunk dtype inference disagrees in a way that would not
-    match the serial result); the caller then reads serially.  Splitting is
+    python, the one-line sample used to infer column names has no columns, or
+    per-chunk dtype inference disagrees in a way that would not match the
+    serial result); the caller then reads serially.  Splitting is
     done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
     ``ParserError`` from the affected worker - the caller treats that as a
     serial-fallback signal too.
+    """
+    warning_sink: list[tuple[str, type[Warning]]] = []
+    try:
+        result = _read_csv_chunks(filepath, kwds, n_workers, warning_sink)
+    except (ParserError, UnicodeDecodeError, OverflowError):
+        # The caller answers these with a serial read of the whole file.
+        raise
+    except Exception:
+        # Nothing re-reads the file after this, so it is here or nowhere.  This
+        # over-warns when a serial read would have died before reaching the
+        # warning's column; losing the warning otherwise is the worse trade.
+        _raise_collected(warning_sink)
+        raise
+    if result is not None:
+        _raise_collected(warning_sink)
+    return result
+
+
+def _read_csv_chunks(
+    filepath: str,
+    kwds: dict,
+    n_workers: int,
+    warning_sink: list[tuple[str, type[Warning]]],
+) -> DataFrame | None:
+    """
+    Body of :func:`_read_csv_parallel`; see there for what the arguments mean
+    and when the result is ``None``.  Appends the ``ParserWarning``\\s its
+    parsers would have raised to *warning_sink* instead of raising them.
     """
     # Resolve the effective header value (mirrors TextFileReader.__init__).
     header = kwds.get("header", "infer")
@@ -763,13 +817,32 @@ def _read_csv_parallel(
         preamble = fd.read(data_start)
         first_line = fd.readline()
 
+    # Only the column names and the row count are kept, so the sample is parsed
+    # as strings: a value that converts on its own line but not for the whole
+    # column (an int above 2**63 under dtype_backend="pyarrow", say) would
+    # otherwise raise here for a file the serial path reads fine.  GH#66259
     name_buf = io.BytesIO(preamble + first_line)
-    name_reader = TextFileReader(name_buf, **base_kwds)
+    name_kwds = {
+        **base_kwds,
+        "dtype": str,
+        "converters": None,
+        "dtype_backend": lib.no_default,
+    }
+    try:
+        name_reader = TextFileReader(name_buf, **name_kwds)
+    except EmptyDataError:
+        # The one data line we sliced off is blank (e.g. header=None on a file
+        # whose first physical line is empty), so the name-inference read sees
+        # no columns.  The serial path skips the blank line and reads the file
+        # fine, so fall back rather than propagate.  GH#66259
+        return None
     if not isinstance(name_reader._engine, CParserWrapper):
         # TextFileReader fell back to the python engine for a reason the
         # eligibility checks did not anticipate; load_buffer needs the C engine.
         name_reader.close()
         return None
+    name_reader._engine._warning_sink = warning_sink
+    name_reader._engine._reader.warning_sink = warning_sink
     if name_reader._engine._reader.leading_cols:
         # Data rows have more fields than the header (implicit index).  The
         # chunk workers would fail on the extra field; bail out up front.
@@ -830,12 +903,6 @@ def _read_csv_parallel(
         "low_memory": False,
     }
 
-    # mmap the file once and pass zero-copy memoryview slices to each thread
-    # instead of having each thread open/seek/read its own copy.  mmap dups
-    # the file descriptor, so the file object can be closed right away.
-    with open(filepath, "rb") as fh:
-        mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
-
     # Each thread reuses one parser to drain the queue, so no worker stalls
     # the gather on a straggler and no chunk pays parser construction.
     chunk_queue: queue.SimpleQueue = queue.SimpleQueue()
@@ -850,6 +917,13 @@ def _read_csv_parallel(
         # Buffers are reused across the queued chunks and freed at close;
         # trimming between chunks would stall other workers on reallocs.
         reader._engine._reader.trim_after_read = False
+        # Hand back string columns as raw pending handles: the gather below
+        # combines each column's chunks into one ExtensionArray, so the
+        # GIL-held pyarrow wrap happens once per column rather than once per
+        # chunk in every worker.
+        reader._engine.wrap_deferred = False
+        reader._engine._warning_sink = warning_sink
+        reader._engine._reader.warning_sink = warning_sink
         workers_readers.append(reader)
         while True:
             try:
@@ -905,6 +979,13 @@ def _read_csv_parallel(
     columns: list[Hashable] = []
     total = 0
     readers_closing = False
+
+    # mmap the file once and pass zero-copy memoryview slices to each thread
+    # instead of having each thread open/seek/read its own copy.  mmap dups
+    # the file descriptor, so the file object can be closed right away.  Map it
+    # last, so that every path out of here runs the close below.  GH#66259
+    with open(filepath, "rb") as fh:
+        mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     try:
         with (
             memoryview(mm) as mv,
@@ -912,6 +993,18 @@ def _read_csv_parallel(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
+
+            # A column of only NA tokens and ints too large for int64 converts
+            # to no numeric dtype, and is then emitted with its NA tokens left
+            # as literal strings (GH#14983).  Which chunks hit that depends on
+            # how the file was split, and the resulting dtype is str either
+            # way, so the reconciliation below cannot see the difference -- the
+            # values would just silently disagree with a serial read.  GH#66259
+            if any(
+                reader._engine._reader.na_left_literal for reader in workers_readers
+            ):
+                return None
+
             # Freeing parser buffers costs a few ms of madvise; run it on the
             # pool, overlapped with the gather copies below.
             close_futures = [pool.submit(reader.close) for reader in workers_readers]
@@ -937,11 +1030,15 @@ def _read_csv_parallel(
             # Per-chunk dtype inference can disagree with whole-file inference
             # (a lone non-numeric row makes only its own chunk object).  Mixed
             # signed-int/float chunks gather to the float64 serial would give;
-            # anything else must be re-read serially.
+            # anything else must be re-read serially.  ArrowDtype is excluded
+            # because pyarrow widens int to double with a *checked* cast, which
+            # raises above 2**53 where the serial whole-file read just infers
+            # double.  GH#66259
             for name in col_list:
                 chunk_dtypes = {chunk_dict[name].dtype for chunk_dict in chunk_dicts}
                 if len(chunk_dtypes) > 1 and not all(
-                    dt.kind in "if" for dt in chunk_dtypes
+                    dt.kind in "if" and not isinstance(dt, ArrowDtype)
+                    for dt in chunk_dtypes
                 ):
                     return None
 
@@ -995,9 +1092,10 @@ def _read_csv_parallel(
                     reader.close()
                 except Exception:
                     pass
-        # suppress: a worker exception's traceback may still hold a memoryview
-        # export, in which case close() raises BufferError.  The mapping is
-        # unmapped once that traceback is garbage-collected.
+        # The closes above drop the chunk slices the readers hold, so the
+        # mapping is normally unmapped right here.  suppress: a traceback that
+        # still pins a slice would make close() raise BufferError and mask the
+        # exception on its way out; the mapping then goes when it is collected.
         with contextlib.suppress(BufferError):
             mm.close()
 
@@ -1092,11 +1190,11 @@ def read_csv(
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
-    sep: str | None | lib.NoDefault = lib.no_default,
-    delimiter: str | None | lib.NoDefault = None,
+    sep: str | lib.NoDefault | None = lib.no_default,
+    delimiter: str | lib.NoDefault | None = None,
     # Column and Index Locations and Names
-    header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
+    names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType = None,
     # General Parsing Configuration
@@ -1176,7 +1274,7 @@ def read_csv(
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
         sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        engine, which will be used automatically.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -1700,11 +1798,11 @@ def read_table(
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
-    sep: str | None | lib.NoDefault = lib.no_default,
-    delimiter: str | None | lib.NoDefault = None,
+    sep: str | lib.NoDefault | None = lib.no_default,
+    delimiter: str | lib.NoDefault | None = None,
     # Column and Index Locations and Names
-    header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
+    names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType = None,
     # General Parsing Configuration
@@ -1784,7 +1882,7 @@ def read_table(
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
         sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine and must be combined with ``engine='python'`` explicitly.
+        engine, which will be used automatically.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -2615,7 +2713,12 @@ class TextFileReader(abc.Iterator):
 
         sep = options["delimiter"]
 
-        if sep is not None and len(sep) > 1:
+        if sep is None:
+            # sniffing the separator with csv.Sniffer is python-engine only
+            if engine in ("c", "pyarrow"):
+                fallback_reason = f"the '{engine}' engine does not support sep=None"
+                engine = "python"
+        elif len(sep) > 1:
             if engine == "c" and sep == r"\s+":
                 # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
@@ -2627,17 +2730,21 @@ class TextFileReader(abc.Iterator):
                     "separators > 1 char, including regex separators"
                 )
                 engine = "python"
-        elif sep is not None:
+        else:
+            # The C engine always tokenizes a utf-8 byte stream: text handles
+            # are re-encoded to utf-8 before reaching it, whatever `encoding`
+            # says. So the separator has to be a single utf-8 byte; the
+            # platform's filesystem encoding has nothing to do with it.
             encodeable = True
-            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
-                if len(sep.encode(encoding)) > 1:
+                if len(sep.encode("utf-8")) > 1:
                     encodeable = False
-            except UnicodeDecodeError:
+            except UnicodeEncodeError:
+                # e.g. a lone surrogate
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    f"the separator encoded in {encoding} "
+                    "the separator encoded in utf-8 "
                     f"is > 1 char long, and the '{engine}' engine "
                     "does not support such separators"
                 )
@@ -3099,11 +3206,11 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 def _refine_defaults_read(
     dialect: str | csv.Dialect | type[csv.Dialect] | None,
-    delimiter: str | None | lib.NoDefault,
+    delimiter: str | lib.NoDefault | None,
     engine: CSVEngine | None,
-    sep: str | None | lib.NoDefault,
+    sep: str | lib.NoDefault | None,
     on_bad_lines: str | Callable,
-    names: Sequence[Hashable] | None | lib.NoDefault,
+    names: Sequence[Hashable] | lib.NoDefault | None,
     defaults: dict[str, Any],
     dtype_backend: DtypeBackend | lib.NoDefault,
 ):
@@ -3168,11 +3275,12 @@ def _refine_defaults_read(
     if delimiter is None:
         delimiter = sep
 
-    if delimiter == "\n":
+    # GH#43528, GH#51801: the C engine silently mis-parses these, as the field
+    # separator is consumed as a line terminator before it can split a field.
+    if delimiter in ("\n", "\r"):
         raise ValueError(
-            r"Specified \n as separator or delimiter. This forces the python engine "
-            "which does not accept a line terminator. Hence it is not allowed to use "
-            "the line terminator as separator.",
+            f"Specified {delimiter!r} as separator or delimiter, but a line "
+            "terminator cannot be used as a separator.",
         )
 
     if delimiter is lib.no_default:

@@ -167,9 +167,6 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
-@pytest.mark.filterwarnings(
-    "ignore:is_categorical_dtype is deprecated:DeprecationWarning"
-)
 @pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941

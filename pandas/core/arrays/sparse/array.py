@@ -28,7 +28,11 @@ from pandas._libs.sparse import (
     IntIndex,
     SparseIndex,
 )
-from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     Pandas4Warning,
@@ -47,6 +51,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
     maybe_box_datetimelike,
+    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -1497,14 +1502,43 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 skipna=kwargs.get("skipna", True),
             )
 
+        # Densify, keeping the dense dtype the subtype would have.  self.to_dense()
+        #  is no good here because it casts the fill_value to the subtype, turning
+        #  the NaNs of a Sparse[int64, nan] into 0s; np.asarray is no good either
+        #  because it promotes on type(fill_value) and so widens e.g.
+        #  Sparse[uint64] to float64.
+        if self.sp_index.ngaps == 0:
+            npvalues = self.sp_values
+        else:
+            npdtype = self.sp_values.dtype
+            fill_value = self.fill_value
+            if isna(fill_value):
+                # SparseDtype._check_fill_value guarantees that a non-NA
+                #  fill_value fits in the subtype, so only an NA needs promoting.
+                npdtype, fill_value = maybe_promote(npdtype, fill_value)
+            elif isinstance(fill_value, (Timestamp, Timedelta)):
+                # np.full would route these through the stdlib datetime protocol
+                #  and so truncate to microseconds
+                fill_value = fill_value.asm8
+            npvalues = np.full(self.shape, fill_value, dtype=npdtype)
+            npvalues[self.sp_index.indices] = self.sp_values
+
+        if npvalues.dtype.kind in "mM":
+            # Defer to DatetimeArray/TimedeltaArray, which reject the
+            #  operations that are invalid for their dtype.
+            return ensure_wrapped_if_datetimelike(npvalues)._groupby_op(
+                how=how,
+                has_dropped_na=has_dropped_na,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                **kwargs,
+            )
+
         from pandas.core.groupby.ops import WrappedCythonOp
 
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
-
-        # Convert to dense for the cython operation.
-        # The cython code handles NaN detection on dense float arrays natively.
-        npvalues = self.to_dense()
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -2100,7 +2134,6 @@ def _make_sparse(
     kind : {'block', 'integer'}
     fill_value : NaN or another value
     dtype : np.dtype, optional
-    copy : bool, default False
 
     Returns
     -------

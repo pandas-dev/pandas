@@ -144,6 +144,31 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [None, "pyarrow"])
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_to_pydatetime_preserves_index_and_name(self, dtype, tz):
+        if dtype == "pyarrow":
+            pytest.importorskip("pyarrow")
+            dtype = (
+                f"timestamp[ns, {tz}][pyarrow]"
+                if tz is not None
+                else "timestamp[ns][pyarrow]"
+            )
+        ser = Series(
+            date_range("2013-01-01", periods=2, tz=tz),
+            index=Index([10, 11]),
+            name="dates",
+            dtype=dtype,
+        )
+        result = ser.dt.to_pydatetime()
+        expected = Series(
+            [value.to_pydatetime() for value in ser],
+            index=ser.index,
+            name=ser.name,
+            dtype=object,
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_dt_namespace_accessor_datetime64tz(self):
         # GH#7207, GH#11128
         # test .dt namespace accessor
@@ -882,8 +907,8 @@ class TestSeriesDatetimeValues:
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(
-            expected_output, columns=["year", "week", "day"], dtype="UInt32"
-        )
+            expected_output, columns=["year", "week", "day"]
+        ).astype({"year": "Int32", "week": "UInt32", "day": "UInt32"})
         tm.assert_frame_equal(result, expected_frame)
 
     def test_hour_index(self):

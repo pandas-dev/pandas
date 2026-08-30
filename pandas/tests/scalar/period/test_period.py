@@ -174,6 +174,37 @@ class TestPeriodConstruction:
         rt2 = per2.to_timestamp()
         assert rt2.asm8 == dt64
 
+    @pytest.mark.parametrize(
+        "freq",
+        ["Y", "Q-DEC", "M", "W-SUN", "D", "h", "min", "s", "ms", "us", "ns"],
+    )
+    @pytest.mark.parametrize(
+        "year", [2**31 - 1, -(2**31), 300000, -300000, 9999, 2263, 1677]
+    )
+    def test_construction_extreme_years_never_silent(self, freq, year):
+        # GH#64158 an ordinal that overflows int64 used to come back as 0,
+        #  i.e. a 1970 period, instead of raising
+        try:
+            per = Period(year=year, month=1, day=1, freq=freq)
+        except (OutOfBoundsDatetime, OverflowError):
+            return
+        assert per.year == year
+
+    @pytest.mark.parametrize("value", ["2300-01-01", "1600-01-01"])
+    def test_construction_out_of_bounds_ordinal(self, value):
+        # GH#64158 the ordinal overflows int64 at nanosecond freq; the C
+        #  conversion detected it but the error was swallowed, so we got a
+        #  1970 epoch Period instead
+        msg = f"Out of bounds nanosecond timestamp: {value}"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Period(value, freq="ns")
+
+    def test_construction_out_of_bounds_ordinal_from_fields(self):
+        # GH#64158 same, for the year/month/day keywords
+        msg = "Out of bounds microsecond timestamp: 300000-01-01"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Period(year=300000, month=1, day=1, freq="us")
+
     @pytest.mark.parametrize("freq", ["ms", "us", "ns"])
     def test_construction_from_min_timestamp(self, freq):
         # GH-63278

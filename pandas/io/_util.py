@@ -97,7 +97,7 @@ def arrow_table_to_pandas(
             "use 'dtype_backend' to control the resulting dtypes"
         )
 
-    types_mapper: type[pd.ArrowDtype] | None | Callable
+    types_mapper: type[pd.ArrowDtype] | Callable | None
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
         if null_to_int64:

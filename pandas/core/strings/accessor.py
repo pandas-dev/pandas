@@ -938,7 +938,7 @@ class StringMethods(NoNewAttributesMixin):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            dtype = self._data.dtype.categories.dtype if expand else object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1074,7 +1074,10 @@ class StringMethods(NoNewAttributesMixin):
         2                                 NaN         NaN
         """
         result = self._data.array._str_rsplit(pat, n=n)
-        dtype = object if self._data.dtype == object else None
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype if expand else object
+        else:
+            dtype = object if self._data.dtype == object else None
         return self._wrap_result(
             result, expand=expand, returns_string=expand, dtype=dtype
         )
@@ -1164,7 +1167,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_partition(sep, expand)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            dtype = self._data.dtype.categories.dtype if expand else object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1256,7 +1259,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_rpartition(sep, expand)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            dtype = self._data.dtype.categories.dtype if expand else object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1601,27 +1604,15 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        if flags is not lib.no_default:
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-            if is_re(pat):
-                if pat.flags != flags:
-                    raise ValueError(
-                        "Cannot both specify 'flags' and pass a compiled regexp "
-                        "object with conflicting flags"
-                    )
-            else:
-                pat = re.compile(pat, flags=flags)
-            # set flags=0 to ensure that when we call
-            #  re.compile(pat, flags=flags) the constructor does not raise.
-            flags = 0
-        else:
-            flags = 0
+        # Note: `case` must be resolved before we compile `pat` below, since
+        #  compiling would make is_re(pat) True even for a user-passed string.
+        case_specified = case is not lib.no_default
 
-        if case is lib.no_default:
+        if not case_specified:
             if is_re(pat):
                 case = not bool(pat.flags & re.IGNORECASE)
+            elif flags is not lib.no_default:
+                case = not bool(flags & re.IGNORECASE)
             else:
                 # Case-sensitive default
                 case = True
@@ -1633,6 +1624,35 @@ class StringMethods(NoNewAttributesMixin):
                     "Cannot both specify 'case' and pass a compiled regexp "
                     "object with conflicting case-sensitivity"
                 )
+
+        if flags is not lib.no_default:
+            if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
+                raise ValueError(
+                    "Cannot both specify case=True and pass 'flags' containing "
+                    "re.IGNORECASE"
+                )
+            if not case:
+                # Bake `case` into the flags so that it survives compilation.
+                flags |= re.IGNORECASE
+            if is_re(pat):
+                # Round-trip the requested flags through re.compile so the
+                #  comparison accounts for the fixups it applies: the implicit
+                #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
+                if re.compile(pat.pattern, flags).flags != pat.flags:
+                    raise ValueError(
+                        "Cannot both specify 'flags' and pass a compiled regexp "
+                        "object with conflicting flags"
+                    )
+            elif flags & ~(re.IGNORECASE | re.UNICODE):
+                # Only pre-compile when `flags` carries something `case` cannot.
+                #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
+                #  omitting `flags`, so patterns using RE2 syntax that `re`
+                #  rejects still reach the pyarrow kernels. GH#63108
+                pat = re.compile(pat, flags=flags)
+        # Any `flags` are now carried by `case` or baked into `pat`, so set
+        #  flags=0 to ensure that when we call re.compile(pat, flags=flags)
+        #  downstream the constructor does not raise.
+        flags = 0
 
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)

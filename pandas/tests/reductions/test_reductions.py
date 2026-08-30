@@ -8,8 +8,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -57,9 +55,6 @@ def get_objs():
 
 
 class TestReductions:
-    @pytest.mark.filterwarnings(
-        "ignore:Period with BDay freq is deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize("obj", get_objs())
     def test_ops(self, opname, obj):
@@ -139,11 +134,7 @@ class TestReductions:
         # GH#64266
         klass = index_or_series
         obj = klass([1, 2, 4], dtype=object)
-        if klass is Index and not np_version_gt2:
-            # np.any/np.all return an element for object dtype (numpy#4352)
-            expected_bool = int
-        else:
-            expected_bool = bool if using_python_scalars else np.bool_
+        expected_bool = bool if using_python_scalars else np.bool_
         result = obj.any()
         assert type(result) is expected_bool
         assert result
@@ -772,12 +763,12 @@ class TestSeriesReductions:
         tm.assert_almost_equal(result, 1)
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
-    @pytest.mark.parametrize("dtype", ["int32", "int64"])
-    def test_sum_overflow_int(self, use_bottleneck, dtype):
+    @pytest.mark.parametrize("dtype, size", [("int32", 70_000), ("int64", 100_000)])
+    def test_sum_overflow_int(self, use_bottleneck, dtype, size):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
-            v = np.arange(5000000, dtype=dtype)
+            v = np.arange(size, dtype=dtype)
             s = Series(v)
 
             result = s.sum(skipna=False)

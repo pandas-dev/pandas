@@ -2536,6 +2536,20 @@ cpdef bint is_interval_array(ndarray values):
     return True
 
 
+cdef tuple _empty_int_buffers(ndarray values):
+    """
+    Allocate the buffers `maybe_convert_numeric` fills in once it sees an integer.
+
+    Held off until then so that a column with no integers in it does not pay for
+    them; see the note in `maybe_convert_numeric` (GH#35051).
+    """
+    return (
+        cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0),
+        cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT64, 0),
+        cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_OBJECT, 0),
+    )
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def maybe_convert_numeric(
@@ -2596,6 +2610,10 @@ def maybe_convert_numeric(
             pass
 
     # Otherwise, iterate and do full inference.
+    # `floats` is filled in by every branch below, so the other result buffers
+    # are only allocated once a value of the corresponding kind shows up.  A
+    # column of floats is the common case, and allocating the rest up front
+    # costs ~5x the memory of the array actually returned (GH#35051).
     cdef:
         int maybe_int
         Py_ssize_t i, n = values.size
@@ -2603,22 +2621,17 @@ def maybe_convert_numeric(
         ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_FLOAT64, 0
         )
-        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_COMPLEX128, 0
-        )
-        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_INT64, 0
-        )
-        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_UINT64, 0
-        )
-        ndarray[object, ndim=1] pyints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_OBJECT, 0
-        )
-        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_UINT8, 0
-        )
+        ndarray[complex128_t, ndim=1] complexes = None
+        ndarray[int64_t, ndim=1] ints = None
+        ndarray[uint64_t, ndim=1] uints = None
+        ndarray[object, ndim=1] pyints = None
+        ndarray[uint8_t, ndim=1] bools = None
         ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
+        # tracked separately: testing the buffers against None on each
+        # iteration measurably slows the loop down
+        bint have_complexes = False
+        bint have_ints = False
+        bint have_bools = False
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
 
@@ -2638,7 +2651,9 @@ def maybe_convert_numeric(
                 if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
-            floats[i] = complexes[i] = NaN
+            floats[i] = NaN
+            if have_complexes:
+                complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
@@ -2651,12 +2666,19 @@ def maybe_convert_numeric(
                     seen.float_ = True
             else:
                 seen.float_ = True
-            floats[i] = complexes[i] = fval
+            floats[i] = fval
+            if have_complexes:
+                complexes[i] = fval
         elif util.is_integer_object(val):
-            floats[i] = complexes[i] = val
+            floats[i] = val
+            if have_complexes:
+                complexes[i] = val
 
             val = int(val)
             seen.saw_int(val)
+            if not have_ints:
+                ints, uints, pyints = _empty_int_buffers(values)
+                have_ints = True
             pyints[i] = val
 
             if val >= 0:
@@ -2677,7 +2699,15 @@ def maybe_convert_numeric(
                     seen.overflow_ = True
 
         elif util.is_bool_object(val):
+            if not have_ints:
+                ints, uints, pyints = _empty_int_buffers(values)
+                have_ints = True
+            if not have_bools:
+                bools = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT8, 0)
+                have_bools = True
             floats[i] = uints[i] = ints[i] = bools[i] = val
+            if have_complexes:
+                complexes[i] = val
             seen.bool_ = True
         elif val is None or val is C_NA:
             if allow_null_in_int:
@@ -2687,19 +2717,33 @@ def maybe_convert_numeric(
                 if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
-            floats[i] = complexes[i] = NaN
+            floats[i] = NaN
+            if have_complexes:
+                complexes[i] = NaN
         elif hasattr(val, "__len__") and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                floats[i] = complexes[i] = NaN
+                floats[i] = NaN
+                if have_complexes:
+                    complexes[i] = NaN
                 mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
+            if not have_complexes:
+                complexes = cnp.PyArray_EMPTY(
+                    1, values.shape, cnp.NPY_COMPLEX128, 0
+                )
+                # Every preceding branch stored its value in `floats`, so the
+                # already-seen entries carry over unchanged.
+                complexes[:i] = floats[:i]
+                have_complexes = True
             complexes[i] = val
             seen.complex_ = True
         elif is_decimal(val):
-            floats[i] = complexes[i] = val
+            floats[i] = val
+            if have_complexes:
+                complexes[i] = val
             seen.float_ = True
         else:
             try:
@@ -2707,7 +2751,9 @@ def maybe_convert_numeric(
 
                 if fval in na_values:
                     seen.saw_null()
-                    floats[i] = complexes[i] = NaN
+                    floats[i] = NaN
+                    if have_complexes:
+                        complexes[i] = NaN
                     mask[i] = 1
                 else:
                     if fval != fval:
@@ -2715,9 +2761,14 @@ def maybe_convert_numeric(
                         mask[i] = 1
 
                     floats[i] = fval
+                    if have_complexes:
+                        complexes[i] = fval
 
                 if maybe_int:
                     as_int = int(val)
+                    if not have_ints:
+                        ints, uints, pyints = _empty_int_buffers(values)
+                        have_ints = True
                     pyints[i] = as_int
 
                     if as_int in na_values:
@@ -2790,6 +2841,8 @@ def maybe_convert_numeric(
         return (bools.view(np.bool_), None)
     elif seen.uint_:
         return (uints, None)
+    if not have_ints:
+        ints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0)
     return (ints, None)
 
 
