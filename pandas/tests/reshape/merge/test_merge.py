@@ -658,7 +658,7 @@ class TestMerge:
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
         df2 = DataFrame({"i1": [0], "i3": [0]})
-        result = df1.join(df2, on="i1", rsuffix="_")
+        result = df1.join(df2, on="i1", suffixes=("", "_"))
         expected = (
             DataFrame(
                 {
@@ -679,7 +679,7 @@ class TestMerge:
     def test_merge_nan_right2(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
         df2 = DataFrame({"i1": [0], "i3": [0.7]})
-        result = df1.join(df2, rsuffix="_", on="i1")
+        result = df1.join(df2, suffixes=("", "_"), on="i1")
         expected = DataFrame(
             {
                 "i1": {0: 0, 1: 1},
@@ -727,7 +727,7 @@ class TestMerge:
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 
-        result = lhs.join(rhs, rsuffix="r", how="left")
+        result = lhs.join(rhs, suffixes=("", "r"), how="left")
         expected = DataFrame(
             {
                 "0": Series([td, td], index=list("AB")),
@@ -1574,7 +1574,7 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on=["k1", "k2"], sort=True)
-        expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
+        expected = expected.sort_values(["k1", "k2"], kind="mergesort")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -3057,7 +3057,8 @@ def test_merge_multiindex_reset_index_mixed():
         columns=MultiIndex.from_product([["new_data"], [""]]),
     )
 
-    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning, match=msg):
         result = df.reset_index().merge(df2.reset_index(), on="index")
 
     expected = DataFrame(

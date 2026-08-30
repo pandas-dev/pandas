@@ -59,8 +59,9 @@ class TestTimestampToPyDatetime:
     def test_to_pydatetime_bijective(self):
         # Ensure that converting to datetime and back only loses precision
         # by going from nanoseconds to microseconds.
+        msg = "Discarding nonzero nanoseconds in conversion"
         exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
-        with tm.assert_produces_warning(exp_warning):
+        with tm.assert_produces_warning(exp_warning, match=msg):
             pydt_max = Timestamp.max.to_pydatetime()
 
         assert (
@@ -69,7 +70,7 @@ class TestTimestampToPyDatetime:
         )
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
-        with tm.assert_produces_warning(exp_warning):
+        with tm.assert_produces_warning(exp_warning, match=msg):
             pydt_min = Timestamp.min.to_pydatetime()
 
         # The next assertion can be enabled once GH#39221 is merged

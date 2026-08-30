@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
+from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -24,7 +25,6 @@ import pandas._testing as tm
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -33,9 +33,19 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
         {"a": "category", "b": "category", "c": CategoricalDtype()},
     ],
 )
-def test_categorical_dtype(all_parsers, dtype):
+def test_categorical_dtype(all_parsers, dtype, request):
     # see gh-10153
     parser = all_parsers
+    if (
+        parser.engine == "pyarrow"
+        and not isinstance(dtype, dict)
+        and pa_version_under25p0
+    ):
+        # GH#57666 applying a scalar dtype while parsing needs
+        # pyarrow>=25.0 (ConvertOptions.default_column_type)
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
     data = """a,b,c
 1,a,3.4
 1,a,3.4
@@ -72,10 +82,15 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
-def test_categorical_dtype_unsorted(all_parsers):
+def test_categorical_dtype_unsorted(all_parsers, request):
     # see gh-10153
     parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        # GH#57666 applying a scalar dtype while parsing needs
+        # pyarrow>=25.0 (ConvertOptions.default_column_type)
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
     data = """a,b,c
 1,b,3.4
 1,b,3.4
@@ -91,10 +106,15 @@ def test_categorical_dtype_unsorted(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
-def test_categorical_dtype_missing(all_parsers):
+def test_categorical_dtype_missing(all_parsers, request):
     # see gh-10153
     parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        # GH#57666 applying a scalar dtype while parsing needs
+        # pyarrow>=25.0 (ConvertOptions.default_column_type)
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
     data = """a,b,c
 1,b,3.4
 1,nan,3.4
@@ -110,12 +130,17 @@ def test_categorical_dtype_missing(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.slow
-def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
+def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch, request):
     # see gh-18186
     # was an issue with C parser, due to DEFAULT_BUFFER_HEURISTIC
     parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        # GH#57666 applying a scalar dtype while parsing needs
+        # pyarrow>=25.0 (ConvertOptions.default_column_type)
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
     heuristic = 2**5
     data = np.sort([str(i) for i in range(heuristic + 1)])
     expected = DataFrame({"a": Categorical(data, ordered=True)})
@@ -329,4 +354,45 @@ def test_categorical_unexpected_categories(all_parsers):
     msg = "Constructing a Categorical with a dtype and values containing"
     with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_dtype_leading_zeros(all_parsers):
+    # GH#57666 the categories are the raw strings from the file
+    parser = all_parsers
+    data = """a,b
+01,x
+002,y"""
+    result = parser.read_csv(StringIO(data), dtype={"a": "category"})
+    expected = DataFrame({"a": Categorical(["01", "002"]), "b": ["x", "y"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_dtype_explicit_string_categories(all_parsers):
+    # GH#57666 explicitly typed string categories match against the raw
+    # text, not against inferred values
+    parser = all_parsers
+    dtype = CategoricalDtype(["01", "002"])
+    data = """a
+01
+002
+01"""
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    expected = DataFrame(
+        {"a": Categorical(["01", "002", "01"], categories=["01", "002"])}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_dtype_explicit_numeric_categories(all_parsers):
+    # GH#57666 explicitly typed numeric categories keep matching the
+    # parsed numeric values
+    parser = all_parsers
+    dtype = CategoricalDtype([1, 2, 3])
+    data = """a
+1
+2
+3"""
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    expected = DataFrame({"a": Categorical([1, 2, 3], categories=[1, 2, 3])})
     tm.assert_frame_equal(result, expected)

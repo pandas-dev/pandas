@@ -76,7 +76,6 @@ python-freethreading = "3.13.*"
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
-hypothesis = ">=6.116.0"
 pytest-cov = ">=7.0.0"
 
 [feature.test-network.dependencies]
@@ -177,11 +176,7 @@ seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
 sphinx-design = "*"
 sphinx-copybutton = "*"
-
-[feature.documentation.pypi-dependencies]
-# temporary installed with pip with custom patch until released
-# https://github.com/pydata/pydata-sphinx-theme/issues/2176
-pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+pydata-sphinx-theme = "==0.20.0"
 
 [feature.website.dependencies]
 feedparser = "*"
