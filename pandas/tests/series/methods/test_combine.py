@@ -40,6 +40,10 @@ class TestCombine:
 
     def test_combine_non_unique_index(self):
         # https://github.com/pandas-dev/pandas/pull/67446
+        # combine follows union rather than join semantics: occurrences of a
+        # duplicated label are paired in order, not matched cartesian-style.
+        # The second "a" has no partner in `right`, so it uses fill_value
+        # and the result is [1 + 10, 2 + 0, 3 + 20].
         left = Series([1, 2, 3], index=["a", "a", "b"])
         right = Series([10, 20], index=["a", "b"])
         result = left.combine(right, lambda x, y: x + y, fill_value=0)

@@ -3732,6 +3732,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         eagle     200.0
         falcon    345.0
         dtype: float64
+
+        Occurrences of a duplicated label are paired in order. Below, the
+        first ``"a"`` in ``s3`` is combined with the ``"a"`` in ``s4``,
+        while the second has no counterpart and is paired with
+        ``fill_value``.
+
+        >>> s3 = pd.Series([1, 2, 3], index=["a", "a", "b"])
+        >>> s4 = pd.Series([10, 20], index=["a", "b"])
+        >>> s3.combine(s4, lambda x, y: x + y, fill_value=0)
+        a    11
+        a     2
+        b    23
+        dtype: int64
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
