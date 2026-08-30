@@ -21,7 +21,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
-from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -1327,7 +1326,11 @@ def is_arrow_temporal_dtype(dtype: DtypeObj | None) -> bool:
     """
     if not isinstance(dtype, ArrowDtype):
         return False
-    pa = import_optional_dependency("pyarrow")
+    # ArrowDtype cannot be constructed without a supported pyarrow, so a plain
+    #  import is enough here; import_optional_dependency would re-run the
+    #  version check on every call and this is used in hot paths (GH#66445).
+    import pyarrow as pa
+
     pa_type = dtype.pyarrow_dtype
     return pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type)
 
