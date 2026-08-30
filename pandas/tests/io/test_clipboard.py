@@ -180,9 +180,30 @@ def set_pyqt_clipboard(monkeypatch):
         yield
 
 
+# GH#44625 must be read before ``qapp`` runs, hence at import rather than
+#  inside the fixture: session-scoped fixtures are set up before any
+#  function-scoped one, so a value read there would already include the change.
+_LOCALE_AT_IMPORT = locale.setlocale(locale.LC_ALL)
+
+
+@pytest.fixture(scope="session")
+def qapp_restore_locale(qapp):
+    """
+    ``qapp``, with the process-wide locale it leaked put back.
+
+    GH#44625: constructing a QApplication calls ``setlocale(LC_ALL, "")`` and
+    never restores it, which switches LC_TIME to the environment's locale for
+    the remainder of the worker. Datetime tests running after the clipboard
+    tests then fail on any machine whose locale is not English. Request this
+    rather than ``qapp`` directly.
+    """
+    locale.setlocale(locale.LC_ALL, _LOCALE_AT_IMPORT)
+    return qapp
+
+
 @pytest.fixture
-def clipboard(qapp):
-    clip = qapp.clipboard()
+def clipboard(qapp_restore_locale):
+    clip = qapp_restore_locale.clipboard()
     yield clip
     clip.clear()
 
