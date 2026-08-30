@@ -553,7 +553,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             sep, dtype
         )
         if len(labels) == 0:
-            return np.empty(shape=(0, 0), dtype=dtype), labels
+            return np.empty(shape=(len(self), 0), dtype=dtype), labels
         dummies = np.vstack(dummies_pa.to_numpy())
         _dtype = pandas_dtype(dtype)
         dummies_dtype: NpDtype
