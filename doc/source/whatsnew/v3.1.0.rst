@@ -314,6 +314,7 @@ Performance improvements
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
 - Performance improvement in :attr:`DataFrame.dtypes` when accessed repeatedly (:issue:`65382`)
+- Performance improvement in :meth:`Series.combine` (:issue:`???`)
 - Performance improvement in :attr:`Series.is_monotonic_increasing` and :attr:`Series.is_monotonic_decreasing` for :class:`ArrowDtype` and masked dtypes by dispatching to the :class:`ExtensionArray` (:issue:`56619`)
 - Performance improvement in :class:`DataFrame` repr by avoiding redundant formatting when columns exceed terminal width (:issue:`64863`)
 - Performance improvement in :class:`DatetimeIndex` and :class:`Series` construction with a timezone-aware ``datetime64`` dtype from a sequence of strings (:issue:`66123`)
@@ -860,6 +861,7 @@ Reshaping
 - Bug in :func:`concat` with a ``null[pyarrow]`` column incorrectly changing the dtype of the other columns, e.g. casting ``date32[pyarrow]`` to ``timestamp[ms][pyarrow]``, dropping the timezone of a tz-aware ``timestamp[pyarrow]``, or casting ``decimal128[pyarrow]`` to ``object`` (:issue:`62343`)
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :func:`merge` where the join key column was not upcast to the highest ``datetime64`` resolution, keeping the lower resolution for ``how="inner"`` and ``how="left"`` when the left frame had lower resolution, and for ``how="inner"`` and ``how="right"`` when the join key came from a lower-resolution right frame (:issue:`55212`)
+- Bug in :meth:`Series.combine` passing a :class:`Series` instead of a scalar to ``func`` when the index contained duplicated labels; the inputs are now aligned the same way arithmetic operations align them (:issue:`???`)
 - Bug in :meth:`DataFrame.combine` raising ``OverflowError`` when the combining function returned a value too large for the columns' common integer dtype (e.g. ``2**64``) instead of keeping the result (:issue:`66394`)
 - Bug in :meth:`DataFrame.melt` where ``var_name`` colliding with an ``id_vars`` column or ``value_name`` silently overwrote the affected column data instead of raising (:issue:`65654`)
 - Bug in :meth:`DataFrame.pivot_table` with ``margins=True`` raising ``TypeError`` when ``values`` has an :class:`ExtensionDtype` that cannot hold ``NA`` (e.g. :class:`IntervalDtype` with an integer subtype) and no ``columns`` were specified (:issue:`55484`)

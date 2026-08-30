@@ -3733,15 +3733,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
-            # If other is a Series, result is based on union of Series,
-            # so do this element by element
-            new_index = self.index.union(other.index)
+            # Align the same way arithmetic does (see NDFrame._align_series)
+            if self.index.equals(other.index):
+                new_index = self.index
+                lindexer = rindexer = range(len(new_index))
+            else:
+                new_index, lidx, ridx = self.index.join(
+                    other.index, how="outer", return_indexers=True
+                )
+                lindexer = range(len(new_index)) if lidx is None else lidx.tolist()
+                rindexer = range(len(new_index)) if ridx is None else ridx.tolist()
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
+            lvalues = self._values
+            rvalues = other._values
             with np.errstate(all="ignore"):
-                for i, idx in enumerate(new_index):
-                    lv = self.get(idx, fill_value)
-                    rv = other.get(idx, fill_value)
+                for i, (li, ri) in enumerate(zip(lindexer, rindexer, strict=True)):
+                    lv = lvalues[li] if li != -1 else fill_value
+                    rv = rvalues[ri] if ri != -1 else fill_value
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for

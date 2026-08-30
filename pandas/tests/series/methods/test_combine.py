@@ -35,3 +35,32 @@ class TestCombine:
         result = s1.combine(s2, lambda x, y: x + y)
         expected = Series([-74, NA, 105], dtype="Int8")  # dtype should be preserved
         tm.assert_series_equal(result, expected)
+
+    def test_combine_non_unique_index(self):
+        # GH#??? - func received a Series rather than a scalar for a
+        # duplicated label; align the same way arithmetic does instead
+        a = Series([1, 2, 3], index=["a", "a", "b"])
+        b = Series([10, 20], index=["a", "b"])
+        result = a.combine(b, lambda x, y: x + y)
+        expected = a + b
+        tm.assert_series_equal(result, expected)
+
+        result = b.combine(a, lambda x, y: x + y)
+        expected = b + a
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_non_unique_index_equal(self):
+        # GH#??? - identical non-unique indexes combine positionally
+        a = Series([1, 2, 3], index=["a", "a", "b"])
+        b = Series([10, 20, 30], index=["a", "a", "b"])
+        result = a.combine(b, lambda x, y: x + y)
+        expected = Series([11, 22, 33], index=["a", "a", "b"])
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_non_unique_index_both_sides(self):
+        # GH#??? - duplicated labels on both sides align like arithmetic
+        a = Series([1, 2, 3], index=["a", "a", "b"])
+        b = Series([10, 20, 30, 40], index=["a", "a", "b", "c"])
+        result = a.combine(b, lambda x, y: x + y, fill_value=0)
+        expected = Series([11, 21, 12, 22, 33, 40], index=list("aaaabc"))
+        tm.assert_series_equal(result, expected)
