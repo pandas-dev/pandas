@@ -2077,8 +2077,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
-                    ( 'cobra', 2019)],
-                   )
+                    ( 'cobra', 2019)])
         >>> idx = idx.set_names(["kind", "year"])
         >>> idx.set_names("species", level=0)
         MultiIndex([('python', 2018),
@@ -3234,8 +3233,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex([(1,  'Red'),
             (1, 'Blue'),
             (2,  'Red'),
-            (2, 'Blue')],
-           )
+            (2, 'Blue')])
         >>> idx2 = pd.MultiIndex.from_arrays(
         ...     [[3, 3, 2, 2], ["Red", "Green", "Red", "Green"]]
         ... )
@@ -3243,8 +3241,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex([(3,   'Red'),
             (3, 'Green'),
             (2,   'Red'),
-            (2, 'Green')],
-           )
+            (2, 'Green')])
         >>> idx1.union(idx2)
         MultiIndex([(1,  'Blue'),
             (1,   'Red'),
@@ -3252,8 +3249,7 @@ class Index(IndexOpsMixin, PandasObject):
             (2, 'Green'),
             (2,   'Red'),
             (3, 'Green'),
-            (3,   'Red')],
-           )
+            (3,   'Red')])
         >>> idx1.union(idx2, sort=False)
         MultiIndex([(1,   'Red'),
             (1,  'Blue'),
@@ -3261,8 +3257,7 @@ class Index(IndexOpsMixin, PandasObject):
             (2,  'Blue'),
             (3,   'Red'),
             (3, 'Green'),
-            (2, 'Green')],
-           )
+            (2, 'Green')])
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -8333,8 +8328,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
     >>> ensure_index([["a", "a"], ["b", "c"]])
     MultiIndex([('a', 'b'),
-            ('a', 'c')],
-           )
+            ('a', 'c')])
     """
     if isinstance(index_like, Index):
         if copy:

@@ -25,8 +25,7 @@ Index levels are different
 \\[right\\]: 2, MultiIndex\\(\\[\\('A', 1\\),
             \\('A', 2\\),
             \\('B', 3\\),
-            \\('B', 4\\)\\],
-           \\)"""
+            \\('B', 4\\)\\]\\)"""
 
     idx1 = Index([1, 2, 3])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
