@@ -270,6 +270,13 @@ repos:
         files: ^pandas/
         types: [python]
         exclude: ^pandas/tests/
+    -   id: gh-reference-format
+        name: Check that new GitHub references use the full URL
+        language: python
+        entry: python scripts/validate_gh_references.py
+        types_or: [python, pyi, cython]
+        # this checker and its tests have to spell out the forms they reject
+        exclude: ^scripts/
     -   id: pandas-errors-documented
         name: Ensure pandas errors are documented in doc/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py
