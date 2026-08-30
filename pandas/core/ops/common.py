@@ -18,6 +18,7 @@ from pandas._libs.missing import is_matching_na
 from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -33,7 +34,10 @@ from pandas.core.construction import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas._typing import F
+    from pandas._typing import (
+        DtypeObj,
+        F,
+    )
 
 
 def has_castable_attr(obj) -> bool:
@@ -62,6 +66,24 @@ def maybe_warn_listlike(other) -> None:
             "In a future version these will be treated as scalar-like. "
             "To retain the old behavior, explicitly wrap in a Series "
             "instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+
+def maybe_warn_invert_object(dtype: DtypeObj) -> None:
+    """
+    Warn when applying ``~`` to object dtype.
+
+    ``~`` on object dtype dispatches elementwise to the objects' own
+    ``__invert__``, so a boolean mask that has been cast to object silently
+    becomes integers instead of being negated (GH#16873, GH#31035, GH#51567).
+    """
+    if is_object_dtype(dtype):
+        warnings.warn(
+            "__invert__ (the '~' operator) on object dtype is deprecated and "
+            "will raise in a future version. Cast to a boolean or integer "
+            "dtype first, e.g. ~obj.astype(bool).",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )

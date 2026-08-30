@@ -427,8 +427,11 @@ class TestEval:
                 pd.eval(expr, engine=engine, parser=parser)
         else:
             msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+            # GH#51567 ~ on object dtype is deprecated
+            depr_msg = "__invert__ .* on object dtype is deprecated"
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                with pytest.raises(TypeError, match=msg):
+                    pd.eval(expr, engine=engine, parser=parser)
 
     def test_series_invert(self, engine, parser):
         # ~ ####
@@ -474,8 +477,11 @@ class TestEval:
                 pd.eval(expr, engine=engine, parser=parser)
         else:
             msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+            # GH#51567 ~ on object dtype is deprecated
+            depr_msg = "__invert__ .* on object dtype is deprecated"
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                with pytest.raises(TypeError, match=msg):
+                    pd.eval(expr, engine=engine, parser=parser)
 
     def test_frame_negate(self, engine, parser):
         expr = "-lhs"

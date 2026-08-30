@@ -125,6 +125,7 @@ from pandas.core.missing import (
     clean_reindex_fill_method,
     find_valid_index,
 )
+from pandas.core.ops.common import maybe_warn_invert_object
 from pandas.core.reshape.concat import concat
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
@@ -1552,7 +1553,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # inv fails with 0 len
             return self.copy(deep=False)
 
-        new_data = self._mgr.apply(operator.invert)
+        def blk_func(values: ArrayLike):
+            if not isinstance(values, ExtensionArray):
+                # EAs warn in their own __invert__; warning here too would
+                # emit it twice for e.g. Sparse[object].
+                maybe_warn_invert_object(values.dtype)
+            # error: Argument 1 to "invert" has incompatible type
+            # "ExtensionArray | ndarray[tuple[Any, ...], dtype[Any]]"; expected
+            # "_SupportsInversion[ndarray[tuple[Any, ...], dtype[Any]]]"
+            return operator.invert(values)  # type: ignore[arg-type]
+
+        new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
         return res.__finalize__(self, method="__invert__")
 

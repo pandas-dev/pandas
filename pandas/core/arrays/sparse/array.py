@@ -2101,6 +2101,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._unary_method(operator.neg)
 
     def __invert__(self) -> SparseArray:
+        ops.maybe_warn_invert_object(self.dtype)
         return self._unary_method(operator.invert)
 
     def __abs__(self) -> SparseArray:

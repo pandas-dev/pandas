@@ -5,7 +5,12 @@ from typing import final
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_string_dtype
+from pandas.errors import Pandas4Warning
+
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_string_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -249,20 +254,27 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
         ser = pd.Series(data, name="name")
+        # GH#51567 ~ on object dtype is deprecated
+        warn = Pandas4Warning if is_object_dtype(data.dtype) else None
+        msg = "__invert__ .* on object dtype is deprecated" if warn else None
         try:
             [~x for x in data]
         except TypeError:
             # scalars don't support invert -> we don't expect the vectorized
             #  operation to succeed
-            with pytest.raises(TypeError):
-                ~ser
-            with pytest.raises(TypeError):
-                ~data
+            with tm.assert_produces_warning(warn, match=msg):
+                with pytest.raises(TypeError):
+                    ~ser
+            with tm.assert_produces_warning(warn, match=msg):
+                with pytest.raises(TypeError):
+                    ~data
         else:
             # Note we do not reuse the pointwise result to construct expected
             #  because python semantics for negating bools are weird see GH#54569
-            result = ~ser
-            expected = pd.Series(~data, name="name")
+            with tm.assert_produces_warning(warn, match=msg):
+                result = ~ser
+            with tm.assert_produces_warning(warn, match=msg):
+                expected = pd.Series(~data, name="name")
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])

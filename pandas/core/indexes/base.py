@@ -7783,6 +7783,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __invert__(self) -> Index:
         # GH#8875
+        ops.maybe_warn_invert_object(self.dtype)
         return self._unary_method(operator.inv)
 
     # --------------------------------------------------------------------

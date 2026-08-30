@@ -867,7 +867,9 @@ def test_invert_returns_rangeindex(rng):
     ri = RangeIndex(rng, name="foo")
     result = ~ri
     assert isinstance(result, RangeIndex)
-    expected = ~Index(list(rng), name="foo")
+    # pass dtype explicitly: an empty list would otherwise infer object dtype,
+    #  for which ~ is deprecated (GH#51567)
+    expected = ~Index(list(rng), dtype=ri.dtype, name="foo")
     tm.assert_index_equal(result, expected, exact=False)
 
 

@@ -878,12 +878,18 @@ class TestBase:
                 msg = "|".join(
                     ["bad operand", "__invert__ is not supported for string dtype"]
                 )
-            with pytest.raises(TypeError, match=msg):
-                ~idx
+            # GH#51567 ~ on object dtype is deprecated
+            warn = Pandas4Warning if idx.dtype == object else None
+            depr_msg = "__invert__ .* on object dtype is deprecated" if warn else None
+
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                with pytest.raises(TypeError, match=msg):
+                    ~idx
 
             # check that we get the same behavior with Series
-            with pytest.raises(TypeError, match=msg):
-                ~Series(idx)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                with pytest.raises(TypeError, match=msg):
+                    ~Series(idx)
 
 
 class TestNumericBase:

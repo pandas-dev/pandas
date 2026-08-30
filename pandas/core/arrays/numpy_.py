@@ -646,6 +646,7 @@ class NumpyExtensionArray(
     # Ops
 
     def __invert__(self) -> NumpyExtensionArray:
+        ops.maybe_warn_invert_object(self.dtype)
         return type(self)(~self._ndarray)
 
     def __neg__(self) -> NumpyExtensionArray:
