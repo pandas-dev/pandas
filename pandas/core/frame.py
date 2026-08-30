@@ -16532,9 +16532,10 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
+            values = df.values
             return maybe_unbox_numpy_scalar(
-                func(df.values),
-                dtype=None if name in ["any", "all"] else dtype,
+                func(values),
+                dtype_object=None if name in ["any", "all"] else values,
             )
         elif axis == 1:
             if len(df.index) == 0:
