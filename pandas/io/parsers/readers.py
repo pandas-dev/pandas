@@ -1293,10 +1293,6 @@ def read_csv(
         * ``'infer'`` (default): equivalent to ``header=0`` when no
           ``names`` are passed, otherwise equivalent to ``header=None``.
 
-        Column labels read from a header row are always strings. To use column
-        labels of another type, pass them explicitly with ``names`` and set
-        ``header=0`` when the file contains a header row.
-
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
         ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
@@ -1640,6 +1636,10 @@ def read_csv(
 
     Notes
     -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
+
     Sufficiently large local uncompressed files read with the C engine may be
     parsed by multiple threads in parallel.  Use the ``mode.max_threads``
     option to cap or disable this; see :ref:`io.csv.parallel` for details.
@@ -1896,10 +1896,6 @@ def read_table(
           ``names``, pass ``header=0`` instead.
         * ``'infer'`` (default): equivalent to ``header=0`` when no
           ``names`` are passed, otherwise equivalent to ``header=None``.
-
-        Column labels read from a header row are always strings. To use column
-        labels of another type, pass them explicitly with ``names`` and set
-        ``header=0`` when the file contains a header row.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
@@ -2237,6 +2233,12 @@ def read_table(
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Notes
+    -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
 
     Examples
     --------
