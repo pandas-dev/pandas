@@ -27,6 +27,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like_deprecate_non_pandas,
+    is_arrow_temporal_dtype,
     is_bool_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -50,7 +51,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         AxisInt,
-        DtypeObj,
         F,
         ReindexMethod,
         npt,
@@ -396,7 +396,9 @@ def interpolate_2d_inplace(
         fill_value = na_value_for_dtype(data.dtype, compat=False)
 
     if method == "time":
-        if not needs_i8_conversion(index.dtype) and not _is_arrow_temporal(index.dtype):
+        if not needs_i8_conversion(index.dtype) and not is_arrow_temporal_dtype(
+            index.dtype
+        ):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -431,33 +433,6 @@ def interpolate_2d_inplace(
     np.apply_along_axis(func, axis, data)
 
 
-def _is_arrow_temporal(dtype: DtypeObj | None) -> bool:
-    """
-    Check whether the dtype is an ArrowDtype holding timestamps or durations.
-
-    These are not covered by ``needs_i8_conversion`` but need the same i8 view
-    to be usable as interpolation x-values.
-
-    ``dtype.kind`` is not specific enough here: ``date32``/``date64`` also
-    report kind "M" but are not backed by a DatetimeArray, so they are
-    excluded.
-
-    Parameters
-    ----------
-    dtype : np.dtype, ExtensionDtype, or None
-
-    Returns
-    -------
-    boolean
-        Whether or not the dtype is an ArrowDtype timestamp or duration.
-    """
-    if not isinstance(dtype, ArrowDtype):
-        return False
-    pa = import_optional_dependency("pyarrow")
-    pa_type = dtype.pyarrow_dtype
-    return pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type)
-
-
 def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     """
     View an ArrowDtype timestamp/duration array as int64.
@@ -468,7 +443,7 @@ def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     Parameters
     ----------
     arr : ArrowExtensionArray
-        Array whose dtype satisfies ``_is_arrow_temporal``.
+        Array whose dtype satisfies ``is_arrow_temporal_dtype``.
 
     Returns
     -------
@@ -489,7 +464,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
     if needs_i8_conversion(xarr.dtype):
         # GH#1646 for dt64tz
         xarr = xarr.view("i8")
-    elif _is_arrow_temporal(xarr.dtype):
+    elif is_arrow_temporal_dtype(xarr.dtype):
         xarr = _arrow_temporal_to_i8(xarr)
 
     if method == "linear":
