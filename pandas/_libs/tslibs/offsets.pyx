@@ -2,8 +2,6 @@ import re
 import time
 import warnings
 
-from pandas.util._exceptions import find_stack_level
-
 cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
@@ -37,6 +35,8 @@ cnp.import_array()
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
 
 from typing import ClassVar
+
+from dateutil.easter import EASTER_WESTERN
 
 from pandas._libs.properties import cache_readonly
 
@@ -959,7 +959,7 @@ cdef class BaseOffset:
         # will implicitly assume day_opt = "business_end", see get_day_of_month.
         cdef:
             npy_datetimestruct dts
-        pydate_to_dtstruct(other, &dts)
+        _dt_to_dtstruct(other, &dts)
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2673,7 +2673,7 @@ cdef class BusinessDay(BusinessMixin):
     business day or a number of business days. Business days exclude weekends
     (Saturday and Sunday) by default.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -3772,7 +3772,7 @@ cdef class YearOffset(SingleConstructorOffset):
         # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
-        pydate_to_dtstruct(other, &dts)
+        _dt_to_dtstruct(other, &dts)
         dts.month = self._month
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
@@ -4010,11 +4010,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
     @property
     def startingMonth(self) -> int:
         """
-        Return the month of the year from which quarters start.
+        Return the month of the year that anchors the quarters.
 
-        This value determines which month marks the beginning of a quarterly period.
-        For example, with startingMonth=1, quarters start in January, April, July,
-        and October.
+        For the ``*Begin`` offsets this is a month in which a quarter starts, so
+        ``startingMonth=1`` anchors on January 1, April 1, July 1 and October 1.
+        For the ``*End`` offsets it is a month in which a quarter *ends*, so
+        ``startingMonth=1`` anchors on January 31, April 30, July 31 and
+        October 31.
 
         See Also
         --------
@@ -4023,14 +4025,21 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BQuarterBegin().startingMonth
-        3
+        A ``*Begin`` offset starts its quarters in ``startingMonth``:
 
-        >>> pd.offsets.QuarterEnd().startingMonth
-        3
+        >>> pd.offsets.QuarterBegin(startingMonth=2).startingMonth
+        2
 
-        >>> pd.offsets.QuarterBegin(startingMonth=1).startingMonth
-        1
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.QuarterBegin(startingMonth=2)
+        Timestamp('2022-02-01 00:00:00')
+
+        An ``*End`` offset ends its quarters in ``startingMonth``:
+
+        >>> pd.offsets.QuarterEnd(startingMonth=2).startingMonth
+        2
+
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.QuarterEnd(startingMonth=2)
+        Timestamp('2022-02-28 00:00:00')
         """
         return self._startingMonth
 
@@ -4196,7 +4205,7 @@ cdef class BQuarterEnd(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters end.
 
     See Also
     --------
@@ -4237,7 +4246,7 @@ cdef class BQuarterBegin(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters start.
 
     See Also
     --------
@@ -4278,7 +4287,7 @@ cdef class QuarterEnd(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters end.
 
     See Also
     --------
@@ -4319,7 +4328,7 @@ cdef class QuarterBegin(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters start.
 
     See Also
     --------
@@ -4365,10 +4374,12 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     @property
     def startingMonth(self) -> int:
         """
-        Return the month of the year from which half-years start.
+        Return the month of the year that anchors the half-years.
 
-        This value determines which month marks the beginning of a half-year period.
-        For example, with startingMonth=1, half-years start in January and July.
+        For the ``*Begin`` offsets this is a month in which a half-year starts, so
+        ``startingMonth=1`` anchors on January 1 and July 1. For the ``*End``
+        offsets it is a month in which a half-year *ends*, so ``startingMonth=1``
+        anchors on January 31 and July 31.
 
         See Also
         --------
@@ -4377,14 +4388,21 @@ cdef class HalfYearOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BHalfYearBegin().startingMonth
-        1
+        A ``*Begin`` offset starts its half-years in ``startingMonth``:
 
-        >>> pd.offsets.BHalfYearEnd().startingMonth
-        6
+        >>> pd.offsets.HalfYearBegin(startingMonth=2).startingMonth
+        2
 
-        >>> pd.offsets.HalfYearBegin(startingMonth=3).startingMonth
-        3
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearBegin(startingMonth=2)
+        Timestamp('2022-02-01 00:00:00')
+
+        An ``*End`` offset ends its half-years in ``startingMonth``:
+
+        >>> pd.offsets.HalfYearEnd(startingMonth=2).startingMonth
+        2
+
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearEnd(startingMonth=2)
+        Timestamp('2022-02-28 00:00:00')
         """
         return self._startingMonth
 
@@ -4508,7 +4526,7 @@ cdef class BHalfYearEnd(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 6
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years end.
 
     See Also
     --------
@@ -4549,7 +4567,7 @@ cdef class BHalfYearBegin(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 1
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years start.
 
     See Also
     --------
@@ -4590,7 +4608,7 @@ cdef class HalfYearEnd(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 6
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years end.
 
     See Also
     --------
@@ -4623,7 +4641,7 @@ cdef class HalfYearBegin(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 1
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years start.
 
     See Also
     --------
@@ -6593,8 +6611,6 @@ cdef class Easter(SingleConstructorOffset):
     cdef readonly:
         int method
 
-    from dateutil.easter import EASTER_WESTERN
-
     def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
         BaseOffset.__init__(self, n, normalize)
 
@@ -6690,7 +6706,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -8083,6 +8099,19 @@ def shift_months(
     return out
 
 
+cdef void _dt_to_dtstruct(datetime stamp, npy_datetimestruct *dts) noexcept:
+    """
+    Fill `dts` from a datetime or Timestamp.
+
+    Unlike pydate_to_dtstruct, this gets the year right for a Timestamp outside
+    the range representable by datetime.datetime, whose C-level year field
+    holds a placeholder (GH#53125).
+    """
+    pydate_to_dtstruct(stamp, dts)
+    if isinstance(stamp, _Timestamp):
+        dts.year = (<_Timestamp>stamp)._year
+
+
 def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
@@ -8116,13 +8145,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
         int64_t year, dy
         npy_datetimestruct dts
 
-    if isinstance(stamp, _Timestamp):
-        creso = (<_Timestamp>stamp)._creso
-        val = (<_Timestamp>stamp)._value
-        pandas_datetime_to_datetimestruct(val, creso, &dts)
-    else:
-        # Plain datetime/date
-        pydate_to_dtstruct(stamp, &dts)
+    _dt_to_dtstruct(stamp, &dts)
 
     dy = (dts.month + months) // 12
     month = (dts.month + months) % 12
@@ -8237,7 +8260,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
         npy_datetimestruct dts
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
-    pydate_to_dtstruct(other, &dts)
+    _dt_to_dtstruct(other, &dts)
 
     if modby == 12:
         # We care about the month-of-year, not month-of-quarter, so skip mod

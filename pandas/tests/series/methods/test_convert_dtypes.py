@@ -201,7 +201,8 @@ class TestSeriesConvertDtypes:
         else:
             series = pd.Series(data)
 
-        with tm.assert_produces_warning(Pandas4Warning):
+        warn_msg = "keyword in Series.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
             result = series.convert_dtypes(*params)
 
         param_names = [
@@ -285,7 +286,8 @@ class TestSeriesConvertDtypes:
     def test_convert_dtype_object_with_na(self, infer_objects, dtype):
         # GH#48791
         ser = pd.Series([1, pd.NA])
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "The infer_objects keyword in Series.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)
@@ -296,7 +298,8 @@ class TestSeriesConvertDtypes:
     def test_convert_dtype_object_with_na_float(self, infer_objects, dtype):
         # GH#48791
         ser = pd.Series([1.5, pd.NA])
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "The infer_objects keyword in Series.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1.5, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)

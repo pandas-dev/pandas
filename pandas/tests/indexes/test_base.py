@@ -613,7 +613,6 @@ class TestIndex:
             lambda values, index: Series(values, index),
         ],
     )
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_map_dictlike(self, index, mapper, request, using_infer_string):
         # GH 12756
         if isinstance(index, CategoricalIndex):
@@ -817,7 +816,6 @@ class TestIndex:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
@@ -1594,11 +1592,8 @@ class TestMixedIntIndex:
         with pytest.raises(TypeError, match=msg):
             bytes(index)
 
-    @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
         # GH34123
-        # TODO: also this op right now produces FutureWarning from numpy
-        #  https://github.com/numpy/numpy/issues/11521
         idx = Index([("a", "b"), ("b", "c"), ("c", "a")])
         result = idx == ("c", "a")
         expected = np.array([False, False, True])
