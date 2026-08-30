@@ -358,11 +358,11 @@ def read_sql_table(
         A SQL table is returned as two-dimensional data structure with labeled
         axes.
 
-    See Also
-    --------
-    read_sql_table : Read SQL database table into a DataFrame.
-    read_sql_query : Read SQL query into a DataFrame.
-
+     See Also
+    --------
+    read_sql_query : Read SQL query into a DataFrame.
+    read_sql : Read SQL query or database table into a DataFrame.
+    
     Notes
     -----
     Any datetime values with time zone information will be converted to UTC.
