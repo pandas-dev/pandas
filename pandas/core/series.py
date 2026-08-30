@@ -3669,7 +3669,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
         `fill_value` is assumed when value is not present at some index
-        from one of the two Series being combined.
+        from one of the two Series being combined. The result index is the
+        union of the two indexes. If a label is duplicated, its occurrences
+        are paired in order: the first occurrence in the Series with the first
+        in `other`, the second with the second, and so on; an occurrence with
+        no counterpart is paired with `fill_value`.
 
         Parameters
         ----------
@@ -3733,16 +3737,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
-            # Align the same way arithmetic does (see NDFrame._align_series)
             if self.index.equals(other.index):
                 new_index = self.index
                 lindexer = rindexer = range(len(new_index))
             else:
-                new_index, lidx, ridx = self.index.join(
-                    other.index, how="outer", return_indexers=True
-                )
-                lindexer = range(len(new_index)) if lidx is None else lidx.tolist()
-                rindexer = range(len(new_index)) if ridx is None else ridx.tolist()
+                new_index = self.index.union(other.index)
+                if self.index.is_unique and other.index.is_unique:
+                    lindexer = self.index.get_indexer(new_index).tolist()
+                    rindexer = other.index.get_indexer(new_index).tolist()
+                else:
+                    lindexer = self.index._pairwise_indexer(new_index).tolist()
+                    rindexer = other.index._pairwise_indexer(new_index).tolist()
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
             lvalues = self._values
