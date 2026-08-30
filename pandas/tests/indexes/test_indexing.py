@@ -283,6 +283,51 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
 
+def test_pairwise_indexer():
+    # https://github.com/pandas-dev/pandas/pull/67446
+    idx = Index(["a", "a", "b"])
+    target = Index(["a", "a", "b", "c"])
+    result = idx._pairwise_indexer(target)
+    expected = np.array([0, 1, 2, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_pairwise_indexer_unsorted():
+    # https://github.com/pandas-dev/pandas/pull/67446
+    idx = Index(["b", "a", "a"])
+    target = Index(["a", "a", "b"])
+    result = idx._pairwise_indexer(target)
+    expected = np.array([1, 2, 0], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_pairwise_indexer_more_occurrences_in_target():
+    # https://github.com/pandas-dev/pandas/pull/67446
+    idx = Index(["a", "b"])
+    target = Index(["a", "a", "b", "b"])
+    result = idx._pairwise_indexer(target)
+    expected = np.array([0, -1, 1, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_pairwise_indexer_unique_matches_get_indexer(index):
+    # https://github.com/pandas-dev/pandas/pull/67446
+    if not index._index_as_unique or isinstance(index, MultiIndex):
+        pytest.skip("covered by duplicate-specific tests")
+    result = index._pairwise_indexer(index)
+    expected = index.get_indexer(index)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_pairwise_indexer_empty():
+    # https://github.com/pandas-dev/pandas/pull/67446
+    idx = Index([], dtype=object)
+    target = Index(["a", "a"], dtype=object)
+    result = idx._pairwise_indexer(target)
+    expected = np.array([-1, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 class TestConvertSliceIndexer:
     def test_convert_almost_null_slice(self, index):
         # slice with None at both ends, but not step
