@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 import pandas as pd
 from pandas import (
@@ -339,7 +338,6 @@ class TestPeriodIndex:
         result = idx_dup.intersection(idx_dup)
         tm.assert_index_equal(result, idx)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_duplicates(self):
         # GH#36289
         idx = period_range("2011-01-01", periods=2)

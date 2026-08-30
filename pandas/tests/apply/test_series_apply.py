@@ -678,3 +678,25 @@ def test_apply_nullable_integer_precision(dtype):
     result = ser.apply(lambda x: x + 2 if pd.notna(x) else x)
     expected = Series([large_int + 2, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["map", "apply"])
+@pytest.mark.parametrize("dtype", ["Int32", "Int64", "Float64", "boolean"])
+def test_map_apply_masked_element_types(dtype, method):
+    # GH#60766 elements reached the callable converted to float64, with missing
+    # values passed as np.nan instead of pd.NA
+    values = [True, False, None] if dtype == "boolean" else [1, 2, None]
+    ser = Series(values, dtype=dtype)
+    seen = []
+
+    def record(value):
+        seen.append(value)
+        return value
+
+    result = getattr(ser, method)(record)
+
+    tm.assert_series_equal(result, ser)
+    assert seen[:2] == values[:2]
+    assert seen[2] is pd.NA
+    if dtype != "Float64":
+        assert not any(isinstance(value, float) for value in seen[:2])

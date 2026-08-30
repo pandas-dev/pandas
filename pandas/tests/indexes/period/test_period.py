@@ -42,7 +42,8 @@ class TestPeriodIndex:
         idx = PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=object)
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "PeriodIndex.values returning an object-dtype ndarray is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
 
@@ -52,7 +53,7 @@ class TestPeriodIndex:
         idx = PeriodIndex(["2011-01", NaT], freq="M")
 
         exp = np.array([Period("2011-01", freq="M"), NaT], dtype=object)
-        with tm.assert_produces_warning(Pandas4Warning):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
@@ -61,7 +62,7 @@ class TestPeriodIndex:
         idx = PeriodIndex(["2011-01-01", NaT], freq="D")
 
         exp = np.array([Period("2011-01-01", freq="D"), NaT], dtype=object)
-        with tm.assert_produces_warning(Pandas4Warning):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
@@ -136,8 +137,8 @@ class TestPeriodIndex:
         assert not index.is_(index - 0)
 
     def test_index_unique(self):
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
-        expected = PeriodIndex([2000, 2007, 2009], freq="Y-JUN")
+        idx = PeriodIndex(["2000", "2007", "2007", "2009", "2009"], freq="Y-JUN")
+        expected = PeriodIndex(["2000", "2007", "2009"], freq="Y-JUN")
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
@@ -190,7 +191,7 @@ class TestPeriodIndex:
     def test_map(self):
         # test_map_dictlike generally tests
 
-        index = PeriodIndex([2005, 2007, 2009], freq="Y")
+        index = PeriodIndex(["2005", "2007", "2009"], freq="Y")
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)

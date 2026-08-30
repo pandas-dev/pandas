@@ -320,6 +320,48 @@ def test_string_multiindex_level_literal_nan_append(temp_hdfstore):
     assert list(result.index.get_level_values("s")) == ["nan", "a", "b", "nan"]
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_multiindex_level_append_to_file_without_marker(temp_hdfstore):
+    # GH#9604 — the per-level sentinel is honored on read only when the table
+    # carries the marker attribute, which is written when the table is created.
+    # Appending a missing value to a file written before the marker existed must
+    # keep using the global nan_rep, otherwise the sentinel is read back as a
+    # literal string.
+    s1 = Series(
+        range(2),
+        index=MultiIndex.from_arrays(
+            [Index(["nan", "wide_value"], dtype=str), [1, 2]], names=["s", "i"]
+        ),
+    )
+    temp_hdfstore.append("t", s1)
+    del temp_hdfstore.get_storer("t").attrs.mi_level_nan_rep
+
+    s2 = Series(
+        range(2, 4),
+        index=MultiIndex.from_arrays(
+            [Index([np.nan, "y"], dtype=str), [3, 4]], names=["s", "i"]
+        ),
+    )
+    temp_hdfstore.append("t", s2)
+
+    # the stored "nan" reads back as missing, as it did before the sentinel was
+    # introduced, and so does the appended missing value
+    expected = Series(
+        range(4),
+        index=MultiIndex.from_arrays(
+            [
+                Index([np.nan, "wide_value", np.nan, "y"], dtype=str),
+                [1, 2, 3, 4],
+            ],
+            names=["s", "i"],
+        ),
+    )
+    tm.assert_series_equal(temp_hdfstore.select("t"), expected)
+
+
 def test_api(temp_h5_path):
     # GH4584
     # API issue when to_hdf doesn't accept append AND format args
@@ -511,7 +553,6 @@ def test_table_values_dtypes_roundtrip(temp_hdfstore, using_infer_string):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(temp_h5_path):
     s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
@@ -544,7 +585,8 @@ def test_tuple_index(temp_h5_path, performance_warning):
     data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = DataFrame(data, index=idx, columns=col)
 
-    with tm.assert_produces_warning(performance_warning):
+    msg = "your performance may suffer as PyTables will pickle object types"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         _check_roundtrip(DF, tm.assert_frame_equal, path=temp_h5_path)
 
 

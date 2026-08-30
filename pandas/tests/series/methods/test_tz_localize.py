@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 
 import pytest
 
@@ -124,7 +124,7 @@ class TestTZLocalize:
         ser = Series(dtype=object)
 
         ser2 = ser.tz_localize("utc")
-        assert ser2.index.tz == timezone.utc
+        assert ser2.index.tz == UTC
 
         ser2 = ser.tz_localize(tzstr)
         timezones.tz_compare(ser2.index.tz, timezones.maybe_get_tz(tzstr))

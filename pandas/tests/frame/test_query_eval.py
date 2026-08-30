@@ -186,6 +186,40 @@ class TestDataFrameEval:
 
         tm.assert_frame_equal(res, expect)
 
+    def test_query_duplicate_index_label(self, engine, parser):
+        # GH#51815 aligning the terms against a frame whose index has duplicate
+        # labels raised "cannot reindex on an axis with duplicate labels"
+        df = Series([1, 2, 3], index=[1, 1, 2], name="col").to_frame()
+
+        result = df.query("(index == 1) & (col == 2)", engine=engine, parser=parser)
+
+        expected = DataFrame({"col": [2]}, index=[1])
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_datetime_compared_to_string_no_warning(self, engine, parser):
+        # GH#57028 comparing a datetime64 column to a string warned about the
+        # behavior of 'isin', which the expression does not use.
+        # Comparing against a string literal is rewritten to a membership op,
+        # which the python parser does not implement.
+        skip_if_no_pandas_parser(parser)
+        df = DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
+
+        with tm.assert_produces_warning(None):
+            result = df.query("sent == ''", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[:0])
+
+    def test_query_datetime_in_strings_no_warning(self, engine, parser):
+        # GH#57028 the `in` operator does go through isin, and strings no longer
+        # match datetime64 values there, but neither should warn
+        skip_if_no_pandas_parser(parser)
+        df = DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
+
+        with tm.assert_produces_warning(None):
+            result = df.query("sent in ['2024-01-14']", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[:0])
+
     def test_eval_duplicate_column_name(self, engine, parser):
         # GH#65588
         df = DataFrame({"a": range(3), "b": range(10, 13), "c": range(3)}).rename(
@@ -1592,7 +1626,12 @@ class TestDataFrameQueryBacktickQuoting:
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - a")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 1]],
@@ -1605,7 +1644,12 @@ class TestDataFrameQueryBacktickQuoting:
         # GH#29618
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - 1")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
@@ -1635,7 +1679,12 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame({"a": [1, 2]}, dtype=dtype)
         ref = {2}  # noqa: F841
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.query("a in @ref")
         expected = DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
         tm.assert_frame_equal(result, expected)
@@ -1652,7 +1701,12 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame(
             {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
         )
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.query("A == B", engine=engine)
         expected = DataFrame(
             {

@@ -125,11 +125,11 @@ def test_unsortedindex():
     )
     with pytest.raises(UnsortedIndexError, match=msg):
         df.loc(axis=0)["z", slice("a")]
-    df.sort_index(inplace=True)
-    assert len(df.loc(axis=0)["z", :]) == 2
+    df2 = df.sort_index()
+    assert len(df2.loc(axis=0)["z", :]) == 2
 
     with pytest.raises(KeyError, match="'q'"):
-        df.loc(axis=0)["q", :]
+        df2.loc(axis=0)["q", :]
 
 
 def test_unsortedindex_doc_examples():

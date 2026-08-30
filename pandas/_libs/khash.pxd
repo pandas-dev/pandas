@@ -76,20 +76,26 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     bint kh_exist_pyset(kh_pyset_t*, khiter_t)
 
-    ctypedef char* kh_cstr_t
+    # Borrowed (pointer, length) pair; see khash_python.h. Keying on an
+    # explicit length is what keeps values with embedded NUL bytes distinct.
+    ctypedef struct kh_strview_t:
+        const char *ptr
+        size_t len
+
+    kh_strview_t kh_strview(const char *ptr, size_t length) noexcept nogil
 
     ctypedef struct kh_str_t:
         khuint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
-        kh_cstr_t *keys
+        kh_strview_t *keys
         size_t *vals
 
     kh_str_t* kh_init_str() nogil
     void kh_destroy_str(kh_str_t*) nogil
     void kh_clear_str(kh_str_t*) nogil
-    khuint_t kh_get_str(kh_str_t*, kh_cstr_t) nogil
+    khuint_t kh_get_str(kh_str_t*, kh_strview_t) nogil
     void kh_resize_str(kh_str_t*, khuint_t) nogil
-    khuint_t kh_put_str(kh_str_t*, kh_cstr_t, int*) nogil
+    khuint_t kh_put_str(kh_str_t*, kh_strview_t, int*) nogil
     void kh_del_str(kh_str_t*, khuint_t) nogil
 
     bint kh_exist_str(kh_str_t*, khiter_t) nogil
@@ -97,11 +103,13 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     ctypedef struct kh_str_starts_t:
         kh_str_t *table
         int starts[256]
+        int has_empty
 
     kh_str_starts_t* kh_init_str_starts() nogil
-    khuint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key,
-                                    int* ret) nogil
-    khuint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) nogil
+    khuint_t kh_put_str_starts_item(kh_str_starts_t* table, const char* key,
+                                    size_t length, int* ret) nogil
+    khuint_t kh_get_str_starts_item(const kh_str_starts_t* table,
+                                    const char* key, size_t length) nogil
     void kh_destroy_str_starts(kh_str_starts_t*) nogil
     void kh_resize_str_starts(kh_str_starts_t*, khuint_t) nogil
 
@@ -110,15 +118,15 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     ctypedef struct kh_strbox_t:
         khuint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
-        kh_cstr_t *keys
+        kh_strview_t *keys
         PyObject **vals
 
     kh_strbox_t* kh_init_strbox() nogil
     void kh_destroy_strbox(kh_strbox_t*) nogil
     void kh_clear_strbox(kh_strbox_t*) nogil
-    khuint_t kh_get_strbox(kh_strbox_t*, kh_cstr_t) nogil
+    khuint_t kh_get_strbox(kh_strbox_t*, kh_strview_t) nogil
     void kh_resize_strbox(kh_strbox_t*, khuint_t) nogil
-    khuint_t kh_put_strbox(kh_strbox_t*, kh_cstr_t, int*) nogil
+    khuint_t kh_put_strbox(kh_strbox_t*, kh_strview_t, int*) nogil
     void kh_del_strbox(kh_strbox_t*, khuint_t) nogil
 
     bint kh_exist_strbox(kh_strbox_t*, khiter_t) nogil

@@ -612,6 +612,35 @@ Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
         \frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
+The same applies when ``adjust=False``, using the ``adjust=False`` weights given
+above. Assuming ``adjust=False``, if ``ignore_na=False``, the weighted average of
+``3, NaN, 5`` would be calculated as
+
+.. math::
+
+        \frac{(1-\alpha)^2 \cdot 3 + \alpha \cdot 5}{(1-\alpha)^2 + \alpha},
+
+whereas if ``ignore_na=True`` it would be calculated as
+
+.. math::
+
+        \frac{(1-\alpha) \cdot 3 + \alpha \cdot 5}{(1-\alpha) + \alpha}.
+
+.. note::
+
+   The recursion :math:`y_t = (1 - \alpha) y_{t-1} + \alpha x_t` given above for
+   ``adjust=False`` assumes that no values are missing; it holds because those
+   weights sum to exactly 1. When a value is missing, the weights of the
+   remaining observations no longer sum to 1 and are renormalized, so applying
+   that recursion directly to the values on either side of a missing entry does
+   not reproduce the result.
+
+.. ipython:: python
+
+   ser = pd.Series([3, np.nan, 5])
+   ser.ewm(alpha=2 / 3, adjust=False, ignore_na=False).mean()
+   ser.ewm(alpha=2 / 3, adjust=False, ignore_na=True).mean()
+
 The :meth:`~ExponentialMovingWindow.var`, :meth:`~ExponentialMovingWindow.std`, and :meth:`~ExponentialMovingWindow.cov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.
 For example, if ``bias=True``, ``ewmvar(x)`` is calculated as

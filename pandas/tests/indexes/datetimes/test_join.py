@@ -1,7 +1,7 @@
 from datetime import (
+    UTC,
     date,
     datetime,
-    timezone,
 )
 
 import numpy as np
@@ -71,7 +71,7 @@ class TestJoin:
 
         result = left.join(right[:-5], how=join_type)
         assert isinstance(result, DatetimeIndex)
-        assert result.tz is timezone.utc
+        assert result.tz is UTC
 
     def test_datetimeindex_union_join_empty(self, sort, using_infer_string):
         dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")

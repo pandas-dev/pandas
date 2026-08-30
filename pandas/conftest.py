@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
@@ -42,8 +43,6 @@ from dateutil.tz import (
     tzlocal,
     tzutc,
 )
-import hypothesis
-from hypothesis import strategies as st
 import numpy as np
 import pytest
 
@@ -182,91 +181,26 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_sparse", "is_sparse is deprecated"),
         ("CategoricalDtype._from_values_or_dtype", "Constructing a Categorical"),
         ("DataFrame.__dataframe__", "The DataFrame Interchange Protocol"),
-        ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
         ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
-        ("NDFrame.replace", "Series.replace without 'value'"),
-        ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
-        ("Series.idxmin", "The behavior of Series.idxmin"),
-        ("Series.idxmax", "The behavior of Series.idxmax"),
-        ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
-        ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
-        ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
-        ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
         # Docstring divides by zero to show nan result
         ("Series.autocorr", "invalid value encountered in divide"),
         ("Series.corr", "invalid value encountered in divide"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        (
-            "pandas.core.generic.NDFrame.first",
-            "first is deprecated and will be removed in a future version. "
-            "Please create a mask and filter using `.loc` instead",
-        ),
-        (
-            "Resampler.fillna",
-            "DatetimeIndexResampler.fillna is deprecated",
-        ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrameGroupBy.fillna with 'method' is deprecated",
-        ),
-        ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
         ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
+        (
+            # matches both DatetimeProperties.freq and TimedeltaProperties.freq
+            "Properties.freq",
+            "A future version of pandas will return a BaseOffset",
+        ),
     ]
 
     if is_doctest:
         for item in items:
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
-
-
-# Similar to "ci" config in
-# https://hypothesis.readthedocs.io/en/latest/reference/api.html#built-in-profiles
-hypothesis.settings.register_profile(
-    "pandas_ci",
-    database=None,
-    deadline=None,
-    max_examples=15,
-    suppress_health_check=(
-        hypothesis.HealthCheck.too_slow,
-        hypothesis.HealthCheck.differing_executors,
-    ),
-)
-hypothesis.settings.load_profile("pandas_ci")
-
-# Registering these strategies makes them globally available via st.from_type,
-# which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
-for name in "MonthBegin MonthEnd BMonthBegin BMonthEnd".split():
-    cls = getattr(pd.tseries.offsets, name)
-    st.register_type_strategy(
-        cls, st.builds(cls, n=st.integers(-99, 99), normalize=st.booleans())
-    )
-
-for name in "YearBegin YearEnd BYearBegin BYearEnd".split():
-    cls = getattr(pd.tseries.offsets, name)
-    st.register_type_strategy(
-        cls,
-        st.builds(
-            cls,
-            n=st.integers(-5, 5),
-            normalize=st.booleans(),
-            month=st.integers(min_value=1, max_value=12),
-        ),
-    )
-
-for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
-    cls = getattr(pd.tseries.offsets, name)
-    st.register_type_strategy(
-        cls,
-        st.builds(
-            cls,
-            n=st.integers(-24, 24),
-            normalize=st.booleans(),
-            startingMonth=st.integers(min_value=1, max_value=12),
-        ),
-    )
 
 
 # ----------------------------------------------------------------
@@ -797,6 +731,11 @@ def index_flat_sortable(request):
     return indices_dict[request.param].copy(deep=False)
 
 
+# Aliases so we can test with the cartesian product of index_flat
+index_flat2 = index_flat
+index_flat2_sortable = index_flat_sortable
+
+
 @pytest.fixture(
     params=[
         key
@@ -1118,8 +1057,8 @@ def all_arithmetic_functions(request):
 
     Notes
     -----
-    This includes divmod and rdivmod, whereas all_arithmetic_operators
-    does not.
+    This does not include divmod and rdivmod, which return a tuple and so
+    cannot be used interchangeably with the other operators.
     """
     return request.param
 
@@ -1286,7 +1225,7 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    timezone.utc,
+    UTC,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
@@ -1321,7 +1260,7 @@ def tz_aware_fixture(request):
     return request.param
 
 
-_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
+_UTCS = ["utc", "dateutil/UTC", tzutc(), UTC]
 
 if pytz is not None:
     _UTCS.append(pytz.utc)
@@ -1971,7 +1910,7 @@ _any_skipna_inferred_dtype = [
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
     ("time", [time(1), np.nan, time(2)]),
-    ("period", [Period(2013), pd.NaT, Period(2018)]),
+    ("period", [Period("2013"), pd.NaT, Period("2018")]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
 ids = [

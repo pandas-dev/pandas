@@ -9,6 +9,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
@@ -23,10 +24,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
@@ -38,8 +35,14 @@ def test_dtype_all_columns(
     # see gh-3795, gh-6607
     parser = all_parsers
 
-    if parser.engine == "pyarrow" and dtype is object and not check_orig:
-        # GH#58260 the pyarrow engine cannot disable type inference, so a scalar
+    if (
+        parser.engine == "pyarrow"
+        and dtype is object
+        and not check_orig
+        and pa_version_under25p0
+    ):
+        # GH#58260 without pyarrow>=25.0 (ConvertOptions.default_column_type)
+        # the pyarrow engine cannot disable type inference, so a scalar
         # object dtype yields the inferred (e.g. float) values rather than the
         # raw strings the other engines preserve
         request.applymarker(
@@ -494,6 +497,29 @@ def test_explicit_arrow_numeric_dtype(all_parsers):
         parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
 
 
+@pytest.mark.parametrize("dtype", ["float", "double[pyarrow]"])
+def test_empty_field_invalid_for_float_dtype(all_parsers, dtype):
+    # GH#66834 empty field with keep_default_na=False is not a valid float,
+    # for both numpy and pyarrow-backed float dtypes.
+    if dtype == "double[pyarrow]":
+        pytest.importorskip("pyarrow")
+
+    parser = all_parsers
+    data = "id,A\n1,1.5\n2,\n3,2.0\n"
+
+    if parser.engine == "python" and dtype == "float":
+        msg = "Unable to convert column A to type float64"
+    elif parser.engine == "pyarrow" and dtype == "double[pyarrow]":
+        msg = r"Failed to parse string: '' as a scalar of type double"
+    elif dtype == "double[pyarrow]":
+        msg = r"could not convert string to double"
+    else:
+        msg = r"could not convert string to float"
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": dtype}, keep_default_na=False)
+
+
 def test_explicit_arrow_temporal_dtype(all_parsers):
     # Non-numeric pyarrow-backed dtypes round-trip through read_csv.
     pytest.importorskip("pyarrow")
@@ -656,6 +682,21 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
+def test_dtype_string_int_column_with_na(all_parsers, dtype):
+    # GH#57100 the pyarrow engine inferred int64, widened it to float64 to hold
+    # the missing value and then cast to string, yielding "44794724.0"
+    if dtype == "string[pyarrow]":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "var1,var2\n44794724,x\n,y\n"
+
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+
+    expected = DataFrame({"var1": ["44794724", None], "var2": ["x", "y"]}, dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -783,7 +824,7 @@ NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
 
 
 def test_dtypes_with_usecols(all_parsers):
-    # GH#54868
+    # GH#54868, GH#57666
 
     parser = all_parsers
     data = """a,b,c
@@ -791,11 +832,7 @@ def test_dtypes_with_usecols(all_parsers):
 4,5,6"""
 
     result = parser.read_csv(StringIO(data), usecols=["a", "c"], dtype={"a": object})
-    if parser.engine == "pyarrow":
-        values = [1, 4]
-    else:
-        values = ["1", "4"]
-    expected = DataFrame({"a": pd.Series(values, dtype=object), "c": [3, 6]})
+    expected = DataFrame({"a": pd.Series(["1", "4"], dtype=object), "c": [3, 6]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -810,3 +847,127 @@ def test_index_col_with_dtype_no_rangeindex(all_parsers):
     ).index
     expected = pd.Index([0, 1], dtype=np.uint32, name="bin_id")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [str, "str", "string"])
+def test_leading_zeros_preserved_with_scalar_string_dtype(all_parsers, dtype, request):
+    # GH#57666 values that look numeric but carry leading zeros must be
+    # read verbatim when a scalar string dtype is requested
+    parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        mark = pytest.mark.xfail(
+            reason="the pyarrow engine needs pyarrow>=25.0 "
+            "(ConvertOptions.default_column_type) to apply a scalar dtype "
+            "while parsing; older versions infer integers and lose the zeros"
+        )
+        request.applymarker(mark)
+    data = """col1,col2,col3,col4
+AB,000388907,abc,0150
+CD,101044572,def,0150
+EF,000023607,ghi,0205
+GH,100102040,jkl,0205"""
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected = DataFrame(
+        {
+            "col1": ["AB", "CD", "EF", "GH"],
+            "col2": ["000388907", "101044572", "000023607", "100102040"],
+            "col3": ["abc", "def", "ghi", "jkl"],
+            "col4": ["0150", "0150", "0205", "0205"],
+        },
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_leading_zeros_preserved_with_dtype_str_no_header(all_parsers, request):
+    # GH#57666 a scalar dtype applies with autogenerated column names too
+    parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
+    data = "01,0150\n002,0205"
+    result = parser.read_csv(StringIO(data), header=None, dtype=str)
+    expected = DataFrame([["01", "0150"], ["002", "0205"]], dtype=str)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_leading_zeros_with_missing_values_dtype_str(all_parsers, request):
+    # GH#57666 empty fields stay missing while other values keep their text
+    parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
+    data = "a,b\n01,\n,002"
+    result = parser.read_csv(StringIO(data), dtype=str)
+    expected = DataFrame({"a": ["01", np.nan], "b": [np.nan, "002"]}, dtype=str)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_leading_zeros_preserved_with_dtype_defaultdict(all_parsers, request):
+    # GH#57666, GH#41574 the default of a defaultdict applies to columns
+    # not explicitly listed, like a scalar dtype
+    parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
+    dtype = defaultdict(lambda: str, col3="int64")
+    data = """col1,col2,col3
+AB,000388907,199
+CD,101044572,200"""
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected = DataFrame(
+        {
+            "col1": pd.Series(["AB", "CD"], dtype=str),
+            "col2": pd.Series(["000388907", "101044572"], dtype=str),
+            "col3": pd.Series([199, 200], dtype="int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_object_dtype_dict_preserves_raw_strings(all_parsers):
+    # GH#57666, GH#9435 dtype=object holds the raw strings on every engine
+    parser = all_parsers
+    data = "a,b\n01,2\n002,3"
+    result = parser.read_csv(StringIO(data), dtype={"a": object})
+    expected = DataFrame({"a": pd.Series(["01", "002"], dtype=object), "b": [2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_non_string_key_pyarrow(pyarrow_parser_only):
+    # GH#57666 pyarrow's ConvertOptions requires string column names, so
+    # non-string dtype keys must not raise; they are applied afterwards
+    # (here dropped, since positional keys are not supported by this engine)
+    parser = pyarrow_parser_only
+    data = "a,b\n01,2\n002,3"
+    result = parser.read_csv(StringIO(data), dtype={"a": str, 1: str})
+    expected = DataFrame({"a": pd.Series(["01", "002"], dtype=str), "b": [2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_leading_zeros_preserved_with_dtype_dict(all_parsers):
+    # GH#57666 per-column string dtypes must preserve leading zeros while
+    # other columns keep their requested dtypes
+    parser = all_parsers
+    data = """col1,col2,col3,col4
+AB,000388907,199,0150
+CD,101044572,200,0150
+EF,000023607,201,0205
+GH,100102040,202,0205"""
+    result = parser.read_csv(
+        StringIO(data), dtype={"col2": str, "col3": "int64", "col4": str}
+    )
+    expected = DataFrame(
+        {
+            "col1": pd.Series(["AB", "CD", "EF", "GH"], dtype=str),
+            "col2": pd.Series(
+                ["000388907", "101044572", "000023607", "100102040"], dtype=str
+            ),
+            "col3": pd.Series([199, 200, 201, 202], dtype="int64"),
+            "col4": pd.Series(["0150", "0150", "0205", "0205"], dtype=str),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
