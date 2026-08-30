@@ -907,6 +907,31 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "opname", ["add", "sub", "mul", "floordiv", "truediv", "pow"]
+    )
+    def test_flex_method_with_incomparable_multiindex_deprecated(self, opname):
+        # GH#25891
+        index1 = MultiIndex.from_product([[], []], names=["T", "N"])
+        s1 = DataFrame(index=index1)
+        s1["T.1A", "N.0"] = 0.5
+        s1["T.1B", "N.0"] = 0.5
+
+        index2 = MultiIndex.from_product([[], []], names=["X", "M"])
+        s2 = DataFrame(index=index2)
+        s2["T.1A", "N.0"] = 0.5
+        s2["T.1B", "N.0"] = 0.5
+
+        op = getattr(DataFrame, opname)
+
+        msg = (
+            "The silent alignment on arithmetic operations between "
+            "'DataFrame' with incomparable MultiIndexes"
+        )
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(s1, s2)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -1246,6 +1271,31 @@ class TestFrameArithmetic:
             columns=MultiIndex.from_product((["X", "Y"], ["A", "B"])),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_arithmetic_with_incomparable_multiindex_deprecated(
+        self,
+        all_arithmetic_operators,
+    ):
+        # GH#25891
+        index1 = MultiIndex.from_product([[], []], names=["T", "N"])
+        s1 = DataFrame(index=index1)
+        s1["T.1A", "N.0"] = 0.5
+        s1["T.1B", "N.0"] = 0.5
+
+        index2 = MultiIndex.from_product([[], []], names=["X", "M"])
+        s2 = DataFrame(index=index2)
+        s2["T.1A", "N.0"] = 0.5
+        s2["T.1B", "N.0"] = 0.5
+
+        op = tm.get_op_from_name(all_arithmetic_operators)
+
+        msg = (
+            "The silent alignment on arithmetic operations between "
+            "'DataFrame' with incomparable MultiIndexes"
+        )
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(s1, s2)
 
 
 def test_frame_with_zero_len_series_corner_cases():
