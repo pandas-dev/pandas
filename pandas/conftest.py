@@ -1112,23 +1112,7 @@ def all_arithmetic_functions(request):
     return request.param
 
 
-_all_numeric_reductions = [
-    "count",
-    "sum",
-    "max",
-    "min",
-    "mean",
-    "prod",
-    "std",
-    "var",
-    "median",
-    "kurt",
-    "skew",
-    "sem",
-]
-
-
-@pytest.fixture(params=_all_numeric_reductions)
+@pytest.fixture(params=tm.numeric_reductions)
 def all_numeric_reductions(request):
     """
     Fixture for numeric reduction names.
@@ -1136,10 +1120,7 @@ def all_numeric_reductions(request):
     return request.param
 
 
-_all_boolean_reductions = ["all", "any"]
-
-
-@pytest.fixture(params=_all_boolean_reductions)
+@pytest.fixture(params=tm.boolean_reductions)
 def all_boolean_reductions(request):
     """
     Fixture for boolean reduction names.
@@ -1147,10 +1128,7 @@ def all_boolean_reductions(request):
     return request.param
 
 
-_all_reductions = _all_numeric_reductions + _all_boolean_reductions
-
-
-@pytest.fixture(params=_all_reductions)
+@pytest.fixture(params=tm.all_reductions)
 def all_reductions(request):
     """
     Fixture for all (boolean + numeric) reduction names.
@@ -1158,16 +1136,7 @@ def all_reductions(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        operator.eq,
-        operator.ne,
-        operator.gt,
-        operator.ge,
-        operator.lt,
-        operator.le,
-    ]
-)
+@pytest.fixture(params=tm.comparison_ops)
 def comparison_op(request):
     """
     Fixture for operator module comparison functions.
@@ -1202,10 +1171,7 @@ def all_logical_operators(request):
     return request.param
 
 
-_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
-
-
-@pytest.fixture(params=_all_numeric_accumulations)
+@pytest.fixture(params=tm.numeric_accumulations)
 def all_numeric_accumulations(request):
     """
     Fixture for numeric accumulation names

@@ -273,6 +273,36 @@ arithmetic_dunder_methods = [
 
 comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
 
+comparison_ops = [
+    operator.eq,
+    operator.ne,
+    operator.gt,
+    operator.ge,
+    operator.lt,
+    operator.le,
+]
+
+numeric_reductions = [
+    "count",
+    "sum",
+    "max",
+    "min",
+    "mean",
+    "prod",
+    "std",
+    "var",
+    "median",
+    "kurt",
+    "skew",
+    "sem",
+]
+
+boolean_reductions = ["all", "any"]
+
+all_reductions = numeric_reductions + boolean_reductions
+
+numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
 
 # -----------------------------------------------------------------------------
 # Comparators

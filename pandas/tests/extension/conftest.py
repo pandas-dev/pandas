@@ -2,7 +2,11 @@ import operator
 
 import pytest
 
-from pandas import Series
+from pandas import (
+    Series,
+    option_context,
+)
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -214,28 +218,79 @@ def invalid_scalar(data):
     return object.__new__(object)
 
 
-@pytest.fixture(
-    params=[
-        # numeric reductions
-        "count",
-        "sum",
-        "max",
-        "min",
-        "mean",
-        "prod",
-        "std",
-        "var",
-        "median",
-        "kurt",
-        "skew",
-        "sem",
-        # boolean reductions
-        "all",
-        "any",
-    ]
-)
+# The fixtures below are also defined in pandas/conftest.py.  They are repeated
+# here because pytest only makes a fixture available to tests under the
+# directory its conftest lives in, so a third-party ExtensionArray author who
+# copies this file would not otherwise get them.  Both copies parametrize over
+# the same lists in pandas._testing, so the two cannot drift apart.
+
+
+@pytest.fixture(params=tm.all_reductions)
 def all_reductions(request):
     """
     Fixture for all (boolean + numeric) reduction names.
     """
     return request.param
+
+
+@pytest.fixture(params=tm.numeric_reductions)
+def all_numeric_reductions(request):
+    """
+    Fixture for numeric reduction names.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.boolean_reductions)
+def all_boolean_reductions(request):
+    """
+    Fixture for boolean reduction names.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.arithmetic_dunder_methods)
+def all_arithmetic_operators(request):
+    """
+    Fixture for dunder names for common arithmetic operations.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.comparison_ops)
+def comparison_op(request):
+    """
+    Fixture for operator module comparison functions.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def skipna(request):
+    """
+    Boolean 'skipna' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, lambda x: x])
+def sort_by_key(request):
+    """
+    Simple fixture for testing keys in sorting methods.
+    Tests None (no key) and the identity key.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def using_nan_is_na(request):
+    with option_context("future.distinguish_nan_and_na", not request.param):
+        yield request.param
