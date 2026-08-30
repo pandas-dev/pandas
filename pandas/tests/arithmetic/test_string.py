@@ -563,6 +563,8 @@ def test_add_length_zero_mixed_storage(any_string_dtype, any_string_dtype2):
 def test_add_length_zero_object_ndarray():
     # GH#40624 a length-zero object-dtype ndarray boxes to the pyarrow null
     #  type, which has no binary_join kernel
-    arr = pd.array(["a", "b"], dtype="str")
+    # dtype is specified explicitly so the test exercises the pyarrow-backed
+    #  path regardless of the future.infer_string setting
+    arr = pd.array(["a", "b"], dtype=StringDtype("pyarrow"))
     result = arr[:0] + np.array([], dtype=object)
     tm.assert_extension_array_equal(result, arr[:0])
