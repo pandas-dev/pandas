@@ -205,17 +205,22 @@ class TestCatAccessor:
 
         for func, args, kwargs in func_defs:
             warn_cls = []
+            warn_msg = []
             if func == "to_period" and getattr(idx, "tz", None) is not None:
                 # dropping TZ
                 warn_cls.append(UserWarning)
+                warn_msg.append("will drop timezone information")
             elif func == "to_pytimedelta":
                 # GH 57463
                 warn_cls.append(Pandas4Warning)
+                warn_msg.append("to_pytimedelta is deprecated")
             if warn_cls:
                 warn_cls = tuple(warn_cls)
+                warn_msg = tuple(warn_msg)
             else:
                 warn_cls = None
-            with tm.assert_produces_warning(warn_cls):
+                warn_msg = None
+            with tm.assert_produces_warning(warn_cls, match=warn_msg):
                 res = getattr(cat.dt, func)(*args, **kwargs)
                 exp = getattr(ser.dt, func)(*args, **kwargs)
 
@@ -230,7 +235,8 @@ class TestCatAccessor:
                 warn_cls = Pandas4Warning
             else:
                 warn_cls = None
-            with tm.assert_produces_warning(warn_cls):
+            msg = "will return a BaseOffset object instead of a string"
+            with tm.assert_produces_warning(warn_cls, match=msg):
                 res = getattr(cat.dt, attr)
                 exp = getattr(ser.dt, attr)
 

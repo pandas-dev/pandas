@@ -7419,15 +7419,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            Maximum number of consecutive NaN values to fill. In other words, if
+            there is a gap with more than this number of consecutive NaNs, it
+            will only be partially filled. Must be greater than 0 if not None.
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -7525,15 +7522,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            Maximum number of consecutive NaN values to fill. In other words, if
+            there is a gap with more than this number of consecutive NaNs, it
+            will only be partially filled. Must be greater than 0 if not None.
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -8176,16 +8170,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
-            Maximum number of consecutive NaNs to fill. Must be greater than
-            0.
+            Maximum number of consecutive NaNs to fill. In other words, if there
+            is a gap with more than this number of consecutive NaNs, it will only
+            be partially filled, from the direction given by ``limit_direction``.
+            Must be greater than 0.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
 
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
