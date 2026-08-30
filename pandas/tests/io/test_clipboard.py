@@ -1,3 +1,5 @@
+import importlib
+import locale
 from textwrap import dedent
 
 import numpy as np
@@ -183,6 +185,44 @@ def clipboard(qapp):
     clip = qapp.clipboard()
     yield clip
     clip.clear()
+
+
+def test_init_qt_clipboard_restores_locale(monkeypatch):
+    # GH#44625 QApplication calls setlocale(LC_ALL, "") and does not restore it,
+    #  which would change LC_TIME and LC_NUMERIC for the rest of the process
+    # init_qt_clipboard tries qtpy first, then PyQt5; patch whichever it will use
+    for name in ["qtpy.QtWidgets", "PyQt5.QtWidgets"]:
+        try:
+            qtwidgets = importlib.import_module(name)
+        except ImportError:
+            continue
+        break
+    else:
+        pytest.skip("No Qt bindings installed")
+
+    before = locale.setlocale(locale.LC_ALL)
+    other = None
+    for candidate in ["C.UTF-8", "en_US.UTF-8", "de_DE.UTF-8", "it_IT.UTF-8", "C"]:
+        if not tm.can_set_locale(candidate):
+            continue
+        with tm.set_locale(candidate):
+            if locale.setlocale(locale.LC_ALL) != before:
+                other = candidate
+                break
+    if other is None:
+        pytest.skip("No locale available that differs from the current one")
+
+    class FakeQApplication:
+        @staticmethod
+        def instance():
+            return None
+
+        def __init__(self, argv) -> None:
+            locale.setlocale(locale.LC_ALL, other)
+
+    monkeypatch.setattr(qtwidgets, "QApplication", FakeQApplication)
+    init_qt_clipboard()
+    assert locale.setlocale(locale.LC_ALL) == before
 
 
 @pytest.mark.single_cpu

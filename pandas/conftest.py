@@ -31,6 +31,7 @@ from datetime import (
 )
 from decimal import Decimal
 import gc
+import locale
 import operator
 import os
 from typing import (
@@ -79,6 +80,7 @@ from pandas.core.indexes.api import (
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Iterator,
     )
@@ -207,6 +209,9 @@ def pytest_collection_modifyitems(items, config) -> None:
 # Autouse fixtures
 # ----------------------------------------------------------------
 
+# See restore_locale below; must be read before any fixture runs.
+_LOCALE_AT_IMPORT = locale.setlocale(locale.LC_ALL)
+
 
 # https://github.com/pytest-dev/pytest/issues/11873
 # Would like to avoid autouse=True, but cannot as of pytest 8.0.0
@@ -225,6 +230,27 @@ def configure_tests() -> None:
     Configure settings for all tests and test modules.
     """
     pd.set_option("chained_assignment", "raise")
+
+
+@pytest.fixture(autouse=True)
+def restore_locale() -> Generator[None]:
+    """
+    Undo any process-wide locale change a test leaked.
+
+    GH#44625: pytest-qt's session-scoped ``qapp`` fixture constructs a
+    QApplication, which calls ``setlocale(LC_ALL, "")`` and never restores it.
+    That switches LC_TIME to the environment's locale for the remainder of the
+    worker, so datetime tests that run after the clipboard tests fail on any
+    machine whose locale is not English.
+
+    The snapshot is taken at import time rather than inside the fixture because
+    session-scoped fixtures such as ``qapp`` are set up before any
+    function-scoped fixture, so ``qapp``'s change would already be baked into a
+    value read here.
+    """
+    yield
+    if locale.setlocale(locale.LC_ALL) != _LOCALE_AT_IMPORT:
+        locale.setlocale(locale.LC_ALL, _LOCALE_AT_IMPORT)
 
 
 # ----------------------------------------------------------------

@@ -1009,7 +1009,6 @@ class TestReaders:
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
-    @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
     def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:

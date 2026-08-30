@@ -55,6 +55,7 @@ from ctypes import (
     get_errno,
     sizeof,
 )
+import locale
 import os
 import platform
 from shutil import which as _executable_exists
@@ -148,7 +149,14 @@ def init_qt_clipboard():
 
     app = QApplication.instance()
     if app is None:
+        # GH#44625 QApplication calls setlocale(LC_ALL, "") without restoring
+        #  it, changing e.g. LC_TIME and LC_NUMERIC for the rest of the
+        #  process. Nothing else in pandas alters the process locale, so put
+        #  it back the way we found it.
+        before = locale.setlocale(locale.LC_ALL)
         app = QApplication([])
+        with contextlib.suppress(locale.Error):
+            locale.setlocale(locale.LC_ALL, before)
 
     def copy_qt(text):
         text = _stringifyText(text)  # Converts non-str values to str.
