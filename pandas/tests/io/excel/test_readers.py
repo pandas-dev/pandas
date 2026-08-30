@@ -1837,7 +1837,8 @@ class TestExcelFileRead:
 
         Path(tmp_excel).write_text("corrupt", encoding="utf-8")
         expected_warning = Pandas4Warning if engine in {"xlrd", "pyxlsb"} else False
-        with tm.assert_produces_warning(expected_warning):
+        msg = f"The {engine} engine is deprecated"
+        with tm.assert_produces_warning(expected_warning, match=msg):
             try:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:

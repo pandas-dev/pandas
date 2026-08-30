@@ -191,7 +191,8 @@ class TestDataFrameDrop:
         assert not not_lexsorted_df.columns._is_lexsorted()
 
         expected = lexsorted_df.drop("a", axis=1).astype(float)
-        with tm.assert_produces_warning(performance_warning):
+        msg = "dropping on a non-lexsorted multi-index without a level parameter"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = not_lexsorted_df.drop("a", axis=1)
 
         tm.assert_frame_equal(result, expected)

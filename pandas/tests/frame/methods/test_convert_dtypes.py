@@ -24,7 +24,8 @@ class TestConvertDtypes:
             }
         )
         with pd.option_context("string_storage", string_storage):
-            with tm.assert_produces_warning(Pandas4Warning):
+            msg = "keyword in DataFrame.convert_dtypes is deprecated"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
                 result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
@@ -170,7 +171,8 @@ class TestConvertDtypes:
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
         expected = df.copy()
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "keyword in DataFrame.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.convert_dtypes(
                 convert_floating=False,
                 convert_integer=False,
@@ -199,7 +201,8 @@ class TestConvertDtypes:
     def test_convert_dtypes_avoid_block_splitting(self):
         # GH#55341
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": "a"})
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "The convert_integer keyword in DataFrame.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.convert_dtypes(convert_integer=False)
         expected = pd.DataFrame(
             {
