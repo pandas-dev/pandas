@@ -38,8 +38,6 @@ class TestCombine:
 
     def test_combine_non_unique_index(self):
         # https://github.com/pandas-dev/pandas/pull/67446
-        # func received a Series rather than a scalar for a duplicated label;
-        # align the same way arithmetic does instead
         a = Series([1, 2, 3], index=["a", "a", "b"])
         b = Series([10, 20], index=["a", "b"])
         result = a.combine(b, lambda x, y: x + y)
@@ -52,7 +50,6 @@ class TestCombine:
 
     def test_combine_non_unique_index_equal(self):
         # https://github.com/pandas-dev/pandas/pull/67446
-        # identical non-unique indexes combine positionally
         a = Series([1, 2, 3], index=["a", "a", "b"])
         b = Series([10, 20, 30], index=["a", "a", "b"])
         result = a.combine(b, lambda x, y: x + y)
@@ -61,7 +58,6 @@ class TestCombine:
 
     def test_combine_non_unique_index_both_sides(self):
         # https://github.com/pandas-dev/pandas/pull/67446
-        # duplicated labels on both sides align like arithmetic
         a = Series([1, 2, 3], index=["a", "a", "b"])
         b = Series([10, 20, 30, 40], index=["a", "a", "b", "c"])
         result = a.combine(b, lambda x, y: x + y, fill_value=0)
