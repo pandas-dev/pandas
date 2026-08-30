@@ -3680,7 +3680,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value : scalar, optional
             The value to assume when an index is missing from
             one Series or the other. The default specifies to use the
-            appropriate NaN value for the underlying dtype of the Series.
+            appropriate NA value for the underlying dtype of the Series.
 
         Returns
         -------

@@ -314,7 +314,6 @@ Performance improvements
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
 - Performance improvement in :attr:`DataFrame.dtypes` when accessed repeatedly (:issue:`65382`)
-- Performance improvement in :meth:`Series.combine` (:issue:`???`)
 - Performance improvement in :attr:`Series.is_monotonic_increasing` and :attr:`Series.is_monotonic_decreasing` for :class:`ArrowDtype` and masked dtypes by dispatching to the :class:`ExtensionArray` (:issue:`56619`)
 - Performance improvement in :class:`DataFrame` repr by avoiding redundant formatting when columns exceed terminal width (:issue:`64863`)
 - Performance improvement in :class:`DatetimeIndex` and :class:`Series` construction with a timezone-aware ``datetime64`` dtype from a sequence of strings (:issue:`66123`)
@@ -335,6 +334,7 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="left"`` and ``sort=False`` when joining on a right index with unique keys (:issue:`65160`)
 - Performance improvement in :func:`merge` with ``sort=False`` for single-key ``how="left"``/``how="right"`` joins when the opposite join key is sorted, unique, and range-like (:issue:`64146`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`64515`)
+- Performance improvement in :meth:`Series.combine` (:issue:`67446`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` and ``parse_dates`` for columns containing ISO8601 datetime strings; concurrent reads from multiple threads also scale better (:issue:`65353`, :issue:`66278`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` during dtype inference: columns that do not parse as numeric or boolean (e.g. string columns) are now rejected before allocating a result buffer for the attempt (:issue:`66273`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns (:issue:`65767`)
@@ -861,7 +861,6 @@ Reshaping
 - Bug in :func:`concat` with a ``null[pyarrow]`` column incorrectly changing the dtype of the other columns, e.g. casting ``date32[pyarrow]`` to ``timestamp[ms][pyarrow]``, dropping the timezone of a tz-aware ``timestamp[pyarrow]``, or casting ``decimal128[pyarrow]`` to ``object`` (:issue:`62343`)
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :func:`merge` where the join key column was not upcast to the highest ``datetime64`` resolution, keeping the lower resolution for ``how="inner"`` and ``how="left"`` when the left frame had lower resolution, and for ``how="inner"`` and ``how="right"`` when the join key came from a lower-resolution right frame (:issue:`55212`)
-- Bug in :meth:`Series.combine` passing a :class:`Series` instead of a scalar to ``func`` when the index contained duplicated labels; the inputs are now aligned the same way arithmetic operations align them (:issue:`???`)
 - Bug in :meth:`DataFrame.combine` raising ``OverflowError`` when the combining function returned a value too large for the columns' common integer dtype (e.g. ``2**64``) instead of keeping the result (:issue:`66394`)
 - Bug in :meth:`DataFrame.melt` where ``var_name`` colliding with an ``id_vars`` column or ``value_name`` silently overwrote the affected column data instead of raising (:issue:`65654`)
 - Bug in :meth:`DataFrame.pivot_table` with ``margins=True`` raising ``TypeError`` when ``values`` has an :class:`ExtensionDtype` that cannot hold ``NA`` (e.g. :class:`IntervalDtype` with an integer subtype) and no ``columns`` were specified (:issue:`55484`)
@@ -871,6 +870,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` raising a bare ``AssertionError`` or an ``IndexError`` when ``level`` contained duplicate entries, including duplicates produced by resolving level names or negative level numbers; it now raises an informative ``ValueError`` (:issue:`66588`)
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` with ``sort=False`` placing values under the wrong row labels, or collapsing distinct index combinations into a single row (:issue:`62816`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
+- Bug in :meth:`Series.combine` passing a :class:`Series` instead of a scalar to ``func`` when the index contained duplicated labels; the inputs are now aligned the same way arithmetic operations align them (:issue:`67446`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 -
