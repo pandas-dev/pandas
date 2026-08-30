@@ -16535,7 +16535,7 @@ class DataFrame(NDFrame, OpsMixin):
             values = df.values
             return maybe_unbox_numpy_scalar(
                 func(values),
-                dtype_object=None if name in ["any", "all"] else values,
+                object_with_dtype=None if name in ["any", "all"] else values,
             )
         elif axis == 1:
             if len(df.index) == 0:

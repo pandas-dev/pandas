@@ -2969,7 +2969,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0], dtype_object=self)
+            return maybe_unbox_numpy_scalar(result.iloc[0], object_with_dtype=self)
 
     def corr(
         self,
@@ -3059,7 +3059,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = nanops.nancorr(
                 this_values, other_values, method=method, min_periods=min_periods
             )
-            result = maybe_unbox_numpy_scalar(result, dtype_object=self)
+            result = maybe_unbox_numpy_scalar(result, object_with_dtype=self)
             return result
 
         raise ValueError(
@@ -3115,7 +3115,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
-        result = maybe_unbox_numpy_scalar(result, dtype_object=self)
+        result = maybe_unbox_numpy_scalar(result, object_with_dtype=self)
         return result
 
     def describe(
@@ -3434,7 +3434,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
-        return maybe_unbox_numpy_scalar(result, dtype_object=self)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def __matmul__(self, other):
         """
@@ -6271,7 +6271,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item), dtype_object=self)
+        return maybe_unbox_numpy_scalar(super().pop(item=item), object_with_dtype=self)
 
     def info(
         self,
@@ -8987,7 +8987,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # any/all coerce to bool for all dtypes, so unbox even for object
         result = maybe_unbox_numpy_scalar(
-            result, dtype_object=None if name in ["any", "all"] else self
+            result, object_with_dtype=None if name in ["any", "all"] else self
         )
         return result
 

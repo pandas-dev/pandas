@@ -1447,7 +1447,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any, *, dtype_object: Any = None) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> Any:
     """
     Maybe convert a NumPy scalar to its Python equivalent.
 
@@ -1461,7 +1461,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, dtype_object: Any = None) -> Any:
     ----------
     value : Any
         The value to unbox.
-    dtype_object : object with a ``dtype`` attribute, optional
+    object_with_dtype : object with a ``dtype`` attribute, optional
         The data (e.g. a Series or array) that ``value`` came from. Pass this
         whenever ``value`` is an element of the data or is derived from its
         elements: object dtype stores arbitrary user objects, so a NumPy
@@ -1479,7 +1479,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, dtype_object: Any = None) -> Any:
     """
     result = value
     if using_python_scalars() and isinstance(value, np.generic):
-        if dtype_object is not None and dtype_object.dtype == object:
+        if object_with_dtype is not None and object_with_dtype.dtype == object:
             return result
         if isinstance(result, np.longdouble):
             result = float(result)
