@@ -372,6 +372,8 @@ def qcut(
     x_idx, _ = _coerce_to_type(x_idx)
 
     if is_integer(q):
+        if q < 1:
+            raise ValueError("`q` should be a positive integer.")
         quantiles = np.linspace(0, 1, q + 1)
         # Round up rather than to nearest if not representable in base 2
         np.putmask(
