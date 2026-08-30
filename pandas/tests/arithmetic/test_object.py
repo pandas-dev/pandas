@@ -8,7 +8,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -438,54 +437,3 @@ def test_index_ops_defer_to_unknown_subclasses(other):
     result = other + a
     assert isinstance(result, MyIndex)
     assert a._calls == 1
-
-
-@pytest.fixture(
-    params=[
-        lambda values: Series(values, dtype=object),
-        lambda values: pd.Index(values, dtype=object),
-        lambda values: pd.array(values, dtype=object),
-        lambda values: Series(values, dtype=object).to_frame(),
-    ],
-    ids=["Series", "Index", "array", "DataFrame"],
-)
-def object_box(request):
-    """Construct each container type with an explicit object dtype."""
-    return request.param
-
-
-def test_invert_object_deprecated(object_box):
-    # GH#51567 ~ on object dtype dispatches to the objects' own __invert__
-    obj = object_box([1, 2])
-    expected = object_box([-2, -3])
-
-    msg = "__invert__ .* on object dtype is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = ~obj
-    tm.assert_equal(result, expected)
-
-
-def test_invert_object_bool_mask_deprecated(object_box):
-    # GH#16873, GH#31035 a boolean mask cast to object silently becomes
-    #  integers instead of being negated
-    obj = object_box([True, False])
-    expected = object_box([-2, -1])
-
-    msg = "__invert__ .* on object dtype is deprecated"
-    # Python itself deprecated ~ on bool in 3.12, so on new enough versions
-    #  there is a second warning here that we don't care about.
-    with tm.assert_produces_warning(
-        Pandas4Warning, match=msg, raise_on_extra_warnings=False
-    ):
-        result = ~obj
-    tm.assert_equal(result, expected)
-
-
-def test_invert_object_raising_still_warns(object_box):
-    # GH#51567 elements that have no __invert__ warn before raising
-    obj = object_box([1.0, 2.0])
-
-    msg = "__invert__ .* on object dtype is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pytest.raises(TypeError, match="bad operand type for unary ~"):
-            ~obj

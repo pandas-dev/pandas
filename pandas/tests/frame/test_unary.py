@@ -3,6 +3,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -82,6 +84,25 @@ class TestDataFrameUnaryOperators:
             ],
             axis=1,
             ignore_index=True,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_invert_object_bool_mask_deprecated(self):
+        # GH#16873, GH#31035 a boolean mask cast to object silently becomes
+        #  integers instead of being negated; only the object block warns
+        df = pd.DataFrame(
+            {"a": np.array([True, False], dtype=object), "b": [True, False]}
+        )
+
+        msg = "__invert__ .* on object dtype is deprecated"
+        # Python itself deprecated ~ on bool in 3.12, so on new enough versions
+        #  there is a second warning here that we don't care about.
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
+            result = ~df
+        expected = pd.DataFrame(
+            {"a": np.array([-2, -1], dtype=object), "b": [False, True]}
         )
         tm.assert_frame_equal(result, expected)
 

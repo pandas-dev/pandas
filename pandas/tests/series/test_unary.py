@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import Series
 import pandas._testing as tm
 
@@ -14,6 +16,38 @@ class TestSeriesUnaryOps:
     def test_invert(self):
         ser = Series(range(5), dtype="float64", name="series")
         tm.assert_series_equal(-(ser < 0), ~(ser < 0))
+
+    def test_invert_object_deprecated(self):
+        # GH#51567 ~ on object dtype dispatches to the objects' own __invert__
+        ser = Series([1, 2], dtype=object)
+
+        msg = "__invert__ .* on object dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ~ser
+        tm.assert_series_equal(result, Series([-2, -3], dtype=object))
+
+    def test_invert_object_bool_mask_deprecated(self):
+        # GH#16873, GH#31035 a boolean mask cast to object silently becomes
+        #  integers instead of being negated
+        ser = Series([True, False], dtype=object)
+
+        msg = "__invert__ .* on object dtype is deprecated"
+        # Python itself deprecated ~ on bool in 3.12, so on new enough versions
+        #  there is a second warning here that we don't care about.
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
+            result = ~ser
+        tm.assert_series_equal(result, Series([-2, -1], dtype=object))
+
+    def test_invert_object_raising_still_warns(self):
+        # GH#51567 elements that have no __invert__ warn before raising
+        ser = Series([1.0, 2.0], dtype=object)
+
+        msg = "__invert__ .* on object dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pytest.raises(TypeError, match="bad operand type for unary ~"):
+                ~ser
 
     @pytest.mark.parametrize(
         "source, neg_target, abs_target",

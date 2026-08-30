@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
@@ -33,6 +35,22 @@ def test_invert(fill_value):
     result = ~pd.DataFrame({"A": sparray})
     expected = pd.DataFrame({"A": expected})
     tm.assert_frame_equal(result, expected)
+
+
+def test_invert_object_deprecated():
+    # GH#51567 ~ on object dtype dispatches to the objects' own __invert__
+    sparray = SparseArray(np.array([1, 2, 0], dtype=object), fill_value=0)
+
+    msg = "__invert__ .* on object dtype is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ~sparray
+    expected = SparseArray(np.array([-2, -3, -1], dtype=object), fill_value=-1)
+    tm.assert_sp_array_equal(result, expected)
+
+    # the Series path must not warn a second time
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ~pd.Series(sparray)
+    tm.assert_series_equal(result, pd.Series(expected))
 
 
 class TestUnaryMethods:
