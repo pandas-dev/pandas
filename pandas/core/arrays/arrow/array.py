@@ -1104,6 +1104,16 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
+        if isinstance(ltype, pa.BaseExtensionType):
+            # GH#63511 no kernels for extension types e.g. pa.uuid(), use storage
+            try:
+                boxed = self._box_pa(other, ltype).cast(ltype.storage_type)
+            except (pa.ArrowInvalid, pa.ArrowTypeError, pa.ArrowNotImplementedError):
+                result = ops.invalid_comparison(self, other, op)
+                return type(self)(pa.array(result, type=pa.bool_()))
+            storage = self._pa_array.cast(ltype.storage_type)
+            return type(self)(pc_func(storage, boxed))
+
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
@@ -2200,7 +2210,13 @@ class ArrowExtensionArray(
             result = data._maybe_convert_datelike_array().to_numpy(
                 dtype=dtype, na_value=na_value
             )
-        elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
+        elif (
+            pa.types.is_time(pa_type)
+            or pa.types.is_date(pa_type)
+            # GH#63511 to_numpy follows the storage type for extension types by
+            #  design (apache/arrow#50325), i.e. gives bytes, not uuid.UUID
+            or isinstance(pa_type, pa.BaseExtensionType)
+        ):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
             result = np.array(list(data), dtype=dtype)
