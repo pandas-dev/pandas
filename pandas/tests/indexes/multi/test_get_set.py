@@ -283,14 +283,14 @@ def test_set_levels_codes_names_bad_input(idx):
         idx.set_levels(levels[0], level=[0, 1])
 
     # a nested value with a scalar level demands a flat value, and says so
-    with pytest.raises(TypeError, match="list-like, not a list of lists"):
+    with pytest.raises(TypeError, match="must be a flat list-like of values"):
         idx.set_levels(levels, level=0)
 
     # should have equal lengths
     with pytest.raises(TypeError, match="list of lists-like"):
         idx.set_codes(codes[0], level=[0, 1])
 
-    with pytest.raises(TypeError, match="list-like, not a list of lists"):
+    with pytest.raises(TypeError, match="must be a flat list-like of values"):
         idx.set_codes(codes, level=0)
 
     # should have equal lengths
