@@ -31,6 +31,7 @@ Other enhancements
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
 - :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
+- :meth:`DataFrame.filter` and :meth:`Series.filter` now accept a boolean mask, a callable returning a boolean mask, or an expression such as ``pd.col("a") > 1``, selecting the rows (or columns with ``axis=1``) where the mask is True. Missing values in the mask are treated as False by default, matching ``obj[mask]``; pass ``na=True`` to keep them or ``na="raise"`` to raise (:issue:`61317`)
 - :meth:`DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`GroupBy.agg`, and supports :class:`NamedFunc` (:issue:`58318`)
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
 - :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
@@ -240,6 +241,7 @@ Build
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated the ``items``, ``like``, and ``regex`` label-based usage of :meth:`DataFrame.filter` and :meth:`Series.filter`; in a future version ``filter`` will only accept a boolean mask. Use ``obj.loc`` with ``obj.columns.intersection(items)`` to keep a list of labels, and ``obj.filter(obj.columns.str.contains(pat), axis=1)`` in place of ``like`` or ``regex``. Passing boolean values when the filtered axis contains the labels ``True`` or ``False`` currently selects those labels and warns; in a future version the values will be treated as a boolean mask (:issue:`26642`, :issue:`61317`)
 - Added ``check_freq`` keyword to :func:`testing.assert_index_equal` with a deprecated default: currently a ``freq`` mismatch on a :class:`DatetimeIndex` or :class:`TimedeltaIndex` only warns; in a future version ``check_freq=True`` will be the default and mismatches will raise. The same deprecation applies to the ``freq`` of :class:`DatetimeIndex`/:class:`TimedeltaIndex` columns in :func:`testing.assert_frame_equal`, which were previously never checked. Pass ``check_freq`` explicitly to silence the warning (:issue:`51920`)
 - Deprecated :attr:`PeriodIndex.is_full`; use ``index.empty or len(index.unique()) == len(period_range(index.min(), index.max(), freq=index.freq))`` instead. Unlike ``is_full``, this is also correct for frequencies with a multiple (e.g. ``"2D"``) and does not raise on a non-monotonic index (:issue:`64938`)
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
