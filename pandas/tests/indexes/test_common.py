@@ -246,8 +246,6 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
@@ -289,7 +287,6 @@ class TestCommon:
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates(self, index_flat, keep):
         # MultiIndex is tested separately
         index = index_flat
@@ -325,7 +322,6 @@ class TestCommon:
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates_no_duplicates(self, index_flat):
         # MultiIndex is tested separately
         index = index_flat
@@ -353,7 +349,6 @@ class TestCommon:
         with pytest.raises(TypeError, match=msg):
             index.drop_duplicates(inplace=True)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_has_duplicates(self, index_flat):
         # MultiIndex tested separately in:
         #   tests/indexes/multi/test_unique_and_duplicates.
@@ -389,10 +384,12 @@ class TestCommon:
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
             # Some of these conversions cannot succeed so we use a try / except
+            msg = "Casting complex values to real discards the imaginary part"
             with tm.assert_produces_warning(
                 warn,
                 raise_on_extra_warnings=is_pyarrow_str,
                 check_stacklevel=False,
+                match=msg,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
@@ -434,14 +431,12 @@ class TestCommon:
         assert idx.hasnans is True
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing_sortable, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing_sortable.sort_values(na_position=na_position)
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
 def test_sort_values_with_missing(index_with_missing_sortable, na_position):
     # GH 35584. Test that sort_values works with missing values,
@@ -528,3 +523,33 @@ def test_join_series_deprecated():
         Pandas4Warning, match="Passing .* to .* is deprecated"
     ):
         idx.join(ser)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.0, None], "Float64"),
+        ([True, None], "boolean"),
+        ([1, None], "int64[pyarrow]"),
+        ([1.0, None], "category"),
+    ],
+)
+def test_fillna_incompatible_value_deprecated_ea_dtype(data, dtype):
+    # GH#25288 the casting deprecation also applies to Index with an
+    #  ExtensionArray dtype, which used to cast to object silently
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    idx = pd.Index(data, dtype=dtype)
+
+    msg = "'str' is not supported as a fill value"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = idx.fillna("x")
+
+    expected = pd.Index([data[0], "x"], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+    # a value the dtype can hold is unaffected
+    with tm.assert_produces_warning(None):
+        result = idx.fillna(data[0])
+    tm.assert_index_equal(result, pd.Index([data[0], data[0]], dtype=dtype))

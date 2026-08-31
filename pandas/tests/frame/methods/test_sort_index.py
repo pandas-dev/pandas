@@ -219,6 +219,7 @@ class TestDataFrameSortIndex:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_index")
     def test_sort_index_inplace(self):
         frame = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
@@ -397,6 +398,7 @@ class TestDataFrameSortIndex:
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_index")
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
@@ -429,6 +431,7 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_index")
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize("ignore_index", [True, False])
     def test_respect_ignore_index(self, inplace, ignore_index):
@@ -447,6 +450,7 @@ class TestDataFrameSortIndex:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_index")
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
@@ -598,6 +602,7 @@ class TestDataFrameSortIndex:
         assert result.columns.is_monotonic_increasing
 
     # TODO: better name, de-duplicate with test_sort_index_level above
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_index")
     def test_sort_index_level2(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
 
@@ -1086,3 +1091,28 @@ def test_sort_index_axis1_multiindex_reordered_level_keeps_nan():
     df = DataFrame(np.arange(16).reshape(4, 4), columns=idx)
     result = df.sort_index(axis=1)
     assert sum(pd.isna(tup[1]) for tup in result.columns) == 2
+
+
+def test_sort_index_inplace_depr():
+    msg = "The inplace keyword in DataFrame.sort_index is deprecated"
+
+    df = DataFrame({"a": [3, 1, 2]}, index=[2, 0, 1])
+    df_orig = df.copy()
+    expected = DataFrame({"a": [1, 2, 3]}, index=[0, 1, 2])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.sort_index()
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.sort_index(inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.sort_index(inplace=True)
+    tm.assert_frame_equal(df, expected)

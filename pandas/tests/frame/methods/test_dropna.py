@@ -4,6 +4,8 @@ import dateutil
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -13,6 +15,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameMissingData:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
         mat = np.random.default_rng(2).standard_normal(N)
@@ -37,6 +40,7 @@ class TestDataFrameMissingData:
         tm.assert_series_equal(inplace_frame2["foo"], expected)
         assert return_value is None
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     def test_dropIncompleteRows(self, float_frame):
         N = len(float_frame.index)
         mat = np.random.default_rng(2).standard_normal(N)
@@ -64,6 +68,7 @@ class TestDataFrameMissingData:
         tm.assert_index_equal(inp_frame2.index, float_frame.index)
         assert return_value is None
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     def test_dropna(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((6, 4)))
         df.iloc[:2, 2] = np.nan
@@ -129,6 +134,9 @@ class TestDataFrameMissingData:
         with pytest.raises(ValueError, match=msg):
             df.dropna(axis=3)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The inplace keyword in (Series|DataFrame).dropna"
+    )
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
@@ -163,6 +171,7 @@ class TestDataFrameMissingData:
         with pytest.raises(KeyError, match=r"^\['X'\]$"):
             float_frame.dropna(subset=["A", "X"])
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     def test_dropna_multiple_axes(self):
         df = DataFrame(
             [
@@ -274,6 +283,7 @@ class TestDataFrameMissingData:
         with pytest.raises(TypeError, match=msg):
             df.dropna(how=None, thresh=None)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     @pytest.mark.parametrize("val", [1, 1.5])
     def test_dropna_ignore_index(self, val):
         # GH#31725
@@ -284,3 +294,28 @@ class TestDataFrameMissingData:
 
         df.dropna(ignore_index=True, inplace=True)
         tm.assert_frame_equal(df, expected)
+
+
+def test_dropna_inplace_depr():
+    msg = "The inplace keyword in DataFrame.dropna is deprecated"
+
+    df = DataFrame({"a": [1.0, 1.5, np.nan, 2.0]})
+    df_orig = df.copy()
+    expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=[0, 1, 3])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.dropna()
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.dropna(inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.dropna(inplace=True)
+    tm.assert_frame_equal(df, expected)

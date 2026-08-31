@@ -10,7 +10,6 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
-import locale
 import re
 import zoneinfo
 
@@ -339,26 +338,26 @@ class TestTimeConversionFormats:
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
-                marks=td.skip_if_not_us_locale,
+                marks=td.skip_if_not_english_lc_time,
             ),
             pytest.param(
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
-                marks=td.skip_if_not_us_locale,
+                marks=td.skip_if_not_english_lc_time,
             ),
             pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-                marks=td.skip_if_not_us_locale,
+                marks=td.skip_if_not_english_lc_time,
             ),
         ],
     )
     def test_to_datetime_format_time(self, cache, value, format, dt):
         assert to_datetime(value, format=format, cache=cache) == dt
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
         # 8904
@@ -625,7 +624,6 @@ class TestToDatetime:
         # GH#23055
         assert to_datetime(None) is NaT
 
-    @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
         # TODO: Timestamp raises ValueError("could not convert string to Timestamp")
@@ -1040,18 +1038,10 @@ class TestToDatetime:
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_error_iso_week_year(self, msg, s, _format, errors):
         # See GH#16607, GH#50308
-        # This test checks for errors thrown when giving the wrong format
-        # However, as discussed on PR#25541, overriding the locale
-        # causes a different error to be thrown due to the format being
-        # locale specific, but the test data is in english.
-        # Therefore, the tests only run when locale is not overwritten,
-        # as a sort of solution to this problem.
-        if locale.getlocale() != ("zh_CN", "UTF-8") and locale.getlocale() != (
-            "it_IT",
-            "UTF-8",
-        ):
-            with pytest.raises(ValueError, match=msg):
-                to_datetime(s, format=_format, errors=errors)
+        # These formats are rejected before any parsing happens, so the message
+        #  does not depend on the locale (GH#44625).
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(s, format=_format, errors=errors)
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_to_datetime_dtarr(self, tz):
@@ -1839,9 +1829,14 @@ class TestToDatetime:
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
-    @pytest.mark.parametrize("item", [150, float(150)])
+    @pytest.mark.parametrize(
+        "item", [150, float(150), np.int64(150), np.int32(150), np.int8(15)]
+    )
     def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
+        # GH#56996 np.datetime64() rejects *any* NumPy integer scalar, so the
+        #  object path used to raise ValueError for these until cast_from_unit
+        #  started widening to a Python int first
         ts = Timestamp(item, unit=unit)
         dtype = "M8[s]"
         expected = DatetimeIndex([ts], dtype=dtype)
@@ -1949,6 +1944,48 @@ class TestToDatetimeUnit:
         arr = np.array([1.434692e18, 1.432766e18]).astype(dtype)
         result = to_datetime(arr, errors=errors, cache=cache)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.int8, np.int16, np.int32, np.uint8, np.uint16, np.uint32, np.int64],
+    )
+    def test_unit_subint64_scalars(self, dtype, cache):
+        # GH#56996 cast_from_unit did base/frac arithmetic in the input's own
+        #  narrow dtype, so `frac * m` overflowed and raised OutOfBoundsDatetime
+        #  on the object path below. The scalar constructor casts to int64 up
+        #  front so it never hit this, but is checked here to keep it that way.
+        expected = Timestamp("1970-01-02")
+        assert Timestamp(dtype(1), unit="D") == expected
+
+        result = to_datetime([dtype(1)], unit="D", cache=cache)
+        tm.assert_index_equal(result, DatetimeIndex([expected], dtype="M8[s]"))
+
+        # mixing in a nanosecond value forces "ns", so the unit factor is
+        #  86400 * 10**9 and the 32-bit dtypes overflow it too
+        other = Timestamp("1970-01-01 00:00:00.000000001")
+        result = to_datetime([dtype(1), other], unit="D", cache=cache)
+        tm.assert_index_equal(result, DatetimeIndex([expected, other], dtype="M8[ns]"))
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_unit_narrow_float_scalars(self, dtype, cache):
+        # GH#56996 np.float32(1.5) with unit="D" picked up bogus sub-second
+        #  digits from float32-precision arithmetic; np.float16 overflowed
+        expected = Timestamp("1970-01-02 12:00:00")
+        assert Timestamp(dtype(1.5), unit="D") == expected
+
+        result = to_datetime([dtype(1.5)], unit="D", cache=cache)
+        tm.assert_index_equal(result, DatetimeIndex([expected], dtype="M8[ns]"))
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_unit_float_neg_inf_raises(self, dtype, cache):
+        # GH#56996 NPY_NAT (-2**63) saturates to -inf when cast down to float16,
+        #  so the NaT-sentinel check matched and np.float16("-inf") silently
+        #  became NaT instead of raising like the wider float dtypes
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            Timestamp(dtype("-inf"), unit="D")
+
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            to_datetime([dtype("-inf")], unit="D", cache=cache)
 
     @pytest.mark.parametrize(
         "exp, arr, warning",
@@ -2579,9 +2616,9 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("errors", ["raise", "coerce"])
-    def test_dataframe_infinite_float_time_field(self, errors):
-        # inf hour goes through to_timedelta, which raises under both modes
+    def test_dataframe_infinite_float_time_field(self):
+        # an inf hour goes through to_timedelta, which raises under errors="raise"
+        #  and coerces to NaT under errors="coerce" (GH#66823)
         df = DataFrame(
             {
                 "year": [2000.0, 2000.0],
@@ -2593,7 +2630,12 @@ class TestToDatetimeDataFrame:
         msg = r"cannot assemble the datetimes \[hour\]: cannot convert input inf"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(None):
-                to_datetime(df, errors=errors)
+                to_datetime(df)
+
+        with tm.assert_produces_warning(None):
+            result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[ns]")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["bool", "boolean"])
     def test_dataframe_bool_column(self, dtype):
@@ -2869,7 +2911,7 @@ class TestToDatetimeMisc:
         expected_coerce = Series([datetime(2006, 10, 18), datetime(2008, 10, 18), NaT])
         tm.assert_series_equal(result_coerce, expected_coerce)
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     def test_to_datetime_with_apply(self, cache):
         # this is only locale tested with US/None locales
         # GH 5195
@@ -2885,7 +2927,7 @@ class TestToDatetimeMisc:
         expected = Timestamp(2020, 1, 1).tz_localize("UTC")
         assert result == expected
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_to_datetime_with_apply_with_empty_str(self, cache, errors):
         # this is only locale tested with US/None locales
@@ -3165,7 +3207,6 @@ class TestGuessDatetimeFormat:
         test_array = np.array(test_list, dtype=object)
         assert tools._guess_datetime_format_for_array(test_array) == expected_format
 
-    @td.skip_if_not_us_locale
     def test_guess_datetime_format_for_array_all_nans(self):
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array([np.nan, np.nan, np.nan], dtype="O")
@@ -4309,7 +4350,6 @@ dtstr = "2020-01-01 00:00+00:00"
 ts = Timestamp(dtstr)
 
 
-@pytest.mark.filterwarnings("ignore:Could not infer format:UserWarning")
 @pytest.mark.parametrize(
     "aware_val",
     [dtstr, Timestamp(dtstr)],
@@ -4452,6 +4492,17 @@ def test_to_datetime_missing_component_no_runtime_warning():
         result = to_datetime(df)
 
     assert result.iloc[1] is NaT
+
+
+def test_to_datetime_narrow_float_with_format_no_runtime_warning():
+    # GH#56996 the NaT-sentinel check compared the raw np.float16 against the
+    #  int64 sentinel, which cast the sentinel down to float16 and emitted a
+    #  spurious RuntimeWarning before the value reached the parser
+    arr = np.array([np.float16(1970)], dtype=object)
+    with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+        result = to_datetime(arr, format="%Y", errors="coerce")
+
+    assert result[0] is NaT
 
 
 def test_to_datetime_format_N_directive():

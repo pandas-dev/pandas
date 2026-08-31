@@ -713,7 +713,7 @@ def test_resample_anchored_ticks(freq, unit):
     # than starting from the first timestamp which might start in the
     # middle of a desired interval
 
-    rng = date_range("1/1/2000 04:00:00", periods=86400, freq="s").as_unit(unit)
+    rng = date_range("1/1/2000 04:00:00", periods=8640, freq="10s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     ts[:2] = np.nan  # so results are the same
     result = ts[2:].resample(freq, closed="left", label="left").mean()
@@ -1313,7 +1313,8 @@ def test_resample_consistency(unit):
 
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
-    with tm.assert_produces_warning(Pandas4Warning):
+    msg = "the 'method' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         rl = s.reindex_like(s10, method="bfill", limit=2)
     r10_2 = s.resample("10Min").bfill(limit=2)
     r10 = s.resample("10Min").bfill()

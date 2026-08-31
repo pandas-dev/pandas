@@ -67,8 +67,8 @@ filepath_or_buffer : various
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. ``sep=None`` detects the separator from the first valid row
   of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
-  is supported only by the Python parsing engine and must be combined with
-  ``engine='python'`` explicitly. In addition, separators longer than 1 character
+  is supported only by the Python parsing engine, which will be used
+  automatically. In addition, separators longer than 1 character
   and different from ``'\s+'`` will be interpreted as regular expressions and
   will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
@@ -1422,8 +1422,9 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None`` together
-with ``engine='python'``.
+class of the csv module. For this, you have to specify ``sep=None``. Passing
+``engine='python'`` as well avoids the ``ParserWarning`` raised by the
+fallback.
 
 .. ipython:: python
 
@@ -1522,11 +1523,6 @@ the python engine is selected explicitly with ``engine='python'``. Selecting
 the C engine explicitly instead raises a ``ValueError``, as does passing an
 option unsupported by the pyarrow engine together with ``engine='pyarrow'``.
 
-``sep=None``, which sniffs the separator, is an exception to this fallback and
-must be combined with ``engine='python'`` explicitly. The other engines do not
-fall back to Python for it: the C engine raises a ``TypeError``, and the
-pyarrow engine silently parses each line as a single column.
-
 .. _io.csv.parallel:
 
 Reading large files in parallel
@@ -1542,7 +1538,7 @@ considerably. This happens automatically when all of the following hold:
 * the C engine is used (the default)
 * the file's data rows total at least 5 MB, excluding any header preamble
 * more than one thread is in use -- see ``mode.max_threads`` below, which
-  defaults to ``1`` on Windows and when the process is limited to a single CPU
+  defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
   ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
   ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
@@ -1556,10 +1552,8 @@ default it uses the machine's physical core count (efficiency cores included,
 SMT siblings excluded). That default is limited to the CPUs available to the
 process -- CPU affinity, and the cgroup CPU quota when the process runs in its
 own cgroup namespace, as it does under Docker and Kubernetes -- and to at most
-16. On Windows the default is ``1`` (serial), as parallel reading currently
-does not improve performance there. Set the option to ``1`` to disable
-parallel reading, e.g. when pandas runs inside an application that already
-parallelizes work:
+16. Set the option to ``1`` to disable parallel reading, e.g. when pandas runs
+inside an application that already parallelizes work:
 
 .. code-block:: python
 

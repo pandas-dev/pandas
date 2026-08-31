@@ -2,8 +2,6 @@ import re
 import time
 import warnings
 
-from pandas.util._exceptions import find_stack_level
-
 cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
@@ -14,6 +12,10 @@ from cpython.datetime cimport (
     import_datetime,
     time as dt_time,
     timedelta,
+)
+from libc.stdint cimport (
+    INT64_MAX,
+    INT64_MIN,
 )
 
 import warnings
@@ -34,8 +36,14 @@ cnp.import_array()
 
 from typing import ClassVar
 
+from dateutil.easter import EASTER_WESTERN
+
 from pandas._libs.properties import cache_readonly
 
+from pandas._libs.portable cimport (
+    checked_add,
+    checked_mul,
+)
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
     is_float_object,
@@ -102,12 +110,6 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
-
-
-cdef extern from "pandas/portable.h":
-    bint checked_add(int64_t a, int64_t b, int64_t *res) noexcept nogil
-    bint checked_mul(int64_t a, int64_t b, int64_t *res) noexcept nogil
-
 
 # ---------------------------------------------------------------------
 # day_opt enum: avoids repeated string comparisons in nogil loops
@@ -957,7 +959,7 @@ cdef class BaseOffset:
         # will implicitly assume day_opt = "business_end", see get_day_of_month.
         cdef:
             npy_datetimestruct dts
-        pydate_to_dtstruct(other, &dts)
+        _dt_to_dtstruct(other, &dts)
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -1929,13 +1931,12 @@ def delta_to_tick(delta: timedelta) -> Tick:
 # --------------------------------------------------------------------
 
 
-cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
+cdef tuple _match_reso(ndarray dt64arr, _Timedelta delta):
     """
-    Add a Timedelta to a datetime64 ndarray, raising instead of wrapping.
+    Cast a datetime64 ndarray and a Timedelta to the finer of their two units.
 
-    Matching numpy, the operands are cast to the finer of the two units. Unlike
-    numpy, both that cast and the addition itself raise, and a sum landing on
-    the NaT sentinel is rejected rather than passed off as missing (GH#66552).
+    Matching numpy, we cast to the higher resolution. Unlike numpy, we raise
+    instead of silently overflowing during that cast.
     """
     cdef:
         NPY_DATETIMEUNIT reso = get_unit_from_dtype(dt64arr.dtype)
@@ -1946,6 +1947,19 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
         )
     elif reso > delta._creso:
         delta = delta._as_creso(reso)
+
+    return dt64arr, delta
+
+
+cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
+    """
+    Add a Timedelta to a datetime64 ndarray, raising instead of wrapping.
+
+    Matching numpy, the operands are cast to the finer of the two units. Unlike
+    numpy, both that cast and the addition itself raise, and a sum landing on
+    the NaT sentinel is rejected rather than passed off as missing (GH#66552).
+    """
+    dt64arr, delta = _match_reso(dt64arr, delta)
 
     i8result = add_overflowsafe(
         dt64arr.view("i8"), np.array(delta._value, dtype="i8")
@@ -2015,40 +2029,40 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 other_nanos = other.nanosecond
                 other = other.to_pydatetime(warn=False)
 
-        if len(self.kwds) > 0:
-            tzinfo = getattr(other, "tzinfo", None)
-            if tzinfo is not None and self._use_relativedelta:
-                # perform calculation in UTC
-                other = other.replace(tzinfo=None)
+        # GH#61870 Do not shortcut the empty-kwds case: a bare DateOffset(n)
+        #  carries its n-days default in self._offset, and adding that outside
+        #  the tz round-trip below left pytz results on the stale UTC offset.
+        tzinfo = getattr(other, "tzinfo", None)
+        if tzinfo is not None and self._use_relativedelta:
+            # perform calculation in UTC
+            other = other.replace(tzinfo=None)
 
-            other = other + (self._offset * self._n)
+        other = other + (self._offset * self._n)
 
-            if hasattr(self, "nanoseconds"):
-                other = self._n * Timedelta(nanoseconds=self.nanoseconds) + other
-            if other_nanos != 0:
-                other = Timedelta(nanoseconds=other_nanos) + other
+        if hasattr(self, "nanoseconds"):
+            other = self._n * Timedelta(nanoseconds=self.nanoseconds) + other
+        if other_nanos != 0:
+            other = Timedelta(nanoseconds=other_nanos) + other
 
-            if tzinfo is not None and self._use_relativedelta:
-                # bring tz back from UTC calculation
-                other = localize_pydatetime(other, tzinfo)
+        if tzinfo is not None and self._use_relativedelta:
+            # bring tz back from UTC calculation
+            other = localize_pydatetime(other, tzinfo)
 
-            result = Timestamp(other)
-            # GH#64806 The computation above uses Python timedelta /
-            # relativedelta, which floor sub-second components to microseconds
-            # and lose the offset's declared resolution (e.g. milliseconds).
-            # Coerce to that resolution when lossless so the scalar result
-            # matches the vectorized DatetimeIndex/Series path; apply_wraps
-            # then narrows back to ``other``'s unit where that is also lossless.
-            try:
-                offset_unit = self._pd_timedelta.unit
-            except NotImplementedError:
-                return result
-            result2 = result.as_unit(offset_unit)
-            if result == result2:
-                result = result2
+        result = Timestamp(other)
+        # GH#64806 The computation above uses Python timedelta /
+        # relativedelta, which floor sub-second components to microseconds
+        # and lose the offset's declared resolution (e.g. milliseconds).
+        # Coerce to that resolution when lossless so the scalar result
+        # matches the vectorized DatetimeIndex/Series path; apply_wraps
+        # then narrows back to ``other``'s unit where that is also lossless.
+        try:
+            offset_unit = self._pd_timedelta.unit
+        except NotImplementedError:
             return result
-        else:
-            return other + timedelta(self._n)
+        result2 = result.as_unit(offset_unit)
+        if result == result2:
+            result = result2
+        return result
 
     @cache_readonly
     def _pd_timedelta(self) -> Timedelta:
@@ -2136,6 +2150,18 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
         kwds = self.kwds
         months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self._n
+        if months and delta._value:
+            # GH#66549 apply both components in one pass, so that an
+            #  out-of-range month-shifted intermediate does not reject a
+            #  representable result the scalar path accepts
+            dt64other, delta = _match_reso(dt64other, delta)
+            shifted = _shift_months_and_add(
+                dt64other.view("i8"),
+                months,
+                delta._value,
+                get_unit_from_dtype(dt64other.dtype),
+            )
+            return shifted.view(dt64other.dtype)
         if months:
             shifted = shift_months(dt64other.view("i8"), months, reso=reso)
             dt64other = shifted.view(dtarr.dtype)
@@ -2647,7 +2673,7 @@ cdef class BusinessDay(BusinessMixin):
     business day or a number of business days. Business days exclude weekends
     (Saturday and Sunday) by default.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -3746,7 +3772,7 @@ cdef class YearOffset(SingleConstructorOffset):
         # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
-        pydate_to_dtstruct(other, &dts)
+        _dt_to_dtstruct(other, &dts)
         dts.month = self._month
         return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
@@ -3984,11 +4010,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
     @property
     def startingMonth(self) -> int:
         """
-        Return the month of the year from which quarters start.
+        Return the month of the year that anchors the quarters.
 
-        This value determines which month marks the beginning of a quarterly period.
-        For example, with startingMonth=1, quarters start in January, April, July,
-        and October.
+        For the ``*Begin`` offsets this is a month in which a quarter starts, so
+        ``startingMonth=1`` anchors on January 1, April 1, July 1 and October 1.
+        For the ``*End`` offsets it is a month in which a quarter *ends*, so
+        ``startingMonth=1`` anchors on January 31, April 30, July 31 and
+        October 31.
 
         See Also
         --------
@@ -3997,14 +4025,21 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BQuarterBegin().startingMonth
-        3
+        A ``*Begin`` offset starts its quarters in ``startingMonth``:
 
-        >>> pd.offsets.QuarterEnd().startingMonth
-        3
+        >>> pd.offsets.QuarterBegin(startingMonth=2).startingMonth
+        2
 
-        >>> pd.offsets.QuarterBegin(startingMonth=1).startingMonth
-        1
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.QuarterBegin(startingMonth=2)
+        Timestamp('2022-02-01 00:00:00')
+
+        An ``*End`` offset ends its quarters in ``startingMonth``:
+
+        >>> pd.offsets.QuarterEnd(startingMonth=2).startingMonth
+        2
+
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.QuarterEnd(startingMonth=2)
+        Timestamp('2022-02-28 00:00:00')
         """
         return self._startingMonth
 
@@ -4170,7 +4205,7 @@ cdef class BQuarterEnd(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters end.
 
     See Also
     --------
@@ -4211,7 +4246,7 @@ cdef class BQuarterBegin(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters start.
 
     See Also
     --------
@@ -4252,7 +4287,7 @@ cdef class QuarterEnd(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters end.
 
     See Also
     --------
@@ -4293,7 +4328,7 @@ cdef class QuarterBegin(QuarterOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start quarters.
+        The month of the year in which quarters start.
 
     See Also
     --------
@@ -4339,10 +4374,12 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     @property
     def startingMonth(self) -> int:
         """
-        Return the month of the year from which half-years start.
+        Return the month of the year that anchors the half-years.
 
-        This value determines which month marks the beginning of a half-year period.
-        For example, with startingMonth=1, half-years start in January and July.
+        For the ``*Begin`` offsets this is a month in which a half-year starts, so
+        ``startingMonth=1`` anchors on January 1 and July 1. For the ``*End``
+        offsets it is a month in which a half-year *ends*, so ``startingMonth=1``
+        anchors on January 31 and July 31.
 
         See Also
         --------
@@ -4351,14 +4388,21 @@ cdef class HalfYearOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BHalfYearBegin().startingMonth
-        1
+        A ``*Begin`` offset starts its half-years in ``startingMonth``:
 
-        >>> pd.offsets.BHalfYearEnd().startingMonth
-        6
+        >>> pd.offsets.HalfYearBegin(startingMonth=2).startingMonth
+        2
 
-        >>> pd.offsets.HalfYearBegin(startingMonth=3).startingMonth
-        3
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearBegin(startingMonth=2)
+        Timestamp('2022-02-01 00:00:00')
+
+        An ``*End`` offset ends its half-years in ``startingMonth``:
+
+        >>> pd.offsets.HalfYearEnd(startingMonth=2).startingMonth
+        2
+
+        >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearEnd(startingMonth=2)
+        Timestamp('2022-02-28 00:00:00')
         """
         return self._startingMonth
 
@@ -4482,7 +4526,7 @@ cdef class BHalfYearEnd(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 6
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years end.
 
     See Also
     --------
@@ -4523,7 +4567,7 @@ cdef class BHalfYearBegin(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 1
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years start.
 
     See Also
     --------
@@ -4564,7 +4608,7 @@ cdef class HalfYearEnd(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 6
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years end.
 
     See Also
     --------
@@ -4597,7 +4641,7 @@ cdef class HalfYearBegin(HalfYearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 1
-        A specific integer for the month of the year from which we start half-years.
+        The month of the year in which half-years start.
 
     See Also
     --------
@@ -6567,8 +6611,6 @@ cdef class Easter(SingleConstructorOffset):
     cdef readonly:
         int method
 
-    from dateutil.easter import EASTER_WESTERN
-
     def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
         BaseOffset.__init__(self, n, normalize)
 
@@ -6664,7 +6706,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -7759,6 +7801,46 @@ cdef int month_add_months(npy_datetimestruct dts, int64_t months) noexcept nogil
     return 12 if new_month == 0 else <int>new_month
 
 
+cdef ndarray _shift_quarters_out_of_range(
+    ndarray dtindex,
+    ndarray out,
+    int64_t quarters,
+    int q1start_month,
+    _DayOpt day_opt_enum,
+    int modby,
+    NPY_DATETIMEUNIT reso,
+):
+    """
+    Handle a `quarters` so large that `modby * quarters` does not fit in int64.
+
+    No element can shift to a representable date, so raise the way the scalar
+    path does, naming the same year (GH#66549). An all-NaT input has nothing to
+    shift and still comes back all-NaT.
+    """
+    cdef:
+        npy_datetimestruct dts
+        int months_since
+        int64_t val, n
+
+    i8values = dtindex.ravel()
+    i8values = i8values[i8values != NPY_NAT]
+    if i8values.size == 0:
+        out.fill(NPY_NAT)
+        return out
+
+    val = i8values[0]
+    pandas_datetime_to_datetimestruct(val, reso, &dts)
+    months_since = (dts.month - q1start_month) % modby
+    n = _roll_qtrday(&dts, quarters, months_since, day_opt_enum)
+
+    # Python ints, since the shift is precisely what does not fit in int64
+    months = int(modby) * int(n) - months_since
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {npy_unit_to_attrname[reso]} timestamp: year "
+        f"{int(dts.year) + (months + dts.month - 1) // 12}"
+    )
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef ndarray shift_quarters(
@@ -7793,9 +7875,21 @@ cdef ndarray shift_quarters(
         int64_t val, res_val
         int months_since
         int64_t n
+        # `modby * n - months_since` is formed below, and year_add_months goes
+        #  on to form `dts.month + months`; months_since < modby, dts.month
+        #  <= 12, and _roll_qtrday never moves |n| outward.
+        int64_t quarters_limit = (INT64_MAX - modby - 12) // modby - 1
         npy_datetimestruct dts
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
+
+    if not -quarters_limit <= quarters <= quarters_limit:
+        # GH#66549 `modby * quarters` would wrap, silently shifting by the
+        #  wrapped number of months, e.g. 12 * 2**62 == 0. Split out so the
+        #  loop below stays free of a per-element overflow check.
+        return _shift_quarters_out_of_range(
+            dtindex, out, quarters, q1start_month, day_opt_enum, modby, reso
+        )
 
     try:
         with nogil:
@@ -7825,6 +7919,94 @@ cdef ndarray shift_quarters(
     except OverflowError as err:
         # GH#66549 dts holds the unrepresentable result
         _raise_out_of_bounds(&dts, reso, err)
+
+    return out
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef ndarray _shift_months_and_add(
+    ndarray dtindex,  # int64_t, arbitrary ndim
+    int64_t months,
+    int64_t offset,
+    NPY_DATETIMEUNIT reso,
+):
+    """
+    Shift by `months` and then add `offset`, given in `reso` units, in one pass.
+
+    Doing the two in sequence would store the month-shifted intermediate, so a
+    composed offset whose final result is representable would be rejected when
+    that intermediate is not (GH#66549).
+    """
+    cdef:
+        Py_ssize_t _
+        npy_datetimestruct dts
+        int count = dtindex.size
+        ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
+        int64_t per_day = periods_per_day(reso)
+        int64_t offset_days = offset / per_day
+        int64_t offset_rem = offset - offset_days * per_day
+        int64_t val, res_val, day_val, tod
+        bint overflowed = False
+
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
+
+    if offset_rem < 0:
+        # Split `offset` so that the remainder is a time-of-day, i.e. floor
+        #  rather than truncate towards zero.
+        offset_rem += per_day
+        offset_days -= 1
+
+    try:
+        with nogil:
+            for _ in range(count):
+                # Analogous to: val = dtindex[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    dts.year = year_add_months(dts, months)
+                    dts.month = month_add_months(dts, months)
+                    dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
+
+                    # The month shift leaves the time-of-day alone, so the
+                    #  result is the shifted date plus the original
+                    #  time-of-day plus the offset. Accumulate the date part in
+                    #  days, where no pandas-representable value can overflow.
+                    day_val = npy_datetimestruct_to_datetime(
+                        NPY_DATETIMEUNIT.NPY_FR_D, &dts
+                    ) + offset_days
+                    tod = val % per_day
+                    if tod < 0:
+                        tod += per_day
+                    tod += offset_rem
+                    if tod >= per_day:
+                        tod -= per_day
+                        day_val += 1
+
+                    # Converting the result date rather than the shifted one is
+                    #  what keeps an out-of-range intermediate from being stored
+                    pandas_datetime_to_datetimestruct(
+                        day_val, NPY_DATETIMEUNIT.NPY_FR_D, &dts
+                    )
+                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                    if checked_add(res_val, tod, &res_val) or res_val == NPY_NAT:
+                        overflowed = True
+                        break
+
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        # GH#66549 dts holds the unrepresentable result
+        _raise_out_of_bounds(&dts, reso, err)
+
+    if overflowed:
+        _raise_out_of_bounds(&dts, reso, None)
 
     return out
 
@@ -7917,6 +8099,19 @@ def shift_months(
     return out
 
 
+cdef void _dt_to_dtstruct(datetime stamp, npy_datetimestruct *dts) noexcept:
+    """
+    Fill `dts` from a datetime or Timestamp.
+
+    Unlike pydate_to_dtstruct, this gets the year right for a Timestamp outside
+    the range representable by datetime.datetime, whose C-level year field
+    holds a placeholder (GH#53125).
+    """
+    pydate_to_dtstruct(stamp, dts)
+    if isinstance(stamp, _Timestamp):
+        dts.year = (<_Timestamp>stamp)._year
+
+
 def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
@@ -7950,13 +8145,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
         int64_t year, dy
         npy_datetimestruct dts
 
-    if isinstance(stamp, _Timestamp):
-        creso = (<_Timestamp>stamp)._creso
-        val = (<_Timestamp>stamp)._value
-        pandas_datetime_to_datetimestruct(val, creso, &dts)
-    else:
-        # Plain datetime/date
-        pydate_to_dtstruct(stamp, &dts)
+    _dt_to_dtstruct(stamp, &dts)
 
     dy = (dts.month + months) // 12
     month = (dts.month + months) % 12
@@ -7964,7 +8153,13 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     if month == 0:
         month = 12
         dy -= 1
-    year = dts.year + dy
+
+    # Python ints, since `dts.year + dy` is precisely the sum that overflows
+    #  for a `months` this large (GH#66549)
+    new_year = int(dts.year) + int(dy)
+    if not INT64_MIN <= new_year <= INT64_MAX:
+        raise OutOfBoundsDatetime(f"Out of bounds timestamp: year {new_year}")
+    year = new_year
 
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)
@@ -8065,7 +8260,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
         npy_datetimestruct dts
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
-    pydate_to_dtstruct(other, &dts)
+    _dt_to_dtstruct(other, &dts)
 
     if modby == 12:
         # We care about the month-of-year, not month-of-quarter, so skip mod

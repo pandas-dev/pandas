@@ -1,3 +1,7 @@
+import inspect
+import os
+import warnings
+
 import pytest
 
 import pandas._config.config as cf
@@ -505,3 +509,123 @@ def test_option_context_invalid_option():
     with pytest.raises(OptionError, match="No such keys"):
         with cf.option_context("invalid", True):
             pass
+
+
+@pytest.fixture
+def clean_config(monkeypatch):
+    # module-level counterpart of TestConfig.clean_config
+    with monkeypatch.context() as m:
+        m.setattr(cf, "_global_config", {})
+        m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
+        m.setattr(cf, "_deprecated_options", {})
+        m.setattr(cf, "_registered_options", {})
+        yield
+
+
+def _deprecation_warnings(recorded):
+    return [
+        warning
+        for warning in recorded
+        if issubclass(warning.category, (FutureWarning, DeprecationWarning))
+    ]
+
+
+def _assert_points_here(warning, lineno):
+    assert os.path.normcase(warning.filename) == os.path.normcase(
+        os.path.abspath(__file__)
+    )
+    assert warning.lineno == lineno
+
+
+@pytest.mark.parametrize("category", [FutureWarning, DeprecationWarning])
+def test_option_context_deprecated_key_stacklevel(clean_config, category):
+    # GH#63235: warning points at the "with" statement, not contextlib.__enter__,
+    # and entering plus restoring the option warns only once in total
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", category)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 1
+        with cf.option_context("a", 2):
+            pass
+
+    (warning,) = _deprecation_warnings(recorded)
+    _assert_points_here(warning, lineno)
+
+
+def test_set_option_deprecated_key_stacklevel(clean_config):
+    # GH#63235: set_option still points at the caller after the refactor
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 1
+        cf.set_option("a", 2)
+
+    (warning,) = _deprecation_warnings(recorded)
+    _assert_points_here(warning, lineno)
+
+
+def test_option_context_deprecated_key_raising(clean_config):
+    # GH#63235: unwinding through the finally-restore does not warn a second time
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 2
+        with pytest.raises(ValueError, match="inside context"):
+            with cf.option_context("a", 2):
+                raise ValueError("inside context")
+
+    (warning,) = _deprecation_warnings(recorded)
+    _assert_points_here(warning, lineno)
+
+
+def test_option_context_multiple_deprecated_keys(clean_config):
+    # GH#63235: one warning per deprecated key
+    cf.register_option("a", 1)
+    cf.register_option("b", 1)
+    cf.deprecate_option("a", FutureWarning)
+    cf.deprecate_option("b", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        lineno = inspect.currentframe().f_lineno + 1
+        with cf.option_context("a", 2, "b", 3):
+            pass
+
+    first, second = _deprecation_warnings(recorded)
+    _assert_points_here(first, lineno)
+    _assert_points_here(second, lineno)
+
+
+def test_option_context_nested_deprecated_key(clean_config):
+    # GH#63235: each nested context warns at its own "with" statement
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        outer = inspect.currentframe().f_lineno + 1
+        with cf.option_context("a", 2):
+            with cf.option_context("a", 3):
+                pass
+
+    first, second = _deprecation_warnings(recorded)
+    _assert_points_here(first, outer)
+    _assert_points_here(second, outer + 1)
+
+
+def test_option_context_non_deprecated_key(clean_config):
+    # GH#63235: a live option must not start warning
+    cf.register_option("a", 1)
+
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        with cf.option_context("a", 2):
+            pass
+
+    assert _deprecation_warnings(recorded) == []

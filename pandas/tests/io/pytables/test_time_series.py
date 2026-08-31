@@ -26,7 +26,6 @@ def test_store_datetime_fractional_secs(temp_hdfstore, unit):
     assert temp_hdfstore["a"].index[0] == dt
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_series(temp_hdfstore):
     idx = date_range("2020-01-01", periods=10)
     ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
@@ -47,7 +46,6 @@ def test_tseries_indices_series(temp_hdfstore):
     tm.assert_class_equal(result.index, ser.index, obj="series index")
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_frame(temp_hdfstore):
     idx = date_range("2020-01-01", periods=10)
     df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx)

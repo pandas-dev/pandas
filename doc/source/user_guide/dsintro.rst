@@ -44,7 +44,8 @@ Here, ``data`` can be many different things:
 The passed **index** is a list of axis labels. The constructor's behavior
 depends on **data**'s type:
 
-**From ndarray**
+From ndarray
+~~~~~~~~~~~~
 
 If ``data`` is an ndarray, **index** must be the same length as **data**. If no
 index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
@@ -63,7 +64,8 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
     that does not support duplicate index values is attempted, an exception
     will be raised at that time.
 
-**From dict**
+From dict
+~~~~~~~~~
 
 :class:`Series` can be instantiated from dicts:
 
@@ -85,7 +87,8 @@ index will be pulled out.
 
     NaN (not a number) is the standard missing data marker used in pandas.
 
-**From scalar value**
+From scalar value
+~~~~~~~~~~~~~~~~~
 
 If ``data`` is a scalar value, the value will be repeated to match
 the length of **index**.  If the **index** is not provided, it defaults

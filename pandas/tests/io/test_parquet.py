@@ -5,22 +5,22 @@ from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
+import uuid
 
 import numpy as np
 import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under15p0,
-    pa_version_under16p0,
     pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
+    pa_version_under26p0,
 )
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -45,23 +45,16 @@ try:
     import fastparquet
 
     _HAVE_FASTPARQUET = True
-    _fp_version_lt_2025 = Version(fastparquet.__version__) < Version("2025.12.0")
     _fp_version_lt_2026_5 = Version(fastparquet.__version__) < Version("2026.5.0")
 except ImportError:
     _HAVE_FASTPARQUET = False
-    _fp_version_lt_2025 = False
     _fp_version_lt_2026_5 = False
 
 
 pytestmark = [
-    pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
     pytest.mark.filterwarnings(
         "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
     ),
-    pytest.mark.filterwarnings("ignore:engine='auto' is deprecated:DeprecationWarning"),
 ]
 
 
@@ -390,11 +383,8 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
 
 
 @pytest.mark.xfail(
-    using_string_dtype()
-    and _HAVE_PYARROW
-    and not _fp_version_lt_2025
-    and _fp_version_lt_2026_5,
-    reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+    reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
 )
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
@@ -752,7 +742,6 @@ class TestBasic(Base):
                 "value": pd.array([], dtype=dtype),
             }
         )
-        pytest.importorskip("pyarrow", "11.0.0")
         # GH 45694
         expected = None
         if dtype == "float":
@@ -796,7 +785,6 @@ class TestParquetPyArrow(Base):
     )
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
-        pytest.importorskip("pyarrow", "11.0.0")
 
         # additional supported types for pyarrow
         dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
@@ -855,38 +843,11 @@ class TestParquetPyArrow(Base):
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException, temp_file)
 
-    def test_unsupported_float16(self, pa, temp_file):
+    def test_float16(self, pa, temp_file):
         # #44847, #44914
-        # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        if pa_version_under15p0:
-            self.check_external_error_on_write(
-                df, pa, pyarrow.ArrowException, temp_file
-            )
-        else:
-            check_round_trip(df, temp_file, pa)
-
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason=(
-            "PyArrow does not cleanup of partial files dumps when unsupported "
-            "dtypes are passed to_parquet function in windows"
-        ),
-    )
-    @pytest.mark.skipif(not pa_version_under15p0, reason="float16 works on 15")
-    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
-    def test_unsupported_float16_cleanup(self, pa, path_type, temp_file):
-        # #44847, #44914
-        # Not able to write float 16 column using pyarrow.
-        # Tests cleanup by pyarrow in case of an error
-        data = np.arange(2, 10, dtype=np.float16)
-        df = pd.DataFrame(data=data, columns=["fp16"])
-
-        path = path_type(temp_file)
-        with tm.external_error_raised(pyarrow.ArrowException):
-            df.to_parquet(path=path, engine=pa)
-        assert not os.path.isfile(path)
+        check_round_trip(df, temp_file, pa)
 
     def test_categorical(self, pa, temp_file):
         # supported in >= 0.7.0
@@ -1111,7 +1072,6 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
     @pytest.mark.filterwarnings(
         "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
     )
@@ -1190,11 +1150,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
 
-    @pytest.mark.xfail(
-        pa_version_under16p0,
-        reason="GH#40173 fixed in pyarrow 16.0.0",
-        raises=AttributeError,
-    )
     def test_empty_column_multiindex(self, pa, temp_file):
         # GH#40173 reading back an empty frame with a column MultiIndex used to
         # raise inside pyarrow's metadata reconstruction
@@ -1260,7 +1215,7 @@ class TestParquetPyArrow(Base):
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
-        pa = pytest.importorskip("pyarrow", "13.0.0")
+        pa = pytest.importorskip("pyarrow")
         pq = pytest.importorskip("pyarrow.parquet")
 
         arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
@@ -1283,7 +1238,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, temp_file, pa)
 
     def test_maps_as_pydicts(self, pa, temp_file):
-        pyarrow = pytest.importorskip("pyarrow", "13.0.0")
+        pyarrow = pytest.importorskip("pyarrow")
 
         schema = pyarrow.schema(
             [("foo", pyarrow.map_(pyarrow.string(), pyarrow.int64()))]
@@ -1435,11 +1390,8 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
@@ -1453,8 +1405,8 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.xfail(
-        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW,
+        reason="fastparquet can't write ArrowStringArray",
     )
     @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_bucket_public, s3so, fp, temp_file):
@@ -1469,11 +1421,8 @@ class TestParquetFastParquet(Base):
         )
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
@@ -1492,11 +1441,8 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 2
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
@@ -1515,11 +1461,8 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 1
 
     @pytest.mark.xfail(
-        using_string_dtype()
-        and _HAVE_PYARROW
-        and not _fp_version_lt_2025
-        and _fp_version_lt_2026_5,
-        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+        using_string_dtype() and _HAVE_PYARROW and _fp_version_lt_2026_5,
+        reason="fastparquet < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
@@ -1650,3 +1593,19 @@ class TestParquetFastParquet(Base):
         df.to_parquet(temp_file)
         with pytest.raises(ValueError, match=msg):
             read_parquet(temp_file, dtype_backend="numpy")
+
+
+@pytest.mark.xfail(
+    pa_version_under26p0,
+    reason="Upstream PyArrow fails to cast FIXED_LEN_BYTE_ARRAY to UUID - GH 61602",
+)
+@td.skip_if_no("pyarrow", min_version="24.0.0")
+def test_to_parquet_uuid_supported(temp_file):
+    # GH 61602
+    expected = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
+
+    expected.to_parquet(temp_file, engine="pyarrow")
+
+    result = read_parquet(temp_file, engine="pyarrow")
+
+    tm.assert_frame_equal(result, expected)
