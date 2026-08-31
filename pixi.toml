@@ -77,19 +77,18 @@ python-freethreading = "3.13.*"
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
 pytest-cov = ">=7.0.0"
+# Exercises the tests behind the `ip` fixture in pandas/conftest.py
+ipython = "*"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
 boto3 = ">=1.40.46"
+botocore = ">=1.40.46"
 
 [feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.11"
 qtpy = ">=2.4.3"
-
-# Exercises the tests behind the `ip` fixture in pandas/conftest.py
-[feature.test-ipython.dependencies]
-ipython = "*"
 
 # test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
@@ -212,10 +211,10 @@ types-pytz = "*"
 types-PyYAML = "*"
 
 [environments]
-py311 = { features = ["py311", "numpy22", "test-base", "test-clipboard", "test-ipython", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
-py312 = { features = ["py312", "numpy23", "test-base", "test-clipboard", "test-ipython", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
-py313 = { features = ["py313", "numpy24", "test-base", "test-clipboard", "test-ipython", "test-network", "pyarrow24", "optional-dependencies", "default-compiler"] }
-py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-ipython", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
+py311 = { features = ["py311", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
+py312 = { features = ["py312", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
+py313 = { features = ["py313", "numpy24", "test-base", "test-clipboard", "test-network", "pyarrow24", "optional-dependencies", "default-compiler"] }
+py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
 py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base", "default-compiler"] }

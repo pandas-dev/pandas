@@ -35,7 +35,6 @@ def test_dask(df):
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        pytest.importorskip("toolz")
         dd = pytest.importorskip("dask.dataframe")
 
         ddf = dd.from_pandas(df, npartitions=3)

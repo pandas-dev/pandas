@@ -60,9 +60,7 @@ IMPORT_TO_CONDA = {
 
 # Modules that are legitimately absent from pixi.toml, with the reason why.
 ALLOWED_UNDECLARED = {
-    "botocore": "installed as a dependency of boto3",
     "moto": "CI serves moto from a container, see PANDAS_MOTO_URL",
-    "toolz": "installed as a dependency of dask",
 }
 
 MESSAGE = (
