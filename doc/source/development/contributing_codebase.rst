@@ -566,6 +566,9 @@ and specify the warning message using the ``match`` argument.
     with tm.assert_produces_warning(DeprecationWarning, match="the warning message"):
         pd.deprecated_function()
 
+Both arguments are required whenever a warning is expected. In the rare case where
+the message genuinely cannot be asserted, pass ``match=None`` to opt out.
+
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
 
 .. code-block:: python

@@ -1,3 +1,5 @@
+import importlib
+import locale
 from textwrap import dedent
 
 import numpy as np
@@ -178,11 +180,70 @@ def set_pyqt_clipboard(monkeypatch):
         yield
 
 
+# GH#44625 must be read before ``qapp`` runs, hence at import rather than
+#  inside the fixture: session-scoped fixtures are set up before any
+#  function-scoped one, so a value read there would already include the change.
+_LOCALE_AT_IMPORT = locale.setlocale(locale.LC_ALL)
+
+
+@pytest.fixture(scope="session")
+def qapp_restore_locale(qapp):
+    """
+    ``qapp``, with the process-wide locale it leaked put back.
+
+    GH#44625: constructing a QApplication calls ``setlocale(LC_ALL, "")`` and
+    never restores it, which switches LC_TIME to the environment's locale for
+    the remainder of the worker. Datetime tests running after the clipboard
+    tests then fail on any machine whose locale is not English. Request this
+    rather than ``qapp`` directly.
+    """
+    locale.setlocale(locale.LC_ALL, _LOCALE_AT_IMPORT)
+    return qapp
+
+
 @pytest.fixture
-def clipboard(qapp):
-    clip = qapp.clipboard()
+def clipboard(qapp_restore_locale):
+    clip = qapp_restore_locale.clipboard()
     yield clip
     clip.clear()
+
+
+def test_init_qt_clipboard_restores_locale(monkeypatch):
+    # GH#44625 QApplication calls setlocale(LC_ALL, "") and does not restore it,
+    #  which would change LC_TIME and LC_NUMERIC for the rest of the process
+    # init_qt_clipboard tries qtpy first, then PyQt5; patch whichever it will use
+    for name in ["qtpy.QtWidgets", "PyQt5.QtWidgets"]:
+        try:
+            qtwidgets = importlib.import_module(name)
+        except ImportError:
+            continue
+        break
+    else:
+        pytest.skip("No Qt bindings installed")
+
+    before = locale.setlocale(locale.LC_ALL)
+    other = None
+    for candidate in ["C.UTF-8", "en_US.UTF-8", "de_DE.UTF-8", "it_IT.UTF-8", "C"]:
+        if not tm.can_set_locale(candidate):
+            continue
+        with tm.set_locale(candidate):
+            if locale.setlocale(locale.LC_ALL) != before:
+                other = candidate
+                break
+    if other is None:
+        pytest.skip("No locale available that differs from the current one")
+
+    class FakeQApplication:
+        @staticmethod
+        def instance():
+            return None
+
+        def __init__(self, argv) -> None:
+            locale.setlocale(locale.LC_ALL, other)
+
+    monkeypatch.setattr(qtwidgets, "QApplication", FakeQApplication)
+    init_qt_clipboard()
+    assert locale.setlocale(locale.LC_ALL) == before
 
 
 @pytest.mark.single_cpu

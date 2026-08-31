@@ -16,16 +16,16 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            pytest.param("2:15pm", marks=td.skip_if_not_us_locale),
-            pytest.param("0215pm", marks=td.skip_if_not_us_locale),
+            pytest.param("2:15pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("0215pm", marks=td.skip_if_not_english_lc_time),
             "14:15:00",
             "141500",
-            pytest.param("2:15:00pm", marks=td.skip_if_not_us_locale),
-            pytest.param("021500pm", marks=td.skip_if_not_us_locale),
-            pytest.param("2:15 pm", marks=td.skip_if_not_us_locale),
-            pytest.param("0215 pm", marks=td.skip_if_not_us_locale),
-            pytest.param("2:15:00 pm", marks=td.skip_if_not_us_locale),
-            pytest.param("021500 pm", marks=td.skip_if_not_us_locale),
+            pytest.param("2:15:00pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("021500pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("2:15 pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("0215 pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("2:15:00 pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("021500 pm", marks=td.skip_if_not_english_lc_time),
             time(14, 15),
         ],
     )
@@ -33,7 +33,7 @@ class TestToTime:
         # GH#11818
         assert to_time(time_string) == time(14, 15)
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     def test_parsers_time_space_before_meridiem(self):
         # GH#18793 the space before AM/PM used to make these unparsable
         arg = ["3:25:00 AM", "3:25:00 PM", "12:30:00 AM", "12:30:00 PM"]
