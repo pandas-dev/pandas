@@ -10,8 +10,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -72,7 +70,6 @@ def tips_df(datapath):
 
 @pytest.mark.single_cpu
 @pytest.mark.network
-@td.skip_if_not_us_locale()
 class TestS3:
     @pytest.mark.parametrize(
         "suffix, compression",
