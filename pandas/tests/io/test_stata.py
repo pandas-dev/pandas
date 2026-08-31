@@ -1993,7 +1993,9 @@ the string values returned are correct."""
         # will block pytests skip mechanism from triggering (failing the test)
         # if the path is not present
         path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
-        with tm.assert_produces_warning(UnicodeWarning, filter_level="once") as w:
+        with tm.assert_produces_warning(
+            UnicodeWarning, filter_level="once", match=msg
+        ) as w:
             encoded = read_stata(path)
             # with filter_level="always", produces 151 warnings which can be slow
             assert len(w) == 1

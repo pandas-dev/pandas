@@ -60,9 +60,6 @@ engine_params = [
                 "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
             ),
             pytest.mark.filterwarnings(
-                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
-            ),
-            pytest.mark.filterwarnings(
                 "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
             ),
         ],
@@ -276,7 +273,6 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
-    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
     def test_engine_used(self, read_ext, engine):
         # GH 38884
         expected_defaults = {
@@ -897,7 +893,6 @@ class TestReaders:
         with pytest.raises(ZeroDivisionError, match=r" \(sheet: Sheet1\)$"):
             pd.read_excel("test1" + read_ext, usecols=lambda x: 1 / 0, sheet_name=None)
 
-    @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         xfail_datetimes_with_pyxlsb(engine, request)
@@ -1014,7 +1009,6 @@ class TestReaders:
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
-    @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
     def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:
@@ -1842,7 +1836,8 @@ class TestExcelFileRead:
 
         Path(tmp_excel).write_text("corrupt", encoding="utf-8")
         expected_warning = Pandas4Warning if engine in {"xlrd", "pyxlsb"} else False
-        with tm.assert_produces_warning(expected_warning):
+        msg = f"The {engine} engine is deprecated"
+        with tm.assert_produces_warning(expected_warning, match=msg):
             try:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:

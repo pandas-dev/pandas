@@ -106,15 +106,9 @@ class TestIntervalArray(base.ExtensionTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_hash_pandas_object(self, data):
         super().test_hash_pandas_object(data)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_hash_pandas_object_works(self, data, as_frame):
         super().test_hash_pandas_object_works(data, as_frame)
 
@@ -125,9 +119,6 @@ class TestIntervalArray(base.ExtensionTests):
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in cast:RuntimeWarning"
-    )
     def test_astype_str(self, data):
         super().test_astype_str(data)
 

@@ -1685,7 +1685,6 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @pytest.mark.network
-    @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_bucket_public_with_data, s3so):
         # GH17200
         result = read_json(
@@ -1698,7 +1697,6 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @pytest.mark.network
-    @td.skip_if_not_us_locale
     def test_read_s3_jsonl_chunksize(self, s3_bucket_public_with_data, s3so):
         # GH47659 - reading a binary (e.g. S3) stream in chunks used to raise
         # "TypeError: initial_value must be str or None, not bytes"
@@ -2491,7 +2489,6 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_read_json_pyarrow_with_dtype(self):
         dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
         json = b'{"a": 1, "b": 2}\n'

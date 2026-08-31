@@ -4,8 +4,6 @@ import uuid
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -320,7 +318,6 @@ def test_styler_custom_converter(tmp_excel):
 
 
 @pytest.mark.single_cpu
-@td.skip_if_not_us_locale
 @pytest.mark.filterwarnings(
     "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
 )
