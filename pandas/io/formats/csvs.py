@@ -492,7 +492,21 @@ class CSVFormatter:
         # mid-write into the real destination -- and rather than trying to
         # maintain a list of every pyarrow type the CSV writer rejects.
         pa_csv = import_optional_dependency("pyarrow.csv")
-        write_options = self._build_pyarrow_write_options(pa_csv)
+
+        # NotImplementedError signals an unsupported *quoting* value (e.g.
+        # QUOTE_NONNUMERIC) -- an engine capability gap, handled like any
+        # other pyarrow-incompatibility below. A TypeError here (quotechar
+        # not set while quoting is enabled) is a genuine usage error that
+        # the python engine would reject too, so it is left to propagate
+        # as-is rather than being treated as an auto-fallback trigger.
+        try:
+            write_options = self._build_pyarrow_write_options(pa_csv)
+        except NotImplementedError:
+            reason = f"The pyarrow engine does not support quoting={self.quoting!r}."
+            if explicit:
+                raise ValueError(reason) from None
+            return "python"
+
         try:
             pa_csv.write_csv(table.slice(0, 1), io.BytesIO(), write_options)
         except (pa.lib.ArrowException, TypeError, ValueError, NotImplementedError):
