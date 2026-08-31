@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 
 class TestBetweenTime:
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
@@ -227,7 +227,7 @@ class TestBetweenTime:
             ts.between_time(stime, etime, inclusive=inclusive)
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 def test_between_time_space_before_meridiem():
     # GH#18793 the space before AM/PM used to make these unparsable
     index = date_range("2012-01-01", periods=48, freq="h")

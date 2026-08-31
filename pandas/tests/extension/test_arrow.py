@@ -4797,7 +4797,7 @@ def test_string_to_time_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
 def test_string_to_time_parsing_cast_meridiem(dtype):
     # GH#18793 the space before AM/PM used to make these coerce to null

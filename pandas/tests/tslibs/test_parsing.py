@@ -241,7 +241,7 @@ def test_parsers_month_freq(date_str, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -304,7 +304,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
