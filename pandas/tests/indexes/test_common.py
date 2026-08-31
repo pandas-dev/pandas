@@ -384,10 +384,12 @@ class TestCommon:
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
             # Some of these conversions cannot succeed so we use a try / except
+            msg = "Casting complex values to real discards the imaginary part"
             with tm.assert_produces_warning(
                 warn,
                 raise_on_extra_warnings=is_pyarrow_str,
                 check_stacklevel=False,
+                match=msg,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):

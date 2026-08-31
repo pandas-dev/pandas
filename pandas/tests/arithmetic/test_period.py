@@ -1594,3 +1594,15 @@ def test_pi_add_int_still_raises_on_nat_sentinel():
     msg = "Overflow in int64 addition"
     with pytest.raises(OverflowError, match=msg):
         pi - 1
+
+
+def test_pi_sub_pi_length_zero():
+    # GH#40624 subtracting length-zero PeriodArrays gave an object-dtype result
+    #  at full length but raised on a length-zero operand
+    pi = period_range("2016-01-01", periods=0, freq="D")
+    expected = np.array([], dtype=object)
+
+    tm.assert_numpy_array_equal(pi._data - pi._data, expected)
+    tm.assert_numpy_array_equal(pi._data - Period("2016-01-01", freq="D"), expected)
+    tm.assert_index_equal(pi - pi, pd.Index(expected))
+    tm.assert_series_equal(Series(pi) - Series(pi), Series(expected, dtype=object))
