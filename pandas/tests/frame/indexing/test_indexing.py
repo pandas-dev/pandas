@@ -520,11 +520,21 @@ class TestDataFrameIndexing:
         ],
     )
     def test_setitem_single_column_boolean_column_indexer(self, data):
-        # GH#66527 boolean column indexer on a single-column DataFrame
-        # used to raise NotImplementedError for single-column EA-backed blocks
+        # GH#66527 boolean [True] column indexer on a single-column
+        # DataFrame used to raise NotImplementedError for 1D-only
+        # EA-backed blocks (e.g. object/string/Int64 dtype).
         df = DataFrame({"A": data})
         expected = df.copy()
+
         df.loc[:, [True]] = df.loc[:, [True]]
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_single_column_false_column_indexer(self):
+        # GH#66579 a [False] mask selects no column, so this is a no-op
+        df = DataFrame({"A": pd.array([1, 2, 3], dtype="Int64")})
+        expected = df.copy()
+
+        df.loc[:, [False]] = 9
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_boolean_mask_allfalse(self):

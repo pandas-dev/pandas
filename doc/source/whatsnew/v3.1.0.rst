@@ -431,7 +431,7 @@ Indexing
 ^^^^^^^^
 - Bug in :class:`TimedeltaIndex` string indexing using the resolution of the parsed value rather than the string, so keys like ``"720s"`` (an exact multiple of a minute) matched a minute-sized window instead of a second-sized one (:issue:`33603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` replacing the index name with the key's name when indexing with an :class:`Index` (:issue:`17110`)
-- Bug in :meth:`DataFrame.loc` raising ``NotImplementedError`` when setting a single-column DataFrame with an :class:`ExtensionArray` dtype using a boolean column indexer (e.g. ``df.loc[:, [True]]`` or ``df.loc[:, df.columns.isin(["A"])]``) (:issue:`66527`)
+- Bug in :meth:`DataFrame.loc` raising ``NotImplementedError`` when setting a single-column :class:`DataFrame` with an :class:`ExtensionArray` dtype using a boolean column indexer (e.g. ``df.loc[:, [True]]`` or ``df.loc[:, df.columns.isin(["A"])]``); a ``[False]`` mask is now correctly treated as a no-op (:issue:`66527`, :issue:`66579`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when assigning a list of tuples to an object-dtype column with a boolean mask on a mixed-dtype DataFrame (:issue:`37629`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row on a :class:`DataFrame` with no columns and the label is not in the index (:issue:`17895`)
 - Bug in :meth:`DataFrame.loc` returning incorrect dtype when the column key is a ``slice`` (:issue:`63071`)
