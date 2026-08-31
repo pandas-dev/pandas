@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -29,12 +30,16 @@ def test_to_numpy_cast_before_setting_na():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_to_numpy_tzaware_nat_unitless_dtype():
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_to_numpy_unitless_datetime64_deprecated(tz):
     # GH#59772
-    result = Series(NaT).dt.tz_localize("UTC").to_numpy("datetime64")
-    expected = Series(NaT).to_numpy("datetime64")
+    ser = Series(NaT)
+    if tz is not None:
+        ser = ser.dt.tz_localize(tz)
 
-    tm.assert_numpy_array_equal(result, expected)
+    msg = "Using a unit-less 'datetime64' dtype in to_numpy is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.to_numpy("datetime64")
 
 
 def test_to_numpy_copy_false_returns_readonly_view():
