@@ -164,7 +164,9 @@ class TestToCSV:
         #
         # A single (unheadered, unindexed) column with a missing value is
         # exactly a row that is entirely missing values, which the pyarrow
-        # engine cannot represent (see test_to_csv_pyarrow_all_na_row_raises)
+        # engine cannot represent (see test_to_csv_pyarrow_all_na_row_raises).
+        # The column is also whole-number-float (the only non-null value is
+        # 1.0), so explicit engine="pyarrow" also warns before raising.
         raises_if_pyarrow = check_raises_if_pyarrow_all_na_row(engine)
 
         df1 = DataFrame([None, 1])
@@ -172,7 +174,7 @@ class TestToCSV:
 ""
 1.0
 """
-        with raises_if_pyarrow:
+        with raises_if_pyarrow, check_warns_if_pyarrow_renders_differently(engine):
             df1.to_csv(temp_file, header=None, index=None, engine=engine)
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected1
@@ -182,7 +184,7 @@ class TestToCSV:
 1.0
 ""
 """
-        with raises_if_pyarrow:
+        with raises_if_pyarrow, check_warns_if_pyarrow_renders_differently(engine):
             df2.to_csv(temp_file, header=None, index=None, engine=engine)
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected2
@@ -683,14 +685,20 @@ $1$,$2$
         # GH#61617, GH#65227 - to_csv should not crash when FloatingArray
         # contains unmasked NaN (with distinguish_nan_and_na=True)
         df = DataFrame({"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"})
-        result = df.to_csv(index=False, engine=engine)
         # pyarrow always quotes string-typed values (incl. headers), and
         # drops the redundant trailing ".0" on whole-number floats; "auto"
         # only actually uses pyarrow here when the unmasked NaN is visible
         # (using_nan_is_na=False), since an unmasked NaN otherwise makes
         # column "a" look like a whole-number-only float column, which
-        # "auto" avoids rendering with pyarrow
+        # "auto" avoids rendering with pyarrow (and explicit engine="pyarrow"
+        # warns about instead, only when using_nan_is_na=True)
         pyarrow_used = engine == "pyarrow" or (engine == "auto" and not using_nan_is_na)
+        if engine == "pyarrow" and using_nan_is_na:
+            warns_if_pyarrow = check_warns_if_pyarrow_renders_differently(engine)
+        else:
+            warns_if_pyarrow = tm.assert_produces_warning(None)
+        with warns_if_pyarrow:
+            result = df.to_csv(index=False, engine=engine)
         col_b = '"c"' if pyarrow_used else "c"
         val_a = "3" if pyarrow_used else "3.0"
         header = '"a","b"' if pyarrow_used else "a,b"
@@ -708,12 +716,18 @@ $1$,$2$
         # GH#65227 - Series.to_csv with FloatingArray containing both NaN and NA
         ser = pd.Series((1, pd.NA, 0), index=["a", "b", "c"], dtype="Float64", name="x")
         ser = ser / ser
-        result = ser.to_csv(engine=engine)
         # pyarrow always quotes string-typed values (incl. headers/index),
         # and drops the redundant trailing ".0" on whole-number floats;
         # see test_to_csv_float_ea_nan_distinguish for why "auto" only
-        # actually uses pyarrow when using_nan_is_na=False
+        # actually uses pyarrow when using_nan_is_na=False (and explicit
+        # engine="pyarrow" warns about it instead, only when True)
         pyarrow_used = engine == "pyarrow" or (engine == "auto" and not using_nan_is_na)
+        if engine == "pyarrow" and using_nan_is_na:
+            warns_if_pyarrow = check_warns_if_pyarrow_renders_differently(engine)
+        else:
+            warns_if_pyarrow = tm.assert_produces_warning(None)
+        with warns_if_pyarrow:
+            result = ser.to_csv(engine=engine)
         if pyarrow_used:
             header, idx_a, idx_b, idx_c, val_a = (
                 '"","x"',
@@ -821,7 +835,8 @@ $1$,$2$
         if engine == "pyarrow":
             expected = expected_pyarrow
         obj = frame_or_series(pd.Series([1], ind, name="data"))
-        result = obj.to_csv(lineterminator="\n", header=True, engine=engine)
+        with check_warns_if_pyarrow_renders_differently(engine):
+            result = obj.to_csv(lineterminator="\n", header=True, engine=engine)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self, temp_file, engine):

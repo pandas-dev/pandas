@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+import codecs
 import csv as csvlib
 import io
 import os
@@ -63,6 +64,12 @@ if TYPE_CHECKING:
 
 
 _DEFAULT_CHUNKSIZE_CELLS = 100_000
+
+# Objects that expect str (not bytes) to be written to them, even though
+# they may wrap/proxy an underlying binary handle (e.g. codecs.StreamWriter
+# wraps a binary file but itself only accepts str). The pyarrow CSV writer
+# only ever writes bytes, so none of these are usable as its destination.
+_TEXT_LIKE_CLASSES = (io.TextIOBase, codecs.StreamWriter, codecs.StreamReaderWriter)
 
 
 class CSVFormatter:
@@ -268,7 +275,7 @@ class CSVFormatter:
         using pyarrow would produce output that quietly ignores the option
         rather than applying it.
         """
-        if isinstance(self.filepath_or_buffer, io.TextIOBase):
+        if isinstance(self.filepath_or_buffer, _TEXT_LIKE_CLASSES):
             return "The pyarrow engine can only write to a binary buffer or file path."
         if self.mode is not None and "b" not in self.mode:
             return "The pyarrow engine can only write in binary mode."
@@ -494,7 +501,8 @@ class CSVFormatter:
             )
 
         if self.engine == "pyarrow" and (
-            "b" not in self.mode or isinstance(self.filepath_or_buffer, io.TextIOBase)
+            "b" not in self.mode
+            or isinstance(self.filepath_or_buffer, _TEXT_LIKE_CLASSES)
         ):
             raise ValueError("The pyarrow engine can only open files in binary mode.")
 
