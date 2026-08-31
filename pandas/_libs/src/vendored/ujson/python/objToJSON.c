@@ -135,6 +135,9 @@ typedef struct __PyObjectEncoder {
   // pass through the PdBlockContext when encoding blocks
   PdBlockContext *blkCtxtPassthru;
 
+  // pass through whether to prevent NumPy dtype encoding
+  int dirValuePassthru;
+
   // pass-through to encode numpy data directly
   int npyType;
   void *npyValue;
@@ -1193,6 +1196,7 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 }
 
 static JSOBJ Dir_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+  ((PyObjectEncoder *)tc->encoder)->dirValuePassthru = 1;
   return GET_TC(tc)->itemValue;
 }
 
@@ -1725,6 +1729,9 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
   PyObject *obj = (PyObject *)_obj;
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
+  const int from_dir = enc->dirValuePassthru;
+  enc->dirValuePassthru = 0;
+
   if (PyBool_Check(obj)) {
     tc->type = (obj == Py_True) ? JT_TRUE : JT_FALSE;
     return;
@@ -1825,7 +1832,7 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
   } else if (PyArray_DescrCheck(obj) && enc->defaultHandler) {
     Object_invokeDefaultHandler(obj, enc);
     goto INVALID;
-  } else if (PyArray_DescrCheck(obj)) {
+  } else if (PyArray_DescrCheck(obj) && !from_dir) {
     pc->PyTypeToUTF8 = PyArrayDescrToUTF8Callback;
     tc->type = JT_UTF8;
     return;
@@ -2420,6 +2427,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
       },
       .npyCtxtPassthru = NULL,
       .blkCtxtPassthru = NULL,
+      .dirValuePassthru = 0,
       .npyType = -1,
       .npyValue = NULL,
       .datetimeIso = 0,
