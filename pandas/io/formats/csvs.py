@@ -58,6 +58,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import DataFrame
     from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -338,7 +339,7 @@ class CSVFormatter:
         return False
 
     @staticmethod
-    def _has_whole_number_float_column(obj) -> bool:
+    def _has_whole_number_float_column(obj: DataFrame) -> bool:
         """
         Whether any float-dtype column in `obj` (which already has any
         index moved into a column by _build_arrow_obj) holds only
@@ -356,7 +357,7 @@ class CSVFormatter:
                 return True
         return False
 
-    def _build_arrow_obj(self):
+    def _build_arrow_obj(self) -> DataFrame:
         """
         Return self.obj with the index moved into columns (mirroring how
         the python engine writes the index), ready for pa.Table.from_pandas.
@@ -522,7 +523,7 @@ class CSVFormatter:
         write_options = self._build_pyarrow_write_options(pa_csv)
         pa_csv.write_csv(table, handle, write_options)
 
-    def _build_pyarrow_write_options(self, pa_csv):
+    def _build_pyarrow_write_options(self, pa_csv: Any) -> Any:
         # Map quoting arg to pyarrow equivalents. QUOTE_NONE is checked
         # before the quotechar-is-None case below, since quotechar is
         # legitimately None whenever quoting=QUOTE_NONE and no escapechar
