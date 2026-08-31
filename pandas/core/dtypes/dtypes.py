@@ -101,6 +101,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import (
         BaseMaskedArray,
         DatetimeArray,
+        ExtensionArray,
         IntervalArray,
         NumpyExtensionArray,
         PeriodArray,
@@ -1481,19 +1482,32 @@ class IntervalDtype(PandasExtensionDtype):
         else:
             chunks = array.chunks
 
+        subtype = self.subtype
+        left: np.ndarray | ExtensionArray
+        right: np.ndarray | ExtensionArray
+
         results = []
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            if isinstance(subtype, ExtensionDtype):
+                # np.asarray cannot interpret an ExtensionDtype GH#64297
+                left = subtype.__from_arrow__(arr.field("left"))  # type: ignore[attr-defined]
+                right = subtype.__from_arrow__(arr.field("right"))  # type: ignore[attr-defined]
+            else:
+                left = np.asarray(arr.field("left"), dtype=subtype)
+                right = np.asarray(arr.field("right"), dtype=subtype)
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
+            if isinstance(subtype, ExtensionDtype):
+                return IntervalArray.from_arrays(
+                    subtype.empty((0,)), subtype.empty((0,)), closed=self.closed
+                )
             return IntervalArray.from_arrays(
-                np.array([], dtype=self.subtype),
-                np.array([], dtype=self.subtype),
+                np.array([], dtype=subtype),
+                np.array([], dtype=subtype),
                 closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)
