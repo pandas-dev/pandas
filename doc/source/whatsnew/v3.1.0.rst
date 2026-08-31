@@ -614,6 +614,7 @@ Strings
 - Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising ``AttributeError`` for :class:`ArrowDtype` when ``flags`` was passed or ``pat`` was a compiled ``re.Pattern`` (:issue:`63108`)
 - Bug in :meth:`Series.str.normalize`, :meth:`Series.str.zfill` and their :class:`Index` counterparts with PyArrow-backed string dtypes raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
+- Bug in addition and multiplication on length-zero ``string``-dtype :class:`Series` and :class:`Index` returning ``object`` dtype instead of the string dtype, and raising ``TypeError`` when the other operand was length-zero with a different string storage or ``object`` dtype (:issue:`40624`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising for regex flags other than ``re.IGNORECASE`` (e.g. ``re.MULTILINE``, ``re.DOTALL``, ``re.ASCII``), whether passed via ``flags`` or carried by a compiled ``re.Pattern`` (:issue:`63108`, :issue:`66348`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` where passing ``flags=0`` was not equivalent to omitting ``flags``, raising for patterns using PyArrow-only regex syntax such as ``\p{L}`` or an inline flag such as ``(?i)`` (:issue:`63108`)
 - Bug in :meth:`Series.str.match`, :meth:`Series.str.fullmatch`, :meth:`Series.str.contains`, :meth:`Series.str.count`, :meth:`Series.str.extract`, :meth:`Series.str.replace` and their :class:`Index` counterparts with :class:`ArrowDtype` raising instead of honoring ``flags`` such as ``re.ASCII``, or the flags carried by a compiled ``re.Pattern`` (:issue:`66348`)
@@ -726,6 +727,7 @@ I/O
 - Fixed bug in :func:`read_csv` with the ``c`` engine where a field containing a NUL byte was compared against ``na_values`` only up to that NUL, so e.g. ``"NA\x00x"`` or any field beginning with a NUL was read as ``NaN`` instead of its actual value, unlike ``engine="python"``; a column mixing such fields with numbers is consequently inferred as string rather than float (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where a field containing an embedded NUL byte was parsed as an integer or boolean from the bytes before the NUL, so e.g. ``"1\x00xyz"`` was read as ``1`` and ``"True\x00xyz"`` as ``True`` with the trailing bytes silently discarded; such columns are now read as strings, matching ``engine="python"``, and raise when an incompatible ``dtype`` is requested (:issue:`66524`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where a quoted field containing an embedded NUL byte was silently truncated at the NUL under the default string dtype or ``dtype_backend="pyarrow"`` (:issue:`66415`)
+- Fixed bug in :func:`read_csv` with the ``c`` engine where a run of rows with fewer fields than expected corrupted the parse of the rows after it, raising a spurious ``ParserError`` reporting ``Buffer overflow caught - possible malformed input file`` on ordinary ragged input, and truncating a much wider field later in the same read or crashing the interpreter (:issue:`66657`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where a value in ``na_values``, ``true_values`` or ``false_values`` containing an embedded NUL byte was truncated at the NUL, so it also matched unrelated fields sharing the prefix before it (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where a value passed to a ``converters`` callable was truncated at an embedded NUL byte (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
@@ -780,6 +782,7 @@ I/O
 - Fixed bug in :func:`read_hdf` where a categorical column containing a category equal to the ``nan_rep`` string (e.g. the default ``"nan"``) raised ``ValueError: operands could not be broadcast together`` instead of reading that category back as ``NaN`` (:issue:`21741`)
 - Fixed bug in :func:`read_hdf` where a string :class:`Index` or :class:`MultiIndex` level did not round-trip missing values and the literal string ``"nan"``: a missing value was read back as ``"nan"`` and a literal ``"nan"`` was read back as ``NaN`` (:issue:`9604`)
 - Fixed bug in :func:`read_parquet` crashing the interpreter when called with ``to_pandas_kwargs={"self_destruct": True}`` (:issue:`66509`)
+- Fixed bug in :meth:`DataFrame.to_clipboard` and :func:`read_clipboard` where the Qt clipboard backend (used on Linux when ``xclip``, ``xsel`` and ``wl-clipboard`` are all unavailable) permanently switched the process to the environment's locale, so afterwards e.g. ``to_datetime("March 1, 2018", format="%B %d, %Y")`` raised ``ValueError`` on a machine whose locale is not English (:issue:`44625`)
 - Fixed bug in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.put` where writing an object to a key silently deleted any nested keys stored beneath it (:issue:`17267`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
@@ -802,6 +805,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
+- Bug in :class:`Period` subtraction raising ``TypeError`` instead of returning an empty result when either operand was a length-zero :class:`PeriodIndex` or ``period``-dtype :class:`Series` (:issue:`40624`)
 - Bug in :class:`Period`, :class:`PeriodIndex` and :meth:`DatetimeIndex.to_period` silently returning the 1970 epoch for dates the frequency cannot represent, e.g. ``Period("2300-01-01", freq="ns")``; these now raise ``OutOfBoundsDatetime`` (:issue:`66248`)
 - Bug in :meth:`DatetimeIndex.to_period` where anchored offsets ``YS``, ``BYS``, ``QS``, ``BQS``, ``BYE``, and ``BQE`` produced incorrect period frequencies, losing the month anchor (:issue:`36939`)
 - Bug in :meth:`Period.strftime` where unknown format directives (e.g. ``"%Q"``) silently produced platform-dependent output and crashed the Python process on Windows; an ``Invalid format string`` ``ValueError`` is now raised on all platforms (:issue:`53562`)
@@ -914,6 +918,7 @@ Other
 - Bug in :meth:`DataFrame.select_dtypes` with an :class:`~pandas.api.extensions.ExtensionDtype` subclass such as :class:`ArrowDtype` or :class:`DatetimeTZDtype` raising ``TypeError``, emitting a spurious ``UserWarning``, or selecting the wrong columns; passing such a class now selects every column whose dtype is an instance of that class (:issue:`65366`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 - Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
+- Bug in the ``display.max_colwidth`` option where values smaller than ``4`` were silently ignored, leaving the repr untruncated and its column headers misaligned (:issue:`16097`)
 
 .. ***DO NOT USE THIS SECTION***
 

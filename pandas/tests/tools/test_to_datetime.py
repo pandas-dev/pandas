@@ -10,7 +10,6 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
-import locale
 import re
 import zoneinfo
 
@@ -339,26 +338,26 @@ class TestTimeConversionFormats:
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
-                marks=td.skip_if_not_us_locale,
+                marks=td.skip_if_not_english_lc_time,
             ),
             pytest.param(
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
-                marks=td.skip_if_not_us_locale,
+                marks=td.skip_if_not_english_lc_time,
             ),
             pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-                marks=td.skip_if_not_us_locale,
+                marks=td.skip_if_not_english_lc_time,
             ),
         ],
     )
     def test_to_datetime_format_time(self, cache, value, format, dt):
         assert to_datetime(value, format=format, cache=cache) == dt
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
         # 8904
@@ -1039,18 +1038,10 @@ class TestToDatetime:
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_error_iso_week_year(self, msg, s, _format, errors):
         # See GH#16607, GH#50308
-        # This test checks for errors thrown when giving the wrong format
-        # However, as discussed on PR#25541, overriding the locale
-        # causes a different error to be thrown due to the format being
-        # locale specific, but the test data is in english.
-        # Therefore, the tests only run when locale is not overwritten,
-        # as a sort of solution to this problem.
-        if locale.getlocale() != ("zh_CN", "UTF-8") and locale.getlocale() != (
-            "it_IT",
-            "UTF-8",
-        ):
-            with pytest.raises(ValueError, match=msg):
-                to_datetime(s, format=_format, errors=errors)
+        # These formats are rejected before any parsing happens, so the message
+        #  does not depend on the locale (GH#44625).
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(s, format=_format, errors=errors)
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_to_datetime_dtarr(self, tz):
@@ -2920,7 +2911,7 @@ class TestToDatetimeMisc:
         expected_coerce = Series([datetime(2006, 10, 18), datetime(2008, 10, 18), NaT])
         tm.assert_series_equal(result_coerce, expected_coerce)
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     def test_to_datetime_with_apply(self, cache):
         # this is only locale tested with US/None locales
         # GH 5195
@@ -2936,7 +2927,7 @@ class TestToDatetimeMisc:
         expected = Timestamp(2020, 1, 1).tz_localize("UTC")
         assert result == expected
 
-    @td.skip_if_not_us_locale
+    @td.skip_if_not_english_lc_time
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_to_datetime_with_apply_with_empty_str(self, cache, errors):
         # this is only locale tested with US/None locales
@@ -3216,7 +3207,6 @@ class TestGuessDatetimeFormat:
         test_array = np.array(test_list, dtype=object)
         assert tools._guess_datetime_format_for_array(test_array) == expected_format
 
-    @td.skip_if_not_us_locale
     def test_guess_datetime_format_for_array_all_nans(self):
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array([np.nan, np.nan, np.nan], dtype="O")
