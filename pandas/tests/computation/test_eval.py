@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from functools import reduce
 from itertools import product
-import operator
 
 import numpy as np
 import pytest
@@ -742,8 +740,9 @@ class TestEval:
     def test_true_false_logic(self):
         # GH 25823
         # This behavior is deprecated in Python 3.12
+        msg = "Bitwise inversion '~' on bool is deprecated"
         with tm.maybe_produces_warning(
-            DeprecationWarning, PY312, check_stacklevel=False
+            DeprecationWarning, PY312, check_stacklevel=False, match=msg
         ):
             assert pd.eval("not True") == -2
             assert pd.eval("not False") == -1
@@ -801,14 +800,6 @@ class TestTypeCasting:
 # Basic and complex alignment
 
 
-def should_warn(*args):
-    not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
-    only_one_dt = reduce(
-        operator.xor, (issubclass(x.dtype.type, np.datetime64) for x in args)
-    )
-    return not_mono and only_one_dt
-
-
 class TestAlignment:
     index_types = ["i", "s", "dt"]
     lhs_index_types = [*index_types, "s"]  # 'p'
@@ -835,12 +826,7 @@ class TestAlignment:
             index=idx_func_dict[rr_idx_type](20),
             columns=idx_func_dict[c_idx_type](10),
         )
-        # only warns if not monotonic and not sortable
-        if should_warn(df.index, df2.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df + df2", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df + df2", engine=engine, parser=parser)
+        res = pd.eval("df + df2", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2)
 
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
@@ -887,11 +873,7 @@ class TestAlignment:
             index=idx_func_dict[r2](5),
             columns=idx_func_dict[c2](2),
         )
-        if should_warn(df.index, df2.index, df3.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
+        res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2 + df3)
 
     @pytest.mark.parametrize("index_name", ["index", "columns"])
@@ -908,11 +890,7 @@ class TestAlignment:
         index = getattr(df, index_name)
         s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
 
-        if should_warn(df.index, s.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df + s", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df + s", engine=engine, parser=parser)
+        res = pd.eval("df + s", engine=engine, parser=parser)
 
         if r_idx_type == "dt" or c_idx_type == "dt":
             expected = df.add(s) if engine == "numexpr" else df + s
@@ -935,11 +913,7 @@ class TestAlignment:
         )
         index = getattr(df, index_name)
         s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
-        if should_warn(s.index, df.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("s + df", engine=engine, parser=parser)
-        else:
-            res = pd.eval("s + df", engine=engine, parser=parser)
+        res = pd.eval("s + df", engine=engine, parser=parser)
 
         if r_idx_type == "dt" or c_idx_type == "dt":
             expected = df.add(s) if engine == "numexpr" else s + df
@@ -961,18 +935,14 @@ class TestAlignment:
             columns=idx_func_dict[c_idx_type](10),
         )
         index = getattr(df, index_name)
-        s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
+        s = Series(  # noqa: F841  # referenced by name inside the eval expression
+            np.random.default_rng(2).standard_normal(5), index[:5]
+        )
 
         lhs = f"s {op} df"
         rhs = f"df {op} s"
-        if should_warn(df.index, s.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                a = pd.eval(lhs, engine=engine, parser=parser)
-            with tm.assert_produces_warning(RuntimeWarning):
-                b = pd.eval(rhs, engine=engine, parser=parser)
-        else:
-            a = pd.eval(lhs, engine=engine, parser=parser)
-            b = pd.eval(rhs, engine=engine, parser=parser)
+        a = pd.eval(lhs, engine=engine, parser=parser)
+        b = pd.eval(rhs, engine=engine, parser=parser)
 
         if r_idx_type != "dt" and c_idx_type != "dt":
             if engine == "numexpr":
@@ -1017,11 +987,7 @@ class TestAlignment:
         else:
             expected = expected2 + df
 
-        if should_warn(df2.index, ser.index, df.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
+        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
         assert res.shape == expected.shape
         tm.assert_frame_equal(res, expected)
 
