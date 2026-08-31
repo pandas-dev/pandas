@@ -614,6 +614,7 @@ Strings
 - Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising ``AttributeError`` for :class:`ArrowDtype` when ``flags`` was passed or ``pat`` was a compiled ``re.Pattern`` (:issue:`63108`)
 - Bug in :meth:`Series.str.normalize`, :meth:`Series.str.zfill` and their :class:`Index` counterparts with PyArrow-backed string dtypes raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
+- Bug in addition and multiplication on length-zero ``string``-dtype :class:`Series` and :class:`Index` returning ``object`` dtype instead of the string dtype, and raising ``TypeError`` when the other operand was length-zero with a different string storage or ``object`` dtype (:issue:`40624`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising for regex flags other than ``re.IGNORECASE`` (e.g. ``re.MULTILINE``, ``re.DOTALL``, ``re.ASCII``), whether passed via ``flags`` or carried by a compiled ``re.Pattern`` (:issue:`63108`, :issue:`66348`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` where passing ``flags=0`` was not equivalent to omitting ``flags``, raising for patterns using PyArrow-only regex syntax such as ``\p{L}`` or an inline flag such as ``(?i)`` (:issue:`63108`)
 - Bug in :meth:`Series.str.match`, :meth:`Series.str.fullmatch`, :meth:`Series.str.contains`, :meth:`Series.str.count`, :meth:`Series.str.extract`, :meth:`Series.str.replace` and their :class:`Index` counterparts with :class:`ArrowDtype` raising instead of honoring ``flags`` such as ``re.ASCII``, or the flags carried by a compiled ``re.Pattern`` (:issue:`66348`)
@@ -803,6 +804,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
+- Bug in :class:`Period` subtraction raising ``TypeError`` instead of returning an empty result when either operand was a length-zero :class:`PeriodIndex` or ``period``-dtype :class:`Series` (:issue:`40624`)
 - Bug in :class:`Period`, :class:`PeriodIndex` and :meth:`DatetimeIndex.to_period` silently returning the 1970 epoch for dates the frequency cannot represent, e.g. ``Period("2300-01-01", freq="ns")``; these now raise ``OutOfBoundsDatetime`` (:issue:`66248`)
 - Bug in :meth:`DatetimeIndex.to_period` where anchored offsets ``YS``, ``BYS``, ``QS``, ``BQS``, ``BYE``, and ``BQE`` produced incorrect period frequencies, losing the month anchor (:issue:`36939`)
 - Bug in :meth:`Period.strftime` where unknown format directives (e.g. ``"%Q"``) silently produced platform-dependent output and crashed the Python process on Windows; an ``Invalid format string`` ``ValueError`` is now raised on all platforms (:issue:`53562`)
@@ -915,6 +917,7 @@ Other
 - Bug in :meth:`DataFrame.select_dtypes` with an :class:`~pandas.api.extensions.ExtensionDtype` subclass such as :class:`ArrowDtype` or :class:`DatetimeTZDtype` raising ``TypeError``, emitting a spurious ``UserWarning``, or selecting the wrong columns; passing such a class now selects every column whose dtype is an instance of that class (:issue:`65366`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 - Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
+- Bug in the ``display.max_colwidth`` option where values smaller than ``4`` were silently ignored, leaving the repr untruncated and its column headers misaligned (:issue:`16097`)
 
 .. ***DO NOT USE THIS SECTION***
 
