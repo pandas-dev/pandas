@@ -36,3 +36,20 @@ def test_concatenate_chunks_pyarrow_strings():
         [np.array([1.5, 2.5], dtype=object), np.array(["a", "b"])]
     )
     tm.assert_numpy_array_equal(result[0], expected)
+
+
+def test_concatenate_chunks_usecols_mixed_dtype_nonzero_pos():
+    # GH#67375 - usecols selecting a column not at position 0. Chunk keys are
+    # raw column *positions*; column_names has already been filtered by usecols
+    # so it must be mapped position->name, not indexed by position.
+    chunks = [
+        {50: np.array([1.5, 2.5])},
+        {50: np.array(["a", "b"])},  # second chunk infers object -> mixed types
+    ]
+    with tm.assert_produces_warning(
+        DtypeWarning, match=r"Columns \(0: Overall_Judgment\) have mixed types"
+    ):
+        result = _concatenate_chunks(chunks, ["Overall_Judgment"])
+    tm.assert_numpy_array_equal(
+        result[50], np.array([1.5, 2.5, "a", "b"], dtype=object)
+    )

@@ -437,6 +437,12 @@ def _concatenate_chunks(
     names = list(chunks[0].keys())
     warning_columns = []
 
+    # GH-67375: ``name`` is the raw column *position* in the table (e.g. 50),
+    # but ``column_names`` has already been filtered by ``usecols`` and so
+    # cannot be indexed by that position directly. ``column_names`` is kept in
+    # ascending position order, so it aligns 1:1 with the sorted chunk keys.
+    names_to_columns = dict(zip(sorted(names), column_names))
+
     result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
@@ -464,7 +470,7 @@ def _concatenate_chunks(
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(column_names[name])
+                warning_columns.append(names_to_columns[name])
 
     if warning_columns and warn_mixed:
         warning_names = ", ".join(
