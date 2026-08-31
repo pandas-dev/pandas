@@ -775,9 +775,12 @@ def test_parallel_on_by_default(tmp_path, monkeypatch, platform_name):
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     # Pin the default so the test does not depend on the host's actual core
-    # count, or on how many CPUs a container/affinity mask leaves the runner --
-    # one usable CPU would make the default serial everywhere.
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
+    # count, or on how many CPUs a container/affinity mask leaves the runner:
+    # either one would give _n_workers == 1 and skip the parallel path.  Patch
+    # the detectors rather than os.cpu_count, which _default_n_workers does not
+    # consult -- and which would let the real, lru_cached physical_core_count()
+    # run and cache a host-dependent value for the rest of the session.
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 4)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     # Stub the parallel reader so this exercises only the platform-gating
@@ -817,16 +820,16 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
     assert calls == []
 
 
-def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is capped at 4, regardless of core count."""
+def test_parallel_default_uses_physical_cores(tmp_path, monkeypatch):
+    """The default worker count follows the detected physical core count."""
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # More cores than the cap: the default should clamp down to 4.
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
-    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
-    # and this test measures the runner, not the cap.
+    # 6 physical cores: the default follows the detected physical core count.
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
+    # Otherwise a CI runner with fewer usable CPUs clamps the default below
+    # that and this test measures the runner, not the physical-core default.
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     workers = []
@@ -838,9 +841,9 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     read_csv(path)
-    assert workers == [4]
+    assert workers == [6]
 
-    # An explicit mode.max_threads still overrides the cap.
+    # An explicit mode.max_threads still overrides the physical-core default.
     workers.clear()
     with option_context("mode.max_threads", 8):
         read_csv(path)
@@ -857,24 +860,25 @@ class TestDefaultNWorkers:
 
     @pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])
     @pytest.mark.parametrize(
-        "cpu_count, available, expected",
+        "n_physical, available, expected",
         [
-            (2, None, 2),  # unconstrained, below the cap -> logical CPU count
-            (16, None, 4),  # cap binds
-            (16, 1, 1),  # single-CPU container
-            (16, 2, 2),  # cgroup/affinity tighter than the cap
-            (16, 8, 4),  # allocation looser than the cap -> cap still binds
-            (2, 8, 2),  # allocation looser than the machine
+            (6, None, 6),  # unconstrained, below the cap -> detected count
+            (1, None, 1),
+            (24, None, 16),  # e.g. an M-series Ultra -> capped
+            (32, None, 16),  # cap binds
+            (8, 4, 4),  # cgroup/affinity tighter than the physical-core count
+            (8, 12, 8),  # allocation looser than the physical-core count
+            (32, 8, 8),  # allocation tighter than both cap and physical cores
         ],
     )
-    def test_combines_cap_and_allocation(
-        self, monkeypatch, cpu_count, available, expected, platform_name
+    def test_combines_detection_allocation_cap(
+        self, monkeypatch, n_physical, available, expected, platform_name
     ):
-        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS),
+        # Default = min(physical cores, available CPUs, _MAX_DEFAULT_WORKERS),
         # on every threaded platform.
-        assert _readers._MAX_DEFAULT_WORKERS == 4
+        assert _readers._MAX_DEFAULT_WORKERS == 16
         monkeypatch.setattr(_readers.sys, "platform", platform_name)
-        monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
+        monkeypatch.setattr(_readers, "physical_core_count", lambda: n_physical)
         monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
         with option_context("mode.max_threads", None):
             assert _default_n_workers() == expected
@@ -886,18 +890,18 @@ class TestDefaultNWorkers:
             assert _default_n_workers() == 1
 
     def test_max_threads_exceeds_cap(self, monkeypatch):
-        # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default*
-        # only.  The mode.max_threads docs promise an explicit setting still
-        # wins.
+        # _MAX_DEFAULT_WORKERS bounds the *detected* default only.  Both the
+        # mode.max_threads docs and the constant's comment promise an explicit
+        # setting can raise the count past it.
         monkeypatch.setattr(_readers.sys, "platform", "linux")
-        monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
-        monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
+        monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
         with option_context("mode.max_threads", 32):
             assert _default_n_workers() == 32
 
     @pytest.mark.parametrize("platform_name", ["linux", "win32"])
     def test_max_threads_wins(self, monkeypatch, platform_name):
         monkeypatch.setattr(_readers.sys, "platform", platform_name)
+        monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
         with option_context("mode.max_threads", 3):
             assert _default_n_workers() == 3
 
