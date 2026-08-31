@@ -114,6 +114,13 @@ class CSVFormatter:
         self.doublequote = doublequote
         self.escapechar = escapechar
         self.quotechar = self._initialize_quotechar(quotechar)
+        # Remember whether the caller actually requested a lineterminator,
+        # separately from the resolved value below: pyarrow always writes
+        # "\n" regardless of platform, which is fine to use silently when
+        # nothing specific was requested, but not when the caller
+        # explicitly asked for something else (see
+        # _pyarrow_option_incompatibility).
+        self._lineterminator_requested = lineterminator
         self.lineterminator = lineterminator or os.linesep
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
@@ -284,13 +291,25 @@ class CSVFormatter:
         if self.quotechar is not None and self.quotechar != '"':
             return 'The pyarrow engine only supports " as a quotechar.'
 
+        # pyarrow's CSV writer always writes "\n" as its line terminator; it
+        # has no option to configure this, and does not follow os.linesep
+        # (e.g. it still writes "\n" on Windows). When the caller didn't
+        # request a specific lineterminator, silently writing "\n" instead
+        # of the python engine's platform-native default is a cosmetic-only
+        # difference we accept (like always-quoted headers); but an
+        # explicit request for anything other than "\n" cannot be honored.
+        if (
+            self._lineterminator_requested is not None
+            and self._lineterminator_requested != "\n"
+        ):
+            return "The lineterminator option is not supported with the pyarrow engine."
+
         unsupported_options = [
             # each pair is (option value, default, option name)
             (self.decimal, ".", "decimal"),
             (self.float_format, None, "float_format"),
             (self.na_rep, "", "na_rep"),
             (self.date_format, None, "date_format"),
-            (self.lineterminator, os.linesep, "lineterminator"),
             (self.errors, "strict", "errors"),
             (self.escapechar, None, "escapechar"),
             (self.doublequote, True, "doublequote"),

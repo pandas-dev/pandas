@@ -1325,7 +1325,12 @@ class TestDataFrameToCSV:
 
         expected_rows = ['"a","b","c"', '"1","3","5"', '"2","4","6"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert df.to_csv(quoting=csv.QUOTE_ALL) == expected
+        # engine="python": this int-only frame with QUOTE_ALL has nothing
+        # else to block pyarrow, and pyarrow's own default lineterminator
+        # ("\n" always) would make this test's use of os.linesep-based
+        # tm.convert_rows_list_to_csv_str wrong on a platform where
+        # os.linesep isn't "\n"
+        assert df.to_csv(quoting=csv.QUOTE_ALL, engine="python") == expected
 
     def test_period_index_date_overflow(self):
         # see gh-15982

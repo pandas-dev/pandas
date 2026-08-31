@@ -53,9 +53,25 @@ def uses_pyarrow(engine: str) -> bool:
     true for "pyarrow" (forced) and "auto" (pyarrow is available and there
     is nothing for it to fall back from). Used to predict pyarrow's
     cosmetic-only differences from the python engine, e.g. always quoting
-    string values/headers, or omitting a redundant trailing ".0" on floats.
+    string values/headers, omitting a redundant trailing ".0" on floats,
+    or (when no explicit lineterminator is requested) always using "\\n"
+    regardless of platform -- see csv_str_for_engine.
     """
     return engine in ("pyarrow", "auto")
+
+
+def csv_str_for_engine(rows: list[str], pyarrow_used: bool) -> str:
+    """
+    Like tm.convert_rows_list_to_csv_str, but accounts for pyarrow always
+    writing "\\n" as its line terminator regardless of platform, unlike
+    the python engine's platform-native os.linesep default. Only accurate
+    for a to_csv call that does not pass an explicit `lineterminator`.
+    `pyarrow_used` should usually be `uses_pyarrow(engine)`, except where
+    some other condition (in addition to engine) also determines whether
+    pyarrow actually ends up being used for this specific call.
+    """
+    sep = "\n" if pyarrow_used else os.linesep
+    return sep.join(rows) + sep
 
 
 def check_warns_if_pyarrow_renders_differently(engine):
@@ -95,11 +111,12 @@ def check_raises_if_pyarrow_all_na_row(engine):
 def check_raises_if_pyarrow_lineterminator(lineterminator, engine):
     """
     Returns a context manager that ensures that the pyarrow engine raises an
-    exception for a non-default `lineterminator`. Note the default is
-    platform-dependent (`os.linesep`), so a given literal terminator (e.g.
-    "\\n") may or may not actually be non-default depending on the platform.
+    exception for a `lineterminator` other than "\\n". pyarrow always writes
+    "\\n" itself, regardless of platform, so pass the *effective*
+    lineterminator being used (os.linesep, if the call being wrapped does
+    not pass one explicitly) -- not necessarily the platform default.
     """
-    if lineterminator == os.linesep:
+    if lineterminator == "\n":
         return contextlib.nullcontext()
     return check_raises_if_pyarrow("lineterminator", engine)
 
@@ -301,7 +318,7 @@ $1$,$2$
             expected_rows = ['"","col"', "0,1", "1,2"]
         else:
             expected_rows = [",col", "0,1", "1,2"]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        expected = csv_str_for_engine(expected_rows, uses_pyarrow(engine))
         assert df.to_csv(engine=engine) == expected
 
     def test_to_csv_decimal(self, engine):
@@ -314,7 +331,7 @@ $1$,$2$
             expected_rows = ['"","col1","col2","col3"', '0,1,"a",10.1']
         else:
             expected_rows = [",col1,col2,col3", "0,1,a,10.1"]
-        expected_default = tm.convert_rows_list_to_csv_str(expected_rows)
+        expected_default = csv_str_for_engine(expected_rows, uses_pyarrow(engine))
         assert df.to_csv(engine=engine) == expected_default
 
         expected_rows = [";col1;col2;col3", "0;1;a;10,1"]
@@ -462,7 +479,7 @@ $1$,$2$
                 "3,2013-01-01 00:00:03",
                 "4,2013-01-01 00:00:04",
             ]
-        expected_default_sec = tm.convert_rows_list_to_csv_str(expected_rows)
+        expected_default_sec = csv_str_for_engine(expected_rows, uses_pyarrow(engine))
         assert df_sec.to_csv(engine=engine) == expected_default_sec
 
         expected_rows = [
@@ -507,7 +524,7 @@ $1$,$2$
         if uses_pyarrow(engine):
             # see the freq="s" case above: the python engine drops the
             # (all-zero) time-of-day here entirely, pyarrow does not.
-            expected_default_day = tm.convert_rows_list_to_csv_str(
+            expected_default_day = csv_str_for_engine(
                 [
                     '"","A"',
                     "0,2013-01-01 00:00:00.000000",
@@ -515,7 +532,8 @@ $1$,$2$
                     "2,2013-01-03 00:00:00.000000",
                     "3,2013-01-04 00:00:00.000000",
                     "4,2013-01-05 00:00:00.000000",
-                ]
+                ],
+                uses_pyarrow(engine),
             )
         else:
             expected_default_day = expected_short_day
@@ -570,7 +588,7 @@ $1$,$2$
                 "1970-01-01,1970-01-01 00:00:00",
                 "1970-01-01,1970-01-01 01:00:00",
             ]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        expected = csv_str_for_engine(expected_rows, uses_pyarrow(engine))
         assert df.to_csv(index=False, engine=engine) == expected
 
     def test_to_csv_period_columns(self, engine):
@@ -672,12 +690,13 @@ $1$,$2$
         result = df.to_csv(index=False, engine=engine)
         if uses_pyarrow(engine):
             # pyarrow always quotes string-typed values, including headers
-            expected = tm.convert_rows_list_to_csv_str(
-                ['"a","b"', '1.1,"c"', '2.02,"c"', ',"c"', '6.000006,"c"']
+            expected = csv_str_for_engine(
+                ['"a","b"', '1.1,"c"', '2.02,"c"', ',"c"', '6.000006,"c"'],
+                uses_pyarrow(engine),
             )
         else:
-            expected = tm.convert_rows_list_to_csv_str(
-                ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
+            expected = csv_str_for_engine(
+                ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"], uses_pyarrow(engine)
             )
         assert result == expected
 
@@ -703,12 +722,12 @@ $1$,$2$
         val_a = "3" if pyarrow_used else "3.0"
         header = '"a","b"' if pyarrow_used else "a,b"
         if using_nan_is_na:
-            expected = tm.convert_rows_list_to_csv_str(
-                [header, f",{col_b}", f",{col_b}", f"{val_a},{col_b}"]
+            expected = csv_str_for_engine(
+                [header, f",{col_b}", f",{col_b}", f"{val_a},{col_b}"], pyarrow_used
             )
         else:
-            expected = tm.convert_rows_list_to_csv_str(
-                [header, f"nan,{col_b}", f",{col_b}", f"{val_a},{col_b}"]
+            expected = csv_str_for_engine(
+                [header, f"nan,{col_b}", f",{col_b}", f"{val_a},{col_b}"], pyarrow_used
             )
         assert result == expected
 
@@ -739,12 +758,12 @@ $1$,$2$
         else:
             header, idx_a, idx_b, idx_c, val_a = ",x", "a", "b", "c", "1.0"
         if using_nan_is_na:
-            expected = tm.convert_rows_list_to_csv_str(
-                [header, f"{idx_a},{val_a}", f"{idx_b},", f"{idx_c},"]
+            expected = csv_str_for_engine(
+                [header, f"{idx_a},{val_a}", f"{idx_b},", f"{idx_c},"], pyarrow_used
             )
         else:
-            expected = tm.convert_rows_list_to_csv_str(
-                [header, f"{idx_a},{val_a}", f"{idx_b},", f"{idx_c},nan"]
+            expected = csv_str_for_engine(
+                [header, f"{idx_a},{val_a}", f"{idx_b},", f"{idx_c},nan"], pyarrow_used
             )
         assert result == expected
 
@@ -891,37 +910,38 @@ $1$,$2$
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
         df = DataFrame(data)
 
-        # case 1: The default line terminator(=os.linesep)(PR 21406)
-        os_linesep = os.linesep.encode("utf-8")
+        # case 1: The default line terminator (os.linesep for python, but
+        # always "\n" for pyarrow, regardless of platform -- PR 21406)
+        sep = b"\n" if uses_pyarrow(engine) else os.linesep.encode("utf-8")
         if uses_pyarrow(engine):
             # pyarrow always quotes string-typed values, including headers
             expected_noarg = (
                 b'"int","str_lf"'
-                + os_linesep
+                + sep
                 + b'1,"abc"'
-                + os_linesep
+                + sep
                 + b'2,"d\nef"'
-                + os_linesep
+                + sep
                 + b'3,"g\nh\n\ni"'
-                + os_linesep
+                + sep
             )
         else:
             expected_noarg = (
                 b"int,str_lf"
-                + os_linesep
+                + sep
                 + b"1,abc"
-                + os_linesep
+                + sep
                 + b'2,"d\nef"'
-                + os_linesep
+                + sep
                 + b'3,"g\nh\n\ni"'
-                + os_linesep
+                + sep
             )
         df.to_csv(temp_file, index=False, engine=engine)
         with open(temp_file, "rb") as f:
             assert f.read() == expected_noarg
 
-        # case 2: LF as line terminator
-        if uses_pyarrow(engine) and "\n" == os.linesep:
+        # case 2: LF as line terminator -- always compatible with pyarrow
+        if uses_pyarrow(engine):
             expected_lf = b'"int","str_lf"\n1,"abc"\n2,"d\nef"\n3,"g\nh\n\ni"\n'
         else:
             expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
@@ -930,14 +950,11 @@ $1$,$2$
             with open(temp_file, "rb") as f:
                 assert f.read() == expected_lf
 
-        # case 3: CRLF as line terminator
+        # case 3: CRLF as line terminator -- never compatible with pyarrow
+        # (it can only ever write "\n"), so this is always the plain
+        # python-style rendering, regardless of engine
         # 'lineterminator' should not change inner element
-        if uses_pyarrow(engine) and "\r\n" == os.linesep:
-            expected_crlf = (
-                b'"int","str_lf"\r\n1,"abc"\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
-            )
-        else:
-            expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
+        expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
         with check_raises_if_pyarrow_lineterminator("\r\n", engine):
             df.to_csv(temp_file, lineterminator="\r\n", index=False, engine=engine)
             with open(temp_file, "rb") as f:
@@ -947,37 +964,38 @@ $1$,$2$
         # GH 20353
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}
         df = DataFrame(data)
-        # case 1: The default line terminator(=os.linesep)(PR 21406)
-        os_linesep = os.linesep.encode("utf-8")
+        # case 1: The default line terminator (os.linesep for python, but
+        # always "\n" for pyarrow, regardless of platform -- PR 21406)
+        sep = b"\n" if uses_pyarrow(engine) else os.linesep.encode("utf-8")
         if uses_pyarrow(engine):
             # pyarrow always quotes string-typed values, including headers
             expected_noarg = (
                 b'"int","str_crlf"'
-                + os_linesep
+                + sep
                 + b'1,"abc"'
-                + os_linesep
+                + sep
                 + b'2,"d\r\nef"'
-                + os_linesep
+                + sep
                 + b'3,"g\r\nh\r\n\r\ni"'
-                + os_linesep
+                + sep
             )
         else:
             expected_noarg = (
                 b"int,str_crlf"
-                + os_linesep
+                + sep
                 + b"1,abc"
-                + os_linesep
+                + sep
                 + b'2,"d\r\nef"'
-                + os_linesep
+                + sep
                 + b'3,"g\r\nh\r\n\r\ni"'
-                + os_linesep
+                + sep
             )
         df.to_csv(temp_file, index=False, engine=engine)
         with open(temp_file, "rb") as f:
             assert f.read() == expected_noarg
 
-        # case 2: LF as line terminator
-        if uses_pyarrow(engine) and "\n" == os.linesep:
+        # case 2: LF as line terminator -- always compatible with pyarrow
+        if uses_pyarrow(engine):
             expected_lf = (
                 b'"int","str_crlf"\n1,"abc"\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
             )
@@ -988,16 +1006,13 @@ $1$,$2$
             with open(temp_file, "rb") as f:
                 assert f.read() == expected_lf
 
-        # case 3: CRLF as line terminator
+        # case 3: CRLF as line terminator -- never compatible with pyarrow
+        # (it can only ever write "\n"), so this is always the plain
+        # python-style rendering, regardless of engine
         # 'lineterminator' should not change inner element
-        if uses_pyarrow(engine) and "\r\n" == os.linesep:
-            expected_crlf = (
-                b'"int","str_crlf"\r\n1,"abc"\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
-            )
-        else:
-            expected_crlf = (
-                b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
-            )
+        expected_crlf = (
+            b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
+        )
         with check_raises_if_pyarrow_lineterminator("\r\n", engine):
             df.to_csv(temp_file, lineterminator="\r\n", index=False, engine=engine)
             with open(temp_file, "rb") as f:
@@ -1019,18 +1034,22 @@ $1$,$2$
             assert captured.out == expected_ascii
             assert not sys.stdout.closed
 
-    @pytest.mark.xfail(
-        compat.is_platform_windows(),
-        reason=(
-            "Especially in Windows, file stream should not be passed"
-            "to csv writer without newline='' option."
-            "(https://docs.python.org/3/library/csv.html#csv.writer)"
-        ),
-    )
-    def test_to_csv_write_to_open_file(self, temp_file, engine):
+    def test_to_csv_write_to_open_file(self, temp_file, engine, request):
         # GH 21696
         # an already-open text file object is another destination the
-        # pyarrow engine cannot write to
+        # pyarrow engine cannot write to; explicit engine="pyarrow" raises
+        # cleanly before ever touching the (Windows-problematic) write path
+        # below, so the Windows xfail only applies to python/auto
+        if engine != "pyarrow":
+            mark = pytest.mark.xfail(
+                compat.is_platform_windows(),
+                reason=(
+                    "Especially in Windows, file stream should not be passed"
+                    "to csv writer without newline='' option."
+                    "(https://docs.python.org/3/library/csv.html#csv.writer)"
+                ),
+            )
+            request.applymarker(mark)
         raise_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
         df = DataFrame({"a": ["x", "y", "z"]})
         expected = """\
@@ -1488,6 +1507,7 @@ def test_to_csv_datetime_tz_consistent_format(engine):
     # timezone-aware datetime64 is rendered differently under pyarrow: a
     # "Z" suffix instead of "+00:00", and always at microsecond precision
     # rather than dropping trailing zeros
+    pyarrow_used = engine == "pyarrow"
     df = DataFrame(
         {
             "timestamp": [
@@ -1496,9 +1516,13 @@ def test_to_csv_datetime_tz_consistent_format(engine):
             ]
         }
     )
-    with check_warns_if_pyarrow_renders_differently(engine):
+    with (
+        check_warns_if_pyarrow_renders_differently(engine)
+        if pyarrow_used
+        else tm.assert_produces_warning(None)
+    ):
         result = df.to_csv(index=False, engine=engine)
-    if engine == "pyarrow":
+    if pyarrow_used:
         expected_rows = [
             '"timestamp"',
             "2025-08-14 12:34:56.000000Z",
@@ -1510,7 +1534,7 @@ def test_to_csv_datetime_tz_consistent_format(engine):
             "2025-08-14 12:34:56.000000+00:00",
             "2025-08-14 12:34:56.000001+00:00",
         ]
-    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    expected = csv_str_for_engine(expected_rows, pyarrow_used)
     assert result == expected
 
     df = DataFrame(
@@ -1521,9 +1545,13 @@ def test_to_csv_datetime_tz_consistent_format(engine):
             ]
         }
     )
-    with check_warns_if_pyarrow_renders_differently(engine):
+    with (
+        check_warns_if_pyarrow_renders_differently(engine)
+        if pyarrow_used
+        else tm.assert_produces_warning(None)
+    ):
         result = df.to_csv(index=False, engine=engine)
-    if engine == "pyarrow":
+    if pyarrow_used:
         expected_rows = [
             '"timestamp"',
             "2025-08-14 12:34:56.000000Z",
@@ -1535,5 +1563,5 @@ def test_to_csv_datetime_tz_consistent_format(engine):
             "2025-08-14 12:34:56+00:00",
             "2025-08-14 12:34:57+00:00",
         ]
-    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    expected = csv_str_for_engine(expected_rows, pyarrow_used)
     assert result == expected
