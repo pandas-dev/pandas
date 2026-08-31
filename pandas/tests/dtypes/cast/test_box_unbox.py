@@ -28,7 +28,7 @@ from pandas import (
         (np.uint(4), int),
         (np.int32(-4), int),
         (np.uint8(4), int),
-        (float(454.98), float),
+        (454.98, float),
         (np.float16(0.4), float),
         (np.float64(1.4), float),
         (np.bool_(False), bool),
@@ -109,5 +109,7 @@ def test_maybe_unbox_numpy_scalar_object_dtype():
     # GH#64266
     value = np.float32(1.5)
     with option_context("future.python_scalars", True):
-        result = maybe_unbox_numpy_scalar(value, dtype=np.dtype(object))
+        result = maybe_unbox_numpy_scalar(
+            value, object_with_dtype=np.array([], dtype=object)
+        )
     assert result is value

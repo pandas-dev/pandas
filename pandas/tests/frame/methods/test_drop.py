@@ -191,7 +191,8 @@ class TestDataFrameDrop:
         assert not not_lexsorted_df.columns._is_lexsorted()
 
         expected = lexsorted_df.drop("a", axis=1).astype(float)
-        with tm.assert_produces_warning(performance_warning):
+        msg = "dropping on a non-lexsorted multi-index without a level parameter"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = not_lexsorted_df.drop("a", axis=1)
 
         tm.assert_frame_equal(result, expected)
@@ -573,7 +574,6 @@ class TestDataFrameDrop:
         expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_inplace_depr(self):
         # GH 63207
         df = DataFrame(

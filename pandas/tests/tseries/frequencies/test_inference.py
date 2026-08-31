@@ -595,10 +595,6 @@ def test_infer_freq_no_stateful_behavior():
     assert frequencies.infer_freq(times[:3]) == "D"
 
 
-@pytest.mark.filterwarnings(
-    "default:A future version of pandas will return a BaseOffset"
-    ":pandas.errors.Pandas4Warning"
-)
 class TestInferFreqDeprecation:
     # GH#55504
     def test_infer_freq_warns(self):

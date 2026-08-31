@@ -761,7 +761,6 @@ def test_cut_with_duplicated_index_lowest_included():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
@@ -847,6 +846,35 @@ def test_cut_intervalindex_with_gaps():
 
     expected_codes = np.array([0, -1, 1, -1, 2, -1], dtype=result.codes.dtype)
     tm.assert_numpy_array_equal(result.codes, expected_codes)
+
+
+@pytest.mark.parametrize("bins_unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("data_unit", ["s", "ms", "us", "ns"])
+def test_cut_timedelta_intervalindex_mismatched_unit(data_unit, bins_unit):
+    # GH#56764 when the resolution of the data differed from that of the
+    # IntervalIndex bins, every value landed in the first bin
+    breaks = timedelta_range("0 days", periods=4, freq="7D").as_unit(bins_unit)
+    bins = IntervalIndex.from_breaks(breaks, closed="left")
+    ser = Series(timedelta_range("0 days", periods=3, freq="10D").as_unit(data_unit))
+
+    result = cut(ser, bins=bins)
+
+    expected = Series(Categorical.from_codes([0, 1, 2], bins, ordered=True))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bins_unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("data_unit", ["s", "ms", "us", "ns"])
+def test_cut_datetime_intervalindex_mismatched_unit(data_unit, bins_unit):
+    # GH#56764
+    breaks = date_range("2013-01-01", periods=4, freq="7D").as_unit(bins_unit)
+    bins = IntervalIndex.from_breaks(breaks, closed="left")
+    ser = Series(date_range("2013-01-01", periods=3, freq="10D").as_unit(data_unit))
+
+    result = cut(ser, bins=bins)
+
+    expected = Series(Categorical.from_codes([0, 1, 2], bins, ordered=True))
+    tm.assert_series_equal(result, expected)
 
 
 def test_cut_datetime_array_no_attributeerror():

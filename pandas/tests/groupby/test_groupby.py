@@ -30,8 +30,6 @@ import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 
-pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-
 
 def test_repr():
     # GH18203
@@ -1576,7 +1574,8 @@ def test_groupby_multiindex_not_lexsorted(performance_warning):
     assert not not_lexsorted_df.columns._is_lexsorted()
 
     expected = lexsorted_df.groupby("a").mean()
-    with tm.assert_produces_warning(performance_warning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         result = not_lexsorted_df.groupby("a").mean()
     tm.assert_frame_equal(expected, result)
 
@@ -2654,9 +2653,6 @@ def test_sum_of_booleans(n):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:invalid value encountered in remainder:RuntimeWarning"
-)
 @pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
 def test_groupby_method_drop_na(method):
     # GH 21755

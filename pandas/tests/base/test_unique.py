@@ -6,7 +6,6 @@ import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_unique(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
@@ -28,7 +27,6 @@ def test_unique(index_or_series_obj):
         tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 def test_unique_null(null_obj, index_or_series_obj, using_nan_is_na):
     obj = index_or_series_obj
@@ -138,6 +136,41 @@ def test_unique_distinct_bad_unicode(index_or_series):
     codes, uniques = pd.factorize(arr)
     tm.assert_numpy_array_equal(codes, np.arange(len(uvals), dtype=np.intp))
     assert set(uniques) == set(uvals)
+
+
+@pytest.mark.parametrize(
+    "uvals",
+    [
+        ["", "\x00"],
+        ["x\x00y", "x\x00z"],
+        ["a", "a\x00", "a\x00\x00", "\x00a"],
+    ],
+)
+def test_unique_embedded_null(index_or_series, uvals):
+    # GH#34551 object-dtype strings route through StringHashTable, which used
+    #  to key on a NUL-terminated C string and so collapsed distinct values
+    #  sharing a prefix up to their first NUL.
+    #  The values are repeated deliberately: Index.unique short-circuits on
+    #  is_unique for an all-distinct input, so only a duplicated input reaches
+    #  StringHashTable at all.
+    vals = uvals * 2
+    arr = np.empty(len(vals), dtype=object)
+    arr[:] = vals
+
+    result = index_or_series(arr, dtype=object).unique()
+    assert list(result) == uvals
+
+    codes, uniques = pd.factorize(arr)
+    expected = np.tile(np.arange(len(uvals), dtype=np.intp), 2)
+    tm.assert_numpy_array_equal(codes, expected)
+    assert list(uniques) == uvals
+
+    ser = pd.Series(arr, dtype=object)
+    assert ser.nunique() == len(uvals)
+
+    # groupby factorizes through the same table
+    grouped = pd.DataFrame({"key": ser}).groupby("key")
+    assert grouped.ngroups == len(uvals)
 
 
 def test_nunique_dropna(dropna):

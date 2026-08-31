@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import dateutil.parser
@@ -27,12 +27,12 @@ class TestToPyDatetime:
         arr = np.array([dt], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        assert result.tz is timezone.utc
+        assert result.tz is UTC
 
         rng = date_range("2012-11-03 03:00", "2012-11-05 03:00", tz=tzlocal())
         arr = rng.to_pydatetime()
         result = to_datetime(arr, utc=True)
-        assert result.tz is timezone.utc
+        assert result.tz is UTC
 
     def test_dti_to_pydatetime_fizedtz(self):
         dates = np.array(

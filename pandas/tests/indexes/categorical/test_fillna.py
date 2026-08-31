@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import CategoricalIndex
 import pandas._testing as tm
@@ -21,7 +23,9 @@ class TestFillNA:
         with pytest.raises(TypeError, match=msg):
             cat.fillna(2.0)
 
-        result = idx.fillna(2.0)
+        depr_msg = "'float' is not supported as a fill value for category dtype"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = idx.fillna(2.0)
         expected = idx.astype(object).fillna(2.0)
         tm.assert_index_equal(result, expected)
 
@@ -48,7 +52,9 @@ class TestFillNA:
         tm.assert_index_equal(result, expected)
 
         # tuple not in categories -> casts to object, same as scalar behavior
-        result = ci.fillna((9, 9))
+        msg = "'tuple' is not supported as a fill value for category dtype"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ci.fillna((9, 9))
         expected = pd.Index([(0, 1), (1, 2), (9, 9)], tupleize_cols=False)
         tm.assert_index_equal(result, expected)
 

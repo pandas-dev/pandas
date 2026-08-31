@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import PY315
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
@@ -243,7 +244,6 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
@@ -463,6 +463,8 @@ class TestBase:
         if len(index) == 0:
             # 0 vs 0.5 in error message varies with numpy version
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
+        elif PY315:
+            msg = "slice indices must be integers or have an __index__ method"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
@@ -511,7 +513,6 @@ class TestBase:
         with pytest.raises(IndexError, match=msg):
             index.delete(length)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_equals(self, index):
         if isinstance(index, IntervalIndex):
             pytest.skip(f"{type(index).__name__} tested elsewhere")
@@ -685,7 +686,6 @@ class TestBase:
             lambda values, index: Series(values, index),
         ],
     )
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_map_dictlike(self, mapper, simple_index, request):
         idx = simple_index
         if isinstance(idx, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):

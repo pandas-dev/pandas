@@ -11,6 +11,14 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
 
+# The axis=0 frame dispatch is the same code path for every op, so checking all of
+#  them multiplies runtime without adding coverage. The arithmetic and comparison
+#  flex methods use separate dispatch helpers, so keep one comparison plus the
+#  non-reflected arithmetic ops; reflected ops reflect before dispatching.
+_AXIS0_CHECKED_OPS = frozenset(
+    ["eq", "add", "sub", "mul", "truediv", "floordiv", "mod", "pow"]
+)
+
 
 class BaseOpsUtil:
     series_scalar_exc: type[Exception] | None = TypeError
@@ -75,6 +83,22 @@ class BaseOpsUtil:
 
     # see comment on check_opname
     @final
+    def _check_frame_op_axis0(self, ser, other, op_name: str, expected_column) -> None:
+        # GH#28506 a DataFrame op with axis=0 dispatches column-by-column, so
+        #  it needs to match the Series result we just checked.
+        if not (isinstance(ser, pd.Series) and isinstance(other, pd.Series)):
+            return
+        flex_name = op_name.strip("_")
+        if flex_name not in _AXIS0_CHECKED_OPS:
+            return
+
+        df = pd.DataFrame({"A": ser, "B": ser})
+        result = getattr(df, flex_name)(other, axis=0)
+        expected = pd.DataFrame({"A": expected_column, "B": expected_column})
+        tm.assert_frame_equal(result, expected)
+
+    # see comment on check_opname
+    @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
@@ -87,6 +111,7 @@ class BaseOpsUtil:
             expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
             tm.assert_equal(result, expected)
+            self._check_frame_op_axis0(ser, other, op_name, result)
         else:
             with pytest.raises(exc):
                 op(ser, other)
@@ -217,6 +242,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             expected = ser.combine(other, op)
             expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
             tm.assert_series_equal(result, expected)
+            self._check_frame_op_axis0(ser, other, op.__name__, result)
 
         else:
             exc = None
@@ -232,6 +258,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
                     op.__name__, ser, other, expected
                 )
                 tm.assert_series_equal(result, expected)
+                self._check_frame_op_axis0(ser, other, op.__name__, result)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, op)

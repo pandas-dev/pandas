@@ -136,11 +136,6 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:"
-    "indexing past lexsort depth may impact performance:"
-    "pandas.errors.PerformanceWarning"
-)
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_describe_with_duplicate_output_column_names(as_index, keys):
     # GH 35314

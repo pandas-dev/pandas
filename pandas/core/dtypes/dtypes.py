@@ -1287,7 +1287,7 @@ class IntervalDtype(PandasExtensionDtype):
     )
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
-    _subtype: None | np.dtype
+    _subtype: np.dtype | None
     _closed: IntervalClosedType | None
 
     def __init__(self, subtype=None, closed: IntervalClosedType | None = None) -> None:
@@ -2483,12 +2483,23 @@ class ArrowDtype(StorageExtensionDtype):
         from pandas.core.dtypes.cast import find_common_type
 
         null_dtype = type(self)(pa.null())
+        non_null_dtypes = [dtype for dtype in dtypes if dtype != null_dtype]
+
+        if not non_null_dtypes:
+            return null_dtype
+        first = non_null_dtypes[0]
+        if isinstance(first, ArrowDtype) and all(
+            dtype == first for dtype in non_null_dtypes[1:]
+        ):
+            # Going through numpy_dtype is lossy for pyarrow types with no
+            #  numpy analogue, e.g. date32 -> M8[ms], tz-aware timestamp -> M8,
+            #  decimal/time/binary/list -> object.  GH#62343
+            return first
 
         new_dtype = find_common_type(
             [
                 dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
-                for dtype in dtypes
-                if dtype != null_dtype
+                for dtype in non_null_dtypes
             ]
         )
         if not isinstance(new_dtype, np.dtype):

@@ -406,3 +406,69 @@ def test_bare_pipe_alternation_in_message_raises(data, expected) -> None:
     fd = io.StringIO(data.strip())
     result = list(validate_unwanted_patterns.bare_pipe_alternation_in_message(fd))
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "helper", ["assert_produces_warning", "maybe_produces_warning"]
+)
+@pytest.mark.parametrize(
+    "data",
+    [
+        # a match argument is present
+        'tm.{helper}(FutureWarning, match="some message")',
+        "tm.{helper}(FutureWarning, match=msg)",
+        # explicitly opting out of the message assertion
+        "tm.{helper}(FutureWarning, match=None)",
+        # no warning is expected, so there is no message to match
+        "tm.{helper}(None)",
+        "tm.{helper}(False)",
+        "tm.{helper}(expected_warning=None)",
+        # unrelated call
+        "tm.assert_frame_equal(left, right)",
+    ],
+)
+def test_bare_assert_produces_warning(data, helper) -> None:
+    fd = io.StringIO(data.format(helper=helper).strip())
+    result = list(validate_unwanted_patterns.bare_assert_produces_warning(fd))
+    assert result == []
+
+
+@pytest.mark.parametrize(
+    "helper", ["assert_produces_warning", "maybe_produces_warning"]
+)
+@pytest.mark.parametrize(
+    "data",
+    [
+        "tm.{helper}(FutureWarning)",
+        # imported directly rather than through the tm namespace
+        "{helper}(FutureWarning)",
+        # a non-literal expected warning could still be falsy at runtime, but
+        #  that cannot be seen statically -- flag it and let the author decide
+        "tm.{helper}(warn)",
+        # the default expected_warning is `Warning`, which is truthy
+        "tm.{helper}()",
+        "tm.{helper}(expected_warning=FutureWarning)",
+        # other keywords do not stand in for match
+        "tm.{helper}(FutureWarning, check_stacklevel=False)",
+    ],
+)
+def test_bare_assert_produces_warning_raises(data, helper) -> None:
+    fd = io.StringIO(data.format(helper=helper).strip())
+    result = list(validate_unwanted_patterns.bare_assert_produces_warning(fd))
+    assert len(result) == 1
+    assert result[0][0] == 1
+    assert result[0][1] == (
+        validate_unwanted_patterns.BARE_WARNING_MATCH_MESSAGE.format(name=helper)
+    )
+
+
+def test_bare_assert_produces_warning_pdlint_ignore() -> None:
+    data = """
+with tm.assert_produces_warning(  # pdlint: ignore[bare_warning_match]
+    FutureWarning
+):
+    pass
+"""
+    fd = io.StringIO(data.strip())
+    result = list(validate_unwanted_patterns.bare_assert_produces_warning(fd))
+    assert result == []

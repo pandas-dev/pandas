@@ -3,9 +3,9 @@ test with the TimeGrouper / grouping with datetimes
 """
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 
 import numpy as np
@@ -772,7 +772,7 @@ class TestGroupBy:
     def test_timezone_info(self):
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
-        utc = timezone.utc
+        utc = UTC
         df = DataFrame({"a": [1], "b": [datetime.now(utc)]})
         assert df["b"][0].tzinfo == utc
         df = DataFrame({"a": [1, 2, 3]})

@@ -1,7 +1,7 @@
 import csv
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 import io
 import os
@@ -1008,8 +1008,8 @@ def test_to_csv_datetime_tz_consistent_format():
     df = DataFrame(
         {
             "timestamp": [
-                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
-                datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=UTC),
+                datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=UTC),
             ]
         }
     )
@@ -1025,8 +1025,8 @@ def test_to_csv_datetime_tz_consistent_format():
     df = DataFrame(
         {
             "timestamp": [
-                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
-                datetime(2025, 8, 14, 12, 34, 57, 0, tzinfo=timezone.utc),
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=UTC),
+                datetime(2025, 8, 14, 12, 34, 57, 0, tzinfo=UTC),
             ]
         }
     )

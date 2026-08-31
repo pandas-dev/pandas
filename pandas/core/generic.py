@@ -211,6 +211,20 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
 
 
+def _is_np_bool_backed(obj: NDFrame) -> bool:
+    """
+    Is obj backed entirely by numpy bool arrays?
+
+    Such an object needs neither filling nor casting to be used as a `where`
+    condition, so we can skip that machinery altogether (GH#51547).
+    """
+    if isinstance(obj, ABCDataFrame):
+        dtypes: list[DtypeObj] = [block.dtype for block in obj._mgr.blocks]
+    else:
+        dtypes = [obj.dtype]
+    return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -2407,26 +2421,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 - default is 'index'
                 - allowed values are: {'split', 'records', 'index', 'table'}.
-                - with 'records', the result is a JSON array of the Series
-                  values only; the index labels are not included.
+                - the format of the JSON string:
+
+                  - 'split' : dict like {'name' -> name, 'index' -> [index],
+                    'data' -> [values]}
+                  - 'records' : list like [value, ... , value]; the index
+                    labels and the Series name are not included
+                  - 'index' : dict like {index -> value}
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
                 - default is 'columns'
                 - allowed values are: {'split', 'records', 'index', 'columns',
                   'values', 'table'}.
+                - the format of the JSON string:
 
-            * The format of the JSON string:
+                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                    'data' -> [values]}
+                  - 'records' : list like [{column -> value}, ... , {column -> value}]
+                  - 'index' : dict like {index -> {column -> value}}
+                  - 'columns' : dict like {column -> {index -> value}}
+                  - 'values' : just the values array
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
-                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}
-                - 'records' : list like [{column -> value}, ... , {column -> value}]
-                - 'index' : dict like {index -> {column -> value}}
-                - 'columns' : dict like {column -> {index -> value}}
-                - 'values' : just the values array
-                - 'table' : dict like {'schema': {schema}, 'data': {data}}
-
-                Describing the data, where data component is like ``orient='records'``.
+            For ``orient='table'``, the data component is like ``orient='records'``.
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -2579,6 +2598,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> ser.to_json(orient="records", lines=True)
         '1\\n2\\n3\\n'
 
+        For a Series, the default ``orient="index"`` maps index labels to
+        values, and ``orient="split"`` has a 'name' entry in place of a
+        DataFrame's 'columns':
+
+        >>> ser.to_json()
+        '{"0":1,"1":2,"2":3}'
+        >>> ser.to_json(orient="split")
+        '{"name":null,"index":[0,1,2],"data":[1,2,3]}'
+
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
         >>> result = df.to_json(orient="index")
@@ -2683,8 +2711,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 dtypes = [self.dtype, self.index.dtype]
             if any(dtype.kind in "mM" for dtype in dtypes):
                 warnings.warn(
-                    "The default 'epoch' date format is deprecated and will be removed "
-                    "in a future version, please use 'iso' date format instead.",
+                    "The default formatting of datetime/timedelta values will change "
+                    'from numbers ("epoch") to strings ("iso") in a future version. '
+                    'Specify `date_format="iso"` explicitly in the `to_json()` call '
+                    "to opt-in to the future behaviour and silence this warning.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
@@ -2731,7 +2761,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None | lib.NoDefault = lib.no_default,
+        dropna: bool | lib.NoDefault | None = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -6871,11 +6901,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def convert_dtypes(
         self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
+        infer_objects: bool | lib.NoDefault = lib.no_default,
+        convert_string: bool | lib.NoDefault = lib.no_default,
+        convert_integer: bool | lib.NoDefault = lib.no_default,
+        convert_boolean: bool | lib.NoDefault = lib.no_default,
+        convert_floating: bool | lib.NoDefault = lib.no_default,
         dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Self:
         """
@@ -6889,16 +6919,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         infer_objects : bool, default True
             Whether object dtypes should be converted to the best possible types.
+
+            .. deprecated:: 3.1.0
+                The ``infer_objects`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_string : bool, default True
             Whether object dtypes should be converted to ``StringDtype()``.
+
+            .. deprecated:: 3.1.0
+                The ``convert_string`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_integer : bool, default True
             Whether, if possible, conversion can be done to integer extension types.
+
+            .. deprecated:: 3.1.0
+                The ``convert_integer`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_boolean : bool, defaults True
             Whether object dtypes should be converted to ``BooleanDtypes()``.
+
+            .. deprecated:: 3.1.0
+                The ``convert_boolean`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_floating : bool, defaults True
             Whether, if possible, conversion can be done to floating extension types.
             If `convert_integer` is also True, preference will be give to integer
             dtypes if the floats can be faithfully casted to integers.
+
+            .. deprecated:: 3.1.0
+                The ``convert_floating`` keyword is deprecated and will be removed
+                in a future version.
+
         dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
@@ -7011,6 +7066,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
+        deprecated_args = {
+            "infer_objects": infer_objects,
+            "convert_string": convert_string,
+            "convert_integer": convert_integer,
+            "convert_boolean": convert_boolean,
+            "convert_floating": convert_floating,
+        }
+        for arg_name, arg_val in deprecated_args.items():
+            if arg_val is not lib.no_default:
+                warnings.warn(
+                    f"The {arg_name} keyword in {type(self).__name__}."
+                    f"convert_dtypes is deprecated and will be removed in a "
+                    f"future version.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
+        # Resolve no_default to the current default values (True)
+        infer_objects = infer_objects if infer_objects is not lib.no_default else True
+        convert_string = (
+            convert_string if convert_string is not lib.no_default else True
+        )
+        convert_integer = (
+            convert_integer if convert_integer is not lib.no_default else True
+        )
+        convert_boolean = (
+            convert_boolean if convert_boolean is not lib.no_default else True
+        )
+        convert_floating = (
+            convert_floating if convert_floating is not lib.no_default else True
+        )
+
         new_mgr = self._mgr.convert_dtypes(
             infer_objects=infer_objects,
             convert_string=convert_string,
@@ -7030,9 +7117,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         method: Literal["ffill", "bfill", "pad", "backfill"],
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ):
         if axis is None:
@@ -7311,9 +7398,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def ffill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7332,15 +7419,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            Maximum number of consecutive NaN values to fill. In other words, if
+            there is a gap with more than this number of consecutive NaNs, it
+            will only be partially filled. Must be greater than 0 if not None.
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -7416,9 +7500,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def bfill(
         self,
         *,
-        axis: None | Axis = None,
+        axis: Axis | None = None,
         inplace: bool = False,
-        limit: None | int = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7438,15 +7522,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            Maximum number of consecutive NaN values to fill. In other words, if
+            there is a gap with more than this number of consecutive NaNs, it
+            will only be partially filled. Must be greater than 0 if not None.
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -8089,16 +8170,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
-            Maximum number of consecutive NaNs to fill. Must be greater than
-            0.
+            Maximum number of consecutive NaNs to fill. In other words, if there
+            is a gap with more than this number of consecutive NaNs, it will only
+            be partially filled, from the direction given by ``limit_direction``.
+            Must be greater than 0.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
 
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -9115,8 +9198,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         between_time : Select values between particular times of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day.
 
@@ -9187,8 +9268,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         at_time : Select values at a particular time of the day.
-        first : Select initial periods of time series based on a date offset.
-        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day.
 
@@ -10193,6 +10272,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        fill_value = bool(inplace)
+
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -10211,7 +10292,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         copy=False,
                     )
                     cond.columns = self.columns
-            cond = cond.align(self, join="right")[0]
+            if _is_np_bool_backed(cond) and self.ndim == 2:
+                # GH#51547 a bool cond that needs reindexing would otherwise be
+                #  cast to object and cast back by the fillna/infer_objects
+                #  below.  Only safe for ndim==2: _align_series applies
+                #  fill_value via fillna to *both* objects, so it would alter
+                #  self.  Only safe for bool cond: for other dtypes a bool
+                #  fill_value is an incompatible reindex fill.
+                cond = cond.align(self, join="right", fill_value=fill_value)[0]
+            else:
+                cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -10220,39 +10310,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
         # make sure we are boolean
-        fill_value = bool(inplace)
-        with warnings.catch_warnings():
-            # GH#45153 suppress Pandas4Warning from fillna with
-            # incompatible value; if cond is not boolean, the dtype
-            # check below will raise TypeError anyway.
-            warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
-            cond = cond.fillna(fill_value)
-        cond = cond.infer_objects()
+        if not _is_np_bool_backed(cond):
+            with warnings.catch_warnings():
+                # GH#45153 suppress Pandas4Warning from fillna with
+                # incompatible value; if cond is not boolean, the dtype
+                # check below will raise TypeError anyway.
+                warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
+                cond = cond.fillna(fill_value)
+            cond = cond.infer_objects()
 
-        msg = "Boolean array expected for the condition, not {dtype}"
+            msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not cond.empty:
-            if not isinstance(cond, ABCDataFrame):
-                # This is a single-dimensional object.
-                if not is_bool_dtype(cond):
-                    raise TypeError(msg.format(dtype=cond.dtype))
+            if not cond.empty:
+                if not isinstance(cond, ABCDataFrame):
+                    # This is a single-dimensional object.
+                    if not is_bool_dtype(cond):
+                        raise TypeError(msg.format(dtype=cond.dtype))
+                else:
+                    for block in cond._mgr.blocks:
+                        if not is_bool_dtype(block.dtype):
+                            raise TypeError(msg.format(dtype=block.dtype))
+                    if cond._mgr.any_extension_types:
+                        # GH51574: avoid object ndarray conversion later on
+                        cond = cond._constructor(
+                            cond.to_numpy(dtype=bool, na_value=fill_value),
+                            **cond._construct_axes_dict(),
+                        )
             else:
-                for block in cond._mgr.blocks:
-                    if not is_bool_dtype(block.dtype):
-                        raise TypeError(msg.format(dtype=block.dtype))
-                if cond._mgr.any_extension_types:
-                    # GH51574: avoid object ndarray conversion later on
-                    cond = cond._constructor(
-                        cond.to_numpy(dtype=bool, na_value=fill_value),
-                        **cond._construct_axes_dict(),
-                    )
-        else:
-            # GH#21947 we have an empty DataFrame/Series, could be object-dtype
-            cond = cond.astype(bool)
+                # GH#21947 we have an empty DataFrame/Series, could be object-dtype
+                cond = cond.astype(bool)
 
         cond_for_ea = cond
         cond = -cond if inplace else cond
-        cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
+        if not cond._info_axis.equals(self._info_axis):
+            cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
         # try to align with other
         if isinstance(other, NDFrame):
@@ -12337,17 +12428,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         com : float, optional
             Specify decay in terms of center of mass
 
-            :math:`\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
+            :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
 
         span : float, optional
             Specify decay in terms of span
 
-            :math:`\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
+            :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
 
         halflife : float, str, timedelta, optional
             Specify decay in terms of half-life
 
-            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`,
             for :math:`halflife > 0`.
 
             If ``times`` is specified, a timedelta convertible unit over which an
@@ -12357,7 +12448,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         alpha : float, optional
             Specify smoothing factor :math:`\alpha` directly
 
-            :math:`0 < \alpha \\leq 1`.
+            :math:`0 < \alpha \leq 1`.
 
         min_periods : int, default 0
             Minimum number of observations in window required to have a value;
@@ -12384,7 +12475,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 \begin{split}
                     y_0 &= x_0\\
                     y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
-                \\end{split}
+                \end{split}
 
         ignore_na : bool, default False
             Ignore missing values when calculating weights.

@@ -128,16 +128,14 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
-            if values.size == 0 and kwds.get("min_count") is None:
-                # We are empty, returning NA for our type
-                # Only applies for the default `min_count` of None
-                # since that affects how empty arrays are handled.
-                # TODO(GH-18976) update all the nanops methods to
-                # correctly handle empty inputs and remove this check.
-                # It *may* just be `var`
-                return _na_for_min_count(values, axis)
-
-            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype, bn_name):
+            # GH#18976 bottleneck's nanmin/nanmax raise on empty input; skip it
+            #  and let each nanops function return the NA for its own dtype.
+            if (
+                _USE_BOTTLENECK
+                and skipna
+                and values.size > 0
+                and _bn_ok_dtype(values.dtype, bn_name)
+            ):
                 if kwds.get("mask", None) is None:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
@@ -431,6 +429,12 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
+            if getattr(result, "dtype", None) == orig_values.dtype:
+                # GH#18976 empty input short-circuits to NA of the original
+                #  dtype; _wrap_results expects an i8 result and would compare
+                #  this against iNaT.
+                return result
+
             result_mask = None
             if not skipna:
                 assert mask is not None  # checked above
@@ -638,7 +642,7 @@ def nansum(
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> npt.NDArray[np.floating] | float | NaTType:
+) -> np.ndarray | np.int64 | float | NaTType:
     """
     Sum the elements along an axis ignoring NaNs
 
@@ -663,18 +667,130 @@ def nansum(
     np.float64(3.0)
     """
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
+    if dtype == object and not skipna:
+        if mask is None:
+            mask = isna(values)
+        if mask.any():
+            # GH#4147: an object NA that supports addition propagates on its
+            # own and carries more type information than a bare nan would
+            # (pd.NA, Decimal("NaN"), NaT), so prefer it.  Step in only when it
+            # does not, e.g. None, or values that cannot be added at all.
+            try:
+                the_sum = values.sum(axis, dtype=_get_dtype_max(dtype))
+            except TypeError:
+                pass
+            else:
+                return _maybe_null_out(
+                    the_sum, axis, mask, values.shape, min_count=min_count
+                )
+            if values.ndim == 1 or axis is None:
+                # error: Incompatible return value type (got "Union[Scalar,
+                # ndarray]", expected "Union[ndarray, float, NaTType]")
+                return _na_for_min_count(values, axis)  # type: ignore[return-value]
+            values = _blank_object_na_slices(values, mask, axis, 0)
+            min_count = _na_min_count(values, axis, min_count)
+    else:
+        values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
     if dtype.kind == "f":
         # GH#43929 float16 sum overflows easily; upcast like numpy does
         dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
     elif dtype.kind == "m":
-        dtype_sum = np.dtype(np.float64)
+        # GH#66551 float64 has a 53-bit mantissa, so accumulating i8 values there
+        #  silently rounds the result; sum in int64 instead.
+        the_sum = _sum_timedelta_i8(values, axis, mask, skipna, min_count)
+        return _maybe_null_out(
+            the_sum, axis, mask, values.shape, min_count=min_count, datetimelike=True
+        )
 
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
     return the_sum
+
+
+def _sum_timedelta_i8(
+    values: np.ndarray,
+    axis: AxisInt | None,
+    mask: npt.NDArray[np.bool_] | None,
+    skipna: bool,
+    min_count: int,
+) -> np.ndarray | np.int64:
+    """
+    Sum i8-viewed timedelta64 values exactly, raising on a result that does not
+    fit in int64.
+
+    int64 addition is modular, so an intermediate that leaves the range does not
+    corrupt the total; only the total itself has to be checked.  Values are
+    summed in blocks short enough that each block sum provably stays in range,
+    and the block sums are then combined in Python ints.
+
+    Parameters
+    ----------
+    values : ndarray[int64]
+    axis : int, optional
+    mask : ndarray[bool], optional
+    skipna : bool
+    min_count : int
+
+    Returns
+    -------
+    int64 scalar or ndarray[int64]
+
+    Raises
+    ------
+    OutOfBoundsTimedelta
+        If the exact sum is not representable as a timedelta64, i.e. it lands
+        outside (iNaT, i8max].
+    """
+    # Results that get discarded downstream are exempt from the bounds check:
+    #  positions that reduce to NaT under skipna=False, as in _wrap_results, and
+    #  positions that min_count nulls out in _maybe_null_out.
+    exempt: np.ndarray | np.bool_ = np.False_
+    if not skipna and mask is not None:
+        exempt = mask.any(axis=axis)
+    if min_count > 0:
+        if axis is not None and values.ndim > 1:
+            counts = values.shape[axis] - (0 if mask is None else mask.sum(axis))
+            exempt = exempt | (counts < min_count)
+        else:
+            exempt = exempt | check_below_min_count(values.shape, mask, min_count)
+
+    if not skipna and mask is not None and mask.any():
+        # These positions reduce to NaT regardless of what they sum to, so keep
+        #  their raw iNaT out of the accumulator.
+        values = np.where(mask, 0, values)
+
+    if values.size == 0:
+        return values.sum(axis, dtype=np.int64)
+
+    reduce_axis: AxisInt = 0
+    if axis is None:
+        values = values.ravel()
+    else:
+        reduce_axis = axis
+
+    length = values.shape[reduce_axis]
+    largest = max(abs(int(values.min())), abs(int(values.max())))
+    block = lib.i8max // largest if largest else length
+
+    if block >= length:
+        # Every partial sum is bounded by length * largest <= i8max, so the
+        #  int64 sum is exact and in range.
+        return values.sum(reduce_axis, dtype=np.int64)
+
+    starts = np.arange(0, length, block)
+    block_sums = np.add.reduceat(values, starts, axis=reduce_axis)
+    total = block_sums.sum(reduce_axis, dtype=object)
+
+    out_of_range = (total <= iNaT) | (total > lib.i8max)
+    if np.any(out_of_range & ~exempt):
+        raise OutOfBoundsTimedelta("overflow in timedelta operation")
+
+    if isinstance(total, np.ndarray):
+        # anything still out of range here is exempt, i.e. is discarded anyway
+        return np.where(out_of_range, 0, total).astype(np.int64)
+    return np.int64(0 if out_of_range else total)
 
 
 def _mask_datetimelike_result(
@@ -726,6 +842,9 @@ def nanmean(
     >>> nanops.nanmean(s.values)
     np.float64(1.5)
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
     if values.dtype == object and len(values) > 1_000 and mask is None:
         # GH#54754 if we are going to fail, try to fail-fast
         nanmean(values[:1000], axis=axis, skipna=skipna)
@@ -984,6 +1103,10 @@ def nanstd(
         unit = np.datetime_data(values.dtype)[0]
         values = values.view(f"m8[{unit}]")
 
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
 
@@ -1028,6 +1151,9 @@ def nanvar(
     >>> nanops.nanvar(s.values)
     1.0
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if dtype.kind in "iu":
@@ -1119,8 +1245,11 @@ def nansem(
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
 
-    if not skipna and mask is not None and mask.any():
-        return np.nan
+    if not skipna and mask is not None:
+        # For masked arrays, the values underneath `mask` are fill values
+        # rather than NaN, so NaN would not otherwise propagate. GH#65373
+        values = values.copy()
+        np.putmask(values, mask, np.nan)
 
     dtype_count = np.dtype(np.float64)
     if values.dtype.kind == "f":
@@ -1129,6 +1258,102 @@ def nansem(
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     return np.sqrt(var) / np.sqrt(count)
+
+
+def _blank_object_na_slices(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    axis: AxisInt,
+    fill_value: Any,
+) -> np.ndarray:
+    """
+    Replace every reduction slice of an object-dtype array that holds an NA
+    with ``fill_value``.
+
+    For ``skipna=False`` those slices are nulled out afterwards, so their values
+    never reach the result and need not even support the operation being applied
+    (GH#4147).  A float NaN propagates through arithmetic and comparison on its
+    own; an object NA does not, and raises instead.
+
+    Only for reductions over an axis of a 2-D array.  When the reduction covers
+    the whole array the result is simply NA, and callers short-circuit instead.
+    """
+    any_na = np.expand_dims(mask.any(axis=axis), axis)
+    return np.where(any_na, fill_value, values)
+
+
+def _na_min_count(values: np.ndarray, axis: AxisInt, min_count: int) -> int:
+    """
+    ``min_count`` that nulls out any slice holding an NA, without weakening an
+    explicit larger ``min_count`` from the caller (GH#4147).
+    """
+    return max(min_count, values.shape[axis])
+
+
+def _fill_object_na(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    axis: AxisInt | None,
+    fill_value: Any,
+) -> np.ndarray:
+    """
+    Replace NA entries in an object-dtype array with a valid value taken from
+    the same reduction slice.
+
+    GH#65500: the +/-inf fill used for other dtypes is not comparable with
+    arbitrary objects (Timestamps, strings, tuples) and raises.  Substituting a
+    value already present in the slice cannot change a min/max, and for
+    argmin/argmax a result landing on a filled position is corrected by
+    ``_maybe_fix_arg_at_na``.  Entirely-NA slices get ``fill_value``, since
+    their result is discarded by the caller either way.
+    """
+    if mask.all():
+        return np.full(values.shape, fill_value, dtype=object)
+    if values.ndim == 1 or axis is None:
+        fill = np.empty(1, dtype=object)
+        # wrap in an array so that e.g. tuple fill values
+        # are not broadcast by np.where
+        fill[0] = values[~mask][0]
+        return np.where(mask, fill, values)
+    indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
+    fill = np.take_along_axis(values, indexer, axis=axis)
+    # argmax selects an NA entry for entirely-NA slices; fill
+    # those with +/-inf instead so the reduction does not warn
+    all_na = np.expand_dims(mask.all(axis=axis), axis)
+    fill = np.where(all_na, fill_value, fill)
+    return np.where(mask, fill, values)
+
+
+def _get_arg_values(
+    values: np.ndarray,
+    *,
+    fill_value_typ: str,
+    mask: npt.NDArray[np.bool_] | None,
+    skipna: bool,
+    axis: AxisInt | None = None,
+) -> tuple[np.ndarray, npt.NDArray[np.bool_] | None]:
+    """
+    Prepare values for nanargmin/nanargmax by filling NA entries so that the
+    comparison does not see them, and raise for ``skipna=False``.
+
+    Mirrors ``_get_values(values, True, ...)`` except for object dtype, where
+    the +/-inf fill is not comparable with arbitrary objects (GH#4147).  The
+    object fill is a same-slice value, which *can* win the comparison; a result
+    landing on it is corrected by ``_maybe_fix_arg_at_na``.
+    """
+    if values.dtype == object:
+        if mask is None:
+            mask = isna(values)
+        if not skipna and mask.any():
+            # _maybe_arg_null_out would raise this once the argmin/argmax is
+            # known, but the comparison must not run first: values in a slice
+            # holding an NA need not be comparable with each other (GH#4147)
+            raise ValueError("Encountered an NA value with skipna=False")
+        if mask.any():
+            fill_value = _get_fill_value(values.dtype, fill_value_typ=fill_value_typ)
+            values = _fill_object_na(values, mask, axis, fill_value)
+        return values, mask
+    return _get_values(values, True, fill_value_typ=fill_value_typ, mask=mask)
 
 
 def _nanminmax(meth, fill_value_typ):
@@ -1145,37 +1370,36 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
-        if dtype == object and skipna:
+        min_count = 1
+        if dtype == object:
             # GH#65500: _get_values' +/-inf fill isn't comparable with arbitrary
-            # objects (Timestamps, strings) and raises.  Fill NAs from the same
-            # slice instead (leaves min/max unchanged); all-NA slices keep the
-            # +/-inf fill since _maybe_null_out discards them anyway.
-            mask = _maybe_get_mask(values, skipna, mask)
-            if mask is not None and mask.any():
+            # objects (Timestamps, strings) and raises; see _fill_object_na.
+            if mask is None:
+                mask = isna(values)
+            if mask.any():
                 fill_value = _get_fill_value(dtype, fill_value_typ=fill_value_typ)
-                if mask.all():
-                    values = np.full(values.shape, fill_value, dtype=object)
+                if skipna:
+                    values = _fill_object_na(values, mask, axis, fill_value)
                 elif values.ndim == 1 or axis is None:
-                    fill = np.empty(1, dtype=object)
-                    # wrap in an array so that e.g. tuple fill values
-                    # are not broadcast by np.where
-                    fill[0] = values[~mask][0]
-                    values = np.where(mask, fill, values)
+                    # GH#4147: an object NA does not propagate through the
+                    # comparison the way a float NaN does, so null out every
+                    # slice that holds one, matching float64/str/dt64.
+                    return _na_for_min_count(values, axis)
                 else:
-                    indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
-                    fill = np.take_along_axis(values, indexer, axis=axis)
-                    # argmax selects an NA entry for entirely-NA slices; fill
-                    # those with +/-inf instead so the reduction does not warn
-                    all_na = np.expand_dims(mask.all(axis=axis), axis)
-                    fill = np.where(all_na, fill_value, fill)
-                    values = np.where(mask, fill, values)
+                    values = _blank_object_na_slices(values, mask, axis, fill_value)
+                    min_count = _na_min_count(values, axis, min_count)
         else:
             values, mask = _get_values(
                 values, skipna, fill_value_typ=fill_value_typ, mask=mask
             )
         result = getattr(values, meth)(axis)
         result = _maybe_null_out(
-            result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"
+            result,
+            axis,
+            mask,
+            values.shape,
+            min_count=min_count,
+            datetimelike=dtype.kind in "mM",
         )
         return result
 
@@ -1224,12 +1448,14 @@ def nanargmax(
     >>> nanops.nanargmax(arr, axis=1)
     array([2, 2, 1, 1])
     """
-    values, mask = _get_values(values, True, fill_value_typ="-inf", mask=mask)
+    values, mask = _get_arg_values(
+        values, fill_value_typ="-inf", mask=mask, skipna=skipna, axis=axis
+    )
     result = values.argmax(axis)
     # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
     result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[assignment]
     return result
 
 
@@ -1271,12 +1497,14 @@ def nanargmin(
     >>> nanops.nanargmin(arr, axis=1)
     array([0, 0, 1, 1])
     """
-    values, mask = _get_values(values, True, fill_value_typ="+inf", mask=mask)
+    values, mask = _get_arg_values(
+        values, fill_value_typ="+inf", mask=mask, skipna=skipna, axis=axis
+    )
     result = values.argmin(axis)
     # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
     result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
-    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[assignment]
     return result
 
 
@@ -1430,7 +1658,26 @@ def nanprod(
     """
     mask = _maybe_get_mask(values, skipna, mask)
 
-    if skipna and mask is not None:
+    if values.dtype == object and not skipna:
+        # GH#4147: see nansum
+        if mask is None:
+            mask = isna(values)
+        if mask.any():
+            try:
+                result = values.prod(axis)
+            except TypeError:
+                pass
+            else:
+                return _maybe_null_out(  # type: ignore[return-value]
+                    result, axis, mask, values.shape, min_count=min_count
+                )
+            if values.ndim == 1 or axis is None:
+                # error: Incompatible return value type (got "Union[Scalar,
+                # ndarray]", expected "float")
+                return _na_for_min_count(values, axis)  # type: ignore[return-value]
+            values = _blank_object_na_slices(values, mask, axis, 1)
+            min_count = _na_min_count(values, axis, min_count)
+    elif skipna and mask is not None:
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
@@ -1446,10 +1693,11 @@ def _maybe_fix_arg_at_na(
     mask: npt.NDArray[np.bool_] | None,
     axis: AxisInt | None,
 ) -> np.ndarray:
-    # helper function for nanargmin/nanargmax: an argmin/argmax that landed on
-    # a masked position means the extremum equals the sentinel fill, so every
-    # unmasked value ties with the fill; the first unmasked position is the
-    # correct result (GH#64478)
+    # helper function for nanargmin/nanargmax.  Masked positions carry either
+    # the +/-inf sentinel or, for object dtype, the value at the first unmasked
+    # position (GH#4147).  Either way an argmin/argmax landing on a masked
+    # position means the fill is the extremum, so the first unmasked position
+    # holds it and is the correct result (GH#64478)
     if mask is None or not mask.any():
         return result
     if axis is None or mask.ndim == 1:
@@ -1529,13 +1777,13 @@ def _get_counts(
 
 
 def _maybe_null_out(
-    result: np.ndarray | float | NaTType,
+    result: np.ndarray | np.int64 | float | NaTType,
     axis: AxisInt | None,
     mask: npt.NDArray[np.bool_] | None,
     shape: tuple[int, ...],
     min_count: int = 1,
     datetimelike: bool = False,
-) -> np.ndarray | float | NaTType:
+) -> np.ndarray | np.int64 | float | NaTType:
     """
     Returns
     -------
