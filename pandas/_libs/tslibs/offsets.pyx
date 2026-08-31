@@ -841,11 +841,10 @@ cdef class BaseOffset:
     def _add_datetime(self, other: datetime) -> datetime:
         raise NotImplementedError("implemented by subclasses")
 
-    def _add_timedelta(self, other):
-        # `other` is a timedelta-like or another offset.  Only Tick, Day, Week
-        #  and BusinessDay override this; adding two offsets is deliberately
-        #  unsupported (GH#10902), so the default is to decline and let python
-        #  raise the usual TypeError.
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset):
+        # Only Tick, Day, Week and BusinessDay override this; adding two
+        #  offsets is deliberately unsupported (GH#10902), so the default is
+        #  to decline and let python raise the usual TypeError.
         return NotImplemented
 
     def _add_datetime_ndarray(self, dtarr: np.ndarray) -> np.ndarray:
@@ -1493,7 +1492,7 @@ cdef class Tick(SingleConstructorOffset):
         #  other offsets we do not need apply_wraps here.
         return other + self._as_pd_timedelta
 
-    def _add_timedelta(self, other):
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset):
         if not is_any_td_scalar(other):
             # e.g. MonthEnd, Day: let the other operand's __radd__ try
             return NotImplemented
@@ -1593,7 +1592,7 @@ cdef class Day(SingleConstructorOffset):
     def _add_datetime(self, other: datetime) -> datetime:
         return other + np.timedelta64(self._n, "D")
 
-    def _add_timedelta(self, other):
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset):
         if isinstance(other, Day):
             return Day(self._n + other.n)
         # NB: for an offset this hands off to other.__add__, which may in turn
@@ -2764,7 +2763,7 @@ cdef class BusinessDay(BusinessMixin):
             result = result + self._offset
         return result
 
-    def _add_timedelta(self, other):
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset):
         if not is_any_td_scalar(other):
             return NotImplemented
         td = Timedelta(self._offset) + other
@@ -5340,7 +5339,7 @@ cdef class Week(SingleConstructorOffset):
         self._weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
-    def _add_timedelta(self, other):
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset):
         if self._weekday is None:
             return other + self._n * self._inc
         raise TypeError(
@@ -6819,7 +6818,7 @@ cdef class CustomBusinessDay(BusinessDay):
             result = result + self._offset
         return result
 
-    def _add_timedelta(self, other):
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset):
         if not is_any_td_scalar(other):
             return NotImplemented
         # NB: returns a plain BDay, dropping weekmask/holidays/calendar
