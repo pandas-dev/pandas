@@ -41,6 +41,7 @@ dependencies:
   - numexpr>=2.11.0
   - openpyxl>=3.1.5
   - odfpy>=1.4.1
+  - orjson>=3.10.0
   - psycopg2>=2.9.10
   # TMP avoid pyarrow 24.0 due to typing issues (https://github.com/apache/arrow/issues/49831)
   - pyarrow>=16.0.0,!=24.*

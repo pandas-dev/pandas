@@ -6,7 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
@@ -20,6 +19,8 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
+
+from pandas.io.json._json import _to_json_string
 
 
 class BaseMethodsTests:
@@ -872,7 +873,7 @@ class BaseMethodsTests:
         assert isinstance(values, np.ndarray)
 
         # Check that the result is JSON-serializable
-        assert isinstance(ujson_dumps(values), str)
+        assert isinstance(_to_json_string(values, orient="values"), str)
 
         # Check that Series.to_json uses _values_for_json
         ser = pd.Series(data)

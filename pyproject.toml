@@ -41,7 +41,6 @@ license-files = [
   "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
   "LICENSES/STATSBASE_JL_LICENSE", # MIT
-  "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
   "LICENSES/XSIMD_LICENSE", # BSD-3-Clause
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
   "subprojects/fast_float-*/LICENSE-BOOST", # BSL
@@ -88,7 +87,7 @@ matplotlib = "pandas:plotting._matplotlib"
 [project.optional-dependencies]
 test = ['pytest>=8.3.4', 'pytest-xdist>=3.6.1']
 pyarrow = ['pyarrow>=16.0.0']
-performance = ['bottleneck>=1.5.0', 'numba>=0.61.2', 'numexpr>=2.11.0']
+performance = ['bottleneck>=1.5.0', 'numba>=0.61.2', 'numexpr>=2.11.0', 'orjson>=3.10.0']
 computation = ['scipy>=1.16.1', 'xarray>=2025.7.1']
 fss = ['fsspec>=2025.7.0']
 aws = ['s3fs>=2025.7.0']
@@ -124,6 +123,7 @@ all = ['adbc-driver-postgresql>=1.7.0',
        'numexpr>=2.11.0',
        'odfpy>=1.4.1',
        'openpyxl>=3.1.5',
+       'orjson>=3.10.0',
        'psycopg2>=2.9.10',
        'pyarrow>=16.0.0',
        'pyiceberg>=0.9.1',

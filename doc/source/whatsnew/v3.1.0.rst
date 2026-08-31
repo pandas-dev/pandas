@@ -226,6 +226,14 @@ Other API changes
 - :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file; the value was hardcoded to ``"0.15.2"`` and never reflected the pandas version. As a consequence, ``format="table"`` files written with pandas 3.1 or later cannot be read by pandas 3.0 or earlier (:issue:`62792`)
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
+- :meth:`DataFrame.to_json`, :meth:`Series.to_json` and :func:`read_json` no longer use the vendored ``ujson`` library. Serialization is done by `orjson <https://github.com/ijl/orjson>`__ when it is installed (now an optional dependency) and by the standard library ``json`` module otherwise; the output and the parsed values are the same with both. As a consequence (:issue:`62464`):
+
+  - Floating point values are written with the shortest representation that round-trips (like Python's ``repr``) instead of being rounded to ten decimal places; the ``double_precision`` keyword has been removed. Round the data before calling ``to_json`` to limit the number of digits.
+  - Non-ASCII characters are written as UTF-8; the ``force_ascii`` keyword has been removed.
+  - ``indent`` only accepts ``0`` and ``2``, and indented output separates keys and values with ``": "``, like ``json.dumps(indent=2)``.
+  - Floats are always parsed with full precision by :func:`read_json`; the ``precise_float`` keyword has been removed.
+  - The default engine of :func:`read_json` is now called ``"json"`` instead of ``"ujson"``, and syntax errors are reported with the messages of the underlying parser.
+  - The ``pandas.io.json.ujson_dumps`` and ``pandas.io.json.ujson_loads`` functions have been removed.
 - The ``year`` column of :meth:`DatetimeIndex.isocalendar` and :meth:`Series.dt.isocalendar` is now ``Int32`` instead of ``UInt32``, so that years before year 1 are representable (:issue:`66549`)
 -
 

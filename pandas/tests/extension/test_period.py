@@ -112,7 +112,7 @@ class TestPeriodArray(base.ExtensionTests):
         tm.assert_extension_array_equal(result, data)
 
     @pytest.mark.xfail(
-        raises=OverflowError, reason="PeriodArray cannot be serialized to JSON"
+        raises=ValueError, reason="PeriodArray cannot be serialized to JSON"
     )
     def test_values_for_json(self, data):
         # GH 65127

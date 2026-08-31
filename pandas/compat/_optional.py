@@ -35,6 +35,7 @@ VERSIONS = {
     "numexpr": "2.11.0",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.5",
+    "orjson": "3.10.0",
     "psycopg2": "2.9.10",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.1",
     "pyarrow": "16.0.0",

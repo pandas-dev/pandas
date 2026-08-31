@@ -190,6 +190,7 @@ Dependency                                            Minimum Version    pip ext
 `numexpr <https://github.com/pydata/numexpr>`__       2.11.0             performance        Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups
 `bottleneck <https://github.com/pydata/bottleneck>`__ 1.5.0              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
 `numba <https://github.com/numba/numba>`__            0.61.2             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
+`orjson <https://github.com/ijl/orjson>`__            3.10.0             performance        Faster JSON serialization and parsing in :meth:`DataFrame.to_json` and :func:`read_json`; the standard library ``json`` module is used when it is not installed.
 ===================================================== ================== ================== ===================================================================================================================================================================================
 
 Visualization
