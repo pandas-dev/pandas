@@ -4,13 +4,13 @@ Module for formatting output data into CSV files.
 
 from __future__ import annotations
 
+import codecs
 from collections.abc import (
     Hashable,
     Iterable,
     Iterator,
     Sequence,
 )
-import codecs
 import csv as csvlib
 import io
 import os
@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import DataFrame
+
     from pandas.io.formats.format import DataFrameFormatter
 
 
