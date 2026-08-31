@@ -207,30 +207,15 @@ repos:
         files: ^pandas/tests/
         types_or: [python, cython, rst]
     -   id: current-time-in-tests
-        name: Check for current-time values in tests
+        name: Check for current-time strings in tests
         description: >
-            Tests that build data from the current time are time dependent and have
-            broken CI in the past, e.g. at a DST transition (GH#44341). Use a fixed
-            datetime instead. Files that test these constructions themselves are
-            excluded.
+            Current-time test data broke CI at a DST transition (GH#44341). Use a
+            fixed datetime, or append "# current-time-ok" if the test exercises this
+            construction itself. Attribute spellings like Timestamp.now() are banned
+            in pyproject.toml.
         language: pygrep
-        entry: |
-            (?x)
-            # datetime.now(), Timestamp.today(), Timestamp.utcnow(), ...
-            \.(now|today|utcnow)\(
-
-            # Timestamp("now"), date_range("today"), np.datetime64("now"), ...
-            |(date_range|datetime64|period_range|Period|Timestamp|to_datetime)\(
-             \s*\[?"(now|today)"
+        entry: '^(?!.*# current-time-ok).*(date_range|datetime64|period_range|Period|Timestamp|to_datetime)\(\s*\[?"(now|today)"'
         files: ^pandas/tests/
-        exclude: |
-            (?x)
-            ^pandas/tests/indexes/datetimes/test_constructors\.py$
-            |^pandas/tests/scalar/period/test_period\.py$
-            |^pandas/tests/scalar/timestamp/test_constructors\.py$
-            |^pandas/tests/scalar/timestamp/test_timestamp\.py$
-            |^pandas/tests/tools/test_to_datetime\.py$
-            |^pandas/tests/tslibs/test_strptime\.py$
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-cython
         name: Unwanted patterns in Cython code

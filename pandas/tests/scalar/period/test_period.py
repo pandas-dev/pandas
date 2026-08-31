@@ -100,16 +100,16 @@ class TestPeriodConstruction:
         i4 = Period("2005", freq="M")
         assert i1 != i4
 
-        i1 = Period.now(freq="Q")
-        i2 = Period(datetime.now(), freq="Q")
+        i1 = Period.now(freq="Q")  # noqa: TID251
+        i2 = Period(datetime.now(), freq="Q")  # noqa: TID251
 
         assert i1 == i2
 
         # Pass in freq as a keyword argument sometimes as a test for
         # https://github.com/pandas-dev/pandas/issues/53369
-        i1 = Period.now(freq="D")
-        i2 = Period(datetime.now(), freq="D")
-        i3 = Period.now(offsets.Day())
+        i1 = Period.now(freq="D")  # noqa: TID251
+        i2 = Period(datetime.now(), freq="D")  # noqa: TID251
+        i3 = Period.now(offsets.Day())  # noqa: TID251
 
         assert i1 == i2
         assert i1 == i3
