@@ -2004,9 +2004,7 @@ class TestAsOfMerge:
         msg = "tolerance must be positive"
 
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
-                trades, quotes, on="time", by="ticker", tolerance=Timedelta(-1)
-            )
+            merge_asof(trades, quotes, on="time", by="ticker", tolerance=Timedelta(-1))
 
     def test_non_sorted(self, trades, quotes):
         trades = trades.sort_values("time", ascending=False)
