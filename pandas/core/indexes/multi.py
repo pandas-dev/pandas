@@ -5142,10 +5142,9 @@ def _require_listlike(level, arr, arrname: str):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
         if len(arr) > 0 and is_list_like(arr[0]) and not isinstance(arr[0], tuple):
-            # tuples are valid scalar level values (e.g. a level of tuple keys)
             raise TypeError(
                 f"With a scalar level, {arrname} must be a flat list-like of "
-                "values, but its first element is itself list-like"
+                "values; tuples are allowed as values, but other list-likes are not"
             )
         level = [level]
         arr = [arr]
