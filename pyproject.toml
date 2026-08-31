@@ -470,6 +470,8 @@ filterwarnings = [
   "ignore:Plugin file tracers",
   # Raised by coverage in freethreading
   "ignore:Couldn't import C tracer",
+  # From gcsfs, via google/auth/transport/grpc.py. Possibly removable in "October 2026" when google bumps grpcio min version.
+  "ignore:grpcio < 1.83.0 does not support Post-Quantum Cryptography:FutureWarning",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
 ]
