@@ -673,10 +673,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
         >>> tz_aware
-        DatetimeIndex(['2018-03-01 09:00:00-05:00',
-                       '2018-03-02 09:00:00-05:00',
+        DatetimeIndex(['2018-03-01 09:00:00-05:00', '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[us, US/Eastern]', freq=None)
+                      dtype='datetime64[us, US/Eastern]', freq='D')
 
         With ``tz=None`` we can remove the time zone information while
         preserving the wall time (no conversion to UTC):
@@ -684,7 +683,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[us]', freq=None)
+                      dtype='datetime64[us]', freq='D')
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -748,6 +747,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             result._freq = freq
         elif arr.tz is None and self._data.tz is None:
             # no-op
+            result._freq = freq
+        elif (
+            freq is not None
+            and not isinstance(freq, Tick)
+            and nonexistent in ("raise", "NaT")
+            and not arr._hasna
+        ):
+            # GH#36575 pandas treats non-Tick offsets as wall-time: date_range
+            #  generates them in wall time and localizes after, and
+            #  _validate_frequency validates them against wall times (GH#55499).
+            #  tz_localize leaves wall times unchanged, so freq survives unless
+            #  we shifted nonexistent times or introduced NaTs.
             result._freq = freq
         return result
 
