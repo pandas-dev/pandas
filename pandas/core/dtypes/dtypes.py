@@ -1477,7 +1477,6 @@ class IntervalDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import IntervalArray
-        from pandas.core.arrays.arrow.array import to_pyarrow_type
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -1502,10 +1501,16 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         if not results:
-            empty = pyarrow.array([], type=to_pyarrow_type(self.subtype))
+            if subtype_is_numpy:
+                left = np.array([], dtype=self.subtype)
+                right = np.array([], dtype=self.subtype)
+            else:
+                # built directly since to_pyarrow_type rejects e.g. Int64 GH#64297
+                left = self.subtype.empty((0,))
+                right = self.subtype.empty((0,))
             return IntervalArray.from_arrays(
-                _convert(empty),
-                _convert(empty),
+                left,
+                right,
                 closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)

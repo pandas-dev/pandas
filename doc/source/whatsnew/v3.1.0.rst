@@ -941,6 +941,7 @@ Interval
 - Bug in :attr:`IntervalIndex.is_overlapping` returning ``True`` for an index containing an empty interval nested inside another interval, e.g. ``IntervalIndex.from_tuples([(0, 3), (1, 1)], closed="left")``; such an index is now also usable with :meth:`IntervalIndex.get_indexer` and as ``bins`` in :func:`cut` (:issue:`68069`)
 - Bug in :meth:`DataFrame.to_parquet` and conversion to pyarrow raising ``TypeError`` for :class:`IntervalDtype` with a timezone-aware subtype, and such columns not round-tripping back to the same dtype (:issue:`67753`)
 - Bug in :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` reporting an overlap with an empty interval such as ``Interval(0, 0, closed="left")``, which contains no points; empty intervals now never overlap (:issue:`26893`)
+- Bug in :func:`concat` with :class:`IntervalDtype` casting an extension dtype subtype (e.g. ``datetime64[us, UTC]`` or ``Int64``) to a NumPy dtype (:issue:`64297`)
 
 Indexing
 ^^^^^^^^
