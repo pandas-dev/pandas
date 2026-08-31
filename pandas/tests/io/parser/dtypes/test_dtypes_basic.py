@@ -899,6 +899,13 @@ def test_leading_zeros_with_missing_values_dtype_str(all_parsers, request):
         request.applymarker(
             pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
         )
+    if parser.engine == "pyarrow" and not pd.get_option("future.infer_string"):
+        # GH#21131, GH#57666 the columns parse correctly (missing values and
+        # leading zeros preserved), but with future.infer_string disabled the
+        # post-read astype(str) turns the missing values into "nan" strings
+        request.applymarker(
+            pytest.mark.xfail(reason="astype(str) stringifies NaN without infer_string")
+        )
     data = "a,b\n01,\n,002"
     result = parser.read_csv(StringIO(data), dtype=str)
     expected = DataFrame({"a": ["01", np.nan], "b": [np.nan, "002"]}, dtype=str)
@@ -968,6 +975,107 @@ GH,100102040,202,0205"""
             ),
             "col3": pd.Series([199, 200, 201, 202], dtype="int64"),
             "col4": pd.Series(["0150", "0150", "0205", "0205"], dtype=str),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_positional_keys_no_header(all_parsers):
+    # GH#57666 with header=None the labels are the positions, so integer
+    # dtype keys apply while parsing on the pyarrow engine too
+    parser = all_parsers
+    data = "01,0150\n002,0205"
+    result = parser.read_csv(StringIO(data), header=None, dtype={0: str, 1: "int64"})
+    expected = DataFrame(
+        {
+            0: pd.Series(["01", "002"], dtype=str),
+            1: pd.Series([150, 205], dtype="int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_label_keys_with_names(all_parsers):
+    # GH#57666 with header=None and names the label -> position mapping is
+    # known before parsing
+    parser = all_parsers
+    data = "01,0150\n002,0205"
+    result = parser.read_csv(
+        StringIO(data), header=None, names=["a", "b"], dtype={"a": str}
+    )
+    expected = DataFrame(
+        {
+            "a": pd.Series(["01", "002"], dtype=str),
+            "b": pd.Series([150, 205], dtype="int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_positional_keys_no_header_usecols(all_parsers):
+    # GH#57666 without names the labels are the file positions, so the
+    # mapping also holds under a usecols selection. A contiguous selection
+    # is used because the pyarrow engine relabels selected columns
+    # positionally (GH#67008)
+    parser = all_parsers
+    data = "01,0150,x\n002,0205,y"
+    result = parser.read_csv(
+        StringIO(data), header=None, usecols=[0, 1], dtype={0: str, 1: "int64"}
+    )
+    expected = DataFrame(
+        {
+            0: pd.Series(["01", "002"], dtype=str),
+            1: pd.Series([150, 205], dtype="int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_names_with_usecols(all_parsers, request):
+    # GH#57666 with names and usecols the label -> file position mapping
+    # depends on the selection, so the pyarrow engine falls back to
+    # applying the dtype after parsing, which does not preserve the
+    # original text
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="mapping labels to file positions under a usecols "
+                "selection is not implemented for the pyarrow engine"
+            )
+        )
+    data = "01,x,0150\n002,y,0205"
+    result = parser.read_csv(
+        StringIO(data),
+        header=None,
+        usecols=[0, 2],
+        names=["a", "b"],
+        dtype={"a": str, "b": "int64"},
+    )
+    expected = DataFrame(
+        {
+            "a": pd.Series(["01", "002"], dtype=str),
+            "b": pd.Series([150, 205], dtype="int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_defaultdict_no_header_names(all_parsers, request):
+    # GH#57666, GH#41574 with header=None and names, explicitly-listed
+    # labels resolve at parse time while the default covers the rest
+    parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under25p0:
+        request.applymarker(
+            pytest.mark.xfail(reason="pyarrow<25.0 lacks default_column_type")
+        )
+    dtype = defaultdict(lambda: str, b="int64")
+    data = "01,2\n002,3"
+    result = parser.read_csv(StringIO(data), header=None, names=["a", "b"], dtype=dtype)
+    expected = DataFrame(
+        {
+            "a": pd.Series(["01", "002"], dtype=str),
+            "b": pd.Series([2, 3], dtype="int64"),
         }
     )
     tm.assert_frame_equal(result, expected)
