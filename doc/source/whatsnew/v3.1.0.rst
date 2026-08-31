@@ -457,6 +457,7 @@ Bug fixes
 - Fixed bug in :func:`testing.assert_series_equal` showing a misleading class mismatch message when Series values were backed by different :class:`numpy.ndarray` subclasses (:issue:`65770`)
 - Fixed bug in :func:`testing.assert_series_equal`, :func:`testing.assert_index_equal`, and :func:`testing.assert_frame_equal` ignoring ``rtol`` and ``atol`` when comparing large integer and floating dtypes with ``check_dtype=False`` (:issue:`66699`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
+- Fixed bug in :meth:`Index/Series` showing issues with Base 2**53 and NA when sorting and precision lost (:issue:`63938`)
 
 Categorical
 ^^^^^^^^^^^
