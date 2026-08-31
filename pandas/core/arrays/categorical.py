@@ -2844,7 +2844,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray
 
-        return NumpyExtensionArray(self.to_numpy(str, na_value="NaN"))._str_get_dummies(
+        # Missing values carry no tag, so they must not turn into a column of
+        # their own or be conflated with a literal "NaN" tag.
+        return NumpyExtensionArray(self.to_numpy(str, na_value=""))._str_get_dummies(
             sep, dtype
         )
 

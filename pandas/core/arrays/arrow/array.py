@@ -3869,13 +3869,19 @@ class ArrowExtensionArray(
             dtype = np.bool_
         split = pc.split_pattern(self._pa_array, sep)
         flattened_values = pc.list_flatten(split)
-        uniques = flattened_values.unique()
-        uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
         lengths = pc.list_value_length(split).fill_null(0).to_numpy()
         n_rows = len(self)
+        row_ids = np.arange(n_rows).repeat(lengths)
+        # An entry that yields no tag, such as "" or the gap between two
+        # adjacent separators, must not become a column.
+        keep = pc.not_equal(flattened_values, "")
+        flattened_values = flattened_values.filter(keep)
+        row_ids = row_ids[np.asarray(keep, dtype=bool)]
+        uniques = flattened_values.unique()
+        uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
         n_cols = len(uniques)
         indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
-        indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
+        indices = indices + row_ids * n_cols
         _dtype = pandas_dtype(dtype)
         dummies_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
