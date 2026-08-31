@@ -472,6 +472,8 @@ filterwarnings = [
   "ignore:Couldn't import C tracer",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
+  # Raised at import time by google-auth, pulled in by gcsfs
+  "ignore:grpcio < 1.83.0 does not support Post-Quantum Cryptography:FutureWarning",
 ]
 junit_family = "xunit2"
 
