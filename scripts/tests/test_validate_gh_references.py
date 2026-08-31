@@ -1,6 +1,10 @@
 import pytest
 
-from scripts.validate_gh_references import main
+from scripts import validate_gh_references
+from scripts.validate_gh_references import (
+    main,
+    update_baseline,
+)
 
 MSG = "https://github.com/pandas-dev/pandas/issues/1234"
 
@@ -83,3 +87,46 @@ def test_multiple_references_on_one_line(capsys):
     out, _ = capsys.readouterr()
     assert ret == 1
     assert len(out.splitlines()) == 2
+
+
+def test_update_baseline_refuses_to_grow(capsys, monkeypatch, tmp_path):
+    path = tmp_path / "baseline.txt"
+    path.write_text("t.py 1234\n", encoding="utf-8")
+    monkeypatch.setattr(
+        validate_gh_references, "collect_baseline", lambda: {"t.py": {"1234", "5678"}}
+    )
+
+    ret = update_baseline(path)
+    out, _ = capsys.readouterr()
+    assert ret == 1
+    assert "refusing to update" in out
+    # the refusal leaves the baseline alone
+    assert path.read_text(encoding="utf-8") == "t.py 1234\n"
+
+
+def test_update_baseline_allow_growth(capsys, monkeypatch, tmp_path):
+    path = tmp_path / "baseline.txt"
+    path.write_text("t.py 1234\n", encoding="utf-8")
+    monkeypatch.setattr(
+        validate_gh_references, "collect_baseline", lambda: {"t.py": {"1234", "5678"}}
+    )
+
+    ret = update_baseline(path, allow_growth=True)
+    out, _ = capsys.readouterr()
+    assert ret == 0
+    assert "1 -> 2 references" in out
+    assert path.read_text(encoding="utf-8").endswith("t.py 1234 5678\n")
+
+
+def test_update_baseline_shrinks_without_the_flag(capsys, monkeypatch, tmp_path):
+    path = tmp_path / "baseline.txt"
+    path.write_text("t.py 1234 5678\n", encoding="utf-8")
+    monkeypatch.setattr(
+        validate_gh_references, "collect_baseline", lambda: {"t.py": {"1234"}}
+    )
+
+    ret = update_baseline(path)
+    out, _ = capsys.readouterr()
+    assert ret == 0
+    assert "2 -> 1 references" in out
+    assert path.read_text(encoding="utf-8").endswith("t.py 1234\n")

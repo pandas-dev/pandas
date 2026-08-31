@@ -18,7 +18,10 @@ If you move or rename a file, its grandfathered references move with it::
     python scripts/validate_gh_references.py --update-baseline
 
 That command refuses to run when it would grow the baseline: it is there to
-relocate existing references, not to silence new ones.
+relocate existing references, not to silence new ones.  A rebase that picks up
+short references from ``main`` is the one case where growth is legitimate, and
+``--allow-growth`` overrides the refusal -- the added lines show up in the diff,
+so a reviewer can tell the two apart.
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
@@ -61,7 +64,8 @@ BASELINE_HEADER = """\
 #
 #     python scripts/validate_gh_references.py --update-baseline
 #
-# This file may only shrink.  New references use the full URL form:
+# It grows only when a rebase carries short references over from main
+# (--allow-growth).  New references use the full URL form:
 #
 #     # https://github.com/pandas-dev/pandas/issues/1234
 #
@@ -122,7 +126,7 @@ def collect_baseline(filenames: Sequence[str] | None = None) -> dict[str, set[st
     return found
 
 
-def update_baseline(path: Path = BASELINE_PATH) -> int:
+def update_baseline(path: Path = BASELINE_PATH, allow_growth: bool = False) -> int:
     # ``None`` only on the initial bootstrap, when there is nothing to grow from
     before = (
         sum(len(numbers) for numbers in load_baseline(path).values())
@@ -132,11 +136,12 @@ def update_baseline(path: Path = BASELINE_PATH) -> int:
     found = collect_baseline()
     after = sum(len(numbers) for numbers in found.values())
 
-    if before is not None and after > before:
+    if before is not None and after > before and not allow_growth:
         print(
             f"refusing to update: the baseline would grow from {before} to {after} "
             "references. A new reference must use the full URL form, e.g. "
-            "https://github.com/pandas-dev/pandas/issues/1234"
+            "https://github.com/pandas-dev/pandas/issues/1234. If the growth came "
+            "from rebasing onto main, pass --allow-growth"
         )
         return 1
 
@@ -160,10 +165,15 @@ if __name__ == "__main__":
         action="store_true",
         help="rewrite the baseline, e.g. after moving a file",
     )
+    parser.add_argument(
+        "--allow-growth",
+        action="store_true",
+        help="let --update-baseline absorb references picked up from main",
+    )
     args = parser.parse_args()
 
     if args.update_baseline:
-        sys.exit(update_baseline())
+        sys.exit(update_baseline(allow_growth=args.allow_growth))
 
     loaded = load_baseline()
     ret = 0

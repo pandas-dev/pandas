@@ -514,6 +514,10 @@ file that contains some, carry its entry over with:
 
    python scripts/validate_gh_references.py --update-baseline
 
+That command refuses to grow the baseline, so it cannot be used to silence a
+reference you just wrote. Rebasing is the exception -- it can carry shorthands
+over from ``main`` -- and ``--allow-growth`` lets those through.
+
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
 
