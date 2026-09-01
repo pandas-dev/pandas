@@ -65,6 +65,44 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
         assert len(result) == 1
 
+    @pytest.mark.parametrize(
+        "freq, start, stop, expected",
+        [
+            (
+                "W",
+                "2001-01-06",
+                "2001-01-20",
+                [
+                    "2001-01-01/2001-01-07",
+                    "2001-01-08/2001-01-14",
+                    "2001-01-15/2001-01-21",
+                ],
+            ),
+            (
+                "B",
+                "2001-01-06",
+                "2001-01-10",
+                ["2001-01-05", "2001-01-08", "2001-01-09", "2001-01-10"],
+            ),
+            (
+                "D",
+                "2001-01-06",
+                "2001-01-08",
+                ["2001-01-06", "2001-01-07", "2001-01-08"],
+            ),
+        ],
+    )
+    def test_string_slice_lower_resolution_label_unchanged(
+        self, freq, start, stop, expected
+    ):
+        # the GH#66571 shortcut only covers quarterly/annual labels at the
+        # index's own resolution; day-level labels on W/B/D indexes still go
+        # through the calendar-freq path
+        pi = period_range("2001-01-01", periods=20, freq=freq)
+        ser = Series(range(len(pi)), index=pi)
+        result = ser.loc[start:stop]
+        assert list(result.index.astype(str)) == expected
+
     def test_pindex_slice_index(self):
         pi = pd.period_range(start="1/1/10", end="12/31/12", freq="M")
         s = pd.Series(np.random.default_rng(2).random(len(pi)), index=pi)
