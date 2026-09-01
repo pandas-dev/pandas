@@ -29,6 +29,31 @@ if TYPE_CHECKING:
     from pandas._typing import Scalar
 
 
+_EMPTY_MATCH_PROBES = ("", "a", "ab", " a ", "a a")
+
+
+def _pattern_can_match_empty(pat: str) -> bool:
+    """
+    Whether a regex can produce a zero-length match.
+
+    PyArrow's RE2 engine substitutes zero-length matches differently from
+    Python's engine, so such patterns must take the Python fallback in
+    ``_str_replace``. The probes exercise anchors and word boundaries so that
+    patterns matching empty only at certain positions (``^``, ``$``, ``\\b``)
+    are covered too. Patterns Python's ``re`` cannot compile (RE2-only syntax
+    such as ``\\p{Lu}`` or ``\\z``) are left for PyArrow to handle.
+    """
+    try:
+        compiled = re.compile(pat)
+    except re.error:
+        return False
+    return any(
+        match.start() == match.end()
+        for probe in _EMPTY_MATCH_PROBES
+        for match in compiled.finditer(probe)
+    )
+
+
 class ArrowStringArrayMixin:
     _pa_array: pa.ChunkedArray
 
@@ -301,13 +326,17 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
-        if pat == "":
-            # pyarrow hangs for empty patterns
-            # (https://github.com/apache/arrow/issues/39149)
-            # use same func definition as ObjectStringArrayMixin._str_replace
+        if pat == "" or (regex and _pattern_can_match_empty(pat)):
+            # PyArrow hangs on an empty pattern
+            # (https://github.com/apache/arrow/issues/39149) and its RE2 engine
+            # substitutes zero-length regex matches differently from Python's
+            # engine (GH#64872). Fall back to an elementwise Python replace, the
+            # same definition ObjectStringArrayMixin._str_replace uses, so the
+            # result matches the object-dtype str accessor.
             if regex:
                 count = n if n >= 0 else 0
-                func = lambda val: re.sub(pat, repl, val, count=count)
+                compiled = re.compile(pat)
+                func = lambda val: compiled.sub(repl, val, count=count)
             else:
                 func = lambda val: val.replace(pat, repl, n)
 
