@@ -939,9 +939,7 @@ def nanmedian(
         if values.dtype == object:
             # GH#34671 avoid casting strings to numeric
             inferred = lib.infer_dtype(values)
-            if inferred == "string" or (
-                inferred == "mixed" and any(isinstance(x, str) for x in values.ravel())
-            ):
+            if inferred == "string":
                 raise TypeError(f"Cannot convert {values} to numeric")
         try:
             values = values.astype("f8")
