@@ -7,16 +7,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-    option_context,
-    period_range,
-    timedelta_range,
-)
 
 
 class TestSeriesRepr:
@@ -24,7 +14,7 @@ class TestSeriesRepr:
         # GH#55415 None does not get printed, but 0 does
         # (matching DataFrame and flat index behavior)
         mi = pd.MultiIndex.from_product([range(2, 3), range(3, 4)], names=[0, None])
-        ser = Series(1.5, index=mi)
+        ser = pd.Series(1.5, index=mi)
 
         res = repr(ser)
         expected = "0   \n2  3    1.5\ndtype: float64"
@@ -32,7 +22,7 @@ class TestSeriesRepr:
 
     def test_multilevel_name_print(self, lexsorted_two_level_string_multiindex):
         index = lexsorted_two_level_string_multiindex
-        ser = Series(range(len(index)), index=index, name="sth")
+        ser = pd.Series(range(len(index)), index=index, name="sth")
         expected = [
             "first  second",
             "foo    one       0",
@@ -52,7 +42,7 @@ class TestSeriesRepr:
 
     def test_small_name_printing(self):
         # Test small Series.
-        s = Series([0, 1, 2])
+        s = pd.Series([0, 1, 2])
 
         s.name = "test"
         assert "Name: test" in repr(s)
@@ -62,7 +52,7 @@ class TestSeriesRepr:
 
     def test_big_name_printing(self):
         # Test big Series (diff code path).
-        s = Series(range(1000))
+        s = pd.Series(range(1000))
 
         s.name = "test"
         assert "Name: test" in repr(s)
@@ -71,13 +61,15 @@ class TestSeriesRepr:
         assert "Name:" not in repr(s)
 
     def test_empty_name_printing(self):
-        s = Series(index=date_range("20010101", "20020101"), name="test", dtype=object)
+        s = pd.Series(
+            index=pd.date_range("20010101", "20020101"), name="test", dtype=object
+        )
         assert "Name: test" in repr(s)
 
     @pytest.mark.parametrize("args", [(), (0, -1)])
     def test_float_range(self, args):
         str(
-            Series(
+            pd.Series(
                 np.random.default_rng(2).standard_normal(1000),
                 index=np.arange(1000, *args),
             )
@@ -85,10 +77,10 @@ class TestSeriesRepr:
 
     def test_empty_object(self):
         # empty
-        str(Series(dtype=object))
+        str(pd.Series(dtype=object))
 
     def test_empty_frozenset(self):
-        ser = Series([frozenset()])
+        ser = pd.Series([frozenset()])
         result = repr(ser)
 
         expected = "0    frozenset()\ndtype: object"
@@ -134,7 +126,7 @@ class TestSeriesRepr:
         repr(string_series)
 
     def test_tuple_name(self):
-        biggie = Series(
+        biggie = pd.Series(
             np.random.default_rng(2).standard_normal(1000),
             index=np.arange(1000),
             name=("foo", "bar", "baz"),
@@ -144,15 +136,15 @@ class TestSeriesRepr:
     @pytest.mark.parametrize("arg", [100, 1001])
     def test_tidy_repr_name_0(self, arg):
         # tidy repr
-        ser = Series(np.random.default_rng(2).standard_normal(arg), name=0)
+        ser = pd.Series(np.random.default_rng(2).standard_normal(arg), name=0)
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
     def test_newline(self, any_string_dtype):
-        ser = Series(
+        ser = pd.Series(
             ["a\n\r\tb"],
             name="a\n\r\td",
-            index=Index(["a\n\r\tf"], dtype=any_string_dtype),
+            index=pd.Index(["a\n\r\tf"], dtype=any_string_dtype),
             dtype=any_string_dtype,
         )
         assert "\t" not in repr(ser)
@@ -168,13 +160,13 @@ class TestSeriesRepr:
     )
     def test_empty_int64(self, name, expected):
         # with empty series (#4651)
-        s = Series([], dtype=np.int64, name=name)
+        s = pd.Series([], dtype=np.int64, name=name)
         assert repr(s) == expected
 
     def test_repr_bool_fails(self, capsys):
-        s = Series(
+        s = pd.Series(
             [
-                DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
+                pd.DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
                 for i in range(5)
             ]
         )
@@ -186,7 +178,7 @@ class TestSeriesRepr:
         assert captured.err == ""
 
     def test_repr_name_iterable_indexable(self):
-        s = Series([1, 2, 3], name=np.int64(3))
+        s = pd.Series([1, 2, 3], name=np.int64(3))
 
         # it works!
         repr(s)
@@ -196,36 +188,37 @@ class TestSeriesRepr:
 
     def test_repr_max_rows(self):
         # GH 6863
-        with option_context("display.max_rows", None):
-            str(Series(range(1001)))  # should not raise exception
+        with pd.option_context("display.max_rows", None):
+            str(pd.Series(range(1001)))  # should not raise exception
 
     def test_unicode_string_with_unicode(self):
-        df = Series(["\u05d0"], name="\u05d1")
+        df = pd.Series(["\u05d0"], name="\u05d1")
         str(df)
 
-        ser = Series(["\u03c3"] * 10)
+        ser = pd.Series(["\u03c3"] * 10)
         repr(ser)
 
-        ser2 = Series(["\u05d0"] * 1000)
+        ser2 = pd.Series(["\u05d0"] * 1000)
         ser2.name = "title1"
         repr(ser2)
 
     def test_str_to_bytes_raises(self):
         # GH 26447
-        df = Series(["abc"], name="abc")
+        df = pd.Series(["abc"], name="abc")
         msg = "^'str' object cannot be interpreted as an integer$"
         with pytest.raises(TypeError, match=msg):
             bytes(df)
 
     def test_timeseries_repr_object_dtype(self):
-        index = Index(
+        index = pd.Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        ts = Series(np.random.default_rng(2).standard_normal(len(index)), index)
+        ts = pd.Series(np.random.default_rng(2).standard_normal(len(index)), index)
         repr(ts)
 
-        ts = Series(
-            np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+        ts = pd.Series(
+            np.arange(20, dtype=np.float64),
+            index=pd.date_range("2020-01-01", periods=20),
         )
         assert repr(ts).splitlines()[-1].startswith("Freq:")
 
@@ -244,24 +237,24 @@ class TestSeriesRepr:
 \bottomrule
 \end{tabular}
 """
-        with option_context(
+        with pd.option_context(
             "styler.format.escape", None, "styler.render.repr", "latex"
         ):
-            s = Series([r"$\alpha$", "b", "c"])
+            s = pd.Series([r"$\alpha$", "b", "c"])
             assert result == s._repr_latex_()
 
         assert s._repr_latex_() is None
 
     def test_index_repr_in_frame_with_nan(self):
         # see gh-25061
-        i = Index([1, np.nan])
-        s = Series([1, 2], index=i)
+        i = pd.Index([1, np.nan])
+        s = pd.Series([1, 2], index=i)
         exp = """1.0    1\nNaN    2\ndtype: int64"""
 
         assert repr(s) == exp
 
     def test_series_repr_nat(self):
-        series = Series([0, 1000, 2000, pd.NaT._value], dtype="M8[ns]")
+        series = pd.Series([0, 1000, 2000, pd.NaT._value], dtype="M8[ns]")
 
         result = repr(series)
         expected = (
@@ -276,13 +269,13 @@ class TestSeriesRepr:
     def test_float_repr(self):
         # GH#35603
         # check float format when cast to object
-        ser = Series([1.0]).astype(object)
+        ser = pd.Series([1.0]).astype(object)
         expected = "0    1.0\ndtype: object"
         assert repr(ser) == expected
 
     def test_different_null_objects(self):
         # GH#45263
-        ser = Series([1, 2, 3, 4], [True, None, np.nan, pd.NaT])
+        ser = pd.Series([1, 2, 3, 4], [True, None, np.nan, pd.NaT])
         result = repr(ser)
         expected = "True    1\nNone    2\nNaN     3\nNaT     4\ndtype: int64"
         assert result == expected
@@ -311,7 +304,7 @@ class TestSeriesRepr:
             def dtype(self):
                 return DtypeStub()
 
-        series = Series(ExtTypeStub(), copy=False)
+        series = pd.Series(ExtTypeStub(), copy=False)
         res = repr(series)  # This line crashed before GH#33770 was fixed.
         expected = "\n".join(
             ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
@@ -330,15 +323,15 @@ class TestCategoricalRepr:
             def __repr__(self) -> str:
                 return self.name + ", " + self.state
 
-        cat = Categorical([County() for _ in range(61)])
-        idx = Index(cat)
+        cat = pd.Categorical([County() for _ in range(61)])
+        idx = pd.Index(cat)
         ser = idx.to_series()
 
         repr(ser)
         str(ser)
 
     def test_categorical_repr(self, using_infer_string):
-        a = Series(Categorical([1, 2, 3, 4]))
+        a = pd.Series(pd.Categorical([1, 2, 3, 4]))
         exp = (
             "0    1\n1    2\n2    3\n3    4\n"
             "dtype: category\nCategories (4, int64): [1, 2, 3, 4]"
@@ -346,7 +339,7 @@ class TestCategoricalRepr:
 
         assert exp == a.__str__()
 
-        a = Series(Categorical(["a", "b"] * 25))
+        a = pd.Series(pd.Categorical(["a", "b"] * 25))
         exp = (
             "0     a\n1     b\n"
             "     ..\n"
@@ -355,11 +348,11 @@ class TestCategoricalRepr:
         )
         if using_infer_string:
             exp = exp.replace("object", "str")
-        with option_context("display.max_rows", 5):
+        with pd.option_context("display.max_rows", 5):
             assert exp == repr(a)
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
-        a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
+        a = pd.Series(pd.Categorical(["a", "b"], categories=levs, ordered=True))
         exp = (
             "0    a\n1    b\n"
             "dtype: category\n"
@@ -371,7 +364,7 @@ class TestCategoricalRepr:
         assert exp == a.__str__()
 
     def test_categorical_series_repr(self):
-        s = Series(Categorical([1, 2, 3]))
+        s = pd.Series(pd.Categorical([1, 2, 3]))
         exp = """0    1
 1    2
 2    3
@@ -380,7 +373,7 @@ Categories (3, int64): [1, 2, 3]"""
 
         assert repr(s) == exp
 
-        s = Series(Categorical(np.arange(10)))
+        s = pd.Series(pd.Categorical(np.arange(10)))
         exp = f"""0    0
 1    1
 2    2
@@ -397,7 +390,7 @@ Categories (10, {np.dtype(int)}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
         assert repr(s) == exp
 
     def test_categorical_series_repr_ordered(self):
-        s = Series(Categorical([1, 2, 3], ordered=True))
+        s = pd.Series(pd.Categorical([1, 2, 3], ordered=True))
         exp = """0    1
 1    2
 2    3
@@ -406,7 +399,7 @@ Categories (3, int64): [1 < 2 < 3]"""
 
         assert repr(s) == exp
 
-        s = Series(Categorical(np.arange(10), ordered=True))
+        s = pd.Series(pd.Categorical(np.arange(10), ordered=True))
         exp = f"""0    0
 1    1
 2    2
@@ -423,8 +416,8 @@ Categories (10, {np.dtype(int)}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
         assert repr(s) == exp
 
     def test_categorical_series_repr_datetime(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
-        s = Series(Categorical(idx))
+        idx = pd.date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
+        s = pd.Series(pd.Categorical(idx))
         exp = """0   2011-01-01 09:00:00
 1   2011-01-01 10:00:00
 2   2011-01-01 11:00:00
@@ -437,10 +430,10 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00,
 
         assert repr(s) == exp
 
-        idx = date_range(
+        idx = pd.date_range(
             "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
         )
-        s = Series(Categorical(idx))
+        s = pd.Series(pd.Categorical(idx))
         exp = """0   2011-01-01 09:00:00-05:00
 1   2011-01-01 10:00:00-05:00
 2   2011-01-01 11:00:00-05:00
@@ -456,8 +449,8 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00,
         assert repr(s) == exp
 
     def test_categorical_series_repr_datetime_ordered(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
-        s = Series(Categorical(idx, ordered=True))
+        idx = pd.date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
+        s = pd.Series(pd.Categorical(idx, ordered=True))
         exp = """0   2011-01-01 09:00:00
 1   2011-01-01 10:00:00
 2   2011-01-01 11:00:00
@@ -470,10 +463,10 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 <
 
         assert repr(s) == exp
 
-        idx = date_range(
+        idx = pd.date_range(
             "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
         )
-        s = Series(Categorical(idx, ordered=True))
+        s = pd.Series(pd.Categorical(idx, ordered=True))
         exp = """0   2011-01-01 09:00:00-05:00
 1   2011-01-01 10:00:00-05:00
 2   2011-01-01 11:00:00-05:00
@@ -489,8 +482,8 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 <
         assert repr(s) == exp
 
     def test_categorical_series_repr_period(self):
-        idx = period_range("2011-01-01 09:00", freq="h", periods=5)
-        s = Series(Categorical(idx))
+        idx = pd.period_range("2011-01-01 09:00", freq="h", periods=5)
+        s = pd.Series(pd.Categorical(idx))
         exp = """0    2011-01-01 09:00
 1    2011-01-01 10:00
 2    2011-01-01 11:00
@@ -502,8 +495,8 @@ Categories (5, period[h]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00
 
         assert repr(s) == exp
 
-        idx = period_range("2011-01", freq="M", periods=5)
-        s = Series(Categorical(idx))
+        idx = pd.period_range("2011-01", freq="M", periods=5)
+        s = pd.Series(pd.Categorical(idx))
         exp = """0    2011-01
 1    2011-02
 2    2011-03
@@ -515,8 +508,8 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
         assert repr(s) == exp
 
     def test_categorical_series_repr_period_ordered(self):
-        idx = period_range("2011-01-01 09:00", freq="h", periods=5)
-        s = Series(Categorical(idx, ordered=True))
+        idx = pd.period_range("2011-01-01 09:00", freq="h", periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
         exp = """0    2011-01-01 09:00
 1    2011-01-01 10:00
 2    2011-01-01 11:00
@@ -529,8 +522,8 @@ Categories (5, period[h]): [2011-01-01 09:00 < 2011-01-01 10:00 <
 
         assert repr(s) == exp
 
-        idx = period_range("2011-01", freq="M", periods=5)
-        s = Series(Categorical(idx, ordered=True))
+        idx = pd.period_range("2011-01", freq="M", periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
         exp = """0    2011-01
 1    2011-02
 2    2011-03
@@ -542,8 +535,8 @@ Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
         assert repr(s) == exp
 
     def test_categorical_series_repr_timedelta(self):
-        idx = timedelta_range("1 days", periods=5)
-        s = Series(Categorical(idx))
+        idx = pd.timedelta_range("1 days", periods=5)
+        s = pd.Series(pd.Categorical(idx))
         exp = """0   1 days
 1   2 days
 2   3 days
@@ -554,8 +547,8 @@ Categories (5, timedelta64[us]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
         assert repr(s) == exp
 
-        idx = timedelta_range("1 hours", periods=10)
-        s = Series(Categorical(idx))
+        idx = pd.timedelta_range("1 hours", periods=10)
+        s = pd.Series(pd.Categorical(idx))
         exp = """0   0 days 01:00:00
 1   1 days 01:00:00
 2   2 days 01:00:00
@@ -575,8 +568,8 @@ Categories (10, timedelta64[us]): [0 days 01:00:00, 1 days 01:00:00,
         assert repr(s) == exp
 
     def test_categorical_series_repr_timedelta_ordered(self):
-        idx = timedelta_range("1 days", periods=5)
-        s = Series(Categorical(idx, ordered=True))
+        idx = pd.timedelta_range("1 days", periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
         exp = """0   1 days
 1   2 days
 2   3 days
@@ -587,8 +580,8 @@ Categories (5, timedelta64[us]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(s) == exp
 
-        idx = timedelta_range("1 hours", periods=10)
-        s = Series(Categorical(idx, ordered=True))
+        idx = pd.timedelta_range("1 hours", periods=10)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
         exp = """0   0 days 01:00:00
 1   1 days 01:00:00
 2   2 days 01:00:00

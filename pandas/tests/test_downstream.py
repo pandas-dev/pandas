@@ -14,19 +14,13 @@ import pytest
 from pandas.errors import IntCastingNaNError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    TimedeltaIndex,
-)
 import pandas._testing as tm
 from pandas.util.version import Version
 
 
 @pytest.fixture
 def df():
-    return DataFrame({"A": [1, 2, 3]})
+    return pd.DataFrame({"A": [1, 2, 3]})
 
 
 def test_dask(df):
@@ -56,7 +50,7 @@ def test_dask_ufunc():
         da = pytest.importorskip("dask.array")
         dd = pytest.importorskip("dask.dataframe")
 
-        s = Series([1.5, 2.3, 3.7, 4.0])
+        s = pd.Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
         result = da.log(ds).compute()
@@ -74,22 +68,22 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
     arr = np.array([1, 2.5, 3])
     darr = dd.from_array(arr)
 
-    res = Series(darr)
-    expected = Series(arr)
+    res = pd.Series(darr)
+    expected = pd.Series(arr)
     tm.assert_series_equal(res, expected)
 
     # GH#49599 in 2.0 we raise instead of silently ignoring the dtype
     msg = "Trying to coerce float values to integers"
     with pytest.raises(ValueError, match=msg):
-        Series(darr, dtype="i8")
+        pd.Series(darr, dtype="i8")
 
     msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
     arr[2] = np.nan
     with pytest.raises(IntCastingNaNError, match=msg):
-        Series(darr, dtype="i8")
+        pd.Series(darr, dtype="i8")
     # which is the same as we get with a numpy input
     with pytest.raises(IntCastingNaNError, match=msg):
-        Series(arr, dtype="i8")
+        pd.Series(arr, dtype="i8")
 
 
 def test_xarray(df):
@@ -135,7 +129,7 @@ def test_oo_optimized_datetime_index_unpickle():
 def test_statsmodels():
     smf = pytest.importorskip("statsmodels.formula.api")
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {"Lottery": range(5), "Literacy": range(5), "Pop1831": range(100, 105)}
     )
     smf.ols("Lottery ~ Literacy + np.log(Pop1831)", data=df).fit()
@@ -144,7 +138,7 @@ def test_statsmodels():
 def test_scikit_learn():
     svm = pytest.importorskip("sklearn.svm")
 
-    digits = DataFrame(
+    digits = pd.DataFrame(
         {"feat1": range(5), "feat2": reversed(range(5)), "Group": [0, 1, 0, 1, 0]}
     )
     clf = svm.SVC(gamma=0.001, C=100.0)
@@ -154,7 +148,7 @@ def test_scikit_learn():
 
 def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
-    tips = DataFrame(
+    tips = pd.DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
     )
     seaborn.stripplot(x="day", y="total_bill", data=tips)
@@ -219,12 +213,12 @@ def test_frame_setitem_dask_array_into_new_col(request):
             )
 
         dda = da.array([1, 2])
-        df = DataFrame({"a": ["a", "b"]})
+        df = pd.DataFrame({"a": ["a", "b"]})
         df["b"] = dda
         df["c"] = dda
         df.loc[[False, True], "b"] = 100
         result = df.loc[[1], :]
-        expected = DataFrame({"a": ["b"], "b": [100], "c": [2]}, index=[1])
+        expected = pd.DataFrame({"a": ["b"], "b": [100], "c": [2]}, index=[1])
         tm.assert_frame_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
@@ -240,7 +234,7 @@ def test_pandas_priority():
             return self
 
     left = MyClass()
-    right = Series(range(3))
+    right = pd.Series(range(3))
 
     assert right.__add__(left) is NotImplemented
     assert right + left is left
@@ -277,7 +271,7 @@ def test_from_obscure_array(dtype, box):
     tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
-    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
+    idx_cls = {"M8[ns]": pd.DatetimeIndex, "m8[ns]": pd.TimedeltaIndex}[dtype]
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
@@ -289,7 +283,7 @@ def test_xarray_coerce_unit():
 
     arr = xr.DataArray([1, 2, 3])
     result = pd.to_datetime(arr, unit="ns")
-    expected = DatetimeIndex(
+    expected = pd.DatetimeIndex(
         [
             "1970-01-01 00:00:00.000000001",
             "1970-01-01 00:00:00.000000002",
