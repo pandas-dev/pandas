@@ -587,18 +587,17 @@ def test_bunched_yearends():
     fy = FY5253(n=1, weekday=5, startingMonth=12, variation="nearest")
     dt = pd.Timestamp("2004-01-01")
     assert fy.rollback(dt) == pd.Timestamp("2002-12-28")
-    assert (-fy)._apply(dt) == pd.Timestamp("2002-12-28")
+    assert (-fy) + dt == pd.Timestamp("2002-12-28")
     assert dt - fy == pd.Timestamp("2002-12-28")
 
     assert fy.rollforward(dt) == pd.Timestamp("2004-01-03")
-    assert fy._apply(dt) == pd.Timestamp("2004-01-03")
     assert fy + dt == pd.Timestamp("2004-01-03")
     assert dt + fy == pd.Timestamp("2004-01-03")
 
     # Same thing, but starting from a Timestamp in the previous year.
     dt = pd.Timestamp("2003-12-31")
     assert fy.rollback(dt) == pd.Timestamp("2002-12-28")
-    assert (-fy)._apply(dt) == pd.Timestamp("2002-12-28")
+    assert (-fy) + dt == pd.Timestamp("2002-12-28")
     assert dt - fy == pd.Timestamp("2002-12-28")
 
 
