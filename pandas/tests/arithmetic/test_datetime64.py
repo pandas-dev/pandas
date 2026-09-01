@@ -1818,7 +1818,7 @@ class TestDatetime64OverflowHandling:
             tmax - t2
 
     # DateOffset(days=...) goes through the relativedelta branch of
-    #  RelativeDeltaOffset._apply_array, DateOffset(nanoseconds=...) through
+    #  RelativeDeltaOffset._add_datetime_ndarray, DateOffset(nanoseconds=...) through
     #  the timedelta branch and, when tz-aware, through the UTC fast path in
     #  DatetimeArray._add_offset. All three used to add with a raw numpy add.
     @pytest.mark.parametrize("kwds", [{"days": 1}, {"nanoseconds": 1}])
@@ -1872,7 +1872,7 @@ class TestDatetime64OverflowHandling:
         expected = tm.box_expected(dti + Timedelta(**kwds), box_with_array)
         tm.assert_equal(result, expected)
 
-    # tz-aware data is the only way to reach Day._apply_array; tz-naive Day
+    # tz-aware data is the only way to reach Day._add_datetime_ndarray; tz-naive Day
     #  addition is routed through _add_timedeltalike_scalar. tz is
     #  parametrized anyway so the two stay in agreement.
     @pytest.mark.parametrize("unit", ["s", "ns"])

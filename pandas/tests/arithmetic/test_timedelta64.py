@@ -1513,7 +1513,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = "|".join(["has incorrect type", "cannot add the type MonthEnd"])
+        msg = "|".join(["unsupported operand type", "cannot add the type MonthEnd"])
         with pytest.raises(TypeError, match=msg):
             warn_msg = (
                 "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
