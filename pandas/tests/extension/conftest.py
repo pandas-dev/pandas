@@ -2,10 +2,7 @@ import operator
 
 import pytest
 
-from pandas import (
-    Series,
-    option_context,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -152,7 +149,7 @@ def box_in_series(request):
     params=[
         lambda x: 1,
         lambda x: [1] * len(x),
-        lambda x: Series([1] * len(x)),
+        lambda x: pd.Series([1] * len(x)),
         lambda x: x,
     ],
     ids=["scalar", "list", "series", "object"],
@@ -274,5 +271,5 @@ def comparison_op(request):
 
 @pytest.fixture(params=[True, False])
 def using_nan_is_na(request):
-    with option_context("future.distinguish_nan_and_na", not request.param):
+    with pd.option_context("future.distinguish_nan_and_na", not request.param):
         yield request.param

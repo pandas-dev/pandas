@@ -1,9 +1,6 @@
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    date_range,
-)
+import pandas as pd
 
 from pandas.tseries.offsets import (
     BaseOffset,
@@ -16,7 +13,7 @@ from pandas.tseries.offsets import (
 class TestFreq:
     def test_freq_setter_errors(self):
         # GH#20678
-        idx = DatetimeIndex(["20180101", "20180103", "20180105"])
+        idx = pd.DatetimeIndex(["20180101", "20180103", "20180105"])
 
         # setting with an incompatible freq
         msg = (
@@ -35,7 +32,7 @@ class TestFreq:
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_freq_setter(self, values, freq, tz):
         # GH#20678
-        idx = DatetimeIndex(values, tz=tz)
+        idx = pd.DatetimeIndex(values, tz=tz)
 
         # can set to an offset, converting from string if necessary
         idx.freq = freq
@@ -50,10 +47,10 @@ class TestFreq:
         # Setting the freq for one DatetimeIndex shouldn't alter the freq
         #  for another that views the same data
 
-        dti = date_range("2016-01-01", periods=5)
+        dti = pd.date_range("2016-01-01", periods=5)
         dta = dti._data
 
-        dti2 = DatetimeIndex(dta)._with_freq(None)
+        dti2 = pd.DatetimeIndex(dta)._with_freq(None)
         assert dti2.freq is None
 
         # Original was not altered. freq is now Index-level state.
