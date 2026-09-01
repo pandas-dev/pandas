@@ -608,7 +608,7 @@ class TestTimestampClassMethodConstructors:
         # GH#56680
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            Timestamp.utcnow()
+            Timestamp.utcnow()  # noqa: TID251
 
     def test_utcfromtimestamp_deprecated(self):
         # GH#56680
@@ -663,7 +663,7 @@ class TestTimestampClassMethodConstructors:
 
     def test_constructor_fromisoformat_roundtrip_isoformat(self):
         # GH#56398 fromisoformat(ts.isoformat()) should round-trip
-        original = Timestamp.now("UTC")
+        original = Timestamp.now("UTC")  # noqa: TID251
         result = Timestamp.fromisoformat(original.isoformat())
         assert result == original
         assert result.tzinfo is not None
@@ -692,12 +692,12 @@ class TestTimestampClassMethodConstructors:
 
     def test_now(self):
         # GH#9000
-        ts_from_string = Timestamp("now")
-        ts_from_method = Timestamp.now()
-        ts_datetime = datetime.now()
+        ts_from_string = Timestamp("now")  # current-time-ok
+        ts_from_method = Timestamp.now()  # noqa: TID251
+        ts_datetime = datetime.now()  # noqa: TID251
 
-        ts_from_string_tz = Timestamp("now", tz="US/Eastern")
-        ts_from_method_tz = Timestamp.now(tz="US/Eastern")
+        ts_from_string_tz = Timestamp("now", tz="US/Eastern")  # current-time-ok
+        ts_from_method_tz = Timestamp.now(tz="US/Eastern")  # noqa: TID251
 
         # Check that the delta between the times is less than 1s (arbitrarily
         # small)
@@ -714,12 +714,12 @@ class TestTimestampClassMethodConstructors:
         )
 
     def test_today(self):
-        ts_from_string = Timestamp("today")
-        ts_from_method = Timestamp.today()
-        ts_datetime = datetime.today()
+        ts_from_string = Timestamp("today")  # current-time-ok
+        ts_from_method = Timestamp.today()  # noqa: TID251
+        ts_datetime = datetime.today()  # noqa: TID251
 
-        ts_from_string_tz = Timestamp("today", tz="US/Eastern")
-        ts_from_method_tz = Timestamp.today(tz="US/Eastern")
+        ts_from_string_tz = Timestamp("today", tz="US/Eastern")  # current-time-ok
+        ts_from_method_tz = Timestamp.today(tz="US/Eastern")  # noqa: TID251
 
         # Check that the delta between the times is less than 1s (arbitrarily
         # small)

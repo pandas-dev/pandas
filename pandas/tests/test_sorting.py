@@ -579,7 +579,7 @@ class TestSafeSort:
 
     def test_unsortable(self):
         # GH 13714
-        arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
+        arr = np.array([1, 2, datetime(2011, 1, 1), 0, 3], dtype=object)
         msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             safe_sort(arr)

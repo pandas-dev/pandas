@@ -95,7 +95,7 @@ def test_split_regex_explicit(any_string_dtype):
 @pytest.mark.parametrize("expand", [None, False])
 @pytest.mark.parametrize("method", ["split", "rsplit"])
 def test_split_object_mixed(expand, method):
-    mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])
+    mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime(2011, 1, 1), None, 1, 2.0])
     result = getattr(mixed.str, method)("_", expand=expand)
     exp = Series(
         [
@@ -790,7 +790,7 @@ def test_get():
 
 
 def test_get_mixed_object():
-    ser = Series(["a_b_c", np.nan, "c_d_e", True, datetime.today(), None, 1, 2.0])
+    ser = Series(["a_b_c", np.nan, "c_d_e", True, datetime(2011, 1, 1), None, 1, 2.0])
     result = ser.str.split("_").str.get(1)
     expected = Series(
         ["b", np.nan, "d", np.nan, np.nan, None, np.nan, np.nan], dtype=object

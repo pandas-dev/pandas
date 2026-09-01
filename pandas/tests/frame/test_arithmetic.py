@@ -436,7 +436,7 @@ class TestFrameFlexComparisons:
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
         df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime(2011, 1, 1), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)

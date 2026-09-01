@@ -813,9 +813,9 @@ def test_datetimeindex():
 
     # from datetime combos
     # GH 7888
-    date1 = np.datetime64("today")
-    date2 = datetime.today()
-    date3 = Timestamp.today()
+    date1 = np.datetime64("2011-01-01")
+    date2 = datetime(2011, 1, 1)
+    date3 = Timestamp("2011-01-01")
 
     for d1, d2 in itertools.product([date1, date2, date3], [date1, date2, date3]):
         index = MultiIndex.from_product([[d1], [d2]])
@@ -823,7 +823,7 @@ def test_datetimeindex():
         assert isinstance(index.levels[1], pd.DatetimeIndex)
 
     # but NOT date objects, matching Index behavior
-    date4 = date.today()
+    date4 = date(2011, 1, 1)
     index = MultiIndex.from_product([[date4], [date2]])
     assert not isinstance(index.levels[0], pd.DatetimeIndex)
     assert isinstance(index.levels[1], pd.DatetimeIndex)
@@ -853,7 +853,7 @@ def test_constructor_with_tz():
 def test_multiindex_inference_consistency():
     # check that inference behavior matches the base class
 
-    v = date.today()
+    v = date(2011, 1, 1)
 
     arr = [v, v]
 

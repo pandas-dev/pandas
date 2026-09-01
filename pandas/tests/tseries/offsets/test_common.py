@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 from dateutil.tz.tz import tzlocal
 import numpy as np
@@ -14,7 +17,11 @@ from pandas.compat import (
     is_platform_windows,
 )
 
-from pandas import DatetimeIndex
+from pandas import (
+    DatetimeIndex,
+    Period,
+    Timedelta,
+)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import (
@@ -352,7 +359,7 @@ def test_offsets_compare_equal(_offset):
     ],
 )
 def test_rsub(date, offset2):
-    assert date - offset2 == (-offset2)._apply(date)
+    assert date - offset2 == (-offset2) + date
 
 
 @pytest.mark.parametrize(
@@ -416,6 +423,53 @@ def test_Mult1(offset_box, offset1):
     dt = Timestamp(2008, 1, 2)
     assert dt + 10 * offset1 == dt + offset_box(10)
     assert dt + 5 * offset1 == dt + offset_box(5)
+
+
+@pytest.mark.parametrize("other", ["foo", 3, 3.5, None])
+def test_add_unsupported_type_raises(_offset, other):
+    # GH#36590 the standard "unsupported operand type(s)" TypeError, not a
+    #  cython signature error leaking out of the offset's _add_datetime
+    off = _get_offset(_offset)
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
+        off + other
+
+
+def test_add_period_defers_to_period():
+    # declining the operation lets python fall back to Period.__radd__
+    assert MonthEnd() + Period("2022-01", freq="M") == Period("2022-02", freq="M")
+
+
+def test_add_offset_raises(_offset):
+    # GH#36590 offset composition is not supported (GH#10902); the error should
+    #  be an ordinary one, not a cython signature error naming datetime.datetime
+    off = _get_offset(_offset)
+    msg = "|".join(["unsupported operand type", "Cannot add"])
+    with pytest.raises(TypeError, match=msg):
+        off + BMonthEnd()
+
+
+@pytest.mark.parametrize(
+    "other", [timedelta(days=1), np.timedelta64(1, "D"), Timedelta(days=1)]
+)
+@pytest.mark.parametrize("offset", [MonthEnd(), YearEnd(), DateOffset(months=1)])
+def test_add_timedelta_to_anchored_offset_raises(offset, other):
+    # GH#36590 anchored offsets have no timedelta behaviour to fall back on
+    # older numpy versions raise a UFuncTypeError (a TypeError subclass) for
+    #  np.timedelta64 instead of deferring to the python message
+    msg = "|".join(["unsupported operand type", "cannot use operands with types"])
+    with pytest.raises(TypeError, match=msg):
+        offset + other
+
+
+@pytest.mark.parametrize(
+    "other", [timedelta(hours=3), np.timedelta64(3, "h"), Timedelta(hours=3)]
+)
+def test_add_timedelta_to_business_day(other):
+    # a timedelta folds into the business day offset's `offset` attribute
+    expected = BDay(offset=timedelta(hours=3))
+    assert BDay() + other == expected
+    assert other + BDay() == expected
 
 
 def test_compare_str(_offset):

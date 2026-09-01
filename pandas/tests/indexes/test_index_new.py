@@ -174,7 +174,7 @@ class TestIndexConstructorInference:
 
     @pytest.mark.parametrize("swap_objs", [True, False])
     def test_constructor_datetime_and_datetime64(self, swap_objs):
-        data = [Timestamp(2021, 6, 8, 9, 42), np.datetime64("now")]
+        data = [Timestamp(2021, 6, 8, 9, 42), np.datetime64("2011-01-01T09:42:00", "s")]
         if swap_objs:
             data = data[::-1]
         expected = DatetimeIndex(data)

@@ -170,8 +170,8 @@ class TestIsNA:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isna_datetime(self):
-        assert not isna(datetime.now())
-        assert notna(datetime.now())
+        assert not isna(datetime(2011, 1, 1))
+        assert notna(datetime(2011, 1, 1))
 
         idx = date_range("1/1/1990", periods=20)
         exp = np.ones(len(idx), dtype=bool)

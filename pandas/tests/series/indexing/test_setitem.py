@@ -68,11 +68,11 @@ class TestSetitemDT64Values:
 
     def test_setitem_with_string_index(self):
         # GH#23451
-        # Set object dtype to avoid upcast when setting date.today()
+        # Set object dtype to avoid upcast when setting a date object
         ser = Series([1, 2, 3], index=["Date", "b", "other"], dtype=object)
-        ser["Date"] = date.today()
-        assert ser.Date == date.today()
-        assert ser["Date"] == date.today()
+        ser["Date"] = date(2011, 1, 1)
+        assert ser.Date == date(2011, 1, 1)
+        assert ser["Date"] == date(2011, 1, 1)
 
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441

@@ -588,3 +588,49 @@ def test_dti_tz_localize_nonexistent_shift_at_last_transition():
     expected = DatetimeIndex([Timestamp("2011-03-27 01:59:59.999999")]).tz_localize(tz)
     tm.assert_index_equal(result, expected)
     assert result[0].utcoffset() == timedelta(hours=11)
+
+
+@pytest.mark.parametrize("freq", ["D", "MS", "W-SUN", "BME"])
+def test_dti_tz_localize_preserves_non_tick_freq(freq):
+    # GH#36575 non-Tick offsets are defined in terms of wall times, which
+    #  tz_localize leaves unchanged, so the freq is still valid
+    dti = date_range("2020-03-01", periods=8, freq=freq)
+
+    result = dti.tz_localize("Europe/London")
+
+    expected = date_range("2020-03-01", periods=8, freq=freq, tz="Europe/London")
+    tm.assert_index_equal(result, expected)
+    assert result.freq == freq
+
+    # round-trip back to tz-naive also keeps the freq
+    assert result.tz_localize(None).freq == freq
+
+
+def test_dti_tz_localize_non_tick_freq_invalidated_by_shift():
+    # GH#36575 shifting nonexistent times changes the wall times, so the
+    #  freq is no longer valid
+    dti = date_range("2019-09-06", periods=4, freq="D")
+
+    result = dti.tz_localize("America/Santiago", nonexistent="shift_forward")
+
+    assert result[2] == Timestamp("2019-09-08 01:00", tz="America/Santiago")
+    assert result.freq is None
+
+
+@pytest.mark.parametrize(
+    "start, kwargs",
+    [
+        # 2020-10-25 01:30 is ambiguous in Europe/London
+        ("2020-10-24 01:30", {"ambiguous": "NaT"}),
+        # 2020-03-29 01:30 does not exist in Europe/London
+        ("2020-03-28 01:30", {"nonexistent": "NaT"}),
+    ],
+)
+def test_dti_tz_localize_non_tick_freq_invalidated_by_nat(start, kwargs):
+    # GH#36575 introducing NaT invalidates the freq
+    dti = date_range(start, periods=3, freq="D")
+
+    result = dti.tz_localize("Europe/London", **kwargs)
+
+    assert result.isna().any()
+    assert result.freq is None
