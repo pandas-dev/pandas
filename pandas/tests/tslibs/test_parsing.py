@@ -25,11 +25,7 @@ import pandas.util._test_decorators as td
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
 #  the same time as the other parsing functions.
-from pandas import (
-    Period,
-    Timestamp,
-    option_context,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -58,7 +54,7 @@ def test_parsing_tzlocal_deprecated():
             parsing.py_parse_datetime_string(dtstr)
 
         with pytest.raises(ValueError, match=msg):
-            Timestamp(dtstr)
+            pd.Timestamp(dtstr)
 
 
 def test_parse_datetime_string_with_reso():
@@ -207,13 +203,13 @@ def test_parsers_quarterly_deprecation_suggests_matching_period(freq, period_fre
 
     if period_freq is None:
         suggested = "pd.Period('2013Q2')"
-        expected = Period("2013Q2")
+        expected = pd.Period("2013Q2")
     else:
         suggested = f"pd.Period('2013Q2', freq='{period_freq}')"
-        expected = Period("2013Q2", freq=period_freq)
+        expected = pd.Period("2013Q2", freq=period_freq)
 
     assert f"Use {suggested}.to_timestamp()" in str(record[0].message)
-    assert expected.to_timestamp() == Timestamp(parsed)
+    assert expected.to_timestamp() == pd.Timestamp(parsed)
 
 
 @pytest.mark.parametrize(
@@ -241,7 +237,7 @@ def test_parsers_month_freq(date_str, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -289,8 +285,9 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
+    msg = r"when dayfirst=False \(the default\) was specified"
     with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
+        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
     ):
         result = parsing.guess_datetime_format(string)
     assert result == fmt
@@ -303,7 +300,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -439,7 +436,7 @@ def test_guess_datetime_format_f(input):
     assert result == expected
 
 
-def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+def _helper_delimited_date(call, date_string, **kwargs):
     msg, result = None, None
     try:
         result = call(date_string, **kwargs)
@@ -451,12 +448,12 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 @pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
 @pytest.mark.parametrize("dayfirst", [True, False])
 def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
-    with option_context("display.date_dayfirst", dayfirst):
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+    with pd.option_context("display.date_dayfirst", dayfirst):
+        except_out_dateutil, result = _helper_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
 
-        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        except_in_dateutil, expected = _helper_delimited_date(
             du_parse,
             input,
             default=datetime(1, 1, 1),
@@ -470,11 +467,11 @@ def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
 @pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
 @pytest.mark.parametrize("yearfirst", [True, False])
 def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
-    with option_context("display.date_yearfirst", yearfirst):
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+    with pd.option_context("display.date_yearfirst", yearfirst):
+        except_out_dateutil, result = _helper_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
-        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        except_in_dateutil, expected = _helper_delimited_date(
             du_parse,
             input,
             default=datetime(1, 1, 1),

@@ -1392,9 +1392,9 @@ class StataReader(StataParser, abc.Iterator):
             typlist = []
             for tp in typlistb:
                 if tp in self.OLD_TYPE_MAPPING:
-                    typlist.append(self.OLD_TYPE_MAPPING[tp])
+                    typlist.append(self.OLD_TYPE_MAPPING[tp])  # type: ignore[index]
                 else:
-                    typlist.append(tp - 127)  # bytes
+                    typlist.append(tp - 127)  # type: ignore[arg-type]
 
         try:
             self._typlist = [self.TYPE_MAP[typ] for typ in typlist]
@@ -3007,7 +3007,7 @@ supported types."""
         # time stamp, 18 bytes, char, null terminated
         # format dd Mon yyyy hh:mm
         if time_stamp is None:
-            time_stamp = datetime.now()
+            time_stamp = datetime.now()  # noqa: TID251
         elif not isinstance(time_stamp, datetime):
             raise ValueError("time_stamp should be datetime type")
         # GH #13856
@@ -3551,7 +3551,7 @@ class StataWriter117(StataWriter):
         # time stamp, 18 bytes, char, null terminated
         # format dd Mon yyyy hh:mm
         if time_stamp is None:
-            time_stamp = datetime.now()
+            time_stamp = datetime.now()  # noqa: TID251
         elif not isinstance(time_stamp, datetime):
             raise ValueError("time_stamp should be datetime type")
         # Avoid locale-specific month conversion

@@ -123,10 +123,10 @@ if TYPE_CHECKING:
     class _read_shared(TypedDict, Generic[HashableT], total=False):
         # annotations shared between read_csv/fwf/table's overloads
         # NOTE: Keep in sync with the annotations of the implementation
-        sep: str | None | lib.NoDefault
-        delimiter: str | None | lib.NoDefault
-        header: int | Sequence[int] | None | Literal["infer"]
-        names: Sequence[Hashable] | None | lib.NoDefault
+        sep: str | lib.NoDefault | None
+        delimiter: str | lib.NoDefault | None
+        header: int | Sequence[int] | Literal["infer"] | None
+        names: Sequence[Hashable] | lib.NoDefault | None
         index_col: IndexLabel | Literal[False] | None
         usecols: UsecolsArgType
         dtype: DtypeArg | None
@@ -382,10 +382,9 @@ def _default_n_workers() -> int:
     Default worker count for a parallel ``read_csv``.
 
     ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
-    cannot spawn threads at all).  Otherwise parallel reading is off by default
-    on Windows, and elsewhere is the smallest of the machine's logical CPU
-    count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available to the
-    process (CPU affinity / cgroup limits) -- so that an embedded or
+    cannot spawn threads at all).  Otherwise it is the smallest of the machine's
+    logical CPU count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available
+    to the process (CPU affinity / cgroup limits) -- so that an embedded or
     containerised pandas does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
@@ -394,14 +393,6 @@ def _default_n_workers() -> int:
         return 1
     if max_threads is not None:
         return max_threads
-    if sys.platform == "win32":
-        # Parallel CSV reading does not currently speed up on Windows: even
-        # with the file warm in the OS cache, using more than one thread is
-        # no faster (and slower at two threads).  Default to serial there;
-        # users can still opt in explicitly via mode.max_threads.  See the
-        # benchmark numbers in the GH#64347 discussion:
-        # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
-        return 1
     n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
     # os.cpu_count() counts the machine's CPUs, not the ones this process may
     # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
@@ -1192,11 +1183,11 @@ def read_csv(
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
-    sep: str | None | lib.NoDefault = lib.no_default,
-    delimiter: str | None | lib.NoDefault = None,
+    sep: str | lib.NoDefault | None = lib.no_default,
+    delimiter: str | lib.NoDefault | None = None,
     # Column and Index Locations and Names
-    header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
+    names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType = None,
     # General Parsing Configuration
@@ -1645,6 +1636,10 @@ def read_csv(
 
     Notes
     -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
+
     Sufficiently large local uncompressed files read with the C engine may be
     parsed by multiple threads in parallel.  Use the ``mode.max_threads``
     option to cap or disable this; see :ref:`io.csv.parallel` for details.
@@ -1792,11 +1787,11 @@ def read_table(
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
-    sep: str | None | lib.NoDefault = lib.no_default,
-    delimiter: str | None | lib.NoDefault = None,
+    sep: str | lib.NoDefault | None = lib.no_default,
+    delimiter: str | lib.NoDefault | None = None,
     # Column and Index Locations and Names
-    header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
+    names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType = None,
     # General Parsing Configuration
@@ -2238,6 +2233,12 @@ def read_table(
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Notes
+    -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
 
     Examples
     --------
@@ -2703,16 +2704,20 @@ class TextFileReader(abc.Iterator):
                 )
                 engine = "python"
         else:
+            # The C engine always tokenizes a utf-8 byte stream: text handles
+            # are re-encoded to utf-8 before reaching it, whatever `encoding`
+            # says. So the separator has to be a single utf-8 byte; the
+            # platform's filesystem encoding has nothing to do with it.
             encodeable = True
-            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
-                if len(sep.encode(encoding)) > 1:
+                if len(sep.encode("utf-8")) > 1:
                     encodeable = False
-            except UnicodeDecodeError:
+            except UnicodeEncodeError:
+                # e.g. a lone surrogate
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    f"the separator encoded in {encoding} "
+                    "the separator encoded in utf-8 "
                     f"is > 1 char long, and the '{engine}' engine "
                     "does not support such separators"
                 )
@@ -3174,11 +3179,11 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 def _refine_defaults_read(
     dialect: str | csv.Dialect | type[csv.Dialect] | None,
-    delimiter: str | None | lib.NoDefault,
+    delimiter: str | lib.NoDefault | None,
     engine: CSVEngine | None,
-    sep: str | None | lib.NoDefault,
+    sep: str | lib.NoDefault | None,
     on_bad_lines: str | Callable,
-    names: Sequence[Hashable] | None | lib.NoDefault,
+    names: Sequence[Hashable] | lib.NoDefault | None,
     defaults: dict[str, Any],
     dtype_backend: DtypeBackend | lib.NoDefault,
 ):
@@ -3243,11 +3248,12 @@ def _refine_defaults_read(
     if delimiter is None:
         delimiter = sep
 
-    if delimiter == "\n":
+    # GH#43528, GH#51801: the C engine silently mis-parses these, as the field
+    # separator is consumed as a line terminator before it can split a field.
+    if delimiter in ("\n", "\r"):
         raise ValueError(
-            r"Specified \n as separator or delimiter. This forces the python engine "
-            "which does not accept a line terminator. Hence it is not allowed to use "
-            "the line terminator as separator.",
+            f"Specified {delimiter!r} as separator or delimiter, but a line "
+            "terminator cannot be used as a separator.",
         )
 
     if delimiter is lib.no_default:

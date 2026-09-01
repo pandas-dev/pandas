@@ -22,8 +22,17 @@ cxx-compiler = "*"
 
 [feature.mingw-compiler]
 platforms = ["win-64"]
-dependencies = { gcc = "*", gxx = "*" }
 activation = { env = { CC = "gcc", CXX = "g++" } }
+
+[feature.mingw-compiler.dependencies]
+# Pinned due to https://github.com/conda-forge/m2w64-sysroot-feedstock/issues/23
+gcc = { version = "==16.1.0", build = "hb5e953d_1" }
+gxx = { version = "==16.1.0", build = "h1f05005_1" }
+libwinpthread = { version = "==12.0.0.r4.gg4f2fc60ca", build = "h57928b3_10" }
+m2w64-sysroot_win-64 = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-crt-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-headers-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-winpthreads-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
 
 [feature.sanitizers]
 platforms = ["linux-64"]
@@ -67,7 +76,6 @@ python-freethreading = "3.13.*"
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
-hypothesis = ">=6.116.0"
 pytest-cov = ">=7.0.0"
 
 [feature.test-network.dependencies]
@@ -81,7 +89,7 @@ qtpy = ">=2.4.3"
 
 # test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
-pyarrow = ">=13.0.0"
+pyarrow = ">=16.0.0"
 
 [feature.pyarrow22.dependencies]
 pyarrow = "22.*"
@@ -168,11 +176,7 @@ seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
 sphinx-design = "*"
 sphinx-copybutton = "*"
-
-[feature.documentation.pypi-dependencies]
-# temporary installed with pip with custom patch until released
-# https://github.com/pydata/pydata-sphinx-theme/issues/2176
-pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+pydata-sphinx-theme = "==0.20.0"
 
 [feature.website.dependencies]
 feedparser = "*"
@@ -288,6 +292,7 @@ cmd = [
   "manual",
   "--all-files",
 ]
+default-environment = "typing"
 
 [tasks.ci-scripts-tests]
 cmd = [
@@ -323,6 +328,7 @@ cmd = [
   "--python=same",
   "--show-stderr",
 ]
+default-environment = "asv"
 
 [tasks.ci-test-single-page-doc]
 args = [
@@ -340,6 +346,7 @@ cmd = [
   "doc/make.py",
   "clean",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-nbconvert-doc-notebooks]
 args = [
@@ -357,6 +364,7 @@ cmd = [
   "--stdout",
   ">/dev/null",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-documentation]
 args = [
@@ -368,6 +376,7 @@ cmd = [
   "--warnings-are-errors",
   "{{ doc_type }}",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-test-website]
 cmd = [
@@ -376,6 +385,7 @@ cmd = [
   "pytest",
   "web",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-website]
 cmd = [
@@ -384,6 +394,7 @@ cmd = [
   "web/pandas",
   "--target-path=web/build",
 ]
+default-environment = "docs-and-web"
 
 [tasks.ci-build-interactive_terminal]
 cmd = [
@@ -393,3 +404,5 @@ cmd = [
   "lite",
   "build",
 ]
+cwd = "web/interactive_terminal/"
+default-environment = "docs-and-web"

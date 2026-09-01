@@ -1504,8 +1504,59 @@ Holiday calendars
 ==================
 .. currentmodule:: pandas.tseries.holiday
 
+Holiday
+-------
+.. autosummary::
+   :toctree: api/
+
+   Holiday
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   Holiday.dates
+
+Calendars
+---------
 .. autosummary::
    :toctree: api/
 
    AbstractHolidayCalendar
-   Holiday
+   USFederalHolidayCalendar
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   AbstractHolidayCalendar.holidays
+   AbstractHolidayCalendar.merge
+   AbstractHolidayCalendar.merge_class
+   AbstractHolidayCalendar.rule_from_name
+
+Observance rules
+----------------
+.. autosummary::
+   :toctree: api/
+
+   after_nearest_workday
+   before_nearest_workday
+   nearest_workday
+   next_monday
+   next_monday_or_tuesday
+   next_workday
+   previous_friday
+   previous_workday
+   sunday_to_monday
+   weekend_to_monday
+
+Calendar utilities
+------------------
+.. autosummary::
+   :toctree: api/
+
+   HolidayCalendarFactory
+   get_calendar
+   register

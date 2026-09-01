@@ -492,6 +492,26 @@ be located.
 
    - tests.extension
 
+.. _contributing.test_imports:
+
+Imports in tests
+~~~~~~~~~~~~~~~~
+
+Objects in the top-level pandas namespace are reached through ``pd`` rather than
+imported directly:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   ser = pd.Series([1, 2, 3])
+
+Everything else is imported from the module which defines it, e.g.
+``import pandas._testing as tm`` or
+``from pandas.core.dtypes.common import is_integer_dtype``.  The ``test-imports``
+pre-commit hook checks that test files do not import from the ``pandas``
+namespace directly.
+
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
 
@@ -565,6 +585,9 @@ and specify the warning message using the ``match`` argument.
 
     with tm.assert_produces_warning(DeprecationWarning, match="the warning message"):
         pd.deprecated_function()
+
+Both arguments are required whenever a warning is expected. In the rare case where
+the message genuinely cannot be asserted, pass ``match=None`` to opt out.
 
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
 
@@ -704,46 +727,6 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
    test_cool_feature.py::test_series[int8] PASSED
 
 
-.. _using-hypothesis:
-
-Using ``hypothesis``
-~~~~~~~~~~~~~~~~~~~~
-
-Hypothesis is a library for property-based testing. Instead of explicitly
-parametrizing a test, you can describe *all* valid inputs and let Hypothesis
-try to find a failing input.  Even better, no matter how many random examples
-it tries, Hypothesis always reports a single minimal counterexample to your
-assertions - often an example that you would never have thought to test.
-
-See `Getting Started with Hypothesis <https://hypothesis.works/articles/getting-started-with-hypothesis/>`_
-for more of an introduction, then `refer to the Hypothesis documentation
-for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
-
-.. code-block:: python
-
-    import json
-    from hypothesis import given, strategies as st
-
-    any_json_value = st.deferred(lambda: st.one_of(
-        st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
-        st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
-    ))
-
-
-    @given(value=any_json_value)
-    def test_json_roundtrip(value):
-        result = json.loads(json.dumps(value))
-        assert value == result
-
-This test shows off several useful features of Hypothesis, as well as
-demonstrating a good use-case: checking properties that should hold over
-a large or complicated domain of inputs.
-
-To keep the pandas test suite running quickly, parametrized tests are
-preferred if the inputs or logic are simple, with Hypothesis tests reserved
-for cases with complex logic or where there are too many combinations of
-options or subtle interactions to test (or think of!) all of them.
-
 .. _contributing.running_tests:
 
 Running the test suite
@@ -801,15 +784,17 @@ speed by skipping some tests using the ``-m`` mark flag:
 
 - slow: any test taking long (think seconds rather than milliseconds)
 - network: tests requiring network connectivity
-- db: tests requiring a database (mysql or postgres)
+- db: tests requiring a database (mysql or postgres); these skip themselves if
+  no database is running, so ``-m "not db"`` is only needed to avoid the cost
+  of checking for one
 - single_cpu: tests that should run on a single cpu only
 
 You might want to enable the following option if it's relevant for you:
 
 - arm_slow: any test taking long on arm64 architecture
 
-These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/main/pyproject.toml>`_
-, under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
+These markers are defined `in pandas/conftest.py <https://github.com/pandas-dev/pandas/blob/main/pandas/conftest.py>`_
+, in a list called ``PANDAS_MARKERS``, in case
 you want to check if new ones have been created which are of interest to you.
 
 The ``-r`` report flag will display a short summary info (see `pytest
