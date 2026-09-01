@@ -771,15 +771,18 @@ class TestGroupBy:
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
         utc = UTC
-        df = pd.DataFrame({"a": [1], "b": [datetime.now(utc)]})
+        df = pd.DataFrame({"a": [1], "b": [datetime(2011, 1, 1, tzinfo=utc)]})
         assert df["b"][0].tzinfo == utc
         df = pd.DataFrame({"a": [1, 2, 3]})
-        df["b"] = datetime.now(utc)
+        df["b"] = datetime(2011, 1, 1, tzinfo=utc)
         assert df["b"][0].tzinfo == utc
 
     def test_datetime_count(self):
         df = pd.DataFrame(
-            {"a": [1, 2, 3] * 2, "dates": pd.date_range("now", periods=6, freq="min")}
+            {
+                "a": [1, 2, 3] * 2,
+                "dates": pd.date_range("2011-01-01", periods=6, freq="min"),
+            }
         )
         result = df.groupby("a").dates.count()
         expected = pd.Series(

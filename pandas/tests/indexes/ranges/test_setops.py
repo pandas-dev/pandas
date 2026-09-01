@@ -127,7 +127,7 @@ class TestRangeIndexSetOps:
         # corner case, Index with non-int64 dtype
         index = pd.RangeIndex(start=0, stop=20, step=2)
         other = pd.Index(
-            [datetime.now() + timedelta(i) for i in range(4)], dtype=object
+            [datetime(2011, 1, 1) + timedelta(i) for i in range(4)], dtype=object
         )
         result = index.union(other, sort=sort)
         expected = pd.Index(np.concatenate((index, other)))

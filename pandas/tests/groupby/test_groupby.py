@@ -688,7 +688,7 @@ def test_raises_on_nuisance(df, using_infer_string):
         grouped.mean()
 
     df = df.loc[:, ["A", "C", "D"]]
-    df["E"] = datetime.now()
+    df["E"] = datetime(2011, 1, 1)
     grouped = df.groupby("A")
     msg = "datetime64 type does not support operation 'sum'"
     with pytest.raises(TypeError, match=msg):
@@ -1692,7 +1692,7 @@ def test_pivot_table_values_key_error():
     df = pd.DataFrame(
         {
             "eventDate": pd.date_range(
-                datetime.today(), periods=20, freq="ME"
+                datetime(2011, 1, 1), periods=20, freq="ME"
             ).tolist(),
             "thename": range(20),
         }
@@ -2117,7 +2117,7 @@ def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
     df = pd.DataFrame(
-        data=[[1, pd.Timestamp("today"), 3, 4]],
+        data=[[1, pd.Timestamp("2011-01-01"), 3, 4]],
         columns=["col_1", "col_2", "col_3", "col_4"],
     )
     df["col_3"] = df["col_3"].astype(int)

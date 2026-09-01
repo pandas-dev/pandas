@@ -98,7 +98,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_unsortable(self):
         # it works!
-        arr = np.array([1, 2, 3, datetime.now()], dtype="O")
+        arr = np.array([1, 2, 3, datetime(2011, 1, 1)], dtype="O")
         factor = pd.Categorical(arr, ordered=False)
         assert not factor.ordered
 
@@ -354,7 +354,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_date_objects(self):
         # we dont cast date objects to timestamps, matching Index constructor
-        v = date.today()
+        v = date(2011, 1, 1)
 
         cat = pd.Categorical([v, v])
         assert cat.categories.dtype == object

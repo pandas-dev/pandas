@@ -55,7 +55,7 @@ def test_count(any_string_dtype):
 
 def test_count_mixed_object():
     ser = pd.Series(
-        ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+        ["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0],
         dtype=object,
     )
     result = ser.str.count("a")
@@ -148,7 +148,7 @@ def test_repeat(any_string_dtype):
 
 
 def test_repeat_mixed_object():
-    ser = pd.Series(["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0])
+    ser = pd.Series(["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0])
     result = ser.str.repeat(3)
     expected = pd.Series(
         ["aaa", np.nan, "bbb", np.nan, np.nan, "foofoofoo", None, np.nan, np.nan],
@@ -386,7 +386,17 @@ def test_split_join_roundtrip(any_string_dtype):
 
 def test_split_join_roundtrip_mixed_object():
     ser = pd.Series(
-        ["a_b", np.nan, "asdf_cas_asdf", True, datetime.today(), "foo", None, 1, 2.0]
+        [
+            "a_b",
+            np.nan,
+            "asdf_cas_asdf",
+            True,
+            datetime(2011, 1, 1),
+            "foo",
+            None,
+            1,
+            2.0,
+        ]
     )
     result = ser.str.split("_").str.join("_")
     expected = pd.Series(
@@ -414,7 +424,17 @@ def test_len(any_string_dtype):
 
 def test_len_mixed():
     ser = pd.Series(
-        ["a_b", np.nan, "asdf_cas_asdf", True, datetime.today(), "foo", None, 1, 2.0]
+        [
+            "a_b",
+            np.nan,
+            "asdf_cas_asdf",
+            True,
+            datetime(2011, 1, 1),
+            "foo",
+            None,
+            1,
+            2.0,
+        ]
     )
     result = ser.str.len()
     expected = pd.Series([3, np.nan, 13, np.nan, np.nan, 3, np.nan, np.nan, np.nan])
@@ -533,7 +553,7 @@ def test_slice(start, stop, step, expected, any_string_dtype):
 )
 def test_slice_mixed_object(start, stop, step, expected):
     ser = pd.Series(
-        ["aafootwo", np.nan, "aabartwo", True, datetime.today(), None, 1, 2.0]
+        ["aafootwo", np.nan, "aabartwo", True, datetime(2011, 1, 1), None, 1, 2.0]
     )
     result = ser.str.slice(start, stop, step)
     expected = pd.Series(expected, dtype=object)
@@ -589,7 +609,7 @@ def test_strip_lstrip_rstrip(any_string_dtype, method, exp):
 )
 def test_strip_lstrip_rstrip_mixed_object(method, exp):
     ser = pd.Series(
-        ["  aa  ", np.nan, " bb \t\n", True, datetime.today(), None, 1, 2.0]
+        ["  aa  ", np.nan, " bb \t\n", True, datetime(2011, 1, 1), None, 1, 2.0]
     )
 
     result = getattr(ser.str, method)()

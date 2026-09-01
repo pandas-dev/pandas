@@ -108,7 +108,7 @@ class TestDataFrameConstructors:
             pd.Series(arr[0], dtype="i8", name=0)
 
     def test_construct_from_list_of_datetimes(self):
-        df = pd.DataFrame([datetime.now(), datetime.now()])
+        df = pd.DataFrame([datetime(2011, 1, 1), datetime(2011, 1, 2)])
         assert df[0].dtype == np.dtype("M8[us]")
 
     def test_constructor_from_tzaware_datetimeindex(self):
@@ -2067,8 +2067,8 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([None, None, None, None, datetime.now(), None]),
-            np.array([None, None, datetime.now(), None]),
+            np.array([None, None, None, None, datetime(2011, 1, 1), None]),
+            np.array([None, None, datetime(2011, 1, 1), None]),
             [[np.datetime64("NaT", "ns")], [None]],
             [[np.datetime64("NaT", "ns")], [pd.NaT]],
             [[None], [np.datetime64("NaT", "ns")]],
@@ -2561,7 +2561,7 @@ class TestDataFrameConstructors:
 
     def test_datetime_date_tuple_columns_from_dict(self):
         # GH 10863
-        v = date.today()
+        v = date(2011, 1, 1)
         tup = v, v
         result = pd.DataFrame({tup: pd.Series(range(3), index=range(3))}, columns=[tup])
         expected = pd.DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))

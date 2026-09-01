@@ -36,7 +36,17 @@ def test_extract_expand_kwarg(any_string_dtype):
 
 def test_extract_expand_False_mixed_object():
     ser = pd.Series(
-        ["aBAD_BAD", np.nan, "BAD_b_BAD", True, datetime.today(), "foo", None, 1, 2.0]
+        [
+            "aBAD_BAD",
+            np.nan,
+            "BAD_b_BAD",
+            True,
+            datetime(2011, 1, 1),
+            "foo",
+            None,
+            1,
+            2.0,
+        ]
     )
 
     # two groups
@@ -227,7 +237,7 @@ def test_extract_expand_True_mixed_object():
             np.nan,
             "BAD_b_BAD",
             True,
-            datetime.today(),
+            datetime(2011, 1, 1),
             "foo",
             None,
             1,

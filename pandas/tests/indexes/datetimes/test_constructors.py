@@ -1046,10 +1046,10 @@ class TestDatetimeIndex:
 
     def test_dti_constructor_with_non_nano_now_today(self):
         # GH#55756, GH#57535
-        now = pd.Timestamp.now()
-        today = pd.Timestamp.today()
+        now = pd.Timestamp.now()  # noqa: TID251
+        today = pd.Timestamp.today()  # noqa: TID251
         result = pd.DatetimeIndex(["now", "today"], dtype="M8[s]")
-        now_after = pd.Timestamp.now()
+        now_after = pd.Timestamp.now()  # noqa: TID251
         assert result.dtype == "M8[s]"
 
         # result should be between the before/after timestamps

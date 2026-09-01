@@ -287,8 +287,8 @@ class TestTimestamp:
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert pd.Timestamp.utcnow().tz is UTC
-        assert pd.Timestamp.now("UTC").tz is UTC
+            assert pd.Timestamp.utcnow().tz is UTC  # noqa: TID251
+        assert pd.Timestamp.now("UTC").tz is UTC  # noqa: TID251
         assert pd.Timestamp("2016-01-01", tz="UTC").tz is UTC
 
     def test_tz(self):
@@ -331,14 +331,14 @@ class TestTimestamp:
         def compare(x, y):
             assert int((pd.Timestamp(x)._value - pd.Timestamp(y)._value) / 1e9) == 0
 
-        compare(pd.Timestamp.now(), datetime.now())
-        compare(pd.Timestamp.now("UTC"), datetime.now(UTC))
-        compare(pd.Timestamp.now("UTC"), datetime.now(tzutc()))
+        compare(pd.Timestamp.now(), datetime.now())  # noqa: TID251
+        compare(pd.Timestamp.now("UTC"), datetime.now(UTC))  # noqa: TID251
+        compare(pd.Timestamp.now("UTC"), datetime.now(tzutc()))  # noqa: TID251
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            compare(pd.Timestamp.utcnow(), datetime.now(UTC))
-        compare(pd.Timestamp.today(), datetime.today())
-        current_time = calendar.timegm(datetime.now().utctimetuple())
+            compare(pd.Timestamp.utcnow(), datetime.now(UTC))  # noqa: TID251
+        compare(pd.Timestamp.today(), datetime.today())  # noqa: TID251
+        current_time = calendar.timegm(datetime.now().utctimetuple())  # noqa: TID251
 
         msg = "Timestamp.utcfromtimestamp is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -359,7 +359,7 @@ class TestTimestamp:
             datetime.fromtimestamp(current_time, UTC),
         )
 
-        date_component = datetime.now(UTC)
+        date_component = datetime.now(UTC)  # noqa: TID251
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             pd.Timestamp.combine(date_component, time_component),
@@ -538,7 +538,7 @@ class TestTimestampConversion:
 
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
-        ts = pd.Timestamp(datetime.now())
+        ts = pd.Timestamp(datetime(2011, 1, 1))
         assert ts.to_datetime64() == ts.to_numpy()
 
         # GH#44460

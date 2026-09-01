@@ -591,25 +591,25 @@ def test_index_types(temp_h5_path):
     ser = pd.Series(values, [0, "y"])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
-    ser = pd.Series(values, [datetime.datetime.today(), 0])
+    ser = pd.Series(values, [datetime.datetime(2011, 1, 1), 0])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = pd.Series(values, ["y", 0])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
-    ser = pd.Series(values, [datetime.date.today(), "a"])
+    ser = pd.Series(values, [datetime.date(2011, 1, 1), "a"])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = pd.Series(values, [0, "y"])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
-    ser = pd.Series(values, [datetime.datetime.today(), 0])
+    ser = pd.Series(values, [datetime.datetime(2011, 1, 1), 0])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = pd.Series(values, ["y", 0])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
-    ser = pd.Series(values, [datetime.date.today(), "a"])
+    ser = pd.Series(values, [datetime.date(2011, 1, 1), "a"])
     _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = pd.Series(values, [1.23, "b"])

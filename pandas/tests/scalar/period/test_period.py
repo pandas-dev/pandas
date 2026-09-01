@@ -96,16 +96,16 @@ class TestPeriodConstruction:
         i4 = pd.Period("2005", freq="M")
         assert i1 != i4
 
-        i1 = pd.Period.now(freq="Q")
-        i2 = pd.Period(datetime.now(), freq="Q")
+        i1 = pd.Period.now(freq="Q")  # noqa: TID251
+        i2 = pd.Period(datetime.now(), freq="Q")  # noqa: TID251
 
         assert i1 == i2
 
         # Pass in freq as a keyword argument sometimes as a test for
         # https://github.com/pandas-dev/pandas/issues/53369
-        i1 = pd.Period.now(freq="D")
-        i2 = pd.Period(datetime.now(), freq="D")
-        i3 = pd.Period.now(pd.offsets.Day())
+        i1 = pd.Period.now(freq="D")  # noqa: TID251
+        i2 = pd.Period(datetime.now(), freq="D")  # noqa: TID251
+        i3 = pd.Period.now(pd.offsets.Day())  # noqa: TID251
 
         assert i1 == i2
         assert i1 == i3
@@ -388,9 +388,9 @@ class TestPeriodConstruction:
     def test_invalid_arguments(self):
         msg = "Must supply freq for datetime value"
         with pytest.raises(ValueError, match=msg):
-            pd.Period(datetime.now())
+            pd.Period(datetime(2011, 1, 1))
         with pytest.raises(ValueError, match=msg):
-            pd.Period(datetime.now().date())
+            pd.Period(date(2011, 1, 1))
 
         msg = "Value must be Period, string, integer, or datetime"
         with pytest.raises(ValueError, match=msg):

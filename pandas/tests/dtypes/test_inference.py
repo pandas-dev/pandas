@@ -984,7 +984,7 @@ class TestInference:
         tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):
-        ts = pd.Timestamp("now")
+        ts = pd.Timestamp("2011-01-01 09:42:00.123456")
         vals = [ts, ts.to_pydatetime(), ts.to_datetime64(), pd.NaT, np.nan, None]
 
         for data in itertools.permutations(vals):

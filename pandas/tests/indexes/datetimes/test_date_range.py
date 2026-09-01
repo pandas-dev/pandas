@@ -271,7 +271,7 @@ class TestDateRanges:
         assert len(rng) == 4
 
     def test_date_range_normalize(self):
-        snap = datetime.today()
+        snap = datetime(2011, 1, 1)
         n = 50
 
         rng = pd.date_range(snap, periods=n, normalize=False, freq="2D")

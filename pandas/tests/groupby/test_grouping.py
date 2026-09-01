@@ -190,8 +190,8 @@ class TestGrouping:
     def test_grouper_multilevel_freq(self):
         # GH 7885
         # with level and freq specified in a Grouper
-        d0 = date.today() - timedelta(days=14)
-        dates = pd.date_range(d0, date.today())
+        d0 = date(2011, 1, 1)
+        dates = pd.date_range(d0, d0 + timedelta(days=14))
         date_index = pd.MultiIndex.from_product([dates, dates], names=["foo", "bar"])
         df = pd.DataFrame(
             np.random.default_rng(2).integers(0, 100, 225), index=date_index

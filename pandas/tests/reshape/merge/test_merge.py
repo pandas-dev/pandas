@@ -347,7 +347,7 @@ class TestMerge:
         tm.assert_series_equal(merged["key_0"], pd.Series(key, name="key_0"))
 
     def test_no_overlap_more_informative_error(self):
-        dt = datetime.now()
+        dt = datetime(2011, 1, 1)
         df1 = pd.DataFrame({"x": ["a"]}, index=[dt])
 
         df2 = pd.DataFrame({"y": ["b", "c"]}, index=[dt, dt])
