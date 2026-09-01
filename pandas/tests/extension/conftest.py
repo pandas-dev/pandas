@@ -219,10 +219,9 @@ def invalid_scalar(data):
 
 
 # The fixtures below are also defined in pandas/conftest.py.  They are repeated
-# here because pytest only makes a fixture available to tests under the
-# directory its conftest lives in, so a third-party ExtensionArray author who
-# copies this file would not otherwise get them.  Both copies parametrize over
-# the same lists in pandas._testing, so the two cannot drift apart.
+# here so a third-party ExtensionArray author who copies this file gets them.
+# Both copies parametrize over the same lists in pandas._testing, so the two
+# cannot drift apart.
 
 
 @pytest.fixture(params=tm.all_reductions)
@@ -269,23 +268,6 @@ def all_arithmetic_operators(request):
 def comparison_op(request):
     """
     Fixture for operator module comparison functions.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def skipna(request):
-    """
-    Boolean 'skipna' parameter.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[None, lambda x: x])
-def sort_by_key(request):
-    """
-    Simple fixture for testing keys in sorting methods.
-    Tests None (no key) and the identity key.
     """
     return request.param
 
