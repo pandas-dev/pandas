@@ -4298,14 +4298,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
-        If dropna, will take the nth non-null row, dropna is either
-        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
-        before the groupby.
-
         .. deprecated:: 3.1.0
 
             Index notation (``g.nth[n]``) is deprecated in favor of calling
             ``g.nth(n)`` and will be removed in a future version of pandas.
+
+        If dropna, will take the nth non-null row, dropna is either
+        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
+        before the groupby.
 
         Returns
         -------
