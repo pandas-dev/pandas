@@ -294,9 +294,10 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     "subtype", ["Int64", "Float64", "datetime64[s, Europe/Brussels]"]
 )
 def test_concat_same_type_retains_extension_subtype(subtype):
-    # GH#64297 np.concatenate would cast the subtype to a numpy dtype
+    # GH#64297
     breaks = pd.array([1, 2, 3], dtype="Int64").astype(subtype)
     arr = IntervalArray.from_breaks(breaks)
+    assert arr.dtype.subtype == subtype
 
     result = IntervalArray._concat_same_type([arr, arr])
     assert result.dtype == arr.dtype

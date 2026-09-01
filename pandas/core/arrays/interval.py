@@ -1000,7 +1000,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed = closed_set.pop()
 
         # concat_compat instead of np.concatenate to retain an ExtensionDtype
-        #  subtype, e.g. datetime64tz or a masked dtype GH#64297
+        #  subtype GH#64297
         left = concat_compat([interval._left for interval in to_concat])
         right = concat_compat([interval._right for interval in to_concat])
 
