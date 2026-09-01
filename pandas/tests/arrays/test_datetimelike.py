@@ -16,12 +16,6 @@ from pandas.errors import Pandas4Warning
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Period,
-    PeriodIndex,
-    TimedeltaIndex,
-)
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -83,11 +77,11 @@ def timedelta_index():
     the TimedeltaIndex behavior.
     """
     # TODO: flesh this out
-    return TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
+    return pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
 
 
 class SharedTests:
-    index_cls: type[DatetimeIndex | PeriodIndex | TimedeltaIndex]
+    index_cls: type[pd.DatetimeIndex | pd.PeriodIndex | pd.TimedeltaIndex]
 
     @pytest.fixture
     def arr1d(self):
@@ -566,7 +560,7 @@ class SharedTests:
         assert result == expected
 
         arr[len(arr) // 2] = NaT
-        if not isinstance(expected, Period):
+        if not isinstance(expected, pd.Period):
             expected = arr[len(arr) // 2 - 1 : len(arr) // 2 + 2].mean()
 
         assert arr.median(skipna=False) is NaT
@@ -615,7 +609,7 @@ class SharedTests:
 
 
 class TestDatetimeArray(SharedTests):
-    index_cls = DatetimeIndex
+    index_cls = pd.DatetimeIndex
     array_cls = DatetimeArray
     scalar_type = Timestamp
     example_dtype = "M8[ns]"
@@ -757,7 +751,7 @@ class TestDatetimeArray(SharedTests):
 
         # Check that Index.__new__ knows what to do with DatetimeArray
         dti2 = pd.Index(arr)
-        assert isinstance(dti2, DatetimeIndex)
+        assert isinstance(dti2, pd.DatetimeIndex)
         assert list(dti2) == list(arr)
 
     def test_astype_object(self, arr1d):
@@ -828,7 +822,7 @@ class TestDatetimeArray(SharedTests):
 
         with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
-            arr.take([-1, 1], allow_fill=True, fill_value=Period("2014Q1"))
+            arr.take([-1, 1], allow_fill=True, fill_value=pd.Period("2014Q1"))
 
         tz = None if dti.tz is not None else "US/Eastern"
         now = fixed_now_ts.tz_localize(tz)
@@ -905,7 +899,7 @@ class TestDatetimeArray(SharedTests):
 
     def test_strftime_nat(self, using_infer_string):
         # GH 29578
-        arr = DatetimeIndex(["2019-01-01", NaT])._data
+        arr = pd.DatetimeIndex(["2019-01-01", NaT])._data
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
@@ -915,23 +909,23 @@ class TestDatetimeArray(SharedTests):
 
 
 class TestTimedeltaArray(SharedTests):
-    index_cls = TimedeltaIndex
+    index_cls = pd.TimedeltaIndex
     array_cls = TimedeltaArray
     scalar_type = pd.Timedelta
     example_dtype = "m8[ns]"
 
     def test_from_tdi(self):
-        tdi = TimedeltaIndex(["1 Day", "3 Hours"])
+        tdi = pd.TimedeltaIndex(["1 Day", "3 Hours"])
         arr = tdi._data
         assert list(arr) == list(tdi)
 
         # Check that Index.__new__ knows what to do with TimedeltaArray
         tdi2 = pd.Index(arr)
-        assert isinstance(tdi2, TimedeltaIndex)
+        assert isinstance(tdi2, pd.TimedeltaIndex)
         assert list(tdi2) == list(arr)
 
     def test_astype_object(self):
-        tdi = TimedeltaIndex(["1 Day", "3 Hours"])
+        tdi = pd.TimedeltaIndex(["1 Day", "3 Hours"])
         arr = tdi._data
         asobj = arr.astype("O")
         assert isinstance(asobj, np.ndarray)
@@ -1036,10 +1030,10 @@ class TestTimedeltaArray(SharedTests):
 @pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 class TestPeriodArray(SharedTests):
-    index_cls = PeriodIndex
+    index_cls = pd.PeriodIndex
     array_cls = PeriodArray
-    scalar_type = Period
-    example_dtype = PeriodIndex([], freq="W").dtype
+    scalar_type = pd.Period
+    example_dtype = pd.PeriodIndex([], freq="W").dtype
 
     @pytest.fixture
     def arr1d(self, period_index):
@@ -1055,7 +1049,7 @@ class TestPeriodArray(SharedTests):
 
         # Check that Index.__new__ knows what to do with PeriodArray
         pi2 = pd.Index(arr)
-        assert isinstance(pi2, PeriodIndex)
+        assert isinstance(pi2, pd.PeriodIndex)
         assert list(pi2) == list(arr)
 
     def test_astype_object(self, arr1d):
@@ -1184,7 +1178,7 @@ class TestPeriodArray(SharedTests):
 
     def test_strftime_nat(self, using_infer_string):
         # GH 29578
-        arr = PeriodArray(PeriodIndex(["2019-01-01", NaT], dtype="period[D]"))
+        arr = PeriodArray(pd.PeriodIndex(["2019-01-01", NaT], dtype="period[D]"))
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
@@ -1197,7 +1191,7 @@ class TestPeriodArray(SharedTests):
     "arr,casting_nats",
     [
         (
-            TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
             (NaT, np.timedelta64("NaT", "ns")),
         ),
         (
@@ -1221,7 +1215,7 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     "arr,non_casting_nats",
     [
         (
-            TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
             (np.datetime64("NaT", "ns"), NaT._value),
         ),
         (
@@ -1303,7 +1297,7 @@ def test_to_numpy_extra_readonly(arr):
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
         pd.to_timedelta([1, 2], unit="D"),
-        PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
+        pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
 @pytest.mark.parametrize(
@@ -1334,7 +1328,7 @@ def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
         pd.to_timedelta([1, 2], unit="D"),
-        PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
+        pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
 @pytest.mark.parametrize(
@@ -1352,8 +1346,8 @@ def test_period_index_construction_from_strings(klass):
     # https://github.com/pandas-dev/pandas/issues/26109
     strings = ["2020Q1", "2020Q2"] * 2
     data = klass(strings)
-    result = PeriodIndex(data, freq="Q")
-    expected = PeriodIndex([Period(s) for s in strings])
+    result = pd.PeriodIndex(data, freq="Q")
+    expected = pd.PeriodIndex([pd.Period(s) for s in strings])
     tm.assert_index_equal(result, expected)
 
 
@@ -1375,7 +1369,7 @@ def test_from_pandas_array(dtype):
     tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
-    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
+    idx_cls = {"M8[ns]": pd.DatetimeIndex, "m8[ns]": pd.TimedeltaIndex}[dtype]
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)

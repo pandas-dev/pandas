@@ -513,8 +513,10 @@ class ArrowExtensionArray(
                 scalars = strings.cast(pa_type)
             else:
                 mask = isna(strings)
-                if mask is not None:
-                    scalars = pa.array(scalars, mask=mask, type=pa_type)
+                # GH#66834: to_numeric coerces "" to NaN instead of raising
+                if (isna(scalars) & ~mask).any():
+                    raise ValueError(f"could not convert string to {pa_type}: ''")
+                scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
             raise NotImplementedError(
@@ -1199,7 +1201,12 @@ class ArrowExtensionArray(
                     other = other.cast(pa.large_string())
 
                 sep = pa.scalar("", type=self_array.type)
-                if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
+                if isinstance(other, pa.Scalar):
+                    if pc.is_null(other).as_py():
+                        other = other.cast(self_array.type)
+                elif len(other) == 0 and pa.types.is_null(other.type):
+                    # GH#40624 a length-zero object-dtype other boxes to the
+                    #  pyarrow null type, which has no join kernel
                     other = other.cast(self_array.type)
                 try:
                     if op is operator.add:

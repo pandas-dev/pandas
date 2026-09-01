@@ -2,10 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-)
 import pandas._testing as tm
 
 dtlike_dtypes = [
@@ -24,8 +20,8 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
     def construct(dtype):
         if dtype is dtlike_dtypes[-1]:
             # PeriodArray will try to cast ints to strings
-            return DatetimeIndex(vals).astype(dtype)
-        return Index(vals, dtype=dtype)
+            return pd.DatetimeIndex(vals).astype(dtype)
+        return pd.Index(vals, dtype=dtype)
 
     left = construct(ldtype)
     right = construct(rdtype)

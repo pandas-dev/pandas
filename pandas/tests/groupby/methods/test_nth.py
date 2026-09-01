@@ -2,14 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    isna,
-)
 import pandas._testing as tm
 
 
@@ -18,7 +10,7 @@ def test_first_last_nth(df):
     grouped = df.groupby("A")
     first = grouped.first()
     expected = df.loc[[1, 0], ["B", "C", "D"]]
-    expected.index = Index(["bar", "foo"], name="A")
+    expected.index = pd.Index(["bar", "foo"], name="A")
     expected = expected.sort_index()
     tm.assert_frame_equal(first, expected)
 
@@ -28,7 +20,7 @@ def test_first_last_nth(df):
 
     last = grouped.last()
     expected = df.loc[[5, 7], ["B", "C", "D"]]
-    expected.index = Index(["bar", "foo"], name="A")
+    expected.index = pd.Index(["bar", "foo"], name="A")
     tm.assert_frame_equal(last, expected)
 
     nth = grouped.nth(-1)
@@ -47,12 +39,12 @@ def test_first_last_nth(df):
     df = df.copy()
     df.loc[df["A"] == "foo", "B"] = np.nan
     grouped = df.groupby("A")
-    assert isna(grouped["B"].first()["foo"])
-    assert isna(grouped["B"].last()["foo"])
-    assert isna(grouped["B"].nth(0).iloc[0])
+    assert pd.isna(grouped["B"].first()["foo"])
+    assert pd.isna(grouped["B"].last()["foo"])
+    assert pd.isna(grouped["B"].nth(0).iloc[0])
 
     # v0.14.0 whatsnew
-    df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
+    df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A")
     result = g.first()
     expected = df.iloc[[1, 2]].set_index("A")
@@ -66,7 +58,9 @@ def test_first_last_nth(df):
 @pytest.mark.parametrize("method", ["first", "last"])
 def test_first_last_with_na_object(method, nulls_fixture):
     # https://github.com/pandas-dev/pandas/issues/32123
-    groups = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby("a")
+    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby(
+        "a"
+    )
     result = getattr(groups, method)()
 
     if method == "first":
@@ -75,8 +69,8 @@ def test_first_last_with_na_object(method, nulls_fixture):
         values = [2, 3]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = Index([1, 2], name="a")
-    expected = DataFrame({"b": values}, index=idx)
+    idx = pd.Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
 
@@ -84,7 +78,7 @@ def test_first_last_with_na_object(method, nulls_fixture):
 @pytest.mark.parametrize("index", [0, -1])
 def test_nth_with_na_object(index, nulls_fixture):
     # https://github.com/pandas-dev/pandas/issues/32123
-    df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]})
+    df = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]})
     groups = df.groupby("a")
     result = groups.nth(index)
     expected = df.iloc[[0, 2]] if index == 0 else df.iloc[[1, 3]]
@@ -95,7 +89,7 @@ def test_nth_with_na_object(index, nulls_fixture):
 def test_first_last_with_None(method):
     # https://github.com/pandas-dev/pandas/issues/32800
     # None should be preserved as object dtype
-    df = DataFrame.from_dict({"id": ["a"], "value": [None]})
+    df = pd.DataFrame.from_dict({"id": ["a"], "value": [None]})
     groups = df.groupby("id", as_index=False)
     result = getattr(groups, method)()
 
@@ -107,12 +101,12 @@ def test_first_last_with_None(method):
     "df, expected",
     [
         (
-            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
-            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+            pd.DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            pd.DataFrame({"value": ["foo"]}, index=pd.Index(["a"], name="id")),
         ),
         (
-            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
-            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+            pd.DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            pd.DataFrame({"value": [None]}, index=pd.Index(["a"], name="id")),
         ),
     ],
 )
@@ -123,7 +117,7 @@ def test_first_last_with_None_expanded(method, df, expected):
 
 
 def test_first_last_nth_dtypes():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -138,13 +132,13 @@ def test_first_last_nth_dtypes():
     grouped = df.groupby("A")
     first = grouped.first()
     expected = df.loc[[1, 0], ["B", "C", "D", "E", "F"]]
-    expected.index = Index(["bar", "foo"], name="A")
+    expected.index = pd.Index(["bar", "foo"], name="A")
     expected = expected.sort_index()
     tm.assert_frame_equal(first, expected)
 
     last = grouped.last()
     expected = df.loc[[5, 7], ["B", "C", "D", "E", "F"]]
-    expected.index = Index(["bar", "foo"], name="A")
+    expected.index = pd.Index(["bar", "foo"], name="A")
     expected = expected.sort_index()
     tm.assert_frame_equal(last, expected)
 
@@ -157,7 +151,7 @@ def test_first_last_nth_dtypes2():
     # GH 2763, first/last shifting dtypes
     idx = list(range(10))
     idx.append(9)
-    ser = Series(data=range(11), index=idx, name="IntCol")
+    ser = pd.Series(data=range(11), index=idx, name="IntCol")
     assert ser.dtype == "int64"
     f = ser.groupby(level=0).first()
     assert f.dtype == "int64"
@@ -165,7 +159,7 @@ def test_first_last_nth_dtypes2():
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = DataFrame({"data": ["A"], "nans": Series([None], dtype=object)})
+    df = pd.DataFrame({"data": ["A"], "nans": pd.Series([None], dtype=object)})
     grouped = df.groupby("data")
 
     expected = df.set_index("data").nans
@@ -179,25 +173,27 @@ def test_first_last_nth_nan_dtype():
 
 def test_first_strings_timestamps():
     # GH 11244
-    test = DataFrame(
+    test = pd.DataFrame(
         {
-            Timestamp("2012-01-01 00:00:00"): ["a", "b"],
-            Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
             "name": ["e", "e"],
             "aaaa": ["f", "g"],
         }
     )
     result = test.groupby("name").first()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [["a", "c", "f"]],
-        columns=Index([Timestamp("2012-01-01"), Timestamp("2012-01-02"), "aaaa"]),
-        index=Index(["e"], name="name"),
+        columns=pd.Index(
+            [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-02"), "aaaa"]
+        ),
+        index=pd.Index(["e"], name="name"),
     )
     tm.assert_frame_equal(result, expected)
 
 
 def test_nth():
-    df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
+    df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
     gb = df.groupby("A")
 
     tm.assert_frame_equal(gb.nth(0), df.iloc[[0, 2]])
@@ -220,7 +216,7 @@ def test_nth():
 def test_nth2():
     # out of bounds, regression from 0.13.1
     # GH 6621
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "color": {0: "green", 1: "green", 2: "red", 3: "red", 4: "red"},
             "food": {0: "ham", 1: "eggs", 2: "eggs", 3: "ham", 4: "pork"},
@@ -253,7 +249,7 @@ def test_nth2():
 def test_nth3():
     # GH 7559
     # from the vbench
-    df = DataFrame(np.random.default_rng(2).integers(1, 10, (100, 2)), dtype="int64")
+    df = pd.DataFrame(np.random.default_rng(2).integers(1, 10, (100, 2)), dtype="int64")
     ser = df[1]
     gb = df[0]
     expected = ser.groupby(gb).first()
@@ -273,7 +269,7 @@ def test_nth3():
 
 def test_nth4():
     # doc example
-    df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
+    df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
     gb = df.groupby("A")
     result = gb.B.nth(0, dropna="all")
     expected = df.B.iloc[[1, 2]]
@@ -282,7 +278,7 @@ def test_nth4():
 
 def test_nth5():
     # test multiple nth values
-    df = DataFrame([[1, np.nan], [1, 3], [1, 4], [5, 6], [5, 7]], columns=["A", "B"])
+    df = pd.DataFrame([[1, np.nan], [1, 3], [1, 4], [5, 6], [5, 7]], columns=["A", "B"])
     gb = df.groupby("A")
 
     tm.assert_frame_equal(gb.nth(0), df.iloc[[0, 3]])
@@ -299,7 +295,7 @@ def test_nth_bdays(unit):
     business_dates = pd.date_range(
         start="4/1/2014", end="6/30/2014", freq="B", unit=unit
     )
-    df = DataFrame(1, index=business_dates, columns=["a", "b"])
+    df = pd.DataFrame(1, index=business_dates, columns=["a", "b"])
     # get the first, fourth and last two business days for each month
     key = [df.index.year, df.index.month]
     result = df.groupby(key, as_index=False).nth([0, 3, -2, -1])
@@ -319,7 +315,7 @@ def test_nth_bdays(unit):
             "2014/6/30",
         ]
     ).as_unit(unit)
-    expected = DataFrame(1, columns=["a", "b"], index=expected_dates)
+    expected = pd.DataFrame(1, columns=["a", "b"], index=expected_dates)
     tm.assert_frame_equal(result, expected)
 
 
@@ -338,17 +334,17 @@ def test_nth_multi_grouper(three_group):
         (
             {
                 "id": ["A"],
-                "time": Timestamp("2012-02-01 14:00:00", tz="US/Central"),
+                "time": pd.Timestamp("2012-02-01 14:00:00", tz="US/Central"),
                 "foo": [1],
             },
             {
                 "id": ["A"],
-                "time": Timestamp("2012-02-01 14:00:00", tz="US/Central"),
+                "time": pd.Timestamp("2012-02-01 14:00:00", tz="US/Central"),
                 "foo": [1],
             },
             {
                 "id": ["A"],
-                "time": Timestamp("2012-02-01 14:00:00", tz="US/Central"),
+                "time": pd.Timestamp("2012-02-01 14:00:00", tz="US/Central"),
                 "foo": [1],
             },
         ),
@@ -356,25 +352,25 @@ def test_nth_multi_grouper(three_group):
             {
                 "id": ["A", "B", "A"],
                 "time": [
-                    Timestamp("2012-01-01 13:00:00", tz="America/New_York"),
-                    Timestamp("2012-02-01 14:00:00", tz="US/Central"),
-                    Timestamp("2012-03-01 12:00:00", tz="Europe/London"),
+                    pd.Timestamp("2012-01-01 13:00:00", tz="America/New_York"),
+                    pd.Timestamp("2012-02-01 14:00:00", tz="US/Central"),
+                    pd.Timestamp("2012-03-01 12:00:00", tz="Europe/London"),
                 ],
                 "foo": [1, 2, 3],
             },
             {
                 "id": ["A", "B"],
                 "time": [
-                    Timestamp("2012-01-01 13:00:00", tz="America/New_York"),
-                    Timestamp("2012-02-01 14:00:00", tz="US/Central"),
+                    pd.Timestamp("2012-01-01 13:00:00", tz="America/New_York"),
+                    pd.Timestamp("2012-02-01 14:00:00", tz="US/Central"),
                 ],
                 "foo": [1, 2],
             },
             {
                 "id": ["A", "B"],
                 "time": [
-                    Timestamp("2012-03-01 12:00:00", tz="Europe/London"),
-                    Timestamp("2012-02-01 14:00:00", tz="US/Central"),
+                    pd.Timestamp("2012-03-01 12:00:00", tz="Europe/London"),
+                    pd.Timestamp("2012-02-01 14:00:00", tz="US/Central"),
                 ],
                 "foo": [3, 2],
             },
@@ -386,10 +382,10 @@ def test_first_last_tz(data, expected_first, expected_last):
     # Test that the timezone is retained when calling first
     # or last on groupby with as_index=False
 
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
 
     result = df.groupby("id", as_index=False).first()
-    expected = DataFrame(expected_first)
+    expected = pd.DataFrame(expected_first)
     cols = ["id", "time", "foo"]
     tm.assert_frame_equal(result[cols], expected[cols])
 
@@ -397,7 +393,7 @@ def test_first_last_tz(data, expected_first, expected_last):
     tm.assert_frame_equal(result, expected[["id", "time"]])
 
     result = df.groupby("id", as_index=False).last()
-    expected = DataFrame(expected_last)
+    expected = pd.DataFrame(expected_last)
     cols = ["id", "time", "foo"]
     tm.assert_frame_equal(result[cols], expected[cols])
 
@@ -408,15 +404,15 @@ def test_first_last_tz(data, expected_first, expected_last):
 @pytest.mark.parametrize(
     "method, ts, alpha",
     [
-        ["first", Timestamp("2013-01-01", tz="US/Eastern"), "a"],
-        ["last", Timestamp("2013-01-02", tz="US/Eastern"), "b"],
+        ["first", pd.Timestamp("2013-01-01", tz="US/Eastern"), "a"],
+        ["last", pd.Timestamp("2013-01-02", tz="US/Eastern"), "b"],
     ],
 )
 def test_first_last_tz_multi_column(method, ts, alpha, unit):
     # GH 21603
-    category_string = Series(list("abc")).astype("category")
+    category_string = pd.Series(list("abc")).astype("category")
     dti = pd.date_range("20130101", periods=3, tz="US/Eastern", unit=unit)
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "group": [1, 1, 2],
             "category_string": category_string,
@@ -424,14 +420,14 @@ def test_first_last_tz_multi_column(method, ts, alpha, unit):
         }
     )
     result = getattr(df.groupby("group"), method)()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "category_string": pd.Categorical(
                 [alpha, "c"], dtype=category_string.dtype
             ),
-            "datetimetz": [ts, Timestamp("2013-01-03", tz="US/Eastern")],
+            "datetimetz": [ts, pd.Timestamp("2013-01-03", tz="US/Eastern")],
         },
-        index=Index([1, 2], name="group"),
+        index=pd.Index([1, 2], name="group"),
     )
     expected["datetimetz"] = expected["datetimetz"].dt.as_unit(unit)
     tm.assert_frame_equal(result, expected)
@@ -450,11 +446,11 @@ def test_first_last_tz_multi_column(method, ts, alpha, unit):
 def test_first_last_extension_array_keeps_dtype(values, function):
     # https://github.com/pandas-dev/pandas/issues/33071
     # https://github.com/pandas-dev/pandas/issues/32194
-    df = DataFrame({"a": [1, 2], "b": values})
+    df = pd.DataFrame({"a": [1, 2], "b": values})
     grouped = df.groupby("a")
-    idx = Index([1, 2], name="a")
-    expected_series = Series(values, name="b", index=idx)
-    expected_frame = DataFrame({"b": values}, index=idx)
+    idx = pd.Index([1, 2], name="a")
+    expected_series = pd.Series(values, name="b", index=idx)
+    expected_frame = pd.DataFrame({"b": values}, index=idx)
 
     result_series = getattr(grouped["b"], function)()
     tm.assert_series_equal(result_series, expected_series)
@@ -466,7 +462,7 @@ def test_first_last_extension_array_keeps_dtype(values, function):
 def test_nth_multi_index_as_expected():
     # PR 9090, related to issue 8979
     # test nth on MultiIndex
-    three_group = DataFrame(
+    three_group = pd.DataFrame(
         {
             "A": [
                 "foo",
@@ -530,7 +526,7 @@ def test_nth_multi_index_as_expected():
 )
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
-    df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A", as_index=as_index)
     expected = df.iloc[expected_rows]
     if columns is not None:
@@ -542,7 +538,7 @@ def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
 
 def test_group_selection_cache():
     # GH 12839 nth, head, and tail should return same result consistently
-    df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     expected = df.iloc[[0, 2]]
 
     g = df.groupby("A")
@@ -572,7 +568,7 @@ def test_group_selection_cache():
 
 def test_nth_empty():
     # GH 16064
-    df = DataFrame(index=[0], columns=["a", "b", "c"])
+    df = pd.DataFrame(index=[0], columns=["a", "b", "c"])
     result = df.groupby("a").nth(10)
     expected = df.iloc[:0]
     tm.assert_frame_equal(result, expected)
@@ -585,7 +581,7 @@ def test_nth_empty():
 def test_nth_column_order():
     # GH 20760
     # Check that nth preserves column order
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, "b", 100], [1, "a", 50], [1, "a", np.nan], [2, "c", 200], [2, "d", 150]],
         columns=["A", "C", "B"],
     )
@@ -601,7 +597,7 @@ def test_nth_column_order():
 @pytest.mark.parametrize("dropna", [None, "any", "all"])
 def test_nth_nan_in_grouper(dropna):
     # GH 26011
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [np.nan, "a", np.nan, "b", np.nan],
             "b": [0, 2, 4, 6, 8],
@@ -617,7 +613,7 @@ def test_nth_nan_in_grouper(dropna):
 @pytest.mark.parametrize("dropna", [None, "any", "all"])
 def test_nth_nan_in_grouper_series(dropna):
     # GH 26454
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [np.nan, "a", np.nan, "b", np.nan],
             "b": [0, 2, 4, 6, 8],
@@ -631,29 +627,29 @@ def test_nth_nan_in_grouper_series(dropna):
 
 def test_first_categorical_and_datetime_data_nat():
     # GH 20520
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "group": ["first", "first", "second", "third", "third"],
             "time": 5 * [np.datetime64("NaT", "ns")],
-            "categories": Series(["a", "b", "c", "a", "b"], dtype="category"),
+            "categories": pd.Series(["a", "b", "c", "a", "b"], dtype="category"),
         }
     )
     result = df.groupby("group").first()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "time": 3 * [np.datetime64("NaT", "ns")],
-            "categories": Series(["a", "c", "a"]).astype(
+            "categories": pd.Series(["a", "c", "a"]).astype(
                 pd.CategoricalDtype(["a", "b", "c"])
             ),
         }
     )
-    expected.index = Index(["first", "second", "third"], name="group")
+    expected.index = pd.Index(["first", "second", "third"], name="group")
     tm.assert_frame_equal(result, expected)
 
 
 def test_first_multi_key_groupby_categorical():
     # GH 22512
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [1, 1, 1, 2, 2],
             "B": [100, 100, 200, 100, 100],
@@ -663,15 +659,15 @@ def test_first_multi_key_groupby_categorical():
     )
     df = df.astype({"D": "category"})
     result = df.groupby(by=["A", "B"]).first()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "C": ["apple", "mango", "mango"],
-            "D": Series(["jupiter", "mars", "venus"]).astype(
+            "D": pd.Series(["jupiter", "mars", "venus"]).astype(
                 pd.CategoricalDtype(["jupiter", "mars", "mercury", "venus"])
             ),
         }
     )
-    expected.index = MultiIndex.from_tuples(
+    expected.index = pd.MultiIndex.from_tuples(
         [(1, 100), (1, 200), (2, 100)], names=["A", "B"]
     )
     tm.assert_frame_equal(result, expected)
@@ -680,8 +676,8 @@ def test_first_multi_key_groupby_categorical():
 @pytest.mark.parametrize("method", ["first", "last", "nth"])
 def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     # GH29645
-    expected = Series(["y"], dtype=object)
-    data = Series(
+    expected = pd.Series(["y"], dtype=object)
+    data = pd.Series(
         [nulls_fixture, nulls_fixture, nulls_fixture, "y", nulls_fixture],
         index=[0, 0, 0, 0, 0],
         dtype=object,
@@ -750,33 +746,33 @@ def test_np_ints(slice_test_df, slice_test_grouped):
 
 def test_groupby_nth_interval():
     # GH#24205
-    idx_result = MultiIndex(
+    idx_result = pd.MultiIndex(
         [
             pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
             pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)]),
         ],
         [[0, 0, 0, 1, 1], [0, 1, 1, 0, -1]],
     )
-    df_result = DataFrame({"col": range(len(idx_result))}, index=idx_result)
+    df_result = pd.DataFrame({"col": range(len(idx_result))}, index=idx_result)
     result = df_result.groupby(level=[0, 1], observed=False).nth(0)
     val_expected = [0, 1, 3]
-    idx_expected = MultiIndex(
+    idx_expected = pd.MultiIndex(
         [
             pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
             pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)]),
         ],
         [[0, 0, 1], [0, 1, 0]],
     )
-    expected = DataFrame(val_expected, index=idx_expected, columns=["col"])
+    expected = pd.DataFrame(val_expected, index=idx_expected, columns=["col"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_head_tail_dropna_true():
     # GH#45089
-    df = DataFrame(
+    df = pd.DataFrame(
         [["a", "z"], ["b", np.nan], ["c", np.nan], ["c", np.nan]], columns=["X", "Y"]
     )
-    expected = DataFrame([["a", "z"]], columns=["X", "Y"])
+    expected = pd.DataFrame([["a", "z"]], columns=["X", "Y"])
 
     result = df.groupby(["X", "Y"]).head(n=1)
     tm.assert_frame_equal(result, expected)
@@ -790,8 +786,10 @@ def test_head_tail_dropna_true():
 
 def test_head_tail_dropna_false():
     # GH#45089
-    df = DataFrame([["a", "z"], ["b", np.nan], ["c", np.nan]], columns=["X", "Y"])
-    expected = DataFrame([["a", "z"], ["b", np.nan], ["c", np.nan]], columns=["X", "Y"])
+    df = pd.DataFrame([["a", "z"], ["b", np.nan], ["c", np.nan]], columns=["X", "Y"])
+    expected = pd.DataFrame(
+        [["a", "z"], ["b", np.nan], ["c", np.nan]], columns=["X", "Y"]
+    )
 
     result = df.groupby(["X", "Y"], dropna=False).head(n=1)
     tm.assert_frame_equal(result, expected)
@@ -807,7 +805,7 @@ def test_head_tail_dropna_false():
 @pytest.mark.parametrize("dropna", ["any", "all", None])
 def test_nth_after_selection(selection, dropna):
     # GH#11038, GH#53518
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 2],
             "b": [np.nan, 3, 4],
@@ -828,18 +826,18 @@ def test_nth_after_selection(selection, dropna):
     "data",
     [
         (
-            Timestamp("2011-01-15 12:50:28.502376"),
-            Timestamp("2011-01-20 12:50:28.593448"),
+            pd.Timestamp("2011-01-15 12:50:28.502376"),
+            pd.Timestamp("2011-01-20 12:50:28.593448"),
         ),
         (24650000000000001, 24650000000000002),
     ],
 )
 def test_groupby_nth_int_like_precision(data):
     # GH#6620, GH#9311
-    df = DataFrame({"a": [1, 1], "b": data})
+    df = pd.DataFrame({"a": [1, 1], "b": data})
 
     grouped = df.groupby("a")
     result = grouped.nth(0)
-    expected = DataFrame({"a": 1, "b": [data[0]]})
+    expected = pd.DataFrame({"a": 1, "b": [data[0]]})
 
     tm.assert_frame_equal(result, expected)

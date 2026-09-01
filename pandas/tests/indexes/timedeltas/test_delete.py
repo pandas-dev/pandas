@@ -1,20 +1,17 @@
-from pandas import (
-    TimedeltaIndex,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestTimedeltaIndexDelete:
     def test_delete(self):
-        idx = timedelta_range(start="1 Days", periods=5, freq="D", name="idx")
+        idx = pd.timedelta_range(start="1 Days", periods=5, freq="D", name="idx")
 
         # preserve freq
-        expected_0 = timedelta_range(start="2 Days", periods=4, freq="D", name="idx")
-        expected_4 = timedelta_range(start="1 Days", periods=4, freq="D", name="idx")
+        expected_0 = pd.timedelta_range(start="2 Days", periods=4, freq="D", name="idx")
+        expected_4 = pd.timedelta_range(start="1 Days", periods=4, freq="D", name="idx")
 
         # reset freq to None
-        expected_1 = TimedeltaIndex(
+        expected_1 = pd.TimedeltaIndex(
             ["1 day", "3 day", "4 day", "5 day"], freq=None, name="idx"
         )
 
@@ -36,14 +33,18 @@ class TestTimedeltaIndexDelete:
             idx.delete(5)
 
     def test_delete_slice(self):
-        idx = timedelta_range(start="1 days", periods=10, freq="D", name="idx")
+        idx = pd.timedelta_range(start="1 days", periods=10, freq="D", name="idx")
 
         # preserve freq
-        expected_0_2 = timedelta_range(start="4 days", periods=7, freq="D", name="idx")
-        expected_7_9 = timedelta_range(start="1 days", periods=7, freq="D", name="idx")
+        expected_0_2 = pd.timedelta_range(
+            start="4 days", periods=7, freq="D", name="idx"
+        )
+        expected_7_9 = pd.timedelta_range(
+            start="1 days", periods=7, freq="D", name="idx"
+        )
 
         # reset freq to None
-        expected_3_5 = TimedeltaIndex(
+        expected_3_5 = pd.TimedeltaIndex(
             ["1 D", "2 D", "3 D", "7 D", "8 D", "9 D", "10D"], freq=None, name="idx"
         )
 
@@ -66,6 +67,6 @@ class TestTimedeltaIndexDelete:
     def test_delete_doesnt_infer_freq(self):
         # GH#30655 behavior matches DatetimeIndex
 
-        tdi = TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
+        tdi = pd.TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
         result = tdi.delete(2)
         assert result.freq is None

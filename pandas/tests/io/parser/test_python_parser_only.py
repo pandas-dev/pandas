@@ -23,11 +23,7 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 if TYPE_CHECKING:
@@ -40,7 +36,7 @@ def test_default_separator(python_parser_only):
     # csv.Sniffer in Python treats "o" as separator.
     data = "aob\n1o2\n3o4"
     parser = python_parser_only
-    expected = DataFrame({"a": [1, 3], "b": [2, 4]})
+    expected = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
 
     result = parser.read_csv(StringIO(data), sep=None)
     tm.assert_frame_equal(result, expected)
@@ -76,10 +72,10 @@ baz|7|8|9
 """
     parser = python_parser_only
     result = parser.read_csv(StringIO(data), index_col=0, **kwargs)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         columns=["A", "B", "C"],
-        index=Index(["foo", "bar", "baz"], name="index"),
+        index=pd.Index(["foo", "bar", "baz"], name="index"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -94,10 +90,10 @@ baz|7|8|9
 """
     parser = python_parser_only
     result = parser.read_csv(StringIO(data), index_col=0, sep=None, comment="#")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         columns=["A", "B", "C"],
-        index=Index(["foo", "bar", "baz"], name="index"),
+        index=pd.Index(["foo", "bar", "baz"], name="index"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -121,10 +117,10 @@ baz|7|8|9
         data = StringIO(data)
 
     result = parser.read_csv(data, index_col=0, sep=None, skiprows=2, encoding=encoding)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         columns=["A", "B", "C"],
-        index=Index(["foo", "bar", "baz"], name="index"),
+        index=pd.Index(["foo", "bar", "baz"], name="index"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -134,7 +130,7 @@ def test_single_line(python_parser_only):
     parser = python_parser_only
     result = parser.read_csv(StringIO("1,2"), names=["a", "b"], header=None, sep=None)
 
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -151,7 +147,7 @@ also also skip this
     parser = python_parser_only
     result = parser.read_csv(StringIO(data), **kwargs)
 
-    expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["A", "B", "C"])
+    expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -189,14 +185,14 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     parser = python_parser_only
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [-0.5109, -2.3358, -0.4645, 0.05076, 0.3640],
             [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
             [-0.6662, -0.5243, -0.3580, 0.89145, 2.5838],
         ],
         columns=["A", "B", "C", "D", "E"],
-        index=MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_tuples(
             [("a", "b", 10.0032, 5), ("a", "q", 20, 4), ("x", "q", 30, 3)],
             names=["one", "two", "three", "four"],
         ),
@@ -210,7 +206,7 @@ def test_read_csv_buglet_4x_multi_index2(python_parser_only):
     data = "      A B C\na b c\n1 3 7 0 3 6\n3 1 4 1 5 9"
     parser = python_parser_only
 
-    expected = DataFrame.from_records(
+    expected = pd.DataFrame.from_records(
         [(1, 3, 7, 0, 3, 6), (3, 1, 4, 1, 5, 9)],
         columns=list("abcABC"),
         index=list("abc"),
@@ -224,7 +220,7 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
     # see gh-6971
     data = "1#2\n3#4"
     parser = python_parser_only
-    expected = DataFrame({"a": [1.2, 3.4]})
+    expected = pd.DataFrame({"a": [1.2, 3.4]})
 
     if add_footer:
         # The stray footer line should not mess with the
@@ -246,7 +242,7 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
 )
 def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
     # see gh-3404
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
     parser = python_parser_only
 
     data = "1" + sep + "2"
@@ -280,7 +276,7 @@ def test_none_delimiter(python_parser_only):
     # see gh-13374 and gh-17465
     parser = python_parser_only
     data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
-    expected = DataFrame({"a": [0, 7], "b": [1, 8], "c": [2, 9]})
+    expected = pd.DataFrame({"a": [0, 7], "b": [1, 8], "c": [2, 9]})
 
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
@@ -353,7 +349,7 @@ def test_on_bad_lines_callable(python_parser_only, bad_line_func):
 """
     bad_sio = StringIO(data)
     result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
-    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -373,7 +369,7 @@ def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
         return ["2", "3"]
 
     result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
-    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
     assert lst == [["2", "3", "4", "5", "6"]]
 
@@ -400,7 +396,7 @@ good{sep}bye
         {"0": "good", "1": "bye"},
     ]
     for i, (result, expected) in enumerate(zip(result_iter, expecteds, strict=True)):
-        expected = DataFrame(expected, index=range(i, i + 1))
+        expected = pd.DataFrame(expected, index=range(i, i + 1))
         tm.assert_frame_equal(result, expected)
 
 
@@ -435,7 +431,7 @@ def test_on_bad_lines_callable_not_expected_length(python_parser_only):
     result = parser.read_csv_check_warnings(
         ParserWarning, "from bad_lines callable", bad_sio, on_bad_lines=lambda x: x
     )
-    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -450,7 +446,7 @@ def test_on_bad_lines_callable_returns_none(python_parser_only):
     bad_sio = StringIO(data)
 
     result = parser.read_csv(bad_sio, on_bad_lines=lambda x: None)
-    expected = DataFrame({"a": [1, 3], "b": [2, 4]})
+    expected = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -464,7 +460,7 @@ def test_on_bad_lines_index_col_inferred(python_parser_only):
     bad_sio = StringIO(data)
 
     result = parser.read_csv(bad_sio, on_bad_lines=lambda x: ["99", "99"])
-    expected = DataFrame({"a": [2, 5], "b": [3, 6]}, index=[1, 4])
+    expected = pd.DataFrame({"a": [2, 5], "b": [3, 6]}, index=[1, 4])
     tm.assert_frame_equal(result, expected)
 
 
@@ -483,7 +479,7 @@ def test_index_col_false_and_header_none(python_parser_only):
         header=None,
         index_col=False,
     )
-    expected = DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
+    expected = pd.DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -494,7 +490,7 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
     result = parser.read_csv_check_warnings(
         ParserWarning, "Length of header", data, engine="python", index_col=False
     )
-    expected = DataFrame({"a": ["a", "c", "f"]})
+    expected = pd.DataFrame({"a": ["a", "c", "f"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -515,7 +511,7 @@ a;b;c
         dtype=dtype,
         thousands=".",
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
             "b": [16000, 0, 23000],
@@ -560,7 +556,7 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
         dtype=dtype,
         thousands=",",
     )
-    expected = DataFrame(expected)
+    expected = pd.DataFrame(expected)
     expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)
 
@@ -585,7 +581,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     )
 
     if index_col is None:
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "id": [101, 102, 103],
                 "field_1": ["A", "C", "F"],
@@ -593,9 +589,9 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
             }
         )
     else:
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"field_1": ["A", "C", "F"], "field_2": ["B", "D", "G"]},
-            index=Index([101, 102, 103], name="id"),
+            index=pd.Index([101, 102, 103], name="id"),
         )
 
     tm.assert_frame_equal(result, expected)
@@ -614,7 +610,7 @@ a b
         delimiter=" ",
         skiprows=1,
     )
-    expected = DataFrame({"a": [1], "b": [3]})
+    expected = pd.DataFrame({"a": [1], "b": [3]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -653,7 +649,7 @@ def test_memory_map_multichar_sep(python_parser_only, tmp_path):
     result = parser.read_csv(
         path, header=None, sep=" - ", names=["key", "value"], memory_map=True
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"key": ["key1", "key2", "key3"], "value": ["value1", "value2", "value3"]}
     )
     tm.assert_frame_equal(result, expected)

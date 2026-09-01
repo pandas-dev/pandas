@@ -1703,6 +1703,10 @@ def read_csv(
 
     Notes
     -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
+
     Sufficiently large local uncompressed files read with the C engine may be
     parsed by multiple threads in parallel.  Use the ``mode.max_threads``
     option to cap or disable this; see :ref:`io.csv.parallel` for details.
@@ -2296,6 +2300,12 @@ def read_table(
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Notes
+    -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
 
     Examples
     --------
