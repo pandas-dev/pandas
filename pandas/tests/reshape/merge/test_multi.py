@@ -4,15 +4,6 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-    option_context,
-)
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
@@ -26,7 +17,7 @@ def left():
     key2 = ["two", "one", "three", "one", "two", "one", "two", "two", "three", "one"]
 
     data = np.random.default_rng(2).standard_normal(len(key1))
-    return DataFrame({"key1": key1, "key2": key2, "data": data})
+    return pd.DataFrame({"key1": key1, "key2": key2, "data": data})
 
 
 @pytest.fixture
@@ -41,7 +32,7 @@ def right(multiindex_dataframe_random_data):
 
 @pytest.fixture
 def left_multi():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "Origin": ["A", "A", "B", "B", "C"],
             "Destination": ["A", "B", "A", "C", "A"],
@@ -55,7 +46,7 @@ def left_multi():
 
 @pytest.fixture
 def right_multi():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "Origin": ["A", "A", "B", "B", "C", "C", "E"],
             "Destination": ["A", "B", "A", "B", "A", "B", "F"],
@@ -95,7 +86,7 @@ class TestMergeMulti:
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
     def test_left_join_multi_index(self, sort, infer_string):
-        with option_context("future.infer_string", infer_string):
+        with pd.option_context("future.infer_string", infer_string):
             icols = ["1st", "2nd", "3rd"]
 
             def bind_cols(df):
@@ -120,11 +111,11 @@ class TestMergeMulti:
 
                 out = merge(left, right.reset_index(), on=icols, sort=sort, how="left")
 
-                res.index = RangeIndex(len(res))
+                res.index = pd.RangeIndex(len(res))
                 tm.assert_frame_equal(out, res)
 
             lc = list(map(chr, np.arange(ord("a"), ord("z") + 1)))
-            left = DataFrame(
+            left = pd.DataFrame(
                 np.random.default_rng(2).choice(lc, (50, 2)), columns=["1st", "3rd"]
             )
             # Explicit cast to float to avoid implicit cast when setting nan
@@ -172,14 +163,16 @@ class TestMergeMulti:
 
     def test_merge_multiple_cols_with_mixed_cols_index(self):
         # GH29522
-        s = Series(
+        s = pd.Series(
             range(6),
-            MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
+            pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
             name="Amount",
         )
-        df = DataFrame({"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0})
+        df = pd.DataFrame(
+            {"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0}
+        )
         result = merge(df, s.reset_index(), on=["lev1", "lev2"])
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "lev1": list("AAABBB"),
                 "lev2": [1, 2, 3, 1, 2, 3],
@@ -195,7 +188,7 @@ class TestMergeMulti:
         key1 = np.tile(key1, 2)
         key2 = key1[::-1]
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "key1": key1,
                 "key2": key2,
@@ -203,7 +196,7 @@ class TestMergeMulti:
             }
         )
 
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             {
                 "key1": key1[::2],
                 "key2": key2[::2],
@@ -216,7 +209,7 @@ class TestMergeMulti:
 
     def test_left_join_index_preserve_order(self):
         on_cols = ["k1", "k2"]
-        left = DataFrame(
+        left = pd.DataFrame(
             {
                 "k1": [0, 1, 2] * 8,
                 "k2": ["foo", "bar"] * 12,
@@ -224,8 +217,8 @@ class TestMergeMulti:
             }
         )
 
-        index = MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
-        right = DataFrame({"v2": [5, 7]}, index=index)
+        index = pd.MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
+        right = pd.DataFrame({"v2": [5, 7]}, index=index)
 
         result = left.join(right, on=on_cols)
 
@@ -242,7 +235,7 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
         # test join with multi dtypes blocks
-        left = DataFrame(
+        left = pd.DataFrame(
             {
                 "k1": [0, 1, 2] * 8,
                 "k2": ["foo", "bar"] * 12,
@@ -251,8 +244,8 @@ class TestMergeMulti:
             }
         )
 
-        index = MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
-        right = DataFrame({"v2": [5, 7]}, index=index)
+        index = pd.MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
+        right = pd.DataFrame({"v2": [5, 7]}, index=index)
 
         result = left.join(right, on=on_cols)
 
@@ -269,7 +262,7 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_left_join_index_multi_match_multiindex(self):
-        left = DataFrame(
+        left = pd.DataFrame(
             [
                 ["X", "Y", "C", "a"],
                 ["W", "Y", "C", "e"],
@@ -286,7 +279,7 @@ class TestMergeMulti:
             index=[3, 2, 0, 1, 7, 6, 4, 5, 9, 8],
         )
 
-        right = DataFrame(
+        right = pd.DataFrame(
             [
                 ["W", "R", "C", 0],
                 ["W", "Q", "B", 3],
@@ -308,7 +301,7 @@ class TestMergeMulti:
 
         result = left.join(right, on=["cola", "colb", "colc"], how="left")
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 ["X", "Y", "C", "a", 6],
                 ["X", "Y", "C", "a", 9],
@@ -338,13 +331,13 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_left_join_index_multi_match(self):
-        left = DataFrame(
+        left = pd.DataFrame(
             [["c", 0], ["b", 1], ["a", 2], ["b", 3]],
             columns=["tag", "val"],
             index=[2, 0, 1, 3],
         )
 
-        right = DataFrame(
+        right = pd.DataFrame(
             [
                 ["a", "v"],
                 ["c", "w"],
@@ -360,7 +353,7 @@ class TestMergeMulti:
 
         result = left.join(right, on="tag", how="left")
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 ["c", 0, "w"],
                 ["c", 0, "x"],
@@ -384,11 +377,11 @@ class TestMergeMulti:
 
         # GH7331 - maintain left frame order in left merge
         result = merge(left, right.reset_index(), how="left", on="tag")
-        expected.index = RangeIndex(len(expected))
+        expected.index = pd.RangeIndex(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_left_merge_na_buglet(self):
-        left = DataFrame(
+        left = pd.DataFrame(
             {
                 "id": list("abcde"),
                 "v1": np.random.default_rng(2).standard_normal(5),
@@ -398,7 +391,7 @@ class TestMergeMulti:
             },
             columns=["id", "v1", "v2", "dummy", "v3"],
         )
-        right = DataFrame(
+        right = pd.DataFrame(
             {
                 "id": ["a", "b", np.nan, np.nan, np.nan],
                 "sv3": [1.234, 5.678, np.nan, np.nan, np.nan],
@@ -424,7 +417,7 @@ class TestMergeMulti:
             [1970, "C", 4.0],
         ]
 
-        frame = DataFrame(data, columns=["year", "panel", "data"])
+        frame = pd.DataFrame(data, columns=["year", "panel", "data"])
 
         other_data = [
             [1960, "A", np.nan],
@@ -434,7 +427,7 @@ class TestMergeMulti:
             [1965, "B", np.nan],
             [1955, "C", np.nan],
         ]
-        other = DataFrame(other_data, columns=["year", "panel", "data"])
+        other = pd.DataFrame(other_data, columns=["year", "panel", "data"])
 
         result = frame.merge(other, how="outer")
 
@@ -443,10 +436,10 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [None, np.asarray, Series, Index])
+    @pytest.mark.parametrize("klass", [None, np.asarray, pd.Series, pd.Index])
     def test_merge_datetime_index(self, klass):
         # see gh-19038
-        df = DataFrame(
+        df = pd.DataFrame(
             [1, 2, 3], ["2016-01-01", "2017-01-01", "2018-01-01"], columns=["a"]
         )
         df.index = pd.to_datetime(df.index)
@@ -456,12 +449,14 @@ class TestMergeMulti:
             on_vector = klass(on_vector)
 
         exp_years = np.array([2016, 2017, 2018], dtype=np.int32)
-        expected = DataFrame({"a": [1, 2, 3], "key_1": exp_years})
+        expected = pd.DataFrame({"a": [1, 2, 3], "key_1": exp_years})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame({"key_0": exp_years, "a_x": [1, 2, 3], "a_y": [1, 2, 3]})
+        expected = pd.DataFrame(
+            {"key_0": exp_years, "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
+        )
 
         result = df.merge(df, on=[df.index.year], how="inner")
         tm.assert_frame_equal(result, expected)
@@ -470,27 +465,28 @@ class TestMergeMulti:
     def test_merge_datetime_multi_index_empty_df(self, merge_type):
         # see gh-36895
 
-        left = DataFrame(
+        left = pd.DataFrame(
             data={
                 "data": [1.5, 1.5],
             },
-            index=MultiIndex.from_tuples(
-                [[Timestamp("1950-01-01"), "A"], [Timestamp("1950-01-02"), "B"]],
+            index=pd.MultiIndex.from_tuples(
+                [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
                 names=["date", "panel"],
             ),
         )
 
-        right = DataFrame(
-            index=MultiIndex.from_tuples([], names=["date", "panel"]), columns=["state"]
+        right = pd.DataFrame(
+            index=pd.MultiIndex.from_tuples([], names=["date", "panel"]),
+            columns=["state"],
         )
 
-        expected_index = MultiIndex.from_tuples(
-            [[Timestamp("1950-01-01"), "A"], [Timestamp("1950-01-02"), "B"]],
+        expected_index = pd.MultiIndex.from_tuples(
+            [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
             names=["date", "panel"],
         )
 
         if merge_type == "left":
-            expected = DataFrame(
+            expected = pd.DataFrame(
                 data={
                     "data": [1.5, 1.5],
                     "state": np.array([np.nan, np.nan], dtype=object),
@@ -500,7 +496,7 @@ class TestMergeMulti:
             results_merge = left.merge(right, how="left", on=["date", "panel"])
             results_join = left.join(right, how="left")
         else:
-            expected = DataFrame(
+            expected = pd.DataFrame(
                 data={
                     "state": np.array([np.nan, np.nan], dtype=object),
                     "data": [1.5, 1.5],
@@ -515,7 +511,7 @@ class TestMergeMulti:
 
     @pytest.fixture
     def household(self):
-        household = DataFrame(
+        household = pd.DataFrame(
             {
                 "household_id": [1, 2, 3],
                 "male": [0, 1, 0],
@@ -527,7 +523,7 @@ class TestMergeMulti:
 
     @pytest.fixture
     def portfolio(self):
-        portfolio = DataFrame(
+        portfolio = pd.DataFrame(
             {
                 "household_id": [1, 2, 2, 3, 3, 3, 4],
                 "asset_id": [
@@ -557,7 +553,7 @@ class TestMergeMulti:
     @pytest.fixture
     def expected(self):
         expected = (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "male": [0, 1, 1, 0, 0, 0],
                     "wealth": [
@@ -624,9 +620,9 @@ class TestMergeMulti:
             [
                 expected,
                 (
-                    DataFrame(
+                    pd.DataFrame(
                         {"share": [1.00]},
-                        index=MultiIndex.from_tuples(
+                        index=pd.MultiIndex.from_tuples(
                             [(4, np.nan)], names=["household_id", "asset_id"]
                         ),
                     )
@@ -658,7 +654,7 @@ class TestMergeMulti:
     def test_join_multi_levels2(self):
         # some more advanced merges
         # GH6360
-        household = DataFrame(
+        household = pd.DataFrame(
             {
                 "household_id": [1, 2, 2, 3, 3, 3, 4],
                 "asset_id": [
@@ -675,7 +671,7 @@ class TestMergeMulti:
             columns=["household_id", "asset_id", "share"],
         ).set_index(["household_id", "asset_id"])
 
-        log_return = DataFrame(
+        log_return = pd.DataFrame(
             {
                 "asset_id": [
                     "gb00b03mlx29",
@@ -696,7 +692,7 @@ class TestMergeMulti:
         ).set_index(["asset_id", "t"])
 
         expected = (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "household_id": [2, 2, 2, 3, 3, 3, 3, 3],
                     "asset_id": [
@@ -737,7 +733,7 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
         expected = (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "household_id": [2, 2, 2, 3, 3, 3, 3, 3, 3, 1, 2, 4],
                     "asset_id": [
@@ -817,17 +813,17 @@ class TestMergeMultiIndexNaN:
         # GH#64492 - merge with right MultiIndex containing NaN used
         # lev.take(codes) which mapped -1 codes to the last level value
         # instead of NaN
-        left = DataFrame(
+        left = pd.DataFrame(
             {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
         )
-        right = DataFrame(
+        right = pd.DataFrame(
             {"data": [100, 200, 300]},
-            index=MultiIndex.from_arrays(
+            index=pd.MultiIndex.from_arrays(
                 [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
             ),
         )
         result = merge(left, right, left_on=["key1", "key2"], right_index=True)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "key1": [1.0, np.nan, 3.0],
                 "key2": ["a", "b", "c"],
@@ -840,17 +836,17 @@ class TestMergeMultiIndexNaN:
     def test_merge_multiindex_nan_left_index(self):
         # GH#64492 - same bug as test_merge_multiindex_nan_right_index
         # but for the left_index=True, right_on=... code path
-        left = DataFrame(
+        left = pd.DataFrame(
             {"data": [100, 200, 300]},
-            index=MultiIndex.from_arrays(
+            index=pd.MultiIndex.from_arrays(
                 [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
             ),
         )
-        right = DataFrame(
+        right = pd.DataFrame(
             {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
         )
         result = merge(left, right, left_index=True, right_on=["key1", "key2"])
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "data": [100, 200, 300],
                 "key1": [1.0, np.nan, 3.0],
@@ -911,10 +907,10 @@ class TestJoinMultiMulti:
         result = left_multi.join(right_multi, how=join_type).sort_index()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [None, np.asarray, Series, Index])
+    @pytest.mark.parametrize("box", [None, np.asarray, pd.Series, pd.Index])
     def test_merge_datetime_index(self, box):
         # see gh-19038
-        df = DataFrame(
+        df = pd.DataFrame(
             [1, 2, 3], ["2016-01-01", "2017-01-01", "2018-01-01"], columns=["a"]
         )
         df.index = pd.to_datetime(df.index)
@@ -924,30 +920,32 @@ class TestJoinMultiMulti:
             on_vector = box(on_vector)
 
         exp_years = np.array([2016, 2017, 2018], dtype=np.int32)
-        expected = DataFrame({"a": [1, 2, 3], "key_1": exp_years})
+        expected = pd.DataFrame({"a": [1, 2, 3], "key_1": exp_years})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame({"key_0": exp_years, "a_x": [1, 2, 3], "a_y": [1, 2, 3]})
+        expected = pd.DataFrame(
+            {"key_0": exp_years, "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
+        )
 
         result = df.merge(df, on=[df.index.year], how="inner")
         tm.assert_frame_equal(result, expected)
 
     def test_single_common_level(self):
-        index_left = MultiIndex.from_tuples(
+        index_left = pd.MultiIndex.from_tuples(
             [("K0", "X0"), ("K0", "X1"), ("K1", "X2")], names=["key", "X"]
         )
 
-        left = DataFrame(
+        left = pd.DataFrame(
             {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=index_left
         )
 
-        index_right = MultiIndex.from_tuples(
+        index_right = pd.MultiIndex.from_tuples(
             [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")], names=["key", "Y"]
         )
 
-        right = DataFrame(
+        right = pd.DataFrame(
             {"C": ["C0", "C1", "C2", "C3"], "D": ["D0", "D1", "D2", "D3"]},
             index=index_right,
         )
@@ -963,15 +961,15 @@ class TestJoinMultiMulti:
         # GH 25760
         # GH 28956
 
-        midx1 = MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
-        midx3 = MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
+        midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+        midx3 = pd.MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
 
-        left = DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
-        right = DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
+        left = pd.DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
+        right = pd.DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
 
         result = left.join(right)
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             index=midx1,
             data={"x": [10, 20, 30, 40], "y": ["fing", "foo", "bar", np.nan]},
         )
@@ -983,14 +981,14 @@ class TestJoinMultiMulti:
 def test_merge_multi_int_keys_sort(dtype, join_type):
     # GH#66124 exercise the fused multi-int-key path; result row order with
     #  sort=True must be lexicographic in the key tuples
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "k1": np.array([3, 1, 3, 2], dtype=dtype),
             "k2": np.array([10, 20, 5, 20], dtype=dtype),
             "lval": [0, 1, 2, 3],
         }
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "k1": np.array([3, 2, 4], dtype=dtype),
             "k2": np.array([5, 20, 1], dtype=dtype),
@@ -1001,7 +999,7 @@ def test_merge_multi_int_keys_sort(dtype, join_type):
     assert result.set_index(["k1", "k2"]).index.is_monotonic_increasing
 
     if join_type == "inner":
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "k1": np.array([2, 3], dtype=dtype),
                 "k2": np.array([20, 5], dtype=dtype),
@@ -1015,14 +1013,14 @@ def test_merge_multi_int_keys_sort(dtype, join_type):
 def test_merge_multi_int64_extreme_values():
     # GH#66124 values near the int64 boundaries within a small span
     imin = np.iinfo(np.int64).min
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "k1": np.array([imin, imin + 5, imin + 3], dtype=np.int64),
             "k2": np.array([-1, -2, -1], dtype=np.int64),
             "lval": [0, 1, 2],
         }
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "k1": np.array([imin + 5, imin], dtype=np.int64),
             "k2": np.array([-2, -1], dtype=np.int64),
@@ -1030,7 +1028,7 @@ def test_merge_multi_int64_extreme_values():
         }
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": np.array([imin, imin + 5], dtype=np.int64),
             "k2": np.array([-1, -2], dtype=np.int64),
@@ -1044,14 +1042,14 @@ def test_merge_multi_int64_extreme_values():
 def test_merge_multi_uint64_extreme_values():
     # GH#66124 uint64 keys above the int64 boundary
     umax = np.iinfo(np.uint64).max
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "k1": np.array([umax, umax - 5, umax - 3], dtype=np.uint64),
             "k2": np.array([1, 2, 3], dtype=np.uint64),
             "lval": [0, 1, 2],
         }
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "k1": np.array([umax - 5, umax], dtype=np.uint64),
             "k2": np.array([2, 1], dtype=np.uint64),
@@ -1059,7 +1057,7 @@ def test_merge_multi_uint64_extreme_values():
         }
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": np.array([umax, umax - 5], dtype=np.uint64),
             "k2": np.array([1, 2], dtype=np.uint64),
@@ -1073,14 +1071,14 @@ def test_merge_multi_uint64_extreme_values():
 def test_merge_multi_int_keys_wide_span():
     # GH#66124 combined key space exceeding int64 falls back to per-column
     #  factorization
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "k1": np.array([0, 2**62, 5], dtype=np.int64),
             "k2": np.array([0, 2**61, 7], dtype=np.int64),
             "lval": [0, 1, 2],
         }
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "k1": np.array([5, 0, 2**62], dtype=np.int64),
             "k2": np.array([7, 0, 2**61], dtype=np.int64),
@@ -1088,7 +1086,7 @@ def test_merge_multi_int_keys_wide_span():
         }
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": np.array([0, 2**62, 5], dtype=np.int64),
             "k2": np.array([0, 2**61, 7], dtype=np.int64),
@@ -1102,14 +1100,14 @@ def test_merge_multi_int_keys_wide_span():
 def test_merge_multi_datetime_int_keys():
     # GH#66124 datetime64 plus integer key columns
     dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-01"])
-    left = DataFrame(
+    left = pd.DataFrame(
         {"k1": dti, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {"k1": dti[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": dti,
             "k2": np.array([1, 2, 1], dtype=np.int64),
@@ -1123,14 +1121,14 @@ def test_merge_multi_datetime_int_keys():
 def test_merge_multi_datetime_keys_with_nat():
     # GH#66124 NaT keys match each other, same as with a single datetime key
     dti = pd.to_datetime(["2020-01-01", "NaT", "2020-01-02"])
-    left = DataFrame(
+    left = pd.DataFrame(
         {"k1": dti, "k2": np.array([1, 2, 3], dtype=np.int64), "lval": [0, 1, 2]}
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {"k1": dti[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": dti[:2],
             "k2": np.array([1, 2], dtype=np.int64),
@@ -1146,14 +1144,14 @@ def test_merge_multi_datetime_nat_fused_sort():
     #  datetime64[ns] lower bound (so the NaT<->date span fits in int64);
     #  NaT must still match NaT and sort first, like its i8 value
     dti = pd.to_datetime(["1680-01-01", "NaT", "1680-01-03", "NaT"]).as_unit("ns")
-    left = DataFrame(
+    left = pd.DataFrame(
         {"k1": dti, "k2": np.array([1, 2, 3, 2], dtype=np.int64), "lval": [0, 1, 2, 3]}
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {"k1": dti[[1, 0]], "k2": np.array([2, 1], dtype=np.int64), "rval": [0, 1]}
     )
     result = merge(left, right, on=["k1", "k2"], how="inner", sort=True)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": dti[[1, 1, 0]],
             "k2": np.array([2, 2, 1], dtype=np.int64),
@@ -1169,14 +1167,14 @@ def test_merge_multi_datetimetz_int_keys():
     dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-01"]).tz_localize(
         "US/Pacific"
     )
-    left = DataFrame(
+    left = pd.DataFrame(
         {"k1": dti, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {"k1": dti[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": dti,
             "k2": np.array([1, 2, 1], dtype=np.int64),
@@ -1190,14 +1188,14 @@ def test_merge_multi_datetimetz_int_keys():
 def test_merge_multi_timedelta_int_keys():
     # GH#66124 timedelta64 plus integer key columns
     tdi = pd.to_timedelta([1, 2, 1], unit="s")
-    left = DataFrame(
+    left = pd.DataFrame(
         {"k1": tdi, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {"k1": tdi[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": tdi,
             "k2": np.array([1, 2, 1], dtype=np.int64),
@@ -1210,14 +1208,14 @@ def test_merge_multi_timedelta_int_keys():
 
 def test_merge_multi_mixed_int_dtypes():
     # GH#66124 int32/int64 key column pairs promote losslessly
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "k1": np.array([1, 2, 3, 2], dtype=np.int32),
             "k2": np.array([1, 1, 2, 2], dtype=np.int64),
             "lval": [0, 1, 2, 3],
         }
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "k1": np.array([2, 3], dtype=np.int64),
             "k2": np.array([1, 2], dtype=np.int32),
@@ -1225,7 +1223,7 @@ def test_merge_multi_mixed_int_dtypes():
         }
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             # the result keys retain the left frame's dtypes
             "k1": np.array([2, 3], dtype=np.int32),
@@ -1239,14 +1237,14 @@ def test_merge_multi_mixed_int_dtypes():
 
 def test_merge_multi_bool_int_keys():
     # GH#66124 bool key column alongside an integer key column
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "k1": np.array([True, False, True, False]),
             "k2": np.array([1, 1, 2, 2], dtype=np.int64),
             "lval": [0, 1, 2, 3],
         }
     )
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "k1": np.array([True, False]),
             "k2": np.array([2, 1], dtype=np.int64),
@@ -1254,7 +1252,7 @@ def test_merge_multi_bool_int_keys():
         }
     )
     result = merge(left, right, on=["k1", "k2"], how="inner")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "k1": np.array([False, True]),
             "k2": np.array([1, 2], dtype=np.int64),
@@ -1268,7 +1266,7 @@ def test_merge_multi_bool_int_keys():
 def test_merge_multiindex_with_tuple_valued_level():
     # GH#39100 merging on a MultiIndex whose innermost level holds tuples must
     # align rows correctly instead of mismatching them
-    a_idx = MultiIndex.from_tuples(
+    a_idx = pd.MultiIndex.from_tuples(
         [
             (0, "TV", ("train", "val")),
             (1, "TV", ("train", "val")),
@@ -1276,14 +1274,14 @@ def test_merge_multiindex_with_tuple_valued_level():
         ],
         names=["epoch", "stage", "sl"],
     )
-    a_df = DataFrame({"a": [0.1, 0.2, 0.3]}, index=a_idx)
-    b_idx = MultiIndex.from_tuples(
+    a_df = pd.DataFrame({"a": [0.1, 0.2, 0.3]}, index=a_idx)
+    b_idx = pd.MultiIndex.from_tuples(
         [(0, "Reval", ("reval",)), (2, "Test", ("test",))],
         names=["epoch", "stage", "sl"],
     )
-    b_df = DataFrame({"b": [0.03, 0.9]}, index=b_idx)
+    b_df = pd.DataFrame({"b": [0.03, 0.9]}, index=b_idx)
     result = a_df.merge(b_df, how="outer", left_index=True, right_index=True)
-    expected_idx = MultiIndex.from_tuples(
+    expected_idx = pd.MultiIndex.from_tuples(
         [
             (0, "Reval", ("reval",)),
             (0, "TV", ("train", "val")),
@@ -1292,7 +1290,7 @@ def test_merge_multiindex_with_tuple_valued_level():
         ],
         names=["epoch", "stage", "sl"],
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a": [np.nan, 0.1, 0.2, 0.3], "b": [0.03, np.nan, np.nan, 0.9]},
         index=expected_idx,
     )

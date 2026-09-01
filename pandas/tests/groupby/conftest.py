@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-)
+import pandas as pd
 from pandas.core.groupby.base import (
     reduction_kernels,
     transformation_kernels,
@@ -15,7 +10,7 @@ from pandas.core.groupby.base import (
 
 @pytest.fixture
 def df():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -27,24 +22,24 @@ def df():
 
 @pytest.fixture
 def ts():
-    return Series(
+    return pd.Series(
         np.random.default_rng(2).standard_normal(30),
-        index=date_range("2000-01-01", periods=30, freq="B"),
+        index=pd.date_range("2000-01-01", periods=30, freq="B"),
     )
 
 
 @pytest.fixture
 def tsframe():
-    return DataFrame(
+    return pd.DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=date_range("2000-01-01", periods=30, freq="B"),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.date_range("2000-01-01", periods=30, freq="B"),
     )
 
 
 @pytest.fixture
 def three_group():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "A": [
                 "foo",
@@ -104,7 +99,7 @@ def slice_test_df():
         [6, "a", "a3_at_6"],
         [7, "a", "a4_at_7"],
     ]
-    df = DataFrame(data, columns=["Index", "Group", "Value"])
+    df = pd.DataFrame(data, columns=["Index", "Group", "Value"])
     return df.set_index("Index")
 
 

@@ -15,7 +15,7 @@ import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
 from pandas.errors import ParserWarning
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers import (
@@ -160,7 +160,7 @@ class TestTextReader:
         )
         result = reader.read()
 
-        expected = DataFrame([123456, 12500])
+        expected = pd.DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
 
     def test_skip_bad_lines(self):
@@ -356,9 +356,11 @@ a,b,c
     @pytest.mark.parametrize("repeat", range(10))
     def test_empty_field_eof_mem_access_bug(self, repeat):
         # GH5664
-        a = DataFrame([["b"], [np.nan]], columns=["a"], index=["a", "c"])
-        b = DataFrame([[1, 1, 1, 0], [1, 1, 1, 0]], columns=list("abcd"), index=[1, 1])
-        c = DataFrame(
+        a = pd.DataFrame([["b"], [np.nan]], columns=["a"], index=["a", "c"])
+        b = pd.DataFrame(
+            [[1, 1, 1, 0], [1, 1, 1, 0]], columns=list("abcd"), index=[1, 1]
+        )
+        c = pd.DataFrame(
             [
                 [1, 2, 3, 4],
                 [6, np.nan, np.nan, np.nan],

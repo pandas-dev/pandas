@@ -2,24 +2,25 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas import (
-    DatetimeIndex,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestDatetimeIndexReindex:
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH#7774
-        index = date_range("2013-01-01", periods=3, tz="US/Eastern", unit="ns")
+        index = pd.date_range("2013-01-01", periods=3, tz="US/Eastern", unit="ns")
         assert str(index.reindex([])[0].tz) == "US/Eastern"
         assert str(index.reindex(np.array([]))[0].tz) == "US/Eastern"
 
     def test_reindex_with_same_tz_nearest(self):
         # GH#32740
-        rng_a = date_range("2010-01-01", "2010-01-02", periods=24, tz="utc", unit="ns")
-        rng_b = date_range("2010-01-01", "2010-01-02", periods=23, tz="utc", unit="ns")
+        rng_a = pd.date_range(
+            "2010-01-01", "2010-01-02", periods=24, tz="utc", unit="ns"
+        )
+        rng_b = pd.date_range(
+            "2010-01-01", "2010-01-02", periods=23, tz="utc", unit="ns"
+        )
         result1, result2 = rng_a.reindex(
             rng_b, method="nearest", tolerance=timedelta(seconds=20)
         )
@@ -48,7 +49,7 @@ class TestDatetimeIndexReindex:
             "2010-01-01 22:54:32.727272727",
             "2010-01-02 00:00:00",
         ]
-        expected1 = DatetimeIndex(
+        expected1 = pd.DatetimeIndex(
             expected_list1, dtype="datetime64[ns, UTC]", freq=None
         )
         expected2 = np.array([0] + [-1] * 21 + [23], dtype=np.dtype("intp"))

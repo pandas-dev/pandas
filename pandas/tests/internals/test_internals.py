@@ -15,17 +15,6 @@ from pandas.errors import Pandas4Warning
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    period_range,
-)
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -138,14 +127,14 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         assert m is not None, f"incompatible typestr -> {typestr}"
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
-        values = DatetimeIndex(np.arange(N) * 10**9, tz=tz)._data
+        values = pd.DatetimeIndex(np.arange(N) * 10**9, tz=tz)._data
         values = ensure_block_shape(values, ndim=len(shape))
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):
-        values = Categorical([1, 1, 2, 2, 3, 3, 3, 3, 4, 4])
+        values = pd.Categorical([1, 1, 2, 2, 3, 3, 3, 3, 4, 4])
     elif typestr in ("category2",):
-        values = Categorical(["a", "a", "a", "a", "b", "b", "c", "c", "c", "d"])
+        values = pd.Categorical(["a", "a", "a", "a", "b", "b", "c", "c", "c", "d"])
     elif typestr in ("sparse", "sparse_na"):
         if shape[-1] != 10:
             # We also are implicitly assuming this in the category cases above
@@ -175,7 +164,7 @@ def create_single_mgr(typestr, num_rows=None):
 
     return SingleBlockManager(
         create_block(typestr, placement=slice(0, num_rows), item_shape=()),
-        Index(np.arange(num_rows)),
+        pd.Index(np.arange(num_rows)),
     )
 
 
@@ -222,7 +211,7 @@ def create_mgr(descr, item_shape=None):
             block_placements[blockstr] = placement
         offset += len(names)
 
-    mgr_items = Index(mgr_items)
+    mgr_items = pd.Index(mgr_items)
 
     blocks = []
     num_offset = 0
@@ -238,7 +227,7 @@ def create_mgr(descr, item_shape=None):
     sblocks = sorted(blocks, key=lambda b: b.mgr_locs[0])
     return BlockManager(
         tuple(sblocks),
-        [mgr_items] + [Index(np.arange(n)) for n in item_shape],
+        [mgr_items] + [pd.Index(np.arange(n)) for n in item_shape],
     )
 
 
@@ -326,7 +315,7 @@ class TestBlock:
     def test_delete_datetimelike(self):
         # dont use np.delete on values, as that will coerce from DTA/TDA to ndarray
         arr = np.arange(20, dtype="i8").reshape(5, 4).view("m8[ns]")
-        df = DataFrame(arr)
+        df = pd.DataFrame(arr)
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, TimedeltaArray)
 
@@ -335,7 +324,7 @@ class TestBlock:
         assert isinstance(nb[0].values, TimedeltaArray)
         assert isinstance(nb[1].values, TimedeltaArray)
 
-        df = DataFrame(arr.view("M8[ns]"))
+        df = pd.DataFrame(arr.view("M8[ns]"))
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, DatetimeArray)
 
@@ -394,8 +383,8 @@ class TestBlockManager:
     def test_pickle(self, mgr, temp_file):
         mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
-            DataFrame._from_mgr(mgr, axes=mgr.axes),
-            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+            pd.DataFrame._from_mgr(mgr, axes=mgr.axes),
+            pd.DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         # GH2431
@@ -411,34 +400,34 @@ class TestBlockManager:
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
-            DataFrame._from_mgr(mgr, axes=mgr.axes),
-            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+            pd.DataFrame._from_mgr(mgr, axes=mgr.axes),
+            pd.DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
     def test_categorical_block_pickle(self, temp_file):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
-            DataFrame._from_mgr(mgr, axes=mgr.axes),
-            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+            pd.DataFrame._from_mgr(mgr, axes=mgr.axes),
+            pd.DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr, temp_file)
         tm.assert_series_equal(
-            Series()._constructor_from_mgr(smgr, axes=smgr.axes),
-            Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
+            pd.Series()._constructor_from_mgr(smgr, axes=smgr.axes),
+            pd.Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
         )
 
     def test_iget(self):
-        cols = Index(list("abc"))
+        cols = pd.Index(list("abc"))
         values = np.random.default_rng(2).random((3, 3))
         block = new_block(
             values=values.copy(),
             placement=BlockPlacement(np.arange(3, dtype=np.intp)),
             ndim=values.ndim,
         )
-        mgr = BlockManager(blocks=(block,), axes=[cols, Index(np.arange(3))])
+        mgr = BlockManager(blocks=(block,), axes=[cols, pd.Index(np.arange(3))])
 
         tm.assert_almost_equal(mgr.iget(0).internal_values(), values[0])
         tm.assert_almost_equal(mgr.iget(1).internal_values(), values[1])
@@ -738,7 +727,7 @@ class TestBlockManager:
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert not reindexed.is_consolidated()
 
-        tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
+        tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
         tm.assert_almost_equal(
             mgr.iget(6).internal_values(), reindexed.iget(0).internal_values()
         )
@@ -761,7 +750,9 @@ class TestBlockManager:
         mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
 
         numeric = mgr.get_numeric_data()
-        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
+        tm.assert_index_equal(
+            numeric.items, pd.Index(["int", "float", "complex", "bool"])
+        )
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
             numeric.iget(numeric.items.get_loc("float")).internal_values(),
@@ -787,7 +778,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool"]))
+        tm.assert_index_equal(bools.items, pd.Index(["bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -880,7 +871,7 @@ class TestGetDtypesCache:
         assert df._mgr._dtypes_cache is not None
 
     def test_get_dtypes_returns_copy(self):
-        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        df = pd.DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
         mgr = df._mgr
         result = mgr.get_dtypes()
         assert mgr._dtypes_cache is not None
@@ -892,66 +883,66 @@ class TestGetDtypesCache:
 
     def test_iset_multi_column_block_invalidates(self):
         # iset replacing one column of a multi-column block with a new dtype
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         self._prime_cache(df)
 
         df["a"] = np.array([1.5, 2.5])
         assert df._mgr._dtypes_cache is None
-        expected = Series([np.dtype("float64"), np.dtype("int64")], index=["a", "b"])
+        expected = pd.Series([np.dtype("float64"), np.dtype("int64")], index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_iset_single_block_invalidates(self):
         # _iset_single fastpath: the column is its own single-column block
-        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        df = pd.DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
         self._prime_cache(df)
 
         df["a"] = np.array([1 + 2j, 3 + 4j])
         assert df._mgr._dtypes_cache is None
-        expected = Series(
+        expected = pd.Series(
             [np.dtype("complex128"), np.dtype("float64")], index=["a", "b"]
         )
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_insert_invalidates(self):
-        df = DataFrame({"a": [1, 2]})
+        df = pd.DataFrame({"a": [1, 2]})
         self._prime_cache(df)
 
         df.insert(1, "b", np.array([1.5, 2.5]))
         assert df._mgr._dtypes_cache is None
-        expected = Series([np.dtype("int64"), np.dtype("float64")], index=["a", "b"])
+        expected = pd.Series([np.dtype("int64"), np.dtype("float64")], index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_delitem_dtypes_correct(self):
         # idelete returns a new manager, which starts with an empty cache
-        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        df = pd.DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
         self._prime_cache(df)
 
         del df["a"]
         assert df._mgr._dtypes_cache is None
-        expected = Series([np.dtype("float64")], index=["b"])
+        expected = pd.Series([np.dtype("float64")], index=["b"])
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_inplace_setitem_same_dtype_keeps_cache_valid(self):
         # same-dtype in-place value writes do not change per-column dtypes,
         # so the cache may legitimately survive; dtypes must stay correct
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         self._prime_cache(df)
 
         df.iloc[0, 0] = 10
-        expected = Series([np.dtype("int64")] * 2, index=["a", "b"])
+        expected = pd.Series([np.dtype("int64")] * 2, index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_iset_split_block_with_reference_dtypes_correct(self):
         # with a live reference, in-place setitem goes through
         # _iset_split_block (Copy-on-Write); dtypes are unchanged
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         view = df[:]
         self._prime_cache(df)
 
         df.iloc[0, 0] = 10
-        expected = Series([np.dtype("int64")] * 2, index=["a", "b"])
+        expected = pd.Series([np.dtype("int64")] * 2, index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
-        tm.assert_frame_equal(view, DataFrame({"a": [1, 2], "b": [3, 4]}))
+        tm.assert_frame_equal(view, pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
 
 
 def _as_array(mgr):
@@ -1073,12 +1064,14 @@ class TestIndexing:
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for ax in range(mgr.ndim):
-            assert_reindex_axis_is_ok(mgr, ax, Index([]), fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, pd.Index([]), fill_value)
             assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax], fill_value)
             assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax][[0, 0, 0]], fill_value)
-            assert_reindex_axis_is_ok(mgr, ax, Index(["foo", "bar", "baz"]), fill_value)
             assert_reindex_axis_is_ok(
-                mgr, ax, Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
+                mgr, ax, pd.Index(["foo", "bar", "baz"]), fill_value
+            )
+            assert_reindex_axis_is_ok(
+                mgr, ax, pd.Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
             )
 
             if mgr.shape[ax] >= 3:
@@ -1104,7 +1097,7 @@ class TestIndexing:
 
         for ax in range(mgr.ndim):
             assert_reindex_indexer_is_ok(
-                mgr, ax, Index([]), np.array([], dtype=np.intp), fill_value
+                mgr, ax, pd.Index([]), np.array([], dtype=np.intp), fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value
@@ -1112,7 +1105,7 @@ class TestIndexing:
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
-                Index(["foo"] * mgr.shape[ax]),
+                pd.Index(["foo"] * mgr.shape[ax]),
                 np.arange(mgr.shape[ax]),
                 fill_value,
             )
@@ -1123,15 +1116,23 @@ class TestIndexing:
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, Index(["foo", "bar", "baz"]), np.array([0, 0, 0]), fill_value
-            )
-            assert_reindex_indexer_is_ok(
-                mgr, ax, Index(["foo", "bar", "baz"]), np.array([-1, 0, -1]), fill_value
+                mgr,
+                ax,
+                pd.Index(["foo", "bar", "baz"]),
+                np.array([0, 0, 0]),
+                fill_value,
             )
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
-                Index(["foo", mgr.axes[ax][0], "baz"]),
+                pd.Index(["foo", "bar", "baz"]),
+                np.array([-1, 0, -1]),
+                fill_value,
+            )
+            assert_reindex_indexer_is_ok(
+                mgr,
+                ax,
+                pd.Index(["foo", mgr.axes[ax][0], "baz"]),
                 np.array([-1, -1, -1]),
                 fill_value,
             )
@@ -1140,7 +1141,7 @@ class TestIndexing:
                 assert_reindex_indexer_is_ok(
                     mgr,
                     ax,
-                    Index(["foo", "bar", "baz"]),
+                    pd.Index(["foo", "bar", "baz"]),
                     np.array([0, 1, 2]),
                     fill_value,
                 )
@@ -1343,7 +1344,7 @@ class TestCanHoldElement:
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_interval_can_hold_element_emptylist(self, dtype, element):
         arr = np.array([1, 3, 4], dtype=dtype)
-        ii = IntervalIndex.from_breaks(arr)
+        ii = pd.IntervalIndex.from_breaks(arr)
         blk = new_block(ii._data, BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
@@ -1352,7 +1353,7 @@ class TestCanHoldElement:
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_interval_can_hold_element(self, dtype, element):
         arr = np.array([1, 3, 4, 9], dtype=dtype)
-        ii = IntervalIndex.from_breaks(arr)
+        ii = pd.IntervalIndex.from_breaks(arr)
         blk = new_block(ii._data, BlockPlacement([1]), ndim=2)
 
         elem = element(ii)
@@ -1361,32 +1362,36 @@ class TestCanHoldElement:
 
         # Careful: to get the expected Series-inplace behavior we need
         # `elem` to not have the same length as `arr`
-        ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
+        ii2 = pd.IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
         with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
-        ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
+        ii3 = pd.IntervalIndex.from_breaks(
+            [pd.Timestamp(1), pd.Timestamp(3), pd.Timestamp(4)]
+        )
         elem = element(ii3)
         with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
-        ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
+        ii4 = pd.IntervalIndex.from_breaks(
+            [pd.Timedelta(1), pd.Timedelta(3), pd.Timedelta(4)]
+        )
         elem = element(ii4)
         with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
-        pi = period_range("2016", periods=3, freq="Y")
+        pi = pd.period_range("2016", periods=3, freq="Y")
         blk = new_block(pi._data.reshape(1, 3), BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
 
     def test_period_can_hold_element(self, element):
-        pi = period_range("2016", periods=3, freq="Y")
+        pi = pd.period_range("2016", periods=3, freq="Y")
 
         elem = element(pi)
         self.check_series_setitem(elem, pi, True)
@@ -1405,12 +1410,14 @@ class TestCanHoldElement:
 
     def test_period_reindex_axis(self):
         # GH#60273 Test reindexing of block with PeriodDtype
-        pi = period_range("2020", periods=5, freq="Y")
+        pi = pd.period_range("2020", periods=5, freq="Y")
         blk = new_block(pi._data.reshape(5, 1), BlockPlacement(slice(5)), ndim=2)
-        mgr = BlockManager(blocks=(blk,), axes=[Index(np.arange(5)), Index(["a"])])
-        reindexed = mgr.reindex_axis(Index([0, 2, 4]), axis=0)
-        result = DataFrame._from_mgr(reindexed, axes=reindexed.axes)
-        expected = DataFrame([[pi[0], pi[2], pi[4]]], columns=[0, 2, 4], index=["a"])
+        mgr = BlockManager(
+            blocks=(blk,), axes=[pd.Index(np.arange(5)), pd.Index(["a"])]
+        )
+        reindexed = mgr.reindex_axis(pd.Index([0, 2, 4]), axis=0)
+        result = pd.DataFrame._from_mgr(reindexed, axes=reindexed.axes)
+        expected = pd.DataFrame([[pi[0], pi[2], pi[4]]], columns=[0, 2, 4], index=["a"])
         tm.assert_frame_equal(result, expected)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):
@@ -1420,9 +1427,9 @@ class TestCanHoldElement:
         else:
             assert not blk._can_hold_element(elem)
 
-    def check_series_setitem(self, elem, index: Index, inplace: bool):
+    def check_series_setitem(self, elem, index: pd.Index, inplace: bool):
         arr = index._data.copy()
-        ser = Series(arr, copy=False)
+        ser = pd.Series(arr, copy=False)
 
         self.check_can_hold_element(ser, elem, inplace)
 
@@ -1439,8 +1446,8 @@ class TestCanHoldElement:
 
 class TestShouldStore:
     def test_should_store_categorical(self):
-        cat = Categorical(["A", "B", "C"])
-        df = DataFrame(cat)
+        cat = pd.Categorical(["A", "B", "C"])
+        df = pd.DataFrame(cat)
         blk = df._mgr.blocks[0]
 
         # matching dtype
@@ -1466,9 +1473,9 @@ def test_validate_ndim():
 
 
 def test_block_shape():
-    idx = Index([0, 1, 2, 3, 4])
-    a = Series([1, 2, 3]).reindex(idx)
-    b = Series(Categorical([1, 2, 3])).reindex(idx)
+    idx = pd.Index([0, 1, 2, 3, 4])
+    a = pd.Series([1, 2, 3]).reindex(idx)
+    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
