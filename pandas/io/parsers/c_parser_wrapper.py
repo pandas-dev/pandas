@@ -269,8 +269,10 @@ class CParserWrapper(ParserBase):
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
+                # assert for mypy, orig_names is List or None
+                assert self.orig_names is not None
                 # destructive to chunks
-                data = _concatenate_chunks(chunks, self.names)
+                data = _concatenate_chunks(chunks, self.orig_names)
             else:
                 data = self._reader.read(nrows)
                 if self.wrap_deferred:
@@ -435,6 +437,14 @@ def _concatenate_chunks(
     column's cross-chunk dtype has already been reconciled by the caller.
     """
     names = list(chunks[0].keys())
+    # The low-memory reader keys each chunk by the column's position in the
+    # file, which is not an index into ``column_names``: ``usecols`` narrows
+    # that list, so a position past its end raised IndexError, and an index
+    # column is dropped from it while still present in the chunks, so the
+    # warning named the wrong column. Pair the two up by sorted key order, the
+    # way ``read`` renames the dict keys (GH#67375). ``strict=False`` because a
+    # caller may pass more names than the chunks hold.
+    labels = dict(zip(sorted(names), column_names, strict=False))
     warning_columns = []
 
     result: dict = {}
@@ -464,7 +474,7 @@ def _concatenate_chunks(
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(column_names[name])
+                warning_columns.append(labels[name])
 
     if warning_columns and warn_mixed:
         warning_names = ", ".join(

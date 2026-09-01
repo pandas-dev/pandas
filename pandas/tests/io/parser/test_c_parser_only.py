@@ -20,6 +20,7 @@ import pytest
 from pandas._libs import parsers as libparsers
 from pandas.compat import WASM
 from pandas.errors import (
+    DtypeWarning,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -976,6 +977,56 @@ def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
         result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
+
+
+def test_mixed_type_warning_usecols_not_first_column(c_parser_only, monkeypatch):
+    # GH#67375: the low-memory chunks are keyed by the column's position in the
+    # file, which stops indexing the names once usecols has narrowed them, so
+    # the mixed-dtype warning raised IndexError instead of naming the column
+    parser = c_parser_only
+    if not parser.low_memory:
+        pytest.skip("chunks are only combined with low_memory=True")
+
+    values = [str(i) for i in range(7)]
+    rows = [f"x,{v}" for v in [*values, "a", "b", *values]]
+    data = "first,target\n" + "\n".join(rows)
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv_check_warnings(
+            DtypeWarning,
+            r"Columns \(0: target\) have mixed types. "
+            "Specify dtype option on import or set low_memory=False.",
+            StringIO(data),
+            usecols=["target"],
+        )
+
+    assert result.columns.tolist() == ["target"]
+    assert result["target"].dtype == object
+
+
+def test_mixed_type_warning_names_column_past_index_col(c_parser_only, monkeypatch):
+    # GH#67375: an index column stays in the chunks but is dropped from the
+    # names, so the warning used to name a column shifted by that many places
+    parser = c_parser_only
+    if not parser.low_memory:
+        pytest.skip("chunks are only combined with low_memory=True")
+
+    values = [str(i) for i in range(7)]
+    rows = [f"{i},x,{v}" for i, v in enumerate([*values, "a", "b", *values])]
+    data = "idx,first,target\n" + "\n".join(rows)
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv_check_warnings(
+            DtypeWarning,
+            r"Columns \(0: target\) have mixed types. "
+            "Specify dtype option on import or set low_memory=False.",
+            StringIO(data),
+            index_col="idx",
+        )
+
+    assert result["target"].dtype == object
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
