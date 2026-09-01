@@ -10,10 +10,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-)
 import pandas._testing as tm
 
 
@@ -73,7 +69,7 @@ def test_converters_no_implicit_conv(all_parsers):
     result = parser.read_csv(StringIO(data), header=None, converters=converters)
 
     # Column 0 should not be casted to numeric and should remain as object.
-    expected = DataFrame([["000102", 1.2, "A"], ["001245", 2, "B"]])
+    expected = pd.DataFrame([["000102", 1.2, "A"], ["001245", 2, "B"]])
     tm.assert_frame_equal(result, expected)
 
 
@@ -97,7 +93,7 @@ def test_converters_euro_decimal_format(all_parsers):
         return
 
     result = parser.read_csv(StringIO(data), sep=";", converters=converters)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [1, 1521.1541, 187101.9543, "ABC", "poi", 4.7387],
             [2, 121.12, 14897.76, "DEF", "uyt", 0.3773],
@@ -204,7 +200,7 @@ def test_converter_index_col_bug(all_parsers, conv_f):
         StringIO(data), sep=";", index_col="A", converters={"A": conv_f}
     )
 
-    xp = DataFrame({"B": [2, 4]}, index=Index(["1", "3"], name="A"))
+    xp = pd.DataFrame({"B": [2, 4]}, index=pd.Index(["1", "3"], name="A"))
     tm.assert_frame_equal(rs, xp)
 
 
@@ -221,7 +217,7 @@ def test_converter_identity_object(all_parsers):
 
     rs = parser.read_csv(StringIO(data), converters={"A": lambda x: x})
 
-    xp = DataFrame({"A": ["1", "3"], "B": [2, 4]})
+    xp = pd.DataFrame({"A": ["1", "3"], "B": [2, 4]})
     tm.assert_frame_equal(rs, xp)
 
 
@@ -254,7 +250,7 @@ def test_converter_multi_index(all_parsers):
         },
     )
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             ("A", "X"): np.int32([1]),
             ("B", "Y"): np.int32([2]),

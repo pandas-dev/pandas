@@ -6,14 +6,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-)
 import pandas._testing as tm
 from pandas.api.types import (
     is_float_dtype,
@@ -32,12 +24,12 @@ def test_set_ops_error_cases(idx, case, sort, method):
         getattr(idx, method)(case, sort=sort)
 
 
-@pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
+@pytest.mark.parametrize("klass", [pd.MultiIndex, np.array, pd.Series, list])
 def test_intersection_base(idx, sort, klass):
     first = idx[2::-1]  # first 3 elements reversed
     second = idx[:5]
 
-    if klass is not MultiIndex:
+    if klass is not pd.MultiIndex:
         second = klass(second.values)
 
     intersect = first.intersection(second, sort=sort)
@@ -53,12 +45,12 @@ def test_intersection_base(idx, sort, klass):
 
 
 @pytest.mark.arm_slow
-@pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
+@pytest.mark.parametrize("klass", [pd.MultiIndex, np.array, pd.Series, list])
 def test_union_base(idx, sort, klass):
     first = idx[::-1]
     second = idx[:5]
 
-    if klass is not MultiIndex:
+    if klass is not pd.MultiIndex:
         second = klass(second.values)
 
     union = first.union(second, sort=sort)
@@ -85,7 +77,7 @@ def test_difference_base(idx, sort):
     tm.assert_index_equal(result, answer)
 
     # GH 10149
-    cases = [klass(second.values) for klass in [np.array, Series, list]]
+    cases = [klass(second.values) for klass in [np.array, pd.Series, list]]
     for case in cases:
         result = idx.difference(case, sort=sort)
         tm.assert_index_equal(result, answer)
@@ -107,7 +99,7 @@ def test_symmetric_difference(idx, sort):
     tm.assert_index_equal(result, answer)
 
     # GH 10149
-    cases = [klass(second.values) for klass in [np.array, Series, list]]
+    cases = [klass(second.values) for klass in [np.array, pd.Series, list]]
     for case in cases:
         result = first.symmetric_difference(case, sort=sort)
         tm.assert_index_equal(result, answer)
@@ -119,7 +111,7 @@ def test_symmetric_difference(idx, sort):
 
 def test_multiindex_symmetric_difference():
     # GH 13490
-    idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
+    idx = pd.MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
     result = idx.symmetric_difference(idx)
     assert result.names == idx.names
 
@@ -142,9 +134,9 @@ def test_difference(idx, sort):
     if sort is None:
         vals = sorted(vals)
 
-    expected = MultiIndex.from_tuples(vals, sortorder=0, names=idx.names)
+    expected = pd.MultiIndex.from_tuples(vals, sortorder=0, names=idx.names)
 
-    assert isinstance(result, MultiIndex)
+    assert isinstance(result, pd.MultiIndex)
     assert result.equals(expected)
     assert result.names == idx.names
     tm.assert_index_equal(result, expected)
@@ -188,7 +180,7 @@ def test_difference(idx, sort):
 
     # name from non-empty array
     result = first.difference([("foo", "one")], sort=sort)
-    expected = MultiIndex.from_tuples(
+    expected = pd.MultiIndex.from_tuples(
         [("bar", "one"), ("baz", "two"), ("foo", "two"), ("qux", "one"), ("qux", "two")]
     )
     expected.names = first.names
@@ -201,24 +193,24 @@ def test_difference(idx, sort):
 
 def test_difference_sort_special():
     # GH-24959
-    idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, 0], ["a", "b"]])
     # sort=None, the default
     result = idx.difference([])
     tm.assert_index_equal(result, idx)
 
 
 def test_difference_sort_special_true():
-    idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
-    expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
+    expected = pd.MultiIndex.from_product([[0, 1], ["a", "b"]])
     tm.assert_index_equal(result, expected)
 
 
 def test_difference_sort_incomparable():
     # GH-24959
-    idx = MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
 
-    other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
+    other = pd.MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
     # sort=None, the default
     msg = "sort order is undefined for incomparable objects"
     with tm.assert_produces_warning(RuntimeWarning, match=msg):
@@ -231,8 +223,8 @@ def test_difference_sort_incomparable():
 
 
 def test_difference_sort_incomparable_true():
-    idx = MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
-    other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
+    other = pd.MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
 
     # TODO: this is raising in constructing a Categorical when calling
     #  algos.safe_sort. Should we catch and re-raise with a better message?
@@ -269,11 +261,11 @@ def test_union(idx, sort):
 
 def test_union_mixed_date_timestamp():
     # GH 61807
-    left = MultiIndex.from_arrays(
-        [Index([date(2001, 1, 1)], dtype=object), Index(["foo"], dtype=object)]
+    left = pd.MultiIndex.from_arrays(
+        [pd.Index([date(2001, 1, 1)], dtype=object), pd.Index(["foo"], dtype=object)]
     )
-    right = MultiIndex.from_arrays(
-        [Index([pd.Timestamp("2001-01-01")]), Index(["bar"], dtype=object)]
+    right = pd.MultiIndex.from_arrays(
+        [pd.Index([pd.Timestamp("2001-01-01")]), pd.Index(["bar"], dtype=object)]
     )
 
     with tm.assert_produces_warning(
@@ -282,17 +274,17 @@ def test_union_mixed_date_timestamp():
     ):
         result = left.union(right, sort=False)
 
-    expected = MultiIndex.from_arrays(
+    expected = pd.MultiIndex.from_arrays(
         [
-            Index([date(2001, 1, 1), pd.Timestamp("2001-01-01")], dtype=object),
-            Index(["foo", "bar"], dtype=object),
+            pd.Index([date(2001, 1, 1), pd.Timestamp("2001-01-01")], dtype=object),
+            pd.Index(["foo", "bar"], dtype=object),
         ]
     )
     tm.assert_index_equal(result, expected)
 
 
 def test_union_with_regular_index(idx, using_infer_string):
-    other = Index(["A", "B", "C"])
+    other = pd.Index(["A", "B", "C"])
 
     result = other.union(idx)
     assert ("foo", "one") in result
@@ -352,15 +344,17 @@ def test_setop_with_categorical(idx, sort, method):
 
 
 def test_intersection_non_object(idx, sort):
-    other = Index(range(3), name="foo")
+    other = pd.Index(range(3), name="foo")
 
     result = idx.intersection(other, sort=sort)
-    expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=None)
+    expected = pd.MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=None)
     tm.assert_index_equal(result, expected, exact=True)
 
     # if we pass a length-0 ndarray (i.e. no name, we retain our idx.name)
     result = idx.intersection(np.asarray(other)[:0], sort=sort)
-    expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=idx.names)
+    expected = pd.MultiIndex(
+        levels=idx.levels, codes=[[]] * idx.nlevels, names=idx.names
+    )
     tm.assert_index_equal(result, expected, exact=True)
 
     msg = "other must be a MultiIndex or a list of tuples"
@@ -371,14 +365,14 @@ def test_intersection_non_object(idx, sort):
 
 def test_intersect_equal_sort():
     # GH-24959
-    idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, 0], ["a", "b"]])
     tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
     tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
 
 
 def test_intersect_equal_sort_true():
-    idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
-    expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, 0], ["a", "b"]])
+    expected = pd.MultiIndex.from_product([[0, 1], ["a", "b"]])
     result = idx.intersection(idx, sort=True)
     tm.assert_index_equal(result, expected)
 
@@ -386,7 +380,7 @@ def test_intersect_equal_sort_true():
 @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
 def test_union_sort_other_empty(slice_):
     # https://github.com/pandas-dev/pandas/issues/24959
-    idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, 0], ["a", "b"]])
 
     # default, sort=None
     other = idx[slice_]
@@ -398,16 +392,16 @@ def test_union_sort_other_empty(slice_):
 
 
 def test_union_sort_other_empty_sort():
-    idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
     result = idx.union(other, sort=True)
-    expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
+    expected = pd.MultiIndex.from_product([[0, 1], ["a", "b"]])
     tm.assert_index_equal(result, expected)
 
 
 def test_union_sort_other_incomparable():
     # https://github.com/pandas-dev/pandas/issues/24959
-    idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
     with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
@@ -420,7 +414,7 @@ def test_union_sort_other_incomparable():
 
 
 def test_union_sort_other_incomparable_sort():
-    idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
     msg = "'<' not supported between instances of 'Timestamp' and 'int'"
     with pytest.raises(TypeError, match=msg):
         idx.union(idx[:1], sort=True)
@@ -428,7 +422,7 @@ def test_union_sort_other_incomparable_sort():
 
 def test_union_non_object_dtype_raises():
     # GH#32646 raise NotImplementedError instead of less-informative error
-    mi = MultiIndex.from_product([["a", "b"], [1, 2]])
+    mi = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
 
     idx = mi.levels[1]
 
@@ -439,16 +433,16 @@ def test_union_non_object_dtype_raises():
 
 def test_union_empty_self_different_names():
     # GH#38423
-    mi = MultiIndex.from_arrays([[]])
-    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    mi = pd.MultiIndex.from_arrays([[]])
+    mi2 = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
     result = mi.union(mi2)
-    expected = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    expected = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
     tm.assert_index_equal(result, expected)
 
 
 def test_union_multiindex_empty_rangeindex():
     # GH#41234
-    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
     ri = pd.RangeIndex(0)
 
     result_left = mi.union(ri)
@@ -462,8 +456,8 @@ def test_union_multiindex_empty_rangeindex():
     "method", ["union", "intersection", "difference", "symmetric_difference"]
 )
 def test_setops_sort_validation(method):
-    idx1 = MultiIndex.from_product([["a", "b"], [1, 2]])
-    idx2 = MultiIndex.from_product([["b", "c"], [1, 2]])
+    idx1 = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+    idx2 = pd.MultiIndex.from_product([["b", "c"], [1, 2]])
 
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
         getattr(idx1, method)(idx2, sort=2)
@@ -475,19 +469,21 @@ def test_setops_sort_validation(method):
 @pytest.mark.parametrize("val", [pd.NA, 100])
 def test_difference_keep_ea_dtypes(any_numeric_ea_dtype, val):
     # GH#48606
-    midx = MultiIndex.from_arrays(
-        [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+    midx = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
     )
-    midx2 = MultiIndex.from_arrays(
-        [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+    midx2 = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
     )
     result = midx.difference(midx2)
-    expected = MultiIndex.from_arrays([Series([1], dtype=any_numeric_ea_dtype), [2]])
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Series([1], dtype=any_numeric_ea_dtype), [2]]
+    )
     tm.assert_index_equal(result, expected)
 
     result = midx.difference(midx.sort_values(ascending=False))
-    expected = MultiIndex.from_arrays(
-        [Series([], dtype=any_numeric_ea_dtype), Series([], dtype=np.int64)],
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Series([], dtype=any_numeric_ea_dtype), pd.Series([], dtype=np.int64)],
         names=["a", None],
     )
     tm.assert_index_equal(result, expected)
@@ -496,15 +492,15 @@ def test_difference_keep_ea_dtypes(any_numeric_ea_dtype, val):
 @pytest.mark.parametrize("val", [pd.NA, 5])
 def test_symmetric_difference_keeping_ea_dtype(any_numeric_ea_dtype, val):
     # GH#48607
-    midx = MultiIndex.from_arrays(
-        [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+    midx = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
     )
-    midx2 = MultiIndex.from_arrays(
-        [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+    midx2 = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
     )
     result = midx.symmetric_difference(midx2)
-    expected = MultiIndex.from_arrays(
-        [Series([1, 1, val], dtype=any_numeric_ea_dtype), [1, 2, 3]]
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 1, val], dtype=any_numeric_ea_dtype), [1, 2, 3]]
     )
     tm.assert_index_equal(result, expected)
 
@@ -522,13 +518,13 @@ def test_symmetric_difference_keeping_ea_dtype(any_numeric_ea_dtype, val):
 )
 def test_intersect_with_duplicates(tuples, exp_tuples):
     # GH#36915
-    left = MultiIndex.from_tuples(tuples, names=["first", "second"])
-    right = MultiIndex.from_tuples(
+    left = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+    right = pd.MultiIndex.from_tuples(
         [("val1", "test1"), ("val1", "test1"), ("val2", "test2")],
         names=["first", "second"],
     )
     result = left.intersection(right)
-    expected = MultiIndex.from_tuples(exp_tuples, names=["first", "second"])
+    expected = pd.MultiIndex.from_tuples(exp_tuples, names=["first", "second"])
     tm.assert_index_equal(result, expected)
 
 
@@ -549,45 +545,47 @@ def test_intersect_with_duplicates(tuples, exp_tuples):
 )
 def test_maybe_match_names(data, names, expected):
     # GH#38323
-    mi = MultiIndex.from_tuples([], names=["a", "b"])
-    mi2 = MultiIndex.from_tuples([data], names=names)
+    mi = pd.MultiIndex.from_tuples([], names=["a", "b"])
+    mi2 = pd.MultiIndex.from_tuples([data], names=names)
     result = mi._maybe_match_names(mi2)
     assert result == expected
 
 
 def test_intersection_equal_different_names():
     # GH#30302
-    mi1 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["c", "b"])
-    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    mi1 = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["c", "b"])
+    mi2 = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
 
     result = mi1.intersection(mi2)
-    expected = MultiIndex.from_arrays([[1, 2], [3, 4]], names=[None, "b"])
+    expected = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=[None, "b"])
     tm.assert_index_equal(result, expected)
 
 
 def test_intersection_different_names():
     # GH#38323
-    mi = MultiIndex.from_arrays([[1], [3]], names=["c", "b"])
-    mi2 = MultiIndex.from_arrays([[1], [3]])
+    mi = pd.MultiIndex.from_arrays([[1], [3]], names=["c", "b"])
+    mi2 = pd.MultiIndex.from_arrays([[1], [3]])
     result = mi.intersection(mi2)
     tm.assert_index_equal(result, mi2)
 
 
 def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     # GH#38623
-    mi1 = MultiIndex.from_arrays([[3, nulls_fixture, 4, nulls_fixture], [1, 2, 4, 2]])
-    mi2 = MultiIndex.from_arrays([[3, nulls_fixture, 3], [1, 2, 4]])
+    mi1 = pd.MultiIndex.from_arrays(
+        [[3, nulls_fixture, 4, nulls_fixture], [1, 2, 4, 2]]
+    )
+    mi2 = pd.MultiIndex.from_arrays([[3, nulls_fixture, 3], [1, 2, 4]])
     result = mi1.intersection(mi2)
-    expected = MultiIndex.from_arrays([[3, nulls_fixture], [1, 2]])
+    expected = pd.MultiIndex.from_arrays([[3, nulls_fixture], [1, 2]])
     tm.assert_index_equal(result, expected)
 
 
 def test_union_with_missing_values_on_both_sides(nulls_fixture):
     # GH#38623
-    mi1 = MultiIndex.from_arrays([[1, nulls_fixture]])
-    mi2 = MultiIndex.from_arrays([[1, nulls_fixture, 3]])
+    mi1 = pd.MultiIndex.from_arrays([[1, nulls_fixture]])
+    mi2 = pd.MultiIndex.from_arrays([[1, nulls_fixture, 3]])
     result = mi1.union(mi2)
-    expected = MultiIndex.from_arrays([[1, 3, nulls_fixture]])
+    expected = pd.MultiIndex.from_arrays([[1, 3, nulls_fixture]])
     tm.assert_index_equal(result, expected)
 
 
@@ -595,11 +593,13 @@ def test_union_with_missing_values_on_both_sides(nulls_fixture):
 @pytest.mark.parametrize("sort", [None, False])
 def test_union_nan_got_duplicated(dtype, sort):
     # GH#38977, GH#49010
-    mi1 = MultiIndex.from_arrays([pd.array([1.0, np.nan], dtype=dtype), [2, 3]])
-    mi2 = MultiIndex.from_arrays([pd.array([1.0, np.nan, 3.0], dtype=dtype), [2, 3, 4]])
+    mi1 = pd.MultiIndex.from_arrays([pd.array([1.0, np.nan], dtype=dtype), [2, 3]])
+    mi2 = pd.MultiIndex.from_arrays(
+        [pd.array([1.0, np.nan, 3.0], dtype=dtype), [2, 3, 4]]
+    )
     result = mi1.union(mi2, sort=sort)
     if sort is None:
-        expected = MultiIndex.from_arrays(
+        expected = pd.MultiIndex.from_arrays(
             [pd.array([1.0, 3.0, np.nan], dtype=dtype), [2, 4, 3]]
         )
     else:
@@ -611,18 +611,18 @@ def test_union_nan_got_duplicated(dtype, sort):
 def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
     # GH#48505
 
-    arr1 = Series([val, 2], dtype=any_numeric_ea_dtype)
-    arr2 = Series([2, 1], dtype=any_numeric_ea_dtype)
-    midx = MultiIndex.from_arrays([arr1, [1, 2]], names=["a", None])
-    midx2 = MultiIndex.from_arrays([arr2, [2, 1]])
+    arr1 = pd.Series([val, 2], dtype=any_numeric_ea_dtype)
+    arr2 = pd.Series([2, 1], dtype=any_numeric_ea_dtype)
+    midx = pd.MultiIndex.from_arrays([arr1, [1, 2]], names=["a", None])
+    midx2 = pd.MultiIndex.from_arrays([arr2, [2, 1]])
     result = midx.union(midx2)
     if val == 4:
-        expected = MultiIndex.from_arrays(
-            [Series([1, 2, 4], dtype=any_numeric_ea_dtype), [1, 2, 1]]
+        expected = pd.MultiIndex.from_arrays(
+            [pd.Series([1, 2, 4], dtype=any_numeric_ea_dtype), [1, 2, 1]]
         )
     else:
-        expected = MultiIndex.from_arrays(
-            [Series([1, 2], dtype=any_numeric_ea_dtype), [1, 2]]
+        expected = pd.MultiIndex.from_arrays(
+            [pd.Series([1, 2], dtype=any_numeric_ea_dtype), [1, 2]]
         )
     tm.assert_index_equal(result, expected)
 
@@ -630,23 +630,23 @@ def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
 @pytest.mark.parametrize("dupe_val", [3, pd.NA])
 def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
     # GH48900
-    mi1 = MultiIndex.from_arrays(
+    mi1 = pd.MultiIndex.from_arrays(
         [
-            Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
-            Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+            pd.Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+            pd.Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
         ]
     )
-    mi2 = MultiIndex.from_arrays(
+    mi2 = pd.MultiIndex.from_arrays(
         [
-            Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
-            Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            pd.Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            pd.Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
         ]
     )
     result = mi1.union(mi2)
-    expected = MultiIndex.from_arrays(
+    expected = pd.MultiIndex.from_arrays(
         [
-            Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
-            Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            pd.Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            pd.Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
         ]
     )
     tm.assert_index_equal(result, expected)
@@ -655,12 +655,12 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
 def test_union_duplicates(index_sortable, request):
     # GH#38977
     index = index_sortable
-    if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
+    if index.empty or isinstance(index, (pd.IntervalIndex, pd.CategoricalIndex)):
         pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
     values = index.unique().tolist()
-    mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
-    mi2 = MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
+    mi1 = pd.MultiIndex.from_arrays([values, [1] * len(values)])
+    mi2 = pd.MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
     result = mi2.union(mi1)
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)
@@ -689,14 +689,14 @@ def test_union_duplicates(index_sortable, request):
 
 def test_union_keep_dtype_precision(any_real_numeric_dtype):
     # GH#48498
-    arr1 = Series([4, 1, 1], dtype=any_real_numeric_dtype)
-    arr2 = Series([1, 4], dtype=any_real_numeric_dtype)
-    midx = MultiIndex.from_arrays([arr1, [2, 1, 1]], names=["a", None])
-    midx2 = MultiIndex.from_arrays([arr2, [1, 2]], names=["a", None])
+    arr1 = pd.Series([4, 1, 1], dtype=any_real_numeric_dtype)
+    arr2 = pd.Series([1, 4], dtype=any_real_numeric_dtype)
+    midx = pd.MultiIndex.from_arrays([arr1, [2, 1, 1]], names=["a", None])
+    midx2 = pd.MultiIndex.from_arrays([arr2, [1, 2]], names=["a", None])
 
     result = midx.union(midx2)
-    expected = MultiIndex.from_arrays(
-        ([Series([1, 1, 4], dtype=any_real_numeric_dtype), [1, 1, 2]]),
+    expected = pd.MultiIndex.from_arrays(
+        ([pd.Series([1, 1, 4], dtype=any_real_numeric_dtype), [1, 1, 2]]),
         names=["a", None],
     )
     tm.assert_index_equal(result, expected)
@@ -704,24 +704,24 @@ def test_union_keep_dtype_precision(any_real_numeric_dtype):
 
 def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     # GH#48498
-    arr1 = Series([4, pd.NA], dtype=any_numeric_ea_dtype)
-    arr2 = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
-    midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
-    midx2 = MultiIndex.from_arrays([arr2, [1, 2]])
+    arr1 = pd.Series([4, pd.NA], dtype=any_numeric_ea_dtype)
+    arr2 = pd.Series([1, pd.NA], dtype=any_numeric_ea_dtype)
+    midx = pd.MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
+    midx2 = pd.MultiIndex.from_arrays([arr2, [1, 2]])
     result = midx.union(midx2)
-    expected = MultiIndex.from_arrays(
-        [Series([1, 4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [1, 2, 1, 2]]
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [1, 2, 1, 2]]
     )
     tm.assert_index_equal(result, expected)
 
 
 def test_union_duplicates_different_names():
     # GH#62059
-    mi1 = MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
-    mi2 = MultiIndex.from_tuples([(2, "b"), (3, "c"), (2, "b")])
+    mi1 = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
+    mi2 = pd.MultiIndex.from_tuples([(2, "b"), (3, "c"), (2, "b")])
 
     result = mi1.union(mi2)
-    expected = MultiIndex.from_tuples(
+    expected = pd.MultiIndex.from_tuples(
         [(1, "a"), (2, "b"), (2, "b"), (3, "c")], names=[None, None]
     )
     tm.assert_index_equal(result, expected)
@@ -741,8 +741,8 @@ def test_union_duplicates_different_names():
 )
 def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     # GH#25169
-    mi1 = MultiIndex(levels=levels1, codes=codes1, names=names)
-    mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
+    mi1 = pd.MultiIndex(levels=levels1, codes=codes1, names=names)
+    mi2 = pd.MultiIndex(levels=levels2, codes=codes2, names=names)
     mi_int = mi1.intersection(mi2)
     assert mi_int._lexsort_depth == 2
 
@@ -756,20 +756,20 @@ def test_intersection_with_non_lex_sorted_categories(a, b_ordered):
     # GH#49974
     other = ["1", "2"]
     b = pd.Categorical(["a", "b"], categories=["b", "a"], ordered=b_ordered)
-    df1 = DataFrame({"x": a, "y": other})
-    df2 = DataFrame({"x": b, "y": other})
+    df1 = pd.DataFrame({"x": a, "y": other})
+    df2 = pd.DataFrame({"x": b, "y": other})
 
-    expected = MultiIndex.from_arrays([a, other], names=["x", "y"])
+    expected = pd.MultiIndex.from_arrays([a, other], names=["x", "y"])
 
-    res1 = MultiIndex.from_frame(df1).intersection(
-        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    res1 = pd.MultiIndex.from_frame(df1).intersection(
+        pd.MultiIndex.from_frame(df2.sort_values(["x", "y"]))
     )
-    res2 = MultiIndex.from_frame(df1).intersection(MultiIndex.from_frame(df2))
-    res3 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
-        MultiIndex.from_frame(df2)
+    res2 = pd.MultiIndex.from_frame(df1).intersection(pd.MultiIndex.from_frame(df2))
+    res3 = pd.MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        pd.MultiIndex.from_frame(df2)
     )
-    res4 = MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
-        MultiIndex.from_frame(df2.sort_values(["x", "y"]))
+    res4 = pd.MultiIndex.from_frame(df1.sort_values(["x", "y"])).intersection(
+        pd.MultiIndex.from_frame(df2.sort_values(["x", "y"]))
     )
 
     tm.assert_index_equal(res1, expected)
@@ -781,28 +781,32 @@ def test_intersection_with_non_lex_sorted_categories(a, b_ordered):
 @pytest.mark.parametrize("val", [pd.NA, 100])
 def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
     # GH#48604
-    midx = MultiIndex.from_arrays(
-        [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+    midx = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
     )
-    midx2 = MultiIndex.from_arrays(
-        [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+    midx2 = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
     )
     result = midx.intersection(midx2)
-    expected = MultiIndex.from_arrays([Series([2], dtype=any_numeric_ea_dtype), [1]])
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Series([2], dtype=any_numeric_ea_dtype), [1]]
+    )
     tm.assert_index_equal(result, expected)
 
 
 def test_union_with_na_when_constructing_dataframe():
     # GH43222
-    series1 = Series(
+    series1 = pd.Series(
         (1,),
-        index=MultiIndex.from_arrays(
-            [Series([None], dtype="str"), Series([None], dtype="str")]
+        index=pd.MultiIndex.from_arrays(
+            [pd.Series([None], dtype="str"), pd.Series([None], dtype="str")]
         ),
     )
-    series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))
-    result = DataFrame([series1, series2])
-    expected = DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})
+    series2 = pd.Series(
+        (10, 20), index=pd.MultiIndex.from_tuples(((None, None), ("a", "b")))
+    )
+    result = pd.DataFrame([series1, series2])
+    expected = pd.DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -813,10 +817,10 @@ def test_setops_pyarrow_timestamp_level(method):
     # GH#61382 setops must match a list of tuples against a pyarrow-backed
     #  timestamp level (the list becomes a numpy-backed level internally)
     pytest.importorskip("pyarrow")
-    mi = MultiIndex.from_arrays(
+    mi = pd.MultiIndex.from_arrays(
         [
-            Series([1, 2], dtype="int64[pyarrow]"),
-            Series(["1900-01-01", "1901-06-15"], dtype="timestamp[ns][pyarrow]"),
+            pd.Series([1, 2], dtype="int64[pyarrow]"),
+            pd.Series(["1900-01-01", "1901-06-15"], dtype="timestamp[ns][pyarrow]"),
         ],
         names=["id", "date"],
     )
@@ -831,7 +835,9 @@ def test_multiindex_difference_preserves_categorical_levels():
     # GH#40080 set operations on a MultiIndex must preserve categorical level
     # dtypes instead of downcasting them to their underlying type
     cat = pd.CategoricalDtype(categories=[1, 2, 3, 4])
-    df = DataFrame({"a": [1, 2, 3, 4, 3, 2, 1], "b": [4, 3, 2, 3, 1, 2, 3]}, dtype=cat)
+    df = pd.DataFrame(
+        {"a": [1, 2, 3, 4, 3, 2, 1], "b": [4, 3, 2, 3, 1, 2, 3]}, dtype=cat
+    )
     mi = df.set_index(["a", "b"]).index
     # difference, union and intersection are all named in the issue and were
     # all downcasting the categorical levels

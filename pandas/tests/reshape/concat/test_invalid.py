@@ -3,11 +3,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    concat,
-    read_csv,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -15,26 +11,28 @@ class TestInvalidConcat:
     @pytest.mark.parametrize("obj", [1, {}, [1, 2], (1, 2)])
     def test_concat_invalid(self, obj):
         # trying to concat an ndframe with a non-ndframe
-        df1 = DataFrame(range(2))
+        df1 = pd.DataFrame(range(2))
         msg = (
             f"cannot concatenate object of type '{type(obj)}'; "
             "only Series and DataFrame objs are valid"
         )
         with pytest.raises(TypeError, match=msg):
-            concat([df1, obj])
+            pd.concat([df1, obj])
 
     def test_concat_invalid_first_argument(self):
-        df1 = DataFrame(range(2))
+        df1 = pd.DataFrame(range(2))
         msg = (
             "first argument must be an iterable of pandas "
             'objects, you passed an object of type "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
-            concat(df1)
+            pd.concat(df1)
 
     def test_concat_generator_obj(self):
         # generator ok though
-        concat(DataFrame(np.random.default_rng(2).random((5, 5))) for _ in range(3))
+        pd.concat(
+            pd.DataFrame(np.random.default_rng(2).random((5, 5))) for _ in range(3)
+        )
 
     def test_concat_textreader_obj(self):
         # text reader ok
@@ -48,7 +46,7 @@ class TestInvalidConcat:
                   bar2,12,13,14,15
                """
 
-        with read_csv(StringIO(data), chunksize=1) as reader:
-            result = concat(reader, ignore_index=True)
-        expected = read_csv(StringIO(data))
+        with pd.read_csv(StringIO(data), chunksize=1) as reader:
+            result = pd.concat(reader, ignore_index=True)
+        expected = pd.read_csv(StringIO(data))
         tm.assert_frame_equal(result, expected)

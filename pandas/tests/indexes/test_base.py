@@ -22,19 +22,6 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    DatetimeIndex,
-    IntervalIndex,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    TimedeltaIndex,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     Index,
@@ -95,23 +82,23 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index",
         [
-            date_range(
+            pd.date_range(
                 "2015-01-01 10:00",
                 freq="D",
                 periods=3,
                 tz="US/Eastern",
                 name="Green Eggs & Ham",
             ),  # DTI with tz
-            date_range("2015-01-01 10:00", freq="D", periods=3),  # DTI no tz
-            timedelta_range("1 days", freq="D", periods=3),  # td
-            period_range("2015-01-01", freq="D", periods=3),  # period
+            pd.date_range("2015-01-01 10:00", freq="D", periods=3),  # DTI no tz
+            pd.timedelta_range("1 days", freq="D", periods=3),  # td
+            pd.period_range("2015-01-01", freq="D", periods=3),  # period
         ],
     )
     def test_constructor_from_index_dtlike(self, cast_as_obj, index):
         if cast_as_obj:
             result = Index(index.astype(object))
             assert result.dtype == np.dtype(object)
-            if isinstance(index, DatetimeIndex):
+            if isinstance(index, pd.DatetimeIndex):
                 # GH#23524 check that Index(dti, dtype=object) does not
                 #  incorrectly raise ValueError, and that nanoseconds are not
                 #  dropped
@@ -128,15 +115,15 @@ class TestIndex:
         "index,has_tz",
         [
             (
-                date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
+                pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
                 True,
             ),  # datetimetz
-            (timedelta_range("1 days", freq="D", periods=3), False),  # td
-            (period_range("2015-01-01", freq="D", periods=3), False),  # period
+            (pd.timedelta_range("1 days", freq="D", periods=3), False),  # td
+            (pd.period_range("2015-01-01", freq="D", periods=3), False),  # period
         ],
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
-        result = Index(Series(index))
+        result = Index(pd.Series(index))
         tm.assert_index_equal(result, index, check_freq=False)
 
         if has_tz:
@@ -146,10 +133,10 @@ class TestIndex:
         # GH 6273
         # create from a series, passing a freq
         dts = ["1-1-1990", "2-1-1990", "3-1-1990", "4-1-1990", "5-1-1990"]
-        expected = DatetimeIndex(dts, freq="MS")
+        expected = pd.DatetimeIndex(dts, freq="MS")
 
-        s = Series(pd.to_datetime(dts))
-        result = DatetimeIndex(s, freq="MS")
+        s = pd.Series(pd.to_datetime(dts))
+        result = pd.DatetimeIndex(s, freq="MS")
 
         tm.assert_index_equal(result, expected)
 
@@ -157,17 +144,17 @@ class TestIndex:
         # GH 6273
         # create from a series, passing a freq
         dts = ["1-1-1990", "2-1-1990", "3-1-1990", "4-1-1990", "5-1-1990"]
-        expected = DatetimeIndex(dts, freq="MS")
+        expected = pd.DatetimeIndex(dts, freq="MS")
 
-        df = DataFrame(np.random.default_rng(2).random((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
-        result = DatetimeIndex(df["date"], freq="MS")
+        result = pd.DatetimeIndex(df["date"], freq="MS")
         dtype = object if not using_infer_string else "str"
         assert df["date"].dtype == dtype
         expected.name = "date"
         tm.assert_index_equal(result, expected)
 
-        expected = Series(dts, name="date")
+        expected = pd.Series(dts, name="date")
         tm.assert_series_equal(df["date"], expected)
 
         # GH 6274
@@ -221,7 +208,7 @@ class TestIndex:
         "klass,dtype,na_val",
         [
             (Index, np.float64, np.nan),
-            (DatetimeIndex, "datetime64[s]", pd.NaT),
+            (pd.DatetimeIndex, "datetime64[s]", pd.NaT),
         ],
     )
     def test_index_ctor_infer_nan_nat(self, klass, dtype, na_val):
@@ -250,14 +237,14 @@ class TestIndex:
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
-    @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
+    @pytest.mark.parametrize("klass", [Index, pd.DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
         # ^the above will be true in a later version. Right now we `.view`
         # the i8 values as NS_DTYPE, effectively treating them as wall times.
-        index = date_range("2011-01-01", periods=5, unit="ns")
+        index = pd.date_range("2011-01-01", periods=5, unit="ns")
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
@@ -267,7 +254,7 @@ class TestIndex:
         msg = "Cannot use .astype to convert from timezone-naive dtype to"
 
         if attr == "asi8":
-            result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
+            result = pd.DatetimeIndex(arg).tz_localize(tz_naive_fixture)
             tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
@@ -279,16 +266,16 @@ class TestIndex:
         if attr == "asi8":
             if err:
                 with pytest.raises(TypeError, match=msg):
-                    DatetimeIndex(arg).astype(dtype)
+                    pd.DatetimeIndex(arg).astype(dtype)
             else:
-                result = DatetimeIndex(arg).astype(dtype)
+                result = pd.DatetimeIndex(arg).astype(dtype)
                 tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(arg, dtype=dtype)
             tm.assert_index_equal(result, index, check_freq=False)
 
         if attr == "asi8":
-            result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+            result = pd.DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
             tm.assert_index_equal(result, index, check_freq=False)
         elif klass is Index:
             with pytest.raises(TypeError, match="unexpected keyword"):
@@ -300,18 +287,18 @@ class TestIndex:
         if attr == "asi8":
             if err:
                 with pytest.raises(TypeError, match=msg):
-                    DatetimeIndex(list(arg)).astype(dtype)
+                    pd.DatetimeIndex(list(arg)).astype(dtype)
             else:
-                result = DatetimeIndex(list(arg)).astype(dtype)
+                result = pd.DatetimeIndex(list(arg)).astype(dtype)
                 tm.assert_index_equal(result, index, check_freq=False)
         else:
             result = klass(list(arg), dtype=dtype)
             tm.assert_index_equal(result, index, check_freq=False)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
-    @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
+    @pytest.mark.parametrize("klass", [Index, pd.TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = timedelta_range("1 days", periods=5, unit="ns")
+        index = pd.timedelta_range("1 days", periods=5, unit="ns")
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
@@ -328,9 +315,9 @@ class TestIndex:
         "klass",
         [
             Index,
-            CategoricalIndex,
-            DatetimeIndex,
-            TimedeltaIndex,
+            pd.CategoricalIndex,
+            pd.DatetimeIndex,
+            pd.TimedeltaIndex,
         ],
     )
     def test_constructor_empty(self, value, klass):
@@ -341,10 +328,10 @@ class TestIndex:
     @pytest.mark.parametrize(
         "empty,klass",
         [
-            (PeriodIndex([], freq="D"), PeriodIndex),
-            (PeriodIndex(iter([]), freq="D"), PeriodIndex),
-            (PeriodIndex((_ for _ in []), freq="D"), PeriodIndex),
-            (RangeIndex(step=1), RangeIndex),
+            (pd.PeriodIndex([], freq="D"), pd.PeriodIndex),
+            (pd.PeriodIndex(iter([]), freq="D"), pd.PeriodIndex),
+            (pd.PeriodIndex((_ for _ in []), freq="D"), pd.PeriodIndex),
+            (pd.RangeIndex(step=1), pd.RangeIndex),
             (MultiIndex(levels=[[1, 2], ["blue", "red"]], codes=[[], []]), MultiIndex),
         ],
     )
@@ -535,7 +522,7 @@ class TestIndex:
     def test_union_dt_as_obj(self, simple_index):
         # TODO: Replace with fixturesult
         index = simple_index
-        date_index = date_range("2019-01-01", periods=10)
+        date_index = pd.date_range("2019-01-01", periods=10)
         first_cat = index.union(date_index)
         second_cat = index.union(index)
 
@@ -574,9 +561,9 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index",
         [
-            date_range("2020-01-01", freq="D", periods=10),
-            period_range("2020-01-01", freq="D", periods=10),
-            timedelta_range("1 day", periods=10),
+            pd.date_range("2020-01-01", freq="D", periods=10),
+            pd.period_range("2020-01-01", freq="D", periods=10),
+            pd.timedelta_range("1 day", periods=10),
         ],
     )
     def test_map_tseries_indices_return_index(self, index):
@@ -585,8 +572,8 @@ class TestIndex:
         tm.assert_index_equal(expected, result)
 
     def test_map_tseries_indices_accsr_return_index(self):
-        date_index = DatetimeIndex(
-            date_range("2020-01-01", periods=24, freq="h"), name="hourly"
+        date_index = pd.DatetimeIndex(
+            pd.date_range("2020-01-01", periods=24, freq="h"), name="hourly"
         )
         result = date_index.map(lambda x: x.hour)
         expected = Index(np.arange(24, dtype="int64"), name="hourly")
@@ -596,7 +583,7 @@ class TestIndex:
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
-            lambda values, index: Series(values, index),
+            lambda values, index: pd.Series(values, index),
         ],
     )
     def test_map_dictlike_simple(self, mapper):
@@ -610,12 +597,12 @@ class TestIndex:
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
-            lambda values, index: Series(values, index),
+            lambda values, index: pd.Series(values, index),
         ],
     )
     def test_map_dictlike(self, index, mapper, request, using_infer_string):
         # GH 12756
-        if isinstance(index, CategoricalIndex):
+        if isinstance(index, pd.CategoricalIndex):
             pytest.skip("Tested in test_categorical")
         elif not index.is_unique:
             pytest.skip("Cannot map duplicated index")
@@ -645,7 +632,10 @@ class TestIndex:
 
     @pytest.mark.parametrize(
         "mapper",
-        [Series(["foo", 2.0, "baz"], index=[0, 2, -1]), {0: "foo", 2: 2.0, -1: "baz"}],
+        [
+            pd.Series(["foo", 2.0, "baz"], index=[0, 2, -1]),
+            {0: "foo", 2: 2.0, -1: "baz"},
+        ],
     )
     def test_map_with_non_function_missing_values(self, mapper):
         # GH 12756
@@ -820,7 +810,7 @@ class TestIndex:
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
             pytest.skip("Test doesn't make sense for empty MultiIndex")
-        if isinstance(index, IntervalIndex) and not IS64:
+        if isinstance(index, pd.IntervalIndex) and not IS64:
             pytest.skip("Cannot test IntervalIndex with int64 dtype on 32 bit platform")
         index = index.unique().repeat(2)
         expected = index[2:]
@@ -950,7 +940,7 @@ class TestIndex:
         with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 
-    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
+    @pytest.mark.parametrize("empty", [[], pd.Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         index = Index(["a", "b"])
@@ -973,7 +963,7 @@ class TestIndex:
             [1.0, 2.0, 3.0, 4.0],
             [True, True, True, True],
             ["foo", "bar", "baz", "qux"],
-            date_range("2018-01-01", freq="D", periods=4),
+            pd.date_range("2018-01-01", freq="D", periods=4),
         ],
     )
     def test_boolean_cmp(self, values):
@@ -1056,9 +1046,9 @@ class TestIndex:
         "index",
         [
             Index(range(5)),
-            date_range("2020-01-01", periods=10),
+            pd.date_range("2020-01-01", periods=10),
             MultiIndex.from_tuples([("foo", "1"), ("bar", "3")]),
-            period_range(start="2000", end="2010", freq="Y"),
+            pd.period_range(start="2000", end="2010", freq="Y"),
         ],
     )
     def test_str_attribute_raises(self, index):
@@ -1098,10 +1088,10 @@ class TestIndex:
 
     def test_str_bool_series_indexing(self):
         index = Index(["a1", "a2", "b1", "b2"])
-        s = Series(range(4), index=index)
+        s = pd.Series(range(4), index=index)
 
         result = s[s.index.str.startswith("a")]
-        expected = Series(range(2), index=["a1", "a2"])
+        expected = pd.Series(range(2), index=["a1", "a2"])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1121,7 +1111,7 @@ class TestIndex:
 
     def test_outer_join_sort(self):
         left_index = Index(np.random.default_rng(2).permutation(15))
-        right_index = date_range("2020-01-01", periods=10)
+        right_index = pd.date_range("2020-01-01", periods=10)
 
         with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = left_index.join(right_index, how="outer")
@@ -1178,8 +1168,8 @@ class TestIndex:
             np.array(["A", "B", "C"]),
             np.array(["C", "B", "A"]),
             # Must preserve name even if dtype changes
-            date_range("20130101", periods=3).values,
-            date_range("20130101", periods=3).tolist(),
+            pd.date_range("20130101", periods=3).values,
+            pd.date_range("20130101", periods=3).tolist(),
         ],
     )
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self, name, labels):
@@ -1197,7 +1187,7 @@ class TestIndex:
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
         # GH7774
         index = Index(list("abc"))
-        labels = DatetimeIndex([])
+        labels = pd.DatetimeIndex([])
         dtype = np.datetime64
         assert index.reindex(labels)[0].dtype.type == dtype
 
@@ -1243,7 +1233,7 @@ class TestIndex:
     def test_equals_op_multiindex(self, mi, expected):
         # GH9785
         # test comparisons of multiindex
-        df = DataFrame(
+        df = pd.DataFrame(
             [3, 6],
             columns=["c"],
             index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
@@ -1253,7 +1243,7 @@ class TestIndex:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_equals_op_multiindex_identify(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [3, 6],
             columns=["c"],
             index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
@@ -1271,7 +1261,7 @@ class TestIndex:
         ],
     )
     def test_equals_op_mismatched_multiindex_raises(self, index):
-        df = DataFrame(
+        df = pd.DataFrame(
             [3, 6],
             columns=["c"],
             index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
@@ -1321,7 +1311,7 @@ class TestIndex:
 
     def test_contains_method_removed(self, index):
         # GH#30103 method removed for all types except IntervalIndex
-        if isinstance(index, IntervalIndex):
+        if isinstance(index, pd.IntervalIndex):
             index.contains(1)
         else:
             msg = f"'{type(index).__name__}' object has no attribute 'contains'"
@@ -1395,7 +1385,7 @@ class TestIndex:
     def test_assert_index_equal_exact_equiv_default_deprecated(self):
         # GH#57436
         result = Index([0, 1, 2, 3], dtype=np.int64)
-        expected = RangeIndex(0, 4)
+        expected = pd.RangeIndex(0, 4)
         msg = "The default value of 'equiv' for the `exact` parameter is deprecated "
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -1458,8 +1448,8 @@ class TestMixedIntIndex:
         assert first.name == "mario"
         assert second.name == "mario"
 
-        s1 = Series(2, index=first)
-        s2 = Series(3, index=second[:-1])
+        s1 = pd.Series(2, index=first)
+        s2 = pd.Series(3, index=second[:-1])
 
         s3 = s1 * s2
 
@@ -1513,28 +1503,28 @@ class TestMixedIntIndex:
         "index,expected",
         [
             (
-                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
-                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
+                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
+                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
             ),
             (
-                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", pd.NaT]),
-                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
+                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", pd.NaT]),
+                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
             ),
             (
-                TimedeltaIndex(["1 days", "2 days", "3 days"]),
-                TimedeltaIndex(["1 days", "2 days", "3 days"]),
+                pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
+                pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
             ),
             (
-                TimedeltaIndex([pd.NaT, "1 days", "2 days", "3 days", pd.NaT]),
-                TimedeltaIndex(["1 days", "2 days", "3 days"]),
+                pd.TimedeltaIndex([pd.NaT, "1 days", "2 days", "3 days", pd.NaT]),
+                pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
             ),
             (
-                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
-                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                pd.PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                pd.PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
             ),
             (
-                PeriodIndex(["2012-02", "2012-04", "NaT", "2012-05"], freq="M"),
-                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                pd.PeriodIndex(["2012-02", "2012-04", "NaT", "2012-05"], freq="M"),
+                pd.PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
             ),
         ],
     )
@@ -1606,8 +1596,8 @@ class TestIndexUtils:
         [
             ([[1, 2, 4]], None, Index([1, 2, 4])),
             ([[1, 2, 4]], ["name"], Index([1, 2, 4], name="name")),
-            ([[1, 2, 3]], None, RangeIndex(1, 4)),
-            ([[1, 2, 3]], ["name"], RangeIndex(1, 4, name="name")),
+            ([[1, 2, 3]], None, pd.RangeIndex(1, 4)),
+            ([[1, 2, 3]], ["name"], pd.RangeIndex(1, 4, name="name")),
             (
                 [["a", "a"], ["c", "d"]],
                 None,
@@ -1650,7 +1640,7 @@ class TestIndexUtils:
 
     def test_get_combined_index(self):
         result, _ = _get_combined_index([])
-        expected = RangeIndex(0)
+        expected = pd.RangeIndex(0)
         tm.assert_index_equal(result, expected)
 
 
@@ -1688,12 +1678,12 @@ def test_generated_op_names(opname, index):
 @pytest.mark.parametrize(
     "klass",
     [
-        partial(CategoricalIndex, data=[1]),
-        partial(DatetimeIndex, data=["2020-01-01"]),
-        partial(PeriodIndex, data=["2020-01-01"]),
-        partial(TimedeltaIndex, data=["1 day"]),
-        partial(RangeIndex, start=range(1)),
-        partial(IntervalIndex, data=[pd.Interval(0, 1)]),
+        partial(pd.CategoricalIndex, data=[1]),
+        partial(pd.DatetimeIndex, data=["2020-01-01"]),
+        partial(pd.PeriodIndex, data=["2020-01-01"]),
+        partial(pd.TimedeltaIndex, data=["1 day"]),
+        partial(pd.RangeIndex, start=range(1)),
+        partial(pd.IntervalIndex, data=[pd.Interval(0, 1)]),
         partial(Index, data=["a"], dtype=object),
         partial(MultiIndex, levels=[1], codes=[0]),
     ],
@@ -1713,10 +1703,10 @@ def test_deprecated_fastpath():
         Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
-        RangeIndex(0, 5, 2, name="test", fastpath=True)
+        pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
-        CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
+        pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
 
 
 def test_shape_of_invalid_index():
@@ -1740,12 +1730,12 @@ def test_validate_1d_input(dtype):
     with pytest.raises(ValueError, match=msg):
         Index(arr, dtype=dtype)
 
-    df = DataFrame(arr.reshape(4, 2))
+    df = pd.DataFrame(arr.reshape(4, 2))
     with pytest.raises(ValueError, match=msg):
         Index(df, dtype=dtype)
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not allowed
-    ser = Series(0, range(4))
+    ser = pd.Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4, dtype=dtype)
 
@@ -1755,10 +1745,10 @@ def test_validate_1d_input(dtype):
     [
         [Index, {}],
         *[[lambda x: Index(x, dtype=dtyp), {}] for dtyp in tm.ALL_REAL_NUMPY_DTYPES],
-        [DatetimeIndex, {}],
-        [TimedeltaIndex, {}],
+        [pd.DatetimeIndex, {}],
+        [pd.TimedeltaIndex, {}],
         pytest.param(
-            PeriodIndex,
+            pd.PeriodIndex,
             {"freq": "Y"},
             marks=pytest.mark.filterwarnings(
                 "ignore:Passing integer data:pandas.errors.Pandas4Warning"
@@ -1808,10 +1798,10 @@ def test_index_equals_different_string_dtype(string_dtype_no_object):
 def test_index_comparison_different_string_dtype(string_dtype_no_object):
     # GH 61099
     idx = Index(["a", "b", "c"])
-    s_obj = Series([1, 2, 3], index=idx)
-    s_str = Series([4, 5, 6], index=idx.astype(string_dtype_no_object))
+    s_obj = pd.Series([1, 2, 3], index=idx)
+    s_str = pd.Series([4, 5, 6], index=idx.astype(string_dtype_no_object))
 
-    expected = Series([True, True, True], index=["a", "b", "c"])
+    expected = pd.Series([True, True, True], index=["a", "b", "c"])
     result = s_obj < s_str
     assert_series_equal(result, expected)
 
@@ -1895,7 +1885,7 @@ def test_slice_locs_quarterly_string_bounds_no_deprecation_warning(dtype, wrap):
     # on a non-datetime Index nothing is being parsed as a datetime, so a
     # quarterly-looking label must not trigger the deprecation
     idx = Index(["2000Q1", "2000Q2", "2000Q3"], dtype=dtype)
-    ser = Series(np.arange(len(idx)), index=idx)
+    ser = pd.Series(np.arange(len(idx)), index=idx)
 
     with tm.assert_produces_warning(None):
         result = ser.loc[wrap("2000Q1") : wrap("2000Q2")]

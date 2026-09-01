@@ -2,28 +2,24 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-)
 import pandas._testing as tm
 
 
 def test_reindex(idx):
     result, indexer = idx.reindex(list(idx[:4]))
-    assert isinstance(result, MultiIndex)
+    assert isinstance(result, pd.MultiIndex)
     assert result.names == ["first", "second"]
     assert [level.name for level in result.levels] == ["first", "second"]
 
     result, indexer = idx.reindex(list(idx))
-    assert isinstance(result, MultiIndex)
+    assert isinstance(result, pd.MultiIndex)
     assert indexer is None
     assert result.names == ["first", "second"]
     assert [level.name for level in result.levels] == ["first", "second"]
 
 
 def test_reindex_level(idx):
-    index = Index(["one"])
+    index = pd.Index(["one"])
 
     target, indexer = idx.reindex(index, level="second")
     target2, indexer2 = index.reindex(idx, level="second")
@@ -49,7 +45,7 @@ def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     target = idx.copy()
     idx.names = target.names = [None, None]
 
-    other_dtype = MultiIndex.from_product([[1, 2], [3, 4]])
+    other_dtype = pd.MultiIndex.from_product([[1, 2], [3, 4]])
 
     # list & ndarray cases
     assert idx.reindex([])[0].names == [None, None]
@@ -70,7 +66,7 @@ def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
 
 def test_reindex_lvl_preserves_names_when_target_is_list_or_array():
     # GH7774
-    idx = MultiIndex.from_product([[0, 1], ["a", "b"]], names=["foo", "bar"])
+    idx = pd.MultiIndex.from_product([[0, 1], ["a", "b"]], names=["foo", "bar"])
     assert idx.reindex([], level=0)[0].names == ["foo", "bar"]
     assert idx.reindex([], level=1)[0].names == ["foo", "bar"]
 
@@ -79,7 +75,7 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array(
     using_infer_string,
 ):
     # GH7774
-    idx = MultiIndex.from_product([[0, 1], ["a", "b"]])
+    idx = pd.MultiIndex.from_product([[0, 1], ["a", "b"]])
     assert idx.reindex([], level=0)[0].levels[0].dtype.type == np.int64
     exp = np.object_ if not using_infer_string else str
     assert idx.reindex([], level=1)[0].levels[1].dtype.type == exp
@@ -87,7 +83,7 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array(
     # case with EA levels
     cat = pd.Categorical(["foo", "bar"])
     dti = pd.date_range("2016-01-01", periods=2, tz="US/Pacific")
-    mi = MultiIndex.from_product([cat, dti])
+    mi = pd.MultiIndex.from_product([cat, dti])
     assert mi.reindex([], level=0)[0].levels[0].dtype == cat.dtype
     assert mi.reindex([], level=1)[0].levels[1].dtype == dti.dtype
 
@@ -103,9 +99,9 @@ def test_reindex_base(idx):
 
 
 def test_reindex_non_unique():
-    idx = MultiIndex.from_tuples([(0, 0), (1, 1), (1, 1), (2, 2)])
+    idx = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (1, 1), (2, 2)])
     a = pd.Series(np.arange(4), index=idx)
-    new_idx = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
+    new_idx = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
 
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
@@ -115,9 +111,9 @@ def test_reindex_non_unique():
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
 def test_reindex_empty_with_level(values):
     # GH41170
-    idx = MultiIndex.from_arrays(values)
+    idx = pd.MultiIndex.from_arrays(values)
     result, result_indexer = idx.reindex(np.array(["b"]), level=0)
-    expected = MultiIndex(levels=[["b"], values[1]], codes=[[], []])
+    expected = pd.MultiIndex(levels=[["b"], values[1]], codes=[[], []])
     expected_indexer = np.array([], dtype=result_indexer.dtype)
     tm.assert_index_equal(result, expected)
     tm.assert_numpy_array_equal(result_indexer, expected_indexer)
@@ -125,8 +121,8 @@ def test_reindex_empty_with_level(values):
 
 def test_reindex_not_all_tuples():
     keys = [("i", "i"), ("i", "j"), ("j", "i"), "j"]
-    mi = MultiIndex.from_tuples(keys[:-1])
-    idx = Index(keys)
+    mi = pd.MultiIndex.from_tuples(keys[:-1])
+    idx = pd.Index(keys)
     res, indexer = mi.reindex(idx)
 
     tm.assert_index_equal(res, idx)
@@ -137,8 +133,8 @@ def test_reindex_not_all_tuples():
 def test_reindex_flat_non_object_target():
     # GH#26460 reindexing a unique MultiIndex with a non-object (e.g. integer)
     #  flat target that matches nothing should return the flat target, not raise
-    mi = MultiIndex.from_tuples([(4, 8), (4, 10)])
-    idx = Index([8, 10])
+    mi = pd.MultiIndex.from_tuples([(4, 8), (4, 10)])
+    idx = pd.Index([8, 10])
     res, indexer = mi.reindex(idx)
 
     tm.assert_index_equal(res, idx)
@@ -149,11 +145,11 @@ def test_reindex_flat_non_object_target():
 def test_reindex_limit_arg_with_multiindex():
     # GH21247
 
-    idx = MultiIndex.from_tuples([(3, "A"), (4, "A"), (4, "B")])
+    idx = pd.MultiIndex.from_tuples([(3, "A"), (4, "A"), (4, "B")])
 
     df = pd.Series([0.02, 0.01, 0.012], index=idx)
 
-    new_idx = MultiIndex.from_tuples(
+    new_idx = pd.MultiIndex.from_tuples(
         [
             (3, "A"),
             (3, "B"),
@@ -176,8 +172,8 @@ def test_reindex_limit_arg_with_multiindex():
 
 def test_reindex_with_none_in_nested_multiindex():
     # GH42883
-    index = MultiIndex.from_tuples([(("a", None), 1), (("b", None), 2)])
-    index2 = MultiIndex.from_tuples([(("b", None), 2), (("a", None), 1)])
+    index = pd.MultiIndex.from_tuples([(("a", None), 1), (("b", None), 2)])
+    index2 = pd.MultiIndex.from_tuples([(("b", None), 2), (("a", None), 1)])
     df1_dtype = pd.DataFrame([1, 2], index=index)
     df2_dtype = pd.DataFrame([2, 1], index=index2)
 

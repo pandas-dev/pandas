@@ -497,40 +497,20 @@ be located.
 Imports in tests
 ~~~~~~~~~~~~~~~~
 
-Top-level pandas objects can be imported specifically:
-
-.. code-block:: python
-
-   from pandas import Series
-
-or reached through the ``pandas`` namespace:
+Objects in the top-level pandas namespace are reached through ``pd`` rather than
+imported directly:
 
 .. code-block:: python
 
    import pandas as pd
 
-Which form to use depends on what is being tested in a file and where those
-objects sit in pandas' internal dependency structure.
+   ser = pd.Series([1, 2, 3])
 
-If the object under test depends on essentially all of ``pandas.core``, such as
-:func:`concat` or :func:`read_csv`, use ``import pandas as pd``.
-
-If it has very few intra-pandas dependencies, such as ``pd.NaT`` or the
-``pandas._libs.tslibs`` internals, use specific imports. A reader can then tell
-from the imports alone that higher-level objects are not exercised in that file.
-
-In between are cases like :class:`TimedeltaIndex`, where some test files need
-higher-level objects such as :class:`Series` and :class:`DataFrame` and others
-rely only on the object under test. Use your best judgement for those.
-
-Whichever form you choose, do not mix the two for the same object within a
-single file; write either ``Series`` or ``pd.Series`` throughout, not both. This
-is enforced by the ``inconsistent-namespace-usage`` pre-commit hook, which can
-also fix up a file for you:
-
-.. code-block:: shell
-
-   python scripts/check_for_inconsistent_pandas_namespace.py <file> --replace
+Everything else is imported from the module which defines it, e.g.
+``import pandas._testing as tm`` or
+``from pandas.core.dtypes.common import is_integer_dtype``.  The ``test-imports``
+pre-commit hook checks that test files do not import from the ``pandas``
+namespace directly.
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~

@@ -28,13 +28,7 @@ from pandas._libs.tslibs.offsets import (
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    PeriodDtype,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import WeekDay
 
@@ -506,7 +500,7 @@ class TestCommon:
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
-        dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
+        dti = pd.DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
         if not isinstance(
             offset_s,
@@ -605,7 +599,7 @@ class TestCommon:
         # check that the result with non-nano matches nano
         off = _create_offset(offset_types)
 
-        dti = date_range("2016-01-01", periods=35, freq="D", unit=unit)
+        dti = pd.date_range("2016-01-01", periods=35, freq="D", unit=unit)
 
         result = (dti + off)._with_freq(None)
 
@@ -614,7 +608,7 @@ class TestCommon:
             # cast to higher reso like we would with Timedelta scalar
             exp_unit = Timedelta(off).unit
         # TODO(GH#55564): as_unit will be unnecessary
-        expected = DatetimeIndex([x + off for x in dti]).as_unit(exp_unit)
+        expected = pd.DatetimeIndex([x + off for x in dti]).as_unit(exp_unit)
 
         tm.assert_index_equal(result, expected)
 
@@ -633,11 +627,11 @@ class TestCommon:
     def test_add_dt64_non_nano_with_offset_parameter(self, offset_class, unit):
         # GH#56586 - sub-unit offset parameter should not be truncated
         off = offset_class(offset=Timedelta(microseconds=500))
-        dti = date_range("2016-01-01", periods=3, freq="D", unit=unit)
+        dti = pd.date_range("2016-01-01", periods=3, freq="D", unit=unit)
 
         result = dti + off
 
-        expected = DatetimeIndex([x + off for x in dti], dtype="datetime64[us]")
+        expected = pd.DatetimeIndex([x + off for x in dti], dtype="datetime64[us]")
         tm.assert_index_equal(result, expected)
 
 
@@ -819,7 +813,7 @@ class TestDateOffset:
         ts = Timestamp("2022-01-01").as_unit(unit)
 
         result = ts + offset
-        expected = (DatetimeIndex([ts]) + offset)[0]
+        expected = (pd.DatetimeIndex([ts]) + offset)[0]
 
         assert result == expected
         assert result.unit == expected.unit
@@ -1235,7 +1229,7 @@ def test_dateoffset_add_sub_timestamp_series_with_nano(offset, expected):
     # GH 47856
     start_time = Timestamp("2022-01-01")
     teststamp = start_time
-    testseries = Series([start_time])
+    testseries = pd.Series([start_time])
     testseries = testseries + offset
     assert testseries[0] == expected
     testseries -= offset
@@ -1262,13 +1256,13 @@ def test_offset_multiplication(
     mo1 = DateOffset(months=n_months)
 
     startscalar = Timestamp(start_timestamp)
-    startarray = Series([startscalar])
+    startarray = pd.Series([startscalar])
 
     resultscalar = startscalar + (mo1 * scaling_factor)
     resultarray = startarray + (mo1 * scaling_factor)
 
     expectedscalar = Timestamp(expected_timestamp)
-    expectedarray = Series([expectedscalar])
+    expectedarray = pd.Series([expectedscalar])
     assert resultscalar == expectedscalar
 
     tm.assert_series_equal(resultarray, expectedarray)
@@ -1276,14 +1270,14 @@ def test_offset_multiplication(
 
 def test_offset_deprecated_error():
     with pytest.raises(ValueError, match="Did you mean h"):
-        date_range("2012-01-01", periods=3, freq="H")
+        pd.date_range("2012-01-01", periods=3, freq="H")
 
 
 def test_dateoffset_operations_on_dataframes(performance_warning):
     # GH 47953
-    df = DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
+    df = pd.DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
     frameresult1 = df["T"] + 26 * df["D"]
-    df2 = DataFrame(
+    df2 = pd.DataFrame(
         {
             "T": [Timestamp("2019-04-30"), Timestamp("2019-04-30")],
             "D": [DateOffset(months=1), DateOffset(months=1)],
@@ -1361,7 +1355,7 @@ def test_dateoffset_days_vs_n_near_dst_transition(warsaw, n):
     offset_n = ts + offsets.DateOffset(n)
     assert offset_days == offset_n
     # the scalar result also agrees with the vectorized one
-    expected = DatetimeIndex([ts]) + offsets.DateOffset(n)
+    expected = pd.DatetimeIndex([ts]) + offsets.DateOffset(n)
     assert offset_n == expected[0]
 
 
@@ -1379,11 +1373,11 @@ def test_dateoffset_n_scalar_near_dst_transition(warsaw, start, n):
     assert result.utcoffset() == expected.utcoffset()
 
     # the vectorized path is a separate implementation
-    assert (DatetimeIndex([ts]) + offsets.DateOffset(n))[0] == result
+    assert (pd.DatetimeIndex([ts]) + offsets.DateOffset(n))[0] == result
 
 
 @pytest.mark.parametrize("n", [1, 2, -1])
-@pytest.mark.parametrize("box", [DatetimeIndex, Series])
+@pytest.mark.parametrize("box", [pd.DatetimeIndex, pd.Series])
 def test_dateoffset_n_vectorized_near_dst_transition(box, n):
     # GH#61870 bare DateOffset(n) was a no-op on the vectorized (array) path
     # while the scalar path correctly added n days; results must agree with
@@ -1399,7 +1393,7 @@ def test_dateoffset_n_vectorized_near_dst_transition(box, n):
     assert result[0] == scalar
 
 
-@pytest.mark.parametrize("box", [DatetimeIndex, Series])
+@pytest.mark.parametrize("box", [pd.DatetimeIndex, pd.Series])
 @pytest.mark.parametrize(
     "offset",
     [
@@ -1445,10 +1439,10 @@ def test_month_end_year_above_int32():
     # GH#66549 get_days_in_month truncated the year to 32 bits, so the leap-year
     #  determination used a wrapped year. 2147483700 is not a leap year, but
     #  2147483700 - 2**32 is.
-    dti = DatetimeIndex(np.array(["2147483700-02-05"], dtype="M8[s]"))
+    dti = pd.DatetimeIndex(np.array(["2147483700-02-05"], dtype="M8[s]"))
 
     assert dti[0].days_in_month == 28
-    expected = DatetimeIndex(np.array(["2147483700-02-28"], dtype="M8[s]"))
+    expected = pd.DatetimeIndex(np.array(["2147483700-02-28"], dtype="M8[s]"))
     tm.assert_index_equal(dti + offsets.MonthEnd(1), expected)
     assert dti[0] + offsets.MonthEnd(1) == expected[0]
 
@@ -1477,7 +1471,7 @@ def test_to_offset_period_dtype_roundtrip(unit, n):
     # Test that period_dtype_to_offset correctly maps Dtypes back to offsets
     off = to_offset(unit, is_period=True) * n
 
-    dtype = PeriodDtype(off)
+    dtype = pd.PeriodDtype(off)
     assert dtype.freq == off
 
     round_trip = to_offset(dtype)

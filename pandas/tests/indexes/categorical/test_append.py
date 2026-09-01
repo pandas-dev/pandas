@@ -1,9 +1,6 @@
 import pytest
 
-from pandas import (
-    CategoricalIndex,
-    Index,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -11,7 +8,7 @@ class TestAppend:
     @pytest.fixture
     def ci(self):
         categories = list("cab")
-        return CategoricalIndex(list("aabbca"), categories=categories, ordered=False)
+        return pd.CategoricalIndex(list("aabbca"), categories=categories, ordered=False)
 
     def test_append(self, ci):
         # append cats with the same categories
@@ -39,26 +36,26 @@ class TestAppend:
         # GH#41626 pre-3.0 this used to cast the object-dtype index to
         #  ci.dtype
         # with objects
-        result = ci.append(Index(["c", "a"]))
-        expected = Index(list("aabbcaca"))
+        result = ci.append(pd.Index(["c", "a"]))
+        expected = pd.Index(list("aabbcaca"))
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_non_categories(self, ci):
         # invalid objects -> cast to object via concat_compat
-        result = ci.append(Index(["a", "d"]))
-        expected = Index(["a", "a", "b", "b", "c", "a", "a", "d"])
+        result = ci.append(pd.Index(["a", "d"]))
+        expected = pd.Index(["a", "a", "b", "b", "c", "a", "a", "d"])
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_object(self, ci):
         # GH#14298 - if base object is not categorical -> coerce to object
-        result = Index(["c", "a"]).append(ci)
-        expected = Index(list("caaabbca"))
+        result = pd.Index(["c", "a"]).append(ci)
+        expected = pd.Index(list("caaabbca"))
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_to_another(self):
         # hits Index._concat
-        fst = Index(["a", "b"])
-        snd = CategoricalIndex(["d", "e"])
+        fst = pd.Index(["a", "b"])
+        snd = pd.CategoricalIndex(["d", "e"])
         result = fst.append(snd)
-        expected = Index(["a", "b", "d", "e"])
+        expected = pd.Index(["a", "b", "d", "e"])
         tm.assert_index_equal(result, expected)

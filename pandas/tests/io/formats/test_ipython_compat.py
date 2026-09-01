@@ -2,16 +2,13 @@ import numpy as np
 
 import pandas._config.config as cf
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+import pandas as pd
 
 
 class TestTableSchemaRepr:
     def test_publishes(self, ip):
         ipython = ip.instance(config=ip.config)
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
         objects = [df["A"], df]  # dataframe / series
         expected_keys = [
             {"text/plain", "application/vnd.dataresource+json"},
@@ -43,8 +40,8 @@ class TestTableSchemaRepr:
     def test_publishes_not_implemented(self, ip):
         # column MultiIndex
         # GH#15996
-        midx = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
-        df = DataFrame(
+        midx = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, len(midx))), columns=midx
         )
 
@@ -57,14 +54,14 @@ class TestTableSchemaRepr:
         assert set(formatted[0].keys()) == expected
 
     def test_config_on(self):
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
         with cf.option_context("display.html.table_schema", True):
             result = df._repr_data_resource_()
 
         assert result is not None
 
     def test_config_default_off(self):
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
         with cf.option_context("display.html.table_schema", False):
             result = df._repr_data_resource_()
 
