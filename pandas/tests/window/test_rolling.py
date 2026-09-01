@@ -637,7 +637,7 @@ def test_rolling_datetime(tz_naive_fixture):
 
 def test_rolling_window_as_string(center):
     # see gh-22590
-    date_today = datetime.now()
+    date_today = datetime(2011, 1, 1)
     days = date_range(date_today, date_today + timedelta(365), freq="D")
 
     data = np.ones(len(days))

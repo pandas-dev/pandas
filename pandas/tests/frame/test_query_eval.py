@@ -1626,7 +1626,12 @@ class TestDataFrameQueryBacktickQuoting:
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - a")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 1]],
@@ -1639,7 +1644,12 @@ class TestDataFrameQueryBacktickQuoting:
         # GH#29618
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - 1")
         expected = DataFrame(
             [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
@@ -1669,7 +1679,12 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame({"a": [1, 2]}, dtype=dtype)
         ref = {2}  # noqa: F841
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.query("a in @ref")
         expected = DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
         tm.assert_frame_equal(result, expected)
@@ -1686,7 +1701,12 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame(
             {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
         )
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.query("A == B", engine=engine)
         expected = DataFrame(
             {
@@ -1698,7 +1718,7 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_all_nat_in_object(self):
         # GH#57068
-        now = pd.Timestamp.now("UTC")  # noqa: F841
+        now = pd.Timestamp("2011-01-01", tz="UTC")  # noqa: F841
         df = DataFrame({"a": pd.to_datetime([None, None], utc=True)}, dtype=object)
         result = df.query("a > @now")
         expected = DataFrame({"a": []}, dtype=object)

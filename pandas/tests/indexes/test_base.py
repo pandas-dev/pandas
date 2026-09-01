@@ -837,7 +837,7 @@ class TestIndex:
         ],
     )
     def test_is_monotonic_incomparable(self, attr):
-        index = Index([5, datetime.now(), 7])
+        index = Index([5, datetime(2011, 1, 1), 7])
         assert not getattr(index, attr)
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])

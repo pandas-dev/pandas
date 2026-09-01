@@ -206,7 +206,7 @@ class TestTimestampComparison:
     def test_timestamp_compare_scalars(self):
         # case where ndim == 0
         lhs = np.datetime64(datetime(2013, 12, 6))
-        rhs = Timestamp("now")
+        rhs = Timestamp("2011-01-01 09:42:00.123456")
         nat = Timestamp("nat")
 
         ops = {"gt": "lt", "lt": "gt", "ge": "le", "le": "ge", "eq": "eq", "ne": "ne"}

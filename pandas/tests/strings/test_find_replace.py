@@ -120,7 +120,7 @@ def test_contains(any_string_dtype):
 def test_contains_object_mixed():
     mixed = Series(
         np.array(
-            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            ["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0],
             dtype=object,
         )
     )
@@ -492,7 +492,7 @@ def test_startswith(pat, dtype, null_value, na, using_infer_string):
 
     # mixed
     mixed = np.array(
-        ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+        ["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0],
         dtype=np.object_,
     )
     rs = Series(mixed).str.startswith("f")
@@ -563,7 +563,7 @@ def test_endswith(pat, dtype, null_value, na, using_infer_string):
 
     # mixed
     mixed = np.array(
-        ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+        ["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0],
         dtype=object,
     )
     rs = Series(mixed).str.endswith("f")
@@ -642,7 +642,7 @@ def test_replace_max_replacements(any_string_dtype):
 
 def test_replace_mixed_object():
     ser = Series(
-        ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
+        ["aBAD", np.nan, "bBAD", True, datetime(2011, 1, 1), "fooBAD", None, 1, 2.0]
     )
     result = Series(ser).str.replace("BAD[_]*", "", regex=True)
     expected = Series(
@@ -851,7 +851,7 @@ def test_replace_compiled_regex(any_string_dtype):
 def test_replace_compiled_regex_mixed_object():
     pat = re.compile(r"BAD_*")
     ser = Series(
-        ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
+        ["aBAD", np.nan, "bBAD", True, datetime(2011, 1, 1), "fooBAD", None, 1, 2.0]
     )
     result = Series(ser).str.replace(pat, "", regex=True)
     expected = Series(
@@ -1145,7 +1145,7 @@ def test_match_mixed_object():
             np.nan,
             "BAD_b_BAD",
             True,
-            datetime.today(),
+            datetime(2011, 1, 1),
             "foo",
             None,
             1,
@@ -1655,7 +1655,7 @@ def test_findall_mixed_object():
             np.nan,
             "foo",
             True,
-            datetime.today(),
+            datetime(2011, 1, 1),
             "BAD",
             None,
             1,

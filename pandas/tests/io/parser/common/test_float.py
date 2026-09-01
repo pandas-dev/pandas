@@ -140,6 +140,48 @@ def test_precise_xstrtod_large_mantissa(c_parser_only, value):
 @pytest.mark.parametrize(
     "value",
     [
+        "000000000010084566.0",
+        # leading zeros before the decimal point must not eat into the budget
+        # either, or the low digits of the fractional part are lost
+        "00000000000.00564728024629623",
+        "000.0469911460454665528",
+        "000000000000000000000000.03704296608561985",
+        "0.12345678901234567890",
+    ],
+)
+def test_precise_xstrtod_leading_zeros(c_parser_only, value):
+    # GH#64184
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = DataFrame({"val": [float(value)]})
+    # check_exact: the digits lost to the bug are well inside the default rtol
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize("value", ["0", "000", "0.", "0.0", "-0", "0e5"])
+def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
+    # GH#64184: an all-zero mantissa is a valid zero, not an unparsable string.
+    # Guards the branch that skipping the leading zeros makes necessary.
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = DataFrame({"val": [float(value)]})
+    tm.assert_frame_equal(result, expected, check_dtype=False, check_exact=True)
+
+
+def test_precise_xstrtod_leading_zero_matches_bare_point(c_parser_only):
+    # GH#64184: "0.x" must get the same significant-digit budget as ".x"
+    parser = c_parser_only
+    digits = "12345678901234567890"
+    data = f"val\n0.{digits}\n.{digits}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")["val"]
+    assert result[0] == result[1] == float(f"0.{digits}")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
         # up to 19 significant digits, parsed straight from the digits
         "1.7976931348623157e308",  # largest finite double
         "2.2250738585072014e-308",  # smallest normal double

@@ -1,4 +1,3 @@
-from itertools import chain
 import operator
 
 import numpy as np
@@ -73,7 +72,8 @@ def test_apply_np_transformer(float_frame, op, how):
     if op in ["log", "sqrt"]:
         warn = RuntimeWarning
 
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
+    msg = f"invalid value encountered in {op}"
+    with tm.assert_produces_warning(warn, check_stacklevel=False, match=msg):
         # float_frame fixture is defined in conftest.py, so we don't check the
         # stacklevel as otherwise the test would fail.
         result = getattr(float_frame, how)(op)
@@ -83,58 +83,37 @@ def test_apply_np_transformer(float_frame, op, how):
 
 @pytest.mark.parametrize(
     "series, func, expected",
-    list(
-        chain(
-            tm.get_cython_table_params(
-                Series(dtype=np.float64),
-                [
-                    ("sum", 0),
-                    ("max", np.nan),
-                    ("min", np.nan),
-                    ("all", True),
-                    ("any", False),
-                    ("mean", np.nan),
-                    ("prod", 1),
-                    ("std", np.nan),
-                    ("var", np.nan),
-                    ("median", np.nan),
-                ],
-            ),
-            tm.get_cython_table_params(
-                Series([np.nan, 1, 2, 3]),
-                [
-                    ("sum", 6),
-                    ("max", 3),
-                    ("min", 1),
-                    ("all", True),
-                    ("any", True),
-                    ("mean", 2),
-                    ("prod", 6),
-                    ("std", 1),
-                    ("var", 1),
-                    ("median", 2),
-                ],
-            ),
-            tm.get_cython_table_params(
-                Series("a b c".split()),
-                [
-                    ("sum", "abc"),
-                    ("max", "c"),
-                    ("min", "a"),
-                    ("all", True),
-                    ("any", True),
-                ],
-            ),
-        )
-    ),
+    [
+        (Series(dtype=np.float64), "sum", 0),
+        (Series(dtype=np.float64), "max", np.nan),
+        (Series(dtype=np.float64), "min", np.nan),
+        (Series(dtype=np.float64), "all", True),
+        (Series(dtype=np.float64), "any", False),
+        (Series(dtype=np.float64), "mean", np.nan),
+        (Series(dtype=np.float64), "prod", 1),
+        (Series(dtype=np.float64), "std", np.nan),
+        (Series(dtype=np.float64), "var", np.nan),
+        (Series(dtype=np.float64), "median", np.nan),
+        (Series([np.nan, 1, 2, 3]), "sum", 6),
+        (Series([np.nan, 1, 2, 3]), "max", 3),
+        (Series([np.nan, 1, 2, 3]), "min", 1),
+        (Series([np.nan, 1, 2, 3]), "all", True),
+        (Series([np.nan, 1, 2, 3]), "any", True),
+        (Series([np.nan, 1, 2, 3]), "mean", 2),
+        (Series([np.nan, 1, 2, 3]), "prod", 6),
+        (Series([np.nan, 1, 2, 3]), "std", 1),
+        (Series([np.nan, 1, 2, 3]), "var", 1),
+        (Series([np.nan, 1, 2, 3]), "median", 2),
+        (Series("a b c".split()), "sum", "abc"),
+        (Series("a b c".split()), "max", "c"),
+        (Series("a b c".split()), "min", "a"),
+        (Series("a b c".split()), "all", True),
+        (Series("a b c".split()), "any", True),
+    ],
 )
-def test_agg_cython_table_series(series, func, expected):
+def test_agg_reduction_series(series, func, expected):
     # GH21224
-    # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
-    warn = None if isinstance(func, str) else FutureWarning
-    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
-        result = series.agg(func)
+    result = series.agg(func)
     if is_number(expected):
         assert np.isclose(result, expected, equal_nan=True)
     else:
@@ -143,115 +122,71 @@ def test_agg_cython_table_series(series, func, expected):
 
 @pytest.mark.parametrize(
     "series, func, expected",
-    list(
-        chain(
-            tm.get_cython_table_params(
-                Series(dtype=np.float64),
-                [
-                    ("cumprod", Series([], dtype=np.float64)),
-                    ("cumsum", Series([], dtype=np.float64)),
-                ],
-            ),
-            tm.get_cython_table_params(
-                Series([np.nan, 1, 2, 3]),
-                [
-                    ("cumprod", Series([np.nan, 1, 2, 6])),
-                    ("cumsum", Series([np.nan, 1, 3, 6])),
-                ],
-            ),
-            tm.get_cython_table_params(
-                Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
-            ),
-        )
-    ),
+    [
+        (Series(dtype=np.float64), "cumprod", Series([], dtype=np.float64)),
+        (Series(dtype=np.float64), "cumsum", Series([], dtype=np.float64)),
+        (Series([np.nan, 1, 2, 3]), "cumprod", Series([np.nan, 1, 2, 6])),
+        (Series([np.nan, 1, 2, 3]), "cumsum", Series([np.nan, 1, 3, 6])),
+        (Series("a b c".split()), "cumsum", Series(["a", "ab", "abc"])),
+    ],
 )
-def test_agg_cython_table_transform_series(series, func, expected):
+def test_agg_transform_series(series, func, expected):
     # GH21224
-    # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    warn = None if isinstance(func, str) else FutureWarning
-    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
-        result = series.agg(func)
+    result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "df, func, expected",
-    list(
-        chain(
-            tm.get_cython_table_params(
-                DataFrame(),
-                [
-                    ("sum", Series(dtype="float64")),
-                    ("max", Series(dtype="float64")),
-                    ("min", Series(dtype="float64")),
-                    ("all", Series(dtype=bool)),
-                    ("any", Series(dtype=bool)),
-                    ("mean", Series(dtype="float64")),
-                    ("prod", Series(dtype="float64")),
-                    ("std", Series(dtype="float64")),
-                    ("var", Series(dtype="float64")),
-                    ("median", Series(dtype="float64")),
-                ],
-            ),
-            tm.get_cython_table_params(
-                DataFrame([[np.nan, 1], [1, 2]]),
-                [
-                    ("sum", Series([1.0, 3])),
-                    ("max", Series([1.0, 2])),
-                    ("min", Series([1.0, 1])),
-                    ("all", Series([True, True])),
-                    ("any", Series([True, True])),
-                    ("mean", Series([1, 1.5])),
-                    ("prod", Series([1.0, 2])),
-                    ("std", Series([np.nan, 0.707107])),
-                    ("var", Series([np.nan, 0.5])),
-                    ("median", Series([1, 1.5])),
-                ],
-            ),
-        )
-    ),
+    [
+        (DataFrame(), "sum", Series(dtype="float64")),
+        (DataFrame(), "max", Series(dtype="float64")),
+        (DataFrame(), "min", Series(dtype="float64")),
+        (DataFrame(), "all", Series(dtype=bool)),
+        (DataFrame(), "any", Series(dtype=bool)),
+        (DataFrame(), "mean", Series(dtype="float64")),
+        (DataFrame(), "prod", Series(dtype="float64")),
+        (DataFrame(), "std", Series(dtype="float64")),
+        (DataFrame(), "var", Series(dtype="float64")),
+        (DataFrame(), "median", Series(dtype="float64")),
+        (DataFrame([[np.nan, 1], [1, 2]]), "sum", Series([1.0, 3])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "max", Series([1.0, 2])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "min", Series([1.0, 1])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "all", Series([True, True])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "any", Series([True, True])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "mean", Series([1, 1.5])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "prod", Series([1.0, 2])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "std", Series([np.nan, 0.707107])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "var", Series([np.nan, 0.5])),
+        (DataFrame([[np.nan, 1], [1, 2]]), "median", Series([1, 1.5])),
+    ],
 )
-def test_agg_cython_table_frame(df, func, expected, axis):
+def test_agg_reduction_frame(df, func, expected, axis):
     # GH 21224
-    # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
-    warn = None if isinstance(func, str) else FutureWarning
-    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
-        # GH#53425
-        result = df.agg(func, axis=axis)
+    result = df.agg(func, axis=axis)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "df, func, expected",
-    list(
-        chain(
-            tm.get_cython_table_params(
-                DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
-            ),
-            tm.get_cython_table_params(
-                DataFrame([[np.nan, 1], [1, 2]]),
-                [
-                    ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
-                    ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
-                ],
-            ),
-        )
-    ),
+    [
+        (DataFrame(), "cumprod", DataFrame()),
+        (DataFrame(), "cumsum", DataFrame()),
+        (
+            DataFrame([[np.nan, 1], [1, 2]]),
+            "cumprod",
+            DataFrame([[np.nan, 1], [1, 2]]),
+        ),
+        (DataFrame([[np.nan, 1], [1, 2]]), "cumsum", DataFrame([[np.nan, 1], [1, 3]])),
+    ],
 )
-def test_agg_cython_table_transform_frame(df, func, expected, axis):
+def test_agg_transform_frame(df, func, expected, axis):
     # GH 21224
-    # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
     if axis in ("columns", 1):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
-    warn = None if isinstance(func, str) else FutureWarning
-    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
-        # GH#53425
-        result = df.agg(func, axis=axis)
+    result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
@@ -262,14 +197,9 @@ def test_transform_groupby_kernel_series(request, string_series, op):
         request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
-    args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
-
-    warn = FutureWarning if op == "fillna" else None
-    msg = "SeriesGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = string_series.groupby(ones).transform(op, *args)
-    result = string_series.transform(op, 0, *args)
+    expected = string_series.groupby(ones).transform(op)
+    result = string_series.transform(op, 0)
     tm.assert_series_equal(result, expected)
 
 
@@ -282,16 +212,11 @@ def test_transform_groupby_kernel_frame(request, float_frame, op):
 
     # GH 35964
 
-    args = [0.0] if op == "fillna" else []
     ones = np.ones(float_frame.shape[0])
     gb = float_frame.groupby(ones)
+    expected = gb.transform(op)
 
-    warn = FutureWarning if op == "fillna" else None
-    op_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=op_msg):
-        expected = gb.transform(op, *args)
-
-    result = float_frame.transform(op, 0, *args)
+    result = float_frame.transform(op, 0)
     tm.assert_frame_equal(result, expected)
 
     # same thing, but ensuring we have multiple blocks
@@ -301,8 +226,8 @@ def test_transform_groupby_kernel_frame(request, float_frame, op):
 
     ones = np.ones(float_frame.shape[0])
     gb2 = float_frame.groupby(ones)
-    expected2 = gb2.transform(op, *args)
-    result2 = float_frame.transform(op, 0, *args)
+    expected2 = gb2.transform(op)
+    result2 = float_frame.transform(op, 0)
     tm.assert_frame_equal(result2, expected2)
 
 

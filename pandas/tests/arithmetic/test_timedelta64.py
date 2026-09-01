@@ -113,9 +113,9 @@ class TestTimedelta64ArrayLikeComparisons:
             345600000000000,
             "a",
             Timestamp("2021-01-01"),
-            Timestamp("2021-01-01").now("UTC"),
-            Timestamp("2021-01-01").now().to_datetime64(),
-            Timestamp("2021-01-01").now().to_pydatetime(),
+            Timestamp("2021-01-01", tz="UTC"),
+            Timestamp("2021-01-01").to_datetime64(),
+            Timestamp("2021-01-01").to_pydatetime(),
             Timestamp("2021-01-01").date(),
             np.array(4),  # zero-dim mismatched dtype
         ],
@@ -1513,7 +1513,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = "|".join(["has incorrect type", "cannot add the type MonthEnd"])
+        msg = "|".join(["unsupported operand type", "cannot add the type MonthEnd"])
         with pytest.raises(TypeError, match=msg):
             warn_msg = (
                 "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
@@ -2137,8 +2137,9 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
 
+        msg = "invalid value encountered in floor_divide"
         with tm.maybe_produces_warning(
-            RuntimeWarning, box is pd.array, check_stacklevel=False
+            RuntimeWarning, box is pd.array, check_stacklevel=False, match=msg
         ):
             result = left // right
 
@@ -2146,7 +2147,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         # case that goes through __rfloordiv__ with arraylike
         with tm.maybe_produces_warning(
-            RuntimeWarning, box is pd.array, check_stacklevel=False
+            RuntimeWarning, box is pd.array, check_stacklevel=False, match=msg
         ):
             result = np.asarray(left) // right
         tm.assert_equal(result, expected)

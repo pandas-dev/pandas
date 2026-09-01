@@ -138,7 +138,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6, dtype="u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
         exclude = (np.datetime64,)
@@ -165,7 +165,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6, dtype="int32"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
         exclude = (np.datetime64,)
@@ -297,7 +297,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
         df.columns = ["a", "a", "b", "b", "b", "c"]
@@ -317,7 +317,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
         df["g"] = df.f.diff()
@@ -351,7 +351,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
         # units that pandas cannot represent are rejected; only 's', 'ms',
@@ -439,7 +439,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
         msg = "string dtypes are not allowed"
@@ -457,7 +457,7 @@ class TestSelectDtypes:
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
-                "f": pd.date_range("now", periods=3).values,
+                "f": pd.date_range("2011-01-01", periods=3).values,
             }
         )
 

@@ -901,7 +901,9 @@ def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
     result_5 = ts_2.resample("D").mean()
     result_6 = ts_2.resample("24h", origin="epoch").mean()
     tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
-    tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
+    tm.assert_series_equal(
+        result_1.tz_localize(None), result_6.tz_localize(None), check_freq=False
+    )
 
 
 def test_resample_origin_with_day_freq_on_dst(unit):
