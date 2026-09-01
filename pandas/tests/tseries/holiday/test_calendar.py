@@ -2,11 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    offsets,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
@@ -57,10 +53,10 @@ def test_calendar_caching():
     jan2 = TestCalendar(rules=[Holiday("jan2", year=2015, month=1, day=2)])
 
     # Getting holidays for Jan 1 should not alter results for Jan 2.
-    expected = DatetimeIndex(["01-Jan-2015"]).as_unit("us")
+    expected = pd.DatetimeIndex(["01-Jan-2015"]).as_unit("us")
     tm.assert_index_equal(jan1.holidays(), expected)
 
-    expected2 = DatetimeIndex(["02-Jan-2015"]).as_unit("us")
+    expected2 = pd.DatetimeIndex(["02-Jan-2015"]).as_unit("us")
     tm.assert_index_equal(jan2.holidays(), expected2)
 
 
@@ -101,10 +97,10 @@ def test_calendar_2031():
         rules = [USLaborDay]
 
     cal = testCalendar()
-    workDay = offsets.CustomBusinessDay(calendar=cal)
-    Sat_before_Labor_Day_2031 = to_datetime("2031-08-30")
+    workDay = pd.offsets.CustomBusinessDay(calendar=cal)
+    Sat_before_Labor_Day_2031 = pd.to_datetime("2031-08-30")
     next_working_day = Sat_before_Labor_Day_2031 + 0 * workDay
-    assert next_working_day == to_datetime("2031-09-02")
+    assert next_working_day == pd.to_datetime("2031-09-02")
 
 
 def test_no_holidays_calendar():
@@ -115,5 +111,5 @@ def test_no_holidays_calendar():
 
     cal = NoHolidaysCalendar()
     holidays = cal.holidays(Timestamp("01-Jan-2020"), Timestamp("01-Jan-2021"))
-    empty_index = DatetimeIndex([])  # Type is DatetimeIndex since return_name=False
+    empty_index = pd.DatetimeIndex([])  # Type is DatetimeIndex since return_name=False
     tm.assert_index_equal(holidays, empty_index)

@@ -9,13 +9,6 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    period_range,
-    plotting,
-)
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_ax_scales,
@@ -43,16 +36,16 @@ from pandas.plotting._matplotlib.style import get_standard_colors
 
 @pytest.fixture
 def ts():
-    return Series(
+    return pd.Series(
         np.arange(10, dtype=np.float64),
-        index=date_range("2020-01-01", periods=10),
+        index=pd.date_range("2020-01-01", periods=10),
         name="ts",
     )
 
 
 @pytest.fixture
 def series():
-    return Series(
+    return pd.Series(
         range(10), dtype=np.float64, name="series", index=[f"i_{i}" for i in range(10)]
     )
 
@@ -90,7 +83,7 @@ class TestSeriesPlots:
         _check_plot_works(ts.plot.area, stacked=False)
 
     def test_plot_iseries(self):
-        ser = Series(range(5), period_range("2020-01-01", periods=5))
+        ser = pd.Series(range(5), pd.period_range("2020-01-01", periods=5))
         _check_plot_works(ser.plot)
 
     @pytest.mark.parametrize(
@@ -112,7 +105,8 @@ class TestSeriesPlots:
 
     def test_plot_series_bar_ax(self):
         ax = _check_plot_works(
-            Series(np.random.default_rng(2).standard_normal(10)).plot.bar, color="black"
+            pd.Series(np.random.default_rng(2).standard_normal(10)).plot.bar,
+            color="black",
         )
         _check_colors([ax.patches[0]], facecolors=["black"])
 
@@ -134,7 +128,7 @@ class TestSeriesPlots:
         key = "axes.prop_cycle"
         colors = mpl.pyplot.rcParams[key]
         _, ax = mpl.pyplot.subplots()
-        Series([1, 2, 3]).plot(ax=ax)
+        pd.Series([1, 2, 3]).plot(ax=ax)
         assert colors == mpl.pyplot.rcParams[key]
 
     @pytest.mark.parametrize("kwargs", [{}, {"secondary_y": True}])
@@ -198,32 +192,32 @@ class TestSeriesPlots:
         assert get_y_axis(ax2).joined(ax1, ax2)
 
     def test_label(self):
-        s = Series([1, 2])
+        s = pd.Series([1, 2])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(label="LABEL", legend=True, ax=ax)
         _check_legend_labels(ax, labels=["LABEL"])
 
     def test_label_none(self):
-        s = Series([1, 2])
+        s = pd.Series([1, 2])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, ax=ax)
         _check_legend_labels(ax, labels=[""])
 
     def test_label_ser_name(self):
-        s = Series([1, 2], name="NAME")
+        s = pd.Series([1, 2], name="NAME")
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, ax=ax)
         _check_legend_labels(ax, labels=["NAME"])
 
     def test_label_ser_name_override(self):
-        s = Series([1, 2], name="NAME")
+        s = pd.Series([1, 2], name="NAME")
         # override the default
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, label="LABEL", ax=ax)
         _check_legend_labels(ax, labels=["LABEL"])
 
     def test_label_ser_name_override_dont_draw(self):
-        s = Series([1, 2], name="NAME")
+        s = pd.Series([1, 2], name="NAME")
         # Add lebel info, but don't draw
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=False, label="LABEL", ax=ax)
@@ -233,17 +227,17 @@ class TestSeriesPlots:
 
     def test_boolean(self):
         # GH 23719
-        s = Series([False, False, True])
+        s = pd.Series([False, False, True])
         _check_plot_works(s.plot, include_bool=True)
 
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             _check_plot_works(s.plot)
 
-    @pytest.mark.parametrize("index", [None, date_range("2020-01-01", periods=4)])
+    @pytest.mark.parametrize("index", [None, pd.date_range("2020-01-01", periods=4)])
     def test_line_area_nan_series(self, index):
         values = [1, 2, np.nan, 3]
-        d = Series(values, index=index)
+        d = pd.Series(values, index=index)
         ax = _check_plot_works(d.plot)
         masked = ax.lines[0].get_ydata()
         # remove nan for comparison purpose
@@ -260,7 +254,7 @@ class TestSeriesPlots:
         tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
     def test_line_use_index_false(self):
-        s = Series([1, 2, 3], index=["a", "b", "c"])
+        s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         s.index.name = "The Index"
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(use_index=False, ax=ax)
@@ -268,7 +262,7 @@ class TestSeriesPlots:
         assert label == ""
 
     def test_line_use_index_false_diff_var(self):
-        s = Series([1, 2, 3], index=["a", "b", "c"])
+        s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         s.index.name = "The Index"
         _, ax = mpl.pyplot.subplots()
         ax2 = s.plot.bar(use_index=False, ax=ax)
@@ -286,7 +280,7 @@ class TestSeriesPlots:
         )
 
         _, ax = mpl.pyplot.subplots()
-        ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
+        ax = getattr(pd.Series([200, 500]).plot, meth)(log=True, ax=ax)
         result = getattr(ax, axis).get_ticklocs()
         # GH#64317 on some linux builds this is flaky with a tiny difference.
         #  Rather than xfail this test, we allow a small
@@ -308,7 +302,7 @@ class TestSeriesPlots:
         )
 
         _, ax = mpl.pyplot.subplots()
-        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind=kind, ax=ax)
+        ax = pd.Series([0.1, 0.01, 0.001]).plot(log=True, kind=kind, ax=ax)
         ymin = 0.0007943282347242822
         ymax = 0.12589254117941673
         res = getattr(ax, res_meth)()
@@ -322,13 +316,13 @@ class TestSeriesPlots:
         tm.assert_almost_equal(result, expected, atol=1e-15)
 
     def test_bar_ignore_index(self):
-        df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
+        df = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         _, ax = mpl.pyplot.subplots()
         ax = df.plot.bar(use_index=False, ax=ax)
         _check_text_labels(ax.get_xticklabels(), ["0", "1", "2", "3"])
 
     def test_bar_user_colors(self):
-        s = Series([1, 2, 3, 4])
+        s = pd.Series([1, 2, 3, 4])
         ax = s.plot.bar(color=["red", "blue", "blue", "red"])
         result = [p.get_facecolor() for p in ax.patches]
         expected = [
@@ -340,22 +334,22 @@ class TestSeriesPlots:
         assert result == expected
 
     def test_rotation_default(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(ax=ax)
         _check_ticks_props(axes, xrot=0)
 
     def test_rotation_30(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(rot=30, ax=ax)
         _check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
-        rng = date_range("1/1/2000", "1/15/2000")
+        rng = pd.date_range("1/1/2000", "1/15/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
-        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
+        ser = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = ser.plot(ax=ax)
         xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
@@ -364,7 +358,7 @@ class TestSeriesPlots:
         _check_ticks_props(ax, xrot=30)
 
     def test_unsorted_index_xlim(self):
-        ser = Series(
+        ser = pd.Series(
             [0.0, 1.0, np.nan, 3.0, 4.0, 5.0, 6.0],
             index=[1.0, 0.0, 3.0, 2.0, np.nan, 3.0, 2.0],
         )
@@ -378,7 +372,7 @@ class TestSeriesPlots:
     def test_pie_series(self):
         # if sum of values is less than 1.0, pie handle them as rate and draw
         # semicircle.
-        series = Series(
+        series = pd.Series(
             np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
@@ -390,11 +384,11 @@ class TestSeriesPlots:
     def test_pie_arrow_type(self):
         # GH 59192
         pytest.importorskip("pyarrow")
-        ser = Series([1, 2, 3, 4], dtype="int32[pyarrow]")
+        ser = pd.Series([1, 2, 3, 4], dtype="int32[pyarrow]")
         _check_plot_works(ser.plot.pie)
 
     def test_pie_series_no_label(self):
-        series = Series(
+        series = pd.Series(
             np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
@@ -403,7 +397,7 @@ class TestSeriesPlots:
         _check_text_labels(ax.texts, [""] * 5)
 
     def test_pie_series_less_colors_than_elements(self):
-        series = Series(
+        series = pd.Series(
             np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
@@ -415,7 +409,7 @@ class TestSeriesPlots:
         _check_colors(ax.patches, facecolors=color_expected)
 
     def test_pie_series_labels_and_colors(self):
-        series = Series(
+        series = pd.Series(
             np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
@@ -428,7 +422,7 @@ class TestSeriesPlots:
         _check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_series_autopct_and_fontsize(self):
-        series = Series(
+        series = pd.Series(
             np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
@@ -449,18 +443,18 @@ class TestSeriesPlots:
 
     def test_pie_series_negative_raises(self):
         # includes negative value
-        series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
+        series = pd.Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
         with pytest.raises(ValueError, match="pie plot doesn't allow negative values"):
             series.plot.pie()
 
     def test_pie_series_nan(self):
         # includes nan
-        series = Series([1, 2, np.nan, 4], index=["a", "b", "c", "d"], name="YLABEL")
+        series = pd.Series([1, 2, np.nan, 4], index=["a", "b", "c", "d"], name="YLABEL")
         ax = _check_plot_works(series.plot.pie)
         _check_text_labels(ax.texts, ["a", "b", "", "d"])
 
     def test_pie_nan(self):
-        s = Series([1, np.nan, 1, 1])
+        s = pd.Series([1, np.nan, 1, 1])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot.pie(legend=True, ax=ax)
         expected = ["0", "", "2", "3"]
@@ -469,10 +463,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend(self):
         # GH 9779
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
-        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
+        s = pd.Series(np.random.default_rng(2).standard_normal(10), name="x")
 
         # primary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
@@ -487,8 +481,8 @@ class TestSeriesPlots:
     def test_df_scatter_series_secondary_y_axis_visible(self):
         # GH#66789 the scatter's data is a collection, which used to read as
         # nothing having been plotted, hiding the primary y-axis
-        df = DataFrame({"x": np.arange(10.0), "y": np.arange(10.0)})
-        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
+        df = pd.DataFrame({"x": np.arange(10.0), "y": np.arange(10.0)})
+        s = pd.Series(np.random.default_rng(2).standard_normal(10), name="x")
 
         _, ax = mpl.pyplot.subplots()
         df.plot.scatter(x="x", y="y", ax=ax)
@@ -498,10 +492,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend_both(self):
         # GH 9779
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
-        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
+        s = pd.Series(np.random.default_rng(2).standard_normal(10), name="x")
         # secondary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
@@ -515,10 +509,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend_both_with_axis_2(self):
         # GH 9779
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
-        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
+        s = pd.Series(np.random.default_rng(2).standard_normal(10), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
@@ -536,12 +530,12 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("secondary_kwarg", [{}, {"secondary_y": True}])
     def test_secondary_logy(self, input_logy, expected_scale, secondary_kwarg):
         # GH 25545, GH 24980
-        s1 = Series(np.random.default_rng(2).standard_normal(10))
+        s1 = pd.Series(np.random.default_rng(2).standard_normal(10))
         ax1 = s1.plot(logy=input_logy, **secondary_kwarg)
         assert ax1.get_yscale() == expected_scale
 
     def test_plot_fails_with_dupe_color_and_style(self):
-        x = Series(np.random.default_rng(2).standard_normal(2))
+        x = pd.Series(np.random.default_rng(2).standard_normal(2))
         _, ax = mpl.pyplot.subplots()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' keyword "
@@ -577,7 +571,7 @@ class TestSeriesPlots:
     def test_kde_kwargs_weights(self, bw_method, ind, weights):
         # GH59337
         pytest.importorskip("scipy")
-        s = Series(np.random.default_rng(2).uniform(size=50))
+        s = pd.Series(np.random.default_rng(2).uniform(size=50))
         _check_plot_works(s.plot.kde, bw_method=bw_method, ind=ind, weights=weights)
 
     def test_density_kwargs(self, ts):
@@ -595,7 +589,7 @@ class TestSeriesPlots:
 
     def test_kde_missing_vals(self):
         pytest.importorskip("scipy")
-        s = Series(np.random.default_rng(2).uniform(size=50))
+        s = pd.Series(np.random.default_rng(2).uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
 
@@ -611,64 +605,64 @@ class TestSeriesPlots:
 
     @pytest.mark.parametrize(
         "kind",
-        plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
+        pd.plotting.PlotAccessor._common_kinds + pd.plotting.PlotAccessor._series_kinds,
     )
     def test_kind_kwarg(self, kind):
         pytest.importorskip("scipy")
-        s = Series(range(3))
+        s = pd.Series(range(3))
         _, ax = mpl.pyplot.subplots()
         s.plot(kind=kind, ax=ax)
         mpl.pyplot.close()
 
     @pytest.mark.parametrize(
         "kind",
-        plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
+        pd.plotting.PlotAccessor._common_kinds + pd.plotting.PlotAccessor._series_kinds,
     )
     def test_kind_attr(self, kind):
         pytest.importorskip("scipy")
-        s = Series(range(3))
+        s = pd.Series(range(3))
         _, ax = mpl.pyplot.subplots()
         getattr(s.plot, kind)()
         mpl.pyplot.close()
 
-    @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
+    @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
     def test_invalid_plot_data(self, kind):
-        s = Series(list("abcd"))
+        s = pd.Series(list("abcd"))
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
 
-    @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
+    @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
     def test_valid_object_plot(self, kind):
         pytest.importorskip("scipy")
-        s = Series(range(10), dtype=object)
+        s = pd.Series(range(10), dtype=object)
         _check_plot_works(s.plot, kind=kind)
 
-    @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
+    @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
     def test_partially_invalid_plot_data(self, kind):
-        s = Series(["a", "b", 1.0, 2])
+        s = pd.Series(["a", "b", 1.0, 2])
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):
-        s = Series([1, 2])
+        s = pd.Series([1, 2])
         with pytest.raises(ValueError, match="invalid_kind is not a valid plot kind"):
             s.plot(kind="invalid_kind")
 
     def test_dup_datetime_index_plot(self):
-        dr1 = date_range("1/1/2009", periods=4)
-        dr2 = date_range("1/2/2009", periods=4)
+        dr1 = pd.date_range("1/1/2009", periods=4)
+        dr2 = pd.date_range("1/2/2009", periods=4)
         index = dr1.append(dr2)
         values = np.random.default_rng(2).standard_normal(index.size)
-        s = Series(values, index=index)
+        s = pd.Series(values, index=index)
         _check_plot_works(s.plot)
 
     def test_errorbar_asymmetrical(self):
         # GH9536
-        s = Series(np.arange(10), name="x")
+        s = pd.Series(np.arange(10), name="x")
         err = np.random.default_rng(2).random((2, 10))
 
         ax = s.plot(yerr=err, xerr=err)
@@ -679,7 +673,7 @@ class TestSeriesPlots:
 
     def test_errorbar_asymmetrical_error(self):
         # GH9536
-        s = Series(np.arange(10), name="x")
+        s = pd.Series(np.arange(10), name="x")
         msg = (
             "Asymmetrical error bars should be provided "
             f"with the shape \\(2, {len(s)}\\)"
@@ -692,23 +686,23 @@ class TestSeriesPlots:
     @pytest.mark.parametrize(
         "yerr",
         [
-            Series(np.abs(np.random.default_rng(2).standard_normal(10))),
+            pd.Series(np.abs(np.random.default_rng(2).standard_normal(10))),
             np.abs(np.random.default_rng(2).standard_normal(10)),
             list(np.abs(np.random.default_rng(2).standard_normal(10))),
-            DataFrame(
+            pd.DataFrame(
                 np.abs(np.random.default_rng(2).standard_normal((10, 2))),
                 columns=["x", "y"],
             ),
         ],
     )
     def test_errorbar_plot(self, kind, yerr):
-        s = Series(np.arange(10), name="x")
+        s = pd.Series(np.arange(10), name="x")
         ax = _check_plot_works(s.plot, yerr=yerr, kind=kind)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
     @pytest.mark.slow
     def test_errorbar_plot_yerr_0(self):
-        s = Series(np.arange(10), name="x")
+        s = pd.Series(np.arange(10), name="x")
         s_err = np.abs(np.random.default_rng(2).standard_normal(10))
         ax = _check_plot_works(s.plot, xerr=s_err)
         _check_has_errorbars(ax, xerr=1, yerr=0)
@@ -717,8 +711,8 @@ class TestSeriesPlots:
     @pytest.mark.parametrize(
         "yerr",
         [
-            Series(np.abs(np.random.default_rng(2).standard_normal(12))),
-            DataFrame(
+            pd.Series(np.abs(np.random.default_rng(2).standard_normal(12))),
+            pd.DataFrame(
                 np.abs(np.random.default_rng(2).standard_normal((12, 2))),
                 columns=["x", "y"],
             ),
@@ -726,8 +720,8 @@ class TestSeriesPlots:
     )
     def test_errorbar_plot_ts(self, yerr):
         # test time series plotting
-        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
-        ts = Series(np.arange(12), index=ix, name="x")
+        ix = pd.date_range("1/1/2000", "1/1/2001", freq="ME")
+        ts = pd.Series(np.arange(12), index=ix, name="x")
         yerr.index = ix
 
         ax = _check_plot_works(ts.plot, yerr=yerr)
@@ -735,14 +729,14 @@ class TestSeriesPlots:
 
     @pytest.mark.slow
     def test_errorbar_plot_invalid_yerr_shape(self):
-        s = Series(np.arange(10), name="x")
+        s = pd.Series(np.arange(10), name="x")
         # check incorrect lengths and types
         with tm.external_error_raised(ValueError):
             s.plot(yerr=np.arange(11))
 
     @pytest.mark.slow
     def test_errorbar_plot_invalid_yerr(self):
-        s = Series(np.arange(10), name="x")
+        s = pd.Series(np.arange(10), name="x")
         s_err = ["zzz"] * 10
         with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
@@ -760,8 +754,9 @@ class TestSeriesPlots:
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         pytest.importorskip("scipy")
         _check_grid_settings(
-            Series([1, 2, 3]),
-            plotting.PlotAccessor._series_kinds + plotting.PlotAccessor._common_kinds,
+            pd.Series([1, 2, 3]),
+            pd.plotting.PlotAccessor._series_kinds
+            + pd.plotting.PlotAccessor._common_kinds,
         )
 
     @pytest.mark.parametrize("c", ["r", "red", "green", "#FF0000"])
@@ -810,21 +805,21 @@ class TestSeriesPlots:
     def test_series_plot_color_kwargs(self):
         # GH1890
         _, ax = mpl.pyplot.subplots()
-        ax = Series(np.arange(12) + 1).plot(color="green", ax=ax)
+        ax = pd.Series(np.arange(12) + 1).plot(color="green", ax=ax)
         _check_colors(ax.get_lines(), linecolors=["green"])
 
     def test_time_series_plot_color_kwargs(self):
         # #1890
         _, ax = mpl.pyplot.subplots()
-        ax = Series(np.arange(12) + 1, index=date_range("1/1/2000", periods=12)).plot(
-            color="green", ax=ax
-        )
+        ax = pd.Series(
+            np.arange(12) + 1, index=pd.date_range("1/1/2000", periods=12)
+        ).plot(color="green", ax=ax)
         _check_colors(ax.get_lines(), linecolors=["green"])
 
     def test_time_series_plot_color_with_empty_kwargs(self):
         def_colors = _unpack_cycler(mpl.rcParams)
-        index = date_range("1/1/2000", periods=12)
-        s = Series(np.arange(1, 13), index=index)
+        index = pd.date_range("1/1/2000", periods=12)
+        s = pd.Series(np.arange(1, 13), index=index)
 
         ncolors = 3
 
@@ -835,7 +830,7 @@ class TestSeriesPlots:
 
     def test_xticklabels(self):
         # GH11529
-        s = Series(np.arange(10), index=[f"P{i:02d}" for i in range(10)])
+        s = pd.Series(np.arange(10), index=[f"P{i:02d}" for i in range(10)])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(xticks=[0, 3, 5, 9], ax=ax)
         exp = [f"P{i:02d}" for i in [0, 3, 5, 9]]
@@ -843,14 +838,14 @@ class TestSeriesPlots:
 
     def test_xtick_barPlot(self):
         # GH28172
-        s = Series(range(10), index=[f"P{i:02d}" for i in range(10)])
+        s = pd.Series(range(10), index=[f"P{i:02d}" for i in range(10)])
         ax = s.plot.bar(xticks=range(0, 11, 2))
         exp = np.array(list(range(0, 11, 2)))
         tm.assert_numpy_array_equal(exp, ax.get_xticks())
 
     def test_custom_business_day_freq(self):
         # GH7222
-        s = Series(
+        s = pd.Series(
             range(100, 121),
             index=pd.bdate_range(
                 start="2014-05-01",
@@ -868,7 +863,7 @@ class TestSeriesPlots:
         "ef1bd69fa42bbed5d09dd17f08c44fc8bfc2b685#r61470674"
     )
     def test_plot_accessor_updates_on_inplace(self):
-        ser = Series([1, 2, 3, 4])
+        ser = pd.Series([1, 2, 3, 4])
         _, ax = mpl.pyplot.subplots()
         ax = ser.plot(ax=ax)
         before = ax.xaxis.get_ticklocs()
@@ -882,7 +877,7 @@ class TestSeriesPlots:
     def test_plot_xlim_for_series(self, kind):
         # test if xlim is also correctly plotted in Series for line and area
         # GH 27686
-        s = Series([2, 3])
+        s = pd.Series([2, 3])
         _, ax = mpl.pyplot.subplots()
         s.plot(kind=kind, ax=ax)
         xlims = ax.get_xlim()
@@ -892,7 +887,7 @@ class TestSeriesPlots:
 
     def test_plot_no_rows(self):
         # GH 27758
-        df = Series(dtype=int)
+        df = pd.Series(dtype=int)
         assert df.empty
         ax = df.plot()
         assert len(ax.get_lines()) == 1
@@ -901,7 +896,7 @@ class TestSeriesPlots:
         assert len(line.get_ydata()) == 0
 
     def test_plot_no_numeric_data(self):
-        df = Series(["a", "b", "c"])
+        df = pd.Series(["a", "b", "c"])
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
@@ -914,7 +909,7 @@ class TestSeriesPlots:
     )
     def test_plot_order(self, data, index):
         # GH38865 Verify plot order of a Series
-        ser = Series(data=data, index=index)
+        ser = pd.Series(data=data, index=index)
         ax = ser.plot(kind="bar")
 
         expected = ser.tolist()
@@ -925,7 +920,7 @@ class TestSeriesPlots:
         assert expected == result
 
     def test_style_single_ok(self):
-        s = Series([1, 2])
+        s = pd.Series([1, 2])
         ax = s.plot(style="s", color="C3")
         assert ax.lines[0].get_color() == "C3"
 
@@ -936,7 +931,7 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh", "hist"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
-        ser = Series([1, 2, 3, 4])
+        ser = pd.Series([1, 2, 3, 4])
         ser.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name (reverse for barh)
@@ -966,12 +961,12 @@ class TestSeriesPlots:
     def test_timedelta_index(self, index):
         # GH37454
         xlims = (3, 1)
-        ax = Series([1, 2], index=index).plot(xlim=(xlims))
+        ax = pd.Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
 
     def test_series_none_color(self):
         # GH51953
-        series = Series([1, 2, 3])
+        series = pd.Series([1, 2, 3])
         ax = series.plot(color=None)
         expected = _unpack_cycler(mpl.pyplot.rcParams)[:1]
         _check_colors(ax.get_lines(), linecolors=expected)
@@ -985,8 +980,8 @@ class TestSeriesPlots:
 
     def test_secondary_y_subplot_axis_labels(self):
         # GH#14102
-        s1 = Series([5, 7, 6, 8, 7], index=[1, 2, 3, 4, 5])
-        s2 = Series([6, 4, 5, 3, 4], index=[1, 2, 3, 4, 5])
+        s1 = pd.Series([5, 7, 6, 8, 7], index=[1, 2, 3, 4, 5])
+        s2 = pd.Series([6, 4, 5, 3, 4], index=[1, 2, 3, 4, 5])
 
         ax = plt.subplot(2, 1, 1)
         s1.plot(ax=ax)
@@ -1002,9 +997,9 @@ class TestSeriesPlots:
         and that the x limits are set such that the plots are visible.
         """
         # GH61161
-        index = period_range("2023", periods=3, freq="Y")
+        index = pd.period_range("2023", periods=3, freq="Y")
         years = set(index.year.astype(str))
-        s = Series([1, 2, 3], index=index)
+        s = pd.Series([1, 2, 3], index=index)
         ax = plt.subplot()
         s.plot(kind="bar", ax=ax)
         bar_xticks = [

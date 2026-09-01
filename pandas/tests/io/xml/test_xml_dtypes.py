@@ -7,13 +7,7 @@ import pytest
 from pandas.errors import ParserWarning
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.xml import read_xml
@@ -93,7 +87,7 @@ def test_dtype_single_str(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": ["00360", "00360", "00180"],
@@ -115,7 +109,7 @@ def test_dtypes_all_str(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": ["00360", "00360", "00180"],
@@ -145,12 +139,12 @@ def test_dtypes_with_names(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "Col1": ["square", "circle", "triangle"],
-            "Col2": Series(["00360", "00360", "00180"], dtype="string"),
-            "Col3": Series([4.0, NA, 3.0], dtype="Int64"),
-            "Col4": DatetimeIndex(
+            "Col2": pd.Series(["00360", "00360", "00180"], dtype="string"),
+            "Col3": pd.Series([4.0, pd.NA, 3.0], dtype="Int64"),
+            "Col4": pd.DatetimeIndex(
                 ["2020-01-01", "2021-01-01", "2022-01-01"], dtype="M8[ns]"
             ),
         }
@@ -170,11 +164,11 @@ def test_dtype_nullable_int(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
-            "sides": Series([4.0, NA, 3.0], dtype="Int64"),
+            "sides": pd.Series([4.0, pd.NA, 3.0], dtype="Int64"),
         }
     )
 
@@ -192,10 +186,10 @@ def test_dtype_float(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
-            "degrees": Series([360, 360, 180]).astype("float"),
+            "degrees": pd.Series([360, 360, 180]).astype("float"),
             "sides": [4.0, float("nan"), 3.0],
         }
     )
@@ -214,7 +208,7 @@ def test_wrong_dtype(xml_books, parser, iterparse):
 
 
 def test_both_dtype_converters(parser, temp_file):
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": ["00360", "00360", "00180"],
@@ -257,7 +251,7 @@ def test_converters_str(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": ["00360", "00360", "00180"],
@@ -270,7 +264,7 @@ def test_converters_str(parser, temp_file):
 
 
 def test_converters_date(parser, temp_file):
-    convert_to_datetime = lambda x: to_datetime(x)
+    convert_to_datetime = lambda x: pd.to_datetime(x)
     df_result = read_xml(
         StringIO(xml_dates), converters={"date": convert_to_datetime}, parser=parser
     )
@@ -282,12 +276,12 @@ def test_converters_date(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
             "sides": [4.0, float("nan"), 3.0],
-            "date": to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
+            "date": pd.to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
         }
     )
 
@@ -329,12 +323,12 @@ def test_parse_dates_column_name(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
             "sides": [4.0, float("nan"), 3.0],
-            "date": to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
+            "date": pd.to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
         }
     )
 
@@ -352,12 +346,12 @@ def test_parse_dates_column_index(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
             "sides": [4.0, float("nan"), 3.0],
-            "date": to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
+            "date": pd.to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
         }
     )
 
@@ -376,7 +370,7 @@ def test_parse_dates_true(parser, temp_file):
         temp_file=temp_file,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
@@ -413,12 +407,12 @@ def test_day_first_parse_dates(parser, temp_file):
   </row>
 </data>"""
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
             "sides": [4.0, float("nan"), 3.0],
-            "date": to_datetime(["2020-12-31", "2021-12-31", "2022-12-31"]),
+            "date": pd.to_datetime(["2020-12-31", "2021-12-31", "2022-12-31"]),
         }
     )
 
