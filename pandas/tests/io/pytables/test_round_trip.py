@@ -577,7 +577,8 @@ def test_tuple_index(temp_h5_path, performance_warning):
     data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = pd.DataFrame(data, index=idx, columns=col)
 
-    with tm.assert_produces_warning(performance_warning):
+    msg = "your performance may suffer as PyTables will pickle object types"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         _check_roundtrip(DF, tm.assert_frame_equal, path=temp_h5_path)
 
 

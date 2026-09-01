@@ -208,7 +208,8 @@ def test_astype_arrow_timestamp():
 def test_convert_dtypes_infer_objects():
     ser = pd.Series(["a", "b", "c"])
     ser_orig = ser.copy()
-    with tm.assert_produces_warning(Pandas4Warning):
+    msg = "keyword in Series.convert_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.convert_dtypes(
             convert_integer=False,
             convert_boolean=False,

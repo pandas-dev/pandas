@@ -79,7 +79,8 @@ class TestDataFramePlots:
         df["indic2"] = ["foo", "bar", "foo"] * 2
 
         # _check_plot_works can add an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(warn, check_stacklevel=False, match=msg):
             _check_plot_works(df.boxplot, **kwargs)
 
     def test_boxplot_legacy1_series(self):
@@ -92,7 +93,8 @@ class TestDataFramePlots:
         )
         df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = pd.Series(["A"] * 10)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(df.boxplot, by="X")
 
     def test_boxplot_legacy2_with_ax(self):
@@ -397,7 +399,8 @@ class TestDataFramePlots:
 class TestDataFrameGroupByPlots:
     def test_boxplot_legacy1(self, hist_df):
         grouped = hist_df.groupby(by="gender")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         _check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
 
@@ -416,7 +419,8 @@ class TestDataFrameGroupByPlots:
             index=pd.MultiIndex.from_tuples(tuples),
         )
         grouped = df.groupby(level=1)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         _check_axes_shape(list(axes.values), axes_num=10, layout=(4, 3))
 
@@ -542,7 +546,8 @@ class TestDataFrameGroupByPlots:
     ):
         df = hist_df
         # _check_plot_works adds an ax so catch warning. see GH #13188 GH 6769
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(
                 df.groupby(gb_key).boxplot, column="height", return_type="dict"
             )
@@ -575,7 +580,8 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.parametrize("cols", [2, -1])
     def test_grouped_box_layout_works(self, hist_df, cols):
         df = hist_df
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(
                 df.groupby("category").boxplot,
                 column="height",

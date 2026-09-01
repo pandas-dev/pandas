@@ -762,7 +762,8 @@ class TestGetLoc:
         )
         key = ("a", 7)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "indexing past lexsort depth may impact performance"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             # PerformanceWarning: indexing past lexsort depth may impact performance
             result = idx.get_loc(key)
 

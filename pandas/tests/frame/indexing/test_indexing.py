@@ -1491,7 +1491,10 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = pd.DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        with tm.maybe_produces_warning(performance_warning, isinstance(indexer, tuple)):
+        msg = "indexing past lexsort depth may impact performance"
+        with tm.maybe_produces_warning(
+            performance_warning, isinstance(indexer, tuple), match=msg
+        ):
             result = df.loc[indexer]
         expected = pd.DataFrame(
             {"c": [1, 2]}, index=pd.Index([True, False], name="b", dtype=dtype)

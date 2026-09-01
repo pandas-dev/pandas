@@ -24,7 +24,8 @@ class TestMultiIndexBasic:
 
         # Partial key still goes through lexsort path
         df = df.iloc[[2, 1, 3, 0]]
-        with tm.assert_produces_warning(performance_warning):
+        msg = "indexing past lexsort depth may impact performance"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             df.loc[(0,)]
 
     @pytest.mark.parametrize("offset", [-5, 5])

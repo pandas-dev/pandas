@@ -3090,7 +3090,8 @@ def test_merge_multiindex_reset_index_mixed():
         columns=pd.MultiIndex.from_product([["new_data"], [""]]),
     )
 
-    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning, match=msg):
         result = df.reset_index().merge(df2.reset_index(), on="index")
 
     expected = pd.DataFrame(

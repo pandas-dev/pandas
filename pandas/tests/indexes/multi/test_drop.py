@@ -134,7 +134,8 @@ def test_drop_not_lexsorted(performance_warning):
 
     # compare the results
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
-    with tm.assert_produces_warning(performance_warning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         tm.assert_index_equal(lexsorted_mi.drop("a"), not_lexsorted_mi.drop("a"))
 
 

@@ -616,7 +616,8 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = obj + other.astype(object)
         tm.assert_equal(result, other.astype(object))
 
@@ -1440,15 +1441,16 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = tm.box_expected(expected, box).astype(object)
         expected_sub = tm.box_expected(expected_sub, box).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res_sub = tdi - other
         tm.assert_equal(res_sub, expected_sub)
 
@@ -1468,16 +1470,17 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
         expected_sub = tm.box_expected(expected_sub, box_with_array).astype(object)
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res_sub = tdi - other
         tm.assert_equal(res_sub, expected_sub)
 
@@ -1500,11 +1503,12 @@ class TestTimedeltaArraylikeAddSubOps:
         obj = tm.box_expected(tdi, box)
         expected_add = tm.box_expected(expected_add, box2).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res = obj + other
         tm.assert_equal(res, expected_add)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res2 = other + obj
         tm.assert_equal(res2, expected_add)
 
@@ -1513,7 +1517,7 @@ class TestTimedeltaArraylikeAddSubOps:
         )
         expected_sub = tm.box_expected(expected_sub, box2).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             res3 = obj - other
         tm.assert_equal(res3, expected_sub)
 
@@ -1531,16 +1535,19 @@ class TestTimedeltaArraylikeAddSubOps:
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = "|".join(["has incorrect type", "cannot add the type MonthEnd"])
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            warn_msg = (
+                "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+            )
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 tdi + anchored
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 anchored + tdi
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 tdi - anchored
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 anchored - tdi
 
     # ------------------------------------------------------------------
@@ -1557,7 +1564,10 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=1), pd.offsets.Day(2), pd.Timestamp("2000-01-04")]
         )
 
-        with tm.assert_produces_warning(performance_warning):
+        warn_msg = (
+            "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+        )
+        with tm.assert_produces_warning(performance_warning, match=warn_msg):
             result = tdarr + other
 
         expected = pd.Index(
@@ -1568,10 +1578,10 @@ class TestTimedeltaArraylikeAddSubOps:
 
         msg = "|".join(["unsupported operand type", "cannot subtract a datelike"])
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 tdarr - other
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=warn_msg):
             result = other - tdarr
 
         expected = pd.Index(
@@ -2157,8 +2167,9 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
 
+        msg = "invalid value encountered in floor_divide"
         with tm.maybe_produces_warning(
-            RuntimeWarning, box is pd.array, check_stacklevel=False
+            RuntimeWarning, box is pd.array, check_stacklevel=False, match=msg
         ):
             result = left // right
 
@@ -2166,7 +2177,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         # case that goes through __rfloordiv__ with arraylike
         with tm.maybe_produces_warning(
-            RuntimeWarning, box is pd.array, check_stacklevel=False
+            RuntimeWarning, box is pd.array, check_stacklevel=False, match=msg
         ):
             result = np.asarray(left) // right
         tm.assert_equal(result, expected)
@@ -2244,7 +2255,10 @@ class TestTimedeltaArraylikeMulDivOps:
         else:
             performance_warning = False
 
-        with tm.assert_produces_warning(performance_warning):
+        warn_msg = (
+            "Adding/subtracting object-dtype array to TimedeltaArray not vectorized"
+        )
+        with tm.assert_produces_warning(performance_warning, match=warn_msg):
             result = divmod(tdarr, three_days)
 
         tm.assert_equal(result[1], expected)

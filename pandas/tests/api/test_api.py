@@ -247,7 +247,7 @@ class TestPDApi(Base):
             + self.deprecated_funcs_in_future
         )
         for depr in deprecated_list:
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
                 _ = getattr(pd, depr)
 
 

@@ -139,6 +139,23 @@ class TestDataFrameFormatting:
             with pd.option_context("display.max_colwidth", -1):
                 pass
 
+    @pytest.mark.parametrize(
+        "max_colwidth, expected",
+        [
+            (0, " a\n  \n  "),
+            (1, "  a\n0 .\n1 ."),
+            (2, "   a\n0 ..\n1 .."),
+            (3, "    a\n0 ...\n1 ..."),
+            (4, "     a\n0  foo\n1  ..."),
+        ],
+    )
+    def test_max_colwidth_narrower_than_placeholder(self, max_colwidth, expected):
+        # GH#16097 widths too narrow to fit the "..." placeholder used to be
+        # silently ignored
+        df = pd.DataFrame({"a": ["foo", "horse"]})
+        with pd.option_context("display.max_colwidth", max_colwidth):
+            assert repr(df) == expected
+
     def test_repr_chop_threshold(self):
         df = pd.DataFrame([[0.1, 0.5], [0.5, -0.1]])
         pd.reset_option("display.chop_threshold")  # default None

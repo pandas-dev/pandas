@@ -33,7 +33,8 @@ class TestPeriodIndex:
         idx = pd.PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=object)
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "PeriodIndex.values returning an object-dtype ndarray is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
 
@@ -43,7 +44,7 @@ class TestPeriodIndex:
         idx = pd.PeriodIndex(["2011-01", pd.NaT], freq="M")
 
         exp = np.array([pd.Period("2011-01", freq="M"), pd.NaT], dtype=object)
-        with tm.assert_produces_warning(Pandas4Warning):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
@@ -52,7 +53,7 @@ class TestPeriodIndex:
         idx = pd.PeriodIndex(["2011-01-01", pd.NaT], freq="D")
 
         exp = np.array([pd.Period("2011-01-01", freq="D"), pd.NaT], dtype=object)
-        with tm.assert_produces_warning(Pandas4Warning):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)

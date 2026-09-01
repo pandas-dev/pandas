@@ -168,7 +168,8 @@ class TestDataFramePlots:
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(
                 scatter_matrix,
                 frame=df,
@@ -194,7 +195,8 @@ class TestDataFramePlots:
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(
                 scatter_matrix,
                 frame=df,

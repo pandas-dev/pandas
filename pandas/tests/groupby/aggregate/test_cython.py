@@ -315,7 +315,8 @@ def test_cython_agg_nullable_int(op_name):
         convert_integer = False
     else:
         convert_integer = True
-    with tm.assert_produces_warning(Pandas4Warning):
+    msg = "The convert_integer keyword in Series.convert_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = expected.convert_dtypes(convert_integer=convert_integer)
     tm.assert_series_equal(result, expected)
 

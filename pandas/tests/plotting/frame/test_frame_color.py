@@ -229,7 +229,10 @@ class TestDataFrameColor:
         )
         df["species"] = ["r", "r", "g", "g", "b"]
         if cmap is not None:
-            with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            msg = "No data for colormapping provided via 'c'"
+            with tm.assert_produces_warning(
+                UserWarning, check_stacklevel=False, match=msg
+            ):
                 ax = df.plot.scatter(x=0, y=1, cmap=cmap, c="species")
         else:
             ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)

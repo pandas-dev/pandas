@@ -319,7 +319,9 @@ class TestDataFrameQueryWithMultiIndex:
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
         index = pd.MultiIndex.from_arrays([a, b], names=["color", "food"])
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), index=index
+        )
         ind = pd.Series(
             df.index.get_level_values("color").values, index=index, name="color"
         )
@@ -369,7 +371,9 @@ class TestDataFrameQueryWithMultiIndex:
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
         index = pd.MultiIndex.from_arrays([a, b])
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), index=index
+        )
         ind = pd.Series(df.index.get_level_values(0).values, index=index)
 
         res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
@@ -458,7 +462,9 @@ class TestDataFrameQueryWithMultiIndex:
         b = np.arange(10)
         index = pd.MultiIndex.from_arrays([a, b])
         index.names = [None, "rating"]
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), index=index
+        )
         res = df.query("rating == 1", parser=parser, engine=engine)
         ind = pd.Series(
             df.index.get_level_values("rating").values, index=index, name="rating"
@@ -828,7 +834,9 @@ class TestDataFrameQueryNumExprPandas:
         expected = df.loc[df.index[df.index > 5]]
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame({"a": a, "b": np.random.default_rng(2).standard_normal(a.size)})
+        df = pd.DataFrame(
+            {"a": a, "b": np.random.default_rng(2).standard_normal(a.size)}
+        )
         df.index.name = "a"
         result = df.query("a > 5", engine=engine, parser=parser)
         expected = df[df.a > 5]
@@ -1071,7 +1079,9 @@ class TestDataFrameQueryStrings:
         tm.assert_frame_equal(result, expected)
 
     def test_str_query_method(self, parser, engine):
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 1)), columns=["b"]
+        )
         df["strings"] = pd.Series(list("aabbccddee"))
         expect = df[df.strings == "a"]
 
@@ -1112,7 +1122,9 @@ class TestDataFrameQueryStrings:
             tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
 
     def test_str_list_query_method(self, parser, engine):
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 1)), columns=["b"]
+        )
         df["strings"] = pd.Series(list("aabbccddee"))
         expect = df[df.strings.isin(["a", "b"])]
 
@@ -1619,7 +1631,12 @@ class TestDataFrameQueryBacktickQuoting:
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - a")
         expected = pd.DataFrame(
             [[1, 2, 1], [3, 4, 1]],
@@ -1632,7 +1649,12 @@ class TestDataFrameQueryBacktickQuoting:
         # GH#29618
         df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - 1")
         expected = pd.DataFrame(
             [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
@@ -1662,7 +1684,12 @@ class TestDataFrameQueryBacktickQuoting:
         df = pd.DataFrame({"a": [1, 2]}, dtype=dtype)
         ref = {2}  # noqa: F841
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.query("a in @ref")
         expected = pd.DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
         tm.assert_frame_equal(result, expected)
@@ -1677,9 +1704,17 @@ class TestDataFrameQueryBacktickQuoting:
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         df = pd.DataFrame(
-            {"A": pd.Series([1, 1, 2], dtype="Int64"), "B": pd.Series([1, 2, 2], dtype=dtype)}
+            {
+                "A": pd.Series([1, 1, 2], dtype="Int64"),
+                "B": pd.Series([1, 2, 2], dtype=dtype),
+            }
         )
-        with tm.assert_produces_warning(warning):
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.query("A == B", engine=engine)
         expected = pd.DataFrame(
             {

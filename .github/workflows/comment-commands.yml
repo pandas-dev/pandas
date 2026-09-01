@@ -1,7 +1,7 @@
 name: Comment Commands
 on:
   issue_comment:
-    types: created
+    types: [created, edited]
 
 permissions: {}
 

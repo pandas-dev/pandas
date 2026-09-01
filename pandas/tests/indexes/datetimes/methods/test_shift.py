@@ -167,7 +167,8 @@ class TestDatetimeIndexShift:
             freq=pd.offsets.BMonthEnd(),
             unit=unit,
         )
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Non-vectorized DateOffset being applied to Series or DatetimeIndex"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             shifted = rng.shift(1, freq=pd.offsets.CDay())
             assert shifted[0] == rng[0] + pd.offsets.CDay()
 

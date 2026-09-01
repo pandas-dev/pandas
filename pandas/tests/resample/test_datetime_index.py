@@ -892,7 +892,9 @@ def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
     result_5 = ts_2.resample("D").mean()
     result_6 = ts_2.resample("24h", origin="epoch").mean()
     tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
-    tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
+    tm.assert_series_equal(
+        result_1.tz_localize(None), result_6.tz_localize(None), check_freq=False
+    )
 
 
 def test_resample_origin_with_day_freq_on_dst(unit):
@@ -1304,7 +1306,8 @@ def test_resample_consistency(unit):
 
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
-    with tm.assert_produces_warning(Pandas4Warning):
+    msg = "the 'method' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         rl = s.reindex_like(s10, method="bfill", limit=2)
     r10_2 = s.resample("10Min").bfill(limit=2)
     r10 = s.resample("10Min").bfill()

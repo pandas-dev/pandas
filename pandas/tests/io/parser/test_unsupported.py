@@ -53,11 +53,14 @@ class TestUnsupportedFeatures:
             read_csv(StringIO(data), engine="c", skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        msg = "the 'c' engine does not support separators > 1 char"
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
             read_csv(StringIO(data), sep=r"\s")
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        msg = "quotechar is larger than one byte"
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
             read_csv(StringIO(data), sep="\t", quotechar=chr(128))
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        msg = "the 'c' engine does not support skipfooter"
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
             read_csv(StringIO(data), skipfooter=1)
 
         text = """                      A       B       C       D        E

@@ -24,7 +24,8 @@ def test_retain_index_attributes(temp_hdfstore, unit):
 
     dti2 = pd.date_range("2002-1-1", periods=3, freq="D", unit=unit)
     # try to append a table with a different frequency
-    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning):
+    msg = r"the \[freq\] attribute of the existing index"
+    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning, match=msg):
         df2 = pd.DataFrame({"A": pd.Series(range(3), index=dti2)})
         temp_hdfstore.append("data", df2)
 
@@ -49,7 +50,8 @@ def test_retain_index_attributes(temp_hdfstore, unit):
 
 
 def test_retain_index_attributes2(temp_h5_path):
-    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning):
+    msg = r"the \[freq\] attribute of the existing index"
+    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning, match=msg):
         df = pd.DataFrame(
             {
                 "A": pd.Series(
@@ -75,7 +77,8 @@ def test_retain_index_attributes2(temp_h5_path):
 
     assert pd.read_hdf(temp_h5_path, key="data").index.name == "foo"
 
-    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning):
+    msg = r"the \[index_name\] attribute of the existing index"
+    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning, match=msg):
         idx2 = pd.date_range("2001-1-1", periods=3, freq="h")
         idx2.name = "bar"
         df2 = pd.DataFrame({"A": pd.Series(range(3), index=idx2)})

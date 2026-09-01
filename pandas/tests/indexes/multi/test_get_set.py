@@ -9,16 +9,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-def assert_matching(actual, expected, check_dtype=False):
-    # avoid specifying internal representation
-    # as much as possible
-    assert len(actual) == len(expected)
-    for act, exp in zip(actual, expected, strict=True):
-        act = np.asarray(act)
-        exp = np.asarray(exp)
-        tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
-
-
 def test_get_level_number_integer(idx):
     idx.names = [1, 0]
     assert idx._get_level_number(1) == 0
@@ -158,75 +148,92 @@ def test_set_levels_codes_directly(idx):
 def test_set_levels(idx):
     # side note - you probably wouldn't want to use levels and codes
     # directly like this - but it is possible.
+    original_index = idx.copy()
     levels = idx.levels
+    codes = idx.codes
+    names = idx.names
     new_levels = [[lev + "a" for lev in level] for level in levels]
 
     # level changing [w/o mutation]
-    ind2 = idx.set_levels(new_levels)
-    assert_matching(ind2.levels, new_levels)
-    assert_matching(idx.levels, levels)
+    result = idx.set_levels(new_levels)
+    expected = pd.MultiIndex(levels=new_levels, codes=codes, names=names)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
     # level changing specific level [w/o mutation]
-    ind2 = idx.set_levels(new_levels[0], level=0)
-    assert_matching(ind2.levels, [new_levels[0], levels[1]])
-    assert_matching(idx.levels, levels)
+    result = idx.set_levels(new_levels[0], level=0)
+    expected = pd.MultiIndex(
+        levels=[new_levels[0], levels[1]], codes=codes, names=names
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
-    ind2 = idx.set_levels(new_levels[1], level=1)
-    assert_matching(ind2.levels, [levels[0], new_levels[1]])
-    assert_matching(idx.levels, levels)
+    result = idx.set_levels(new_levels[1], level=1)
+    expected = pd.MultiIndex(
+        levels=[levels[0], new_levels[1]], codes=codes, names=names
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
     # level changing multiple levels [w/o mutation]
-    ind2 = idx.set_levels(new_levels, level=[0, 1])
-    assert_matching(ind2.levels, new_levels)
-    assert_matching(idx.levels, levels)
+    result = idx.set_levels(new_levels, level=[0, 1])
+    expected = pd.MultiIndex(levels=new_levels, codes=codes, names=names)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
     # illegal level changing should not change levels
     # GH 13754
-    original_index = idx.copy()
     with pytest.raises(ValueError, match="^On"):
         idx.set_levels(["c"], level=0)
-    assert_matching(idx.levels, original_index.levels, check_dtype=True)
+    tm.assert_index_equal(idx, original_index)
 
     with pytest.raises(ValueError, match="^On"):
         idx.set_codes([0, 1, 2, 3, 4, 5], level=0)
-    assert_matching(idx.codes, original_index.codes, check_dtype=True)
+    tm.assert_index_equal(idx, original_index)
 
     with pytest.raises(TypeError, match="^Levels"):
         idx.set_levels("c", level=0)
-    assert_matching(idx.levels, original_index.levels, check_dtype=True)
+    tm.assert_index_equal(idx, original_index)
 
     with pytest.raises(TypeError, match="^Codes"):
         idx.set_codes(1, level=0)
-    assert_matching(idx.codes, original_index.codes, check_dtype=True)
+    tm.assert_index_equal(idx, original_index)
 
 
 def test_set_codes(idx):
     # side note - you probably wouldn't want to use levels and codes
     # directly like this - but it is possible.
+    original_index = idx.copy()
+    levels = idx.levels
     codes = idx.codes
+    names = idx.names
     major_codes, minor_codes = codes
     major_codes = [(x + 1) % 3 for x in major_codes]
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
     # changing codes w/o mutation
-    ind2 = idx.set_codes(new_codes)
-    assert_matching(ind2.codes, new_codes)
-    assert_matching(idx.codes, codes)
+    result = idx.set_codes(new_codes)
+    expected = pd.MultiIndex(levels=levels, codes=new_codes, names=names)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
     # codes changing specific level w/o mutation
-    ind2 = idx.set_codes(new_codes[0], level=0)
-    assert_matching(ind2.codes, [new_codes[0], codes[1]])
-    assert_matching(idx.codes, codes)
+    result = idx.set_codes(new_codes[0], level=0)
+    expected = pd.MultiIndex(levels=levels, codes=[new_codes[0], codes[1]], names=names)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
-    ind2 = idx.set_codes(new_codes[1], level=1)
-    assert_matching(ind2.codes, [codes[0], new_codes[1]])
-    assert_matching(idx.codes, codes)
+    result = idx.set_codes(new_codes[1], level=1)
+    expected = pd.MultiIndex(levels=levels, codes=[codes[0], new_codes[1]], names=names)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
     # codes changing multiple levels w/o mutation
-    ind2 = idx.set_codes(new_codes, level=[0, 1])
-    assert_matching(ind2.codes, new_codes)
-    assert_matching(idx.codes, codes)
+    result = idx.set_codes(new_codes, level=[0, 1])
+    expected = pd.MultiIndex(levels=levels, codes=new_codes, names=names)
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(idx, original_index)
 
     # label changing for levels of different magnitude of categories
     ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
@@ -235,7 +242,7 @@ def test_set_codes(idx):
 
     # [w/o mutation]
     result = ind.set_codes(codes=new_codes, level=1)
-    assert result.equals(expected)
+    tm.assert_index_equal(result, expected)
 
 
 def test_set_levels_codes_names_bad_input(idx):

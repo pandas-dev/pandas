@@ -739,11 +739,12 @@ class TestPeriodIndexArithmetic:
         )
         expected = pd.PeriodIndex([Period("2015Q2"), Period("2015Q4")]).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        warn_msg = "Adding/subtracting object-dtype array to PeriodArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=warn_msg):
             res = pi + offs
         tm.assert_index_equal(res, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=warn_msg):
             res2 = offs + pi
         tm.assert_index_equal(res2, expected)
 
@@ -752,10 +753,10 @@ class TestPeriodIndexArithmetic:
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = r"Input cannot be converted to Period\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 pi + unanchored
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 unanchored + pi
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
@@ -772,7 +773,8 @@ class TestPeriodIndexArithmetic:
         expected = pd.PeriodIndex([pi[n] - other[n] for n in range(len(pi))])
         expected = expected.astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        warn_msg = "Adding/subtracting object-dtype array to PeriodArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=warn_msg):
             res = pi - other
         tm.assert_index_equal(res, expected)
 
@@ -782,10 +784,10 @@ class TestPeriodIndexArithmetic:
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = r"Input has different freq=-1M from Period\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 pi - anchored
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(performance_warning, match=warn_msg):
                 anchored - pi
 
     def test_pi_add_iadd_int(self, one):
@@ -1195,7 +1197,8 @@ class TestPeriodIndexArithmetic:
 
         other = np.array([pd.Timedelta(days=1), pd.offsets.Day(2), 3])
 
-        with tm.assert_produces_warning(performance_warning):
+        msg = "Adding/subtracting object-dtype array to PeriodArray not vectorized"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = parr + other
 
         expected = pd.PeriodIndex(
@@ -1203,7 +1206,7 @@ class TestPeriodIndexArithmetic:
         )._data.astype(object)
         tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(performance_warning, match=msg):
             result = parr - other
 
         expected = pd.PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
@@ -1584,3 +1587,17 @@ def test_pi_add_int_still_raises_on_nat_sentinel():
     msg = "Overflow in int64 addition"
     with pytest.raises(OverflowError, match=msg):
         pi - 1
+
+
+def test_pi_sub_pi_length_zero():
+    # GH#40624 subtracting length-zero PeriodArrays gave an object-dtype result
+    #  at full length but raised on a length-zero operand
+    pi = pd.period_range("2016-01-01", periods=0, freq="D")
+    expected = np.array([], dtype=object)
+
+    tm.assert_numpy_array_equal(pi._data - pi._data, expected)
+    tm.assert_numpy_array_equal(pi._data - Period("2016-01-01", freq="D"), expected)
+    tm.assert_index_equal(pi - pi, pd.Index(expected))
+    tm.assert_series_equal(
+        pd.Series(pi) - pd.Series(pi), pd.Series(expected, dtype=object)
+    )

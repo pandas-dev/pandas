@@ -1342,12 +1342,7 @@ def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     ],
 )
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_nanops_reductions_dont_skip_nan_with_mask(
-    nanops_operation, skipna, axis, request
-):
-    if not skipna and axis in {0, 1} and nanops_operation == "nansem":
-        mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
-        request.applymarker(mark)
+def test_nanops_reductions_dont_skip_nan_with_mask(nanops_operation, skipna, axis):
     if axis is None:
         expected = np.nan
     else:
@@ -1373,6 +1368,19 @@ def test_nanops_reductions_dont_skip_nan_with_mask(
     operation = getattr(nanops, nanops_operation)
     result = operation(values, mask=mask, skipna=skipna, axis=axis)
     tm.assert_equal(result, expected)
+
+
+def test_nansem_partial_mask_no_skipna_is_per_slice():
+    # GH#65373 masked entries propagate NaN only into the slices containing them
+    values = np.arange(25, dtype=np.float64).reshape(5, 5)
+    mask = np.zeros((5, 5), dtype=bool)
+    mask[0, 0] = True
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
+    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=0)
+    tm.assert_numpy_array_equal(np.isnan(result), np.isnan(expected))
+    assert np.isnan(result[0])
+    assert not np.isnan(result[1:]).any()
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])

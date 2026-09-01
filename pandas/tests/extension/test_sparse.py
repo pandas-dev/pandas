@@ -306,7 +306,10 @@ class TestSparseArray(base.ExtensionTests):
         tm.assert_series_equal(result, expected)
 
     def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
-        with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
+        msg = "searchsorted requires high memory usage"
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=False, match=msg
+        ):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_sort_inplace(self, data_for_sorting):
