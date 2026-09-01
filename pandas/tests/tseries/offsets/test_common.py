@@ -17,11 +17,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 
-from pandas import (
-    DatetimeIndex,
-    Period,
-    Timedelta,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries.offsets import (
@@ -191,7 +187,7 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
 def test_apply_array_out_of_bounds_raises(offset):
     # GH#66549 the vectorized month/quarter shifts raised a bare OverflowError
     #  naming a C source line, where the scalar path raises OutOfBoundsDatetime
-    dti = DatetimeIndex([Timestamp.max])
+    dti = pd.DatetimeIndex([Timestamp.max])
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
         dti + offset
@@ -213,7 +209,7 @@ def test_apply_array_out_of_bounds_raises(offset):
 def test_apply_array_quarters_large_n_raises(offset):
     # GH#66549 the quarter shift computed `modby * n` in wrapping int64, so
     #  e.g. YearEnd(2**62) shifted by 12 * 2**62 == 0 months instead of raising
-    dti = DatetimeIndex(["1970-06-15"])
+    dti = pd.DatetimeIndex(["1970-06-15"])
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
         dti + offset
@@ -225,7 +221,7 @@ def test_apply_array_quarters_large_n_raises(offset):
 def test_apply_array_quarters_large_n_names_same_year_as_scalar():
     # GH#66549 the wrapped shift amount also has to be redone in Python ints
     #  for the message to name the year the scalar path names
-    dti = DatetimeIndex(["1970-06-15"])
+    dti = pd.DatetimeIndex(["1970-06-15"])
     offset = YearEnd(2**62)
 
     with pytest.raises(OutOfBoundsDatetime, match="year 4611686018427389873"):
@@ -246,18 +242,18 @@ def test_shift_month_year_overflow_names_shifted_year():
 
 def test_apply_array_quarters_large_n_keeps_nat():
     # GH#66549 a representable shift is unaffected by the overflow check
-    dti = DatetimeIndex(["1970-06-15", "NaT"])
+    dti = pd.DatetimeIndex(["1970-06-15", "NaT"])
 
     result = dti + YearEnd(2)
 
-    expected = DatetimeIndex(["1971-12-31", "NaT"]).as_unit(result.unit)
+    expected = pd.DatetimeIndex(["1971-12-31", "NaT"]).as_unit(result.unit)
     tm.assert_index_equal(result, expected)
 
 
 def test_apply_array_quarters_large_n_all_nat():
     # GH#66549 an all-NaT input has nothing to shift, so even an n that no
     #  element could survive comes back all-NaT rather than raising
-    dti = DatetimeIndex(["NaT", "NaT"])
+    dti = pd.DatetimeIndex(["NaT", "NaT"])
 
     result = dti + YearEnd(2**62)
 
@@ -266,7 +262,7 @@ def test_apply_array_quarters_large_n_all_nat():
 
 def test_apply_array_out_of_bounds_raises_non_nano():
     # GH#66549 the message names the resolution the result overflowed
-    dti = DatetimeIndex(np.array([np.iinfo(np.int64).max], dtype="M8[s]"))
+    dti = pd.DatetimeIndex(np.array([np.iinfo(np.int64).max], dtype="M8[s]"))
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds second"):
         dti + MonthEnd()
@@ -285,21 +281,21 @@ def test_apply_array_composed_out_of_bounds_intermediate(offset, expected):
     # GH#66549 the month shift used to be materialized before the timedelta
     #  component was applied, so a composed offset whose final result is
     #  representable was rejected on the array path
-    dti = DatetimeIndex([Timestamp.max])
+    dti = pd.DatetimeIndex([Timestamp.max])
 
     result = dti + offset
-    expected_dti = DatetimeIndex([Timestamp(expected)])
+    expected_dti = pd.DatetimeIndex([Timestamp(expected)])
     tm.assert_index_equal(result, expected_dti)
     assert Timestamp.max + offset == expected_dti[0]
 
 
 def test_apply_array_composed_out_of_bounds_intermediate_below_min():
     # GH#66549 same going the other way off the bottom of the range
-    dti = DatetimeIndex([Timestamp.min])
+    dti = pd.DatetimeIndex([Timestamp.min])
     offset = DateOffset(months=-1, days=32)
 
     result = dti + offset
-    expected = DatetimeIndex([Timestamp("1677-09-22 00:12:43.145224193")])
+    expected = pd.DatetimeIndex([Timestamp("1677-09-22 00:12:43.145224193")])
     tm.assert_index_equal(result, expected)
     assert Timestamp.min + offset == expected[0]
 
@@ -307,7 +303,7 @@ def test_apply_array_composed_out_of_bounds_intermediate_below_min():
 def test_apply_array_composed_still_out_of_bounds():
     # GH#66549 a composed offset whose result is genuinely unrepresentable
     #  still raises, and names the resolution rather than a C source line
-    dti = DatetimeIndex([Timestamp.max])
+    dti = pd.DatetimeIndex([Timestamp.max])
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
         dti + DateOffset(months=1, days=-1)
@@ -315,7 +311,7 @@ def test_apply_array_composed_still_out_of_bounds():
 
 def test_apply_array_composed_out_of_bounds_intermediate_non_nano():
     # GH#66549 the intermediate is out of the second-resolution range
-    dti = DatetimeIndex(np.array([np.iinfo(np.int64).max], dtype="M8[s]"))
+    dti = pd.DatetimeIndex(np.array([np.iinfo(np.int64).max], dtype="M8[s]"))
 
     result = dti + DateOffset(months=1, days=-31)
 
@@ -324,11 +320,11 @@ def test_apply_array_composed_out_of_bounds_intermediate_non_nano():
 
 def test_apply_array_composed_keeps_nat():
     # GH#66549 the fused path leaves missing values missing
-    dti = DatetimeIndex(["2000-01-31", "NaT"])
+    dti = pd.DatetimeIndex(["2000-01-31", "NaT"])
 
     result = dti + DateOffset(months=1, days=1)
 
-    expected = DatetimeIndex(["2000-03-01", "NaT"]).as_unit(result.unit)
+    expected = pd.DatetimeIndex(["2000-03-01", "NaT"]).as_unit(result.unit)
     tm.assert_index_equal(result, expected)
 
 
@@ -437,7 +433,7 @@ def test_add_unsupported_type_raises(_offset, other):
 
 def test_add_period_defers_to_period():
     # declining the operation lets python fall back to Period.__radd__
-    assert MonthEnd() + Period("2022-01", freq="M") == Period("2022-02", freq="M")
+    assert MonthEnd() + pd.Period("2022-01", freq="M") == pd.Period("2022-02", freq="M")
 
 
 def test_add_offset_raises(_offset):
@@ -450,7 +446,7 @@ def test_add_offset_raises(_offset):
 
 
 @pytest.mark.parametrize(
-    "other", [timedelta(days=1), np.timedelta64(1, "D"), Timedelta(days=1)]
+    "other", [timedelta(days=1), np.timedelta64(1, "D"), pd.Timedelta(days=1)]
 )
 @pytest.mark.parametrize("offset", [MonthEnd(), YearEnd(), DateOffset(months=1)])
 def test_add_timedelta_to_anchored_offset_raises(offset, other):
@@ -463,7 +459,7 @@ def test_add_timedelta_to_anchored_offset_raises(offset, other):
 
 
 @pytest.mark.parametrize(
-    "other", [timedelta(hours=3), np.timedelta64(3, "h"), Timedelta(hours=3)]
+    "other", [timedelta(hours=3), np.timedelta64(3, "h"), pd.Timedelta(hours=3)]
 )
 def test_add_timedelta_to_business_day(other):
     # a timedelta folds into the business day offset's `offset` attribute

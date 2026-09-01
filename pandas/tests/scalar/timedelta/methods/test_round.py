@@ -8,7 +8,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.errors import OutOfBoundsTimedelta
 
-from pandas import Timedelta
+import pandas as pd
 
 
 class TestTimedeltaRound:
@@ -41,10 +41,10 @@ class TestTimedeltaRound:
         ],
     )
     def test_round(self, freq, s1, s2):
-        s1 = Timedelta(s1)
-        s2 = Timedelta(s2)
-        t1 = Timedelta("1 days 02:34:56.789123456")
-        t2 = Timedelta("-1 days 02:34:56.789123456")
+        s1 = pd.Timedelta(s1)
+        s2 = pd.Timedelta(s2)
+        t1 = pd.Timedelta("1 days 02:34:56.789123456")
+        t2 = pd.Timedelta("-1 days 02:34:56.789123456")
 
         r1 = t1.round(freq)
         assert r1 == s1
@@ -52,7 +52,7 @@ class TestTimedeltaRound:
         assert r2 == s2
 
     def test_round_invalid(self):
-        t1 = Timedelta("1 days 02:34:56.789123456")
+        t1 = pd.Timedelta("1 days 02:34:56.789123456")
 
         for freq, msg in [
             ("YE", "<YearEnd: month=12> is a non-fixed frequency"),
@@ -65,27 +65,27 @@ class TestTimedeltaRound:
     def test_round_implementation_bounds(self):
         # See also: analogous test for Timestamp
         # GH#38964
-        result = Timedelta.min.ceil("s")
-        expected = Timedelta.min + Timedelta(seconds=1) - Timedelta(145224193)
+        result = pd.Timedelta.min.ceil("s")
+        expected = pd.Timedelta.min + pd.Timedelta(seconds=1) - pd.Timedelta(145224193)
         assert result == expected
 
-        result = Timedelta.max.floor("s")
-        expected = Timedelta.max - Timedelta(854775807)
+        result = pd.Timedelta.max.floor("s")
+        expected = pd.Timedelta.max - pd.Timedelta(854775807)
         assert result == expected
 
         msg = (
             r"Cannot round -106752 days \+00:12:43.145224193 to freq=s without overflow"
         )
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta.min.floor("s")
+            pd.Timedelta.min.floor("s")
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta.min.round("s")
+            pd.Timedelta.min.round("s")
 
         msg = "Cannot round 106751 days 23:47:16.854775807 to freq=s without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta.max.ceil("s")
+            pd.Timedelta.max.ceil("s")
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta.max.round("s")
+            pd.Timedelta.max.round("s")
 
     @pytest.mark.parametrize(
         "val",
@@ -106,10 +106,10 @@ class TestTimedeltaRound:
         ],
     )
     @pytest.mark.parametrize(
-        "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
+        "method", [pd.Timedelta.round, pd.Timedelta.floor, pd.Timedelta.ceil]
     )
     def test_round_sanity(self, val, method):
-        cls = Timedelta
+        cls = pd.Timedelta
         err_cls = OutOfBoundsTimedelta
 
         val = np.int64(val)
@@ -187,79 +187,79 @@ class TestTimedeltaRound:
         checker(td, nanos, "D")
 
     def test_round_non_nano(self, unit):
-        td = Timedelta("1 days 02:34:57").as_unit(unit)
+        td = pd.Timedelta("1 days 02:34:57").as_unit(unit)
 
         res = td.round("min")
-        assert res == Timedelta("1 days 02:35:00")
+        assert res == pd.Timedelta("1 days 02:35:00")
         assert res._creso == td._creso
 
         res = td.floor("min")
-        assert res == Timedelta("1 days 02:34:00")
+        assert res == pd.Timedelta("1 days 02:34:00")
         assert res._creso == td._creso
 
         res = td.ceil("min")
-        assert res == Timedelta("1 days 02:35:00")
+        assert res == pd.Timedelta("1 days 02:35:00")
         assert res._creso == td._creso
 
     @pytest.mark.parametrize(
         "timedelta,frequency,expected_ceil,expected_round,expected_floor",
         [
             (
-                Timedelta("1001ms"),
-                Timedelta("1s"),
-                Timedelta("2s"),
-                Timedelta("1s"),
-                Timedelta("1s"),
+                pd.Timedelta("1001ms"),
+                pd.Timedelta("1s"),
+                pd.Timedelta("2s"),
+                pd.Timedelta("1s"),
+                pd.Timedelta("1s"),
             ),
             (
-                Timedelta("1001ms"),
-                Timedelta("1ms"),
-                Timedelta("1001ms"),
-                Timedelta("1001ms"),
-                Timedelta("1001ms"),
+                pd.Timedelta("1001ms"),
+                pd.Timedelta("1ms"),
+                pd.Timedelta("1001ms"),
+                pd.Timedelta("1001ms"),
+                pd.Timedelta("1001ms"),
             ),
             (
-                Timedelta("1 days 2 min 3 us 42 ns"),
-                Timedelta("1s"),
-                Timedelta("1 days 2 min 1s"),
-                Timedelta("1 days 2 min"),
-                Timedelta("1 days 2 min"),
+                pd.Timedelta("1 days 2 min 3 us 42 ns"),
+                pd.Timedelta("1s"),
+                pd.Timedelta("1 days 2 min 1s"),
+                pd.Timedelta("1 days 2 min"),
+                pd.Timedelta("1 days 2 min"),
             ),
             (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour"),
-                Timedelta("6 hours"),
-                Timedelta("5 hours"),
-                Timedelta("5 hours"),
+                pd.Timedelta("5 hours 9 minutes 15.13 seconds"),
+                pd.Timedelta("1 hour"),
+                pd.Timedelta("6 hours"),
+                pd.Timedelta("5 hours"),
+                pd.Timedelta("5 hours"),
             ),
             (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour 30 min"),
-                Timedelta("6 hours"),
-                Timedelta("4 hours 30 minutes"),
-                Timedelta("4 hours 30 minutes"),
+                pd.Timedelta("5 hours 9 minutes 15.13 seconds"),
+                pd.Timedelta("1 hour 30 min"),
+                pd.Timedelta("6 hours"),
+                pd.Timedelta("4 hours 30 minutes"),
+                pd.Timedelta("4 hours 30 minutes"),
             ),
             # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
             (
-                Timedelta("1 days 45 seconds"),
-                Timedelta("15s"),
-                Timedelta("1 days 45 seconds"),
-                Timedelta("1 days 45 seconds"),
-                Timedelta("1 days 45 seconds"),
+                pd.Timedelta("1 days 45 seconds"),
+                pd.Timedelta("15s"),
+                pd.Timedelta("1 days 45 seconds"),
+                pd.Timedelta("1 days 45 seconds"),
+                pd.Timedelta("1 days 45 seconds"),
             ),
             (
-                Timedelta("1 days 45.000000012 seconds"),
-                Timedelta("10ns"),
-                Timedelta("1 days 45.000000020 seconds"),
-                Timedelta("1 days 45.000000010 seconds"),
-                Timedelta("1 days 45.000000010 seconds"),
+                pd.Timedelta("1 days 45.000000012 seconds"),
+                pd.Timedelta("10ns"),
+                pd.Timedelta("1 days 45.000000020 seconds"),
+                pd.Timedelta("1 days 45.000000010 seconds"),
+                pd.Timedelta("1 days 45.000000010 seconds"),
             ),
             (
-                Timedelta("1 days 1.000000012 seconds"),
-                Timedelta("10ns"),
-                Timedelta("1 days 1.000000020 seconds"),
-                Timedelta("1 days 1.000000010 seconds"),
-                Timedelta("1 days 1.000000010 seconds"),
+                pd.Timedelta("1 days 1.000000012 seconds"),
+                pd.Timedelta("10ns"),
+                pd.Timedelta("1 days 1.000000020 seconds"),
+                pd.Timedelta("1 days 1.000000010 seconds"),
+                pd.Timedelta("1 days 1.000000010 seconds"),
             ),
         ],
     )
@@ -272,7 +272,7 @@ class TestTimedeltaRound:
         assert timedelta.floor(frequency) == expected_floor
 
     def test_rounding_nat_frequency(self):
-        td = Timedelta("1001ms")
+        td = pd.Timedelta("1001ms")
 
         with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
             td.ceil(NaT)
@@ -282,7 +282,7 @@ class TestTimedeltaRound:
             td.round(NaT)
 
     def test_rounding_nat_timedelta(self):
-        freq = Timedelta("1s")
+        freq = pd.Timedelta("1s")
 
         assert NaT.ceil(freq) is NaT
         assert NaT.floor(freq) is NaT
@@ -290,8 +290,8 @@ class TestTimedeltaRound:
 
     def test_round_freq_finer_than_resolution(self):
         # GH#64828
-        td = Timedelta(1.0, unit="days").as_unit("s")
+        td = pd.Timedelta(1.0, unit="days").as_unit("s")
         assert td.unit == "s"
-        assert td.round("100ms") == Timedelta("1 days 00:00:00")
-        assert td.floor("100ms") == Timedelta("1 days 00:00:00")
-        assert td.ceil("100ms") == Timedelta("1 days 00:00:00")
+        assert td.round("100ms") == pd.Timedelta("1 days 00:00:00")
+        assert td.floor("100ms") == pd.Timedelta("1 days 00:00:00")
+        assert td.ceil("100ms") == pd.Timedelta("1 days 00:00:00")

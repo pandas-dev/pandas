@@ -313,6 +313,12 @@ repos:
         types: [python]
         files: ^pandas/tests
         language: python
+    -   id: test-imports
+        name: check imports in the test suite
+        entry: python -m scripts.check_test_imports
+        types: [python]
+        files: ^pandas/(conftest\.py|tests/)
+        language: python
     -   id: sort-whatsnew-items
         name: sort whatsnew entries alphabetically
         entry: python -m scripts.sort_whatsnew_note

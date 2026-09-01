@@ -12,15 +12,7 @@ import pandas._config.config as cf
 
 from pandas._libs.tslibs import to_offset
 
-from pandas import (
-    Index,
-    Period,
-    PeriodIndex,
-    Series,
-    Timestamp,
-    arrays,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.plotting import (
@@ -75,7 +67,7 @@ class TestRegistration:
         assert subprocess.check_call(call) == 0
 
     def test_registering_no_warning(self):
-        s = Series(range(12), index=date_range("2017", periods=12))
+        s = pd.Series(range(12), index=pd.date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Set to the "warn" state, in case this isn't the first test run
@@ -83,7 +75,7 @@ class TestRegistration:
         ax.plot(s.index, s.values)
 
     def test_pandas_plots_register(self):
-        s = Series(range(12), index=date_range("2017", periods=12))
+        s = pd.Series(range(12), index=pd.date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
             s.plot()
@@ -97,11 +89,11 @@ class TestRegistration:
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
             with cf.option_context("plotting.matplotlib.register_converters", False):
-                assert Timestamp not in units.registry
-            assert Timestamp in units.registry
+                assert pd.Timestamp not in units.registry
+            assert pd.Timestamp in units.registry
 
     def test_option_no_warning(self):
-        s = Series(range(12), index=date_range("2017", periods=12))
+        s = pd.Series(range(12), index=pd.date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Test without registering first, no warning
@@ -160,7 +152,7 @@ class TestDateTimeConverter:
         rs = dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
-        rs = dtc.convert(Timestamp("2012-1-1"), None, None)
+        rs = dtc.convert(pd.Timestamp("2012-1-1"), None, None)
         assert rs == xp
 
         # also testing datetime64 dtype (GH8614)
@@ -179,28 +171,28 @@ class TestDateTimeConverter:
 
         # we have a tz-aware date (constructed to that when we turn to utc it
         # is the same as our sample)
-        ts = Timestamp("2012-01-01").tz_localize("UTC").tz_convert("US/Eastern")
+        ts = pd.Timestamp("2012-01-01").tz_localize("UTC").tz_convert("US/Eastern")
         rs = dtc.convert(ts, None, None)
         assert rs == xp
 
         rs = dtc.convert(ts.to_pydatetime(), None, None)
         assert rs == xp
 
-        rs = dtc.convert(Index([ts - Day(1), ts]), None, None)
+        rs = dtc.convert(pd.Index([ts - Day(1), ts]), None, None)
         assert rs[1] == xp
 
-        rs = dtc.convert(Index([ts - Day(1), ts]).to_pydatetime(), None, None)
+        rs = dtc.convert(pd.Index([ts - Day(1), ts]).to_pydatetime(), None, None)
         assert rs[1] == xp
 
     def test_conversion_float(self, dtc):
         rtol = 0.5 * 10**-9
 
-        rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
-        xp = dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
+        rs = dtc.convert(pd.Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
+        xp = dates.date2num(pd.Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = dtc.convert(
-            Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
+            pd.Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
         )
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
@@ -241,7 +233,7 @@ class TestDateTimeConverter:
     @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
-        dateindex = date_range("2020-01-01", periods=10, freq=freq)
+        dateindex = pd.date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
         xp = dates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
@@ -250,7 +242,7 @@ class TestDateTimeConverter:
     def test_resolution(self, offset, dtc):
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.
-        ts1 = Timestamp("2012-1-1")
+        ts1 = pd.Timestamp("2012-1-1")
         ts2 = ts1 + offset
         val1 = dtc.convert(ts1, None, None)
         val2 = dtc.convert(ts2, None, None)
@@ -258,7 +250,7 @@ class TestDateTimeConverter:
             raise AssertionError(f"{val1} is not less than {val2}.")
 
     def test_convert_nested(self, dtc):
-        inner = [Timestamp("2017-01-01"), Timestamp("2017-01-02")]
+        inner = [pd.Timestamp("2017-01-01"), pd.Timestamp("2017-01-02")]
         data = [inner, inner]
         result = dtc.convert(data, None, None)
         expected = [dtc.convert(x, None, None) for x in data]
@@ -286,7 +278,7 @@ class TestPeriodConverter:
 
     def test_conversion(self, pc, axis):
         rs = pc.convert(["2012-1-1"], None, axis)[0]
-        xp = Period("2012-1-1").ordinal
+        xp = pd.Period("2012-1-1").ordinal
         assert rs == xp
 
         rs = pc.convert("2012-1-1", None, axis)
@@ -298,10 +290,10 @@ class TestPeriodConverter:
         rs = pc.convert(date(2012, 1, 1), None, axis)
         assert rs == xp
 
-        rs = pc.convert([Timestamp("2012-1-1")], None, axis)[0]
+        rs = pc.convert([pd.Timestamp("2012-1-1")], None, axis)[0]
         assert rs == xp
 
-        rs = pc.convert(Timestamp("2012-1-1"), None, axis)
+        rs = pc.convert(pd.Timestamp("2012-1-1"), None, axis)
         assert rs == xp
 
         rs = pc.convert("2012-01-01", None, axis)
@@ -374,8 +366,8 @@ def test_quarterly_finder(year_span):
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
     result = converter._quarterly_finder(vmin, vmax, to_offset("QE"))
-    quarters = PeriodIndex(
-        arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
+    quarters = pd.PeriodIndex(
+        pd.arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )
     majors = np.array([x[1] for x in result])
     minors = np.array([x[2] for x in result])

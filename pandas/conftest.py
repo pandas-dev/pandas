@@ -55,20 +55,6 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Interval,
-    IntervalIndex,
-    Period,
-    RangeIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import (
@@ -479,7 +465,7 @@ np_nat_fixture2 = np_nat_fixture
 # ----------------------------------------------------------------
 
 
-@pytest.fixture(params=[DataFrame, Series])
+@pytest.fixture(params=[pd.DataFrame, pd.Series])
 def frame_or_series(request):
     """
     Fixture to parametrize over DataFrame and Series.
@@ -487,7 +473,7 @@ def frame_or_series(request):
     return request.param
 
 
-@pytest.fixture(params=[Index, Series], ids=["index", "series"])
+@pytest.fixture(params=[Index, pd.Series], ids=["index", "series"])
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -500,7 +486,7 @@ def index_or_series(request):
     return request.param
 
 
-@pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
+@pytest.fixture(params=[Index, pd.Series, pd.array], ids=["index", "series", "array"])
 def index_or_series_or_array(request):
     """
     Fixture to parametrize over Index, Series, and ExtensionArray
@@ -508,7 +494,9 @@ def index_or_series_or_array(request):
     return request.param
 
 
-@pytest.fixture(params=[Index, Series, DataFrame, pd.array], ids=lambda x: x.__name__)
+@pytest.fixture(
+    params=[Index, pd.Series, pd.DataFrame, pd.array], ids=lambda x: x.__name__
+)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
@@ -564,10 +552,10 @@ def multiindex_year_month_day_dataframe_random_data():
     DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
     """
-    tdf = DataFrame(
+    tdf = pd.DataFrame(
         np.random.default_rng(2).standard_normal((100, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=100, freq="B"),
+        index=pd.date_range("2000-01-01", periods=100, freq="B"),
     )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
     # use int64 Index, to make sure things work
@@ -591,10 +579,10 @@ def lexsorted_two_level_string_multiindex() -> MultiIndex:
 @pytest.fixture
 def multiindex_dataframe_random_data(
     lexsorted_two_level_string_multiindex,
-) -> DataFrame:
+) -> pd.DataFrame:
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
-    return DataFrame(
+    return pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 3)),
         index=index,
         columns=Index(["A", "B", "C"], name="exp"),
@@ -627,7 +615,7 @@ def _create_mi_with_dt64tz_level():
     """
     # GH#8367 round trip with pickle
     return MultiIndex.from_product(
-        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
+        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
         names=["one", "two", "three"],
     )
 
@@ -635,11 +623,11 @@ def _create_mi_with_dt64tz_level():
 indices_dict = {
     "object": Index([f"pandas_{i}" for i in range(10)], dtype=object),
     "string": Index([f"pandas_{i}" for i in range(10)], dtype="str"),
-    "datetime": date_range("2020-01-01", periods=10),
-    "datetime-tz": date_range("2020-01-01", periods=10, tz="US/Pacific"),
-    "period": period_range("2020-01-01", periods=10, freq="D"),
-    "timedelta": timedelta_range(start="1 day", periods=10, freq="D"),
-    "range": RangeIndex(10),
+    "datetime": pd.date_range("2020-01-01", periods=10),
+    "datetime-tz": pd.date_range("2020-01-01", periods=10, tz="US/Pacific"),
+    "period": pd.period_range("2020-01-01", periods=10, freq="D"),
+    "timedelta": pd.timedelta_range(start="1 day", periods=10, freq="D"),
+    "range": pd.RangeIndex(10),
     "int8": Index(np.arange(10), dtype="int8"),
     "int16": Index(np.arange(10), dtype="int16"),
     "int32": Index(np.arange(10), dtype="int32"),
@@ -658,8 +646,8 @@ indices_dict = {
     "complex128": Index(
         np.arange(10, dtype="complex128") + 1.0j * np.arange(10, dtype="complex128")
     ),
-    "categorical": CategoricalIndex(list("abcd") * 2),
-    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
+    "categorical": pd.CategoricalIndex(list("abcd") * 2),
+    "interval": pd.IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(
         zip(["foo", "bar", "baz"], [1, 2, 3], strict=True)
@@ -796,11 +784,11 @@ def index_with_missing_sortable(request):
 # Series'
 # ----------------------------------------------------------------
 @pytest.fixture
-def string_series() -> Series:
+def string_series() -> pd.Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    return Series(
+    return pd.Series(
         np.arange(30, dtype=np.float64) * 1.1,
         index=Index([f"i_{i}" for i in range(30)]),
         name="series",
@@ -808,23 +796,23 @@ def string_series() -> Series:
 
 
 @pytest.fixture
-def object_series() -> Series:
+def object_series() -> pd.Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
     data = [f"foo_{i}" for i in range(30)]
     index = Index([f"bar_{i}" for i in range(30)])
-    return Series(data, index=index, name="objects", dtype=object)
+    return pd.Series(data, index=index, name="objects", dtype=object)
 
 
 @pytest.fixture
-def datetime_series() -> Series:
+def datetime_series() -> pd.Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
-    return Series(
+    return pd.Series(
         np.random.default_rng(2).standard_normal(30),
-        index=date_range("2000-01-01", periods=30, freq="B"),
+        index=pd.date_range("2000-01-01", periods=30, freq="B"),
         name="ts",
     )
 
@@ -833,7 +821,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.default_rng(2).standard_normal(size)
-    return Series(data, index=index, name="a", copy=False)
+    return pd.Series(data, index=index, name="a", copy=False)
 
 
 _series = {
@@ -843,7 +831,7 @@ _series = {
 
 
 @pytest.fixture
-def series_with_simple_index(index) -> Series:
+def series_with_simple_index(index) -> pd.Series:
     """
     Fixture for tests on series with changing types of indices.
     """
@@ -851,7 +839,7 @@ def series_with_simple_index(index) -> Series:
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": Series(
+    f"{dtype.__name__}-series": pd.Series(
         range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
     )
     for dtype in tm.NARROW_NP_DTYPES
@@ -886,7 +874,7 @@ def index_or_series_obj_orderable(request):
 
 
 _typ_objects_series = {
-    f"{dtype.__name__}-series": Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
+    f"{dtype.__name__}-series": pd.Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
 }
 
 
@@ -912,13 +900,13 @@ def index_or_series_memory_obj(request):
 # DataFrames
 # ----------------------------------------------------------------
 @pytest.fixture
-def int_frame() -> DataFrame:
+def int_frame() -> pd.DataFrame:
     """
     Fixture for DataFrame of ints with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']
     """
-    return DataFrame(
+    return pd.DataFrame(
         np.ones((30, 4), dtype=np.int64),
         index=Index([f"foo_{i}" for i in range(30)]),
         columns=Index(list("ABCD")),
@@ -926,13 +914,13 @@ def int_frame() -> DataFrame:
 
 
 @pytest.fixture
-def float_frame() -> DataFrame:
+def float_frame() -> pd.DataFrame:
     """
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    return DataFrame(
+    return pd.DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
         index=Index([f"foo_{i}" for i in range(30)]),
         columns=Index(list("ABCD")),
@@ -940,7 +928,7 @@ def float_frame() -> DataFrame:
 
 
 @pytest.fixture
-def rand_series_with_duplicate_datetimeindex() -> Series:
+def rand_series_with_duplicate_datetimeindex() -> pd.Series:
     """
     Fixture for Series with a DatetimeIndex that has duplicates.
     """
@@ -957,7 +945,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         datetime(2000, 1, 5),
     ]
 
-    return Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
+    return pd.Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
 
 
 # ----------------------------------------------------------------
@@ -965,15 +953,15 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
-        (Period("2012-01", freq="M"), "period[M]"),
-        (Period("2012-02-01", freq="D"), "period[D]"),
+        (pd.Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (pd.Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
+        (pd.Period("2012-01", freq="M"), "period[M]"),
+        (pd.Period("2012-02-01", freq="D"), "period[D]"),
         (
-            Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
+            pd.Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
             DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
-        (Timedelta(seconds=500), "timedelta64[us]"),
+        (pd.Timedelta(seconds=500), "timedelta64[us]"),
     ]
 )
 def ea_scalar_and_dtype(request):
@@ -1507,11 +1495,11 @@ def timedelta64_dtype(request):
 
 
 @pytest.fixture
-def fixed_now_ts() -> Timestamp:
+def fixed_now_ts() -> pd.Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(  # pyright: ignore[reportReturnType]
+    return pd.Timestamp(  # pyright: ignore[reportReturnType]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1902,7 +1890,7 @@ _any_skipna_inferred_dtype = [
     ("boolean", [True, np.nan, False]),
     ("boolean", [True, pd.NA, False]),
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
-    ("datetime", [Timestamp("20130101"), np.nan, Timestamp("20180101")]),
+    ("datetime", [pd.Timestamp("20130101"), np.nan, pd.Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
     ("complex", [1 + 1j, np.nan, 2 + 2j]),
     # The following dtype is commented out due to GH 23554
@@ -1910,8 +1898,8 @@ _any_skipna_inferred_dtype = [
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
     ("time", [time(1), np.nan, time(2)]),
-    ("period", [Period("2013"), pd.NaT, Period("2018")]),
-    ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
+    ("period", [pd.Period("2013"), pd.NaT, pd.Period("2018")]),
+    ("interval", [pd.Interval(0, 1), np.nan, pd.Interval(0, 2)]),
 ]
 ids = [
     pair[0] for pair in _any_skipna_inferred_dtype

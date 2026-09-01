@@ -21,11 +21,8 @@ from pandas._libs.tslibs.offsets import (
     Nano,
 )
 
-from pandas import (
-    DatetimeIndex,
-    _testing as tm,
-    date_range,
-)
+import pandas as pd
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 
@@ -963,14 +960,14 @@ class TestBusinessHour:
     @pytest.mark.parametrize("td_unit", ["s", "ms", "us", "ns"])
     def test_bday_ignores_timedeltas(self, unit, td_unit):
         # GH#55608
-        idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)
+        idx = pd.date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)
         td = Timedelta(3, unit="h").as_unit(td_unit)
         off = BDay(offset=td)
         t1 = idx + off
 
         exp_unit = tm.get_finest_unit(td.unit, idx.unit)
 
-        expected = DatetimeIndex(
+        expected = pd.DatetimeIndex(
             [
                 "2010-02-02 03:00:00",
                 "2010-02-02 15:00:00",
@@ -997,16 +994,16 @@ class TestBusinessHour:
         tm.assert_index_equal(t1, expected)
 
         # TODO(GH#55564): as_unit will be unnecessary
-        pointwise = DatetimeIndex([x + off for x in idx]).as_unit(exp_unit)
+        pointwise = pd.DatetimeIndex([x + off for x in idx]).as_unit(exp_unit)
         tm.assert_index_equal(pointwise, expected)
 
     def test_add_bday_offset_nanos(self):
         # GH#55608
-        idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit="ns")
+        idx = pd.date_range("2010/02/01", "2010/02/10", freq="12h", unit="ns")
         off = BDay(offset=Timedelta(3, unit="ns"))
 
         result = idx + off
-        expected = DatetimeIndex([x + off for x in idx])
+        expected = pd.DatetimeIndex([x + off for x in idx])
         tm.assert_index_equal(result, expected)
 
 

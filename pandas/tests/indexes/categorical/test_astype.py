@@ -5,40 +5,36 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    Categorical,
-    CategoricalDtype,
-    CategoricalIndex,
-    Index,
-    IntervalIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestAstype:
     def test_astype(self):
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
+        ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
         result = ci.astype(object)
-        tm.assert_index_equal(result, Index(np.array(ci), dtype=object))
+        tm.assert_index_equal(result, pd.Index(np.array(ci), dtype=object))
 
         # this IS equal, but not the same class
         assert result.equals(ci)
-        assert isinstance(result, Index)
-        assert not isinstance(result, CategoricalIndex)
+        assert isinstance(result, pd.Index)
+        assert not isinstance(result, pd.CategoricalIndex)
 
         # interval
-        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0], right=[2, 4], closed="right")
+        ii = pd.IntervalIndex.from_arrays(
+            left=[-0.001, 2.0], right=[2, 4], closed="right"
+        )
 
-        ci = CategoricalIndex(
-            Categorical.from_codes([0, 1, -1], categories=ii, ordered=True)
+        ci = pd.CategoricalIndex(
+            pd.Categorical.from_codes([0, 1, -1], categories=ii, ordered=True)
         )
 
         result = ci.astype("interval")
         expected = ii.take([0, 1, -1], allow_fill=True, fill_value=np.nan)
         tm.assert_index_equal(result, expected)
 
-        result = IntervalIndex(result.values)
+        result = pd.IntervalIndex(result.values)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("name", [None, "foo"])
@@ -46,16 +42,16 @@ class TestAstype:
     @pytest.mark.parametrize("index_ordered", [True, False])
     def test_astype_category(self, name, dtype_ordered, index_ordered):
         # GH#18630
-        index = CategoricalIndex(
+        index = pd.CategoricalIndex(
             list("aabbca"), categories=list("cab"), ordered=index_ordered
         )
         if name:
             index = index.rename(name)
 
         # standard categories
-        dtype = CategoricalDtype(ordered=dtype_ordered)
+        dtype = pd.CategoricalDtype(ordered=dtype_ordered)
         result = index.astype(dtype)
-        expected = CategoricalIndex(
+        expected = pd.CategoricalIndex(
             index.tolist(),
             name=name,
             categories=index.categories,
@@ -64,12 +60,12 @@ class TestAstype:
         tm.assert_index_equal(result, expected)
 
         # non-standard categories
-        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
+        dtype = pd.CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
         msg = "Constructing a Categorical with a dtype and values containing"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = index.astype(dtype)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
+            expected = pd.CategoricalIndex(index.tolist(), name=name, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         if dtype_ordered is False:
@@ -83,7 +79,7 @@ class TestAstype:
         # astype to categorical and back should preserve date objects
         v = date(2011, 1, 1)
 
-        obj = Index([v, v])
+        obj = pd.Index([v, v])
         assert obj.dtype == object
         if box:
             obj = obj.array

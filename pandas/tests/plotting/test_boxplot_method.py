@@ -8,14 +8,7 @@ import string
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-    plotting,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
@@ -46,7 +39,7 @@ class TestDataFramePlots:
     def test_stacked_boxplot_set_axis(self):
         # GH2980
         n = 30
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "Clinical": np.random.default_rng(2).choice([0, 1, 2, 3], n),
                 "Confirmed": np.random.default_rng(2).choice([0, 1, 2, 3], n),
@@ -77,7 +70,7 @@ class TestDataFramePlots:
         ],
     )
     def test_boxplot_legacy1(self, kwargs, warn):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
@@ -91,25 +84,25 @@ class TestDataFramePlots:
             _check_plot_works(df.boxplot, **kwargs)
 
     def test_boxplot_legacy1_series(self):
-        ser = Series(np.random.default_rng(2).standard_normal(6))
-        _check_plot_works(plotting._core.boxplot, data=ser, return_type="dict")
+        ser = pd.Series(np.random.default_rng(2).standard_normal(6))
+        _check_plot_works(pd.plotting._core.boxplot, data=ser, return_type="dict")
 
     def test_boxplot_legacy2(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
         )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
+        df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        df["Y"] = pd.Series(["A"] * 10)
         msg = "the figure containing the passed axes is being cleared"
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(df.boxplot, by="X")
 
     def test_boxplot_legacy2_with_ax(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
         )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
+        df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        df["Y"] = pd.Series(["A"] * 10)
         # When ax is supplied and required number of axes is 1,
         # passed ax should be used:
         _, ax = mpl.pyplot.subplots()
@@ -118,22 +111,22 @@ class TestDataFramePlots:
         assert ax_axes is axes
 
     def test_boxplot_legacy2_with_ax_return_type(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
         )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
+        df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        df["Y"] = pd.Series(["A"] * 10)
         fig, ax = mpl.pyplot.subplots()
         axes = df.groupby("Y").boxplot(ax=ax, return_type="axes")
         ax_axes = ax.axes
         assert ax_axes is axes["A"]
 
     def test_boxplot_legacy2_with_multi_col(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
         )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
+        df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        df["Y"] = pd.Series(["A"] * 10)
         # Multiple columns with an ax argument should use same figure
         fig, ax = mpl.pyplot.subplots()
         msg = "the figure containing the passed axes is being cleared"
@@ -144,11 +137,11 @@ class TestDataFramePlots:
         assert axes["Col1"].get_figure() is fig
 
     def test_boxplot_legacy2_by_none(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
         )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
+        df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        df["Y"] = pd.Series(["A"] * 10)
         # When by is None, check that all relevant lines are present in the
         # dict
         _, ax = mpl.pyplot.subplots()
@@ -164,7 +157,7 @@ class TestDataFramePlots:
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
@@ -180,7 +173,7 @@ class TestDataFramePlots:
     def test_boxplot_return_type_legacy_return_type(self, return_type):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
@@ -214,12 +207,12 @@ class TestDataFramePlots:
         assert dummy_ax._sharey is None
 
     def test_boxplot_empty_column(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((20, 4)))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type="axes")
 
     def test_figsize(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 5)), columns=["A", "B", "C", "D", "E"]
         )
         result = df.boxplot(return_type="axes", figsize=(12, 8))
@@ -227,19 +220,19 @@ class TestDataFramePlots:
         assert result.figure.bbox_inches.height == 8
 
     def test_fontsize(self):
-        df = DataFrame({"a": [1, 2, 3, 4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6]})
         _check_ticks_props(df.boxplot("a", fontsize=16), xlabelsize=16, ylabelsize=16)
 
     def test_boxplot_numeric_data(self):
         # GH 22799
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "a": date_range("2012-01-01", periods=10),
+                "a": pd.date_range("2012-01-01", periods=10),
                 "b": np.random.default_rng(2).standard_normal(10),
                 "c": np.random.default_rng(2).standard_normal(10) + 2,
-                "d": date_range("2012-01-01", periods=10).astype(str),
-                "e": date_range("2012-01-01", periods=10, tz="UTC"),
-                "f": timedelta_range("1 days", periods=10),
+                "d": pd.date_range("2012-01-01", periods=10).astype(str),
+                "e": pd.date_range("2012-01-01", periods=10, tz="UTC"),
+                "f": pd.timedelta_range("1 days", periods=10),
             }
         )
         ax = df.plot(kind="box")
@@ -258,7 +251,7 @@ class TestDataFramePlots:
     )
     def test_color_kwd(self, colors_kwd, expected):
         # GH: 26214
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
         result = df.boxplot(color=colors_kwd, return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
@@ -288,7 +281,7 @@ class TestDataFramePlots:
     )
     def test_colors_in_theme(self, scheme, expected):
         # GH: 40769
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
         plt.style.use(scheme)
         result = df.plot.box(return_type="dict")
         for k, v in expected.items():
@@ -300,7 +293,7 @@ class TestDataFramePlots:
     )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
 
@@ -315,7 +308,7 @@ class TestDataFramePlots:
     )
     def test_specified_props_kwd(self, props, expected):
         # GH 30346
-        df = DataFrame({k: np.random.default_rng(2).random(10) for k in "ABC"})
+        df = pd.DataFrame({k: np.random.default_rng(2).random(10) for k in "ABC"})
         kwd = {props: {"color": "C1"}}
         result = df.boxplot(return_type="dict", **kwd)
 
@@ -323,7 +316,7 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_plot_xlabel_ylabel(self, vert):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
@@ -339,8 +332,8 @@ class TestDataFramePlots:
     def test_plot_box(self, vert):
         # GH 54941
         rng = np.random.default_rng(2)
-        df1 = DataFrame(rng.integers(0, 100, size=(10, 4)), columns=list("ABCD"))
-        df2 = DataFrame(rng.integers(0, 100, size=(10, 4)), columns=list("ABCD"))
+        df1 = pd.DataFrame(rng.integers(0, 100, size=(10, 4)), columns=list("ABCD"))
+        df2 = pd.DataFrame(rng.integers(0, 100, size=(10, 4)), columns=list("ABCD"))
 
         xlabel, ylabel = "x", "y"
         _, axs = plt.subplots(ncols=2, figsize=(10, 7), sharey=True)
@@ -352,7 +345,7 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_xlabel_ylabel(self, vert):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
@@ -366,7 +359,7 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_xlabel_ylabel(self, vert):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
@@ -386,7 +379,7 @@ class TestDataFramePlots:
                 reason=f"{vert} fails starting with matplotlib 3.10",
             )
         )
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
@@ -421,9 +414,9 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.slow
     def test_boxplot_legacy2(self):
         tuples = zip(string.ascii_letters[:10], range(10), strict=True)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
-            index=MultiIndex.from_tuples(tuples),
+            index=pd.MultiIndex.from_tuples(tuples),
         )
         grouped = df.groupby(level=1)
         msg = "the figure containing the passed axes is being cleared"
@@ -434,9 +427,9 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.slow
     def test_boxplot_legacy2_return_type(self):
         tuples = zip(string.ascii_letters[:10], range(10), strict=True)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
-            index=MultiIndex.from_tuples(tuples),
+            index=pd.MultiIndex.from_tuples(tuples),
         )
         grouped = df.groupby(level=1)
         axes = _check_plot_works(
@@ -446,10 +439,10 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_plot_fignums(self):
         n = 10
-        weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
-        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
+        weight = pd.Series(np.random.default_rng(2).normal(166, 20, size=n))
+        height = pd.Series(np.random.default_rng(2).normal(60, 10, size=n))
         gender = np.random.default_rng(2).choice(["male", "female"], size=n)
-        df = DataFrame({"height": height, "weight": weight, "gender": gender})
+        df = pd.DataFrame({"height": height, "weight": weight, "gender": gender})
         gb = df.groupby("gender")
 
         res = gb.plot()
@@ -463,10 +456,10 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_plot_fignums_excluded_col(self):
         n = 10
-        weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
-        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
+        weight = pd.Series(np.random.default_rng(2).normal(166, 20, size=n))
+        height = pd.Series(np.random.default_rng(2).normal(60, 10, size=n))
         gender = np.random.default_rng(2).choice(["male", "female"], size=n)
-        df = DataFrame({"height": height, "weight": weight, "gender": gender})
+        df = pd.DataFrame({"height": height, "weight": weight, "gender": gender})
         # now works with GH 5610 as gender is excluded
         df.groupby("gender").hist()
 
@@ -505,7 +498,7 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
     def test_grouped_box_return_type_arg_duplcate_cats(self, return_type):
         columns2 = "X B C D A".split()
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((6, 5)), columns=columns2
         )
         categories2 = "A B".split()
@@ -671,7 +664,7 @@ class TestDataFrameGroupByPlots:
                 axes = df.groupby("classroom").boxplot(ax=axes)
 
     def test_fontsize(self):
-        df = DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]})
+        df = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]})
         _check_ticks_props(
             df.boxplot("a", by="b", fontsize=16), xlabelsize=16, ylabelsize=16
         )
@@ -716,7 +709,7 @@ class TestDataFrameGroupByPlots:
     )
     def test_groupby_boxplot_subplots_false(self, col, expected_xticklabel):
         # GH 16748
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "cat": np.random.default_rng(2).choice(list("abcde"), 100),
                 "v": np.random.default_rng(2).random(100),
@@ -739,7 +732,7 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.parametrize("subplots", [True, False])
     def test_groupby_boxplot_subset_columns(self, subplots):
         # GH#41124 a column selection on the groupby is honored
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "cat": np.repeat([0, 1, 2, 3], 25),
                 "data": np.random.default_rng(2).random(100),
@@ -776,8 +769,8 @@ class TestDataFrameGroupByPlots:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         tuples = list(zip(*arrays, strict=True))
-        index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(
+        index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 8)),
             index=["A", "B", "C"],
             columns=index,
@@ -794,11 +787,11 @@ class TestDataFrameGroupByPlots:
     def test_boxplot_multi_groupby_groups(self, group):
         # GH 14701
         rows = 20
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(12).normal(size=(rows, 2)), columns=["Col1", "Col2"]
         )
-        df["X"] = Series(np.repeat(["A", "B"], int(rows / 2)))
-        df["Y"] = Series(np.tile(["C", "D"], int(rows / 2)))
+        df["X"] = pd.Series(np.repeat(["A", "B"], int(rows / 2)))
+        df["Y"] = pd.Series(np.tile(["C", "D"], int(rows / 2)))
         grouped = df.groupby(group)
         _check_plot_works(df.boxplot, by=group, default_axes=True)
         _check_plot_works(df.plot.box, by=group, default_axes=True)

@@ -7,7 +7,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pytest
 
-from pandas import Timestamp
+import pandas as pd
 from pandas.tests.tseries.offsets.common import (
     WeekDay,
     assert_is_on_offset,
@@ -585,26 +585,26 @@ class TestFY5253NearestEndMonthQuarter:
 def test_bunched_yearends():
     # GH#14774 cases with two fiscal year-ends in the same calendar-year
     fy = FY5253(n=1, weekday=5, startingMonth=12, variation="nearest")
-    dt = Timestamp("2004-01-01")
-    assert fy.rollback(dt) == Timestamp("2002-12-28")
-    assert (-fy) + dt == Timestamp("2002-12-28")
-    assert dt - fy == Timestamp("2002-12-28")
+    dt = pd.Timestamp("2004-01-01")
+    assert fy.rollback(dt) == pd.Timestamp("2002-12-28")
+    assert (-fy) + dt == pd.Timestamp("2002-12-28")
+    assert dt - fy == pd.Timestamp("2002-12-28")
 
-    assert fy.rollforward(dt) == Timestamp("2004-01-03")
-    assert fy + dt == Timestamp("2004-01-03")
-    assert dt + fy == Timestamp("2004-01-03")
+    assert fy.rollforward(dt) == pd.Timestamp("2004-01-03")
+    assert fy + dt == pd.Timestamp("2004-01-03")
+    assert dt + fy == pd.Timestamp("2004-01-03")
 
     # Same thing, but starting from a Timestamp in the previous year.
-    dt = Timestamp("2003-12-31")
-    assert fy.rollback(dt) == Timestamp("2002-12-28")
-    assert (-fy) + dt == Timestamp("2002-12-28")
-    assert dt - fy == Timestamp("2002-12-28")
+    dt = pd.Timestamp("2003-12-31")
+    assert fy.rollback(dt) == pd.Timestamp("2002-12-28")
+    assert (-fy) + dt == pd.Timestamp("2002-12-28")
+    assert dt - fy == pd.Timestamp("2002-12-28")
 
 
 def test_fy5253_last_onoffset():
     # GH#18877 dates on the year-end but not normalized to midnight
     offset = FY5253(n=-5, startingMonth=5, variation="last", weekday=0)
-    ts = Timestamp("1984-05-28 06:29:43.955911354+0200", tz="Europe/San_Marino")
+    ts = pd.Timestamp("1984-05-28 06:29:43.955911354+0200", tz="Europe/San_Marino")
     fast = offset.is_on_offset(ts)
     slow = (ts + offset) - offset == ts
     assert fast == slow
@@ -613,7 +613,7 @@ def test_fy5253_last_onoffset():
 def test_fy5253_nearest_onoffset():
     # GH#18877 dates on the year-end but not normalized to midnight
     offset = FY5253(n=3, startingMonth=7, variation="nearest", weekday=2)
-    ts = Timestamp("2032-07-28 00:12:59.035729419+0000", tz="Africa/Dakar")
+    ts = pd.Timestamp("2032-07-28 00:12:59.035729419+0000", tz="Africa/Dakar")
     fast = offset.is_on_offset(ts)
     slow = (ts + offset) - offset == ts
     assert fast == slow
@@ -621,7 +621,7 @@ def test_fy5253_nearest_onoffset():
 
 def test_fy5253qtr_onoffset_nearest():
     # GH#19036
-    ts = Timestamp("1985-09-02 23:57:46.232550356-0300", tz="Atlantic/Bermuda")
+    ts = pd.Timestamp("1985-09-02 23:57:46.232550356-0300", tz="Atlantic/Bermuda")
     offset = FY5253Quarter(
         n=3, qtr_with_extra_week=1, startingMonth=2, variation="nearest", weekday=0
     )
@@ -635,7 +635,7 @@ def test_fy5253qtr_onoffset_last():
     offset = FY5253Quarter(
         n=-2, qtr_with_extra_week=1, startingMonth=7, variation="last", weekday=2
     )
-    ts = Timestamp("2011-01-26 19:03:40.331096129+0200", tz="Africa/Windhoek")
+    ts = pd.Timestamp("2011-01-26 19:03:40.331096129+0200", tz="Africa/Windhoek")
     slow = (ts + offset) - offset == ts
     fast = offset.is_on_offset(ts)
     assert fast == slow

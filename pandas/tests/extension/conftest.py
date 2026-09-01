@@ -2,7 +2,7 @@ import operator
 
 import pytest
 
-from pandas import Series
+import pandas as pd
 
 
 @pytest.fixture
@@ -148,7 +148,7 @@ def box_in_series(request):
     params=[
         lambda x: 1,
         lambda x: [1] * len(x),
-        lambda x: Series([1] * len(x)),
+        lambda x: pd.Series([1] * len(x)),
         lambda x: x,
     ],
     ids=["scalar", "list", "series", "object"],

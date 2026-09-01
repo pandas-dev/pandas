@@ -16,18 +16,6 @@ from pandas.errors import (
 )
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Grouper,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
 
@@ -37,7 +25,7 @@ from pandas.core.groupby.grouper import Grouping
 
 class TestSelection:
     def test_select_bad_cols(self):
-        df = DataFrame([[1, 2]], columns=["A", "B"])
+        df = pd.DataFrame([[1, 2]], columns=["A", "B"])
         g = df.groupby("A")
         with pytest.raises(KeyError, match="\"Columns not found: 'C'\""):
             g[["C"]]
@@ -49,7 +37,7 @@ class TestSelection:
 
     def test_groupby_duplicated_column_errormsg(self):
         # GH7511
-        df = DataFrame(
+        df = pd.DataFrame(
             columns=["A", "B", "A", "C"], data=[range(4), range(2, 6), range(0, 8, 2)]
         )
 
@@ -75,7 +63,7 @@ class TestSelection:
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -95,7 +83,7 @@ class TestSelection:
 
     def test_getitem_numeric_column_names(self):
         # GH #13731
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 0: list("abcd") * 2,
                 2: np.random.default_rng(2).standard_normal(8),
@@ -121,7 +109,7 @@ class TestSelection:
             df.groupby("A")["C", "D"].mean()
 
     def test_getitem_single_column(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -144,18 +132,18 @@ class TestSelection:
     )
     def test_getitem_from_grouper(self, func):
         # GH 50383
-        df = DataFrame({"a": [1, 1, 2], "b": 3, "c": 4, "d": 5})
+        df = pd.DataFrame({"a": [1, 1, 2], "b": 3, "c": 4, "d": 5})
         gb = df.groupby(["a", "b"])[["a", "c"]]
 
-        idx = MultiIndex.from_tuples([(1, 3), (2, 3)], names=["a", "b"])
-        expected = DataFrame({"a": [2, 2], "c": [8, 4]}, index=idx)
+        idx = pd.MultiIndex.from_tuples([(1, 3), (2, 3)], names=["a", "b"])
+        expected = pd.DataFrame({"a": [2, 2], "c": [8, 4]}, index=idx)
         result = func(gb)
 
         tm.assert_frame_equal(result, expected)
 
     def test_indices_grouped_by_tuple_with_lambda(self):
         # GH 36158
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "Tuples": (
                     (x, y)
@@ -182,17 +170,17 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcde")),
-            Index(np.arange(5)),
-            Index(np.arange(5, dtype=float)),
-            date_range("2020-01-01", periods=5),
-            period_range("2020-01-01", periods=5),
+            pd.Index(list("abcde")),
+            pd.Index(np.arange(5)),
+            pd.Index(np.arange(5, dtype=float)),
+            pd.date_range("2020-01-01", periods=5),
+            pd.period_range("2020-01-01", periods=5),
         ],
     )
     def test_grouper_index_types(self, index):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
-        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"), index=index)
+        df = pd.DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"), index=index)
 
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
@@ -203,37 +191,39 @@ class TestGrouping:
         # GH 7885
         # with level and freq specified in a Grouper
         d0 = date(2011, 1, 1)
-        dates = date_range(d0, d0 + timedelta(days=14))
-        date_index = MultiIndex.from_product([dates, dates], names=["foo", "bar"])
-        df = DataFrame(np.random.default_rng(2).integers(0, 100, 225), index=date_index)
+        dates = pd.date_range(d0, d0 + timedelta(days=14))
+        date_index = pd.MultiIndex.from_product([dates, dates], names=["foo", "bar"])
+        df = pd.DataFrame(
+            np.random.default_rng(2).integers(0, 100, 225), index=date_index
+        )
 
         # Check string level
         expected = (
             df.reset_index()
-            .groupby([Grouper(key="foo", freq="W"), Grouper(key="bar", freq="W")])
+            .groupby([pd.Grouper(key="foo", freq="W"), pd.Grouper(key="bar", freq="W")])
             .sum()
         )
         # reset index changes columns dtype to object
-        expected.columns = Index([0], dtype="int64")
+        expected.columns = pd.Index([0], dtype="int64")
 
         result = df.groupby(
-            [Grouper(level="foo", freq="W"), Grouper(level="bar", freq="W")]
+            [pd.Grouper(level="foo", freq="W"), pd.Grouper(level="bar", freq="W")]
         ).sum()
         tm.assert_frame_equal(result, expected)
 
         # Check integer level
         result = df.groupby(
-            [Grouper(level=0, freq="W"), Grouper(level=1, freq="W")]
+            [pd.Grouper(level=0, freq="W"), pd.Grouper(level=1, freq="W")]
         ).sum()
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_creation_bug(self):
         # GH 8795
-        df = DataFrame({"A": [0, 0, 1, 1, 2, 2], "B": [1, 2, 3, 4, 5, 6]})
+        df = pd.DataFrame({"A": [0, 0, 1, 1, 2, 2], "B": [1, 2, 3, 4, 5, 6]})
         g = df.groupby("A")
         expected = g.sum()
 
-        g = df.groupby(Grouper(key="A"))
+        g = df.groupby(pd.Grouper(key="A"))
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -243,12 +233,12 @@ class TestGrouping:
     def test_grouper_creation_bug2(self):
         # GH14334
         # Grouper(key=...) may be passed in a list
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [0, 0, 0, 1, 1, 1], "B": [1, 1, 2, 2, 3, 3], "C": [1, 2, 3, 4, 5, 6]}
         )
         # Group by single column
         expected = df.groupby("A").sum()
-        g = df.groupby([Grouper(key="A")])
+        g = df.groupby([pd.Grouper(key="A")])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -257,50 +247,50 @@ class TestGrouping:
         expected = df.groupby(["A", "B"]).sum()
 
         # Group with two Grouper objects
-        g = df.groupby([Grouper(key="A"), Grouper(key="B")])
+        g = df.groupby([pd.Grouper(key="A"), pd.Grouper(key="B")])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
         # Group with a string and a Grouper object
-        g = df.groupby(["A", Grouper(key="B")])
+        g = df.groupby(["A", pd.Grouper(key="B")])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
         # Group with a Grouper object and a string
-        g = df.groupby([Grouper(key="A"), "B"])
+        g = df.groupby([pd.Grouper(key="A"), "B"])
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_creation_bug3(self, unit):
         # GH8866
-        dti = date_range("20130101", periods=2, unit=unit)
-        mi = MultiIndex.from_product(
+        dti = pd.date_range("20130101", periods=2, unit=unit)
+        mi = pd.MultiIndex.from_product(
             [list("ab"), range(2), dti],
             names=["one", "two", "three"],
         )
-        ser = Series(
+        ser = pd.Series(
             np.arange(8, dtype="int64"),
             index=mi,
         )
-        result = ser.groupby(Grouper(level="three", freq="ME")).sum()
+        result = ser.groupby(pd.Grouper(level="three", freq="ME")).sum()
         exp_dti = pd.DatetimeIndex(
-            [Timestamp("2013-01-31")], freq="ME", name="three"
+            [pd.Timestamp("2013-01-31")], freq="ME", name="three"
         ).as_unit(unit)
-        expected = Series(
+        expected = pd.Series(
             [28],
             index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
 
         # just specifying a level breaks
-        result = ser.groupby(Grouper(level="one")).sum()
+        result = ser.groupby(pd.Grouper(level="one")).sum()
         expected = ser.groupby(level="one").sum()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("func", [False, True])
     def test_grouper_returning_tuples(self, func):
         # GH 22257 , both with dict and with callable
-        df = DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
+        df = pd.DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
         mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2, strict=True))
 
         if func:
@@ -317,16 +307,16 @@ class TestGrouping:
     def test_grouper_func_returning_tz_naive(self):
         # GH#57192 grouping by a function that strips the tz should give
         #  tz-naive group keys, not keys re-localized to the original tz
-        index = date_range("2024-02-01", "2024-02-03", freq="8h", tz="UTC")
-        df = DataFrame({"A": 1}, index=index)
+        index = pd.date_range("2024-02-01", "2024-02-03", freq="8h", tz="UTC")
+        df = pd.DataFrame({"A": 1}, index=index)
 
         gb = df.groupby(by=lambda ts: ts.normalize().tz_convert(None))
         keys = list(gb.groups.keys())
         assert all(key.tz is None for key in keys)
         expected = [
-            Timestamp("2024-02-01"),
-            Timestamp("2024-02-02"),
-            Timestamp("2024-02-03"),
+            pd.Timestamp("2024-02-01"),
+            pd.Timestamp("2024-02-02"),
+            pd.Timestamp("2024-02-03"),
         ]
         assert keys == expected
 
@@ -335,22 +325,26 @@ class TestGrouping:
 
         # Grouping a multi-index frame by a column and an index level should
         # be equivalent to resetting the index and grouping by two columns
-        idx = MultiIndex.from_tuples(
+        idx = pd.MultiIndex.from_tuples(
             [("a", 1), ("a", 2), ("a", 3), ("b", 1), ("b", 2), ("b", 3)]
         )
         idx.names = ["outer", "inner"]
-        df_multi = DataFrame(
+        df_multi = pd.DataFrame(
             {"A": np.arange(6), "B": ["one", "one", "two", "two", "one", "one"]},
             index=idx,
         )
-        result = df_multi.groupby(["B", Grouper(level="inner")]).mean(numeric_only=True)
+        result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean(
+            numeric_only=True
+        )
         expected = (
             df_multi.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
         )
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        result = df_multi.groupby([Grouper(level="inner"), "B"]).mean(numeric_only=True)
+        result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean(
+            numeric_only=True
+        )
         expected = (
             df_multi.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
         )
@@ -359,7 +353,7 @@ class TestGrouping:
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
         df_single = df_multi.reset_index("outer")
-        result = df_single.groupby(["B", Grouper(level="inner")]).mean(
+        result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean(
             numeric_only=True
         )
         expected = (
@@ -368,7 +362,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        result = df_single.groupby([Grouper(level="inner"), "B"]).mean(
+        result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean(
             numeric_only=True
         )
         expected = (
@@ -379,8 +373,10 @@ class TestGrouping:
     def test_groupby_levels_and_columns(self):
         # GH9344, GH9049
         idx_names = ["x", "y"]
-        idx = MultiIndex.from_tuples([(1, 1), (1, 2), (3, 4), (5, 6)], names=idx_names)
-        df = DataFrame(np.arange(12).reshape(-1, 3), index=idx)
+        idx = pd.MultiIndex.from_tuples(
+            [(1, 1), (1, 2), (3, 4), (5, 6)], names=idx_names
+        )
+        df = pd.DataFrame(np.arange(12).reshape(-1, 3), index=idx)
 
         by_levels = df.groupby(level=idx_names).mean()
         # reset_index changes columns dtype to object
@@ -397,35 +393,36 @@ class TestGrouping:
         data = np.array(
             [[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2]], int
         )
-        cat_columns = CategoricalIndex(columns, categories=categories, ordered=True)
+        cat_columns = pd.CategoricalIndex(columns, categories=categories, ordered=True)
         expected_data = np.array([[4, 2], [4, 2], [4, 2], [4, 2], [4, 2]], int)
-        expected_columns = CategoricalIndex(
+        expected_columns = pd.CategoricalIndex(
             categories, categories=categories, ordered=True
         )
 
         # test transposed version
-        df = DataFrame(data.T, index=cat_columns)
+        df = pd.DataFrame(data.T, index=cat_columns)
         result = df.groupby(level=0, observed=observed).sum()
-        expected = DataFrame(data=expected_data.T, index=expected_columns)
+        expected = pd.DataFrame(data=expected_data.T, index=expected_columns)
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_getting_correct_binner(self):
         # GH 10063
         # using a non-time-based grouper and a time-based grouper
         # and specifying levels
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": 1},
-            index=MultiIndex.from_product(
-                [list("ab"), date_range("20130101", periods=80)], names=["one", "two"]
+            index=pd.MultiIndex.from_product(
+                [list("ab"), pd.date_range("20130101", periods=80)],
+                names=["one", "two"],
             ),
         )
         result = df.groupby(
-            [Grouper(level="one"), Grouper(level="two", freq="ME")]
+            [pd.Grouper(level="one"), pd.Grouper(level="two", freq="ME")]
         ).sum()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"A": [31, 28, 21, 31, 28, 21]},
-            index=MultiIndex.from_product(
-                [list("ab"), date_range("20130101", freq="ME", periods=3)],
+            index=pd.MultiIndex.from_product(
+                [list("ab"), pd.date_range("20130101", freq="ME", periods=3)],
                 names=["one", "two"],
             ),
         )
@@ -452,12 +449,12 @@ class TestGrouping:
 
     def test_groupby_dict_mapping(self):
         # GH #679
-        s = Series({"T1": 5})
+        s = pd.Series({"T1": 5})
         result = s.groupby({"T1": "T2"}).agg("sum")
         expected = s.groupby(["T2"]).agg("sum")
         tm.assert_series_equal(result, expected)
 
-        s = Series([1.0, 2.0, 3.0, 4.0], index=list("abcd"))
+        s = pd.Series([1.0, 2.0, 3.0, 4.0], index=list("abcd"))
         mapping = {"a": 0, "b": 0, "c": 1, "d": 1}
 
         result = s.groupby(mapping).mean()
@@ -474,21 +471,21 @@ class TestGrouping:
         [
             [0, 1, 2, 3],
             ["a", "b", "c", "d"],
-            [Timestamp(2021, 7, 28 + i) for i in range(4)],
+            [pd.Timestamp(2021, 7, 28 + i) for i in range(4)],
         ],
     )
     def test_groupby_series_named_with_tuple(self, frame_or_series, index):
         # GH 42731
         obj = frame_or_series([1, 2, 3, 4], index=index)
-        groups = Series([1, 0, 1, 0], index=index, name=("a", "a"))
+        groups = pd.Series([1, 0, 1, 0], index=index, name=("a", "a"))
         result = obj.groupby(groups).last()
-        expected = frame_or_series([4, 3], index=Index([0, 1]))
+        expected = frame_or_series([4, 3], index=pd.Index([0, 1]))
         expected.index.name = ("a", "a")
         tm.assert_equal(result, expected)
 
     def test_groupby_grouper_f_sanity_checked(self):
-        dates = date_range("01-Jan-2013", periods=12, freq="MS")
-        ts = Series(np.random.default_rng(2).standard_normal(12), index=dates)
+        dates = pd.date_range("01-Jan-2013", periods=12, freq="MS")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(12), index=dates)
 
         # GH51979
         # simple check that the passed function doesn't operates on the whole index
@@ -503,21 +500,21 @@ class TestGrouping:
 
     def test_groupby_with_datetime_key(self):
         # GH 51158
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "id": ["a", "b"] * 3,
-                "b": date_range("2000-01-01", "2000-01-03", freq="9h"),
+                "b": pd.date_range("2000-01-01", "2000-01-03", freq="9h"),
             }
         )
-        grouper = Grouper(key="b", freq="D")
+        grouper = pd.Grouper(key="b", freq="D")
         gb = df.groupby([grouper, "id"])
 
         # test number of groups
         expected = {
-            (Timestamp("2000-01-01"), "a"): [0, 2],
-            (Timestamp("2000-01-01"), "b"): [1],
-            (Timestamp("2000-01-02"), "a"): [4],
-            (Timestamp("2000-01-02"), "b"): [3, 5],
+            (pd.Timestamp("2000-01-01"), "a"): [0, 2],
+            (pd.Timestamp("2000-01-01"), "b"): [1],
+            (pd.Timestamp("2000-01-02"), "a"): [4],
+            (pd.Timestamp("2000-01-02"), "b"): [3, 5],
         }
         tm.assert_dict_equal(gb.groups, expected)
 
@@ -557,9 +554,9 @@ class TestGrouping:
 
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]
-        midx = MultiIndex.from_tuples(lst)
+        midx = pd.MultiIndex.from_tuples(lst)
 
-        df = DataFrame([[1, "A"]], columns=midx)
+        df = pd.DataFrame([[1, "A"]], columns=midx)
 
         msg = "In a future version, the keys"
         grouped = df.groupby("to filter").groups
@@ -569,14 +566,14 @@ class TestGrouping:
             grouped = df.groupby([("to filter", "")]).groups
         assert grouped["A"] == [0]
 
-        df = DataFrame([[1, "A"], [2, "B"]], columns=midx)
+        df = pd.DataFrame([[1, "A"], [2, "B"]], columns=midx)
 
         expected = df.groupby("to filter").groups
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.groupby([("to filter", "")]).groups
         assert result == expected
 
-        df = DataFrame([[1, "A"], [2, "A"]], columns=midx)
+        df = pd.DataFrame([[1, "A"], [2, "A"]], columns=midx)
 
         expected = df.groupby("to filter").groups
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -585,9 +582,9 @@ class TestGrouping:
 
     def test_groupby_multiindex_tuple(self):
         # GH 17979, GH#59179
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
-            columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
+            columns=pd.MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
         )
 
         msg = "In a future version, the keys"
@@ -596,9 +593,9 @@ class TestGrouping:
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             df.values,
-            columns=MultiIndex.from_arrays(
+            columns=pd.MultiIndex.from_arrays(
                 [["a", "b", "b", "c"], ["d", "d", "e", "e"]]
             ),
         )
@@ -608,7 +605,7 @@ class TestGrouping:
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
-        df3 = DataFrame(df.values, columns=[("a", "d"), ("b", "d"), ("b", "e"), "c"])
+        df3 = pd.DataFrame(df.values, columns=[("a", "d"), ("b", "d"), ("b", "e"), "c"])
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = df3.groupby([("b", "d")]).groups
@@ -617,9 +614,9 @@ class TestGrouping:
 
     def test_groupby_multiindex_partial_indexing_equivalence(self):
         # GH 17977, GH#59179
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
-            columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
+            columns=pd.MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
         )
 
         expected_mean = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].mean()
@@ -683,7 +680,7 @@ class TestGrouping:
 
     def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
-        df = DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)}).set_index(
+        df = pd.DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)}).set_index(
             "exp"
         )
         df.groupby(level="exp")
@@ -693,41 +690,41 @@ class TestGrouping:
 
     def test_groupby_duplicate_index_level_names(self):
         # GH#49434
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": [1, 1, 2], "b": [3, 4, 5]},
-            index=MultiIndex.from_tuples([(1, 1), (1, 2), (1, 3)], names=["f", "f"]),
+            index=pd.MultiIndex.from_tuples([(1, 1), (1, 2), (1, 3)], names=["f", "f"]),
         )
         msg = "Grouping by index level 'f' which matches multiple index levels"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.groupby("f").sum()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"a": [4], "b": [12]},
-            index=Index([1], name="f"),
+            index=pd.Index([1], name="f"),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[[1, 0], [0, 1, 2, 3]],
             codes=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
         )
 
         # factorizing doesn't confuse things
-        s = Series(np.arange(8.0), index=index)
+        s = pd.Series(np.arange(8.0), index=index)
         result = s.groupby(level=0, sort=sort).sum()
-        expected = Series([6.0, 22.0], index=[0, 1])
+        expected = pd.Series([6.0, 22.0], index=[0, 1])
         tm.assert_series_equal(result, expected)
 
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[[1, 0], [0, 1, 2, 3]],
             codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
         )
 
         # factorizing doesn't confuse things
-        s = Series(np.arange(8.0), index=index)
+        s = pd.Series(np.arange(8.0), index=index)
         result = s.groupby(level=0, sort=sort).sum()
-        expected = Series([6.0, 18.0], index=[0.0, 1.0])
+        expected = pd.Series([6.0, 18.0], index=[0.0, 1.0])
         tm.assert_series_equal(result, expected)
 
     def test_groupby_args(self, multiindex_dataframe_random_data):
@@ -764,21 +761,21 @@ class TestGrouping:
 
     def test_list_grouper_with_nat(self):
         # GH 14715, GH#59179
-        df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
+        df = pd.DataFrame({"date": pd.date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
-        grouper = Grouper(key="date", freq="YS")
+        grouper = pd.Grouper(key="date", freq="YS")
         msg = "In a future version, the keys"
 
         # Grouper in a list grouping
         gb = df.groupby([grouper])
-        expected = {Timestamp("2011-01-01"): Index(list(range(364)))}
+        expected = {pd.Timestamp("2011-01-01"): pd.Index(list(range(364)))}
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = gb.groups
         tm.assert_dict_equal(result, expected)
 
         # Test case without a list
         result = df.groupby(grouper)
-        expected = {Timestamp("2011-01-01"): 365}
+        expected = {pd.Timestamp("2011-01-01"): 365}
         tm.assert_dict_equal(result.groups, expected)
 
     @pytest.mark.parametrize(
@@ -786,18 +783,22 @@ class TestGrouping:
         [
             (
                 "transform",
-                Series(name=2, dtype=np.float64),
+                pd.Series(name=2, dtype=np.float64),
             ),
             (
                 "agg",
-                Series(
-                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
+                pd.Series(
+                    name=2,
+                    dtype=np.float64,
+                    index=pd.Index([], dtype=np.float64, name=1),
                 ),
             ),
             (
                 "apply",
-                Series(
-                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
+                pd.Series(
+                    name=2,
+                    dtype=np.float64,
+                    index=pd.Index([], dtype=np.float64, name=1),
                 ),
             ),
         ],
@@ -807,7 +808,7 @@ class TestGrouping:
         # test transform'ing empty groups
         # (not testing other agg fns, because they return
         # different index objects.
-        df = DataFrame({1: [], 2: []})
+        df = pd.DataFrame({1: [], 2: []})
         g = df.groupby(1, group_keys=True)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
@@ -817,19 +818,19 @@ class TestGrouping:
         # test apply'ing empty groups with group_keys False
         # (not testing other agg fns, because they return
         # different index objects.
-        df = DataFrame({"A": [], "B": [], "C": []})
+        df = pd.DataFrame({"A": [], "B": [], "C": []})
         g = df.groupby("A", group_keys=False)
         result = g.apply(lambda x: x / x.sum())
-        expected = DataFrame({"B": [], "C": []}, index=None)
+        expected = pd.DataFrame({"B": [], "C": []}, index=None)
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
-        s = Series([], name="name", dtype="float64")
+        s = pd.Series([], name="name", dtype="float64")
         gr = s.groupby([])
 
         result = gr.mean()
-        expected = s.set_axis(Index([], dtype=np.intp))
+        expected = s.set_axis(pd.Index([], dtype=np.intp))
         tm.assert_series_equal(result, expected)
 
         # check group properties
@@ -849,14 +850,14 @@ class TestGrouping:
 
     def test_groupby_level_index_value_all_na(self):
         # issue 20519
-        df = DataFrame(
+        df = pd.DataFrame(
             [["x", np.nan, 10], [None, np.nan, 20]], columns=["A", "B", "C"]
         ).set_index(["A", "B"])
         result = df.groupby(level=["A", "B"]).sum()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             data=[],
-            index=MultiIndex(
-                levels=[Index(["x"], dtype="str"), Index([], dtype="float64")],
+            index=pd.MultiIndex(
+                levels=[pd.Index(["x"], dtype="str"), pd.Index([], dtype="float64")],
                 codes=[[], []],
                 names=["A", "B"],
             ),
@@ -867,22 +868,22 @@ class TestGrouping:
 
     def test_groupby_multiindex_level_empty(self):
         # https://github.com/pandas-dev/pandas/issues/31670
-        df = DataFrame(
+        df = pd.DataFrame(
             [[123, "a", 1.0], [123, "b", 2.0]], columns=["id", "category", "value"]
         )
         df = df.set_index(["id", "category"])
         empty = df[df.value < 0]
         result = empty.groupby("id").sum()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             dtype="float64",
             columns=["value"],
-            index=Index([], dtype=np.int64, name="id"),
+            index=pd.Index([], dtype=np.int64, name="id"),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_tuple_keys_handle_multiindex(self):
         # https://github.com/pandas-dev/pandas/issues/21340
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "num1": [0, 8, 9, 4, 3, 3, 5, 9, 3, 6],
                 "num2": [3, 8, 6, 4, 9, 2, 1, 7, 0, 9],
@@ -910,14 +911,14 @@ class TestGrouping:
     def test_groupby_grouper_immutable_list_item(self):
         # GH 26564 - prevent 'ValueError: all keys need to be the same shape'
         # when reusing a list of groupers
-        df1 = DataFrame([["05/29/2019"], ["05/28/2019"]], columns=["date"]).assign(
+        df1 = pd.DataFrame([["05/29/2019"], ["05/28/2019"]], columns=["date"]).assign(
             date=lambda df: pd.to_datetime(df["date"])
         )
-        df2 = DataFrame(columns=["date"]).assign(
+        df2 = pd.DataFrame(columns=["date"]).assign(
             date=lambda df: pd.to_datetime(df["date"])
         )
 
-        groupers = [Grouper(key="date", freq="1D")]
+        groupers = [pd.Grouper(key="date", freq="1D")]
 
         df1.groupby(groupers).head()
         # no error
@@ -932,7 +933,7 @@ class TestGetGroup:
     def test_get_group(self):
         # GH 5267
         # be datelike friendly
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "DATE": pd.to_datetime(
                     [
@@ -952,8 +953,8 @@ class TestGetGroup:
         g = df.groupby("DATE")
         key = next(iter(g.groups))
         result1 = g.get_group(key)
-        result2 = g.get_group(Timestamp(key).to_pydatetime())
-        result3 = g.get_group(str(Timestamp(key)))
+        result2 = g.get_group(pd.Timestamp(key).to_pydatetime())
+        result3 = g.get_group(str(pd.Timestamp(key)))
         tm.assert_frame_equal(result1, result2)
         tm.assert_frame_equal(result1, result3)
 
@@ -961,8 +962,8 @@ class TestGetGroup:
 
         key = next(iter(g.groups))
         result1 = g.get_group(key)
-        result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
-        result3 = g.get_group((str(Timestamp(key[0])), key[1]))
+        result2 = g.get_group((pd.Timestamp(key[0]).to_pydatetime(), key[1]))
+        result3 = g.get_group((str(pd.Timestamp(key[0])), key[1]))
         tm.assert_frame_equal(result1, result2)
         tm.assert_frame_equal(result1, result3)
 
@@ -977,14 +978,14 @@ class TestGetGroup:
             g.get_group(("foo", "bar", "baz"))
 
     def test_get_group_empty_bins(self, observed):
-        d = DataFrame([3, 1, 7, 6])
+        d = pd.DataFrame([3, 1, 7, 6])
         bins = [0, 5, 10, 15]
         g = d.groupby(pd.cut(d[0], bins), observed=observed)
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'
         result = g.get_group(pd.Interval(0, 5))
-        expected = DataFrame([3, 1], index=[0, 1])
+        expected = pd.DataFrame([3, 1], index=[0, 1])
         tm.assert_frame_equal(result, expected)
 
         msg = r"Interval\(10, 15, closed='right'\)"
@@ -993,22 +994,22 @@ class TestGetGroup:
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121
-        df = DataFrame([[(1,), (1, 2), (1,), (1, 2)]], index=["ids"]).T
+        df = pd.DataFrame([[(1,), (1, 2), (1,), (1, 2)]], index=["ids"]).T
         gr = df.groupby("ids")
-        expected = DataFrame({"ids": [(1,), (1,)]}, index=[0, 2])
+        expected = pd.DataFrame({"ids": [(1,), (1,)]}, index=[0, 2])
         result = gr.get_group((1,))
         tm.assert_frame_equal(result, expected)
 
         dt = pd.to_datetime(["2010-01-01", "2010-01-02", "2010-01-01", "2010-01-02"])
-        df = DataFrame({"ids": [(x,) for x in dt]})
+        df = pd.DataFrame({"ids": [(x,) for x in dt]})
         gr = df.groupby("ids")
         result = gr.get_group(("2010-01-01",))
-        expected = DataFrame({"ids": [(dt[0],), (dt[0],)]}, index=[0, 2])
+        expected = pd.DataFrame({"ids": [(dt[0],), (dt[0],)]}, index=[0, 2])
         tm.assert_frame_equal(result, expected)
 
     def test_get_group_grouped_by_tuple_with_lambda(self):
         # GH 36158
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "Tuples": (
                     (x, y)
@@ -1029,17 +1030,17 @@ class TestGetGroup:
     def test_groupby_with_empty(self):
         index = pd.DatetimeIndex(())
         data = ()
-        series = Series(data, index, dtype=object)
-        grouper = Grouper(freq="D")
+        series = pd.Series(data, index, dtype=object)
+        grouper = pd.Grouper(freq="D")
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
     def test_groupby_with_single_column(self):
-        df = DataFrame({"a": list("abssbab")})
+        df = pd.DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(
-            index=Index(["a", "b", "s"], name="a"), columns=Index([], dtype="str")
+        exp = pd.DataFrame(
+            index=pd.Index(["a", "b", "s"], name="a"), columns=pd.Index([], dtype="str")
         )
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
@@ -1051,7 +1052,7 @@ class TestGetGroup:
         # GH16843
         # test ensures that index and column keys are recognized correctly
         # when number of keys equals axis length of groupby
-        df = DataFrame(
+        df = pd.DataFrame(
             [["foo", "bar", "B", 1], ["foo", "bar", "B", 2], ["foo", "baz", "C", 3]],
             columns=["first", "second", "third", "one"],
         )
@@ -1095,7 +1096,7 @@ class TestIteration:
             pass
 
     def test_multi_iter(self):
-        s = Series(np.arange(6))
+        s = pd.Series(np.arange(6))
         k1 = np.array(["a", "a", "a", "b", "b", "b"])
         k2 = np.array(["1", "2", "1", "2", "1", "2"])
 
@@ -1117,7 +1118,7 @@ class TestIteration:
     def test_multi_iter_frame(self, three_group):
         k1 = np.array(["b", "b", "b", "a", "a", "a"])
         k2 = np.array(["1", "2", "1", "2", "1", "2"])
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "v1": np.random.default_rng(2).standard_normal(6),
                 "v2": np.random.default_rng(2).standard_normal(6),
@@ -1164,59 +1165,59 @@ class TestIteration:
     def test_groupby_with_small_elem(self):
         # GH 8542
         # length=2
-        df = DataFrame(
+        df = pd.DataFrame(
             {"event": ["start", "start"], "change": [1234, 5678]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10"]),
         )
-        grouped = df.groupby([Grouper(freq="ME"), "event"])
+        grouped = df.groupby([pd.Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
-        assert (Timestamp("2014-09-30"), "start") in grouped.groups
-        assert (Timestamp("2013-10-31"), "start") in grouped.groups
+        assert (pd.Timestamp("2014-09-30"), "start") in grouped.groups
+        assert (pd.Timestamp("2013-10-31"), "start") in grouped.groups
 
-        res = grouped.get_group((Timestamp("2014-09-30"), "start"))
+        res = grouped.get_group((pd.Timestamp("2014-09-30"), "start"))
         tm.assert_frame_equal(res, df.iloc[[0], :])
-        res = grouped.get_group((Timestamp("2013-10-31"), "start"))
+        res = grouped.get_group((pd.Timestamp("2013-10-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[1], :])
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-09-15"]),
         )
-        grouped = df.groupby([Grouper(freq="ME"), "event"])
+        grouped = df.groupby([pd.Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
-        assert (Timestamp("2014-09-30"), "start") in grouped.groups
-        assert (Timestamp("2013-10-31"), "start") in grouped.groups
+        assert (pd.Timestamp("2014-09-30"), "start") in grouped.groups
+        assert (pd.Timestamp("2013-10-31"), "start") in grouped.groups
 
-        res = grouped.get_group((Timestamp("2014-09-30"), "start"))
+        res = grouped.get_group((pd.Timestamp("2014-09-30"), "start"))
         tm.assert_frame_equal(res, df.iloc[[0, 2], :])
-        res = grouped.get_group((Timestamp("2013-10-31"), "start"))
+        res = grouped.get_group((pd.Timestamp("2013-10-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[1], :])
 
         # length=3
-        df = DataFrame(
+        df = pd.DataFrame(
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-08-05"]),
         )
-        grouped = df.groupby([Grouper(freq="ME"), "event"])
+        grouped = df.groupby([pd.Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 3
         assert grouped.ngroups == 3
-        assert (Timestamp("2014-09-30"), "start") in grouped.groups
-        assert (Timestamp("2013-10-31"), "start") in grouped.groups
-        assert (Timestamp("2014-08-31"), "start") in grouped.groups
+        assert (pd.Timestamp("2014-09-30"), "start") in grouped.groups
+        assert (pd.Timestamp("2013-10-31"), "start") in grouped.groups
+        assert (pd.Timestamp("2014-08-31"), "start") in grouped.groups
 
-        res = grouped.get_group((Timestamp("2014-09-30"), "start"))
+        res = grouped.get_group((pd.Timestamp("2014-09-30"), "start"))
         tm.assert_frame_equal(res, df.iloc[[0], :])
-        res = grouped.get_group((Timestamp("2013-10-31"), "start"))
+        res = grouped.get_group((pd.Timestamp("2013-10-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[1], :])
-        res = grouped.get_group((Timestamp("2014-08-31"), "start"))
+        res = grouped.get_group((pd.Timestamp("2014-08-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[2], :])
 
     def test_grouping_string_repr(self):
         # GH 13394
-        mi = MultiIndex.from_arrays([list("AAB"), list("aba")])
-        df = DataFrame([[1, 2, 3]], columns=mi)
+        mi = pd.MultiIndex.from_arrays([list("AAB"), list("aba")])
+        df = pd.DataFrame([[1, 2, 3]], columns=mi)
         gr = df.groupby(df[("A", "a")])
 
         result = gr._grouper.groupings[0].__repr__()
@@ -1226,23 +1227,23 @@ class TestIteration:
 
 def test_grouping_by_key_is_in_axis():
     # GH#50413 - Groupers specified by key are in-axis
-    df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 2], "c": [3, 4, 5]}).set_index("a")
-    gb = df.groupby([Grouper(level="a"), Grouper(key="b")], as_index=False)
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 1, 2], "c": [3, 4, 5]}).set_index("a")
+    gb = df.groupby([pd.Grouper(level="a"), pd.Grouper(key="b")], as_index=False)
     assert not gb._grouper.groupings[0].in_axis
     assert gb._grouper.groupings[1].in_axis
 
     result = gb.sum()
-    expected = DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
+    expected = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_any_with_timedelta():
     # GH#59712
-    df = DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
+    df = pd.DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
 
     result = df.groupby(np.array([0, 1], dtype=np.int64))["value"].any()
 
-    expected = Series({0: True, 1: False}, name="value", dtype=bool)
+    expected = pd.Series({0: True, 1: False}, name="value", dtype=bool)
     expected.index = expected.index.astype(np.int64)
 
     tm.assert_series_equal(result, expected)
@@ -1252,16 +1253,16 @@ def test_groupby_any_with_timedelta():
 @pytest.mark.parametrize(
     "idx",
     [
-        date_range("2020-01-01", periods=5, freq="D"),
-        date_range("2020-01-05", periods=5, freq="-1D"),
-        timedelta_range("1 day", periods=5, freq="D"),
-        timedelta_range("5 days", periods=5, freq="-1D"),
+        pd.date_range("2020-01-01", periods=5, freq="D"),
+        pd.date_range("2020-01-05", periods=5, freq="-1D"),
+        pd.timedelta_range("1 day", periods=5, freq="D"),
+        pd.timedelta_range("5 days", periods=5, freq="-1D"),
     ],
 )
 def test_groupby_index_with_freq_retains_freq(idx, sort):
     # GH#66046 - grouping by a DatetimeIndex/TimedeltaIndex with a freq
     # retains the freq on the result index
-    df = DataFrame({"a": range(5)})
+    df = pd.DataFrame({"a": range(5)})
 
     result = df.groupby(idx, sort=sort).sum()
 
@@ -1289,14 +1290,14 @@ def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
     if not ascending:
         idx = idx[::-1]
     assert idx.freq is None
-    df = DataFrame({"a": [1, 2, 4, 8]})
+    df = pd.DataFrame({"a": [1, 2, 4, 8]})
 
     result = df.groupby(idx, sort=sort).sum()
 
     if ascending:
-        expected = DataFrame({"a": [3, 4, 8]}, index=klass(values[1:]))
+        expected = pd.DataFrame({"a": [3, 4, 8]}, index=klass(values[1:]))
     elif sort:
-        expected = DataFrame({"a": [12, 2, 1]}, index=klass(values[1:]))
+        expected = pd.DataFrame({"a": [12, 2, 1]}, index=klass(values[1:]))
     else:
-        expected = DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
+        expected = pd.DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
     tm.assert_frame_equal(result, expected)

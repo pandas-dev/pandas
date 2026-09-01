@@ -1,9 +1,6 @@
 import numpy as np
 
-from pandas import (
-    Categorical,
-    Series,
-)
+import pandas as pd
 
 
 class TestSeriesCount:
@@ -15,8 +12,8 @@ class TestSeriesCount:
         assert datetime_series.count() == np.isfinite(datetime_series).sum()
 
     def test_count_categorical(self):
-        ser = Series(
-            Categorical(
+        ser = pd.Series(
+            pd.Categorical(
                 [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
             )
         )

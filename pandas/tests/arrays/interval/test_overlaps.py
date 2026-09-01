@@ -3,17 +3,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 
 
-@pytest.fixture(params=[IntervalArray, IntervalIndex])
+@pytest.fixture(params=[IntervalArray, pd.IntervalIndex])
 def constructor(request):
     """
     Fixture for testing both interval container classes.
@@ -23,8 +18,8 @@ def constructor(request):
 
 @pytest.fixture(
     params=[
-        (Timedelta("0 days"), Timedelta("1 day")),
-        (Timestamp("2018-01-01"), Timedelta("1 day")),
+        (pd.Timedelta("0 days"), pd.Timedelta("1 day")),
+        (pd.Timestamp("2018-01-01"), pd.Timedelta("1 day")),
         (0, 1),
     ],
     ids=lambda x: type(x[0]).__name__,
@@ -40,7 +35,7 @@ def start_shift(request):
 class TestOverlaps:
     def test_overlaps_interval(self, constructor, start_shift, closed, other_closed):
         start, shift = start_shift
-        interval = Interval(start, start + 3 * shift, other_closed)
+        interval = pd.Interval(start, start + 3 * shift, other_closed)
 
         # intervals: identical, nested, spanning, partial, adjacent, disjoint
         tuples = [
@@ -58,7 +53,7 @@ class TestOverlaps:
         result = interval_container.overlaps(interval)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("other_constructor", [IntervalArray, IntervalIndex])
+    @pytest.mark.parametrize("other_constructor", [IntervalArray, pd.IntervalIndex])
     def test_overlaps_interval_container(self, constructor, other_constructor):
         # TODO: modify this test when implemented
         interval_container = constructor.from_breaks(range(5))
@@ -69,7 +64,7 @@ class TestOverlaps:
     def test_overlaps_na(self, constructor, start_shift):
         """NA values are marked as False"""
         start, shift = start_shift
-        interval = Interval(start, start + shift)
+        interval = pd.Interval(start, start + shift)
 
         tuples = [
             (start, start + shift),
@@ -84,7 +79,7 @@ class TestOverlaps:
 
     @pytest.mark.parametrize(
         "other",
-        [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
+        [10, True, "foo", pd.Timedelta("1 day"), pd.Timestamp("2018-01-01")],
         ids=lambda x: type(x).__name__,
     )
     def test_overlaps_invalid_type(self, constructor, other):

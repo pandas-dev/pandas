@@ -7,10 +7,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    concat,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -60,7 +57,7 @@ baz,7,8,9
     with parser.read_csv(StringIO(data), iterator=True) as reader:
         result = list(reader)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         index=["foo", "bar", "baz"],
         columns=["A", "B", "C"],
@@ -86,12 +83,12 @@ baz,7,8,9
         result = list(reader)
 
     assert len(result) == 3
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         index=["foo", "bar", "baz"],
         columns=["A", "B", "C"],
     )
-    tm.assert_frame_equal(concat(result), expected)
+    tm.assert_frame_equal(pd.concat(result), expected)
 
 
 def test_nrows_iterator_without_chunksize(all_parsers):
@@ -111,7 +108,7 @@ baz,7,8,9
     with parser.read_csv(StringIO(data), iterator=True, nrows=2) as reader:
         result = reader.get_chunk()
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6]],
         index=["foo", "bar"],
         columns=["A", "B", "C"],
@@ -151,5 +148,5 @@ def test_iteration_open_handle(temp_file, all_parsers):
                 break
 
         result = parser.read_csv(f, **kwargs)
-        expected = DataFrame({0: ["DDD", "EEE", "FFF", "GGG"]})
+        expected = pd.DataFrame({0: ["DDD", "EEE", "FFF", "GGG"]})
         tm.assert_frame_equal(result, expected)
